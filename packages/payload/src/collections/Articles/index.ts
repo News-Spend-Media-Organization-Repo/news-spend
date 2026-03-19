@@ -1,18 +1,17 @@
-import type { CollectionConfig } from 'payload'
-import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
+import { env } from "@local/env/payload";
+import { AdminAccess } from "@local/payload/access/AdminAccess";
+import { EveryoneAccess } from "@local/payload/access/EveryoneAccess";
+import { TwitterBlock } from "@local/payload/blocks/TwitterPost";
+import { hideFromIndexingField } from "@local/payload/fields/hideFromIndexing";
+import { publishedDateField } from "@local/payload/fields/publishedDate";
+import { slugField } from "@local/payload/fields/slug";
+import { titleField } from "@local/payload/fields/title";
+import { PopulatePublishDateHook } from "@local/payload/hooks/PopulatePublishDateHook";
+import { RevalidatePageHook } from "@local/payload/hooks/RevalidatePageHook";
+import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical";
+import type { CollectionConfig } from "payload";
 
-import { env } from '@local/env/payload'
-import { AdminAccess } from '@local/payload/access/AdminAccess'
-import { EveryoneAccess } from '@local/payload/access/EveryoneAccess'
-import { TwitterBlock } from '@local/payload/blocks/TwitterPost'
-import { hideFromIndexingField } from '@local/payload/fields/hideFromIndexing'
-import { publishedDateField } from '@local/payload/fields/publishedDate'
-import { slugField } from '@local/payload/fields/slug'
-import { titleField } from '@local/payload/fields/title'
-import { PopulatePublishDateHook } from '@local/payload/hooks/PopulatePublishDateHook'
-import { RevalidatePageHook } from '@local/payload/hooks/RevalidatePageHook'
-
-export const Articles: CollectionConfig<'articles'> = {
+export const Articles: CollectionConfig<"articles"> = {
   access: {
     create: AdminAccess,
     delete: AdminAccess,
@@ -20,35 +19,35 @@ export const Articles: CollectionConfig<'articles'> = {
     update: AdminAccess,
   },
   admin: {
-    defaultColumns: ['title', 'slug', 'status', 'updatedAt', 'publishedDate'],
-    group: 'Content',
+    defaultColumns: ["title", "slug", "status", "updatedAt", "publishedDate"],
+    group: "Content",
     livePreview: {
       url: ({ data }) => {
-        if ('slug' in data && typeof data.slug === 'string') {
-          return `${env.NEXT_PUBLIC_PAYLOAD_URL}/articles/${data.slug}?isLivePreview=true`
+        if ("slug" in data && typeof data.slug === "string") {
+          return `${env.NEXT_PUBLIC_PAYLOAD_URL}/articles/${data.slug}?isLivePreview=true`;
         }
 
-        return ''
+        return "";
       },
     },
     pagination: {
       defaultLimit: 25,
     },
-    useAsTitle: 'title',
+    useAsTitle: "title",
   },
   fields: [
     {
       tabs: [
         {
           fields: [...titleField()],
-          label: 'Content',
+          label: "Content",
         },
         {
           fields: [...slugField()],
-          label: 'Path Setup',
+          label: "Path Setup",
         },
       ],
-      type: 'tabs',
+      type: "tabs",
     },
     {
       editor: lexicalEditor({
@@ -59,8 +58,8 @@ export const Articles: CollectionConfig<'articles'> = {
           }),
         ],
       }),
-      name: 'body',
-      type: 'richText',
+      name: "body",
+      type: "richText",
     },
     ...publishedDateField(),
     ...hideFromIndexingField(),
@@ -69,7 +68,7 @@ export const Articles: CollectionConfig<'articles'> = {
     afterChange: [RevalidatePageHook],
     beforeChange: [PopulatePublishDateHook],
   },
-  slug: 'articles',
+  slug: "articles",
   versions: {
     drafts: {
       autosave: {
@@ -77,4 +76,4 @@ export const Articles: CollectionConfig<'articles'> = {
       },
     },
   },
-}
+};

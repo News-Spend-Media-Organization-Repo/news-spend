@@ -1,7 +1,6 @@
-import { createEnv } from '@t3-oss/env-nextjs'
-import { z } from 'zod'
-
-import { skipValidation } from '@local/env/helpers/skipValidation'
+import { skipValidation } from "@local/env/helpers/skipValidation";
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod";
 
 export const env = createEnv({
   emptyStringAsUndefined: true,
@@ -11,8 +10,8 @@ export const env = createEnv({
   },
   shared: {
     NODE_ENV: z
-      .enum(['development', 'production', 'test'])
-      .default('development'),
+      .enum(["development", "production", "test"])
+      .default("development"),
   },
   skipValidation,
-})
+});

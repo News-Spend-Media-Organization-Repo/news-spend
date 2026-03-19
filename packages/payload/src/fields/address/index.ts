@@ -1,18 +1,18 @@
-import type { GroupField, TextField } from 'payload'
-import { deepMerge } from 'payload'
+import type { GroupField, TextField } from "payload";
+import { deepMerge } from "payload";
 
 export type AddressFieldOverrides = {
-  address1Overrides?: Partial<TextField>
-  address2Overrides?: Partial<TextField>
-  cityOverrides?: Partial<TextField>
-  countryOverrides?: Partial<TextField>
-  groupOverrides?: Partial<Omit<GroupField, 'fields'>>
-  postalCodeOverrides?: Partial<TextField>
-  required?: boolean
-  stateOverrides?: Partial<TextField>
-}
+  address1Overrides?: Partial<TextField>;
+  address2Overrides?: Partial<TextField>;
+  cityOverrides?: Partial<TextField>;
+  countryOverrides?: Partial<TextField>;
+  groupOverrides?: Partial<Omit<GroupField, "fields">>;
+  postalCodeOverrides?: Partial<TextField>;
+  required?: boolean;
+  stateOverrides?: Partial<TextField>;
+};
 
-type AddressField = (overrides?: AddressFieldOverrides) => GroupField
+type AddressField = (overrides?: AddressFieldOverrides) => GroupField;
 
 export const addressField: AddressField = (overrides = {}) => {
   const {
@@ -24,7 +24,7 @@ export const addressField: AddressField = (overrides = {}) => {
     postalCodeOverrides = {},
     required = false,
     stateOverrides = {},
-  } = overrides
+  } = overrides;
 
   return deepMerge<GroupField>(
     {
@@ -33,70 +33,70 @@ export const addressField: AddressField = (overrides = {}) => {
           fields: [
             deepMerge<TextField>(
               {
-                label: 'Address 1',
-                name: 'address1',
+                label: "Address 1",
+                name: "address1",
                 required,
-                type: 'text',
+                type: "text",
               },
-              address1Overrides,
+              address1Overrides
             ),
             deepMerge<TextField>(
               {
-                label: 'Address 2',
-                name: 'address2',
-                type: 'text',
+                label: "Address 2",
+                name: "address2",
+                type: "text",
               },
-              address2Overrides,
+              address2Overrides
             ),
           ],
-          type: 'row',
+          type: "row",
         },
         {
           fields: [
             deepMerge<TextField>(
               {
-                label: 'City',
-                name: 'city',
+                label: "City",
+                name: "city",
                 required,
-                type: 'text',
+                type: "text",
               },
-              cityOverrides,
+              cityOverrides
             ),
             deepMerge<TextField>(
               {
-                label: 'State',
-                name: 'state',
+                label: "State",
+                name: "state",
                 required,
-                type: 'text',
+                type: "text",
               },
-              stateOverrides,
+              stateOverrides
             ),
             deepMerge<TextField>(
               {
-                label: 'Postal Code',
-                name: 'postalCode',
+                label: "Postal Code",
+                name: "postalCode",
                 required,
-                type: 'text',
+                type: "text",
               },
-              postalCodeOverrides,
+              postalCodeOverrides
             ),
             deepMerge<TextField>(
               {
-                label: 'Country',
-                name: 'country',
+                label: "Country",
+                name: "country",
                 required,
-                type: 'text',
+                type: "text",
               },
-              countryOverrides,
+              countryOverrides
             ),
           ],
-          type: 'row',
+          type: "row",
         },
       ],
-      label: 'Address',
-      name: 'address',
-      type: 'group',
+      label: "Address",
+      name: "address",
+      type: "group",
     },
-    groupOverrides,
-  )
-}
+    groupOverrides
+  );
+};

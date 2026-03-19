@@ -1,20 +1,19 @@
-import type { CollectionConfig } from 'payload'
+import { env } from "@local/env/payload";
+import { AdminAccess } from "@local/payload/access/AdminAccess";
+import { EveryoneAccess } from "@local/payload/access/EveryoneAccess";
+import { hideFromIndexingField } from "@local/payload/fields/hideFromIndexing";
+import { publishedDateField } from "@local/payload/fields/publishedDate";
+import { slugField } from "@local/payload/fields/slug";
+import { titleField } from "@local/payload/fields/title";
+import { PopulatePublishDateHook } from "@local/payload/hooks/PopulatePublishDateHook";
+import { RevalidatePageHook } from "@local/payload/hooks/RevalidatePageHook";
 import {
   createBreadcrumbsField,
   createParentField,
-} from '@payloadcms/plugin-nested-docs'
+} from "@payloadcms/plugin-nested-docs";
+import type { CollectionConfig } from "payload";
 
-import { env } from '@local/env/payload'
-import { AdminAccess } from '@local/payload/access/AdminAccess'
-import { EveryoneAccess } from '@local/payload/access/EveryoneAccess'
-import { hideFromIndexingField } from '@local/payload/fields/hideFromIndexing'
-import { publishedDateField } from '@local/payload/fields/publishedDate'
-import { slugField } from '@local/payload/fields/slug'
-import { titleField } from '@local/payload/fields/title'
-import { PopulatePublishDateHook } from '@local/payload/hooks/PopulatePublishDateHook'
-import { RevalidatePageHook } from '@local/payload/hooks/RevalidatePageHook'
-
-export const Pages: CollectionConfig<'pages'> = {
+export const Pages: CollectionConfig<"pages"> = {
   access: {
     create: AdminAccess,
     delete: AdminAccess,
@@ -23,44 +22,44 @@ export const Pages: CollectionConfig<'pages'> = {
   },
   admin: {
     defaultColumns: [
-      'title',
-      'pathname',
-      'status',
-      'updatedAt',
-      'publishedDate',
+      "title",
+      "pathname",
+      "status",
+      "updatedAt",
+      "publishedDate",
     ],
-    group: 'Content',
+    group: "Content",
     livePreview: {
       url: ({ data }) => {
-        if ('pathname' in data && typeof data.pathname === 'string') {
-          return `${env.NEXT_PUBLIC_PAYLOAD_URL}${data.pathname}?isLivePreview=true`
+        if ("pathname" in data && typeof data.pathname === "string") {
+          return `${env.NEXT_PUBLIC_PAYLOAD_URL}${data.pathname}?isLivePreview=true`;
         }
 
-        return ''
+        return "";
       },
     },
     pagination: {
       defaultLimit: 25,
     },
-    useAsTitle: 'title',
+    useAsTitle: "title",
   },
   fields: [
     {
       tabs: [
         {
           fields: [...titleField()],
-          label: 'Content',
+          label: "Content",
         },
         {
           fields: [
             ...slugField(),
-            createParentField('pages'),
-            createBreadcrumbsField('pages'),
+            createParentField("pages"),
+            createBreadcrumbsField("pages"),
           ],
-          label: 'Path Setup',
+          label: "Path Setup",
         },
       ],
-      type: 'tabs',
+      type: "tabs",
     },
     ...publishedDateField(),
     ...hideFromIndexingField(),
@@ -69,7 +68,7 @@ export const Pages: CollectionConfig<'pages'> = {
     afterChange: [RevalidatePageHook],
     beforeChange: [PopulatePublishDateHook],
   },
-  slug: 'pages',
+  slug: "pages",
   versions: {
     drafts: {
       autosave: {
@@ -77,4 +76,4 @@ export const Pages: CollectionConfig<'pages'> = {
       },
     },
   },
-}
+};

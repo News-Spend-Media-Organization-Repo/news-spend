@@ -1,30 +1,30 @@
-import type { CheckboxField } from 'payload'
-import { deepMerge } from 'payload'
+import type { CheckboxField } from "payload";
+import { deepMerge } from "payload";
 
 export type HideFromIndexingFieldOverrides = {
-  hideFromIndexingOverrides?: Partial<CheckboxField>
-}
+  hideFromIndexingOverrides?: Partial<CheckboxField>;
+};
 
 type HideFromIndexingField = (
-  overrides?: HideFromIndexingFieldOverrides,
-) => [CheckboxField]
+  overrides?: HideFromIndexingFieldOverrides
+) => [CheckboxField];
 
 export const hideFromIndexingField: HideFromIndexingField = (
-  overrides = {},
+  overrides = {}
 ) => {
-  const { hideFromIndexingOverrides = {} } = overrides
+  const { hideFromIndexingOverrides = {} } = overrides;
 
   const hideFromIndexingField = deepMerge<CheckboxField>(
     {
       admin: {
-        position: 'sidebar',
+        position: "sidebar",
       },
-      label: 'Hide page from indexing',
-      name: 'hideFromIndexing',
-      type: 'checkbox',
+      label: "Hide page from indexing",
+      name: "hideFromIndexing",
+      type: "checkbox",
     },
-    hideFromIndexingOverrides,
-  )
+    hideFromIndexingOverrides
+  );
 
-  return [hideFromIndexingField]
-}
+  return [hideFromIndexingField];
+};

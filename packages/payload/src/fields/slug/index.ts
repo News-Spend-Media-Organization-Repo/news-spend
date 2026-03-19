@@ -1,33 +1,32 @@
-import type { CheckboxField, TextField } from 'payload'
-import { deepMerge } from 'payload'
-
-import { formatSlugHook } from '@local/payload/hooks/FormatSlugHook'
+import { formatSlugHook } from "@local/payload/hooks/FormatSlugHook";
+import type { CheckboxField, TextField } from "payload";
+import { deepMerge } from "payload";
 
 export type SlugFieldOverrides = {
-  checkboxOverrides?: Partial<CheckboxField>
-  slugOverrides?: Partial<TextField>
-}
+  checkboxOverrides?: Partial<CheckboxField>;
+  slugOverrides?: Partial<TextField>;
+};
 
 type Slug = (
   fieldToUse?: string,
-  overrides?: SlugFieldOverrides,
-) => [TextField, CheckboxField]
+  overrides?: SlugFieldOverrides
+) => [TextField, CheckboxField];
 
-export const slugField: Slug = (fieldToUse = 'title', overrides = {}) => {
-  const { checkboxOverrides = {}, slugOverrides = {} } = overrides
+export const slugField: Slug = (fieldToUse = "title", overrides = {}) => {
+  const { checkboxOverrides = {}, slugOverrides = {} } = overrides;
 
   const checkBoxField = deepMerge<CheckboxField>(
     {
       admin: {
         hidden: true,
-        position: 'sidebar',
+        position: "sidebar",
       },
       defaultValue: true,
-      name: 'slugLock',
-      type: 'checkbox',
+      name: "slugLock",
+      type: "checkbox",
     },
-    checkboxOverrides,
-  )
+    checkboxOverrides
+  );
 
   const slugField = deepMerge<TextField>(
     {
@@ -38,22 +37,22 @@ export const slugField: Slug = (fieldToUse = 'title', overrides = {}) => {
               checkboxFieldPath: checkBoxField.name,
               fieldToUse,
             },
-            path: '@local/payload/components/SlugField#SlugField',
+            path: "@local/payload/components/SlugField#SlugField",
           },
         },
-        position: 'sidebar',
+        position: "sidebar",
       },
       hooks: {
         // Kept this in for hook or API based updates
         beforeValidate: [formatSlugHook(fieldToUse)],
       },
       index: true,
-      label: 'Slug',
-      name: 'slug',
-      type: 'text',
+      label: "Slug",
+      name: "slug",
+      type: "text",
     },
-    slugOverrides,
-  )
+    slugOverrides
+  );
 
-  return [slugField, checkBoxField]
-}
+  return [slugField, checkBoxField];
+};

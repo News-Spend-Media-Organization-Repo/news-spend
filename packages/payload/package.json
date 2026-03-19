@@ -21,10 +21,10 @@
   },
   "scripts": {
     "clean": "rm -rf node_modules bun.lockb",
-    "format": "biome check .",
-    "format:fix": "biome check . --write",
-    "lint": "biome lint .",
-    "lint:fix": "biome lint . --write",
+    "format": "oxfmt .",
+    "format:fix": "oxfmt . --write",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --write",
     "generate:types": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload generate:types",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },

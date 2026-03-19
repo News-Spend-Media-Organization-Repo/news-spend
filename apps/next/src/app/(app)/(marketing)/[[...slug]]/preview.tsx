@@ -1,20 +1,19 @@
-'use client'
+"use client";
 
-import type { FC } from 'react'
-import { useRouter } from 'next/navigation'
-import { RefreshRouteOnSave } from '@payloadcms/live-preview-react'
-
-import { env } from '@local/env/payload'
+import { env } from "@local/env/payload";
+import { RefreshRouteOnSave } from "@payloadcms/live-preview-react";
+import { useRouter } from "next/navigation";
+import type { FC } from "react";
 
 export const Preview: FC = () => {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <RefreshRouteOnSave
       refresh={() => {
-        router.refresh()
+        router.refresh();
       }}
       serverURL={env.NEXT_PUBLIC_PAYLOAD_URL}
     />
-  )
-}
+  );
+};

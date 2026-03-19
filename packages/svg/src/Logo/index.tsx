@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import type { Ref, SVGProps } from 'react'
-import { forwardRef, memo } from 'react'
+import type { Ref, SVGProps } from "react";
+import { forwardRef, memo } from "react";
 
 const SvgComponent = (
   props: SVGProps<SVGSVGElement>,
-  ref: Ref<SVGSVGElement>,
+  ref: Ref<SVGSVGElement>
 ) => {
-  const { color = '#42c3de', ...rest } = props
+  const { color = "#42c3de", ...rest } = props;
   return (
     <svg
       height={141.171}
@@ -33,8 +33,8 @@ const SvgComponent = (
         </g>
       </g>
     </svg>
-  )
-}
-const ForwardRef = forwardRef(SvgComponent)
-const Memo = memo(ForwardRef)
-export { Memo as Logo }
+  );
+};
+const ForwardRef = forwardRef(SvgComponent);
+const Memo = memo(ForwardRef);
+export { Memo as Logo };

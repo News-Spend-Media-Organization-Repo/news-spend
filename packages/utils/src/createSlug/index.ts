@@ -1,5 +1,5 @@
-import slugify from 'slugify'
+import slugify from "slugify";
 
 export function createSlug(name: string): string {
-  return slugify(name, { lower: true })
+  return slugify(name, { lower: true });
 }

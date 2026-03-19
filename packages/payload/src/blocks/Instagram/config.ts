@@ -11,7 +11,8 @@ export const InstagramBlock: Block = {
   },
   admin: {
     components: {
-      Block: "@local/payload/blocks/Instagram/Component#InstagramBlockComponent",
+      Block:
+        "@local/payload/blocks/Instagram/Component#InstagramBlockComponent",
     },
   },
   fields: [

@@ -1,9 +1,9 @@
-import type { GlobalConfig } from 'payload'
+import type { GlobalConfig } from "payload";
 
 export const NavigationMenu: GlobalConfig = {
   admin: {
-    group: 'Site Config',
+    group: "Site Config",
   },
   fields: [],
-  slug: 'navigation-menu',
-}
+  slug: "navigation-menu",
+};

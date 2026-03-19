@@ -1,1 +1,1 @@
-export type ComponentAsChild = { asChild?: boolean }
+export type ComponentAsChild = { asChild?: boolean };

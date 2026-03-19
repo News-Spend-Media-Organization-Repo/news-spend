@@ -1,24 +1,24 @@
-import type { UploadField } from 'payload'
-import { deepMerge } from 'payload'
+import type { UploadField } from "payload";
+import { deepMerge } from "payload";
 
 export type MediaFieldOverrides = {
-  mediaOverrides?: Partial<UploadField>
-}
+  mediaOverrides?: Partial<UploadField>;
+};
 
-type MediaField = (overrides?: MediaFieldOverrides) => [UploadField]
+type MediaField = (overrides?: MediaFieldOverrides) => [UploadField];
 
 export const mediaField: MediaField = (overrides = {}) => {
-  const { mediaOverrides = {} } = overrides
+  const { mediaOverrides = {} } = overrides;
 
   const mediaField = deepMerge<UploadField>(
     {
-      label: 'Media',
-      name: 'media',
-      relationTo: 'media',
-      type: 'upload',
+      label: "Media",
+      name: "media",
+      relationTo: "media",
+      type: "upload",
     },
-    mediaOverrides,
-  )
+    mediaOverrides
+  );
 
-  return [mediaField]
-}
+  return [mediaField];
+};

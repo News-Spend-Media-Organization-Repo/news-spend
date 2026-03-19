@@ -1,3 +1,3 @@
-import { configurePayload } from '@local/payload/configurePayload'
+import { configurePayload } from "@local/payload/configurePayload";
 
-export default configurePayload()
+export default configurePayload();

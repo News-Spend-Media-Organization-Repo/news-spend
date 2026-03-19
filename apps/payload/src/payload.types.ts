@@ -1,1 +1,1 @@
-export * from '@local/payload/payload-types'
+export * from "@local/payload/payload-types";

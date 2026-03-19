@@ -1,1 +1,1 @@
-export type { ThemeConfig } from 'tailwindcss/types/config'
+export type { ThemeConfig } from "tailwindcss/types/config";

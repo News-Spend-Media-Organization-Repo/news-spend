@@ -1,9 +1,9 @@
-import type { Preview } from '@fusionary/storybook-config/preview'
-import basePreview from '@fusionary/storybook-config/preview'
+import type { Preview } from "@fusionary/storybook-config/preview";
+import basePreview from "@fusionary/storybook-config/preview";
 
-import '@fusionary/storybook-config/style.css'
-import './style.css'
-import '@local/ui/styles.css'
+import "@fusionary/storybook-config/style.css";
+import "./style.css";
+import "@local/ui/styles.css";
 
 const parameters = {
   ...basePreview.parameters,
@@ -11,24 +11,24 @@ const parameters = {
   options: {
     ...basePreview.parameters?.options,
     storySort: {
-      method: 'alphabetical',
+      method: "alphabetical",
       order: [
-        'Layouts',
-        'Pages',
-        'Sections',
-        'Typography',
-        'Elements',
-        'Layout',
-        'Forms',
-        'Icons',
+        "Layouts",
+        "Pages",
+        "Sections",
+        "Typography",
+        "Elements",
+        "Layout",
+        "Forms",
+        "Icons",
       ],
     },
   },
-}
+};
 
 const preview: Preview = {
   ...basePreview,
   parameters,
-}
+};
 
-export default preview
+export default preview;

@@ -18,6 +18,6 @@ const NotFound = () => (
       </div>
     </div>
   </main>
-)
+);
 
-export default NotFound
+export default NotFound;

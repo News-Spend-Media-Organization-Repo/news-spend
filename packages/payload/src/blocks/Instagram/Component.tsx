@@ -1,7 +1,6 @@
 "use client";
 
 import type { LexicalBlockClientProps } from "@payloadcms/richtext-lexical";
-
 import { BlockCollapsible } from "@payloadcms/richtext-lexical/client";
 import { useFormFields } from "@payloadcms/ui";
 

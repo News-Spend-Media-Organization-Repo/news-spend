@@ -1,3 +1,3 @@
-import type { ThemeConfig } from './types'
+import type { ThemeConfig } from "./types";
 
-export const colors: ThemeConfig['colors'] = {}
+export const colors: ThemeConfig["colors"] = {};

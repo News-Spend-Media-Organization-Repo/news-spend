@@ -1,2 +1,2 @@
-export { TwitterPostBlockComponent } from './Component'
-export { TwitterBlock } from './config'
+export { TwitterPostBlockComponent } from "./Component";
+export { TwitterBlock } from "./config";

@@ -1,4 +1,4 @@
-import { forwardRef, memo } from 'react'
+import { forwardRef, memo } from "react";
 
 export const SvgComponent = () => (
   <svg
@@ -16,7 +16,7 @@ export const SvgComponent = () => (
       strokeWidth="2"
     />
   </svg>
-)
-const ForwardRef = forwardRef(SvgComponent)
-const Memo = memo(ForwardRef)
-export { Memo as CheckIcon }
+);
+const ForwardRef = forwardRef(SvgComponent);
+const Memo = memo(ForwardRef);
+export { Memo as CheckIcon };

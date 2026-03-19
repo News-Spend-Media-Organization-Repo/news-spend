@@ -4,20 +4,20 @@ import type {
   RadioField,
   RelationshipField,
   TextField,
-} from 'payload'
-import { deepMerge } from 'payload'
+} from "payload";
+import { deepMerge } from "payload";
 
 export type LinkFieldOverrides = {
-  groupOverrides?: Partial<Omit<GroupField, 'fields'>>
-  internalLinkOverrides?: Partial<RelationshipField>
-  labelOverrides?: Partial<TextField>
-  linkTypeOverrides?: Partial<RadioField>
-  openInNewTabOverrides?: Partial<CheckboxField>
-  required?: boolean
-  urlOverrides?: Partial<TextField>
-}
+  groupOverrides?: Partial<Omit<GroupField, "fields">>;
+  internalLinkOverrides?: Partial<RelationshipField>;
+  labelOverrides?: Partial<TextField>;
+  linkTypeOverrides?: Partial<RadioField>;
+  openInNewTabOverrides?: Partial<CheckboxField>;
+  required?: boolean;
+  urlOverrides?: Partial<TextField>;
+};
 
-type LinkField = (overrides?: LinkFieldOverrides) => GroupField
+type LinkField = (overrides?: LinkFieldOverrides) => GroupField;
 
 export const linkField: LinkField = (overrides = {}) => {
   const {
@@ -28,19 +28,19 @@ export const linkField: LinkField = (overrides = {}) => {
     openInNewTabOverrides = {},
     required = false,
     urlOverrides = {},
-  } = overrides
+  } = overrides;
 
   return deepMerge<GroupField>(
     {
       fields: [
         deepMerge<TextField>(
           {
-            label: 'Label',
-            name: 'label',
+            label: "Label",
+            name: "label",
             required,
-            type: 'text',
+            type: "text",
           },
-          labelOverrides,
+          labelOverrides
         ),
         deepMerge<RadioField>(
           {
@@ -48,68 +48,68 @@ export const linkField: LinkField = (overrides = {}) => {
               condition: (_, siblingData) =>
                 required || Boolean(siblingData.label),
             },
-            label: 'Type',
-            name: 'linkType',
+            label: "Type",
+            name: "linkType",
             options: [
               {
-                label: 'Internal',
-                value: 'internal',
+                label: "Internal",
+                value: "internal",
               },
               {
-                label: 'External',
-                value: 'external',
+                label: "External",
+                value: "external",
               },
             ],
             required: true,
-            type: 'radio',
+            type: "radio",
           },
-          linkTypeOverrides,
+          linkTypeOverrides
         ),
         deepMerge<TextField>(
           {
             admin: {
               condition: (_, siblingData) =>
                 (required || Boolean(siblingData.label)) &&
-                siblingData.linkType === 'external',
+                siblingData.linkType === "external",
             },
-            label: 'URL',
-            name: 'url',
+            label: "URL",
+            name: "url",
             required: true,
-            type: 'text',
+            type: "text",
           },
-          urlOverrides,
+          urlOverrides
         ),
         deepMerge<RelationshipField>(
           {
             admin: {
               condition: (_, siblingData) =>
                 (required || Boolean(siblingData.label)) &&
-                siblingData.linkType === 'internal',
+                siblingData.linkType === "internal",
             },
-            label: 'Internal Reference',
-            name: 'internalLink',
-            relationTo: ['pages', 'articles'],
+            label: "Internal Reference",
+            name: "internalLink",
+            relationTo: ["pages", "articles"],
             required: true,
-            type: 'relationship',
+            type: "relationship",
           },
-          internalLinkOverrides,
+          internalLinkOverrides
         ),
         deepMerge<CheckboxField>(
           {
             admin: {
               condition: (_, siblingData) => Boolean(siblingData.label),
             },
-            label: 'Open in new tab',
-            name: 'openInNewTab',
-            type: 'checkbox',
+            label: "Open in new tab",
+            name: "openInNewTab",
+            type: "checkbox",
           },
-          openInNewTabOverrides,
+          openInNewTabOverrides
         ),
       ],
-      label: 'Link',
-      name: 'link',
-      type: 'group',
+      label: "Link",
+      name: "link",
+      type: "group",
     },
-    groupOverrides,
-  )
-}
+    groupOverrides
+  );
+};

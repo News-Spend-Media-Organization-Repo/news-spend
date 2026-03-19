@@ -1,9 +1,9 @@
-import type { GlobalConfig } from 'payload'
+import type { GlobalConfig } from "payload";
 
 export const Footer: GlobalConfig = {
   admin: {
-    group: 'Site Config',
+    group: "Site Config",
   },
   fields: [],
-  slug: 'footer',
-}
+  slug: "footer",
+};

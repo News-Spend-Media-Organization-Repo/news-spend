@@ -1,9 +1,8 @@
-import type { CollectionConfig } from 'payload'
+import { EveryoneAccess } from "@local/payload/access/EveryoneAccess";
+import { LoggedInAccess } from "@local/payload/access/LoggedInAccess";
+import type { CollectionConfig } from "payload";
 
-import { EveryoneAccess } from '@local/payload/access/EveryoneAccess'
-import { LoggedInAccess } from '@local/payload/access/LoggedInAccess'
-
-export const Media: CollectionConfig<'media'> = {
+export const Media: CollectionConfig<"media"> = {
   access: {
     create: LoggedInAccess,
     delete: LoggedInAccess,
@@ -11,15 +10,15 @@ export const Media: CollectionConfig<'media'> = {
     update: LoggedInAccess,
   },
   admin: {
-    group: 'Media',
+    group: "Media",
   },
   fields: [
     {
-      name: 'alt',
+      name: "alt",
       required: true,
-      type: 'text',
+      type: "text",
     },
   ],
-  slug: 'media',
+  slug: "media",
   upload: true,
-}
+};

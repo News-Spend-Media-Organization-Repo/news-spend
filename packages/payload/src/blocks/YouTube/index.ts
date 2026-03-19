@@ -1,2 +1,2 @@
-export { YouTubeBlockComponent } from './Component'
-export { YouTubeBlock } from './config'
+export { YouTubeBlockComponent } from "./Component";
+export { YouTubeBlock } from "./config";

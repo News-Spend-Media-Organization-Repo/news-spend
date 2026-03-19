@@ -1,2 +1,2 @@
-export { InstagramBlockComponent } from './Component'
-export { InstagramBlock } from './config'
+export { InstagramBlockComponent } from "./Component";
+export { InstagramBlock } from "./config";

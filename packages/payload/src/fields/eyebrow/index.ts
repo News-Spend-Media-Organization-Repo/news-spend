@@ -1,23 +1,23 @@
-import type { TextField } from 'payload'
-import { deepMerge } from 'payload'
+import type { TextField } from "payload";
+import { deepMerge } from "payload";
 
 export type EyebrowFieldOverrides = {
-  eyebrowOverrides?: Partial<TextField>
-}
+  eyebrowOverrides?: Partial<TextField>;
+};
 
-type EyebrowField = (overrides?: EyebrowFieldOverrides) => [TextField]
+type EyebrowField = (overrides?: EyebrowFieldOverrides) => [TextField];
 
 export const eyebrowField: EyebrowField = (overrides = {}) => {
-  const { eyebrowOverrides = {} } = overrides
+  const { eyebrowOverrides = {} } = overrides;
 
   const eyebrowField = deepMerge<TextField>(
     {
-      label: 'Eyebrow',
-      name: 'eyebrow',
-      type: 'text',
+      label: "Eyebrow",
+      name: "eyebrow",
+      type: "text",
     },
-    eyebrowOverrides,
-  )
+    eyebrowOverrides
+  );
 
-  return [eyebrowField]
-}
+  return [eyebrowField];
+};

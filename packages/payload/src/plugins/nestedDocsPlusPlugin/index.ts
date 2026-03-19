@@ -1,57 +1,56 @@
+import { isObject } from "@local/utils/isObject";
+import { nestedDocsPlugin } from "@payloadcms/plugin-nested-docs";
 import type {
   CollectionBeforeChangeHook,
   CollectionSlug,
   Config,
   Plugin,
-} from 'payload'
-import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
-
-import { isObject } from '@local/utils/isObject'
+} from "payload";
 
 const setPathnameHook: CollectionBeforeChangeHook = ({ data }) => {
   if (
     isObject(data) &&
-    'breadcrumbs' in data &&
+    "breadcrumbs" in data &&
     Array.isArray(data.breadcrumbs)
   ) {
-    const lastBreadcrumb: unknown = data.breadcrumbs.at(-1)
+    const lastBreadcrumb: unknown = data.breadcrumbs.at(-1);
 
     if (
       isObject(lastBreadcrumb) &&
-      'url' in lastBreadcrumb &&
-      typeof lastBreadcrumb.url === 'string'
+      "url" in lastBreadcrumb &&
+      typeof lastBreadcrumb.url === "string"
     ) {
-      data.pathname = lastBreadcrumb.url.replaceAll(/^\/*/g, '/')
+      data.pathname = lastBreadcrumb.url.replaceAll(/^\/*/g, "/");
     }
   }
-}
+};
 
 export const nestedDocsPlusPlugin =
   (...params: Parameters<typeof nestedDocsPlugin>): Plugin =>
-  async incomingConfig => {
-    const [pluginConfig] = params
+  async (incomingConfig) => {
+    const [pluginConfig] = params;
 
     const nestedDocsConfig =
-      await nestedDocsPlugin(pluginConfig)(incomingConfig)
+      await nestedDocsPlugin(pluginConfig)(incomingConfig);
 
     const config: Config = {
       ...nestedDocsConfig,
-      collections: (nestedDocsConfig.collections ?? []).map(collection => {
+      collections: (nestedDocsConfig.collections ?? []).map((collection) => {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        const fields = [...(collection.fields ?? [])]
+        const fields = [...(collection.fields ?? [])];
 
         if (
           pluginConfig.collections.includes(collection.slug as CollectionSlug)
         ) {
           fields.push({
             admin: {
-              position: 'sidebar',
+              position: "sidebar",
               readOnly: true,
             },
-            label: 'Route Path',
-            name: 'pathname',
-            type: 'text',
-          })
+            label: "Route Path",
+            name: "pathname",
+            type: "text",
+          });
         }
 
         return {
@@ -64,10 +63,12 @@ export const nestedDocsPlusPlugin =
               setPathnameHook,
             ],
           },
-        }
+        };
       }),
-      onInit: async payload => {
-        if (incomingConfig.onInit) { await incomingConfig.onInit(payload) }
+      onInit: async (payload) => {
+        if (incomingConfig.onInit) {
+          await incomingConfig.onInit(payload);
+        }
 
         for (const collectionName of pluginConfig.collections) {
           const docsToUpdate = await payload.find({
@@ -79,7 +80,7 @@ export const nestedDocsPlusPlugin =
                 exists: false,
               },
             },
-          })
+          });
 
           for (const doc of docsToUpdate.docs) {
             await payload.update({
@@ -88,11 +89,11 @@ export const nestedDocsPlusPlugin =
                 ...doc,
               },
               id: doc.id,
-            })
+            });
           }
         }
       },
-    }
+    };
 
-    return config
-  }
+    return config;
+  };

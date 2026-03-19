@@ -1,23 +1,23 @@
-import type { TextField } from 'payload'
-import { deepMerge } from 'payload'
+import type { TextField } from "payload";
+import { deepMerge } from "payload";
 
 export type BodyFieldOverrides = {
-  bodyOverrides?: Partial<TextField>
-}
+  bodyOverrides?: Partial<TextField>;
+};
 
-type BodyField = (overrides?: BodyFieldOverrides) => [TextField]
+type BodyField = (overrides?: BodyFieldOverrides) => [TextField];
 
-export const bodyField: BodyField = overrides => {
-  const { bodyOverrides = {} } = overrides ?? {}
+export const bodyField: BodyField = (overrides) => {
+  const { bodyOverrides = {} } = overrides ?? {};
 
   const bodyField = deepMerge<TextField>(
     {
-      label: 'Body',
-      name: 'body',
-      type: 'text',
+      label: "Body",
+      name: "body",
+      type: "text",
     },
-    bodyOverrides,
-  )
+    bodyOverrides
+  );
 
-  return [bodyField]
-}
+  return [bodyField];
+};

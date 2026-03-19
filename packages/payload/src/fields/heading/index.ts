@@ -1,24 +1,24 @@
-import type { TextField } from 'payload'
-import { deepMerge } from 'payload'
+import type { TextField } from "payload";
+import { deepMerge } from "payload";
 
 export type HeadingFieldOverrides = {
-  headingOverrides?: Partial<TextField>
-}
+  headingOverrides?: Partial<TextField>;
+};
 
-type HeadingField = (overrides?: HeadingFieldOverrides) => [TextField]
+type HeadingField = (overrides?: HeadingFieldOverrides) => [TextField];
 
 export const headingField: HeadingField = (overrides = {}) => {
-  const { headingOverrides = {} } = overrides
+  const { headingOverrides = {} } = overrides;
 
   const headingField = deepMerge<TextField>(
     {
-      label: 'Heading',
-      name: 'heading',
+      label: "Heading",
+      name: "heading",
       required: true,
-      type: 'text',
+      type: "text",
     },
-    headingOverrides,
-  )
+    headingOverrides
+  );
 
-  return [headingField]
-}
+  return [headingField];
+};

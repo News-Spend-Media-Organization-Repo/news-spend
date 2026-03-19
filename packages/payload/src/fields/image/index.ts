@@ -1,46 +1,45 @@
-import type { UploadField } from 'payload'
-import { deepMerge } from 'payload'
-
-import type { MediaFieldOverrides } from '@local/payload/fields/media'
-import { mediaField } from '@local/payload/fields/media'
+import type { MediaFieldOverrides } from "@local/payload/fields/media";
+import { mediaField } from "@local/payload/fields/media";
+import type { UploadField } from "payload";
+import { deepMerge } from "payload";
 
 export type ImageFieldOverrides = {
   imageOverrides?: {
-    supportedFormats?: string[]
-  }
-} & MediaFieldOverrides
+    supportedFormats?: string[];
+  };
+} & MediaFieldOverrides;
 
-type ImageField = (overrides?: ImageFieldOverrides) => [UploadField]
+type ImageField = (overrides?: ImageFieldOverrides) => [UploadField];
 
 export const imageField: ImageField = (overrides = {}) => {
-  const { imageOverrides = {}, ...mediaOverrides } = overrides
+  const { imageOverrides = {}, ...mediaOverrides } = overrides;
   const {
     supportedFormats = [
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'image/svg+xml',
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/svg+xml",
     ],
-  } = imageOverrides
+  } = imageOverrides;
 
   const imageField = mediaField(
     deepMerge(
       {
         mediaOverrides: {
           filterOptions: {
-            or: supportedFormats.map(format => ({
+            or: supportedFormats.map((format) => ({
               mimeType: {
                 contains: format,
               },
             })),
           },
-          label: 'Image',
-          name: 'image',
+          label: "Image",
+          name: "image",
         },
       },
-      mediaOverrides,
-    ),
-  )
+      mediaOverrides
+    )
+  );
 
-  return [...imageField]
-}
+  return [...imageField];
+};
