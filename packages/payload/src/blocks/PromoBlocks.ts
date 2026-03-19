@@ -1,0 +1,77 @@
+import type { Block } from "payload";
+
+export const PromoVideoSourceBlock: Block = {
+  slug: "promo-video-source",
+  interfaceName: "PromoVideoSource",
+  fields: [
+    {
+      name: "videoSource",
+      label: "Video Source",
+      type: "select",
+      options: [
+        { label: "Upload", value: "upload" },
+        { label: "Normal URL", value: "normal" },
+        { label: "YouTube", value: "youtube" },
+      ],
+      defaultValue: "upload",
+      required: true,
+      admin: {
+        description: "Specify the video source",
+      },
+    },
+    {
+      name: "video",
+      label: "Video File",
+      type: "upload",
+      relationTo: "media",
+      admin: {
+        description: "Upload an MP4 video file",
+        condition: (_, siblingData) => siblingData?.videoSource === "upload",
+      },
+    },
+    {
+      name: "url",
+      label: "Video URL",
+      type: "text",
+      admin: {
+        condition: (_, siblingData) =>
+          ["normal", "youtube"].includes(siblingData?.videoSource),
+      },
+      validate: (_val: any, { siblingData }: any) => {
+        if (!["normal", "youtube"].includes(siblingData?.videoSource)) {
+          return true;
+        }
+        if (!siblingData?.url) {
+          return "Please enter a URL";
+        }
+        try {
+          new URL(siblingData.url);
+          if (siblingData.videoSource === "youtube") {
+            const youtubeRegex =
+              /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+            if (!youtubeRegex.test(siblingData.url)) {
+              return "Invalid YouTube link";
+            }
+          }
+          return true;
+        } catch {
+          return "Please enter a valid URL";
+        }
+      },
+    },
+  ],
+};
+
+export const PromoImageBlock: Block = {
+  slug: "promo-image",
+  interfaceName: "PromoImage",
+  fields: [
+    {
+      name: "image",
+      type: "upload",
+      label: "Image",
+      relationTo: "media",
+      required: true,
+    },
+  ],
+};

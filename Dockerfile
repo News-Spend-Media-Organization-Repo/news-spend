@@ -1,6 +1,6 @@
-FROM oven/bun:1.3.9-alpine AS base
+FROM oven/bun:1.3.11-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libpq
+RUN apk add --no-cache libpq git
 
 # Install dependencies
 FROM base AS deps
@@ -9,7 +9,7 @@ COPY turbo.json ./
 COPY apps/ apps/
 COPY packages/ packages/
 COPY tooling/ tooling/
-RUN --mount=type=cache,target=/root/.bun/install/cache bun install
+RUN bun install
 
 # Builder
 FROM base AS builder
@@ -23,9 +23,8 @@ ARG DATABASE_URI=postgresql://postgres:password@host.docker.internal:5432/payloa
 ARG PAYLOAD_SECRET=build-secret
 ENV PAYLOAD_PRIVATE_DATABASE_URI=$DATABASE_URI
 ENV PAYLOAD_PRIVATE_SECRET=$PAYLOAD_SECRET
-RUN --mount=type=cache,target=/app/.turbo \
-    --mount=type=cache,target=/app/apps/payload/.next/cache \
-    bun run build --filter=payload
+WORKDIR /app/apps/payload
+RUN bun run build
 
 # Runner
 FROM base AS runner

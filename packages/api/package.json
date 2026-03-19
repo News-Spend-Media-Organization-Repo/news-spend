@@ -17,7 +17,7 @@
     "test": "vitest"
   },
   "devDependencies": {
-    "vitest": "^1.0.0",
+    "vitest": "catalog:",
     "typescript": "catalog:",
     "tsx": "catalog:",
     "@news-spend-media/config": "workspace:*"

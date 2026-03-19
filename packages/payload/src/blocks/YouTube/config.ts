@@ -11,7 +11,8 @@ export const YouTubeBlock: Block = {
   },
   admin: {
     components: {
-      Block: "/blocks/YouTube/Component#YouTubeBlockComponent",
+      Block:
+        "@news-spend-media/payload/blocks/YouTube/Component#YouTubeBlockComponent",
     },
   },
   fields: [

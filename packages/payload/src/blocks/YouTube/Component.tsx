@@ -22,11 +22,7 @@ function extractVideoId(input: string): string | undefined {
         return url.pathname.slice(1);
       }
 
-      return (
-        url.searchParams.get("v") ??
-        url.searchParams.get("video_id") ??
-        undefined
-      );
+      return url.searchParams.get("v") || url.searchParams.get("video_id");
     }
   } catch {
     // Invalid URL

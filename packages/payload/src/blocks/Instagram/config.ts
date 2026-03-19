@@ -2,9 +2,9 @@ import type { Block } from "payload";
 
 export const InstagramBlock: Block = {
   slug: "instagramEmbed",
+  imageURL: "https://www.instagram.com/favicon.ico",
   interfaceName: "InstagramEmbedBlock",
   imageAltText: "Instagram",
-  imageURL: "https://www.instagram.com/favicon.ico",
   labels: {
     singular: "Instagram Post",
     plural: "Instagram Posts",

@@ -1,5 +1,5 @@
 {
-  "name": "payload",
+  "name": "@news-spend-media/payload-app",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -37,27 +37,29 @@
     "@payloadcms/plugin-redirects": "catalog:",
     "@payloadcms/plugin-seo": "catalog:",
     "@payloadcms/richtext-lexical": "catalog:",
+    "@sentry/node": "^8",
     "autoprefixer": "^10.4.27",
     "babel-plugin-react-compiler": "^0.0.0",
+    "require-in-the-middle": "^7.5.0",
     "cross-env": "^7.0.3",
     "graphql": "^16.10.0",
     "next": "catalog:",
     "payload": "catalog:",
-    "postcss": "^8.5.8",
+    "postcss": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "sharp": "^0.33.5"
+    "sharp": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.38.4",
     "@news-spend-media/tailwind-config": "workspace:*",
     "@news-spend-media/tsconfig": "workspace:*",
     "@news-spend-media/types": "workspace:*",
-    "@types/node": "^20.17.23",
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.8.2"
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0"

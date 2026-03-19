@@ -1,3 +1,6 @@
-export { InstagramBlock } from "./Instagram";
-export { TwitterBlock } from "./TwitterPost";
-export { YouTubeBlock } from "./YouTube";
+// Blocks barrel export
+
+export { AdsBlock } from "./ads";
+export { MediaBlock } from "./media-block";
+export { ReadAlsoBlock } from "./read-also";
+export { TwitterBlock } from "./TwitterPost/config";

@@ -1,103 +1,187 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { env } from "@news-spend-media/env/payload";
-import { Articles } from "@news-spend-media/payload/collections/Articles";
-import { Media } from "@news-spend-media/payload/collections/Media";
-import { Pages } from "@news-spend-media/payload/collections/Pages";
-import { Users } from "@news-spend-media/payload/collections/Users";
-import { Footer } from "@news-spend-media/payload/globals/Footer";
-import { NavigationMenu } from "@news-spend-media/payload/globals/NavigationMenu";
-import { nestedDocsPlusPlugin } from "@news-spend-media/payload/plugins/nestedDocsPlusPlugin";
-import { isObject } from "@news-spend-media/utils/isObject";
 import { postgresAdapter } from "@payloadcms/db-postgres";
-import { redirectsPlugin } from "@payloadcms/plugin-redirects";
-import { seoPlugin } from "@payloadcms/plugin-seo";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
-import type { Config } from "payload";
-import { buildConfig, deepMerge } from "payload";
+import { buildConfig, type Config, deepMerge } from "payload";
+import sharp from "sharp";
+
+import { TwitterBlock } from "./blocks";
+import { InstagramBlock } from "./blocks/Instagram/config";
+import { YouTubeBlock } from "./blocks/YouTube/config";
+import {
+  Account,
+  Activities,
+  Categories,
+  Comments,
+  ContentReport,
+  Feedback,
+  IdentityVerification,
+  Lotteries,
+  LotteryTickets,
+  LotteryWinners,
+  NotificationDeliveries,
+  NotificationInbox,
+  Notifications,
+  PartnerContent,
+  PartnerConversions,
+  Partners,
+  PromotionMedia,
+  PushTokens,
+  Reactions,
+  Session,
+  ShopAnalytics,
+  Survey,
+  TicketPurchaseLog,
+  Users,
+  Verification,
+  WitnessReport,
+} from "./collections";
+import Admins from "./collections/Admins";
+import { Media } from "./collections/Media";
+import News from "./collections/News";
+import UserSegment from "./collections/UserSegment";
+import VerificationOTP from "./collections/VerificationOTP";
+import { migrations } from "./migrations";
+import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
+import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
+import { processLotteryTask } from "./tasks/processLottery";
+import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 const baseConfig: Config = {
+  cors: "*",
   admin: {
-    components: {
-      graphics: {
-        Icon: "@news-spend-media/svg/Icon#Icon",
-        Logo: "@news-spend-media/svg/Logo#Logo",
-      },
-    },
+    user: Admins.slug,
     meta: {
+      title: "News Spend Media CMS",
+      description:
+        "Read news, earn points, join our community and stay updated on the latest news and trends.",
+      titleSuffix: " - News Spend Media",
       icons: [
         {
-          rel: "shortcut icon",
-          url: "/favicon.ico",
+          rel: "icon",
+          type: "image/png",
+          url: "/images/logo.png",
         },
       ],
-      titleSuffix: " | Fusionary CMS",
     },
-    user: Users.slug,
+    importMap: {
+      baseDir: path.resolve(dirname),
+    },
+    ...(process.env.NODE_ENV === "development" &&
+      {
+        // autoLogin: {
+        //   email: 'admin@newsspend.com',
+        //   password: 'admin',
+        // },
+      }),
+    components: {
+      graphics: {
+        Logo: "@news-spend-media/payload/components/Logo#Logo",
+        Icon: "@news-spend-media/payload/components/Icon#Icon",
+      },
+    },
   },
-  // blocks: [
-  //   TwitterBlock,
-  //   InstagramBlock,
-  //   YouTubeBlock
-  // ],
-  collections: [Pages, Articles, Users, Media],
+  blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
+  // globals: [NewsCategory],
+  collections: [
+    Account,
+    Activities,
+    Admins,
+    // Ads,
+    // Apps,
+    Categories,
+    Comments,
+    ContentReport,
+    Feedback,
+    // Games,
+    IdentityVerification,
+    Lotteries,
+    LotteryTickets,
+    LotteryWinners,
+    Media,
+    News,
+    NotificationDeliveries,
+    NotificationInbox,
+    Notifications,
+    PartnerContent,
+    PartnerConversions,
+    Partners,
+    PromotionMedia,
+    PushTokens,
+    Reactions,
+    Session,
+    ShopAnalytics,
+    // Stores,
+    Survey,
+    TicketPurchaseLog,
+    Users,
+    Verification,
+    WitnessReport,
+    // VerificationOTP,
+    // UserSegment,
+  ],
+  editor: lexicalEditor(),
+  jobs: {
+    tasks: [
+      sendScheduledNotificationTask,
+      checkPushReceiptsTask,
+      processLotteryTask,
+      cleanupAnonymousUsersTask,
+    ],
+    autoRun: [
+      {
+        cron: "*/5 * * * *",
+        queue: "default",
+        limit: 10,
+      },
+      {
+        cron: "0 0,12 * * *",
+        queue: "maintenance",
+        limit: 10,
+      },
+    ],
+  },
+  secret: process.env.PAYLOAD_SECRET || "",
+  typescript: {
+    outputFile: path.resolve(dirname, "payload-types.ts"),
+  },
   db: postgresAdapter({
     pool: {
-      connectionString: env.PAYLOAD_PRIVATE_DATABASE_URI,
+      connectionString: process.env.DATABASE_URI || "",
     },
+    idType: "uuid",
+    prodMigrations: migrations,
   }),
-  editor: lexicalEditor(),
-  globals: [NavigationMenu, Footer],
-  plugins: [
-    nestedDocsPlusPlugin({
-      breadcrumbsFieldSlug: "breadcrumbs",
-      collections: ["pages"],
-      generateLabel: (_, doc) => doc.title as string,
-      generateURL: (docs) =>
-        docs.reduce((acc, doc) => `${acc}/${doc.slug as string}`, ""),
-      parentFieldSlug: "parent",
-    }),
-    redirectsPlugin({
-      collections: [Pages.slug, Articles.slug],
-      overrides: {
-        admin: {
-          group: "Site Config",
-        },
-      },
-      redirectTypes: ["301", "302", "307", "308"],
-    }),
-    seoPlugin({
-      collections: ["pages", "articles"],
-      fields: ({ defaultFields }) => {
-        return defaultFields.map((field) => {
-          if ("name" in field && field.name === "title") {
-            return {
-              ...field,
-              required: true,
-            };
-          }
+  sharp,
+  upload: {
+    debug: process.env.NODE_ENV === "development",
+  },
+  onInit: async (payload) => {
+    if (process.env.NODE_ENV !== "development") {
+      return;
+    }
+    const existingUsers = await payload.find({
+      collection: "admins",
+      limit: 1,
+    });
 
-          return field;
-        });
-      },
-      generateTitle: ({ doc }) =>
-        isObject(doc) && "title" in doc && typeof doc.title === "string"
-          ? doc.title
-          : "",
-      tabbedUI: true,
-      uploadsCollection: "media",
-    }),
-  ],
-  secret: env.PAYLOAD_PRIVATE_SECRET,
-  typescript: {
-    outputFile: path.resolve(dirname, "payload.types.ts"),
+    if (existingUsers.docs.length === 0) {
+      await payload.create({
+        collection: "admins",
+        data: {
+          email: "admin@newsspend.com",
+          password: "admin",
+          role: "super-admin",
+          fullName: "Super Admin",
+        },
+      });
+    }
   },
 };
 
-export const configurePayload = (overrides?: Partial<Config>) => {
-  return buildConfig(deepMerge(baseConfig, overrides ?? {}));
-};
+export const configurePayload = (overrides?: Partial<Config>) =>
+  buildConfig(deepMerge(baseConfig, overrides ?? {}));

@@ -16,12 +16,12 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "zod": "^3.24.2"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@news-spend-media/tsconfig": "workspace:*",
-    "@types/node": "^20.17.23",
-    "@types/react": "^19.0.0",
-    "typescript": "^5.8.2"
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
   }
 }

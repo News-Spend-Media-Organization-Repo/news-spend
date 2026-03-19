@@ -55,8 +55,8 @@ export const InstagramBlockComponent: React.FC<
           frameBorder="0"
           src={`https://www.instagram.com/${postId}/embed`}
           style={{
-            minHeight: "480px",
             width: "100%",
+            minHeight: "480px",
           }}
           title="Instagram post"
         />

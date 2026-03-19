@@ -1,58 +1,58 @@
-import { formatSlugHook } from "@news-spend-media/payload/hooks/FormatSlugHook";
 import type { CheckboxField, TextField } from "payload";
-import { deepMerge } from "payload";
 
-export type SlugFieldOverrides = {
-  checkboxOverrides?: Partial<CheckboxField>;
+import { formatSlugHook } from "./formatSlug";
+
+type Overrides = {
   slugOverrides?: Partial<TextField>;
+  checkboxOverrides?: Partial<CheckboxField>;
 };
 
 type Slug = (
   fieldToUse?: string,
-  overrides?: SlugFieldOverrides
+  overrides?: Overrides
 ) => [TextField, CheckboxField];
 
 export const slugField: Slug = (fieldToUse = "title", overrides = {}) => {
-  const { checkboxOverrides = {}, slugOverrides = {} } = overrides;
+  const { slugOverrides, checkboxOverrides } = overrides;
 
-  const checkBoxField = deepMerge<CheckboxField>(
-    {
-      admin: {
-        hidden: true,
-        position: "sidebar",
-      },
-      defaultValue: true,
-      name: "slugLock",
-      type: "checkbox",
+  const checkBoxField: CheckboxField = {
+    name: "slugLock",
+    type: "checkbox",
+    defaultValue: true,
+    admin: {
+      hidden: true,
+      position: "sidebar",
     },
-    checkboxOverrides
-  );
+    ...checkboxOverrides,
+  };
 
-  const slugField = deepMerge<TextField>(
-    {
-      admin: {
-        components: {
-          Field: {
-            clientProps: {
-              checkboxFieldPath: checkBoxField.name,
-              fieldToUse,
-            },
-            path: "@news-spend-media/payload/components/SlugField#SlugField",
+  // Expect ts error here because of typescript mismatching Partial<TextField> with TextField
+  // @ts-expect-error
+  const slugField: TextField = {
+    name: "slug",
+    type: "text",
+    index: true,
+    unique: true,
+    label: "Slug",
+    ...(slugOverrides || {}),
+    hooks: {
+      // Kept this in for hook or API based updates
+      beforeValidate: [formatSlugHook(fieldToUse)],
+    },
+    admin: {
+      position: "sidebar",
+      ...(slugOverrides?.admin || {}),
+      components: {
+        Field: {
+          path: "../fields/slug/SlugComponent#SlugComponent",
+          clientProps: {
+            fieldToUse,
+            checkboxFieldPath: checkBoxField.name,
           },
         },
-        position: "sidebar",
       },
-      hooks: {
-        // Kept this in for hook or API based updates
-        beforeValidate: [formatSlugHook(fieldToUse)],
-      },
-      index: true,
-      label: "Slug",
-      name: "slug",
-      type: "text",
     },
-    slugOverrides
-  );
+  };
 
   return [slugField, checkBoxField];
 };
