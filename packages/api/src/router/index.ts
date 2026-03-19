@@ -1,0 +1,46 @@
+import { accountRouter } from "./account";
+import { activityRouter } from "./activity";
+import { adsRouter } from "./ads";
+import { commentRouter } from "./comment";
+import { feedbackRouter } from "./feedback";
+import { lotteryRouter } from "./lottery";
+import { lotteryTicketRouter } from "./lotteryTicket";
+import { newsRouter } from "./news";
+import { notificationsRouter } from "./notifications";
+import { notificationSettingsRouter } from "./notificationSettings";
+import { partnerAnalyticsRouter } from "./partner-analytics";
+import { partnerConversionRouter } from "./partner-conversions";
+import { partnerContentRouter } from "./partnerContent";
+import { postReportRouter } from "./postReport";
+import { publisherRouter } from "./publisher";
+import { radioStationRouter } from "./radioStation";
+import { reportRouter } from "./report";
+import { storeRouter } from "./store";
+import { surveyRouter } from "./survey";
+import { tweetRouter } from "./tweet";
+
+export const router = {
+  account: accountRouter,
+  activity: activityRouter,
+  ads: adsRouter,
+  comments: commentRouter,
+  feedback: feedbackRouter,
+  lottery: lotteryRouter,
+  lotteryTicket: lotteryTicketRouter,
+  news: newsRouter,
+  notificationSettings: notificationSettingsRouter,
+  notifications: notificationsRouter,
+  partnerAnalytics: partnerAnalyticsRouter,
+  partnerContent: partnerContentRouter,
+  partnerConversions: partnerConversionRouter,
+  postReport: postReportRouter,
+  publisher: publisherRouter,
+  radioStation: radioStationRouter,
+  report: reportRouter,
+  store: storeRouter,
+  survey: surveyRouter,
+  tweet: tweetRouter,
+};
+
+export default router;
+export type { router as Router };
