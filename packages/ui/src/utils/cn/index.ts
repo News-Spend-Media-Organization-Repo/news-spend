@@ -65,7 +65,7 @@ const getClassGroups = () => {
     const prop = getCssProperty(key)
     const mappedKey = mapKey(key)
 
-    if (!prop || !mappedKey) {
+    if (!(prop && mappedKey)) {
       return current
     }
 

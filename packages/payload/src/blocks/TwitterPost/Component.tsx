@@ -3,8 +3,7 @@
 import type { LexicalBlockClientProps } from "@payloadcms/richtext-lexical";
 
 import { BlockCollapsible } from "@payloadcms/richtext-lexical/client";
-import { useFormFields, useTheme } from "@payloadcms/ui";
-import { Tweet } from "react-tweet";
+import { useFormFields } from "@payloadcms/ui";
 
 function extractTweetId(input: string): string | undefined {
   if (!input) {
@@ -44,19 +43,23 @@ export const TwitterPostBlockComponent: React.FC<
   LexicalBlockClientProps
 > = () => {
   const tweetIdField = useFormFields(([fields]) => fields.tweetId);
-  const { theme } = useTheme();
 
   const tweetId = extractTweetId(tweetIdField?.value as string);
 
-  const apiUrl =
-    tweetId && `${process.env.NEXT_PUBLIC_API_URL}/api/tweet/${tweetId}`;
+  const tweetUrl =
+    tweetId && `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}`;
 
   return (
     <BlockCollapsible>
       {tweetId ? (
-        <div data-theme={theme}>
-          <Tweet apiUrl={apiUrl} />
-        </div>
+        <iframe
+          allowFullScreen
+          frameBorder="0"
+          height="400"
+          src={tweetUrl}
+          title="Twitter Tweet"
+          width="100%"
+        />
       ) : null}
     </BlockCollapsible>
   );

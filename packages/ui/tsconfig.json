@@ -10,7 +10,8 @@
       "@local/ui/types/*": ["src/types/*/index.ts"],
       "@local/ui/utils/*": ["src/utils/*/index.ts"]
     },
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "strictNullChecks": true
   },
   "exclude": ["node_modules"],
   "extends": "@local/tsconfig/internal-package.json"

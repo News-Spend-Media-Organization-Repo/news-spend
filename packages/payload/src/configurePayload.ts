@@ -8,11 +8,6 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { buildConfig, deepMerge } from 'payload'
 
 import { env } from '@local/env/payload'
-import {
-  InstagramBlock,
-  TwitterBlock,
-  YouTubeBlock,
-} from '@local/payload/blocks'
 import { Articles } from '@local/payload/collections/Articles'
 import { Media } from '@local/payload/collections/Media'
 import { Pages } from '@local/payload/collections/Pages'

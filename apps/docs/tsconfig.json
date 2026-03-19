@@ -3,7 +3,8 @@
     "baseUrl": ".",
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ES2022"],
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "strictNullChecks": true
   },
   "exclude": ["node_modules"],
   "extends": "@local/tsconfig/base.json",

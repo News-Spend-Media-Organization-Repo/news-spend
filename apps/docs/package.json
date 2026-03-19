@@ -7,12 +7,13 @@
   "scripts": {
     "build-storybook": "storybook build",
     "clean": "rm -rf .turbo node_modules .next",
-    "format": "prettier --check . --ignore-path ../../.gitignore",
-    "lint": "eslint .",
+    "format": "biome check .",
+    "format:fix": "biome check . --write",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint . --write",
     "storybook": "storybook dev -p 6006",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
-  "prettier": "@local/prettier-config",
   "dependencies": {
     "@fusionary/storybook-config": "^5.1.6",
     "@local/ui": "workspace:*",
@@ -28,16 +29,11 @@
     "storybook": "^8.6.4"
   },
   "devDependencies": {
-    "@eslint/js": "^9.21.0",
-    "@local/eslint-config": "workspace:*",
-    "@local/prettier-config": "workspace:*",
     "@local/tailwind-config": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@types/node": "^20.17.23",
-    "eslint": "^9.21.0",
-    "prettier": "^3.5.3",
-    "react": "catalog:next15",
-    "react-dom": "catalog:next15",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2"
   }

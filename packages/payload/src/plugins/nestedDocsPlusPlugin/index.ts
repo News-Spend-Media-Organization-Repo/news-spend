@@ -67,7 +67,7 @@ export const nestedDocsPlusPlugin =
         }
       }),
       onInit: async payload => {
-        if (incomingConfig.onInit) await incomingConfig.onInit(payload)
+        if (incomingConfig.onInit) { await incomingConfig.onInit(payload) }
 
         for (const collectionName of pluginConfig.collections) {
           const docsToUpdate = await payload.find({

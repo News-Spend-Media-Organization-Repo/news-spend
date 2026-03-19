@@ -6,7 +6,8 @@
       "@local/env/*": ["src/*.ts"],
       "@local/env/helpers/*": ["src/helpers/*.ts"]
     },
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "strictNullChecks": true
   },
   "exclude": ["node_modules"],
   "extends": "@local/tsconfig/internal-package.json"

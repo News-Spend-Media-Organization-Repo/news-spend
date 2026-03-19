@@ -41,12 +41,10 @@
       "persistent": true
     },
     "format": {
-      "outputLogs": "new-only",
-      "outputs": ["node_modules/.cache/.prettiercache"]
+      "cache": false
     },
     "lint": {
-      "dependsOn": ["^topo"],
-      "outputs": ["node_modules/.cache/.eslintcache"]
+      "dependsOn": ["^topo"]
     },
     "storybook": {
       "cache": true,

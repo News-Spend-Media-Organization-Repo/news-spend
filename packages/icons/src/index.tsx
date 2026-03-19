@@ -14,7 +14,7 @@ export const Icon = (props: { name?: IconName } & LucideProps) => {
   const { name, ...rest } = props
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!name || !NamedIcons[name]) {
+  if (!(name && NamedIcons[name])) {
     // eslint-disable-next-line no-console
     console.error(`Icon ${JSON.stringify(name)} not found`)
     return null

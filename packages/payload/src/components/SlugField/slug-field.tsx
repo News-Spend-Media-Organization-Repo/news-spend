@@ -42,8 +42,7 @@ export const SlugField: FC<SlugFieldProps> = ({
 
   const fieldToUseValue = useFormFields(([fields, _dispatch]) => {
     if (
-      !fieldToUse ||
-      !(fieldToUse in fields) ||
+      !(fieldToUse &&(fieldToUse in fields) ) ||
       typeof fields[fieldToUse] !== 'object' ||
       !('value' in fields[fieldToUse]) ||
       typeof fields[fieldToUse].value !== 'string'
@@ -59,7 +58,7 @@ export const SlugField: FC<SlugFieldProps> = ({
       if (fieldToUseValue) {
         const formattedSlug = createSlug(fieldToUseValue)
 
-        if (value !== formattedSlug) setValue(formattedSlug)
+        if (value !== formattedSlug) { setValue(formattedSlug) }
       } else if (value !== '') {
         setValue('')
       }

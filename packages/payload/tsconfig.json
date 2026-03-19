@@ -17,7 +17,8 @@
       "@local/payload/payload-types": ["./src/payload.types"],
       "@local/payload/plugins/*": ["./src/plugins/*"]
     },
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "strictNullChecks": true
   },
   "exclude": ["node_modules", "src/payload.types.ts", ".next"],
   "extends": "@local/tsconfig/base.json"

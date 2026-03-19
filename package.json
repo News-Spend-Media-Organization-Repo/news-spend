@@ -1,38 +1,33 @@
 {
   "name": "turbo-payload",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tooling/*"
+  ],
   "scripts": {
     "build": "turbo build",
     "clean": "git clean -xdf node_modules",
     "clean:workspaces": "turbo clean",
     "dev": "turbo dev",
-    "format": "turbo format --continue -- --cache --cache-location node_modules/.cache/.prettiercache",
-    "format:fix": "turbo format --continue -- --write --cache --cache-location node_modules/.cache/.prettiercache",
-    "preinstall": "npx only-allow pnpm",
-    "postinstall": "pnpm lint:ws",
-    "lint": "turbo lint --continue -- --cache --cache-location node_modules/.cache/.eslintcache",
-    "lint:fix": "turbo lint --continue -- --fix --cache --cache-location node_modules/.cache/.eslintcache",
-    "lint:ws": "pnpm dlx sherif@latest",
-    "packages:check": "npm-check-updates",
-    "packages:sync": "syncpack",
-    "packages:update": "npm-check-updates -u && pnpm i",
-    "prepare": "husky",
+    "format": "turbo format --continue",
+    "format:fix": "turbo format --continue -- --write",
+    "lint": "turbo lint --continue",
+    "lint:fix": "turbo lint --continue -- --fix",
     "storybook": "turbo storybook",
-    "typecheck": "turbo typecheck --continue"
+    "typecheck": "turbo typecheck --continue",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
   },
-  "prettier": "@local/prettier-config",
   "devDependencies": {
-    "@local/prettier-config": "workspace:*",
+    "@biomejs/biome": "2.4.7",
     "@turbo/gen": "^2.4.4",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.4.3",
-    "npm-check-updates": "^17.1.15",
-    "prettier": "^3.5.3",
-    "syncpack": "^12.4.0",
     "turbo": "^2.4.4",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "ultracite": "7.3.2"
   },
-  "packageManager": "pnpm@10.4.1+sha512.c753b6c3ad7afa13af388fa6d808035a008e30ea9993f58c6663e2bc5ff21679aa834db094987129aa4d488b86df57f7b634981b2f827cdcacc698cc0cfb88af",
+  "packageManager": "bun@1.3.9",
   "engines": {
     "node": ">=20.11.1"
   }
