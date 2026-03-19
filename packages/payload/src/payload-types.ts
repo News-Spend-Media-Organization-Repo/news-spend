@@ -164,9 +164,11 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    "news-category": NewsCategory;
     "payload-jobs-stats": PayloadJobsStat;
   };
   globalsSelect: {
+    "news-category": NewsCategorySelect<false> | NewsCategorySelect<true>;
     "payload-jobs-stats":
       | PayloadJobsStatsSelect<false>
       | PayloadJobsStatsSelect<true>;
@@ -2258,6 +2260,21 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-category".
+ */
+export interface NewsCategory {
+  id: string;
+  items?:
+    | {
+        category?: (string | null) | Category;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -2273,6 +2290,21 @@ export interface PayloadJobsStat {
     | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-category_select".
+ */
+export interface NewsCategorySelect<T extends boolean = true> {
+  items?:
+    | T
+    | {
+        category?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

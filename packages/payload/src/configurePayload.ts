@@ -42,6 +42,7 @@ import { Media } from "./collections/Media";
 import News from "./collections/News";
 import UserSegment from "./collections/UserSegment";
 import VerificationOTP from "./collections/VerificationOTP";
+import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
@@ -86,7 +87,7 @@ const baseConfig: Config = {
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  // globals: [NewsCategory],
+  globals: [NewsCategory],
   collections: [
     Account,
     Activities,

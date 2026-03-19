@@ -1,25 +1,20 @@
 {
-  "extends": "../config/tsconfig.base.json",
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "allowImportingTsExtensions": true,
+    "strict": false,
+    "skipLibCheck": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
-  "references": [
-    {
-      "path": "../logger"
-    },
-    {
-      "path": "../transactional"
-    }
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

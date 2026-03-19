@@ -1,20 +1,20 @@
 {
-  "extends": "@news-spend-media/config/tsconfig.base.json",
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
     "jsx": "react-jsx",
-    "composite": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "emitDeclarationOnly": true,
-    "declaration": true,
-    "declarationMap": true
+    "jsxImportSource": "@react-email/components",
+    "strict": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

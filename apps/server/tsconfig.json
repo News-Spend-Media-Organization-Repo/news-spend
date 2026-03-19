@@ -1,0 +1,15 @@
+{
+  "extends": "@news-spend-media/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./src/*"],
+      "@/*": ["./src/*"]
+    },
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "strictNullChecks": true
+  }
+}

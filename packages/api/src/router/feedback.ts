@@ -5,7 +5,7 @@ import { rateLimitedPublicProcedure } from "../index";
 // Feedback schema (copied from backend)
 const feedbackSchema = z.object({
   name: z.string(),
-  email: z.email(),
+  email: z.string().email(),
   type: z.enum(["general", "bug", "feature", "advertisement", "other"]),
   message: z.string(),
   rating: z.number().min(1).max(5).default(1),

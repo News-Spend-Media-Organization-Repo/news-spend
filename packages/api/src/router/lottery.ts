@@ -29,7 +29,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const verifyIdentityInput = zfd.formData({
   firstName: zfd.text(z.string().trim().min(3)),
   lastName: zfd.text(z.string().trim().min(3)),
-  email: zfd.text(z.email()),
+  email: zfd.text(z.string().email()),
   phoneNumber: zfd.text(
     z.string().trim().regex(/^\d+$/, "Invalid phone number")
   ),

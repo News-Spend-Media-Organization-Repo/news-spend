@@ -1,0 +1,33 @@
+{
+  "name": "@news-spend-media/server",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "catalog:",
+    "@news-spend-media/api": "workspace:*",
+    "@news-spend-media/auth": "workspace:*",
+    "@news-spend-media/db": "workspace:*",
+    "@news-spend-media/logger": "workspace:*",
+    "@orpc/experimental-ratelimit": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/otel": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/zod": "catalog:",
+    "dotenv": "catalog:",
+    "@sentry/node": "^10",
+    "better-auth": "catalog:",
+    "hono": "catalog:",
+    "sharp": "catalog:",
+    "ssh2": "^1.16.0",
+    "tsx": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@hono/otel": "catalog:",
+    "@news-spend-media/config": "workspace:*",
+    "@types/node": "catalog:"
+  }
+}
