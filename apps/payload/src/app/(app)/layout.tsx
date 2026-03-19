@@ -4,6 +4,8 @@ import type { FC, PropsWithChildren, ReactNode } from "react";
 import "@local/ui/styles.css";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   description:
     "Boilerplate for creating a new Payload project using Next.js and TypeScript.",

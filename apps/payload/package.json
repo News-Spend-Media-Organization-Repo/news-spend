@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "dotenvx run --convention=nextjs -- cross-env NODE_OPTIONS=\"--no-deprecation\" next build",
+    "build": "cross-env NODE_OPTIONS=\"--no-deprecation\" next build",
     "ci": "bun run payload migrate && bun run build",
     "clean": "git clean -xdf .next .turbo node_modules",
     "dev": "dotenvx run --convention=nextjs -- cross-env NODE_OPTIONS=\"--no-deprecation --inspect\" next dev",
