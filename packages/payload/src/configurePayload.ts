@@ -10,7 +10,7 @@ import { Footer } from "@local/payload/globals/Footer";
 import { NavigationMenu } from "@local/payload/globals/NavigationMenu";
 import { nestedDocsPlusPlugin } from "@local/payload/plugins/nestedDocsPlusPlugin";
 import { isObject } from "@local/utils/isObject";
-import { mongooseAdapter } from "@payloadcms/db-mongodb";
+import { postgresAdapter } from "@payloadcms/db-postgres";
 import { redirectsPlugin } from "@payloadcms/plugin-redirects";
 import { seoPlugin } from "@payloadcms/plugin-seo";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
@@ -45,8 +45,10 @@ const baseConfig: Config = {
   //   YouTubeBlock
   // ],
   collections: [Pages, Articles, Users, Media],
-  db: mongooseAdapter({
-    url: env.PAYLOAD_PRIVATE_DATABASE_URI,
+  db: postgresAdapter({
+    pool: {
+      connectionString: env.PAYLOAD_PRIVATE_DATABASE_URI,
+    },
   }),
   editor: lexicalEditor(),
   globals: [NavigationMenu, Footer],
