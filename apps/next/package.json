@@ -30,7 +30,7 @@
     "@payloadcms/next": "^3.27.0",
     "babel-plugin-react-compiler": "^0.0.0",
     "cross-env": "^7.0.3",
-    "next": "catalog:next15",
+    "next": "^15.4.11",
     "payload": "^3.27.0",
     "react": "catalog:next15",
     "react-dom": "catalog:next15",

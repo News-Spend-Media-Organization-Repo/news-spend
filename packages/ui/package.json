@@ -39,7 +39,7 @@
     "embla-carousel-react": "^8.5.2",
     "html-react-parser": "^5.2.2",
     "lucide-react": "^0.454.0",
-    "next": "catalog:next15",
+    "next": "^15.4.11",
     "next-recaptcha-v3": "^1.5.2",
     "react": "catalog:next15",
     "react-device-detect": "^2.2.3",

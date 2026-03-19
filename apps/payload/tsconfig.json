@@ -21,7 +21,8 @@
     "node_modules",
     "src/payload.types.ts",
     "src/app/(payload)",
-    ".next"
+    ".next",
+    "css-loader-hook.js"
   ],
   "extends": "@local/tsconfig/base.json",
   "include": [".", ".next/types/**/*.ts"]

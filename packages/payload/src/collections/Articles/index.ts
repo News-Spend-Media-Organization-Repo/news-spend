@@ -1,8 +1,10 @@
 import type { CollectionConfig } from 'payload'
+import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 
 import { env } from '@local/env/payload'
 import { AdminAccess } from '@local/payload/access/AdminAccess'
 import { EveryoneAccess } from '@local/payload/access/EveryoneAccess'
+import { TwitterBlock } from '@local/payload/blocks/TwitterPost'
 import { hideFromIndexingField } from '@local/payload/fields/hideFromIndexing'
 import { publishedDateField } from '@local/payload/fields/publishedDate'
 import { slugField } from '@local/payload/fields/slug'
@@ -47,6 +49,18 @@ export const Articles: CollectionConfig<'articles'> = {
         },
       ],
       type: 'tabs',
+    },
+    {
+      editor: lexicalEditor({
+        features: ({ defaultFeatures }) => [
+          ...defaultFeatures,
+          BlocksFeature({
+            blocks: [TwitterBlock],
+          }),
+        ],
+      }),
+      name: 'body',
+      type: 'richText',
     },
     ...publishedDateField(),
     ...hideFromIndexingField(),

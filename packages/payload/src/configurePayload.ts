@@ -8,6 +8,11 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { buildConfig, deepMerge } from 'payload'
 
 import { env } from '@local/env/payload'
+import {
+  InstagramBlock,
+  TwitterBlock,
+  YouTubeBlock,
+} from '@local/payload/blocks'
 import { Articles } from '@local/payload/collections/Articles'
 import { Media } from '@local/payload/collections/Media'
 import { Pages } from '@local/payload/collections/Pages'
@@ -39,6 +44,11 @@ const baseConfig: Config = {
     },
     user: Users.slug,
   },
+  // blocks: [
+  //   TwitterBlock,
+  //   InstagramBlock,
+  //   YouTubeBlock
+  // ],
   collections: [Pages, Articles, Users, Media],
   db: mongooseAdapter({
     url: env.PAYLOAD_PRIVATE_DATABASE_URI,
