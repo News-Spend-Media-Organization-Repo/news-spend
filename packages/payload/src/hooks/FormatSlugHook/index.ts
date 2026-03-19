@@ -1,4 +1,4 @@
-import { createSlug } from "@local/utils/createSlug";
+import { createSlug } from "@news-spend-media/utils/createSlug";
 import type { FieldHook } from "payload";
 
 export const formatSlugHook =

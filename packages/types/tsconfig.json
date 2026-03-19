@@ -3,11 +3,11 @@
     "baseUrl": ".",
     "lib": ["dom", "dom.iterable", "ES2022"],
     "paths": {
-      "@local/types/*": ["src/*/index.ts"]
+      "@news-spend-media/types/*": ["src/*/index.ts"]
     },
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
     "strictNullChecks": true
   },
   "exclude": ["node_modules"],
-  "extends": "@local/tsconfig/internal-package.json"
+  "extends": "@news-spend-media/tsconfig/internal-package.json"
 }

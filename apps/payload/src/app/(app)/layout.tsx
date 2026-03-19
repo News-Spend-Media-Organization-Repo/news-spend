@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { FC, PropsWithChildren, ReactNode } from "react";
 
-import "@local/ui/styles.css";
+import "@news-spend-media/ui/styles.css";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";

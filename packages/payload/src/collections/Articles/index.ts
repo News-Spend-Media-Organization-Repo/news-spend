@@ -1,13 +1,13 @@
-import { env } from "@local/env/payload";
-import { AdminAccess } from "@local/payload/access/AdminAccess";
-import { EveryoneAccess } from "@local/payload/access/EveryoneAccess";
-import { TwitterBlock } from "@local/payload/blocks/TwitterPost";
-import { hideFromIndexingField } from "@local/payload/fields/hideFromIndexing";
-import { publishedDateField } from "@local/payload/fields/publishedDate";
-import { slugField } from "@local/payload/fields/slug";
-import { titleField } from "@local/payload/fields/title";
-import { PopulatePublishDateHook } from "@local/payload/hooks/PopulatePublishDateHook";
-import { RevalidatePageHook } from "@local/payload/hooks/RevalidatePageHook";
+import { env } from "@news-spend-media/env/payload";
+import { AdminAccess } from "@news-spend-media/payload/access/AdminAccess";
+import { EveryoneAccess } from "@news-spend-media/payload/access/EveryoneAccess";
+import { TwitterBlock } from "@news-spend-media/payload/blocks/TwitterPost";
+import { hideFromIndexingField } from "@news-spend-media/payload/fields/hideFromIndexing";
+import { publishedDateField } from "@news-spend-media/payload/fields/publishedDate";
+import { slugField } from "@news-spend-media/payload/fields/slug";
+import { titleField } from "@news-spend-media/payload/fields/title";
+import { PopulatePublishDateHook } from "@news-spend-media/payload/hooks/PopulatePublishDateHook";
+import { RevalidatePageHook } from "@news-spend-media/payload/hooks/RevalidatePageHook";
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical";
 import type { CollectionConfig } from "payload";
 

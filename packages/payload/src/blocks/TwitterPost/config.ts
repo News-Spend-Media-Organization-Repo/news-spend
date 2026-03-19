@@ -12,7 +12,7 @@ export const TwitterBlock: Block = {
   admin: {
     components: {
       Block:
-        "@local/payload/blocks/TwitterPost/Component#TwitterPostBlockComponent",
+        "@news-spend-media/payload/blocks/TwitterPost/Component#TwitterPostBlockComponent",
     },
   },
   fields: [

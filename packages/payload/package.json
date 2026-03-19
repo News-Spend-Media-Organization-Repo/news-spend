@@ -1,5 +1,5 @@
 {
-  "name": "@local/payload",
+  "name": "@news-spend-media/payload",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -29,10 +29,10 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@local/env": "workspace:*",
-    "@local/svg": "workspace:*",
-    "@local/ui": "workspace:*",
-    "@local/utils": "workspace:*",
+    "@news-spend-media/env": "workspace:*",
+    "@news-spend-media/svg": "workspace:*",
+    "@news-spend-media/ui": "workspace:*",
+    "@news-spend-media/utils": "workspace:*",
     "@payloadcms/db-postgres": "catalog:",
     "@payloadcms/graphql": "catalog:",
     "@payloadcms/live-preview-react": "catalog:",
@@ -50,8 +50,8 @@
     "ts-pattern": "^5.6.2"
   },
   "devDependencies": {
-    "@local/tsconfig": "workspace:*",
-    "@local/types": "workspace:*",
+    "@news-spend-media/tsconfig": "workspace:*",
+    "@news-spend-media/types": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "typescript": "^5.8.2"

@@ -1,4 +1,4 @@
-import { formatSlugHook } from "@local/payload/hooks/FormatSlugHook";
+import { formatSlugHook } from "@news-spend-media/payload/hooks/FormatSlugHook";
 import type { CheckboxField, TextField } from "payload";
 import { deepMerge } from "payload";
 
@@ -37,7 +37,7 @@ export const slugField: Slug = (fieldToUse = "title", overrides = {}) => {
               checkboxFieldPath: checkBoxField.name,
               fieldToUse,
             },
-            path: "@local/payload/components/SlugField#SlugField",
+            path: "@news-spend-media/payload/components/SlugField#SlugField",
           },
         },
         position: "sidebar",

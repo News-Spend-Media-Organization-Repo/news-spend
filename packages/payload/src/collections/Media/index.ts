@@ -1,5 +1,5 @@
-import { EveryoneAccess } from "@local/payload/access/EveryoneAccess";
-import { LoggedInAccess } from "@local/payload/access/LoggedInAccess";
+import { EveryoneAccess } from "@news-spend-media/payload/access/EveryoneAccess";
+import { LoggedInAccess } from "@news-spend-media/payload/access/LoggedInAccess";
 import type { CollectionConfig } from "payload";
 
 export const Media: CollectionConfig<"media"> = {

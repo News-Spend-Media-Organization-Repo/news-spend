@@ -1,6 +1,6 @@
 "use client";
 
-import { createSlug } from "@local/utils/createSlug";
+import { createSlug } from "@news-spend-media/utils/createSlug";
 import {
   Button,
   FieldLabel,

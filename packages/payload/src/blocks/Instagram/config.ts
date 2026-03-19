@@ -12,7 +12,7 @@ export const InstagramBlock: Block = {
   admin: {
     components: {
       Block:
-        "@local/payload/blocks/Instagram/Component#InstagramBlockComponent",
+        "@news-spend-media/payload/blocks/Instagram/Component#InstagramBlockComponent",
     },
   },
   fields: [

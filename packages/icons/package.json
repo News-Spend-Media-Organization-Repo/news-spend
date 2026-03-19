@@ -1,5 +1,5 @@
 {
-  "name": "@local/icons",
+  "name": "@news-spend-media/icons",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -22,7 +22,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@local/tsconfig": "workspace:*",
+    "@news-spend-media/tsconfig": "workspace:*",
     "@storybook/react": "^8.6.4",
     "@types/node": "^20.17.23",
     "@types/react": "^19.0.0",

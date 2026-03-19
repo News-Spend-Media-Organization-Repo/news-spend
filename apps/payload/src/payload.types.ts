@@ -1,1 +1,1 @@
-export * from "@local/payload/payload-types";
+export * from "@news-spend-media/payload/payload-types";

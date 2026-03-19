@@ -1,7 +1,7 @@
-import { TwitterPostBlockComponent as TwitterPostBlockComponent_52fa87850e27accb4d4bbcf671f52d3d } from "@local/payload/blocks/TwitterPost/Component";
-import { SlugField as SlugField_54c19aec388d8aada807928cfb32f01c } from "@local/payload/components/SlugField";
-import { Icon as Icon_5594284c9caa31b482e8d1c210580876 } from "@local/svg/Icon";
-import { Logo as Logo_130859914d84f8390328ec91646b3f3d } from "@local/svg/Logo";
+import { TwitterPostBlockComponent as TwitterPostBlockComponent_52fa87850e27accb4d4bbcf671f52d3d } from "@news-spend-media/payload/blocks/TwitterPost/Component";
+import { SlugField as SlugField_54c19aec388d8aada807928cfb32f01c } from "@news-spend-media/payload/components/SlugField";
+import { Icon as Icon_5594284c9caa31b482e8d1c210580876 } from "@news-spend-media/svg/Icon";
+import { Logo as Logo_130859914d84f8390328ec91646b3f3d } from "@news-spend-media/svg/Logo";
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from "@payloadcms/next/rsc";
 import { OverviewComponent as OverviewComponent_a8a977ebc872c5d5ea7ee689724c0860 } from "@payloadcms/plugin-seo/client";
 import { MetaTitleComponent as MetaTitleComponent_a8a977ebc872c5d5ea7ee689724c0860 } from "@payloadcms/plugin-seo/client";
@@ -34,7 +34,7 @@ import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8c
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from "@payloadcms/richtext-lexical/rsc";
 
 export const importMap = {
-  "@local/payload/components/SlugField#SlugField":
+  "@news-spend-media/payload/components/SlugField#SlugField":
     SlugField_54c19aec388d8aada807928cfb32f01c,
   "@payloadcms/plugin-seo/client#OverviewComponent":
     OverviewComponent_a8a977ebc872c5d5ea7ee689724c0860,
@@ -54,7 +54,7 @@ export const importMap = {
     LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient":
     BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "@local/payload/blocks/TwitterPost/Component#TwitterPostBlockComponent":
+  "@news-spend-media/payload/blocks/TwitterPost/Component#TwitterPostBlockComponent":
     TwitterPostBlockComponent_52fa87850e27accb4d4bbcf671f52d3d,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient":
     BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
@@ -96,8 +96,8 @@ export const importMap = {
     HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#InlineToolbarFeatureClient":
     InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "@local/svg/Icon#Icon": Icon_5594284c9caa31b482e8d1c210580876,
-  "@local/svg/Logo#Logo": Logo_130859914d84f8390328ec91646b3f3d,
+  "@news-spend-media/svg/Icon#Icon": Icon_5594284c9caa31b482e8d1c210580876,
+  "@news-spend-media/svg/Logo#Logo": Logo_130859914d84f8390328ec91646b3f3d,
   "@payloadcms/next/rsc#CollectionCards":
     CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
 };

@@ -1,5 +1,5 @@
-import { AdminAccess } from "@local/payload/access/AdminAccess";
-import { LoggedInAccess } from "@local/payload/access/LoggedInAccess";
+import { AdminAccess } from "@news-spend-media/payload/access/AdminAccess";
+import { LoggedInAccess } from "@news-spend-media/payload/access/LoggedInAccess";
 import type { CollectionConfig } from "payload";
 
 export const Users: CollectionConfig<"users"> = {

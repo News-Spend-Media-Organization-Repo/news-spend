@@ -4,22 +4,22 @@
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ES2022"],
     "paths": {
-      "@local/payload/*": ["./src/*"],
-      "@local/payload/access/*": ["./src/access/*"],
-      "@local/payload/blocks/*": ["./src/blocks/*"],
-      "@local/payload/collections/*": ["./src/collections/*"],
-      "@local/payload/components/*": ["./src/components/*"],
-      "@local/payload/fields/*": ["./src/fields/*"],
-      "@local/payload/globals/*": ["./src/globals/*"],
-      "@local/payload/helpers/*": ["./src/helpers/*"],
-      "@local/payload/hooks/*": ["./src/hooks/*"],
-      "@local/payload/payload-config": ["./src/payload.config"],
-      "@local/payload/payload-types": ["./src/payload.types"],
-      "@local/payload/plugins/*": ["./src/plugins/*"]
+      "@news-spend-media/payload/*": ["./src/*"],
+      "@news-spend-media/payload/access/*": ["./src/access/*"],
+      "@news-spend-media/payload/blocks/*": ["./src/blocks/*"],
+      "@news-spend-media/payload/collections/*": ["./src/collections/*"],
+      "@news-spend-media/payload/components/*": ["./src/components/*"],
+      "@news-spend-media/payload/fields/*": ["./src/fields/*"],
+      "@news-spend-media/payload/globals/*": ["./src/globals/*"],
+      "@news-spend-media/payload/helpers/*": ["./src/helpers/*"],
+      "@news-spend-media/payload/hooks/*": ["./src/hooks/*"],
+      "@news-spend-media/payload/payload-config": ["./src/payload.config"],
+      "@news-spend-media/payload/payload-types": ["./src/payload.types"],
+      "@news-spend-media/payload/plugins/*": ["./src/plugins/*"]
     },
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
     "strictNullChecks": true
   },
   "exclude": ["node_modules", "src/payload.types.ts", ".next"],
-  "extends": "@local/tsconfig/base.json"
+  "extends": "@news-spend-media/tsconfig/base.json"
 }

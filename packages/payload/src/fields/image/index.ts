@@ -1,5 +1,5 @@
-import type { MediaFieldOverrides } from "@local/payload/fields/media";
-import { mediaField } from "@local/payload/fields/media";
+import type { MediaFieldOverrides } from "@news-spend-media/payload/fields/media";
+import { mediaField } from "@news-spend-media/payload/fields/media";
 import type { UploadField } from "payload";
 import { deepMerge } from "payload";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@local/tailwind-config",
+  "name": "@news-spend-media/tailwind-config",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -22,7 +22,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@local/tsconfig": "workspace:*",
+    "@news-spend-media/tsconfig": "workspace:*",
     "typescript": "^5.8.2"
   }
 }

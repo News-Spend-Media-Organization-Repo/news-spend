@@ -1,15 +1,15 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { env } from "@local/env/payload";
-import { Articles } from "@local/payload/collections/Articles";
-import { Media } from "@local/payload/collections/Media";
-import { Pages } from "@local/payload/collections/Pages";
-import { Users } from "@local/payload/collections/Users";
-import { Footer } from "@local/payload/globals/Footer";
-import { NavigationMenu } from "@local/payload/globals/NavigationMenu";
-import { nestedDocsPlusPlugin } from "@local/payload/plugins/nestedDocsPlusPlugin";
-import { isObject } from "@local/utils/isObject";
+import { env } from "@news-spend-media/env/payload";
+import { Articles } from "@news-spend-media/payload/collections/Articles";
+import { Media } from "@news-spend-media/payload/collections/Media";
+import { Pages } from "@news-spend-media/payload/collections/Pages";
+import { Users } from "@news-spend-media/payload/collections/Users";
+import { Footer } from "@news-spend-media/payload/globals/Footer";
+import { NavigationMenu } from "@news-spend-media/payload/globals/NavigationMenu";
+import { nestedDocsPlusPlugin } from "@news-spend-media/payload/plugins/nestedDocsPlusPlugin";
+import { isObject } from "@news-spend-media/utils/isObject";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { redirectsPlugin } from "@payloadcms/plugin-redirects";
 import { seoPlugin } from "@payloadcms/plugin-seo";
@@ -24,8 +24,8 @@ const baseConfig: Config = {
   admin: {
     components: {
       graphics: {
-        Icon: "@local/svg/Icon#Icon",
-        Logo: "@local/svg/Logo#Logo",
+        Icon: "@news-spend-media/svg/Icon#Icon",
+        Logo: "@news-spend-media/svg/Logo#Logo",
       },
     },
     meta: {

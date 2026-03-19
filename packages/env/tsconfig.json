@@ -3,12 +3,12 @@
     "baseUrl": ".",
     "lib": ["dom", "dom.iterable", "ES2022"],
     "paths": {
-      "@local/env/*": ["src/*.ts"],
-      "@local/env/helpers/*": ["src/helpers/*.ts"]
+      "@news-spend-media/env/*": ["src/*.ts"],
+      "@news-spend-media/env/helpers/*": ["src/helpers/*.ts"]
     },
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
     "strictNullChecks": true
   },
   "exclude": ["node_modules"],
-  "extends": "@local/tsconfig/internal-package.json"
+  "extends": "@news-spend-media/tsconfig/internal-package.json"
 }

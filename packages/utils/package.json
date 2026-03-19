@@ -1,5 +1,5 @@
 {
-  "name": "@local/utils",
+  "name": "@news-spend-media/utils",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -16,12 +16,12 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@local/types": "workspace:*",
+    "@news-spend-media/types": "workspace:*",
     "slugify": "^1.6.6",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@local/tsconfig": "workspace:*",
+    "@news-spend-media/tsconfig": "workspace:*",
     "@types/node": "^20.17.23",
     "typescript": "^5.8.2"
   }

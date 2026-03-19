@@ -1,4 +1,4 @@
-import { isObject } from "@local/utils/isObject";
+import { isObject } from "@news-spend-media/utils/isObject";
 import { nestedDocsPlugin } from "@payloadcms/plugin-nested-docs";
 import type {
   CollectionBeforeChangeHook,

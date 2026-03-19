@@ -1,4 +1,4 @@
-import { ExtendedConfig } from "@local/tailwind-config";
+import { ExtendedConfig } from "@news-spend-media/tailwind-config";
 import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";

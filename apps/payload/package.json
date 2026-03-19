@@ -24,10 +24,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@local/env": "workspace:*",
-    "@local/payload": "workspace:*",
-    "@local/svg": "workspace:*",
-    "@local/ui": "workspace:*",
+    "@news-spend-media/env": "workspace:*",
+    "@news-spend-media/payload": "workspace:*",
+    "@news-spend-media/svg": "workspace:*",
+    "@news-spend-media/ui": "workspace:*",
     "@payloadcms/db-postgres": "catalog:",
     "@payloadcms/db-sqlite": "catalog:",
     "@payloadcms/graphql": "catalog:",
@@ -50,9 +50,9 @@
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.38.4",
-    "@local/tailwind-config": "workspace:*",
-    "@local/tsconfig": "workspace:*",
-    "@local/types": "workspace:*",
+    "@news-spend-media/tailwind-config": "workspace:*",
+    "@news-spend-media/tsconfig": "workspace:*",
+    "@news-spend-media/types": "workspace:*",
     "@types/node": "^20.17.23",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

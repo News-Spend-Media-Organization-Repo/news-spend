@@ -1,5 +1,5 @@
 {
-  "name": "@local/types",
+  "name": "@news-spend-media/types",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -19,7 +19,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@local/tsconfig": "workspace:*",
+    "@news-spend-media/tsconfig": "workspace:*",
     "@types/node": "^20.17.23",
     "@types/react": "^19.0.0",
     "typescript": "^5.8.2"

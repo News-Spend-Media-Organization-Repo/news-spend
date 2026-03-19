@@ -1,13 +1,11 @@
 {
   "name": "turbo-payload",
   "private": true,
-  "workspaces": {
-    "catalog": [
-      "apps/*",
-      "packages/*",
-      "tooling/*"
-    ]
-  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tooling/*"
+  ],
   "catalog": {
     "next": "^15.4.11",
     "react": "^19.2.1",
@@ -27,23 +25,19 @@
     "@payloadcms/ui": "^3.79.1"
   },
   "scripts": {
-    "build": "turbo build",
+    "build": "bun --filter payload build",
     "clean": "git clean -xdf node_modules",
-    "clean:workspaces": "turbo clean",
-    "dev": "turbo dev",
+    "dev": "bun --filter payload dev",
     "format": "oxfmt .",
     "format:fix": "oxfmt --fix .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "storybook": "turbo storybook",
-    "typecheck": "turbo typecheck --continue"
+    "typecheck": "bun --filter payload typecheck"
   },
   "devDependencies": {
-    "@turbo/gen": "^2.4.4",
     "lefthook": "^2.1.4",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
-    "turbo": "^2.4.4",
     "typescript": "^5.8.2",
     "ultracite": "7.3.2"
   },
