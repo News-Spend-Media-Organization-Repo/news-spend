@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification.js";
+import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
 import { ORPCError } from "@orpc/client";
 import type { BasePayload } from "payload";
 import z from "zod";

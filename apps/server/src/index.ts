@@ -1,4 +1,3 @@
-import { serve } from "@hono/node-server";
 import "dotenv/config";
 import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
@@ -11,57 +10,16 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
-const app = new Hono();
-
-app.use(logger());
-app.use(
-  "/*",
-  cors({
-    origin: [
-      process.env.CORS_ORIGIN || "",
-      "http://localhost:9000",
-      "http://cms.newsspend.localhost:1355",
-      "http://server.newsspend.localhost:1355",
-    ],
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-
-function withExpoOrigin(request: Request): Request {
-  const expoOrigin = request.headers.get("expo-origin");
-  if (!expoOrigin) {
-    return request;
-  }
-
-  const newHeaders = new Headers(request.headers);
-  newHeaders.set("origin", expoOrigin);
-
-  return new Request(request, { headers: newHeaders });
-}
-
-app.on(["POST", "GET"], "/api/auth/*", (c) =>
-  auth.handler(withExpoOrigin(c.req.raw))
-);
-
-const BODY_PARSER_METHODS = new Set([
-  "arrayBuffer",
-  "blob",
-  "formData",
-  "json",
-  "text",
-] as const);
-
-type BodyParserMethod =
-  typeof BODY_PARSER_METHODS extends Set<infer T> ? T : never;
+const CORS_ORIGINS = [
+  process.env.CORS_ORIGIN || "",
+  "http://localhost:9000",
+  "http://cms.newsspend.localhost:1355",
+  "http://server.newsspend.localhost:1355",
+].filter(Boolean);
 
 const servers: Array<{ url: string; description: string }> = [];
 
@@ -115,78 +73,154 @@ export const rpcHandler = new RPCHandler(router, {
   ],
 });
 
-app.use("/*", async (c, next) => {
-  const context = await createContext({ context: c });
+function isCorsOriginAllowed(origin: string | null): boolean {
+  if (!origin) return true;
+  return CORS_ORIGINS.includes(origin);
+}
 
-  const rpcResult = await rpcHandler.handle(c.req.raw, {
-    prefix: "/rpc",
-    context,
-  });
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = isCorsOriginAllowed(origin)
+    ? origin || "*"
+    : CORS_ORIGINS[0] || "*";
 
-  if (rpcResult.matched) {
-    return c.newResponse(rpcResult.response.body, rpcResult.response);
-  }
-
-  const request = new Proxy(c.req.raw, {
-    get(target, prop) {
-      if (BODY_PARSER_METHODS.has(prop as BodyParserMethod)) {
-        return () => c.req[prop as BodyParserMethod]();
-      }
-      return Reflect.get(target, prop, target);
-    },
-  });
-
-  const apiResult = await apiHandler.handle(request, {
-    prefix: "/api",
-    context,
-  });
-
-  if (apiResult.matched) {
-    return new Response(apiResult.response.body, {
-      status: apiResult.response.status,
-      statusText: apiResult.response.statusText,
-      headers: apiResult.response.headers,
-    });
-  }
-
-  await next();
-});
-
-app.get("/", (c) => c.text("OK"));
-
-app.get("/health", (c) =>
-  c.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || "development",
-  })
-);
-
-app.get("/account-deletion", (c) => c.html(AccountDeletionPage()));
-app.get("/delete-account", (c) => c.html(AccountDeletionPage()));
-
-app.get("/privacy-policy", (c) => c.html(PrivacyPolicy()));
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 const port = Number(process.env.PORT) || 9000;
-const hostname = "0.0.0.0";
 
-const server = serve({
-  fetch: app.fetch,
+const server = Bun.serve({
   port,
-  hostname,
+  hostname: "0.0.0.0",
+
+  routes: {
+    "/": () => new Response("OK"),
+
+    "/health": () =>
+      new Response(
+        JSON.stringify({
+          status: "ok",
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || "development",
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      ),
+
+    "/account-deletion": () =>
+      new Response(AccountDeletionPage(), {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      }),
+
+    "/delete-account": () =>
+      new Response(AccountDeletionPage(), {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      }),
+
+    "/privacy-policy": () =>
+      new Response(PrivacyPolicy(), {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      }),
+  },
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    const origin = req.headers.get("origin");
+    const corsHeaders = getCorsHeaders(origin);
+
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    if (url.pathname.startsWith("/api/auth/")) {
+      const expoOrigin = req.headers.get("expo-origin");
+      const authRequest = expoOrigin
+        ? new Proxy(req, {
+            get(target, prop, receiver) {
+              if (prop === "headers") {
+                const headers = new Headers(target.headers);
+                headers.set("origin", expoOrigin);
+                return headers;
+              }
+              return Reflect.get(target, prop, receiver);
+            },
+          })
+        : req;
+
+      const authResponse = await auth.handler(authRequest);
+      const corsResponse = new Response(authResponse.body, authResponse);
+      for (const [key, value] of Object.entries(corsHeaders)) {
+        corsResponse.headers.set(key, value);
+      }
+      return corsResponse;
+    }
+
+    if (url.pathname.startsWith("/rpc") || url.pathname.startsWith("/api")) {
+      const context = await createContext({ request: req });
+      const prefix = url.pathname.startsWith("/rpc") ? "/rpc" : "/api";
+
+      const contentType = req.headers.get("content-type") || "";
+      const accept = req.headers.get("accept") || "";
+      const isRpcProtocol =
+        contentType.includes("application/json") &&
+        !accept.includes("application/json");
+
+      if (isRpcProtocol) {
+        const result = await rpcHandler.handle(req, { prefix, context });
+
+        if (result.matched) {
+          return new Response(result.response.body, {
+            status: result.response.status,
+            statusText: result.response.statusText,
+            headers: {
+              ...Object.fromEntries(result.response.headers.entries()),
+              ...corsHeaders,
+            },
+          });
+        }
+      } else {
+        const result = await apiHandler.handle(req, { prefix, context });
+
+        if (result.matched) {
+          return new Response(result.response.body, {
+            status: result.response.status,
+            statusText: result.response.statusText,
+            headers: {
+              ...Object.fromEntries(result.response.headers.entries()),
+              ...corsHeaders,
+            },
+          });
+        }
+      }
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+
+  error(error) {
+    console.error("Server error:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  },
 });
 
-appLogger.info({ port, hostname }, "Server is running");
+appLogger.info(
+  { port: server.port, hostname: server.hostname },
+  "Server is running"
+);
 
 // initialize redis and cron jobs (best-effort)
 try {
   if (process.env.REDIS_URL) {
-    // lazy import to avoid module cycles in dev
     import("@news-spend-media/api/lib/redis").then(({ getRedis }) => {
       try {
         getRedis();
-      } catch (e) {
+      } catch {
         // noop
       }
     });
@@ -194,18 +228,18 @@ try {
   import("@news-spend-media/api/jobs/trending").then((m) => {
     try {
       m.startTrendingJob();
-    } catch (e) {
+    } catch {
       // noop
     }
   });
   import("@news-spend-media/api/jobs/lottery").then((m) => {
     try {
       m.startLotteryJob();
-    } catch (e) {
+    } catch {
       // noop
     }
   });
-} catch (e) {
+} catch {
   // noop
 }
 
@@ -219,18 +253,11 @@ async function gracefulShutdown() {
   }
 }
 
-process.on("SIGINT", () => {
-  server.close();
+process.on("SIGINT", async () => {
+  await server.stop();
   gracefulShutdown().finally(() => process.exit(0));
 });
-process.on("SIGTERM", () => {
-  server.close((err) => {
-    gracefulShutdown().finally(() => {
-      if (err) {
-        console.error(err);
-        process.exit(1);
-      }
-      process.exit(0);
-    });
-  });
+process.on("SIGTERM", async () => {
+  await server.stop();
+  gracefulShutdown().finally(() => process.exit(0));
 });

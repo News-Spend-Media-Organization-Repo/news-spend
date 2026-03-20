@@ -6,9 +6,13 @@ import { CPX_SECURE_HASH } from "./schemas";
 const countryCodeCache = new Map<string, { code: string; timestamp: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
-export function getUserIpAddress(req: Request): string {
+export function getUserIpAddress(req?: Request): string {
   if (process.env.NODE_ENV !== "production") {
     return "102.88.108.210";
+  }
+
+  if (!req) {
+    return "127.0.0.1";
   }
 
   let ip =

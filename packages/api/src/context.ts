@@ -1,23 +1,36 @@
 import { auth } from "@news-spend-media/auth";
 import { getPayload } from "@news-spend-media/payload";
-import type { Context as HonoContext } from "hono";
 
 export type CreateContextOptions = {
-  context: HonoContext;
+  context?: {
+    req?: {
+      raw?: {
+        headers: Headers;
+      };
+    };
+  };
+  request?: Request;
 };
 
-export async function createContext({ context }: CreateContextOptions) {
+export async function createContext({
+  context,
+  request,
+}: CreateContextOptions) {
+  const headers =
+    context?.req?.raw?.headers || request?.headers || new Headers();
+
   const [session, payload] = await Promise.all([
     auth.api.getSession({
-      headers: context.req.raw.headers,
+      headers,
     }),
     getPayload(),
   ]);
+
   return {
     session: session?.session,
     user: session?.user,
     payload,
-    request: context.req.raw,
+    request: request || context?.req?.raw,
   };
 }
 

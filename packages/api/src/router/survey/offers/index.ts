@@ -274,9 +274,10 @@ export const offersRouter = {
         return mockOffers.slice(0, limit);
       }
 
+      // @ts-expect-error
       const userIp = getUserIpAddress(request);
       const countryCode = await getUserCountryCode(userIp);
-      const userAgent = request.headers.get("user-agent") || "";
+      const userAgent = request?.headers.get("user-agent") || "";
 
       const [cpxOffers, rapidoOffers, theoremOffers] = await Promise.all([
         fetchCPXOffers(

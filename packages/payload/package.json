@@ -10,7 +10,7 @@
     "./fields": "./src/fields/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./access": "./src/access/index.ts",
-    "./lib/*": "./src/lib/*",
+    "./lib/*": "./src/lib/*.ts",
     "./types": "./src/payload-types.ts",
     "./payload-generated-schema": "./src/payload-generated-schema.ts",
     "./*": "./src/*.ts",

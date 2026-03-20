@@ -1,4 +1,4 @@
-import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification.js";
+import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
 import z from "zod";
 
 import { publicProcedure } from "../index";

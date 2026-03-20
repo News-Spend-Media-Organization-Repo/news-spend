@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification.js";
+import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
 import { ORPCError } from "@orpc/client";
 import type { BasePayload } from "payload";
 
@@ -229,7 +229,12 @@ export const cpxRouter = {
         return getMockSurveysForGuests();
       }
 
+      if (!request) {
+        return getMockSurveysForGuests();
+      }
+
       try {
+        // @ts-expect-error
         const userIp = getUserIpAddress(request);
         const countryCode = await getUserCountryCode(userIp);
         const secureHash = generateCPXSecureHash(user.id);

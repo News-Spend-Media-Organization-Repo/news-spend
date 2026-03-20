@@ -1,5 +1,3 @@
-import { html } from "hono/html";
-
 const styles = `
   * {
     margin: 0;
@@ -276,186 +274,183 @@ const styles = `
 export function AccountDeletionPage() {
   const currentYear = new Date().getFullYear();
 
-  return html`
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-        <meta
-          content="Learn how to permanently delete your News Spend account and what data will be removed."
-          name="description"
-        />
-        <title>Delete Your Account - News Spend</title>
-        <link href="https://fonts.googleapis.com" rel="preconnect" />
-        <link
-          crossorigin="anonymous"
-          href="https://fonts.gstatic.com"
-          rel="preconnect"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <style>${styles}</style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Delete Your Account</h1>
-            <p>Instructions for permanently deleting your News Spend account</p>
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta
+      content="Learn how to permanently delete your News Spend account and what data will be removed."
+      name="description"
+    />
+    <title>Delete Your Account - News Spend</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link
+      crossorigin="anonymous"
+      href="https://fonts.gstatic.com"
+      rel="preconnect"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>${styles}</style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Delete Your Account</h1>
+        <p>Instructions for permanently deleting your News Spend account</p>
+      </div>
+
+      <div class="content">
+        <div class="warning-box">
+          <h3>Important Warning</h3>
+          <p>
+            Account deletion is permanent and cannot be undone. Once
+            deleted, all your data will be immediately removed from our
+            servers.
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>How to Delete Your Account</h2>
+          <p>
+            You can delete your account directly from the News Spend mobile
+            app.
+            <span class="badge">Recommended</span>
+          </p>
+          <div class="steps">
+            <ol>
+              <li>
+                Open the <strong>News Spend</strong> app on your device
+              </li>
+              <li>
+                Tap the <strong>Settings</strong> tab at the bottom of the
+                screen
+              </li>
+              <li>
+                Scroll down and tap <strong>Delete Account</strong> (red
+                icon)
+              </li>
+              <li>Read the consequences and warnings carefully</li>
+              <li>
+                Enter your <strong>password</strong> to verify your identity
+              </li>
+              <li>
+                Check the acknowledgment box to confirm you understand
+              </li>
+              <li>
+                Tap <strong>"Delete My Account"</strong>
+              </li>
+              <li>Confirm the deletion in the final dialog</li>
+            </ol>
           </div>
-
-          <div class="content">
-            <div class="warning-box">
-              <h3>Important Warning</h3>
-              <p>
-                Account deletion is permanent and cannot be undone. Once
-                deleted, all your data will be immediately removed from our
-                servers.
-              </p>
-            </div>
-
-            <div class="section">
-              <h2>How to Delete Your Account</h2>
-              <p>
-                You can delete your account directly from the News Spend mobile
-                app.
-                <span class="badge">Recommended</span>
-              </p>
-              <div class="steps">
-                <ol>
-                  <li>
-                    Open the <strong>News Spend</strong> app on your device
-                  </li>
-                  <li>
-                    Tap the <strong>Settings</strong> tab at the bottom of the
-                    screen
-                  </li>
-                  <li>
-                    Scroll down and tap <strong>Delete Account</strong> (red
-                    icon)
-                  </li>
-                  <li>Read the consequences and warnings carefully</li>
-                  <li>
-                    Enter your <strong>password</strong> to verify your identity
-                  </li>
-                  <li>
-                    Check the acknowledgment box to confirm you understand
-                  </li>
-                  <li>
-                    Tap <strong>"Delete My Account"</strong>
-                  </li>
-                  <li>Confirm the deletion in the final dialog</li>
-                </ol>
-              </div>
-              <div class="info-box">
-                <p>
-                  <strong>Note:</strong> You must be logged in to delete your
-                  account. The deletion process takes effect immediately.
-                </p>
-              </div>
-            </div>
-
-            <div class="section">
-              <h2>What Gets Deleted</h2>
-              <p>
-                When you delete your account, the following data is permanently
-                removed:
-              </p>
-              <ul class="data-list">
-                <li>
-                  Your profile information (name, email, username, phone number)
-                </li>
-                <li>All reward points and activity history</li>
-                <li>Your comments and posts</li>
-                <li>All saved preferences and settings</li>
-                <li>Push notification tokens and device information</li>
-                <li>All active sessions (you'll be logged out immediately)</li>
-              </ul>
-            </div>
-
-            <div class="section">
-              <h2>Data Retention Policy</h2>
-              <p>
-                We do <strong>not retain</strong> any personal data after
-                account deletion. Your information is permanently removed from
-                our servers immediately upon confirmation.
-              </p>
-              <p>
-                This includes all personal identifiable information,
-                user-generated content, and activity records.
-              </p>
-            </div>
-
-            <div class="section">
-              <h2>Account Recovery</h2>
-              <p>
-                <strong>Account deletion cannot be reversed.</strong> Once you
-                confirm the deletion:
-              </p>
-              <ul class="data-list">
-                <li>Your account cannot be recovered or restored</li>
-                <li>You cannot log in with the same credentials</li>
-                <li>All your data is permanently lost</li>
-                <li>
-                  You'll need to create a new account to use the app again
-                </li>
-              </ul>
-            </div>
-
-            <div class="section">
-              <h2>Need Help?</h2>
-              <div class="contact-box">
-                <h3>Having trouble deleting your account?</h3>
-                <p>Our support team is here to help:</p>
-                <p>
-                  Email:
-                  <a href="mailto:support@newsspend.com">
-                    support@newsspend.com
-                  </a>
-                </p>
-                <p>
-                  We typically respond within 24 hours during business days.
-                </p>
-              </div>
-            </div>
-
-            <div class="section">
-              <h2>Alternatives</h2>
-              <p>
-                If you're not sure about deleting your account permanently,
-                consider these alternatives:
-              </p>
-              <ul class="data-list">
-                <li>
-                  <strong>Log out</strong> - Take a break without losing your
-                  data
-                </li>
-                <li>
-                  <strong>Disable notifications</strong> - Reduce interruptions
-                  in Settings
-                </li>
-                <li>
-                  <strong>Contact support</strong> - We can help resolve any
-                  issues you're experiencing
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="footer">
-            <!--{/*<p>
-              <a href="/terms-of-use">Terms of Service</a>
-            </p>*/}-->
-            <a href="/privacy-policy">Privacy Policy</a> |
-            <p style="margin-top: 8px">
-                &copy; ${currentYear} News Spend. All rights reserved.
-            </p>
-            <p style="margin-top: 8px; font-size: 12px">
-              Last updated: January 2025
+          <div class="info-box">
+            <p>
+              <strong>Note:</strong> You must be logged in to delete your
+              account. The deletion process takes effect immediately.
             </p>
           </div>
         </div>
-      </body>
-    </html>`;
+
+        <div class="section">
+          <h2>What Gets Deleted</h2>
+          <p>
+            When you delete your account, the following data is permanently
+            removed:
+          </p>
+          <ul class="data-list">
+            <li>
+              Your profile information (name, email, username, phone number)
+            </li>
+            <li>All reward points and activity history</li>
+            <li>Your comments and posts</li>
+            <li>All saved preferences and settings</li>
+            <li>Push notification tokens and device information</li>
+            <li>All active sessions (you'll be logged out immediately)</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>Data Retention Policy</h2>
+          <p>
+            We do <strong>not retain</strong> any personal data after
+            account deletion. Your information is permanently removed from
+            our servers immediately upon confirmation.
+          </p>
+          <p>
+            This includes all personal identifiable information,
+            user-generated content, and activity records.
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>Account Recovery</h2>
+          <p>
+            <strong>Account deletion cannot be reversed.</strong> Once you
+            confirm the deletion:
+          </p>
+          <ul class="data-list">
+            <li>Your account cannot be recovered or restored</li>
+            <li>You cannot log in with the same credentials</li>
+            <li>All your data is permanently lost</li>
+            <li>
+              You'll need to create a new account to use the app again
+            </li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>Need Help?</h2>
+          <div class="contact-box">
+            <h3>Having trouble deleting your account?</h3>
+            <p>Our support team is here to help:</p>
+            <p>
+              Email:
+              <a href="mailto:support@newsspend.com">
+                support@newsspend.com
+              </a>
+            </p>
+            <p>
+              We typically respond within 24 hours during business days.
+            </p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Alternatives</h2>
+          <p>
+            If you're not sure about deleting your account permanently,
+            consider these alternatives:
+          </p>
+          <ul class="data-list">
+            <li>
+              <strong>Log out</strong> - Take a break without losing your
+              data
+            </li>
+            <li>
+              <strong>Disable notifications</strong> - Reduce interruptions
+              in Settings
+            </li>
+            <li>
+              <strong>Contact support</strong> - We can help resolve any
+              issues you're experiencing
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer">
+        <a href="/privacy-policy">Privacy Policy</a> |
+        <p style="margin-top: 8px">
+            &copy; ${currentYear} News Spend. All rights reserved.
+        </p>
+        <p style="margin-top: 8px; font-size: 12px">
+          Last updated: January 2025
+        </p>
+      </div>
+    </div>
+  </body>
+</html>`;
 }

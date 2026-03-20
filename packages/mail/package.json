@@ -13,13 +13,13 @@
     "@news-spend-media/logger": "workspace:*",
     "@news-spend-media/transactional": "workspace:*",
     "@react-email/render": "^1.0.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "resend": "^6.6.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@types/react": "^18.3.1",
+    "@types/react": "catalog:",
     "typescript": "catalog:"
   }
 }
