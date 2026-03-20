@@ -25,6 +25,6 @@
     ".next",
     "css-loader-hook.js"
   ],
-  "extends": "@news-spend-media/tsconfig/base.json",
+  "extends": "@news-spend-media/config/tsconfig.base.json",
   "include": [".", ".next/types/**/*.ts"]
 }

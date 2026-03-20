@@ -54,14 +54,14 @@
     }
   },
   "scripts": {
-    "build": "bun --filter @news-spend-media/payload-app build",
+    "build": "bun --filter @news-spend-media/cms build",
     "clean": "git clean -xdf node_modules",
-    "dev": "bun --filter @news-spend-media/payload-app dev",
+    "dev": "bun --filter @news-spend-media/cms dev",
     "format": "oxfmt .",
     "format:fix": "oxfmt --fix .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "typecheck": "bun --filter @news-spend-media/payload-app typecheck"
+    "typecheck": "bun --filter @news-spend-media/cms typecheck"
   },
   "devDependencies": {
     "lefthook": "^2.1.4",

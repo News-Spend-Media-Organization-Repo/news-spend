@@ -10,5 +10,5 @@
     "strictNullChecks": true
   },
   "exclude": ["node_modules"],
-  "extends": "@news-spend-media/tsconfig/internal-package.json"
+  "extends": "@news-spend-media/config/tsconfig.internal.json"
 }

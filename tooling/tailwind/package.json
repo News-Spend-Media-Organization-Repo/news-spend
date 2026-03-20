@@ -22,7 +22,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@news-spend-media/tsconfig": "workspace:*",
+    "@news-spend-media/config": "workspace:*",
     "typescript": "^5.8.2"
   }
 }

@@ -9,5 +9,5 @@
     "strictNullChecks": true
   },
   "exclude": ["node_modules"],
-  "extends": "@news-spend-media/tsconfig/base.json"
+  "extends": "@news-spend-media/config/tsconfig.base.json"
 }

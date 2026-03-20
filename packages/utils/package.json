@@ -16,12 +16,11 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@news-spend-media/types": "workspace:*",
     "slugify": "^1.6.6",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@news-spend-media/tsconfig": "workspace:*",
+    "@news-spend-media/config": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:"
   }
