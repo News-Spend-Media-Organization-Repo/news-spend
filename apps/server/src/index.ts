@@ -64,6 +64,23 @@ export const apiHandler = new OpenAPIHandler(router, {
   ],
 });
 
+async function handleApi(req: Request) {
+  const origin = req.headers.get("origin");
+  const context = await createContext({ request: req });
+  const result = await apiHandler.handle(req, { prefix: "/api", context });
+  if (result.matched) {
+    return new Response(result.response.body, {
+      status: result.response.status,
+      statusText: result.response.statusText,
+      headers: {
+        ...Object.fromEntries(result.response.headers.entries()),
+        ...getCorsHeaders(origin),
+      },
+    });
+  }
+  return new Response("Not Found", { status: 404 });
+}
+
 export const rpcHandler = new RPCHandler(router, {
   plugins: [new BatchHandlerPlugin(), new RatelimitHandlerPlugin()],
   interceptors: [
@@ -72,6 +89,23 @@ export const rpcHandler = new RPCHandler(router, {
     }),
   ],
 });
+
+async function handleRpc(req: Request) {
+  const origin = req.headers.get("origin");
+  const context = await createContext({ request: req });
+  const result = await rpcHandler.handle(req, { prefix: "/rpc", context });
+  if (result.matched) {
+    return new Response(result.response.body, {
+      status: result.response.status,
+      statusText: result.response.statusText,
+      headers: {
+        ...Object.fromEntries(result.response.headers.entries()),
+        ...getCorsHeaders(origin),
+      },
+    });
+  }
+  return new Response("Not Found", { status: 404 });
+}
 
 function isCorsOriginAllowed(origin: string | null): boolean {
   if (!origin) return true;
@@ -108,9 +142,7 @@ const server = Bun.serve({
           uptime: process.uptime(),
           environment: process.env.NODE_ENV || "development",
         }),
-        {
-          headers: { "Content-Type": "application/json" },
-        }
+        { headers: { "Content-Type": "application/json" } }
       ),
 
     "/account-deletion": () =>
@@ -127,18 +159,9 @@ const server = Bun.serve({
       new Response(PrivacyPolicy(), {
         headers: { "Content-Type": "text/html; charset=utf-8" },
       }),
-  },
 
-  async fetch(req) {
-    const url = new URL(req.url);
-    const origin = req.headers.get("origin");
-    const corsHeaders = getCorsHeaders(origin);
-
-    if (req.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
-
-    if (url.pathname.startsWith("/api/auth/")) {
+    "/api/auth/*": async (req) => {
+      const origin = req.headers.get("origin");
       const expoOrigin = req.headers.get("expo-origin");
       const authRequest = expoOrigin
         ? new Proxy(req, {
@@ -152,54 +175,29 @@ const server = Bun.serve({
             },
           })
         : req;
-
       const authResponse = await auth.handler(authRequest);
       const corsResponse = new Response(authResponse.body, authResponse);
-      for (const [key, value] of Object.entries(corsHeaders)) {
+      for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
         corsResponse.headers.set(key, value);
       }
       return corsResponse;
+    },
+
+    "/rpc": handleRpc,
+    "/rpc/*": handleRpc,
+
+    "/api": handleApi,
+    "/api/*": handleApi,
+  },
+
+  async fetch(req) {
+    const origin = req.headers.get("origin");
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: getCorsHeaders(origin),
+      });
     }
-
-    if (url.pathname.startsWith("/rpc") || url.pathname.startsWith("/api")) {
-      const context = await createContext({ request: req });
-      const prefix = url.pathname.startsWith("/rpc") ? "/rpc" : "/api";
-
-      const contentType = req.headers.get("content-type") || "";
-      const accept = req.headers.get("accept") || "";
-      const isRpcProtocol =
-        contentType.includes("application/json") &&
-        !accept.includes("application/json");
-
-      if (isRpcProtocol) {
-        const result = await rpcHandler.handle(req, { prefix, context });
-
-        if (result.matched) {
-          return new Response(result.response.body, {
-            status: result.response.status,
-            statusText: result.response.statusText,
-            headers: {
-              ...Object.fromEntries(result.response.headers.entries()),
-              ...corsHeaders,
-            },
-          });
-        }
-      } else {
-        const result = await apiHandler.handle(req, { prefix, context });
-
-        if (result.matched) {
-          return new Response(result.response.body, {
-            status: result.response.status,
-            statusText: result.response.statusText,
-            headers: {
-              ...Object.fromEntries(result.response.headers.entries()),
-              ...corsHeaders,
-            },
-          });
-        }
-      }
-    }
-
     return new Response("Not Found", { status: 404 });
   },
 
