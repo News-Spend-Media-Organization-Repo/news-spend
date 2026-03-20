@@ -67,6 +67,7 @@
     "lefthook": "^2.1.4",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
+    "turbo": "^2.4.4",
     "ultracite": "7.3.2"
   },
   "engines": {

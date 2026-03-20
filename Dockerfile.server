@@ -1,0 +1,32 @@
+FROM oven/bun:1.3.9 AS builder
+
+WORKDIR /app
+
+COPY bun.lock ./
+COPY package.json ./
+COPY turbo.json ./
+COPY packages ./packages
+COPY apps ./apps
+COPY tooling ./tooling
+
+RUN bun install --lockfile-only --ignore-scripts && bun install --ignore-scripts
+
+RUN bun turbo build --filter=@news-spend-media/server...
+
+FROM debian:bookworm-slim AS runtime
+
+WORKDIR /app
+
+COPY --from=builder /app/apps/server/dist ./dist
+COPY --from=builder /app/apps/server/src ./src
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/bun.lock ./
+COPY --from=builder /app/packages ./packages
+
+EXPOSE 9000
+
+ENV NODE_ENV=production
+ENV PORT=9000
+ENV HOSTNAME=0.0.0.0
+
+CMD ["bun", "dist/index.js"]

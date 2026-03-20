@@ -1,0 +1,51 @@
+FROM oven/bun:1.3.9 AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get -yqq --no-install-recommends install \
+    build-essential \
+    python3 \
+    make \
+    g++ \
+    pkg-config \
+    git \
+    ca-certificates \
+    libvips-dev \
+    autoconf \
+    automake \
+    libtool \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY bun.lock ./
+COPY package.json ./
+COPY turbo.json ./
+COPY packages ./packages
+COPY apps ./apps
+COPY tooling ./tooling
+
+RUN bun install --lockfile-only --ignore-scripts && bun install --ignore-scripts
+
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN bun turbo build --filter=@news-spend-media/cms...
+
+FROM oven/bun:1.3.9 AS runtime
+
+WORKDIR /app
+
+COPY --from=builder /app/apps/cms/.next/standalone ./
+COPY --from=builder /app/apps/cms/.next/static ./.next/static
+COPY --from=builder /app/apps/cms/public ./public
+
+RUN apt-get update && apt-get -yqq --no-install-recommends install \
+    ca-certificates \
+    libvips \
+    && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 3000
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+
+CMD ["bun", "apps/cms/server.js"]
