@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 import { auditFieldsPlugin } from "@payload-bites/audit-fields";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { resendAdapter } from "@payloadcms/email-resend";
@@ -166,6 +167,23 @@ const baseConfig: Config = {
     debug: process.env.NODE_ENV === "development",
   },
   plugins: [
+    cpanelSftpStorage({
+      baseUrl: `https://media.newsspend.com/assets${process.env.NODE_ENV === "production" ? "" : "/dev"}`,
+      uploadDir: `/media.newsspend.com/assets${process.env.NODE_ENV === "production" ? "" : "/dev"}`,
+      collections: {
+        [Media.slug]: {
+          generateFileURL: ({ collection: col, filename: fname }) =>
+            `https://media.newsspend.com/assets${process.env.NODE_ENV === "production" ? "" : "/dev"}/${col.slug}/${fname}`,
+        },
+      },
+      connection: {
+        host: process.env.SFTP_HOST || "host.com",
+        username: process.env.SFTP_USERNAME || "user",
+        password: process.env.SFTP_PASSWORD || "password",
+        port: 22,
+      },
+      pool: {},
+    }),
     computeBlurhash({ showBlurhashField: false }),
     sentryPlugin({ Sentry }),
     auditFieldsPlugin(),

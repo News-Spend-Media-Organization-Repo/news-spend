@@ -7,16 +7,25 @@
 
 import { logger } from "@news-spend-media/logger";
 import type { ConnectOptions } from "ssh2-sftp-client";
-import SftpClient from "ssh2-sftp-client";
 
 import { SftpConnectionError } from "./errors";
 import { withRetry } from "./utils/retry";
+
+let SftpClient: typeof import("ssh2-sftp-client").default | null = null;
+
+async function getSftpClient() {
+  if (!SftpClient) {
+    const mod = await import("ssh2-sftp-client");
+    SftpClient = mod.default;
+  }
+  return SftpClient;
+}
 
 /**
  * Connection wrapper that tracks usage and health
  */
 type PooledConnection = {
-  client: SftpClient;
+  client: Awaited<ReturnType<typeof getSftpClient>>;
   id: string;
   createdAt: number;
   lastUsedAt: number;
@@ -138,7 +147,8 @@ export class SftpConnectionPool {
     }
 
     const connectionId = `sftp-${++this.connectionCounter}`;
-    const client = new SftpClient();
+    const SftpClientClass = await getSftpClient();
+    const client = new SftpClientClass();
 
     this.log(`Creating connection ${connectionId}`);
 
