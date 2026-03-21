@@ -5,6 +5,7 @@ import { Icon as Icon_92876dd9c4e9e3a3794035e4edc8ede5 } from "@news-spend-media
 import { Logo as Logo_502ee6abc1f396666feea23035509da4 } from "@news-spend-media/payload/components/Logo";
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from "@payloadcms/next/client";
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from "@payloadcms/next/rsc";
+import { AdminErrorBoundary as AdminErrorBoundary_e5a9e14bdbe97e70ba60697217fe7688 } from "@payloadcms/plugin-sentry/client";
 import { InlineToolbarFeatureClient as InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from "@payloadcms/richtext-lexical/client";
 import { FixedToolbarFeatureClient as FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from "@payloadcms/richtext-lexical/client";
 import { LinkFeatureClient as LinkFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from "@payloadcms/richtext-lexical/client";
@@ -32,6 +33,8 @@ import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8c
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from "@payloadcms/richtext-lexical/rsc";
 
 export const importMap = {
+  "@payloadcms/next/client#SlugField":
+    SlugField_2b8867833a34864a02ddf429b0728a40,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell":
     RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField":
@@ -52,8 +55,6 @@ export const importMap = {
     UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ParagraphFeatureClient":
     ParagraphFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "@payloadcms/next/client#SlugField":
-    SlugField_2b8867833a34864a02ddf429b0728a40,
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient":
     BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@news-spend-media/payload/blocks/TwitterPost/Component#TwitterPostBlockComponent":
@@ -94,6 +95,8 @@ export const importMap = {
     Icon_92876dd9c4e9e3a3794035e4edc8ede5,
   "@news-spend-media/payload/components/Logo#Logo":
     Logo_502ee6abc1f396666feea23035509da4,
+  "@payloadcms/plugin-sentry/client#AdminErrorBoundary":
+    AdminErrorBoundary_e5a9e14bdbe97e70ba60697217fe7688,
   "@payloadcms/next/rsc#CollectionCards":
     CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
 };

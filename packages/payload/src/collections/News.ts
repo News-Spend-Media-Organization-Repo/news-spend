@@ -276,6 +276,16 @@ const News: CollectionConfig = {
       },
     },
     {
+      name: "category",
+      type: "relationship",
+      relationTo: "categories",
+      required: true,
+      admin: {
+        position: "sidebar",
+        allowCreate: false,
+      },
+    },
+    {
       name: "hasBeenPublished",
       type: "checkbox",
       defaultValue: false,

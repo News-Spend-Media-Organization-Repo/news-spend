@@ -48,7 +48,7 @@ export const TwitterPostBlockComponent: React.FC<
   const tweetId = extractTweetId(tweetIdField?.value as string);
 
   const apiUrl =
-    tweetId && `${process.env.NEXT_PUBLIC_API_URL}/tweet/${tweetId}`;
+    tweetId && `${process.env.NEXT_PUBLIC_API_URL}/api/tweet/${tweetId}`;
 
   return (
     <BlockCollapsible>

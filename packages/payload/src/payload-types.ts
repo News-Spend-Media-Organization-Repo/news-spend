@@ -273,8 +273,191 @@ export interface Account {
   refreshTokenExpiresAt?: string | null;
   scope?: string | null;
   expiresAt?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admins".
+ */
+export interface Admin {
+  id: string;
+  role: "super-admin" | "content-manager" | "editor" | "viewer" | "partner";
+  partner?: (string | null) | Partner;
+  fullName: string;
+  image?: (string | null) | Media;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: "admins";
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partners".
+ */
+export interface Partner {
+  id: string;
+  companyName: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  description?: string | null;
+  websiteUrl: string;
+  status?: ("prospective" | "active" | "inactive") | null;
+  contractSigned?: boolean | null;
+  inShopTab?: boolean | null;
+  /**
+   * 💡 Cashback is in percentage. For example, if the cashback is 5%, enter 5.
+   */
+  cashBack?: number | null;
+  /**
+   * Auto-calculated popularity score based on views and clicks for the shop tab.
+   */
+  popularityScore?: number | null;
+  category?:
+    | (
+        | "books"
+        | "ecommerce"
+        | "education"
+        | "food"
+        | "digital"
+        | "business"
+        | "other"
+      )
+    | null;
+  logo?: (string | null) | Media;
+  contactInfo?: {
+    contactPerson?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+  /**
+   * How will this partner send conversion data?
+   */
+  integrationMethod: "manual" | "webhook" | "postback" | "csv";
+  /**
+   * Share this URL with technical partners
+   */
+  webhookUrl?: string | null;
+  /**
+   * Secret key for webhook verification
+   */
+  webhookSecret?: string | null;
+  /**
+   * API key for partner authentication
+   */
+  apiKey?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  alt?: string | null;
+  caption?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ("ltr" | "rtl") | null;
+      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  blurhash?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    mobile?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -311,6 +494,14 @@ export interface Activity {
     | number
     | boolean
     | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -357,6 +548,14 @@ export interface User {
     | number
     | boolean
     | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -431,101 +630,22 @@ export interface News {
    */
   points?: number | null;
   author: string | Admin;
+  category: string | Category;
   hasBeenPublished?: boolean | null;
   totalComments?: number | null;
   totalCommentLikes?: number | null;
   likesCount?: number | null;
   dislikesCount?: number | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   createdAt: string;
   _status?: ("draft" | "published") | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt?: string | null;
-  caption?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ("ltr" | "rtl") | null;
-      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    thumbnail?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    card?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    mobile?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "admins".
- */
-export interface Admin {
-  id: string;
-  role: "super-admin" | "content-manager" | "editor" | "viewer" | "partner";
-  fullName: string;
-  image?: (string | null) | Media;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: "admins";
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -541,6 +661,24 @@ export interface Category {
   slug: string;
   description?: string | null;
   image?: (string | null) | Media;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  parent?: (string | null) | Category;
+  breadcrumbs?:
+    | {
+        doc?: (string | null) | Category;
+        url?: string | null;
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  pathname?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -559,6 +697,14 @@ export interface Comment {
   dislikes?: (string | User)[] | null;
   replies?: (string | Comment)[] | null;
   totalReplies?: number | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -598,6 +744,14 @@ export interface ContentReport {
     | null;
   resolvedBy?: (string | null) | Admin;
   resolvedAt?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -612,6 +766,14 @@ export interface Feedback {
   type: "general" | "bug" | "feature" | "advertisement" | "other";
   message: string;
   rating: number;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -631,6 +793,14 @@ export interface IdentityVerification {
     front: string | Media;
     back: string | Media;
   };
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -650,6 +820,14 @@ export interface Lottery {
   drawSeed?: string | null;
   ticketPrice: number;
   winners?: (string | User)[] | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -663,6 +841,14 @@ export interface LotteryTicket {
   lottery: string | Lottery;
   count: number;
   boostLuck: number;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -678,6 +864,14 @@ export interface LotteryWinner {
   prize?: string | null;
   claimed?: boolean | null;
   claimedAt?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -714,6 +908,14 @@ export interface NotificationDelivery {
    * When this notification was confirmed delivered
    */
   deliveredAt?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -801,6 +1003,14 @@ export interface Notification {
   totalOpened?: number | null;
   createdAt: string;
   updatedAt: string;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   _status?: ("draft" | "published") | null;
 }
 /**
@@ -851,6 +1061,14 @@ export interface NotificationInbox {
    * Number of times the user tapped this notification
    */
   clickCount?: number | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1004,6 +1222,14 @@ export interface PartnerContent {
    * Notes for the design team (safe zones, background color, text placement, etc.)
    */
   displayNotes?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1034,67 +1260,6 @@ export interface PromoImage {
   id?: string | null;
   blockName?: string | null;
   blockType: "promo-image";
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "partners".
- */
-export interface Partner {
-  id: string;
-  companyName: string;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  description?: string | null;
-  websiteUrl: string;
-  status?: ("prospective" | "active" | "inactive") | null;
-  contractSigned?: boolean | null;
-  inShopTab?: boolean | null;
-  /**
-   * 💡 Cashback is in percentage. For example, if the cashback is 5%, enter 5.
-   */
-  cashBack?: number | null;
-  /**
-   * Auto-calculated popularity score based on views and clicks for the shop tab.
-   */
-  popularityScore?: number | null;
-  category?:
-    | (
-        | "books"
-        | "ecommerce"
-        | "education"
-        | "food"
-        | "digital"
-        | "business"
-        | "other"
-      )
-    | null;
-  logo?: (string | null) | Media;
-  contactInfo?: {
-    contactPerson?: string | null;
-    email?: string | null;
-    phone?: string | null;
-  };
-  /**
-   * How will this partner send conversion data?
-   */
-  integrationMethod: "manual" | "webhook" | "postback" | "csv";
-  /**
-   * Share this URL with technical partners
-   */
-  webhookUrl?: string | null;
-  /**
-   * Secret key for webhook verification
-   */
-  webhookSecret?: string | null;
-  /**
-   * API key for partner authentication
-   */
-  apiKey?: string | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1139,6 +1304,14 @@ export interface PartnerConversion {
    * When points were awarded to user
    */
   awardedAt?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1160,6 +1333,14 @@ export interface PromotionMedia {
         id?: string | null;
       }[]
     | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1199,6 +1380,14 @@ export interface PushToken {
    * Last time a notification was successfully sent to this token
    */
   lastUsed?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1211,6 +1400,14 @@ export interface Reaction {
   user: string | User;
   news: string | News;
   type: "like" | "dislike" | "none";
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1225,6 +1422,14 @@ export interface Session {
   ipAddress?: string | null;
   token?: string | null;
   userAgent?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1240,6 +1445,14 @@ export interface ShopAnalytic {
   device?: ("mobile" | "tablet" | "desktop" | "unknown") | null;
   platform?: ("android" | "ios" | "web") | null;
   timestamp: string;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1254,6 +1467,14 @@ export interface Survey {
   surveyLink: string;
   users?: (string | User)[] | null;
   points?: number | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1266,6 +1487,14 @@ export interface TicketPurchaseLog {
   user: string | User;
   lottery: string | Lottery;
   ticketQuantity: number;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1278,6 +1507,14 @@ export interface Verification {
   identifier?: string | null;
   value?: string | null;
   expiresAt?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1292,6 +1529,14 @@ export interface WitnessReport {
   description?: string | null;
   reportType?: ("shortMessage" | "video" | "picture") | null;
   files: (string | Media)[];
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1606,6 +1851,8 @@ export interface AccountsSelect<T extends boolean = true> {
   refreshTokenExpiresAt?: T;
   scope?: T;
   expiresAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1622,6 +1869,8 @@ export interface ActivitiesSelect<T extends boolean = true> {
   user?: T;
   news?: T;
   metadata?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1631,8 +1880,11 @@ export interface ActivitiesSelect<T extends boolean = true> {
  */
 export interface AdminsSelect<T extends boolean = true> {
   role?: T;
+  partner?: T;
   fullName?: T;
   image?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1660,6 +1912,18 @@ export interface CategoriesSelect<T extends boolean = true> {
   slug?: T;
   description?: T;
   image?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  parent?: T;
+  breadcrumbs?:
+    | T
+    | {
+        doc?: T;
+        url?: T;
+        label?: T;
+        id?: T;
+      };
+  pathname?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1677,6 +1941,8 @@ export interface CommentsSelect<T extends boolean = true> {
   dislikes?: T;
   replies?: T;
   totalReplies?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1695,6 +1961,8 @@ export interface ContentReportsSelect<T extends boolean = true> {
   resolution?: T;
   resolvedBy?: T;
   resolvedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1708,6 +1976,8 @@ export interface FeedbackSelect<T extends boolean = true> {
   type?: T;
   message?: T;
   rating?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1728,6 +1998,8 @@ export interface IdentityVerificationSelect<T extends boolean = true> {
         front?: T;
         back?: T;
       };
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1746,6 +2018,8 @@ export interface LotterySelect<T extends boolean = true> {
   drawSeed?: T;
   ticketPrice?: T;
   winners?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1758,6 +2032,8 @@ export interface LotteryTicketsSelect<T extends boolean = true> {
   lottery?: T;
   count?: T;
   boostLuck?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1772,6 +2048,8 @@ export interface LotteryWinnersSelect<T extends boolean = true> {
   prize?: T;
   claimed?: T;
   claimedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1782,6 +2060,9 @@ export interface LotteryWinnersSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   caption?: T;
+  blurhash?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1855,11 +2136,14 @@ export interface NewsSelect<T extends boolean = true> {
   updatedAt?: T;
   points?: T;
   author?: T;
+  category?: T;
   hasBeenPublished?: T;
   totalComments?: T;
   totalCommentLikes?: T;
   likesCount?: T;
   dislikesCount?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   createdAt?: T;
   _status?: T;
 }
@@ -1875,6 +2159,8 @@ export interface NotificationDeliveriesSelect<T extends boolean = true> {
   errorMessage?: T;
   expoTicketId?: T;
   deliveredAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1891,6 +2177,8 @@ export interface NotificationInboxSelect<T extends boolean = true> {
   data?: T;
   type?: T;
   clickCount?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1918,6 +2206,8 @@ export interface NotificationsSelect<T extends boolean = true> {
   totalOpened?: T;
   createdAt?: T;
   updatedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   _status?: T;
 }
 /**
@@ -1967,6 +2257,8 @@ export interface PartnerContentSelect<T extends boolean = true> {
       };
   notes?: T;
   displayNotes?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2006,6 +2298,8 @@ export interface PartnerConversionsSelect<T extends boolean = true> {
   clickedAt?: T;
   convertedAt?: T;
   awardedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2037,6 +2331,8 @@ export interface PartnersSelect<T extends boolean = true> {
   webhookUrl?: T;
   webhookSecret?: T;
   apiKey?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2059,6 +2355,8 @@ export interface PromotionMediaSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2076,6 +2374,8 @@ export interface PushTokensSelect<T extends boolean = true> {
   appVersion?: T;
   status?: T;
   lastUsed?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2087,6 +2387,8 @@ export interface ReactionsSelect<T extends boolean = true> {
   user?: T;
   news?: T;
   type?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2100,6 +2402,8 @@ export interface SessionsSelect<T extends boolean = true> {
   ipAddress?: T;
   token?: T;
   userAgent?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2114,6 +2418,8 @@ export interface ShopAnalyticsSelect<T extends boolean = true> {
   device?: T;
   platform?: T;
   timestamp?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2127,6 +2433,8 @@ export interface SurveySelect<T extends boolean = true> {
   surveyLink?: T;
   users?: T;
   points?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2138,6 +2446,8 @@ export interface TicketPurchaseLogSelect<T extends boolean = true> {
   user?: T;
   lottery?: T;
   ticketQuantity?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2159,6 +2469,8 @@ export interface UsersSelect<T extends boolean = true> {
   notificationPreferences?: T;
   lastActive?: T;
   customAttributes?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2170,6 +2482,8 @@ export interface VerificationsSelect<T extends boolean = true> {
   identifier?: T;
   value?: T;
   expiresAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2183,6 +2497,8 @@ export interface WitnessReportsSelect<T extends boolean = true> {
   description?: T;
   reportType?: T;
   files?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2270,6 +2586,14 @@ export interface NewsCategory {
         id?: string | null;
       }[]
     | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2302,6 +2626,8 @@ export interface NewsCategorySelect<T extends boolean = true> {
         category?: T;
         id?: T;
       };
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
