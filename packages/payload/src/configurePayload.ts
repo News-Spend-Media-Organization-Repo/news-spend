@@ -2,6 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { postgresAdapter } from "@payloadcms/db-postgres";
+import { nestedDocsPlugin } from "@payloadcms/plugin-nested-docs";
+import { redirectsPlugin } from "@payloadcms/plugin-redirects";
+import { sentryPlugin } from "@payloadcms/plugin-sentry";
+import { seoPlugin } from "@payloadcms/plugin-seo";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import { buildConfig, type Config, deepMerge } from "payload";
 import sharp from "sharp";
@@ -40,10 +44,9 @@ import {
 import Admins from "./collections/Admins";
 import { Media } from "./collections/Media";
 import News from "./collections/News";
-import UserSegment from "./collections/UserSegment";
-import VerificationOTP from "./collections/VerificationOTP";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
+import { nestedDocsPlusPlugin } from "./plugins/nestedDocsPlusPlugin";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { processLotteryTask } from "./tasks/processLottery";
@@ -161,6 +164,21 @@ const baseConfig: Config = {
   upload: {
     debug: process.env.NODE_ENV === "development",
   },
+  plugins: [
+    sentryPlugin({
+      tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+    }),
+    seoPlugin({}),
+    nestedDocsPlusPlugin({
+      collections: ["categories"],
+    }),
+    nestedDocsPlugin({
+      collections: ["categories"],
+    }),
+    redirectsPlugin({
+      collections: ["news"],
+    }),
+  ],
   onInit: async (payload) => {
     if (process.env.NODE_ENV !== "development") {
       return;
