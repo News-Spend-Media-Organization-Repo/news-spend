@@ -9,6 +9,8 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+android/
+ios/
 
 # macOS
 .DS_Store
@@ -17,6 +19,4 @@ web-build/
 .metro-health-check*
 
 output
-.env.local
-
 .env.local
