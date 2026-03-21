@@ -457,6 +457,10 @@
       },
     },
   },
+  "patchedDependencies": {
+    "node-internet-radio@0.2.1": "patches/node-internet-radio@0.2.1.patch",
+    "@segment/analytics-react-native@2.22.0": "patches/@segment%2Fanalytics-react-native@2.22.0.patch",
+  },
   "catalog": {
     "@better-auth/expo": "^1.5.5",
     "@orpc/client": "^1.12.2",
