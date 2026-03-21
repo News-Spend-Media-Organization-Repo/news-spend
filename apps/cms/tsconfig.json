@@ -2,12 +2,22 @@
   "compilerOptions": {
     "baseUrl": ".",
     "jsx": "preserve",
-    "lib": ["es2022", "dom", "dom.iterable"],
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
     "module": "esnext",
     "paths": {
-      "@payload-config": ["./src/payload.config.ts"],
-      "@payload-types": ["./src/payload.types.ts"],
-      "~/*": ["./src/*"]
+      "@payload-config": [
+        "./src/payload.config.ts"
+      ],
+      "@payload-types": [
+        "./src/payload.types.ts"
+      ],
+      "~/*": [
+        "./src/*"
+      ]
     },
     "plugins": [
       {
@@ -15,7 +25,9 @@
       }
     ],
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "allowJs": true,
+    "noEmit": true
   },
   "exclude": [
     "next-env.d.ts",
@@ -26,5 +38,8 @@
     "css-loader-hook.js"
   ],
   "extends": "@news-spend-media/config/tsconfig.base.json",
-  "include": [".", ".next/types/**/*.ts"]
+  "include": [
+    ".",
+    ".next/types/**/*.ts"
+  ]
 }

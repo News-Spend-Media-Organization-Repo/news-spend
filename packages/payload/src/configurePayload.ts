@@ -1,13 +1,14 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { auditFieldsPlugin } from "@payload-bites/audit-fields";
 import { postgresAdapter } from "@payloadcms/db-postgres";
-import { nestedDocsPlugin } from "@payloadcms/plugin-nested-docs";
-import { redirectsPlugin } from "@payloadcms/plugin-redirects";
+import { resendAdapter } from "@payloadcms/email-resend";
 import { sentryPlugin } from "@payloadcms/plugin-sentry";
-import { seoPlugin } from "@payloadcms/plugin-seo";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
+import * as Sentry from "@sentry/nextjs";
 import { buildConfig, type Config, deepMerge } from "payload";
+import computeBlurhash from "payload-blurhash-plugin";
 import sharp from "sharp";
 
 import { TwitterBlock } from "./blocks";
@@ -24,6 +25,8 @@ import {
   Lotteries,
   LotteryTickets,
   LotteryWinners,
+  Media,
+  News,
   NotificationDeliveries,
   NotificationInbox,
   Notifications,
@@ -42,8 +45,6 @@ import {
   WitnessReport,
 } from "./collections";
 import Admins from "./collections/Admins";
-import { Media } from "./collections/Media";
-import News from "./collections/News";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
 import { nestedDocsPlusPlugin } from "./plugins/nestedDocsPlusPlugin";
@@ -165,20 +166,19 @@ const baseConfig: Config = {
     debug: process.env.NODE_ENV === "development",
   },
   plugins: [
-    sentryPlugin({
-      tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
-    }),
-    seoPlugin({}),
+    computeBlurhash({ showBlurhashField: false }),
+    sentryPlugin({ Sentry }),
+    auditFieldsPlugin(),
     nestedDocsPlusPlugin({
       collections: ["categories"],
     }),
-    nestedDocsPlugin({
-      collections: ["categories"],
-    }),
-    redirectsPlugin({
-      collections: ["news"],
-    }),
   ],
+  email: resendAdapter({
+    defaultFromAddress:
+      process.env.RESEND_DEFAULT_FROM_ADDRESS || "admin@mail.newsspend.com",
+    defaultFromName: process.env.RESEND_DEFAULT_FROM_NAME || "News Spend Media",
+    apiKey: process.env.RESEND_API_KEY || "",
+  }),
   onInit: async (payload) => {
     if (process.env.NODE_ENV !== "development") {
       return;

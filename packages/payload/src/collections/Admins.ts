@@ -28,15 +28,15 @@ const Admins: CollectionConfig = {
         { label: "Partner", value: "partner" },
       ],
     },
-    // {
-    //   name: "partner",
-    //   type: "relationship",
-    //   relationTo: "partners",
-    //   hasMany: false,
-    //   admin: {
-    //     condition: (data) => data.role === "partner",
-    //   },
-    // },
+    {
+      name: "partner",
+      type: "relationship",
+      relationTo: "partners",
+      hasMany: false,
+      admin: {
+        condition: (data) => data.role === "partner",
+      },
+    },
     {
       name: "fullName",
       type: "text",
