@@ -3,38 +3,63 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import WebView from "react-native-webview";
 
 function extractPostId(input: string): string | undefined {
-  if (!input) {
-    return;
-  }
-
+  if (!input) return;
   const trimmed = input.trim();
-
   try {
     const url = new URL(trimmed);
-
     if (url.hostname.includes("instagram.com")) {
       const pathParts = url.pathname.split("/").filter(Boolean);
-
-      const postIndex = pathParts.indexOf("p");
-      if (postIndex !== -1 && pathParts[postIndex + 1]) {
-        return `p/${pathParts[postIndex + 1]}`;
-      }
-
-      const reelIndex = pathParts.indexOf("reel");
-      if (reelIndex !== -1 && pathParts[reelIndex + 1]) {
-        return `reel/${pathParts[reelIndex + 1]}`;
-      }
-
-      const tvIndex = pathParts.indexOf("tv");
-      if (tvIndex !== -1 && pathParts[tvIndex + 1]) {
-        return `tv/${pathParts[tvIndex + 1]}`;
+      for (const type of ["p", "reel", "tv"]) {
+        const idx = pathParts.indexOf(type);
+        if (idx !== -1 && pathParts[idx + 1]) {
+          return `${type}/${pathParts[idx + 1]}`;
+        }
       }
     }
-  } catch {
-    // Invalid URL
-  }
+  } catch {}
+}
 
-  return;
+const INJECTED_JS = `
+  (function() {
+    var attempts = 0;
+    var interval = setInterval(function() {
+      var el = document.querySelector('.instagram-media');
+      var h = document.documentElement.scrollHeight;
+      attempts++;
+      if ((el && el.offsetHeight > 200) || attempts > 30) {
+        clearInterval(interval);
+        window.ReactNativeWebView.postMessage(String(h));
+      }
+    }, 300);
+  })();
+  true;
+`;
+
+function buildHtml(postId: string) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: transparent; overflow: hidden; }
+    .instagram-media {
+      min-width: unset !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  </style>
+</head>
+<body>
+  <blockquote
+    class="instagram-media"
+    data-instgrm-permalink="https://www.instagram.com/${postId}/"
+    data-instgrm-version="14"
+    style="width:100%;"
+  ></blockquote>
+  <script async src="https://www.instagram.com/embed.js"></script>
+</body>
+</html>`;
 }
 
 export function InstagramEmbed({
@@ -45,76 +70,35 @@ export function InstagramEmbed({
   caption?: string;
 }) {
   const [webViewHeight, setWebViewHeight] = useState(480);
-
+  const [isLoaded, setIsLoaded] = useState(false);
   const postId = extractPostId(postUrl);
 
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          html, body { background-color: transparent; }
-          .instagram-container {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-          }
-          iframe {
-            border: none;
-            width: 100%;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="instagram-container">
-          <iframe
-            src="https://www.instagram.com/${postId}/embed"
-            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            allowfullscreen
-          ></iframe>
-        </div>
-        <script>
-          window.addEventListener('load', function() {
-            setTimeout(function() {
-              var height = document.body.scrollHeight || 480;
-              window.ReactNativeWebView.postMessage(height.toString());
-            }, 1000);
-          });
-        </script>
-      </body>
-    </html>
-  `;
-
-  if (!postId) {
-    return null;
-  }
+  if (!postId) return null;
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.webviewContainer,
-          { height: (webViewHeight ?? 480) + 25 },
-        ]}
-      >
+      <View style={[styles.webviewContainer, { height: webViewHeight }]}>
+        {!isLoaded && (
+          <View style={styles.loading}>
+            <ActivityIndicator size="small" />
+          </View>
+        )}
         <WebView
+          source={{ html: buildHtml(postId) }}
+          style={[styles.webview, !isLoaded && styles.hidden]}
+          scrollEnabled={false}
+          injectedJavaScript={INJECTED_JS}
           onMessage={(event) => {
-            const height = Number.parseInt(event.nativeEvent.data, 10);
-            if (height > 0) {
+            const height = parseInt(event.nativeEvent.data, 10);
+            if (height > 100) {
               setWebViewHeight(height);
+              setIsLoaded(true);
             }
           }}
-          renderLoading={() => (
-            <View style={styles.loading}>
-              <ActivityIndicator size="small" />
-            </View>
-          )}
-          scrollEnabled={false}
-          source={{ html: htmlContent }}
-          startInLoadingState={true}
-          style={styles.webview}
+          originWhitelist={["*"]}
+          javaScriptEnabled
+          domStorageEnabled
+          mixedContentMode="always"
         />
       </View>
       {caption && <Text style={styles.caption}>{caption}</Text>}
@@ -129,19 +113,21 @@ const styles = StyleSheet.create({
   },
   webviewContainer: {
     width: "100%",
+    overflow: "hidden",
   },
   webview: {
+    flex: 1,
     backgroundColor: "transparent",
   },
+  hidden: {
+    opacity: 0,
+  },
   loading: {
-    height: 480,
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    inset: 0,
     alignItems: "center",
     justifyContent: "center",
+    height: 480,
   },
   caption: {
     fontSize: 14,
