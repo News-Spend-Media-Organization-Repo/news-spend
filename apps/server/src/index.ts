@@ -164,14 +164,10 @@ const server = Bun.serve({
       const origin = req.headers.get("origin");
       const expoOrigin = req.headers.get("expo-origin");
       const authRequest = expoOrigin
-        ? new Proxy(req, {
-            get(target, prop, receiver) {
-              if (prop === "headers") {
-                const headers = new Headers(target.headers);
-                headers.set("origin", expoOrigin);
-                return headers;
-              }
-              return Reflect.get(target, prop, receiver);
+        ? new Request(req, {
+            headers: {
+              ...Object.fromEntries(req.headers),
+              origin: expoOrigin,
             },
           })
         : req;
