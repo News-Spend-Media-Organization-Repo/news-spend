@@ -1,0 +1,46 @@
+import { useEffect } from "react";
+import {
+  TestIds,
+  useRewardedInterstitialAd,
+} from "react-native-google-mobile-ads";
+
+type UseGoogleAdOptions = {
+  onRewarded?: () => void;
+  onClosed?: () => void;
+};
+
+type UseGoogleAdReturn = {
+  isLoaded: boolean;
+  show: () => void;
+  load: () => void;
+};
+
+/**
+ * Wraps the Google rewarded interstitial ad lifecycle.
+ * Automatically reloads after the ad closes.
+ * Fires `onRewarded` if the user earned a reward, `onClosed` in either case.
+ */
+export function useGoogleAd({
+  onRewarded,
+  onClosed,
+}: UseGoogleAdOptions = {}): UseGoogleAdReturn {
+  const { isLoaded, isClosed, load, show, isEarnedReward } =
+    useRewardedInterstitialAd(TestIds.REWARDED_INTERSTITIAL);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!isClosed) {
+      return;
+    }
+    if (isEarnedReward) {
+      onRewarded?.();
+    }
+    onClosed?.();
+    load();
+  }, [isClosed, isEarnedReward, onRewarded, onClosed, load]);
+
+  return { isLoaded, show, load };
+}
