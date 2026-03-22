@@ -25,6 +25,7 @@ COPY packages ./packages
 COPY apps ./apps
 COPY tooling ./tooling
 RUN bun install --lockfile-only --ignore-scripts && bun install --ignore-scripts
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun turbo build --filter=@news-spend-media/cms...
 
