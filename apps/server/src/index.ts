@@ -19,6 +19,8 @@ const CORS_ORIGINS = [
   "http://localhost:9000",
   "http://cms.newsspend.localhost:1355",
   "http://server.newsspend.localhost:1355",
+  "https://staging-cms.newsspend.com",
+  "https://cms.newsspend.com",
 ].filter(Boolean);
 
 const servers: Array<{ url: string; description: string }> = [];

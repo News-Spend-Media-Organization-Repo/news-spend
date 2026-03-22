@@ -2,7 +2,7 @@ import type { Block } from "payload";
 
 export const YouTubeBlock: Block = {
   slug: "youtubeEmbed",
-  imageURL: "https://www.youtube.com/favicon.ico",
+  imageURL: "https://thesvg.org/icons/youtube/default.svg",
   interfaceName: "YouTubeEmbedBlock",
   imageAltText: "YouTube",
   labels: {

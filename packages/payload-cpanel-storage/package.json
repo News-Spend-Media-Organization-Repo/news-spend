@@ -23,7 +23,7 @@
     "@news-spend-media/logger": "workspace:*",
     "@payloadcms/plugin-cloud-storage": "catalog:",
     "@payloadcms/ui": "catalog:",
-    "ssh2-sftp-client": "^12.0.1"
+    "ssh2-sftp-client": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
