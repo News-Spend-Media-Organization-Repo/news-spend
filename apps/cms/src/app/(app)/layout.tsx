@@ -6,11 +6,10 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  description:
-    "Boilerplate for creating a new Payload project using Next.js and TypeScript.",
+  description: "News Spend Media",
   title: {
     default: "",
-    template: "%s | Payload Monorepo Template",
+    template: "%s | News Spend Media",
   },
 };
 
