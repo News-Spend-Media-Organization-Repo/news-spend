@@ -4,7 +4,7 @@
   "scripts": {
     "build": "bun build src/index.ts --outdir=dist --sourcemap --target=bun --external cpu-features --external ssh2",
     "dev": "bun --watch src/index.ts",
-    "start": "bun dist"
+    "start": "NODE_ENV=production bun dist"
   },
   "dependencies": {
     "@news-spend-media/api": "workspace:*",
