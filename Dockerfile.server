@@ -14,15 +14,23 @@ RUN bun install --lockfile-only --ignore-scripts && bun install --ignore-scripts
 
 RUN bun turbo build --filter=@news-spend-media/server...
 
-FROM debian:bookworm-slim AS runtime
+FROM oven/bun:1.3.9 AS runtime
 
 WORKDIR /app
 
-COPY --from=builder /app/apps/server/dist ./dist
-COPY --from=builder /app/apps/server/src ./src
-COPY --from=builder /app/package.json ./
+RUN apt-get update && apt-get -yqq --no-install-recommends install \
+    libvips \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /app/bun.lock ./
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/turbo.json ./
+COPY --from=builder /app/patches ./patches
+COPY --from=builder /app/apps ./apps
 COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/tooling ./tooling
+
+RUN bun install --ignore-scripts
 
 EXPOSE 9000
 
@@ -30,4 +38,4 @@ ENV NODE_ENV=production
 ENV PORT=9000
 ENV HOSTNAME=0.0.0.0
 
-CMD ["bun", "dist/index.js"]
+CMD ["bun", "apps/server/dist/src/index.js"]

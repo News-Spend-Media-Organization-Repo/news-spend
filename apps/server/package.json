@@ -2,7 +2,7 @@
   "name": "@news-spend-media/server",
   "type": "module",
   "scripts": {
-    "build": "bun build src/index.ts --outdir=dist --target=bun --external cpu-features",
+    "build": "bun build src/index.ts --outdir=dist --target=bun --external cpu-features --external ssh2 --external ssh2-sftp-client",
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts"
   },
@@ -20,7 +20,6 @@
     "dotenv": "catalog:",
     "@sentry/node": "^10",
     "better-auth": "catalog:",
-    "sharp": "catalog:",
     "ssh2": "^1.16.0",
     "zod": "catalog:"
   },

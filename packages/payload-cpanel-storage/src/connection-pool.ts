@@ -11,7 +11,6 @@ import type { ConnectOptions } from "ssh2-sftp-client";
 import { SftpConnectionError } from "./errors";
 import { withRetry } from "./utils/retry";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SftpClientInstance = any;
 
 let SftpClientClass: SftpClientInstance = null;

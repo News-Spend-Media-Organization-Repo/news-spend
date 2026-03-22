@@ -1,5 +1,4 @@
 node_modules
-**/node_modules
 .next
 .vscode
 .github
@@ -22,3 +21,10 @@ apps/native
 *.tgz
 .env.local
 .env.*.local
+**/node_modules/.cache
+**/node_modules/.pnpm
+**/node_modules/.bun
+**/node_modules/*/node_modules
+**/node_modules/*/*/node_modules
+**/node_modules/*/*/*/node_modules
+**/node_modules/.package-lock.json
