@@ -15,8 +15,8 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
    "label" varchar
   );
 
-  ALTER TABLE "categories" ADD COLUMN "parent_id" uuid;
-  ALTER TABLE "categories" ADD COLUMN "pathname" varchar;
+  ALTER TABLE "categories" ADD COLUMN IF NOT EXISTS "parent_id" uuid;
+  ALTER TABLE "categories" ADD COLUMN IF NOT EXISTS "pathname" varchar;
   ALTER TABLE "categories_breadcrumbs" ADD CONSTRAINT "categories_breadcrumbs_doc_id_categories_id_fk" FOREIGN KEY ("doc_id") REFERENCES "public"."categories"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "categories_breadcrumbs" ADD CONSTRAINT "categories_breadcrumbs_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."categories"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX IF NOT EXISTS "categories_breadcrumbs_order_idx" ON "categories_breadcrumbs" USING btree ("_order");
