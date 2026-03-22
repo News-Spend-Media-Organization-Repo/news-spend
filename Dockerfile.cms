@@ -19,6 +19,7 @@ RUN apt-get update && apt-get -yqq --no-install-recommends install \
 COPY bun.lock ./
 COPY package.json ./
 COPY turbo.json ./
+COPY patches ./patches
 COPY packages ./packages
 COPY apps ./apps
 COPY tooling ./tooling
