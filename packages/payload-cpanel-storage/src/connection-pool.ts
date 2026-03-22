@@ -371,11 +371,7 @@ export class SftpConnectionPool {
    * @returns A healthy SFTP client
    * @throws {SftpConnectionError} If unable to acquire a connection
    */
-<<<<<<< HEAD
-  async acquire(): Promise<SftpClientType> {
-=======
   async acquire(): Promise<SftpClientInstance> {
->>>>>>> 2bb4de3 (Fix TypeScript types for lazy-loaded SFTP client)
     if (this.isShuttingDown) {
       throw new SftpConnectionError("Pool is shutting down");
     }
@@ -430,11 +426,7 @@ export class SftpConnectionPool {
    *
    * @param client - The SFTP client to release
    */
-<<<<<<< HEAD
-  release(client: SftpClientType): void {
-=======
   release(client: SftpClientInstance): void {
->>>>>>> 2bb4de3 (Fix TypeScript types for lazy-loaded SFTP client)
     const connection = this.pool.find((conn) => conn.client === client);
 
     if (connection) {
@@ -461,11 +453,7 @@ export class SftpConnectionPool {
    * ```
    */
   async withConnection<T>(
-<<<<<<< HEAD
-    operation: (client: SftpClientType) => Promise<T>
-=======
     operation: (client: SftpClientInstance) => Promise<T>
->>>>>>> 2bb4de3 (Fix TypeScript types for lazy-loaded SFTP client)
   ): Promise<T> {
     const client = await this.acquire();
 
