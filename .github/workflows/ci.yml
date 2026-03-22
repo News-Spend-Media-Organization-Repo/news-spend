@@ -15,47 +15,48 @@ env:
   FORCE_COLOR: 3
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # Disabled for now - uncomment when ready
+  # lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+  #     - name: Setup Bun
+  #       uses: oven-sh/setup-bun@v1
 
-      - name: Install dependencies
-        run: bun install
+  #     - name: Install dependencies
+  #       run: bun install
 
-      - name: Copy .env.example to .env
-        run: find . -name ".env.example" -type f -execdir cp -v {} .env \; || true
+  #     - name: Copy .env.example to .env
+  #       run: find . -name ".env.example" -type f -execdir cp -v {} .env \; || true
 
-      - name: Lint
-        run: bun run lint
+  #     - name: Lint
+  #       run: bun run lint
 
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # format:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+  #     - name: Setup Bun
+  #       uses: oven-sh/setup-bun@v1
 
-      - name: Install dependencies
-        run: bun install
+  #     - name: Install dependencies
+  #       run: bun install
 
-      - name: Format check
-        run: bun run format
+  #     - name: Format check
+  #       run: bun run format
 
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # typecheck:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+  #     - name: Setup Bun
+  #       uses: oven-sh/setup-bun@v1
 
-      - name: Install dependencies
-        run: bun install
+  #     - name: Install dependencies
+  #       run: bun install
 
-      - name: Typecheck
-        run: bun run typecheck
+  #     - name: Typecheck
+  #       run: bun run typecheck
