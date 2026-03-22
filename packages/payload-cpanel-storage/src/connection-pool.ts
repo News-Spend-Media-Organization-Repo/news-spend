@@ -6,27 +6,29 @@
  */
 
 import { logger } from "@news-spend-media/logger";
-import type SftpClientType from "ssh2-sftp-client";
 import type { ConnectOptions } from "ssh2-sftp-client";
 
 import { SftpConnectionError } from "./errors";
 import { withRetry } from "./utils/retry";
 
-let SftpClient: typeof SftpClientType | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SftpClientInstance = any;
+
+let SftpClientClass: SftpClientInstance = null;
 
 async function getSftpClient() {
-  if (!SftpClient) {
+  if (!SftpClientClass) {
     const mod = await import("ssh2-sftp-client");
-    SftpClient = mod.default;
+    SftpClientClass = mod.default;
   }
-  return SftpClient;
+  return SftpClientClass;
 }
 
 /**
  * Connection wrapper that tracks usage and health
  */
 type PooledConnection = {
-  client: Awaited<ReturnType<typeof getSftpClient>>;
+  client: SftpClientInstance;
   id: string;
   createdAt: number;
   lastUsedAt: number;
@@ -369,7 +371,11 @@ export class SftpConnectionPool {
    * @returns A healthy SFTP client
    * @throws {SftpConnectionError} If unable to acquire a connection
    */
+<<<<<<< HEAD
   async acquire(): Promise<SftpClientType> {
+=======
+  async acquire(): Promise<SftpClientInstance> {
+>>>>>>> 2bb4de3 (Fix TypeScript types for lazy-loaded SFTP client)
     if (this.isShuttingDown) {
       throw new SftpConnectionError("Pool is shutting down");
     }
@@ -424,7 +430,11 @@ export class SftpConnectionPool {
    *
    * @param client - The SFTP client to release
    */
+<<<<<<< HEAD
   release(client: SftpClientType): void {
+=======
+  release(client: SftpClientInstance): void {
+>>>>>>> 2bb4de3 (Fix TypeScript types for lazy-loaded SFTP client)
     const connection = this.pool.find((conn) => conn.client === client);
 
     if (connection) {
@@ -451,7 +461,11 @@ export class SftpConnectionPool {
    * ```
    */
   async withConnection<T>(
+<<<<<<< HEAD
     operation: (client: SftpClientType) => Promise<T>
+=======
+    operation: (client: SftpClientInstance) => Promise<T>
+>>>>>>> 2bb4de3 (Fix TypeScript types for lazy-loaded SFTP client)
   ): Promise<T> {
     const client = await this.acquire();
 
