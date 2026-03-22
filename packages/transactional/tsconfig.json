@@ -6,8 +6,7 @@
     "lib": [
       "ESNext"
     ],
-    "jsx": "react-jsx",
-    "jsxImportSource": "react-jsx",
+    "jsx": "react",
     "strict": false,
     "skipLibCheck": true,
     "noEmit": true,
