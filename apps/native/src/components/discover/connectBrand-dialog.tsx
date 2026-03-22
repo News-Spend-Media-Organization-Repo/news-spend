@@ -10,6 +10,7 @@ import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
 import { useGoogleAd } from "#/hooks/discover/useGoogleAd";
 import { usePartnerAd } from "#/hooks/discover/usePartnerAd";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { navigate } from "#/navigation/navigationUtils";
 import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 import { Screen } from "../Screen";
@@ -50,7 +51,6 @@ export function ConnectBrandDialog({
 }: ConnectBrandDialogProps) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
-  const navigation = useNavigation();
 
   // ── Dialog open state ────────────────────────────────────────────────────────
   const [internalOpen, setInternalOpen] = useState(false);
@@ -136,18 +136,18 @@ export function ConnectBrandDialog({
       if (googleAd.isLoaded) {
         googleAd.show();
       } else {
-        navigation.navigate("LuckyAppWall");
+        navigate("LuckyAppWall");
       }
       return;
     }
 
     // custom
     if (!ad) {
-      navigation.navigate("LuckyAppWall");
+      navigate("LuckyAppWall");
       return;
     }
     setIsOpen(true);
-  }, [onOpen, adType, googleAd, ad, navigation, setIsOpen]);
+  }, [onOpen, adType, googleAd, ad, setIsOpen]);
 
   useGlobalBackHandler(() => {
     if (isOpen) {

@@ -1,5 +1,6 @@
 import { X } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { XIcon } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { TestIds, useRewardedAd } from "react-native-google-mobile-ads";
 import { toast } from "sonner-native";
@@ -29,7 +30,7 @@ export default memo(function LotteryReward() {
       enabled: Boolean(user),
     })
   );
-  console.log(data);
+  // console.log(data);
 
   const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(
     TestIds.REWARDED
@@ -121,18 +122,18 @@ export default memo(function LotteryReward() {
   // Navigate to the identity verification screen.
   const handleVerifyIdentity = () => {
     setDialogOpen(false);
-    navigate("Tab", {
-      screen: "Settings",
-      params: {
-        screen: "VerifyIdentity",
-        initial: true,
-      },
-    });
+    // navigate("Tab", {
+    //   screen: "Settings",
+    //   params: {
+    //     screen: "VerifyIdentity",
+    //     initial: true,
+    //   },
+    // });
     handleClose();
   };
 
   // Do not render until we have a reward data object.
-  if (!data) return null;
+  // if (!data) return null;
 
   return (
     <>
@@ -173,7 +174,7 @@ export default memo(function LotteryReward() {
             key="content"
             w="95%"
           >
-            {data.prize ? (
+            {data?.prize ? (
               showPrize ? (
                 <Square>
                   <Star color="$p500" size={48} />
@@ -212,7 +213,7 @@ export default memo(function LotteryReward() {
               </Square>
             )}
 
-            {data.prize && !showPrize && (
+            {data?.prize && !showPrize && (
               <Button
                 disabled={claimRewardMutation.isPending}
                 onPress={handleClaimReward}
@@ -230,7 +231,7 @@ export default memo(function LotteryReward() {
               </Button>
             )}
 
-            {data.prize && showPrize && data.prizeTier !== "LOW" && (
+            {data?.prize && showPrize && data.prizeTier !== "LOW" && (
               <Button onPress={handleVerifyIdentity}>
                 <Button.Text>Verify your Identity</Button.Text>
               </Button>
@@ -238,17 +239,9 @@ export default memo(function LotteryReward() {
 
             <Unspaced>
               <Dialog.Close asChild>
-                <Button
-                  br="$9"
-                  h="auto"
-                  outlined
-                  p="$1"
-                  position="absolute"
-                  right="$3"
-                  top="$3"
-                >
+                <Button ghost p="$1" position="absolute" right="$2" top="$1">
                   <Button.Icon color="$p500">
-                    <X size={16} />
+                    <XIcon size={16} />
                   </Button.Icon>
                 </Button>
               </Dialog.Close>
