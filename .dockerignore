@@ -19,6 +19,8 @@ apps/native
 *.tmp
 .DS_Store
 *.tgz
+.env
+.env.*
 .env.local
 .env.*.local
 **/node_modules/.cache
