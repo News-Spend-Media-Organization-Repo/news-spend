@@ -39,7 +39,7 @@
           ]
         }
       ],
-      "versionCode": 60
+      "versionCode": 61
     },
     "plugins": [
       "expo-video",
