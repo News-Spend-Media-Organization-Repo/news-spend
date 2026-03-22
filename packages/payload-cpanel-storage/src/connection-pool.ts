@@ -6,12 +6,13 @@
  */
 
 import { logger } from "@news-spend-media/logger";
+import type SftpClientType from "ssh2-sftp-client";
 import type { ConnectOptions } from "ssh2-sftp-client";
 
 import { SftpConnectionError } from "./errors";
 import { withRetry } from "./utils/retry";
 
-let SftpClient: typeof import("ssh2-sftp-client").default | null = null;
+let SftpClient: typeof SftpClientType | null = null;
 
 async function getSftpClient() {
   if (!SftpClient) {
@@ -368,7 +369,7 @@ export class SftpConnectionPool {
    * @returns A healthy SFTP client
    * @throws {SftpConnectionError} If unable to acquire a connection
    */
-  async acquire(): Promise<SftpClient> {
+  async acquire(): Promise<SftpClientType> {
     if (this.isShuttingDown) {
       throw new SftpConnectionError("Pool is shutting down");
     }
@@ -423,7 +424,7 @@ export class SftpConnectionPool {
    *
    * @param client - The SFTP client to release
    */
-  release(client: SftpClient): void {
+  release(client: SftpClientType): void {
     const connection = this.pool.find((conn) => conn.client === client);
 
     if (connection) {
@@ -450,7 +451,7 @@ export class SftpConnectionPool {
    * ```
    */
   async withConnection<T>(
-    operation: (client: SftpClient) => Promise<T>
+    operation: (client: SftpClientType) => Promise<T>
   ): Promise<T> {
     const client = await this.acquire();
 
