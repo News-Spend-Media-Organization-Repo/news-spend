@@ -9,12 +9,13 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  serverExternalPackages: ["ssh2", "ssh2-sftp-client", "cpu-features"],
+  output: "standalone",
+  serverExternalPackages: ["ssh2", "cpu-features"],
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = config.externals || [];
       if (Array.isArray(config.externals)) {
-        config.externals.push(/^cpu-features/, /^ssh2$/, /^ssh2-sftp-client$/);
+        config.externals.push(/^cpu-features/, /^ssh2$/);
       }
     }
     return config;

@@ -39,7 +39,6 @@
     "@sentry/node": "^8",
     "autoprefixer": "^10.4.27",
     "babel-plugin-react-compiler": "^0.0.0",
-    "require-in-the-middle": "^7.5.0",
     "cross-env": "^7.0.3",
     "graphql": "^16.10.0",
     "next": "catalog:",
@@ -47,7 +46,10 @@
     "postcss": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "sharp": "catalog:"
+    "require-in-the-middle": "^7.5.0",
+    "sharp": "catalog:",
+    "ssh2": "^1.17.0",
+    "ssh2-sftp-client": "^12.1.0"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.38.4",
