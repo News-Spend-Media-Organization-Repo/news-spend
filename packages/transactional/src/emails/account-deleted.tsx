@@ -11,7 +11,6 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-/** @jsxImportSource react */
 import * as React from "react";
 
 type AccountDeletedEmailProps = {
