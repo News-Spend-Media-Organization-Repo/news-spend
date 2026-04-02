@@ -9,6 +9,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "../index";
+import { addActivity } from "../shared/activity";
 
 // --- Schemas ---
 const LotteryCreateInput = z.object({
@@ -113,21 +114,46 @@ const getReward = protectedProcedure.handler(async ({ context }) => {
 const claimReward = protectedProcedure
   .input(z.object({ winnerId: z.string() }))
   .handler(async ({ input, context }) => {
-    const result = await context.payload.update({
+    const { payload, user } = context;
+
+    // Fetch winner to get prize info
+    const winner = await payload.findByID({
       collection: "lottery-winners",
-      depth: 0,
-      where: {
-        and: [
-          { id: { equals: input.winnerId } },
-          { user: { equals: context.user.id } },
-        ],
-      },
+      id: input.winnerId,
+      depth: 1,
+    });
+
+    if (!winner || winner.user !== user.id) {
+      throw new Error("Winner not found");
+    }
+
+    // Mark as claimed
+    const result = await payload.update({
+      collection: "lottery-winners",
+      id: input.winnerId,
       data: {
         claimed: true,
         claimedAt: new Date().toISOString(),
       },
     });
-    return result.docs[0] ?? null;
+
+    // Add points for LOW tier
+    if (winner.prizeTier === "LOW" && winner.prize) {
+      const points = parseInt(winner.prize, 10);
+      if (!isNaN(points)) {
+        await addActivity(
+          {
+            type: "point",
+            point: points,
+            action: "lottery",
+            description: "Lottery reward claimed",
+          },
+          context
+        );
+      }
+    }
+
+    return result;
   });
 
 const verifyIdentity = protectedNoGuestProcedure
