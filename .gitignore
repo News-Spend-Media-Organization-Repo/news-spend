@@ -53,3 +53,4 @@ dist/
 .parcel-cache
 
 local.db
+.sisyphus

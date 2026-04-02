@@ -10,24 +10,24 @@ Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/
 
 ## Build / Lint / Test Commands
 
-| Task | Command |
-|---|---|
-| Lint (check) | `bun x ultracite check` or `bun run lint` |
-| Lint (auto-fix) | `bun x ultracite fix` or `bun run lint:fix` |
-| Format (check) | `bun run format` |
-| Format (fix) | `bun run format:fix` |
-| Typecheck (all) | `bun run typecheck` |
-| Typecheck (single app) | `bun --filter @news-spend-media/cms typecheck` |
-| Build (CMS) | `bun run build` (root) or `bun --filter @news-spend-media/cms build` |
-| Dev (CMS) | `bun run dev` or `bun --filter @news-spend-media/cms dev` |
-| Dev (Server) | `bun --filter @news-spend-media/server dev` |
-| Test (single package) | `cd packages/api && bun x vitest run` |
-| Test (watch mode) | `cd packages/api && bun x vitest` |
-| Test (single file) | `cd packages/api && bun x vitest run path/to/file.test.ts` |
-| Generate Payload types | `cd apps/cms && bun run generate:types` |
-| DB push | `cd packages/db && bun run db:push` |
-| DB migrate | `cd packages/db && bun run db:migrate` |
-| DB studio | `cd packages/db && bun run db:studio` |
+| Task                   | Command                                                              |
+| ---------------------- | -------------------------------------------------------------------- |
+| Lint (check)           | `bun x ultracite check` or `bun run lint`                            |
+| Lint (auto-fix)        | `bun x ultracite fix` or `bun run lint:fix`                          |
+| Format (check)         | `bun run format`                                                     |
+| Format (fix)           | `bun run format:fix`                                                 |
+| Typecheck (all)        | `bun run typecheck`                                                  |
+| Typecheck (single app) | `bun --filter @news-spend-media/cms typecheck`                       |
+| Build (CMS)            | `bun run build` (root) or `bun --filter @news-spend-media/cms build` |
+| Dev (CMS)              | `bun run dev` or `bun --filter @news-spend-media/cms dev`            |
+| Dev (Server)           | `bun --filter @news-spend-media/server dev`                          |
+| Test (single package)  | `cd packages/api && bun x vitest run`                                |
+| Test (watch mode)      | `cd packages/api && bun x vitest`                                    |
+| Test (single file)     | `cd packages/api && bun x vitest run path/to/file.test.ts`           |
+| Generate Payload types | `cd apps/cms && bun run generate:types`                              |
+| DB push                | `cd packages/db && bun run db:push`                                  |
+| DB migrate             | `cd packages/db && bun run db:migrate`                               |
+| DB studio              | `cd packages/db && bun run db:studio`                                |
 
 Run `bun x ultracite fix` before committing — pre-commit hooks (lefthook) enforce this.
 
@@ -38,11 +38,13 @@ This project uses **Ultracite** (oxlint + oxfmt) — NOT ESLint/Prettier.
 Config files: `.oxlintrc.json`, `.oxfmtrc.jsonc` at repo root.
 
 Key rules:
+
 - `reactHooks: "error"` — enforces Rules of Hooks
 - Most import/export rules disabled (monorepo flexibility)
 - React version: 19
 
 Formatting:
+
 - Double quotes (`singleQuote: false`)
 - Semicolons: yes
 - Trailing commas: `es5`
@@ -56,6 +58,7 @@ Formatting:
 ## TypeScript Config
 
 All packages extend `@news-spend-media/config/tsconfig.base.json`:
+
 - `strict: true`, `strictNullChecks: true`
 - `target: "ESNext"`, `module: "ESNext"`, `moduleResolution: "bundler"`
 - `verbatimModuleSyntax: true` — use `import type` for type-only imports
@@ -68,18 +71,21 @@ CMS tsconfig uses `~/*` path alias → `./src/*`.
 ## Code Style Guidelines
 
 ### Imports
+
 - Use `import type` for type-only imports (enforced by `verbatimModuleSyntax`)
 - Prefer named exports; avoid default exports where possible
 - Use specific imports, not namespace imports (`import * as X`)
 - Workspace packages use `workspace:*` in package.json
 
 ### Types & Safety
+
 - Prefer `unknown` over `any` when type is genuinely unknown
 - Use `as const` for immutable literal values
 - Leverage TypeScript narrowing over type assertions
 - Never use `as any`, `@ts-ignore`, `@ts-expect-error` to suppress errors
 
 ### JavaScript/TypeScript
+
 - `const` by default; `let` only when reassignment needed; never `var`
 - Arrow functions for callbacks and short functions
 - `for...of` loops over `.forEach()` and indexed `for`
@@ -88,12 +94,14 @@ CMS tsconfig uses `~/*` path alias → `./src/*`.
 - Destructuring for object/array assignments
 
 ### Async
+
 - Always `await` promises in async functions
 - `async/await` over `.then()` chains
 - Use try-catch for error handling in async code
 - Never use async functions as Promise executors
 
 ### React
+
 - Function components, not class components
 - Hooks at top level only, never conditional
 - Complete dependency arrays for hooks
@@ -102,17 +110,20 @@ CMS tsconfig uses `~/*` path alias → `./src/*`.
 - React 19: use `ref` as prop (not `React.forwardRef`)
 
 ### Error Handling
+
 - Remove `console.log`/`debugger`/`alert` from production code
 - Throw `Error` objects with descriptive messages
 - Early returns over nested conditionals for error cases
 - Don't catch errors just to rethrow them
 
 ### API Layer (orpc)
+
 - Procedures: `publicProcedure`, `protectedProcedure`, `protectedNoGuestProcedure`, `rateLimitedPublicProcedure`
 - Validation: Zod schemas
 - Context: `packages/api/src/context.ts`
 
 ### Payload CMS
+
 - Collections/fields/hooks in `packages/payload/src/`
 - Components in `packages/payload/src/components/`
 - Use `cn()` utility (clsx + tailwind-merge) for class merging
@@ -142,19 +153,19 @@ tooling/
 
 ## Key Libraries & Frameworks
 
-| Library | Purpose |
-|---|---|
-| Payload CMS v3 | Headless CMS, admin panel |
-| Next.js 15 | CMS frontend (React 19) |
-| orpc | Type-safe API layer (tRPC-like) |
-| Zod v4 | Schema validation |
-| Drizzle ORM | Database (PostgreSQL) |
-| Better Auth | Authentication |
-| Tailwind CSS | Styling |
-| React Native / Expo | Mobile app |
-| Vitest | Unit testing |
-| Turborepo | Monorepo task orchestration |
-| Sentry | Error tracking |
+| Library             | Purpose                         |
+| ------------------- | ------------------------------- |
+| Payload CMS v3      | Headless CMS, admin panel       |
+| Next.js 15          | CMS frontend (React 19)         |
+| orpc                | Type-safe API layer (tRPC-like) |
+| Zod v4              | Schema validation               |
+| Drizzle ORM         | Database (PostgreSQL)           |
+| Better Auth         | Authentication                  |
+| Tailwind CSS        | Styling                         |
+| React Native / Expo | Mobile app                      |
+| Vitest              | Unit testing                    |
+| Turborepo           | Monorepo task orchestration     |
+| Sentry              | Error tracking                  |
 
 ## Git Hooks (Lefthook)
 

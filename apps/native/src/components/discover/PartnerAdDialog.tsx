@@ -18,7 +18,7 @@ import { PartnerAdContent } from "./partner-ad-content";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ConnectBrandDialogProps = {
+export type PartnerAdDialogProps = {
   open?: boolean;
   setOpen?: (open: boolean) => void;
   onCountdownComplete?: () => void;
@@ -31,11 +31,15 @@ type ConnectBrandDialogProps = {
   onAdClick?: (ad: unknown) => void;
   onClose?: () => void;
   onOpen?: () => void | boolean;
+  /** When true, hides the trigger button (useful when controlled externally) */
+  hideTrigger?: boolean;
+  /** When false, doesn't navigate to LuckyAppWall when ads unavailable (default: true) */
+  fallbackToAppWall?: boolean;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ConnectBrandDialog({
+export function PartnerAdDialog({
   open: externalOpen,
   setOpen: externalSetOpen,
   onCountdownComplete,
@@ -48,7 +52,9 @@ export function ConnectBrandDialog({
   asChild = false,
   onClose,
   onOpen,
-}: ConnectBrandDialogProps) {
+  hideTrigger = false,
+  fallbackToAppWall = true,
+}: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
 
@@ -135,7 +141,7 @@ export function ConnectBrandDialog({
     if (adType === "native") {
       if (googleAd.isLoaded) {
         googleAd.show();
-      } else {
+      } else if (fallbackToAppWall) {
         navigate("LuckyAppWall");
       }
       return;
@@ -143,11 +149,13 @@ export function ConnectBrandDialog({
 
     // custom
     if (!ad) {
-      navigate("LuckyAppWall");
+      if (fallbackToAppWall) {
+        navigate("LuckyAppWall");
+      }
       return;
     }
     setIsOpen(true);
-  }, [onOpen, adType, googleAd, ad, setIsOpen]);
+  }, [onOpen, adType, googleAd, ad, setIsOpen, fallbackToAppWall]);
 
   useGlobalBackHandler(() => {
     if (isOpen) {
@@ -158,21 +166,23 @@ export function ConnectBrandDialog({
   });
 
   // ── Trigger element ───────────────────────────────────────────────────────────
+  // Skip rendering trigger when hideTrigger is true
   const TriggerElement = asChild ? Slot : Text;
 
-  const trigger = externalOpen ? null : children ? (
-    <TriggerElement
-      onPress={handleTriggerPress}
-      {...triggerProps}
-      style={{ cursor: "pointer" }}
-    >
-      {children}
-    </TriggerElement>
-  ) : (
-    <Button onPress={handleTriggerPress} {...triggerProps}>
-      <Button.Text>{triggerText}</Button.Text>
-    </Button>
-  );
+  const trigger =
+    hideTrigger || externalOpen ? null : children ? (
+      <TriggerElement
+        onPress={handleTriggerPress}
+        {...triggerProps}
+        style={{ cursor: "pointer" }}
+      >
+        {children}
+      </TriggerElement>
+    ) : (
+      <Button onPress={handleTriggerPress} {...triggerProps}>
+        <Button.Text>{triggerText}</Button.Text>
+      </Button>
+    );
 
   // ── Dialog content ────────────────────────────────────────────────────────────
   const dialogContent =
@@ -208,7 +218,7 @@ export function ConnectBrandDialog({
             enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
             exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
             fullscreen
-            key="connectBrand-ad"
+            key="partner-ad"
             opacity={1}
             p="$0"
             scale={1}
@@ -257,4 +267,4 @@ export function ConnectBrandDialog({
   );
 }
 
-export default ConnectBrandDialog;
+export default PartnerAdDialog;

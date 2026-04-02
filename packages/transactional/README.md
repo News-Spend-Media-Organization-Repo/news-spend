@@ -62,9 +62,7 @@ import { render } from "@react-email/components";
 import WelcomeEmail from "@news-spend-media/transactional/emails/welcome";
 
 // Render to HTML string
-const html = await render(
-  WelcomeEmail({ name: "John Doe" })
-);
+const html = await render(WelcomeEmail({ name: "John Doe" }));
 
 // Send via your email service
 await sendEmail({
@@ -80,10 +78,9 @@ await sendEmail({
 import { renderAsync } from "@react-email/components";
 import WelcomeEmail from "@news-spend-media/transactional/emails/welcome";
 
-const plainText = await renderAsync(
-  WelcomeEmail({ name: "John Doe" }),
-  { plainText: true }
-);
+const plainText = await renderAsync(WelcomeEmail({ name: "John Doe" }), {
+  plainText: true,
+});
 ```
 
 ## 📦 Integration Examples

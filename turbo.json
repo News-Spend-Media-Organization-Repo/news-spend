@@ -1,10 +1,6 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "globalDependencies": [
-    "**/.env",
-    "**/.env.development",
-    "**/.env.prod"
-  ],
+  "globalDependencies": ["**/.env", "**/.env.development", "**/.env.prod"],
   "globalEnv": [
     "CI",
     "NODE_ENV",
@@ -49,9 +45,7 @@
   },
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
@@ -74,26 +68,18 @@
       "cache": false
     },
     "lint": {
-      "dependsOn": [
-        "^topo"
-      ]
+      "dependsOn": ["^topo"]
     },
     "storybook": {
       "cache": true,
       "persistent": true
     },
     "topo": {
-      "dependsOn": [
-        "^topo"
-      ]
+      "dependsOn": ["^topo"]
     },
     "typecheck": {
-      "dependsOn": [
-        "^topo"
-      ],
-      "outputs": [
-        "node_modules/.cache/tsbuildinfo.json"
-      ]
+      "dependsOn": ["^topo"],
+      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
     }
   },
   "ui": "tui"

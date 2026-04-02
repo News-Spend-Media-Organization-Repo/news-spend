@@ -19,8 +19,8 @@ The simplest configuration for a single media collection:
 
 ```typescript
 // payload.config.ts
-import { buildConfig } from 'payload/config';
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { buildConfig } from "payload/config";
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 
 export default buildConfig({
   // ... other config
@@ -43,6 +43,7 @@ export default buildConfig({
 ```
 
 **.env:**
+
 ```env
 SFTP_HOST=ftp.example.com
 SFTP_USERNAME=your_username
@@ -57,14 +58,14 @@ Full production setup with optimized settings:
 
 ```typescript
 // payload.config.ts
-import { buildConfig } from 'payload/config';
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { buildConfig } from "payload/config";
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 
 export default buildConfig({
   // ... other config
   plugins: [
     cpanelSftpStorage({
-      enabled: process.env.NODE_ENV === 'production',
+      enabled: process.env.NODE_ENV === "production",
       collections: {
         media: {
           disableLocalStorage: true,
@@ -78,7 +79,7 @@ export default buildConfig({
       },
       connection: {
         host: process.env.SFTP_HOST!,
-        port: Number.parseInt(process.env.SFTP_PORT || '22', 10),
+        port: Number.parseInt(process.env.SFTP_PORT || "22", 10),
         username: process.env.SFTP_USERNAME!,
         password: process.env.SFTP_PASSWORD!,
         readyTimeout: 30_000, // 30 seconds
@@ -97,7 +98,7 @@ export default buildConfig({
       },
       static: {
         proxyFiles: false, // Use redirects for CDN
-        cacheControl: 'public, max-age=31536000, immutable',
+        cacheControl: "public, max-age=31536000, immutable",
       },
     }),
   ],
@@ -105,6 +106,7 @@ export default buildConfig({
 ```
 
 **.env (Production):**
+
 ```env
 NODE_ENV=production
 SFTP_HOST=ftp.example.com
@@ -121,10 +123,10 @@ Different configurations for different environments:
 
 ```typescript
 // payload.config.ts
-import { buildConfig } from 'payload/config';
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { buildConfig } from "payload/config";
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default buildConfig({
   // ... other config
@@ -173,7 +175,7 @@ cpanelSftpStorage({
     maxConnections: isDevelopment ? 5 : 20,
     debug: isDevelopment,
   },
-})
+});
 ```
 
 ## Multiple Collections
@@ -185,15 +187,15 @@ cpanelSftpStorage({
   collections: {
     // Basic configuration
     media: true,
-    
+
     // Custom configuration
     documents: {
       disableLocalStorage: true,
     },
-    
+
     // Another collection
     avatars: true,
-    
+
     // Yet another
     attachments: {
       disableLocalStorage: true,
@@ -205,11 +207,12 @@ cpanelSftpStorage({
     password: process.env.SFTP_PASSWORD!,
   },
   baseUrl: process.env.STORAGE_BASE_URL!,
-  uploadDir: '/home/username/public_html/uploads',
-})
+  uploadDir: "/home/username/public_html/uploads",
+});
 ```
 
 Files will be organized as:
+
 - `/home/username/public_html/uploads/media/`
 - `/home/username/public_html/uploads/documents/`
 - `/home/username/public_html/uploads/avatars/`
@@ -220,8 +223,8 @@ Files will be organized as:
 Using SSH keys instead of passwords (recommended):
 
 ```typescript
-import { readFileSync } from 'node:fs';
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { readFileSync } from "node:fs";
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 
 cpanelSftpStorage({
   collections: {
@@ -232,15 +235,16 @@ cpanelSftpStorage({
     port: 22,
     username: process.env.SFTP_USERNAME!,
     // Use SSH key instead of password
-    privateKey: readFileSync(process.env.SSH_KEY_PATH || '/path/to/id_rsa'),
+    privateKey: readFileSync(process.env.SSH_KEY_PATH || "/path/to/id_rsa"),
     passphrase: process.env.SSH_KEY_PASSPHRASE, // If key is encrypted
   },
   baseUrl: process.env.STORAGE_BASE_URL!,
   uploadDir: process.env.STORAGE_UPLOAD_DIR!,
-})
+});
 ```
 
 **.env:**
+
 ```env
 SFTP_HOST=ftp.example.com
 SFTP_USERNAME=your_username
@@ -262,7 +266,7 @@ cpanelSftpStorage({
   },
   baseUrl: process.env.STORAGE_BASE_URL!,
   uploadDir: process.env.STORAGE_UPLOAD_DIR!,
-})
+});
 ```
 
 ## Custom Pool Configuration
@@ -282,13 +286,13 @@ cpanelSftpStorage({
   baseUrl: process.env.STORAGE_BASE_URL!,
   uploadDir: process.env.STORAGE_UPLOAD_DIR!,
   pool: {
-    minConnections: 5,    // Keep 5 connections ready
-    maxConnections: 30,   // Allow up to 30 concurrent uploads
+    minConnections: 5, // Keep 5 connections ready
+    maxConnections: 30, // Allow up to 30 concurrent uploads
     idleTimeoutMs: 300_000, // Keep idle connections for 5 minutes
     connectionTimeoutMs: 60_000, // 1 minute timeout
     healthCheckIntervalMs: 30_000, // Check health every 30 seconds
   },
-})
+});
 ```
 
 ### Low Traffic / Resource Constrained
@@ -304,13 +308,13 @@ cpanelSftpStorage({
   baseUrl: process.env.STORAGE_BASE_URL!,
   uploadDir: process.env.STORAGE_UPLOAD_DIR!,
   pool: {
-    minConnections: 1,    // Only maintain 1 connection
-    maxConnections: 3,    // Max 3 concurrent uploads
+    minConnections: 1, // Only maintain 1 connection
+    maxConnections: 3, // Max 3 concurrent uploads
     idleTimeoutMs: 30_000, // Close idle connections after 30 seconds
     connectionTimeoutMs: 30_000,
     healthCheckIntervalMs: 60_000,
   },
-})
+});
 ```
 
 ## Error Handling
@@ -318,47 +322,47 @@ cpanelSftpStorage({
 Handle errors in your application:
 
 ```typescript
-import { 
-  SftpUploadError, 
+import {
+  SftpUploadError,
   SftpConnectionError,
-  getConnectionPool 
-} from '@news-spend-media/payload-cpanel-storage';
+  getConnectionPool,
+} from "@news-spend-media/payload-cpanel-storage";
 
 // In your upload handler or API route
 try {
   // Upload operation
   await payload.create({
-    collection: 'media',
+    collection: "media",
     data: {
-      alt: 'Example image',
+      alt: "Example image",
     },
     file: fileData,
   });
 } catch (error) {
   if (error instanceof SftpUploadError) {
-    console.error('Upload failed:', {
+    console.error("Upload failed:", {
       filename: error.filename,
       code: error.code,
       message: error.message,
     });
-    
+
     // Retry or handle gracefully
-    return { error: 'File upload failed, please try again' };
+    return { error: "File upload failed, please try again" };
   }
-  
+
   if (error instanceof SftpConnectionError) {
-    console.error('Connection issue:', error.message);
-    
+    console.error("Connection issue:", error.message);
+
     // Check pool health
     const pool = getConnectionPool();
     if (pool) {
       const stats = pool.getStats();
-      console.log('Pool stats:', stats);
+      console.log("Pool stats:", stats);
     }
-    
-    return { error: 'Storage connection issue, please try again later' };
+
+    return { error: "Storage connection issue, please try again later" };
   }
-  
+
   throw error; // Unknown error
 }
 ```
@@ -369,31 +373,29 @@ Monitor the connection pool in production:
 
 ```typescript
 // pages/api/admin/storage-stats.ts
-import { getConnectionPool } from '@news-spend-media/payload-cpanel-storage';
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { getConnectionPool } from "@news-spend-media/payload-cpanel-storage";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
   // Add authentication check here
-  
+
   const pool = getConnectionPool();
-  
+
   if (!pool) {
     return res.status(503).json({
-      error: 'Storage pool not initialized',
+      error: "Storage pool not initialized",
     });
   }
-  
+
   const stats = pool.getStats();
-  
+
   return res.json({
     pool: stats,
     healthy: stats.healthyConnections === stats.totalConnections,
-    utilization: stats.totalConnections > 0
-      ? (stats.activeConnections / stats.totalConnections) * 100
-      : 0,
+    utilization:
+      stats.totalConnections > 0
+        ? (stats.activeConnections / stats.totalConnections) * 100
+        : 0,
   });
 }
 ```
@@ -402,24 +404,24 @@ Health check endpoint:
 
 ```typescript
 // pages/api/health.ts
-import { getConnectionPool } from '@news-spend-media/payload-cpanel-storage';
+import { getConnectionPool } from "@news-spend-media/payload-cpanel-storage";
 
 export default async function handler(req, res) {
   const checks = {
     database: true, // Your DB health check
     storage: false,
   };
-  
+
   const pool = getConnectionPool();
   if (pool) {
     const stats = pool.getStats();
     checks.storage = stats.healthyConnections > 0;
   }
-  
+
   const isHealthy = Object.values(checks).every(Boolean);
-  
+
   return res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? 'healthy' : 'unhealthy',
+    status: isHealthy ? "healthy" : "unhealthy",
     checks,
     timestamp: new Date().toISOString(),
   });
@@ -430,19 +432,19 @@ Scheduled task to monitor pool health:
 
 ```typescript
 // lib/monitoring.ts
-import { logger } from '@news-spend-media/logger';
-import { getConnectionPool } from '@news-spend-media/payload-cpanel-storage';
+import { logger } from "@news-spend-media/logger";
+import { getConnectionPool } from "@news-spend-media/payload-cpanel-storage";
 
 export function startStorageMonitoring() {
   setInterval(() => {
     const pool = getConnectionPool();
-    
+
     if (!pool) {
       return;
     }
-    
+
     const stats = pool.getStats();
-    
+
     // Log stats
     logger.info(
       {
@@ -451,9 +453,9 @@ export function startStorageMonitoring() {
         idle: stats.idleConnections,
         healthy: stats.healthyConnections,
       },
-      'Storage pool stats'
+      "Storage pool stats"
     );
-    
+
     // Alert if unhealthy
     if (stats.healthyConnections < stats.totalConnections) {
       logger.warn(
@@ -461,19 +463,20 @@ export function startStorageMonitoring() {
           unhealthy: stats.totalConnections - stats.healthyConnections,
           total: stats.totalConnections,
         },
-        'Some storage connections are unhealthy'
+        "Some storage connections are unhealthy"
       );
     }
-    
+
     // Alert if utilization is high
-    const utilization = stats.totalConnections > 0
-      ? (stats.activeConnections / stats.totalConnections) * 100
-      : 0;
-      
+    const utilization =
+      stats.totalConnections > 0
+        ? (stats.activeConnections / stats.totalConnections) * 100
+        : 0;
+
     if (utilization > 80) {
       logger.warn(
         { utilization: `${utilization.toFixed(1)}%` },
-        'High storage connection utilization'
+        "High storage connection utilization"
       );
     }
   }, 60_000); // Every minute
@@ -489,51 +492,51 @@ Full example with all features:
 
 ```typescript
 // payload.config.ts
-import { readFileSync } from 'node:fs';
-import { buildConfig } from 'payload/config';
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { readFileSync } from "node:fs";
+import { buildConfig } from "payload/config";
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default buildConfig({
   collections: [
     {
-      slug: 'media',
+      slug: "media",
       upload: {
-        staticURL: '/media',
-        staticDir: 'media', // Used in development
+        staticURL: "/media",
+        staticDir: "media", // Used in development
         imageSizes: [
           {
-            name: 'thumbnail',
+            name: "thumbnail",
             width: 400,
             height: 300,
-            position: 'centre',
+            position: "centre",
           },
           {
-            name: 'card',
+            name: "card",
             width: 768,
             height: 1024,
-            position: 'centre',
+            position: "centre",
           },
           {
-            name: 'tablet',
+            name: "tablet",
             width: 1024,
             height: undefined,
-            position: 'centre',
+            position: "centre",
           },
         ],
-        mimeTypes: ['image/*'],
+        mimeTypes: ["image/*"],
       },
       fields: [
         {
-          name: 'alt',
-          type: 'text',
+          name: "alt",
+          type: "text",
           required: true,
         },
       ],
     },
   ],
-  
+
   plugins: [
     // Only use SFTP in production
     ...(isDevelopment
@@ -547,7 +550,7 @@ export default buildConfig({
             },
             connection: {
               host: process.env.SFTP_HOST!,
-              port: Number.parseInt(process.env.SFTP_PORT || '22', 10),
+              port: Number.parseInt(process.env.SFTP_PORT || "22", 10),
               username: process.env.SFTP_USERNAME!,
               // Use SSH key in production
               privateKey: process.env.SSH_KEY_PATH
@@ -571,7 +574,7 @@ export default buildConfig({
             },
             static: {
               proxyFiles: false,
-              cacheControl: 'public, max-age=31536000, immutable',
+              cacheControl: "public, max-age=31536000, immutable",
             },
           }),
         ]),
@@ -580,11 +583,13 @@ export default buildConfig({
 ```
 
 **.env.local (Development):**
+
 ```env
 NODE_ENV=development
 ```
 
 **.env.production:**
+
 ```env
 NODE_ENV=production
 SFTP_HOST=ftp.example.com

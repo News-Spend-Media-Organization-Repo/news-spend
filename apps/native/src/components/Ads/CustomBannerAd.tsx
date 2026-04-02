@@ -41,7 +41,7 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
 
   const { containerWidth, containerHeight } = useMemo(() => {
     // ANCHORED_ADAPTIVE_BANNER has no fixed dims — fill width at 6:1 ratio
-    if (size === "ANCHORED_ADAPTIVE_BANNER") {
+    if (size === "ANCHORED_ADAPTIVE") {
       return {
         containerWidth: AVAILABLE_WIDTH,
         containerHeight: Math.round(AVAILABLE_WIDTH / 6),

@@ -39,18 +39,21 @@ bun add @news-spend-media/logger
 ### 2. Update Imports
 
 **Before:**
+
 ```typescript
-import { cpanelSftpStorage } from '@nsm/payload-cpanel-storage';
+import { cpanelSftpStorage } from "@nsm/payload-cpanel-storage";
 ```
 
 **After:**
+
 ```typescript
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 ```
 
 ### 3. Update Configuration
 
 **Before (Old Version):**
+
 ```typescript
 cpanelSftpStorage({
   collections: {
@@ -63,10 +66,11 @@ cpanelSftpStorage({
   },
   baseUrl: process.env.STORAGE_BASE_URL,
   uploadDir: process.env.STORAGE_UPLOAD_DIR,
-})
+});
 ```
 
 **After (New Version):**
+
 ```typescript
 cpanelSftpStorage({
   collections: {
@@ -85,7 +89,7 @@ cpanelSftpStorage({
     maxConnections: 10,
     idleTimeoutMs: 60_000,
   },
-})
+});
 ```
 
 ### 4. Update Environment Variables (Optional)
@@ -180,13 +184,13 @@ import {
   SftpUploadError,
   SftpDeleteError,
   SftpConnectionError,
-} from '@news-spend-media/payload-cpanel-storage';
+} from "@news-spend-media/payload-cpanel-storage";
 
 try {
   // Upload file
 } catch (error) {
   if (error instanceof SftpUploadError) {
-    console.error('Upload failed:', {
+    console.error("Upload failed:", {
       filename: error.filename,
       code: error.code,
       message: error.message,
@@ -201,11 +205,13 @@ try {
 ### Static File Handling
 
 **Old Version:**
+
 - Always proxied files through the server
 - Fetched file from storage for every request
 - No caching headers
 
 **New Version:**
+
 - Redirects to public URL by default (no server load)
 - Optional proxying with cache headers
 - Configurable cache control
@@ -221,11 +227,13 @@ static: {
 ### Connection Management
 
 **Old Version:**
+
 - Created new SFTP connection for every operation
 - No connection reuse
 - No health checks
 
 **New Version:**
+
 - Connection pooling with configurable size
 - Connection reuse across operations
 - Automatic health checks
@@ -246,13 +254,13 @@ The new version includes comprehensive path sanitization:
 
 ```typescript
 // Input
-filename: "../../../etc/passwd"
-prefix: "../../sensitive/"
+filename: "../../../etc/passwd";
+prefix: "../../sensitive/";
 
 // Old version: Might allow traversal
 // New version: Sanitized to safe paths
-filename: "etc-passwd"
-prefix: "sensitive"
+filename: "etc-passwd";
+prefix: "sensitive";
 ```
 
 ## Monitoring & Debugging
@@ -266,7 +274,7 @@ Limited visibility into plugin operation.
 Full observability:
 
 ```typescript
-import { getConnectionPool } from '@news-spend-media/payload-cpanel-storage';
+import { getConnectionPool } from "@news-spend-media/payload-cpanel-storage";
 
 // Get pool statistics
 const pool = getConnectionPool();
@@ -286,7 +294,7 @@ cpanelSftpStorage({
   pool: {
     debug: true, // Detailed connection pool logs
   },
-})
+});
 ```
 
 ## Troubleshooting Migration Issues
@@ -294,17 +302,19 @@ cpanelSftpStorage({
 ### Issue: "Module not found"
 
 **Solution:** Update import paths:
+
 ```typescript
 // Old
-import { cpanelSftpStorage } from '@nsm/payload-cpanel-storage';
+import { cpanelSftpStorage } from "@nsm/payload-cpanel-storage";
 
 // New
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 ```
 
 ### Issue: "Logger not found"
 
 **Solution:** Install logger package:
+
 ```bash
 bun add @news-spend-media/logger
 ```
@@ -312,6 +322,7 @@ bun add @news-spend-media/logger
 ### Issue: Connection timeouts
 
 **Solution:** Increase timeouts in pool config:
+
 ```typescript
 pool: {
   connectionTimeoutMs: 60_000, // 60 seconds
@@ -321,6 +332,7 @@ pool: {
 ### Issue: "Too many connections"
 
 **Solution:** Adjust pool size:
+
 ```typescript
 pool: {
   maxConnections: 5, // Reduce max connections
@@ -331,6 +343,7 @@ pool: {
 ### Issue: Files not accessible
 
 **Solution:** Check baseUrl configuration:
+
 ```typescript
 // Ensure baseUrl is publicly accessible
 baseUrl: 'https://example.com/uploads', // No trailing slash
@@ -339,6 +352,7 @@ baseUrl: 'https://example.com/uploads', // No trailing slash
 ### Issue: Permission denied
 
 **Solution:** Check SFTP user permissions:
+
 ```bash
 # On the server
 chmod 755 /path/to/uploads

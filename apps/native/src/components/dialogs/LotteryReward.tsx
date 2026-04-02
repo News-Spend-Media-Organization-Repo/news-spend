@@ -8,7 +8,7 @@ import { Dialog, H4, Paragraph, Spinner, Square, Unspaced } from "tamagui";
 import { Star } from "tamagui-phosphor";
 import { useSnapshot } from "valtio";
 
-import { ConnectBrandDialog } from "#/components/discover/connectBrand-dialog";
+import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/ui";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
@@ -250,10 +250,10 @@ export default memo(function LotteryReward() {
         </Dialog.Portal>
       </Dialog>
 
-      <ConnectBrandDialog
+      <PartnerAdDialog
+        fallbackToAppWall={false}
+        hideTrigger
         onCountdownComplete={() => {
-          // When the connectBrand dialog signals completion,
-          // display the prize and claim the reward
           setShowPrize(true);
           handleClaim();
         }}
