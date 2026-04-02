@@ -53,8 +53,8 @@
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.38.4",
-    "@news-spend-media/tailwind-config": "workspace:*",
     "@news-spend-media/config": "workspace:*",
+    "@news-spend-media/tailwind-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

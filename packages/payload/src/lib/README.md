@@ -13,12 +13,12 @@ import { getPayload } from "@news-spend-media/payload/lib/getPayload";
 
 export async function GET() {
   const payload = await getPayload();
-  
+
   const news = await payload.find({
     collection: "news",
     limit: 10,
   });
-  
+
   return Response.json(news);
 }
 ```
@@ -51,7 +51,7 @@ import { getPayload } from "@news-spend-media/payload/lib/getPayload";
 
 export default async function NewsPage() {
   const payload = await getPayload();
-  
+
   const { docs: articles } = await payload.find({
     collection: "news",
     where: {
@@ -86,19 +86,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const payload = await getPayload();
-  
+
   try {
     const article = await payload.findByID({
       collection: "news",
       id: params.id,
     });
-    
+
     return NextResponse.json(article);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Article not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Article not found" }, { status: 404 });
   }
 }
 ```
@@ -114,7 +111,7 @@ import { revalidatePath } from "next/cache";
 
 export async function createNewsArticle(formData: FormData) {
   const payload = await getPayload();
-  
+
   const article = await payload.create({
     collection: "news",
     data: {
@@ -124,9 +121,9 @@ export async function createNewsArticle(formData: FormData) {
       _status: "draft",
     },
   });
-  
+
   revalidatePath("/admin/news");
-  
+
   return { success: true, id: article.id };
 }
 ```
@@ -136,6 +133,7 @@ export async function createNewsArticle(formData: FormData) {
 ### expo-push-service.ts
 
 Service for managing Expo push notifications, including:
+
 - Batch sending of push notifications
 - Push token management
 - Receipt processing
@@ -144,6 +142,7 @@ Service for managing Expo push notifications, including:
 ### notification-actions.ts
 
 Server actions for managing in-app notifications:
+
 - Creating notifications
 - Marking as read
 - Retrieving user notifications
@@ -151,6 +150,7 @@ Server actions for managing in-app notifications:
 ### utils.ts
 
 Common utility functions:
+
 - `cn()` - Tailwind CSS class name utility using `clsx` and `tailwind-merge`
 
 ---

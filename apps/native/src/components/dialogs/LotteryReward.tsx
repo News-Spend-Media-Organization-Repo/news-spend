@@ -8,11 +8,10 @@ import { Dialog, H4, Paragraph, Spinner, Square, Unspaced } from "tamagui";
 import { Star } from "tamagui-phosphor";
 import { useSnapshot } from "valtio";
 
-import { ConnectBrandDialog } from "#/components/discover/connectBrand-dialog";
+import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/ui";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
-import { navigate } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
 
 export default memo(function LotteryReward() {
@@ -26,7 +25,6 @@ export default memo(function LotteryReward() {
   // Fetch reward data when a user is authenticated.
   const { data, isPending } = useQuery(
     orpc.lottery.getReward.queryOptions({
-      staleTime: Number.POSITIVE_INFINITY,
       enabled: Boolean(user),
     })
   );
@@ -250,10 +248,10 @@ export default memo(function LotteryReward() {
         </Dialog.Portal>
       </Dialog>
 
-      <ConnectBrandDialog
+      <PartnerAdDialog
+        fallbackToAppWall={false}
+        hideTrigger
         onCountdownComplete={() => {
-          // When the connectBrand dialog signals completion,
-          // display the prize and claim the reward
           setShowPrize(true);
           handleClaim();
         }}

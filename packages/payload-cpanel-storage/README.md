@@ -23,8 +23,8 @@ bun add @news-spend-media/payload-cpanel-storage
 ## Quick Start
 
 ```typescript
-import { buildConfig } from 'payload/config';
-import { cpanelSftpStorage } from '@news-spend-media/payload-cpanel-storage';
+import { buildConfig } from "payload/config";
+import { cpanelSftpStorage } from "@news-spend-media/payload-cpanel-storage";
 
 export default buildConfig({
   plugins: [
@@ -40,7 +40,7 @@ export default buildConfig({
         password: process.env.SFTP_PASSWORD,
       },
       baseUrl: process.env.STORAGE_BASE_URL!,
-      uploadDir: '/home/username/public_html/uploads',
+      uploadDir: "/home/username/public_html/uploads",
     }),
   ],
 });
@@ -89,7 +89,7 @@ connection: {
 Public base URL where files will be accessible (no trailing slash):
 
 ```typescript
-baseUrl: 'https://example.com/uploads'
+baseUrl: "https://example.com/uploads";
 ```
 
 #### `uploadDir`
@@ -97,7 +97,7 @@ baseUrl: 'https://example.com/uploads'
 Upload directory on the SFTP server (absolute path, no trailing slash):
 
 ```typescript
-uploadDir: '/home/username/public_html/uploads'
+uploadDir: "/home/username/public_html/uploads";
 ```
 
 ### Optional Options
@@ -107,7 +107,7 @@ uploadDir: '/home/username/public_html/uploads'
 Enable or disable the plugin (default: `true`):
 
 ```typescript
-enabled: process.env.NODE_ENV === 'production'
+enabled: process.env.NODE_ENV === "production";
 ```
 
 #### `pool`
@@ -168,25 +168,25 @@ cpanelSftpStorage({
   },
   baseUrl: process.env.STORAGE_BASE_URL!,
   uploadDir: process.env.STORAGE_UPLOAD_DIR!,
-})
+});
 ```
 
 ### SSH Key Authentication
 
 ```typescript
-import { readFileSync } from 'node:fs';
+import { readFileSync } from "node:fs";
 
 cpanelSftpStorage({
   collections: { media: true },
   connection: {
     host: process.env.SFTP_HOST!,
     username: process.env.SFTP_USERNAME!,
-    privateKey: readFileSync('/path/to/id_rsa'),
+    privateKey: readFileSync("/path/to/id_rsa"),
     passphrase: process.env.SSH_KEY_PASSPHRASE,
   },
   baseUrl: process.env.STORAGE_BASE_URL!,
   uploadDir: process.env.STORAGE_UPLOAD_DIR!,
-})
+});
 ```
 
 ### Advanced Configuration
@@ -208,20 +208,20 @@ cpanelSftpStorage({
     readyTimeout: 30_000,
     retries: 2,
   },
-  baseUrl: 'https://cdn.example.com/uploads',
-  uploadDir: '/var/www/uploads',
+  baseUrl: "https://cdn.example.com/uploads",
+  uploadDir: "/var/www/uploads",
   pool: {
     minConnections: 2,
     maxConnections: 20,
     idleTimeoutMs: 120_000,
     connectionTimeoutMs: 45_000,
-    debug: process.env.NODE_ENV === 'development',
+    debug: process.env.NODE_ENV === "development",
   },
   static: {
     proxyFiles: false, // Use redirects for better performance
-    cacheControl: 'public, max-age=31536000, immutable',
+    cacheControl: "public, max-age=31536000, immutable",
   },
-})
+});
 ```
 
 ### Conditional Plugin
@@ -229,7 +229,7 @@ cpanelSftpStorage({
 ```typescript
 const plugins = [];
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   plugins.push(
     cpanelSftpStorage({
       collections: { media: true },
@@ -263,11 +263,13 @@ export default buildConfig({
 ### File Access Flow
 
 **Default (Redirect Mode):**
+
 1. Request comes to `/api/media/filename.jpg`
 2. Handler returns 302 redirect to `https://cdn.example.com/uploads/media/filename.jpg`
 3. Browser fetches file directly from CDN (no server load)
 
 **Proxy Mode:**
+
 1. Request comes to `/api/media/filename.jpg`
 2. Server fetches file from CDN
 3. Server streams file to client with cache headers
@@ -287,7 +289,7 @@ The plugin maintains a pool of reusable SFTP connections:
 ### Connection Pool Stats
 
 ```typescript
-import { getConnectionPool } from '@news-spend-media/payload-cpanel-storage';
+import { getConnectionPool } from "@news-spend-media/payload-cpanel-storage";
 
 const pool = getConnectionPool();
 if (pool) {
@@ -305,7 +307,7 @@ if (pool) {
 ### Manual Shutdown
 
 ```typescript
-import { shutdownConnectionPool } from '@news-spend-media/payload-cpanel-storage';
+import { shutdownConnectionPool } from "@news-spend-media/payload-cpanel-storage";
 
 // Gracefully close all connections
 await shutdownConnectionPool();
@@ -328,7 +330,7 @@ try {
   // Upload file
 } catch (error) {
   if (error instanceof SftpUploadError) {
-    console.error('Upload failed:', {
+    console.error("Upload failed:", {
       filename: error.filename,
       code: error.code,
       cause: error.cause,

@@ -13,6 +13,7 @@ Add to your package.json:
 ```
 
 Then run:
+
 ```bash
 bun install
 ```
@@ -43,9 +44,9 @@ logger.error({ err: error, requestId: "abc" }, "Request failed");
 import { createLogger } from "@news-spend-media/logger";
 
 // Create logger with persistent context
-const requestLogger = createLogger({ 
+const requestLogger = createLogger({
   requestId: "req-123",
-  userId: 456 
+  userId: 456,
 });
 
 // All logs include the context automatically
@@ -67,11 +68,13 @@ NODE_ENV=development # Pretty output (Node.js/Bun only)
 ## Platform Behavior
 
 **Node.js/Bun:**
+
 - Uses Pino for high performance
 - Pretty colored output in development
 - Structured JSON in production
 
 **React Native:**
+
 - Uses console methods (Metro-compatible)
 - Structured data format
 - Works with native debuggers
@@ -79,16 +82,19 @@ NODE_ENV=development # Pretty output (Node.js/Bun only)
 ## Best Practices
 
 ✅ Use structured logging:
+
 ```typescript
 logger.info({ userId: 123, orderId: 456 }, "Order created");
 ```
 
 ❌ Avoid string concatenation:
+
 ```typescript
 logger.info(`Order 456 created by user 123`); // Don't do this
 ```
 
 ✅ Pass errors in `err` field:
+
 ```typescript
 try {
   await riskyOperation();
@@ -98,6 +104,7 @@ try {
 ```
 
 ✅ Use child loggers for context:
+
 ```typescript
 const userLogger = createLogger({ userId: 123 });
 userLogger.info("Profile updated");

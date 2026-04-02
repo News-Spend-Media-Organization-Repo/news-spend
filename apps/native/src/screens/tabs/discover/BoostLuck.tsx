@@ -15,7 +15,7 @@ import {
 } from "tamagui";
 import { CaretLeft } from "tamagui-phosphor";
 
-import { ConnectBrandDialog } from "#/components/discover/connectBrand-dialog";
+import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Screen } from "#/components/Screen";
 import { Button, Text } from "#/components/ui";
 import { useFocusBackHandler } from "#/hooks/useBackHandler";
@@ -158,7 +158,7 @@ const BoostLuck = () => {
           <YStack gap="$4">
             <Text ta="center">Our sponsors wish you good luck.</Text>
 
-            <ConnectBrandDialog
+            <PartnerAdDialog
               asChild
               onCountdownComplete={onCountdownComplete}
               onOpen={onDialogOpen}
@@ -169,7 +169,7 @@ const BoostLuck = () => {
                 </Button.Icon>
                 <Button.Text>Boost Your Luck</Button.Text>
               </Button>
-            </ConnectBrandDialog>
+            </PartnerAdDialog>
           </YStack>
         </Stack>
       </ScrollView>

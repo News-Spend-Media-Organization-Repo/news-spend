@@ -1,5 +1,6 @@
 {
   "name": "@news-spend-media/api",
+  "type": "module",
   "exports": {
     ".": {
       "default": "./src/index.ts"
@@ -11,15 +12,9 @@
       "default": "./src/*.ts"
     }
   },
-  "type": "module",
   "scripts": {
     "export:contract": "node --import tsx/esm src/scripts/router-to-contract.ts",
     "test": "vitest"
-  },
-  "devDependencies": {
-    "vitest": "catalog:",
-    "typescript": "catalog:",
-    "@news-spend-media/config": "workspace:*"
   },
   "dependencies": {
     "@news-spend-media/auth": "workspace:*",
@@ -45,5 +40,10 @@
     "react-tweet": "^3.3.0",
     "zod": "catalog:",
     "zod-form-data": "^3.0.1"
+  },
+  "devDependencies": {
+    "@news-spend-media/config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

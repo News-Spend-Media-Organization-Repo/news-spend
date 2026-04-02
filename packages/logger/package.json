@@ -1,6 +1,9 @@
 {
   "name": "@news-spend-media/logger",
   "version": "1.0.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,19 +13,16 @@
       "default": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "scripts": {
+    "build": "tsc --build --force"
+  },
   "dependencies": {
+    "@news-spend-media/config": "workspace:*",
     "pino": "^9.5.0",
-    "pino-pretty": "^13.0.0",
-    "@news-spend-media/config": "workspace:*"
+    "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:"
-  },
-  "scripts": {
-    "build": "tsc --build --force"
   }
 }

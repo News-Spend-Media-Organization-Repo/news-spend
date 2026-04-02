@@ -19,7 +19,7 @@ import {
   MusicTab,
   SurveyTab,
 } from "#/components/discover";
-import { ConnectBrandDialog } from "#/components/discover/connectBrand-dialog";
+import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Screen } from "#/components/Screen";
 import { Button } from "#/components/ui";
 import { useConnectBrand } from "#/hooks/discover/useConnectBrand";
@@ -52,7 +52,7 @@ function DiscoverHome() {
   return (
     <Screen contentContainerStyle={{ gap: 16 }} pt="$2">
       <XStack gap="$3" px="$2">
-        <ConnectBrandDialog
+        <PartnerAdDialog
           asChild
           onCountdownComplete={onCountdownComplete}
           onOpen={onOpen}
@@ -63,7 +63,7 @@ function DiscoverHome() {
             </Button.Icon>
             <Button.Text>Connect Brands</Button.Text>
           </Button>
-        </ConnectBrandDialog>
+        </PartnerAdDialog>
 
         <Button
           flex={1}

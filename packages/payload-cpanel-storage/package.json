@@ -15,10 +15,6 @@
     "check-types": "tsc --noEmit",
     "test": "vitest"
   },
-  "peerDependencies": {
-    "next": "catalog:",
-    "payload": "catalog:"
-  },
   "dependencies": {
     "@news-spend-media/logger": "workspace:*",
     "@payloadcms/plugin-cloud-storage": "catalog:",
@@ -37,5 +33,9 @@
     "ssh2": "1.16.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "payload": "catalog:"
   }
 }

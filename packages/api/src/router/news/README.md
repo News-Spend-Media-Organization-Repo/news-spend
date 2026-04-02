@@ -43,12 +43,12 @@ const news = await fetchMainNews({
   type: "article",
   category: "tech",
   limit: 10,
-  page: 1
+  page: 1,
 });
 
 const related = await fetchRelatedNews({
   payload,
-  limit: 3
+  limit: 3,
 });
 ```
 
@@ -89,7 +89,7 @@ Handles ad decisioning logic with configurable probability and fallback mechanis
 const adConfig = {
   inHouseAdProbability: 0.65, // 65% in-house, 35% Google
   googleAdSlot: "banner_1",
-  placements: ["homepage_ads_banner"]
+  placements: ["homepage_ads_banner"],
 };
 ```
 
@@ -122,11 +122,11 @@ Advanced feed composition engine with configurable injection rules and prioritie
 
 ```typescript
 const rule = {
-  type: "ad",              // Content type to inject
-  frequency: 3,            // Every 3rd item
-  probability: 1.0,        // 100% chance
-  priority: 1,             // Highest priority
-  position: "inline"       // Inject inline with content
+  type: "ad", // Content type to inject
+  frequency: 3, // Every 3rd item
+  probability: 1.0, // 100% chance
+  priority: 1, // Highest priority
+  position: "inline", // Inject inline with content
 };
 ```
 
@@ -137,7 +137,7 @@ const rule = {
 const feedData = {
   mainNews: newsDocs,
   relatedNews: relatedDocs,
-  promotionMedia: promoDocs
+  promotionMedia: promoDocs,
 };
 
 const composedFeed = await composeFeed(payload, adManager, feedData);
@@ -149,11 +149,13 @@ const simpleFeeds = await composeSimpleFeed(newsDocs, adManager, 4);
 ## Default Configurations
 
 ### Ad Configuration
+
 - 65% in-house ads, 35% Google ads
 - "banner_1" Google ad slot
 - "homepage_ads_banner" placement
 
 ### Feed Rules
+
 - **Ads**: Every 3rd item, 100% probability, priority 1
 - **Promotion Media**: Every 5th item, 70% probability, priority 2
 - **Related News**: At end, 90% probability, priority 3
@@ -162,6 +164,7 @@ const simpleFeeds = await composeSimpleFeed(newsDocs, adManager, 4);
 ## Benefits of Refactoring
 
 ### Before
+
 - 170+ lines of complex logic in single handler
 - Duplicate ad logic across handlers
 - Hard to test individual components
@@ -169,6 +172,7 @@ const simpleFeeds = await composeSimpleFeed(newsDocs, adManager, 4);
 - Mixed concerns (fetching, building, composition)
 
 ### After
+
 - **Separation of Concerns**: Each utility has single responsibility
 - **Reusability**: Utilities can be used across different handlers
 - **Testability**: Individual components can be unit tested
@@ -197,7 +201,11 @@ const home = publicProcedure.handler(async ({ context }) => {
 
   // Setup composition
   const adManager = await createAdManager(payload);
-  const feedData = { mainNews: news.docs, relatedNews: related.docs, promotionMedia: promo.docs };
+  const feedData = {
+    mainNews: news.docs,
+    relatedNews: related.docs,
+    promotionMedia: promo.docs,
+  };
 
   // Compose feed
   const composedFeed = await composeFeed(payload, adManager, feedData);

@@ -119,10 +119,10 @@ try {
 Here's how to use this package in your Better Auth configuration:
 
 ```ts
-import { 
-  sendWelcomeEmail, 
-  sendPasswordResetEmail, 
-  sendOTPVerificationEmail 
+import {
+  sendWelcomeEmail,
+  sendPasswordResetEmail,
+  sendOTPVerificationEmail,
 } from "@news-spend-media/mail";
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
@@ -154,10 +154,7 @@ export const auth = betterAuth({
         const newSession = ctx.context.newSession;
         if (newSession) {
           // Send welcome email (scheduled for 1 min later)
-          sendWelcomeEmail(
-            newSession.user.email,
-            newSession.user.username
-          );
+          sendWelcomeEmail(newSession.user.email, newSession.user.username);
         }
       }
     }),
@@ -243,6 +240,7 @@ bun dev
 ### Welcome email not received
 
 Welcome emails are scheduled to send in 1 minute. Check:
+
 1. Resend dashboard for scheduled emails
 2. Logs for any errors
 3. Recipient's spam folder
@@ -250,6 +248,7 @@ Welcome emails are scheduled to send in 1 minute. Check:
 ### Password reset link not working
 
 Ensure `APP_URL` is set correctly in your environment variables. The reset link format is:
+
 ```
 {APP_URL}/change-password/{token}
 ```

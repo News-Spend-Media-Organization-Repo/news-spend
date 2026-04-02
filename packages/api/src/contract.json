@@ -29,9 +29,7 @@
           "method": "POST",
           "path": "/account/delete-push-token",
           "summary": "Delete push token",
-          "tags": [
-            "account"
-          ]
+          "tags": ["account"]
         }
       }
     },
@@ -81,9 +79,7 @@
         "route": {
           "method": "GET",
           "path": "/ads/promo-media",
-          "tags": [
-            "Ads"
-          ],
+          "tags": ["Ads"],
           "summary": "Get promo media",
           "description": "Get promo media for the current user"
         }
@@ -323,9 +319,7 @@
         "route": {
           "method": "GET",
           "path": "/news/categories",
-          "tags": [
-            "news"
-          ],
+          "tags": ["news"],
           "summary": "Get all news categories"
         }
       }
@@ -529,9 +523,7 @@
           "method": "POST",
           "path": "/survey/gFormAwardPoint",
           "summary": "Award point for google forms",
-          "tags": [
-            "survey"
-          ]
+          "tags": ["survey"]
         }
       }
     },
@@ -557,10 +549,7 @@
           "route": {
             "method": "GET",
             "path": "/survey/cpx/postback",
-            "tags": [
-              "survey",
-              "cpx"
-            ],
+            "tags": ["survey", "cpx"],
             "summary": "CPX Research postback endpoint (GET)",
             "description": "Receives survey conversion notifications from CPX Research."
           }
@@ -583,10 +572,7 @@
         "route": {
           "method": "GET",
           "path": "/survey/rapido/postback",
-          "tags": [
-            "survey",
-            "rapido"
-          ],
+          "tags": ["survey", "rapido"],
           "summary": "RapidoReach postback endpoint",
           "description": "Receives survey conversion notifications from RapidoReach. See docs: https://docs.rapidoreach.com/docs/v2/api/callbacks"
         }
@@ -599,10 +585,7 @@
         "route": {
           "method": "GET",
           "path": "/survey/theorem/postback",
-          "tags": [
-            "survey",
-            "theorem"
-          ],
+          "tags": ["survey", "theorem"],
           "summary": "TheoremReach postback endpoint",
           "description": "Receives survey conversion notifications from TheoremReach."
         }

@@ -1,6 +1,7 @@
 {
   "name": "@news-spend-media/native",
   "version": "1.0.0",
+  "private": true,
   "main": "index.ts",
   "scripts": {
     "android": "WITH_ROZENITE=true REACT_NATIVE_PACKAGER_HOSTNAME=$(ipconfig getifaddr en0) expo run:android",
@@ -145,7 +146,6 @@
     "@types/react": "^19.2.14",
     "typescript": "catalog:"
   },
-  "private": true,
   "expo": {
     "exclude": [
       "react-native-keyboard-controller"
