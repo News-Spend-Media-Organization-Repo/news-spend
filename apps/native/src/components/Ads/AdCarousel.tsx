@@ -11,10 +11,12 @@ import type {
   PromoVideoSource,
 } from "@news-spend-media/payload/types";
 import { Share2 } from "@tamagui/lucide-icons";
+import * as VideoThumbnails from "expo-video-thumbref";
 import type React from "react";
 import {
   memo,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -50,13 +52,6 @@ type CarouselItemData = {
 
 const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
-// ---------------------------------------------------------------------------
-// VideoComponent
-// Always mounts PromoVideo/YoutubePromoPlayer but gates the source url via
-// `activated` state. useVideoPlayer receives null until the user taps play,
-// so expo-video allocates the player but buffers nothing. On tap, url becomes
-// real and autoPlay kicks in immediately — no unmount/remount flash.
-// ---------------------------------------------------------------------------
 const VideoComponent = memo(
   ({
     item,
@@ -66,23 +61,43 @@ const VideoComponent = memo(
     adCarouselRef: React.RefObject<AdCarouselRef | null>;
   }) => {
     const [activated, setActivated] = useState(false);
+    const [thumbnail, setThumbnail] = useState<{
+      width: number;
+      height: number;
+    } | null>(null);
 
     const handleActivate = useCallback(() => {
       setActivated(true);
     }, []);
 
-    if (item.videoSource === "upload" || item.videoSource === "normal") {
-      const uploadUrl =
-        item.videoSource === "upload" && typeof item.video === "object"
-          ? (item.video?.url ?? undefined)
-          : undefined;
-      const resolvedUrl = uploadUrl ?? item.url ?? null;
+    const uploadUrl =
+      item.videoSource === "upload" && typeof item.video === "object"
+        ? (item.video?.url ?? undefined)
+        : undefined;
+    const resolvedUrl = uploadUrl ?? item.url ?? null;
 
+    useEffect(() => {
+      if (!resolvedUrl) return;
+
+      VideoThumbnails.getNativeThumbnailAsync(resolvedUrl, {
+        time: 1000,
+        quality: 0.8,
+      })
+        .then((thumb: unknown) => {
+          if (thumb) {
+            setThumbnail(thumb as Parameters<typeof setThumbnail>[0]);
+          }
+        })
+        .catch(() => {});
+    }, [resolvedUrl]);
+
+    if (item.videoSource === "upload" || item.videoSource === "normal") {
       return (
         <Stack h="100%" w="100%">
           <PromoVideo
             autoPlay={activated}
             item={{ ...item, url: activated ? resolvedUrl : null }}
+            posterSource={thumbnail}
             ref={adCarouselRef}
           />
           {!activated && (
@@ -117,35 +132,7 @@ const VideoComponent = memo(
     if (item.videoSource === "youtube") {
       return (
         <Stack h="100%" w="100%">
-          <YoutubePromoPlayer
-            item={{ ...item, url: activated ? item.url : null }}
-            ref={adCarouselRef}
-          />
-          {!activated && (
-            <Stack
-              ai="center"
-              bottom={0}
-              jc="center"
-              left={0}
-              onPress={handleActivate}
-              position="absolute"
-              right={0}
-              top={0}
-            >
-              <Stack
-                ai="center"
-                backgroundColor="rgba(0,0,0,0.55)"
-                borderRadius={40}
-                h={80}
-                jc="center"
-                w={80}
-              >
-                <Text color="white" fontSize={32}>
-                  ▶
-                </Text>
-              </Stack>
-            </Stack>
-          )}
+          <YoutubePromoPlayer item={item} ref={adCarouselRef} />
         </Stack>
       );
     }

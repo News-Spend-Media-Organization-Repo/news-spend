@@ -93,7 +93,7 @@
     "expo-system-ui": "~55.0.9",
     "expo-updates": "~55.0.12",
     "expo-video": "~55.0.10",
-    "expo-video-thumbnails": "^55.0.10",
+    "expo-video-thumbref": "^9.3.0",
     "expo-web-browser": "~55.0.9",
     "phosphor-react-native": "^3.0.2",
     "radio-browser-api": "^6.0.3",
