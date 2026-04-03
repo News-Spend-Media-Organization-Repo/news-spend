@@ -6,6 +6,7 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+import { Linking, Platform } from "react-native";
 import { Paragraph, Spinner, Stack, XStack } from "tamagui";
 import { CaretLeft } from "tamagui-phosphor";
 
@@ -20,7 +21,6 @@ import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 function LuckyAppWall() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
-  const { handleClick, isLoading } = usePartnerClick();
 
   const queryOptions = orpc.partnerContent.filtered.infiniteOptions({
     input: (pageParam: number | undefined) => ({
@@ -54,7 +54,7 @@ function LuckyAppWall() {
   const emptyList = useCallback(
     () => (
       <Stack ai="center" h="100%" jc="center">
-        <Paragraph fos="$5">No apps found</Paragraph>
+        <Paragraph fos="$5">No offers available</Paragraph>
       </Stack>
     ),
     []
@@ -79,20 +79,29 @@ function LuckyAppWall() {
     refetchByUser();
   }, []);
 
+  const handleClick = useCallback((item: PartnerContent) => {
+    let url = Platform.select({
+      ios: item.links?.iosAppStore,
+      android: item.links?.androidPlayStore,
+    });
+    if (!url) {
+      url = item.links?.website;
+    }
+
+    if (!url) {
+      return;
+    }
+
+    Linking.openURL(url);
+  }, []);
+
   const renderAppItem = ({
     item,
   }: LegendListRenderItemProps<PartnerContent>) => {
     const { blurhash, url } = getImageData(item.media);
-    const loading = isLoading(item.id);
 
     return (
-      <XStack
-        ai="flex-start"
-        gap="$2"
-        onPress={() => handleClick(item)}
-        opacity={loading ? 0.7 : 1}
-        p="$3"
-      >
+      <XStack ai="flex-start" gap="$2" onPress={() => handleClick(item)} p="$3">
         <Image
           br="$3"
           contentFit="cover"
@@ -106,7 +115,6 @@ function LuckyAppWall() {
             <Text flex={1} fos="$5" numberOfLines={2}>
               {item.title}
             </Text>
-            {loading ? <Spinner color="#666" size="small" /> : null}
           </XStack>
           <Text
             color="$gray.50"

@@ -2,9 +2,8 @@
   "name": "@news-spend-media/server",
   "type": "module",
   "scripts": {
-    "build": "NODE_ENV=production bun build src/index.ts --outdir=dist --sourcemap --target=bun --external cpu-features --external ssh2",
     "dev": "bun --watch src/index.ts",
-    "start": "NODE_ENV=production bun run dist/index.js"
+    "start": "bun src/index.ts"
   },
   "dependencies": {
     "@news-spend-media/api": "workspace:*",
