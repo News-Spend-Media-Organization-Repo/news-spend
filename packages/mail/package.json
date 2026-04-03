@@ -12,7 +12,7 @@
   "dependencies": {
     "@news-spend-media/logger": "workspace:*",
     "@news-spend-media/transactional": "workspace:*",
-    "@react-email/render": "^1.0.1",
+    "@react-email/render": "^1.0.2",
     "react": "catalog:",
     "react-dom": "catalog:",
     "resend": "^6.6.0"

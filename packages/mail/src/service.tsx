@@ -44,7 +44,7 @@ export async function sendWelcomeEmail(to: string, username: string) {
 export async function sendPasswordResetEmail(token: string, email: string) {
   try {
     const resetLink = `${process.env.APP_URL}/change-password/${token}`;
-    const html = await render(ForgotPasswordEmail({ resetLink }));
+    const html = await render(<ForgotPasswordEmail resetLink={resetLink} />);
 
     await resend.emails.send({
       from: DEFAULT_FROM_EMAIL,
@@ -54,6 +54,7 @@ export async function sendPasswordResetEmail(token: string, email: string) {
     });
     logger.info({ email }, "Password reset email sent successfully");
   } catch (error) {
+    console.error({ error, email });
     logger.error({ error, email }, "Failed to send password reset email");
   }
 }
