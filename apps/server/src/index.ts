@@ -3,6 +3,7 @@ import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
+// import { LoggingHandlerPlugin } from "@orpc/experimental-pino";
 import { RatelimitHandlerPlugin } from "@orpc/experimental-ratelimit";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
@@ -13,6 +14,8 @@ import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+
+const logger = appLogger;
 
 const CORS_ORIGINS = [
   process.env.CORS_ORIGIN || "",
@@ -46,6 +49,10 @@ export const apiHandler = new OpenAPIHandler(router, {
   plugins: [
     new BatchHandlerPlugin(),
     new RatelimitHandlerPlugin(),
+    // new LoggingHandlerPlugin({
+    //   logger,
+    //   logRequestResponse: true,
+    // }),
     new OpenAPIReferencePlugin({
       docsProvider: "scalar",
       docsTitle: "OpenAPI Documentation",
@@ -61,7 +68,7 @@ export const apiHandler = new OpenAPIHandler(router, {
   ],
   interceptors: [
     onError((error) => {
-      console.error(error);
+      logger.error({ err: error }, "API handler error");
     }),
   ],
 });
@@ -84,10 +91,17 @@ async function handleApi(req: Request) {
 }
 
 export const rpcHandler = new RPCHandler(router, {
-  plugins: [new BatchHandlerPlugin(), new RatelimitHandlerPlugin()],
+  plugins: [
+    new BatchHandlerPlugin(),
+    new RatelimitHandlerPlugin(),
+    // new LoggingHandlerPlugin({
+    //   logger,
+    //   logRequestResponse: true,
+    // }),
+  ],
   interceptors: [
     onError((error) => {
-      console.error(error);
+      logger.error({ err: error }, "RPC handler error");
     }),
   ],
 });
@@ -129,78 +143,129 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 
 const port = Number(process.env.PORT) || 9000;
 
+function logRequest(req: Request) {
+  const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+  const msg = `${timestamp} -> ${req.method} ${new URL(req.url).pathname}`;
+  logger.info(msg);
+}
+
+function logResponse(req: Request, status: number, elapsed: number) {
+  const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+  const arrow = status >= 400 ? "<" : "<-";
+  const msg = `${timestamp} ${arrow} ${req.method} ${new URL(req.url).pathname} ${status} ${elapsed}ms`;
+  if (status >= 500) {
+    logger.error(msg);
+  } else if (status >= 400) {
+    logger.warn(msg);
+  } else {
+    logger.info(msg);
+  }
+}
+
+const staticRoutes = {
+  "/": () => new Response("OK"),
+
+  "/health": () =>
+    new Response(
+      JSON.stringify({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || "development",
+      }),
+      { headers: { "Content-Type": "application/json" } }
+    ),
+
+  "/account-deletion": () =>
+    new Response(AccountDeletionPage(), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    }),
+
+  "/delete-account": () =>
+    new Response(AccountDeletionPage(), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    }),
+
+  "/privacy-policy": () =>
+    new Response(PrivacyPolicy(), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    }),
+};
+
 const server = Bun.serve({
   port,
   hostname: "0.0.0.0",
 
-  routes: {
-    "/": () => new Response("OK"),
-
-    "/health": () =>
-      new Response(
-        JSON.stringify({
-          status: "ok",
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          environment: process.env.NODE_ENV || "development",
-        }),
-        { headers: { "Content-Type": "application/json" } }
-      ),
-
-    "/account-deletion": () =>
-      new Response(AccountDeletionPage(), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      }),
-
-    "/delete-account": () =>
-      new Response(AccountDeletionPage(), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      }),
-
-    "/privacy-policy": () =>
-      new Response(PrivacyPolicy(), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      }),
-
-    "/api/auth/*": async (req) => {
-      const origin = req.headers.get("origin");
-      const expoOrigin = req.headers.get("expo-origin");
-      const authRequest = expoOrigin
-        ? new Request(req, {
-            headers: {
-              ...Object.fromEntries(req.headers),
-              origin: expoOrigin,
-            },
-          })
-        : req;
-      const authResponse = await auth.handler(authRequest);
-      const corsResponse = new Response(authResponse.body, authResponse);
-      for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
-        corsResponse.headers.set(key, value);
-      }
-      return corsResponse;
-    },
-
-    "/rpc": handleRpc,
-    "/rpc/*": handleRpc,
-
-    "/api": handleApi,
-    "/api/*": handleApi,
-  },
-
-  async fetch(req) {
+  fetch(req) {
+    const start = Date.now();
+    const url = new URL(req.url);
     const origin = req.headers.get("origin");
+
     if (req.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
         headers: getCorsHeaders(origin),
       });
     }
+
+    const staticHandler =
+      staticRoutes[url.pathname as keyof typeof staticRoutes];
+    if (staticHandler) {
+      logRequest(req);
+      const res = staticHandler();
+      logResponse(req, res.status, Date.now() - start);
+      return res;
+    }
+
+    if (url.pathname.startsWith("/api/auth/")) {
+      logRequest(req);
+      const handler = async () => {
+        const expoOrigin = req.headers.get("expo-origin");
+        const authRequest = expoOrigin
+          ? new Request(req, {
+              headers: {
+                ...Object.fromEntries(req.headers),
+                origin: expoOrigin,
+              },
+            })
+          : req;
+        const authResponse = await auth.handler(authRequest);
+        const corsResponse = new Response(authResponse.body, authResponse);
+        for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
+          corsResponse.headers.set(key, value);
+        }
+        return corsResponse;
+      };
+
+      return handler().then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    if (url.pathname === "/rpc" || url.pathname.startsWith("/rpc/")) {
+      logRequest(req);
+      return handleRpc(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+      logRequest(req);
+      return handleApi(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    logRequest(req);
+    logResponse(req, 404, Date.now() - start);
     return new Response("Not Found", { status: 404 });
   },
 
   error(error) {
-    console.error("Server error:", error);
+    logger.error({ err: error }, "Server error");
     return new Response("Internal Server Error", { status: 500 });
   },
 });

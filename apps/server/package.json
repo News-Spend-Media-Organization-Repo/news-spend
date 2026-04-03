@@ -10,6 +10,7 @@
     "@news-spend-media/auth": "workspace:*",
     "@news-spend-media/db": "workspace:*",
     "@news-spend-media/logger": "workspace:*",
+    "@orpc/experimental-pino": "catalog:",
     "@orpc/experimental-ratelimit": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/otel": "catalog:",

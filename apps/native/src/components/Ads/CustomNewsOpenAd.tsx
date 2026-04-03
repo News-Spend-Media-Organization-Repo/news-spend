@@ -216,9 +216,10 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
           />
         ) : (
           <Image
+            contentFit="contain"
             h={(width / 16) * 9}
             placeholder={{ blurhash }}
-            placeholderContentFit="cover"
+            placeholderContentFit="contain"
             source={url}
             w="100%"
           />

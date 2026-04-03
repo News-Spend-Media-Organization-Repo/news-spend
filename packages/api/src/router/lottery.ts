@@ -105,9 +105,10 @@ const getReward = protectedProcedure.handler(async ({ context }) => {
     where: {
       user: { equals: context.user.id },
       claimed: { not_equals: true },
-      createdAt: { greater_than_equal: oneWeekAgo },
+      // createdAt: { greater_than_equal: oneWeekAgo },
     },
   });
+
   return result.docs[0] ?? null;
 });
 
@@ -123,7 +124,10 @@ const claimReward = protectedProcedure
       depth: 1,
     });
 
-    if (!winner || winner.user !== user.id) {
+    const lotteryWinnerId =
+      typeof winner.user === "string" ? winner.user : winner.user.id;
+
+    if (!winner || lotteryWinnerId !== user.id) {
       throw new Error("Winner not found");
     }
 

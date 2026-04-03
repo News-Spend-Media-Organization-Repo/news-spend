@@ -144,27 +144,43 @@ class ReactNativeLogger implements Logger {
 /**
  * Node.js/Bun logger implementation using Pino
  */
-async function createNodeLogger(): Promise<Logger> {
+async function createNodeLogger(): Promise<pino.Logger> {
   // Dynamic import of pino only in Node.js environment
-  const pino = (await import("pino")).default;
+  const pinoModule = await import("pino");
 
   const isDevelopment =
     typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 
-  const pinoLogger = pino({
+  const loggerOptions: pino.LoggerOptions = {
     level:
       (typeof process !== "undefined" && process.env.LOG_LEVEL) ||
       (isDevelopment ? "debug" : "info"),
     formatters: {
       level: (label: string) => ({ level: label }),
     },
-    timestamp: pino.stdTimeFunctions.isoTime,
+    timestamp: pinoModule.stdTimeFunctions.isoTime,
     base: {
       env: typeof process !== "undefined" ? process.env.NODE_ENV : "unknown",
     },
-  });
+  };
 
-  return pinoLogger as Logger;
+  // Use pretty printing in development
+  if (isDevelopment) {
+    const _pinoPretty = await import("pino-pretty");
+    return pinoModule.default({
+      ...loggerOptions,
+      transport: {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "SYS:standard",
+          ignore: "pid,hostname",
+        },
+      },
+    });
+  }
+
+  return pinoModule.default(loggerOptions);
 }
 
 /**
@@ -221,6 +237,13 @@ export const logger: Logger = new Proxy({} as Logger, {
  */
 export function createLogger(context: Record<string, unknown>): Logger {
   return logger.child(context);
+}
+
+export { type pino } from "pino";
+export type { Logger as PinoLogger } from "pino";
+
+export async function getPinoLogger() {
+  return initializeLogger();
 }
 
 /**

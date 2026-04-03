@@ -119,9 +119,66 @@ export const getOnePartnerContent = publicProcedure
     return finalResult;
   });
 
+const RandomInput = z.object({
+  placement: z.array(PlacementEnum).optional(),
+  status: StatusEnum.optional(),
+  type: z.array(TypeEnum).optional(),
+  adSize: AdSizeEnum.optional(),
+  limit: z.number().min(1).max(100).optional(),
+});
+
+export const randomPartnerContent = publicProcedure
+  .input(RandomInput)
+  .handler(async ({ input, context }) => {
+    const { payload } = context;
+
+    const where: Where = {
+      status: { equals: "active" },
+    };
+
+    if (input.placement && input.placement.length > 0) {
+      where.placements = { in: input.placement };
+    }
+
+    if (input.type && input.type.length > 0) {
+      where.type = { in: input.type };
+    }
+
+    if (input.adSize) {
+      where.adSize = { equals: input.adSize };
+    }
+
+    const limit = input.limit ?? 10;
+
+    const countResult = await payload.count({
+      collection: "partner-content",
+      where,
+    });
+
+    const totalDocs = countResult.totalDocs;
+
+    if (totalDocs === 0) {
+      return [];
+    }
+
+    const maxOffset = Math.max(0, totalDocs - limit);
+    const randomOffset = Math.floor(Math.random() * maxOffset);
+
+    const result = await payload.find({
+      collection: "partner-content",
+      where,
+      limit,
+      page: randomOffset + 1,
+      depth: 2,
+    });
+
+    return result.docs.sort(() => Math.random() - 0.5);
+  });
+
 export const partnerContentRouter = {
   all: allPartnerContent,
   byId: partnerContentById,
   filtered: filteredPartnerContent,
   getOne: getOnePartnerContent,
+  random: randomPartnerContent,
 };
