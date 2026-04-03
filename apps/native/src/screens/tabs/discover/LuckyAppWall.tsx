@@ -12,7 +12,6 @@ import { CaretLeft } from "tamagui-phosphor";
 
 import { Screen } from "#/components/Screen";
 import { Button, Image, Text } from "#/components/ui";
-import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
@@ -153,17 +152,19 @@ function LuckyAppWall() {
           </Button.Text>
         </Button>
       </XStack>
-      <LegendList
-        data={items}
-        estimatedItemSize={100}
-        keyExtractor={keyExtractor}
-        ListEmptyComponent={emptyList}
-        ListFooterComponent={footer}
-        onEndReached={onEndReached}
-        onRefresh={onRefresh}
-        refreshing={isRefetchingByUser}
-        renderItem={renderAppItem}
-      />
+      <Stack flex={1}>
+        <LegendList
+          data={items}
+          estimatedItemSize={100}
+          keyExtractor={keyExtractor}
+          ListEmptyComponent={emptyList}
+          ListFooterComponent={footer}
+          onEndReached={onEndReached}
+          onRefresh={onRefresh}
+          refreshing={isRefetchingByUser}
+          renderItem={renderAppItem}
+        />
+      </Stack>
     </Screen>
   );
 }

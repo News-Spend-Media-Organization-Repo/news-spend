@@ -61,6 +61,7 @@ export default memo(function LotteryReward() {
       },
       onError: () => {
         toast.error("Failed to claim reward!");
+        setShowPrize(false);
       },
     })
   );
@@ -98,6 +99,7 @@ export default memo(function LotteryReward() {
   // When closing the dialog, perform cleanup and, if no prize exists, try to claim.
   const handleClose = () => {
     setDialogOpen(false);
+    setShowPrize(false);
     if (data?.prize) {
       queryClient.invalidateQueries(orpc.lottery.getReward.queryOptions());
     } else {
