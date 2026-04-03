@@ -415,6 +415,13 @@
         "meta": {},
         "route": {}
       }
+    },
+    "random": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {},
+        "route": {}
+      }
     }
   },
   "postReport": {

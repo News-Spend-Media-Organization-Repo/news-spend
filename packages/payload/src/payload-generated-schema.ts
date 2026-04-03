@@ -562,6 +562,30 @@ export const admins_rels = pgTable(
   ]
 );
 
+export const categories_breadcrumbs = pgTable(
+  "categories_breadcrumbs",
+  {
+    _order: integer("_order").notNull(),
+    _parentID: uuid("_parent_id").notNull(),
+    id: varchar("id").primaryKey(),
+    doc: uuid("doc_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    url: varchar("url"),
+    label: varchar("label"),
+  },
+  (columns) => [
+    index("categories_breadcrumbs_order_idx").on(columns._order),
+    index("categories_breadcrumbs_parent_id_idx").on(columns._parentID),
+    index("categories_breadcrumbs_doc_idx").on(columns.doc),
+    foreignKey({
+      columns: [columns["_parentID"]],
+      foreignColumns: [categories.id],
+      name: "categories_breadcrumbs_parent_id_fk",
+    }).onDelete("cascade"),
+  ]
+);
+
 export const categories = pgTable(
   "categories",
   {
@@ -573,6 +597,10 @@ export const categories = pgTable(
     image: uuid("image_id").references(() => media.id, {
       onDelete: "set null",
     }),
+    parent: uuid("parent_id").references((): AnyPgColumn => categories.id, {
+      onDelete: "set null",
+    }),
+    pathname: varchar("pathname"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -591,6 +619,7 @@ export const categories = pgTable(
   (columns) => [
     uniqueIndex("categories_slug_idx").on(columns.slug),
     index("categories_image_idx").on(columns.image),
+    index("categories_parent_idx").on(columns.parent),
     index("categories_updated_at_idx").on(columns.updatedAt),
     index("categories_created_at_idx").on(columns.createdAt),
   ]
@@ -3613,6 +3642,21 @@ export const relations_admins = relations(admins, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
+export const relations_categories_breadcrumbs = relations(
+  categories_breadcrumbs,
+  ({ one }) => ({
+    _parentID: one(categories, {
+      fields: [categories_breadcrumbs._parentID],
+      references: [categories.id],
+      relationName: "breadcrumbs",
+    }),
+    doc: one(categories, {
+      fields: [categories_breadcrumbs.doc],
+      references: [categories.id],
+      relationName: "doc",
+    }),
+  })
+);
 export const relations_categories_rels = relations(
   categories_rels,
   ({ one }) => ({
@@ -3633,6 +3677,14 @@ export const relations_categories = relations(categories, ({ one, many }) => ({
     fields: [categories.image],
     references: [media.id],
     relationName: "image",
+  }),
+  parent: one(categories, {
+    fields: [categories.parent],
+    references: [categories.id],
+    relationName: "parent",
+  }),
+  breadcrumbs: many(categories_breadcrumbs, {
+    relationName: "breadcrumbs",
   }),
   _rels: many(categories_rels, {
     relationName: "_rels",
@@ -4901,6 +4953,7 @@ type DatabaseSchema = {
   admins_sessions: typeof admins_sessions;
   admins: typeof admins;
   admins_rels: typeof admins_rels;
+  categories_breadcrumbs: typeof categories_breadcrumbs;
   categories: typeof categories;
   categories_rels: typeof categories_rels;
   comments: typeof comments;
@@ -4987,6 +5040,7 @@ type DatabaseSchema = {
   relations_admins_sessions: typeof relations_admins_sessions;
   relations_admins_rels: typeof relations_admins_rels;
   relations_admins: typeof relations_admins;
+  relations_categories_breadcrumbs: typeof relations_categories_breadcrumbs;
   relations_categories_rels: typeof relations_categories_rels;
   relations_categories: typeof relations_categories;
   relations_comments_rels: typeof relations_comments_rels;

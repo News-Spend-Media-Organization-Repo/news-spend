@@ -4,8 +4,8 @@ import {
 } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { Linking, Platform } from "react-native";
 import { Paragraph, Spinner, Stack, XStack } from "tamagui";
 import { CaretLeft } from "tamagui-phosphor";
@@ -21,32 +21,17 @@ function LuckyAppWall() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
 
-  const queryOptions = orpc.partnerContent.filtered.infiniteOptions({
-    input: (pageParam: number | undefined) => ({
-      limit: 5,
+  const queryOptions = orpc.partnerContent.random.queryOptions({
+    input: {
       placement: ["lucky-app-wall"],
       type: ["app", "book", "survey"],
-      pageParam,
-    }),
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+      limit: 10,
+    },
   });
 
-  const {
-    data,
-    isPending,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    refetch,
-  } = useInfiniteQuery(queryOptions);
+  const { data: items, isPending, refetch } = useQuery(queryOptions);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-
-  const items = useMemo(
-    () => data?.pages.flatMap((page) => page.docs) || [],
-    [data]
-  );
 
   const keyExtractor = useCallback((item: PartnerContent) => item.id, []);
 
@@ -57,21 +42,6 @@ function LuckyAppWall() {
       </Stack>
     ),
     []
-  );
-
-  const onEndReached = useCallback(() => {
-    if (!isFetchingNextPage && hasNextPage) {
-      fetchNextPage();
-    }
-  }, [isFetchingNextPage, hasNextPage]);
-
-  const footer = useCallback(
-    () => (
-      <Stack ai="center" h="100%" jc="center">
-        {isFetchingNextPage ? <Spinner /> : null}
-      </Stack>
-    ),
-    [isFetchingNextPage]
   );
 
   const onRefresh = useCallback(() => {
@@ -154,12 +124,10 @@ function LuckyAppWall() {
       </XStack>
       <Stack flex={1}>
         <LegendList
-          data={items}
+          data={items ?? []}
           estimatedItemSize={100}
           keyExtractor={keyExtractor}
           ListEmptyComponent={emptyList}
-          ListFooterComponent={footer}
-          onEndReached={onEndReached}
           onRefresh={onRefresh}
           refreshing={isRefetchingByUser}
           renderItem={renderAppItem}
