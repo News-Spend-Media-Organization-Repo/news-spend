@@ -2,7 +2,6 @@
 import type { PromoVideoSource } from "@news-spend-media/payload/types";
 import { useIsFocused } from "@react-navigation/native";
 import type { VideoSource } from "expo-video";
-import type { SharedRef } from "expo-video-thumbref";
 import {
   type Ref,
   useEffect,
@@ -29,7 +28,7 @@ type PromoVideoProps = {
   item: PromoVideoSource;
   onLoad?: () => void;
   autoPlay?: boolean;
-  posterSource?: SharedRef<"image"> | null;
+  posterSource?: { uri: string; width: number; height: number } | null;
   ref?: Ref<PromoVideoMethods>;
 };
 

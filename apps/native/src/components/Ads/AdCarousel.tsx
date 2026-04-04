@@ -11,7 +11,7 @@ import type {
   PromoVideoSource,
 } from "@news-spend-media/payload/types";
 import { Share2 } from "@tamagui/lucide-icons";
-import * as VideoThumbnails from "expo-video-thumbref";
+import * as VideoThumbnails from "expo-video-thumbnails";
 import type React from "react";
 import {
   memo,
@@ -62,6 +62,7 @@ const VideoComponent = memo(
   }) => {
     const [activated, setActivated] = useState(false);
     const [thumbnail, setThumbnail] = useState<{
+      uri: string;
       width: number;
       height: number;
     } | null>(null);
@@ -79,13 +80,17 @@ const VideoComponent = memo(
     useEffect(() => {
       if (!resolvedUrl) return;
 
-      VideoThumbnails.getNativeThumbnailAsync(resolvedUrl, {
+      VideoThumbnails.getThumbnailAsync(resolvedUrl, {
         time: 1000,
         quality: 0.8,
       })
-        .then((thumb: unknown) => {
-          if (thumb) {
-            setThumbnail(thumb as Parameters<typeof setThumbnail>[0]);
+        .then((thumb) => {
+          if (thumb?.uri) {
+            setThumbnail({
+              uri: thumb.uri,
+              width: thumb.width,
+              height: thumb.height,
+            });
           }
         })
         .catch(() => {});
