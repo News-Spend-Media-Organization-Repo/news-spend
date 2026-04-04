@@ -99,6 +99,8 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       }),
       getNextPageParam: (lastPage) => lastPage.nextPage,
       initialPageParam: undefined,
+      staleTime: 5 * 60 * 1000, // 5 min — prevents refetch on tab switch
+      gcTime: 10 * 60 * 1000, // 10 min — keep cached data in memory
     })
   );
 
@@ -123,6 +125,29 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
   const trendingRefetch = useRefreshByUser(trendingNews.refetch);
+
+  useEffect(() => {
+    if (!flattenedNews) return;
+
+    flattenedNews.slice(0, 10).forEach((item, idx) => {
+      if (
+        item &&
+        "_type" in item &&
+        item._type === "ad" &&
+        ("type" in item
+          ? item.type === "gAd" || item.type === "inHouse"
+          : false)
+      ) {
+        const cell = gBannerRefs.current[idx];
+        const adId = item.id;
+        if (adId && loadedAds.current.has(adId)) return;
+        if (cell && !cell?.isAdLoaded()) {
+          cell.loadAd();
+          if (adId) loadedAds.current.add(adId);
+        }
+      }
+    });
+  }, [flattenedNews]);
 
   // #region Callbacks
   const resetInfiniteQueryPagination = useCallback(() => {
@@ -154,6 +179,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
     refetchByUser();
     trendingRefetch.refetchByUser();
     clearTabAdCache("latest");
+    loadedAds.current.clear();
   }, [
     resetInfiniteQueryPagination,
     refetchByUser,
@@ -274,17 +300,28 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         (item.item.type === "gAd" || item.item.type === "inHouse") &&
         item.isViewable
       ) {
+        const adId = item.item.id;
+        if (!adId || loadedAds.current.has(adId)) return;
+
         const cell = gBannerRefs?.current[item.index];
         if (cell && !cell?.isAdLoaded()) {
           cell?.loadAd();
+          loadedAds.current.add(adId);
         }
 
-        // TODO: find a way to load next ad ahead
-        // const nextCell = gBannerRefs?.current[item.index + 1];
-        // console.log("nextCell: ", nextCell);
-        // if (nextCell && !nextCell?.isAdLoaded()) {
-        //   nextCell?.loadAd();
-        // }
+        // Preload next 2 Google ads ahead (skips in-house ads which have no refs)
+        let preloaded = 0;
+        for (
+          let i = item.index + 1;
+          i < gBannerRefs.current.length && preloaded < 2;
+          i++
+        ) {
+          const nextCell = gBannerRefs.current[i];
+          if (nextCell && !nextCell.isAdLoaded()) {
+            nextCell.loadAd();
+            preloaded++;
+          }
+        }
       }
     }
   });
