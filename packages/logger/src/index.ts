@@ -2,6 +2,8 @@
  * Platform-aware logger that works in Node.js, Bun, and React Native environments
  */
 
+import type * as pino from "pino";
+
 // Detect if we're in a React Native environment
 // React Native check must come first since it also has process global
 const isReactNative =

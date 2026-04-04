@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Stack } from "tamagui";
 
-import { Video, type VideoRef } from "#/components/ui";
+import { Image, Video, type VideoRef } from "#/components/ui";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,6 +28,7 @@ type PromoVideoProps = {
   item: PromoVideoSource;
   onLoad?: () => void;
   autoPlay?: boolean;
+  posterSource?: { uri: string; width: number; height: number } | null;
   ref?: Ref<PromoVideoMethods>;
 };
 
@@ -39,6 +40,7 @@ const PromoVideo = ({
   item,
   onLoad,
   autoPlay = false,
+  posterSource,
   ref,
 }: PromoVideoProps) => {
   const videoRef = useRef<VideoRef>(null);
@@ -53,7 +55,7 @@ const PromoVideo = ({
             useCaching: true,
             headers: { "User-Agent": "NewsSpendMedia/1.0" },
           }
-        : null, // null source = player allocated, nothing buffered
+        : null,
     [item.url]
   );
 
@@ -102,7 +104,7 @@ const PromoVideo = ({
   );
 
   return (
-    <Stack h="100%" w="100%">
+    <Stack h="100%" w="100%" position="relative">
       <Video
         allowsPictureInPicture={false}
         autoPlay={autoPlay}
@@ -113,6 +115,19 @@ const PromoVideo = ({
         source={videoSource}
         style={{ width: "100%", height: "100%", borderRadius: 10 }}
       />
+      {!autoPlay && posterSource && (
+        <Image
+          source={posterSource}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            borderRadius: 10,
+          }}
+        />
+      )}
     </Stack>
   );
 };

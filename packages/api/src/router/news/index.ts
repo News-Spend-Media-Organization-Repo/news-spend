@@ -84,6 +84,9 @@ const trending = publicProcedure
   .handler(async ({ input, context }) => {
     const { payload } = context;
     const limit = input?.limit ?? 3;
+
+    let cachedResult: any[] | null = null;
+
     // try redis first
     try {
       const { getRedis } = await import("../../lib/redis");
@@ -91,27 +94,52 @@ const trending = publicProcedure
       const cached = await r.get("trending:news");
       if (cached) {
         const parsed = JSON.parse(cached) as { id: string; score: number }[];
-        const ids = parsed.slice(0, limit).map((p) => p.id);
-        if (ids.length) {
+        // Grab a larger pool to account for unpublished/drafted items
+        const candidateIds = parsed.slice(0, limit * 3).map((p) => p.id);
+        if (candidateIds.length) {
           const res = await payload.find({
             collection: "news",
-            where: { id: { in: ids }, _status: { equals: "published" } },
+            where: {
+              id: { in: candidateIds },
+              _status: { equals: "published" },
+            },
             depth: 1,
-            limit: ids.length,
+            limit: candidateIds.length,
             pagination: false,
             select: { content: false, keyPoints: false },
           });
-          // preserve order
+          // preserve score order from cache
           const docsById = new Map(res.docs.map((d) => [d.id, d]));
-          const ordered = ids.map((id) => docsById.get(id)).filter(Boolean);
-          return ordered;
+          const ordered = candidateIds
+            .map((id) => docsById.get(id))
+            .filter(Boolean);
+          cachedResult = ordered.slice(0, limit);
         }
       }
     } catch (e) {
       // ignore redis errors
     }
 
-    // fallback: latest published
+    if (cachedResult && cachedResult.length >= limit) {
+      return cachedResult;
+    }
+
+    if (cachedResult && cachedResult.length > 0) {
+      const remaining = limit - cachedResult.length;
+      const news = await payload.find({
+        collection: "news",
+        limit: remaining,
+        depth: 1,
+        sort: "-createdAt",
+        select: { content: false, keyPoints: false },
+        where: {
+          _status: { equals: "published" },
+          id: { not_in: cachedResult.map((d: any) => d.id) },
+        },
+      });
+      return [...cachedResult, ...news.docs];
+    }
+
     const news = await payload.find({
       collection: "news",
       limit,

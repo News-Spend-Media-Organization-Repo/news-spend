@@ -73,7 +73,7 @@ function LuckyAppWall() {
       <XStack ai="flex-start" gap="$2" onPress={() => handleClick(item)} p="$3">
         <Image
           br="$3"
-          contentFit="cover"
+          contentFit="contain"
           height={80}
           placeholder={{ blurhash }}
           source={{ uri: url ?? "" }}
