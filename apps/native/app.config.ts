@@ -63,7 +63,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: `${PACKAGE_NAME}${packageSuffix}`,
-      // versionCode: VERSION_CODE,
       googleServicesFile: "./google-services.json",
     },
 

@@ -4,10 +4,12 @@ const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 // const { withFacetpack } = require("@ecrindigital/facetpack");
 // const { FileStore } = require("@expo/metro/metro-cache");
 const path = require("node:path");
+const os = require("node:os");
 
 const config = getSentryExpoConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
+config.maxWorkers = Math.max(1, Math.floor(os.cpus().length * 0.5));
 
 // config.cacheStores = [
 //   new FileStore({
