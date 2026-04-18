@@ -8,8 +8,8 @@
   "dependencies": {
     "@news-spend-media/config": "workspace:*",
     "pino": "^9.5.0",
-    "pino-pretty": "^13.0.0",
-    "pino-http": "^10.4.0"
+    "pino-http": "^10.4.0",
+    "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -115,9 +115,7 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     contentReports: ContentReportsSelect<false> | ContentReportsSelect<true>;
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
-    "identity-verification":
-      | IdentityVerificationSelect<false>
-      | IdentityVerificationSelect<true>;
+    "identity-verification": IdentityVerificationSelect<false> | IdentityVerificationSelect<true>;
     lottery: LotterySelect<false> | LotterySelect<true>;
     "lottery-tickets": LotteryTicketsSelect<false> | LotteryTicketsSelect<true>;
     "lottery-winners": LotteryWinnersSelect<false> | LotteryWinnersSelect<true>;
@@ -126,14 +124,10 @@ export interface Config {
     "notification-deliveries":
       | NotificationDeliveriesSelect<false>
       | NotificationDeliveriesSelect<true>;
-    "notification-inbox":
-      | NotificationInboxSelect<false>
-      | NotificationInboxSelect<true>;
+    "notification-inbox": NotificationInboxSelect<false> | NotificationInboxSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     "partner-content": PartnerContentSelect<false> | PartnerContentSelect<true>;
-    "partner-conversions":
-      | PartnerConversionsSelect<false>
-      | PartnerConversionsSelect<true>;
+    "partner-conversions": PartnerConversionsSelect<false> | PartnerConversionsSelect<true>;
     partners: PartnersSelect<false> | PartnersSelect<true>;
     "promotion-media": PromotionMediaSelect<false> | PromotionMediaSelect<true>;
     "push-tokens": PushTokensSelect<false> | PushTokensSelect<true>;
@@ -141,9 +135,7 @@ export interface Config {
     sessions: SessionsSelect<false> | SessionsSelect<true>;
     "shop-analytics": ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
-    "ticket-purchase-log":
-      | TicketPurchaseLogSelect<false>
-      | TicketPurchaseLogSelect<true>;
+    "ticket-purchase-log": TicketPurchaseLogSelect<false> | TicketPurchaseLogSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
     "witness-reports": WitnessReportsSelect<false> | WitnessReportsSelect<true>;
@@ -152,12 +144,8 @@ export interface Config {
     "payload-locked-documents":
       | PayloadLockedDocumentsSelect<false>
       | PayloadLockedDocumentsSelect<true>;
-    "payload-preferences":
-      | PayloadPreferencesSelect<false>
-      | PayloadPreferencesSelect<true>;
-    "payload-migrations":
-      | PayloadMigrationsSelect<false>
-      | PayloadMigrationsSelect<true>;
+    "payload-preferences": PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    "payload-migrations": PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: string;
@@ -169,9 +157,7 @@ export interface Config {
   };
   globalsSelect: {
     "news-category": NewsCategorySelect<false> | NewsCategorySelect<true>;
-    "payload-jobs-stats":
-      | PayloadJobsStatsSelect<false>
-      | PayloadJobsStatsSelect<true>;
+    "payload-jobs-stats": PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -347,15 +333,7 @@ export interface Partner {
    */
   popularityScore?: number | null;
   category?:
-    | (
-        | "books"
-        | "ecommerce"
-        | "education"
-        | "food"
-        | "digital"
-        | "business"
-        | "other"
-      )
+    | ("books" | "ecommerce" | "education" | "food" | "digital" | "business" | "other")
     | null;
   logo?: (string | null) | Media;
   contactInfo?: {
@@ -739,9 +717,7 @@ export interface ContentReport {
   reportedBy: string | User;
   status?: ("pending" | "reviewing" | "resolved" | "dismissed") | null;
   moderatorNotes?: string | null;
-  resolution?:
-    | ("noAction" | "warning" | "removed" | "suspended" | "banned")
-    | null;
+  resolution?: ("noAction" | "warning" | "removed" | "suspended" | "banned") | null;
   resolvedBy?: (string | null) | Admin;
   resolvedAt?: string | null;
   createdBy?: {
@@ -1126,15 +1102,11 @@ export interface PartnerContent {
    */
   media?: (string | null) | Media;
   /**
-   * Promotion images and video URL — one video and at least three images
+   * Promotion images and video — one video and at least three images
    */
   items?:
     | {
         layout?: (PromoVideoSource | PromoImage)[] | null;
-        /**
-         * Auto-generated from video on save — do not edit manually
-         */
-        thumbnail?: (string | null) | Media;
         id?: string | null;
       }[]
     | null;
@@ -1247,6 +1219,11 @@ export interface PromoVideoSource {
    */
   video?: (string | null) | Media;
   url?: string | null;
+  /**
+   * Upload a custom thumbnail, or leave empty to auto-generate from video on save
+   */
+  thumbnail?: (string | null) | Media;
+  thumbnailSource?: string | null;
   id?: string | null;
   blockName?: string | null;
   blockType: "promo-video-source";
@@ -2230,7 +2207,6 @@ export interface PartnerContentSelect<T extends boolean = true> {
               "promo-video-source"?: T | PromoVideoSourceSelect<T>;
               "promo-image"?: T | PromoImageSelect<T>;
             };
-        thumbnail?: T;
         id?: T;
       };
   videoType?: T;
@@ -2270,6 +2246,8 @@ export interface PromoVideoSourceSelect<T extends boolean = true> {
   videoSource?: T;
   video?: T;
   url?: T;
+  thumbnail?: T;
+  thumbnailSource?: T;
   id?: T;
   blockName?: T;
 }

@@ -27,6 +27,9 @@ export const PromoVideoSourceBlock: Block = {
       admin: {
         description: "Upload an MP4 video file",
         condition: (_, siblingData) => siblingData?.videoSource === "upload",
+        components: {
+          afterInput: ["@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField"],
+        },
       },
     },
     {
@@ -34,8 +37,7 @@ export const PromoVideoSourceBlock: Block = {
       label: "Video URL",
       type: "text",
       admin: {
-        condition: (_, siblingData) =>
-          ["normal", "youtube"].includes(siblingData?.videoSource),
+        condition: (_, siblingData) => ["normal", "youtube"].includes(siblingData?.videoSource),
       },
       validate: (_val: any, { siblingData }: any) => {
         if (!["normal", "youtube"].includes(siblingData?.videoSource)) {
@@ -47,8 +49,7 @@ export const PromoVideoSourceBlock: Block = {
         try {
           new URL(siblingData.url);
           if (siblingData.videoSource === "youtube") {
-            const youtubeRegex =
-              /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+            const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
             if (!youtubeRegex.test(siblingData.url)) {
               return "Invalid YouTube link";
             }

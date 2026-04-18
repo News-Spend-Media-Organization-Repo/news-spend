@@ -78,16 +78,14 @@ export const AD_SIZES = {
 
 type AdSizeKey = keyof typeof AD_SIZES;
 
-const AD_SIZE_OPTIONS = Object.entries(AD_SIZES).map(
-  ([value, { label, width, height }]) => ({
-    label: width > 0 ? `${label} (${width}x${height})` : label,
-    value,
-  })
-);
+const AD_SIZE_OPTIONS = Object.entries(AD_SIZES).map(([value, { label, width, height }]) => ({
+  label: width > 0 ? `${label} (${width}x${height})` : label,
+  value,
+}));
 
 const checkRatio = (
   media: { width?: number; height?: number } | null | undefined,
-  adSizeKey: AdSizeKey | undefined
+  adSizeKey: AdSizeKey | undefined,
 ): string | true => {
   if (!(adSizeKey && media?.width && media?.height)) return true;
   const spec = AD_SIZES[adSizeKey];
@@ -142,15 +140,9 @@ const AD_SIZE_GUIDANCE: Record<string, string> = {
 const isBannerType = (data: any) => ["banner"].includes(data?.type);
 
 // ─── YouTube thumbnail helper ─────────────────────────────────────────────────
-// Extracts video ID from any YouTube URL format and returns the maxres thumbnail.
-// Used on the client side — no server work needed for YouTube.
 export const getYoutubeThumbnailUrl = (url: string): string | null => {
-  const match = url.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-  );
-  return match
-    ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`
-    : null;
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg` : null;
 };
 
 export const PartnerContent: CollectionConfig = {
@@ -159,20 +151,14 @@ export const PartnerContent: CollectionConfig = {
     group: "Ads & Partners",
     defaultColumns: ["title", "type", "partner", "status", "points"],
     useAsTitle: "title",
-    description:
-      "Manage promotions for books, banners, videos, shop items, etc.",
+    description: "Manage promotions for books, banners, videos, shop items, etc.",
   },
   access: { read: () => true },
   hooks: {
     afterChange: [
       async ({ doc, operation, req }) => {
-        // Only run for promo-media type on create or update
-        if (doc.type !== "promo-media") {
-          return doc;
-        }
-        if (!["create", "update"].includes(operation)) {
-          return doc;
-        }
+        if (doc.type !== "promo-media") return doc;
+        if (!["create", "update"].includes(operation)) return doc;
 
         const items: any[] = doc.items ?? [];
         let changed = false;
@@ -181,60 +167,85 @@ export const PartnerContent: CollectionConfig = {
           const item = items[i];
           const blk = item?.layout?.[0];
 
-          if (blk?.blockType !== "promo-video-source") {
-            continue;
-          }
-          if (item.thumbnail) {
-            continue;
-          } // already has thumbnail, skip
+          if (blk?.blockType !== "promo-video-source") continue;
 
-          // YouTube: no server-side frame extraction possible.
-          // Client should use getYoutubeThumbnailUrl() from this file instead.
-          if (blk.videoSource === "youtube") {
-            continue;
-          }
+          // YouTube: no server-side extraction — client uses getYoutubeThumbnailUrl()
+          if (blk.videoSource === "youtube") continue;
 
+          // Derive fingerprint for current source
+          const currentSource =
+            blk.videoSource === "upload"
+              ? typeof blk.video === "object"
+                ? blk.video?.id
+                : blk.video
+              : blk.url; // "normal"
+
+          if (!currentSource) continue;
+
+          const isManualThumbnail = blk.thumbnail && !blk.thumbnailSource;
+          const isUnchanged = blk.thumbnail && blk.thumbnailSource === currentSource;
+
+          if (isManualThumbnail || isUnchanged) continue;
+
+          // Resolve the actual video URL
           let videoUrl: string | undefined;
 
           if (blk.videoSource === "upload") {
-            // video relation may be a populated object or a raw ID string
-            const videoId =
-              typeof blk.video === "object" ? blk.video?.id : blk.video;
-            if (!videoId) {
-              continue;
-            }
-
+            const videoId = typeof blk.video === "object" ? blk.video?.id : blk.video;
             try {
               const mediaDoc = await req.payload.findByID({
                 collection: "media",
                 id: videoId,
               });
-              videoUrl = mediaDoc?.url ?? undefined;
+              const raw = mediaDoc?.url;
+              if (!raw) continue;
+              videoUrl = raw.startsWith("http")
+                ? raw
+                : `${process.env.PAYLOAD_PUBLIC_SERVER_URL}${raw}`;
             } catch (err) {
               req.payload.logger.error(
                 { err },
-                `Could not resolve media doc for video id ${videoId}`
+                `Could not resolve media doc for video id ${videoId}`,
               );
               continue;
             }
-          } else if (blk.videoSource === "normal") {
-            videoUrl = blk.url ?? undefined;
+          } else {
+            videoUrl = blk.url;
           }
 
-          if (!videoUrl) {
-            continue;
+          if (!videoUrl) continue;
+
+          // Only clean up auto-generated thumbnails, never touch manual uploads
+          if (blk.thumbnail && blk.thumbnailSource) {
+            const oldThumbId =
+              typeof blk.thumbnail === "object" ? blk.thumbnail?.id : blk.thumbnail;
+            if (oldThumbId) {
+              try {
+                await req.payload.delete({
+                  collection: "media",
+                  id: oldThumbId,
+                });
+              } catch {
+                // non-fatal
+              }
+            }
           }
 
+          // Extract frame with ffmpeg
           const TMP = "/tmp/payload-video-thumbs";
           fs.mkdirSync(TMP, { recursive: true });
-          const outPath = path.join(TMP, `${crypto.randomUUID()}.webp`);
+          const outPath = path.join(TMP, `${crypto.randomUUID()}.jpg`);
 
           try {
-            // -ss 00:00:01: seek to 1 second for a meaningful frame
-            // -vframes 1: extract exactly one frame
-            await execAsync(
-              `ffmpeg -i "${videoUrl}" -ss 00:00:01 -vframes 1 -f image2 "${outPath}" -y`
-            );
+            // Detect HLS so we can handle the seek differently
+            const isHLS = videoUrl.includes(".m3u8");
+
+            const ffmpegCmd = isHLS
+              ? // For HLS: don't pre-seek, let it read from stream start, grab first available frame
+                `ffmpeg -i "${videoUrl}" -vframes 1 -vf "select=gte(n\\,1)" -q:v 2 -f image2 "${outPath}" -y`
+              : // For direct MP4: pre-seek to 1s (fast)
+                `ffmpeg -ss 00:00:01 -i "${videoUrl}" -vframes 1 -q:v 2 -f image2 "${outPath}" -y`;
+            await execAsync(ffmpegCmd);
 
             const fileData = fs.readFileSync(outPath);
             const filesize = fs.statSync(outPath).size;
@@ -244,19 +255,30 @@ export const PartnerContent: CollectionConfig = {
               data: { alt: `Thumbnail for ${doc.title}` },
               file: {
                 data: fileData,
-                name: `promo-thumb-${crypto.randomUUID()}.webp`,
-                mimetype: "image/webp",
+                name: `promo-thumb-${crypto.randomUUID()}.jpg`,
+                mimetype: "image/jpeg",
                 size: filesize,
               },
             });
 
-            items[i] = { ...item, thumbnail: thumbDoc.id };
+            // Everything lives in the block now
+            items[i] = {
+              ...item,
+              layout: [
+                {
+                  ...blk,
+                  thumbnail: thumbDoc.id,
+                  thumbnailSource: currentSource,
+                },
+              ],
+            };
+
             changed = true;
             fs.unlinkSync(outPath);
           } catch (err) {
             req.payload.logger.error(
               { err },
-              `Failed to generate thumbnail for item ${i} on partner-content ${doc.id}`
+              `Failed to generate thumbnail for item ${i} on partner-content ${doc.id}`,
             );
           }
         }
@@ -296,8 +318,7 @@ export const PartnerContent: CollectionConfig = {
               required: true,
               defaultValue: "",
               admin: {
-                placeholder:
-                  "Enter a condition eg Visit website, earn 30 points",
+                placeholder: "Enter a condition eg Visit website, earn 30 points",
                 description: "Max 90 characters recommended",
               },
             },
@@ -342,13 +363,11 @@ export const PartnerContent: CollectionConfig = {
               },
             },
 
-            // Per-size guidance blocks
             ...Object.entries(AD_SIZE_GUIDANCE).map(([sizeValue, hint]) => ({
               name: `adSizeGuide_${sizeValue}` as any,
               type: "ui" as const,
               admin: {
-                condition: (data: any) =>
-                  isBannerType(data) && data?.adSize === sizeValue,
+                condition: (data: any) => isBannerType(data) && data?.adSize === sizeValue,
                 description: `Dimensions: ${hint}`,
               },
             })),
@@ -365,16 +384,9 @@ export const PartnerContent: CollectionConfig = {
                 condition: (data) => data?.type !== "promo-media",
               },
               validate: (val: any, { data }: any) => {
-                if (!val) {
-                  return true;
-                }
-                if (!(isBannerType(data) && data?.adSize)) {
-                  return true;
-                }
-                return checkRatio(
-                  typeof val === "object" ? val : null,
-                  data.adSize as AdSizeKey
-                );
+                if (!val) return true;
+                if (!(isBannerType(data) && data?.adSize)) return true;
+                return checkRatio(typeof val === "object" ? val : null, data.adSize as AdSizeKey);
               },
             },
 
@@ -386,22 +398,17 @@ export const PartnerContent: CollectionConfig = {
               minRows: 4,
               maxRows: 6,
               admin: {
-                description:
-                  "Promotion images and video URL — one video and at least three images",
+                description: "Promotion images and video — one video and at least three images",
                 condition: (data) => data?.type === "promo-media",
               },
               validate: (val) => {
                 const videoBlks = val?.filter(
                   // @ts-expect-error
-                  (item) => item.layout?.[0]?.blockType === "promo-video-source"
+                  (item) => item.layout?.[0]?.blockType === "promo-video-source",
                 );
-                if (videoBlks?.length === 0) {
-                  return "Must have at least one video";
-                }
+                if (videoBlks?.length === 0) return "Must have at least one video";
                 // @ts-expect-error
-                if (videoBlks?.length > 1) {
-                  return "Only one video is allowed";
-                }
+                if (videoBlks?.length > 1) return "Only one video is allowed";
                 return true;
               },
               fields: [
@@ -412,19 +419,6 @@ export const PartnerContent: CollectionConfig = {
                   minRows: 1,
                   maxRows: 1,
                   blocks: [PromoVideoSourceBlock, PromoImageBlock],
-                },
-                {
-                  name: "thumbnail",
-                  type: "upload",
-                  relationTo: "media",
-                  admin: {
-                    readOnly: true,
-                    description:
-                      "Auto-generated from video on save — do not edit manually",
-                    condition: (_, siblingData) =>
-                      siblingData?.layout?.[0]?.blockType ===
-                      "promo-video-source",
-                  },
                 },
               ],
             },
@@ -449,37 +443,27 @@ export const PartnerContent: CollectionConfig = {
               relationTo: "media",
               admin: {
                 description: "Upload MP4 (recommended 1280x720, max 50MB)",
-                condition: (data) =>
-                  data?.type === "video" && data?.videoType === "UPLOAD",
+                condition: (data) => data?.type === "video" && data?.videoType === "UPLOAD",
               },
             },
             {
               name: "videoUrl",
               type: "text",
               admin: {
-                description:
-                  "YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link",
+                description: "YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link",
                 condition: (data) =>
-                  data?.type === "video" &&
-                  ["YOUTUBE", "EXTERNAL"].includes(data?.videoType),
+                  data?.type === "video" && ["YOUTUBE", "EXTERNAL"].includes(data?.videoType),
               },
               // @ts-expect-error
               validate: (val: any, { data }) => {
-                if (!val) {
-                  return true;
-                }
+                if (!val) return true;
                 if (data?.videoType === "YOUTUBE") {
-                  const isYoutube = /youtube\.com\/watch\?v=|youtu\.be\//.test(
-                    val
-                  );
-                  return isYoutube
+                  return /youtube\.com\/watch\?v=|youtu\.be\//.test(val)
                     ? true
                     : "Must be a valid YouTube URL (e.g. https://youtube.com/watch?v=VIDEO_ID)";
                 }
                 if (data?.videoType === "EXTERNAL") {
-                  return z.url().safeParse(val).success
-                    ? true
-                    : "Must be a valid URL";
+                  return z.url().safeParse(val).success ? true : "Must be a valid URL";
                 }
                 return true;
               },
@@ -531,13 +515,8 @@ export const PartnerContent: CollectionConfig = {
                     placeholder: "https://apps.apple.com/...",
                     description: "iOS App Store link",
                   },
-                  validate: (
-                    val: unknown,
-                    { data }: { data: Record<string, unknown> }
-                  ) => {
-                    const links = data?.links as
-                      | Record<string, unknown>
-                      | undefined;
+                  validate: (val: unknown, { data }: { data: Record<string, unknown> }) => {
+                    const links = data?.links as Record<string, unknown> | undefined;
                     const hasAndroid = !!links?.androidPlayStore;
                     const hasWebsite = !!links?.website;
                     if (val && !hasAndroid && !hasWebsite) {
@@ -552,16 +531,11 @@ export const PartnerContent: CollectionConfig = {
                     placeholder: "https://play.google.com/...",
                     description: "Google Play Store link",
                   },
-                  validate: (
-                    val: unknown,
-                    { data }: { data: Record<string, unknown> }
-                  ) => {
-                    const hasIos = !!(
-                      data?.links as Record<string, unknown> | undefined
-                    )?.iosAppStore;
-                    const hasWebsite = !!(
-                      data?.links as Record<string, unknown> | undefined
-                    )?.website;
+                  validate: (val: unknown, { data }: { data: Record<string, unknown> }) => {
+                    const hasIos = !!(data?.links as Record<string, unknown> | undefined)
+                      ?.iosAppStore;
+                    const hasWebsite = !!(data?.links as Record<string, unknown> | undefined)
+                      ?.website;
                     if (val && !hasIos && !hasWebsite) {
                       return "Either add the iOS App Store link or a website fallback — otherwise iOS users will have no link.";
                     }
@@ -627,8 +601,7 @@ export const PartnerContent: CollectionConfig = {
                 { label: "Video Section (YouTube)", value: "video-section" },
               ],
               admin: {
-                condition: (data) =>
-                  !["banner", "promo-media"].includes(data?.type),
+                condition: (data) => !["banner", "promo-media"].includes(data?.type),
                 description: "Where this content should appear in the app",
               },
             },
@@ -673,8 +646,7 @@ export const PartnerContent: CollectionConfig = {
               type: "textarea",
               admin: {
                 position: "sidebar",
-                description:
-                  "Internal notes (e.g. send push notification for new release)",
+                description: "Internal notes (e.g. send push notification for new release)",
               },
             },
           ],
