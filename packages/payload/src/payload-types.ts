@@ -170,6 +170,7 @@ export interface Config {
       checkPushReceipts: TaskCheckPushReceipts;
       processLottery: TaskProcessLottery;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
+      generateVideoThumbnail: TaskGenerateVideoThumbnail;
       inline: {
         input: unknown;
         output: unknown;
@@ -1591,7 +1592,8 @@ export interface PayloadJob {
           | "sendScheduledNotification"
           | "checkPushReceipts"
           | "processLottery"
-          | "cleanupAnonymousUsers";
+          | "cleanupAnonymousUsers"
+          | "generateVideoThumbnail";
         taskID: string;
         input?:
           | {
@@ -1631,6 +1633,7 @@ export interface PayloadJob {
         | "checkPushReceipts"
         | "processLottery"
         | "cleanupAnonymousUsers"
+        | "generateVideoThumbnail"
       )
     | null;
   queue?: string | null;
@@ -2673,6 +2676,25 @@ export interface TaskCleanupAnonymousUsers {
   input?: unknown;
   output: {
     deletedCount?: number | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskGenerateVideoThumbnail".
+ */
+export interface TaskGenerateVideoThumbnail {
+  input: {
+    docId: string;
+    itemIndex: number;
+    videoUrl: string;
+    isHLS: boolean;
+    oldThumbnailId?: string | null;
+    currentSource: string;
+  };
+  output: {
+    success?: boolean | null;
+    thumbnailId?: string | null;
+    reason?: string | null;
   };
 }
 /**

@@ -1,15 +1,8 @@
-import { exec } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { promisify } from "node:util";
-
 import type { CollectionConfig } from "payload";
 import { z } from "zod";
 
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
 import { urlField } from "../fields/urlField";
-
-const execAsync = promisify(exec);
 
 // ─── Google Ads standard sizes ────────────────────────────────────────────────
 export const AD_SIZES = {
@@ -87,9 +80,13 @@ const checkRatio = (
   media: { width?: number; height?: number } | null | undefined,
   adSizeKey: AdSizeKey | undefined,
 ): string | true => {
-  if (!(adSizeKey && media?.width && media?.height)) return true;
+  if (!(adSizeKey && media?.width && media?.height)) {
+    return true;
+  }
   const spec = AD_SIZES[adSizeKey];
-  if (!spec || spec.width === 0) return true;
+  if (!spec || spec.width === 0) {
+    return true;
+  }
 
   const actual = media.width / media.height;
   const expected = spec.width / spec.height;
@@ -157,138 +154,113 @@ export const PartnerContent: CollectionConfig = {
   hooks: {
     afterChange: [
       async ({ doc, operation, req }) => {
-        if (doc.type !== "promo-media") return doc;
-        if (!["create", "update"].includes(operation)) return doc;
+        if (doc.type !== "promo-media") {
+          return doc;
+        }
+        if (!["create", "update"].includes(operation)) {
+          return doc;
+        }
 
-        const items: any[] = doc.items ?? [];
-        let changed = false;
+        const items: unknown[] = doc.items ?? [];
 
         for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          const blk = item?.layout?.[0];
+          const item = items[i] as { layout?: unknown[] } | undefined;
+          const blk = item?.layout?.[0] as
+            | {
+                blockType?: string;
+                videoSource?: string;
+                video?: unknown;
+                url?: string;
+                thumbnail?: unknown;
+                thumbnailSource?: string;
+              }
+            | undefined;
 
-          if (blk?.blockType !== "promo-video-source") continue;
+          if (blk?.blockType !== "promo-video-source") {
+            continue;
+          }
 
-          // YouTube: no server-side extraction — client uses getYoutubeThumbnailUrl()
-          if (blk.videoSource === "youtube") continue;
+          if (blk.videoSource === "youtube") {
+            continue;
+          }
 
-          // Derive fingerprint for current source
           const currentSource =
             blk.videoSource === "upload"
               ? typeof blk.video === "object"
-                ? blk.video?.id
-                : blk.video
-              : blk.url; // "normal"
+                ? (blk.video as { id?: string })?.id
+                : (blk.video as string)
+              : (blk.url as string);
 
-          if (!currentSource) continue;
+          if (!currentSource) {
+            continue;
+          }
 
           const isManualThumbnail = blk.thumbnail && !blk.thumbnailSource;
-          const isUnchanged = blk.thumbnail && blk.thumbnailSource === currentSource;
+          const isUnchanged = blk.thumbnail && (blk.thumbnailSource as string) === currentSource;
 
-          if (isManualThumbnail || isUnchanged) continue;
+          if (isManualThumbnail || isUnchanged) {
+            continue;
+          }
 
-          // Resolve the actual video URL
           let videoUrl: string | undefined;
 
           if (blk.videoSource === "upload") {
-            const videoId = typeof blk.video === "object" ? blk.video?.id : blk.video;
+            const videoId =
+              typeof blk.video === "object"
+                ? (blk.video as { id?: string })?.id
+                : (blk.video as string);
+
+            if (!videoId) {
+              continue;
+            }
             try {
               const mediaDoc = await req.payload.findByID({
                 collection: "media",
                 id: videoId,
               });
-              const raw = mediaDoc?.url;
-              if (!raw) continue;
+              const raw = (mediaDoc as { url?: string })?.url;
+              if (!raw) {
+                continue;
+              }
               videoUrl = raw.startsWith("http")
                 ? raw
                 : `${process.env.PAYLOAD_PUBLIC_SERVER_URL}${raw}`;
             } catch (err) {
-              req.payload.logger.error(
-                { err },
-                `Could not resolve media doc for video id ${videoId}`,
-              );
+              req.payload.logger.error({ err }, `Could not resolve media for video id ${videoId}`);
               continue;
             }
           } else {
-            videoUrl = blk.url;
+            videoUrl = blk.url as string;
           }
 
-          if (!videoUrl) continue;
-
-          // Only clean up auto-generated thumbnails, never touch manual uploads
-          if (blk.thumbnail && blk.thumbnailSource) {
-            const oldThumbId =
-              typeof blk.thumbnail === "object" ? blk.thumbnail?.id : blk.thumbnail;
-            if (oldThumbId) {
-              try {
-                await req.payload.delete({
-                  collection: "media",
-                  id: oldThumbId,
-                });
-              } catch {
-                // non-fatal
-              }
-            }
+          if (!videoUrl) {
+            continue;
           }
 
-          // Extract frame with ffmpeg
-          const TMP = "/tmp/payload-video-thumbs";
-          fs.mkdirSync(TMP, { recursive: true });
-          const outPath = path.join(TMP, `${crypto.randomUUID()}.jpg`);
+          const isHLS = videoUrl.includes(".m3u8");
 
-          try {
-            // Detect HLS so we can handle the seek differently
-            const isHLS = videoUrl.includes(".m3u8");
+          const oldThumbnailId =
+            blk.thumbnail && blk.thumbnailSource
+              ? typeof blk.thumbnail === "object"
+                ? (blk.thumbnail as { id?: string })?.id
+                : (blk.thumbnail as string)
+              : undefined;
 
-            const ffmpegCmd = isHLS
-              ? // For HLS: don't pre-seek, let it read from stream start, grab first available frame
-                `ffmpeg -i "${videoUrl}" -vframes 1 -vf "select=gte(n\\,1)" -q:v 2 -f image2 "${outPath}" -y`
-              : // For direct MP4: pre-seek to 1s (fast)
-                `ffmpeg -ss 00:00:01 -i "${videoUrl}" -vframes 1 -q:v 2 -f image2 "${outPath}" -y`;
-            await execAsync(ffmpegCmd);
-
-            const fileData = fs.readFileSync(outPath);
-            const filesize = fs.statSync(outPath).size;
-
-            const thumbDoc = await req.payload.create({
-              collection: "media",
-              data: { alt: `Thumbnail for ${doc.title}` },
-              file: {
-                data: fileData,
-                name: `promo-thumb-${crypto.randomUUID()}.jpg`,
-                mimetype: "image/jpeg",
-                size: filesize,
-              },
-            });
-
-            // Everything lives in the block now
-            items[i] = {
-              ...item,
-              layout: [
-                {
-                  ...blk,
-                  thumbnail: thumbDoc.id,
-                  thumbnailSource: currentSource,
-                },
-              ],
-            };
-
-            changed = true;
-            fs.unlinkSync(outPath);
-          } catch (err) {
-            req.payload.logger.error(
-              { err },
-              `Failed to generate thumbnail for item ${i} on partner-content ${doc.id}`,
-            );
-          }
-        }
-
-        if (changed) {
-          await req.payload.update({
-            collection: "partner-content",
-            id: doc.id,
-            data: { items },
+          await req.payload.jobs.queue({
+            task: "generateVideoThumbnail",
+            input: {
+              docId: doc.id,
+              itemIndex: i,
+              videoUrl,
+              isHLS,
+              oldThumbnailId: oldThumbnailId ?? null,
+              currentSource,
+            },
           });
+
+          req.payload.logger.info(
+            `Queued thumbnail generation for item ${i} on partner-content ${doc.id}`,
+          );
         }
 
         return doc;
@@ -384,8 +356,12 @@ export const PartnerContent: CollectionConfig = {
                 condition: (data) => data?.type !== "promo-media",
               },
               validate: (val: any, { data }: any) => {
-                if (!val) return true;
-                if (!(isBannerType(data) && data?.adSize)) return true;
+                if (!val) {
+                  return true;
+                }
+                if (!(isBannerType(data) && data?.adSize)) {
+                  return true;
+                }
                 return checkRatio(typeof val === "object" ? val : null, data.adSize as AdSizeKey);
               },
             },
@@ -406,9 +382,13 @@ export const PartnerContent: CollectionConfig = {
                   // @ts-expect-error
                   (item) => item.layout?.[0]?.blockType === "promo-video-source",
                 );
-                if (videoBlks?.length === 0) return "Must have at least one video";
+                if (videoBlks?.length === 0) {
+                  return "Must have at least one video";
+                }
                 // @ts-expect-error
-                if (videoBlks?.length > 1) return "Only one video is allowed";
+                if (videoBlks?.length > 1) {
+                  return "Only one video is allowed";
+                }
                 return true;
               },
               fields: [
@@ -456,7 +436,9 @@ export const PartnerContent: CollectionConfig = {
               },
               // @ts-expect-error
               validate: (val: any, { data }) => {
-                if (!val) return true;
+                if (!val) {
+                  return true;
+                }
                 if (data?.videoType === "YOUTUBE") {
                   return /youtube\.com\/watch\?v=|youtu\.be\//.test(val)
                     ? true

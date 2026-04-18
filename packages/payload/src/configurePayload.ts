@@ -51,6 +51,7 @@ import { migrations } from "./migrations";
 import { nestedDocsPlusPlugin } from "./plugins/nestedDocsPlusPlugin";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
+import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processLotteryTask } from "./tasks/processLottery";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
 
@@ -137,6 +138,7 @@ const baseConfig: Config = {
       checkPushReceiptsTask,
       processLotteryTask,
       cleanupAnonymousUsersTask,
+      generateVideoThumbnailTask,
     ],
     autoRun: [
       {
@@ -192,8 +194,7 @@ const baseConfig: Config = {
     }),
   ],
   email: resendAdapter({
-    defaultFromAddress:
-      process.env.RESEND_DEFAULT_FROM_ADDRESS || "admin@mail.newsspend.com",
+    defaultFromAddress: process.env.RESEND_DEFAULT_FROM_ADDRESS || "admin@mail.newsspend.com",
     defaultFromName: process.env.RESEND_DEFAULT_FROM_NAME || "News Spend Media",
     apiKey: process.env.RESEND_API_KEY || "",
   }),
