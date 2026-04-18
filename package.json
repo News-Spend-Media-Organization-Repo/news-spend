@@ -1,6 +1,33 @@
 {
+  "devDependencies": {
+    "@biomejs/biome": "2.4.12",
+    "lefthook": "^2.1.4",
+    "lint-staged": "^16.4.0",
+    "oxfmt": "^0.45.0",
+    "oxlint": "^1.60.0",
+    "turbo": "^2.4.4",
+    "ultracite": "7.6.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
+      "bun x ultracite fix",
+      "bun x ultracite fix"
+    ]
+  },
   "name": "turbo-payload",
-  "private": true,
+  "scripts": {
+    "build": "bun --filter @news-spend-media/cms build",
+    "clean": "git clean -xdf node_modules",
+    "dev": "bun --filter @news-spend-media/cms dev",
+    "format": "oxfmt .",
+    "format:fix": "oxfmt --fix .",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "typecheck": "bun --filter @news-spend-media/cms typecheck",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
+  },
+  "type": "module",
   "workspaces": {
     "packages": [
       "apps/*",
@@ -54,23 +81,7 @@
       "sharp": "^0.34.2"
     }
   },
-  "scripts": {
-    "build": "bun --filter @news-spend-media/cms build",
-    "clean": "git clean -xdf node_modules",
-    "dev": "bun --filter @news-spend-media/cms dev",
-    "format": "oxfmt .",
-    "format:fix": "oxfmt --fix .",
-    "lint": "oxlint .",
-    "lint:fix": "oxlint --fix .",
-    "typecheck": "bun --filter @news-spend-media/cms typecheck"
-  },
-  "devDependencies": {
-    "lefthook": "^2.1.4",
-    "oxfmt": "^0.41.0",
-    "oxlint": "^1.56.0",
-    "turbo": "^2.4.4",
-    "ultracite": "7.3.2"
-  },
+  "private": true,
   "engines": {
     "node": ">=20.11.1"
   },

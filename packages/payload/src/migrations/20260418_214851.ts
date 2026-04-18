@@ -1,9 +1,9 @@
-import { MigrateUpArgs, MigrateDownArgs, sql } from "@payloadcms/db-postgres";
+import { type MigrateUpArgs, type MigrateDownArgs, sql } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "partner_content_items" DROP CONSTRAINT "partner_content_items_thumbnail_id_media_id_fk";
-  
+
   DROP INDEX "partner_content_items_thumbnail_idx";
   ALTER TABLE "partner_content_blocks_promo_video_source" ADD COLUMN "thumbnail_id" uuid;
   ALTER TABLE "partner_content_blocks_promo_video_source" ADD COLUMN "thumbnail_source" varchar;
@@ -19,9 +19,9 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "partner_content_blocks_promo_video_source" DROP CONSTRAINT "partner_content_blocks_promo_video_source_thumbnail_id_media_id_fk";
-  
+
   ALTER TABLE "promotion_media_blocks_promo_video_source" DROP CONSTRAINT "promotion_media_blocks_promo_video_source_thumbnail_id_media_id_fk";
-  
+
   DROP INDEX "partner_content_blocks_promo_video_source_thumbnail_idx";
   DROP INDEX "promotion_media_blocks_promo_video_source_thumbnail_idx";
   ALTER TABLE "partner_content_items" ADD COLUMN "thumbnail_id" uuid;

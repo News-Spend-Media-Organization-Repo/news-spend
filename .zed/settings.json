@@ -40,33 +40,39 @@
     "JavaScript": {
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
+        "source.organizeImports.oxc": true,
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
       },
       "formatter": {
         "language_server": {
-          "name": "oxfmt"
+          "name": "biome"
         }
       }
     },
     "TSX": {
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
+        "source.organizeImports.oxc": true,
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
       },
       "formatter": {
         "language_server": {
-          "name": "oxfmt"
+          "name": "biome"
         }
       }
     },
     "TypeScript": {
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
+        "source.organizeImports.oxc": true,
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
       },
       "formatter": {
         "language_server": {
-          "name": "oxfmt"
+          "name": "biome"
         }
       }
     }
