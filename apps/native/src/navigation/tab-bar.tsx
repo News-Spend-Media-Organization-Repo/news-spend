@@ -29,11 +29,8 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const [isLiveSectionVisible, setIsLiveSectionVisible] = useState(true);
   const insets = useSafeAreaInsets();
   const isTabBarVisible = useMemo(
-    () =>
-      ["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"].includes(
-        routeName ?? ""
-      ),
-    [routeName]
+    () => ["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"].includes(routeName ?? ""),
+    [routeName],
   );
 
   const { data, isLoading, refetch } = useQuery(
@@ -41,7 +38,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       meta: { persist: false },
       select: (news) => news?.docs,
       enabled: isLiveSectionVisible && isTabBarVisible,
-    })
+    }),
   );
 
   const prevIdRef = useRef<string>(null);
@@ -50,7 +47,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     orpc.publisher.onMessage.experimental_liveOptions({
       input: { channel: "live-news" },
       retry: true, // Infinite retry for more reliable streaming
-    })
+    }),
   );
 
   useEffect(() => {
@@ -67,10 +64,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    if (
-      !(isLiveSectionVisible && isTabBarVisible) ||
-      (data?.length ?? 0) <= 1
-    ) {
+    if (!(isLiveSectionVisible && isTabBarVisible) || (data?.length ?? 0) <= 1) {
       return;
     }
 
@@ -91,7 +85,9 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   }, [data, index]);
 
   const onLivePress = useCallback(() => {
-    if (!data) return;
+    if (!data) {
+      return;
+    }
 
     navigation.navigate(currentTabName, {
       screen: "SingleLive",
@@ -103,7 +99,9 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     });
   }, [data, navigation, index, currentTabName]);
 
-  if (!isTabBarVisible) return null;
+  if (!isTabBarVisible) {
+    return null;
+  }
 
   return (
     <>
@@ -114,22 +112,29 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             entering={FadeInDown.duration(300).easing(Easing.ease)}
             exiting={FadeOutDown.easing(Easing.ease).duration(300)}
           >
-            <XStack ai="center" bg="red" jc="space-between" px="$3">
+            {/* biome-ignore-start assist/source/useSortedAttributes: none */}
+            <Button
+              unstyled
+              ai="center"
+              bg="red"
+              br={0}
+              jc="space-between"
+              onPress={() => setIsLiveSectionVisible((prev) => !prev)}
+              px="$3"
+            >
+              {/* biome-ignore-end assist/source/useSortedAttributes: none */}
               <XStack ai="center" gap="$2">
                 <Circle bg="$background" size="$0.75" />
                 <Text color="$background">LIVE</Text>
               </XStack>
-              <Button
-                onPress={() => setIsLiveSectionVisible((prev) => !prev)}
-                size="$1.5"
-                unstyled
-              >
-                <Button.Text fos="$3">HIDE</Button.Text>
-                <Button.Icon color="#fff">
-                  <CaretDown size={18} />
-                </Button.Icon>
-              </Button>
-            </XStack>
+              <XStack ai="center" gap="$1" jc="center">
+                <Text color="#fff" fos="$3">
+                  HIDE
+                </Text>
+
+                <CaretDown color="#fff" size={18} />
+              </XStack>
+            </Button>
             <Stack bg="$p400" onPress={onLivePress} p="$3">
               <LayoutAnimationConfig skipEntering skipExiting>
                 <Animated.Text
@@ -200,16 +205,11 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                   }}
                 />
               )}
-              {label !== "Settings" ? (
-                <SizableText
-                  color={isFocused ? "$s50" : "gray"}
-                  fontSize={12}
-                  lh={15}
-                  ta="center"
-                >
+              {label === "Settings" ? null : (
+                <SizableText color={isFocused ? "$s50" : "gray"} fontSize={12} lh={15} ta="center">
                   {label}
                 </SizableText>
-              ) : null}
+              )}
             </PlatformPressable>
           );
         })}
