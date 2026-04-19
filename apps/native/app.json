@@ -4,15 +4,14 @@
     "slug": "news-spend-media",
     "scheme": "news-spend",
     "description": "Read the latest news and articles from News Spend Media",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "jsEngine": "hermes",
     "icon": "./assets/icons/icon.png",
     "experiments": {
-      "tsconfigPaths": true
+      "tsconfigPaths": true,
+      "reactCompiler": true
     },
     "androidNavigationBar": {
       "backgroundColor": "#000000",
@@ -33,10 +32,7 @@
               "pathPrefix": "/"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },

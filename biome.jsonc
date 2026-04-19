@@ -5,6 +5,19 @@
       "Bun"
     ]
   },
+  "linter": {
+    "rules": {
+      "style": {
+        "useConsistentTypeDefinitions": {
+          "level": "info",
+          "fix": "safe",
+          "options": {
+            "style": "type"
+          }
+        }
+      }
+    }
+  },
   "extends": [
     "ultracite/biome/core",
     "ultracite/biome/react",

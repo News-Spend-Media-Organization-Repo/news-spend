@@ -1,11 +1,7 @@
 import type { PromoVideoSource } from "@news-spend-media/payload/types";
-import {
-  forwardRef,
-  memo,
-  useCallback,
-  useImperativeHandle,
-  useState,
-} from "react";
+import { useIsFocused } from "@react-navigation/native";
+import { useCallback, useEffect, useImperativeHandle, useState } from "react";
+import { useWindowDimensions } from "react-native";
 import YoutubePlayer, { PLAYER_STATES } from "react-native-youtube-iframe";
 import { Stack } from "tamagui";
 
@@ -15,21 +11,39 @@ function extractYouTubeId(url: string) {
   return match && match[2].length === 11 ? match[2] : "";
 }
 
-const YoutubePromoPlayer = forwardRef<
-  { play: () => void; pause: () => void; isPlaying: () => boolean },
-  { item: PromoVideoSource }
->(({ item }, AdCarouselRef) => {
+const YoutubePromoPlayer = ({
+  item,
+  ref,
+}: {
+  item: PromoVideoSource;
+  ref: React.Ref<{
+    play: () => void;
+    pause: () => void;
+    isPlaying: () => boolean;
+  }>;
+}) => {
   const videoId = extractYouTubeId(item.url || "");
   const [playing, setPlaying] = useState(false);
+  const { width } = useWindowDimensions();
+  const focused = useIsFocused();
+
+  useEffect(() => {
+    if (!focused) {
+      setPlaying(false);
+    }
+  }, [focused]);
 
   useImperativeHandle(
-    AdCarouselRef,
+    ref,
     () => ({
       play: () => setPlaying(true),
-      pause: () => setPlaying(false),
+      pause: () => {
+        // console.log("pausing");
+        setPlaying(false);
+      },
       isPlaying: () => playing,
     }),
-    []
+    [playing],
   );
 
   const onStateChange = useCallback((state: PLAYER_STATES) => {
@@ -56,15 +70,16 @@ const YoutubePromoPlayer = forwardRef<
   }, []);
 
   return (
-    <Stack>
+    <Stack height={200} overflow="hidden">
       <YoutubePlayer
-        height={300}
+        height={200}
         onChangeState={onStateChange}
         play={playing}
         videoId={videoId}
+        width={width * 0.85}
       />
     </Stack>
   );
-});
+};
 
-export default memo(YoutubePromoPlayer);
+export default YoutubePromoPlayer;
