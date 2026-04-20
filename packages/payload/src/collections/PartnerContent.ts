@@ -583,7 +583,7 @@ export const PartnerContent: CollectionConfig = {
                 { label: "Video Section (YouTube)", value: "video-section" },
               ],
               admin: {
-                condition: (data) => !["banner", "promo-media"].includes(data?.type),
+                condition: (data) => data?.type !== "promo-media",
                 description: "Where this content should appear in the app",
               },
             },

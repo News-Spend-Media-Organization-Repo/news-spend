@@ -15,11 +15,7 @@ const { width, height } = Dimensions.get("window");
 
 const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
-export default function SpecialCoverage({
-  specialCoverage = [],
-}: {
-  specialCoverage: NewsType;
-}) {
+export default function SpecialCoverage({ specialCoverage = [] }: { specialCoverage: NewsType }) {
   const navigation = useNavigation("NewsHome");
 
   const coveragesRenderItem = useCallback(
@@ -33,11 +29,13 @@ export default function SpecialCoverage({
               params: { id: item.id, slug: item.slug },
             })
           }
+          w={width * 0.31}
         >
-          <Stack w={width * 0.31}>
+          <Stack>
             <Image
               br="$1"
               contentFit="cover"
+              // flex={1}
               h={height * 0.19}
               ov="hidden"
               placeholder={{ blurhash }}
@@ -52,11 +50,11 @@ export default function SpecialCoverage({
         </Stack>
       );
     },
-    [navigation]
+    [navigation],
   );
 
   return (
-    <Stack gap="$1" minHeight={height * 0.2}>
+    <Stack gap="$1">
       <Heading fos="$6" px="$3">
         Special Coverage
       </Heading>
@@ -66,9 +64,10 @@ export default function SpecialCoverage({
           paddingHorizontal: 15,
         }}
         data={specialCoverage}
+        estimatedItemSize={134}
         horizontal
         ItemSeparatorComponent={() => <Square w={15} />}
-        nestedScrollEnabled
+        // nestedScrollEnabled
         renderItem={coveragesRenderItem}
         renderScrollComponent={CustomScrollView}
         showsHorizontalScrollIndicator={false}

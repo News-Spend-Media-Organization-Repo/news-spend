@@ -1,12 +1,9 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useQuery } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
-import { memo, useId, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Dimensions, Platform, StyleSheet } from "react-native";
-import {
-  BannerAd as GoogleBannerAd,
-  TestIds,
-} from "react-native-google-mobile-ads";
+import { BannerAd as GoogleBannerAd, TestIds } from "react-native-google-mobile-ads";
 import { Stack, Text } from "tamagui";
 
 import { Image } from "#/components/ui";
@@ -24,19 +21,17 @@ const HORIZONTAL_INSET = 0;
 const AVAILABLE_WIDTH = screenWidth - HORIZONTAL_INSET * 2;
 
 const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
-  const id = useId();
-
   const queryOptions = orpc.partnerContent.getOne.queryOptions({
     input: {
       placement: ["banner-news-post"],
       adSize: size,
       type: ["banner"],
     },
+    staleTime: 0,
   });
 
   const { data, isPending } = useQuery({
     ...queryOptions,
-    queryKey: [...queryOptions.queryKey, id],
   });
 
   const { containerWidth, containerHeight } = useMemo(() => {
@@ -86,12 +81,7 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
   }
 
   if (!data) {
-    return (
-      <GoogleBannerAd
-        size={getGoogleBannerSize(size)}
-        unitId={TestIds.BANNER}
-      />
-    );
+    return <GoogleBannerAd size={getGoogleBannerSize(size)} unitId={TestIds.BANNER} />;
   }
 
   // ← prefer bannerMedia, fall back to media for backwards compat

@@ -25,7 +25,6 @@ export default function HomeListHeader({
       <TrendingBooks books={books} />
 
       <SpecialCoverage specialCoverage={specialCoverage} />
-
       <Heading fos="$6" mt="$3" px="$3">
         Latest News
       </Heading>

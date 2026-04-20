@@ -21,8 +21,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const { width, height } = useWindowDimensions();
 
   const isVideoAd =
-    ad.type === "video" &&
-    (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
+    ad.type === "video" && (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
   const isYouTubeAd = ad.type === "video" && ad.videoType === "YOUTUBE";
   const [ytPlaying, setYtPlaying] = useState(false);
   const isImageAd = !isVideoAd;
@@ -37,7 +36,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
       "logo" in ad.partner &&
       typeof ad.partner.logo !== "string"
       ? ad.partner.logo
-      : null
+      : null,
   );
 
   const videoRef = useRef<VideoRef>(null);
@@ -125,13 +124,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   //   </YStack>
   // )}
   return (
-    <Stack
-      bg="$background"
-      borderTopLeftRadius={10}
-      borderTopRightRadius={10}
-      flex={1}
-      py="$2"
-    >
+    <Stack bg="$background" borderTopLeftRadius={10} borderTopRightRadius={10} flex={1} py="$2">
       <Text ta="center">Advertisement</Text>
       <Stack position="relative" width="100%">
         {isVideoAd ? (
@@ -167,14 +160,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
               top={0}
             >
               {isLoading ? (
-                <Stack
-                  ai="center"
-                  als="center"
-                  h="100%"
-                  jc="center"
-                  pos="absolute"
-                  zi={2}
-                >
+                <Stack ai="center" als="center" h="100%" jc="center" pos="absolute" zi={2}>
                   <Spinner color="$gray.50" />
                 </Stack>
               ) : null}
@@ -187,9 +173,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
                   onPress={handlePlay}
                   size="$2.5"
                 >
-                  <Button.Icon color="white">
-                    {paused ? <Play /> : <Pause />}
-                  </Button.Icon>
+                  <Button.Icon color="white">{paused ? <Play /> : <Pause />}</Button.Icon>
                 </Button>
                 <Button
                   accessibilityLabel={muted ? "Unmute video" : "Mute video"}
@@ -200,9 +184,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
                   }}
                   size="$2.5"
                 >
-                  <Button.Icon color="white">
-                    {muted ? <VolumeOff /> : <Volume2 />}
-                  </Button.Icon>
+                  <Button.Icon color="white">{muted ? <VolumeOff /> : <Volume2 />}</Button.Icon>
                 </Button>
               </XStack>
             </Stack>
@@ -233,11 +215,11 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
         <Stack>
           <Image
             contentFit="contain"
-            h={100}
+            h={120}
             source={{
               uri: partnerLogo?.url || undefined,
             }}
-            w={100}
+            w={120}
           />
         </Stack>
 
@@ -248,13 +230,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
           </Text>
         </Stack>
 
-        <Button
-          borderRadius="$8"
-          gap="$2"
-          minWidth="$11"
-          mt="$5"
-          onPress={onPress}
-        >
+        <Button borderRadius="$8" gap="$2" minWidth="$11" mt="$5" onPress={onPress}>
           <Button.Text>{getCtaLabel(ad.cta)}</Button.Text>
           {/*<Button.Icon>
             <CaretRight />

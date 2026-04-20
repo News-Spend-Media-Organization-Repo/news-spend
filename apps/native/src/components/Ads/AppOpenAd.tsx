@@ -28,8 +28,7 @@ const AppOpenAd = () => {
   const id = useId();
   const queryOptions = orpc.partnerContent.getOne.queryOptions({
     input: {
-      // placement: ["news-click-ads"],
-      type: ["video"],
+      placement: ["news-click-ads"],
     },
     staleTime: Number.POSITIVE_INFINITY,
   });
@@ -47,21 +46,14 @@ const AppOpenAd = () => {
     ) {
       setCustomAdReady(true);
     }
-  }, [
-    partnerContentQuery.isFetching,
-    partnerContentQuery.data,
-    partnerContentQuery.isError,
-  ]);
+  }, [partnerContentQuery.isFetching, partnerContentQuery.data, partnerContentQuery.isError]);
 
   const loadAd = useCallback(async () => {
     setLoading(true);
     setLoaded(false);
     setError(false);
     try {
-      const ad = await NativeAd.createForAdRequest(
-        TestIds.GAM_NATIVE_VIDEO,
-        {}
-      );
+      const ad = await NativeAd.createForAdRequest(TestIds.GAM_NATIVE_VIDEO, {});
       setNativeAd(ad);
       setNativeAdReady(true);
     } catch (err) {
@@ -95,10 +87,7 @@ const AppOpenAd = () => {
       }
       return false;
     };
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      onBackPress
-    );
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
     return () => subscription.remove();
   }, [isOpen]);
 
@@ -122,23 +111,11 @@ const AppOpenAd = () => {
         return <CustomNewsOpenAd ad={partnerContentQuery.data} />;
       }
       if (nativeAd) {
-        return (
-          <NativeNewsOpenAd
-            error={error}
-            loading={loading}
-            nativeAd={nativeAd}
-          />
-        );
+        return <NativeNewsOpenAd error={error} loading={loading} nativeAd={nativeAd} />;
       }
     } else if (adType === "native") {
       if (nativeAd) {
-        return (
-          <NativeNewsOpenAd
-            error={error}
-            loading={loading}
-            nativeAd={nativeAd}
-          />
-        );
+        return <NativeNewsOpenAd error={error} loading={loading} nativeAd={nativeAd} />;
       }
       if (partnerContentQuery.data && !partnerContentQuery.isError) {
         return <CustomNewsOpenAd ad={partnerContentQuery.data} />;

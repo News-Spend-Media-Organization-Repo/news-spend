@@ -33,16 +33,14 @@ const GetOneInput = z.object({
 
 const byIdInput = z.object({ id: z.string() });
 
-export const allPartnerContent = publicProcedure.handler(
-  async ({ context }) => {
-    const { payload } = context;
-    const result = await payload.find({
-      collection: "partner-content",
-      pagination: false,
-    });
-    return result.docs;
-  }
-);
+export const allPartnerContent = publicProcedure.handler(async ({ context }) => {
+  const { payload } = context;
+  const result = await payload.find({
+    collection: "partner-content",
+    pagination: false,
+  });
+  return result.docs;
+});
 
 export const partnerContentById = publicProcedure
   .input(byIdInput)
@@ -90,7 +88,9 @@ export const getOnePartnerContent = publicProcedure
   .input(GetOneInput)
   .handler(async ({ input, context }) => {
     const { payload } = context;
-    const where: Where = {};
+    const where: Where = {
+      status: { equals: "active" },
+    };
     if (input.placement && input.placement.length > 0) {
       where.placements = { in: input.placement };
     }
@@ -101,17 +101,13 @@ export const getOnePartnerContent = publicProcedure
       where.adSize = { equals: input.adSize };
     }
 
-    // TODO: type and adSize fields were removed from PartnerContent collection
     const result = await payload.find({
       collection: "partner-content",
       where,
       pagination: false,
       depth: 2,
     });
-    let finalResult: TransformCollectionWithSelect<
-      "partner-content",
-      SelectType
-    > | null = null;
+    let finalResult: TransformCollectionWithSelect<"partner-content", SelectType> | null = null;
     if (result.docs.length > 0) {
       const randomIndex = Math.floor(Math.random() * result.docs.length);
       finalResult = result.docs[randomIndex] ?? null;
