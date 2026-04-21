@@ -1,7 +1,4 @@
-import {
-  LegendList,
-  type LegendListRenderItemProps,
-} from "@legendapp/list/react-native";
+import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useIsFocused } from "@react-navigation/native";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
@@ -22,16 +19,6 @@ import { authState } from "#/state/auth";
 import { getImageData } from "#/utils/getImageData";
 
 import { StationItem } from "./RadioStationItem";
-
-const tasks = [
-  "Play and Reach Level 10",
-  "Download and Complete the Tutorial",
-  "Play and Finish Level 5",
-  "Complete your first purchase in the game",
-  "Make it to level 10 today!",
-  "Achieve 1000 points in the game",
-  "Complete the tutorial",
-];
 
 type Section = {
   type: "header" | "app" | "music" | "game" | "book" | "survey";
@@ -57,7 +44,7 @@ export const AllTab = () => {
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
-    })
+    }),
   );
 
   const { data: bookData, isPending: isBookPending } = useInfiniteQuery(
@@ -70,7 +57,7 @@ export const AllTab = () => {
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
-    })
+    }),
   );
 
   const surveyQuery = useQuery(
@@ -79,36 +66,29 @@ export const AllTab = () => {
       meta: { persist: false },
       select: (data) =>
         Array.isArray(data)
-          ? [...data].sort(
-              (a, b) => Number(b.payout ?? 0) - Number(a.payout ?? 0)
-            )
+          ? [...data].sort((a, b) => Number(b.payout ?? 0) - Number(a.payout ?? 0))
           : data,
-    })
+    }),
   );
 
   const appsDataList = useMemo(() => appData?.pages[0].docs || [], [appData]);
 
-  const booksDataList = useMemo(
-    () => bookData?.pages[0].docs || [],
-    [bookData]
-  );
+  const booksDataList = useMemo(() => bookData?.pages[0].docs || [], [bookData]);
 
   // Game data fetching
   const { data: gameList, isPending: isGamePending } = useQuery({
     queryKey: ["games", "all-tab"],
     queryFn: async () => {
       const res = await (
-        await fetch(
-          "https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=1"
-        )
+        await fetch("https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=1")
       ).json();
       return res.items;
     },
+    staleTime: Number.POSITIVE_INFINITY,
     select: (data) =>
       data?.slice(0, 6)?.map((item) => ({
         ...item,
         type: "game",
-        task: tasks[Math.floor(Math.random() * tasks.length)],
       })),
   });
 
@@ -121,7 +101,7 @@ export const AllTab = () => {
           type: "music",
           task: tasks[Math.floor(Math.random() * tasks.length)],
         })),
-    })
+    }),
   );
 
   const sections: Section[] = [
@@ -153,11 +133,7 @@ export const AllTab = () => {
 
       case "app":
         return (
-          <AppItem
-            handleClick={item.handleClick}
-            isLoading={item.isLoading}
-            item={item.data}
-          />
+          <AppItem handleClick={item.handleClick} isLoading={item.isLoading} item={item.data} />
         );
 
       case "music":
@@ -193,16 +169,10 @@ export const AllTab = () => {
           return null;
         })
         .filter((item) => item !== null),
-    [sections]
+    [sections],
   );
 
-  if (
-    isGamePending ||
-    isAppPending ||
-    isMusicPending ||
-    surveyQuery.isPending ||
-    isBookPending
-  ) {
+  if (isGamePending || isAppPending || isMusicPending || surveyQuery.isPending || isBookPending) {
     return (
       <Stack ai="center" flex={1} jc="center">
         <Spinner size="large" />
@@ -215,6 +185,9 @@ export const AllTab = () => {
       contentContainerStyle={{ paddingVertical: 12 }}
       data={sections}
       getItemType={(item) => (item.type === "header" ? "sectionHeader" : "row")}
+      keyExtractor={(item, index) =>
+        item.type === "header" ? `header-${item.data}` : (item.data?.id ?? `${item.type}-${index}`)
+      }
       renderItem={renderItem}
       stickyHeaderIndices={stickyHeaderIndices}
     />
@@ -262,15 +235,7 @@ const AppItem = ({
             {item.condition}
           </Text>
         </Stack>
-        <Stack
-          als="flex-end"
-          bg="$color.s300"
-          br="$10"
-          fd="row"
-          h="auto"
-          px="$2"
-          py="$1"
-        >
+        <Stack als="flex-end" bg="$color.s300" br="$10" fd="row" h="auto" px="$2" py="$1">
           <Text color="white" fos="$3">
             {item.points} points
           </Text>
@@ -287,7 +252,7 @@ const MusicSection = ({ itemList }: { itemList: Station[] }) => {
     ({ item }: LegendListRenderItemProps<Station>) => (
       <StationItem item={item} stationList={itemList} />
     ),
-    [itemList]
+    [itemList],
   );
 
   return (
@@ -310,7 +275,7 @@ const MusicSection = ({ itemList }: { itemList: Station[] }) => {
   );
 };
 
-const onItemClick = (gameUrl?: string) => {
+const onItemClick = (gameUrl?: string, title?: string) => {
   const { user } = authState;
   if (!user || user.isAnonymous) {
     navigationRef.navigate("SignIn", { redirect: "SurveyTab" });
@@ -318,7 +283,7 @@ const onItemClick = (gameUrl?: string) => {
   }
 
   if (gameUrl) {
-    navigationRef.navigate("SurveyWebView" as any, { url: gameUrl });
+    navigationRef.navigate("SurveyWebView" as any, { url: gameUrl, type: "game", title });
   }
 };
 
@@ -326,7 +291,7 @@ const GameItem = ({ item }) => (
   <XStack
     ai="flex-start"
     gap="$2.5"
-    onPress={() => onItemClick(item.url)}
+    onPress={() => onItemClick(item.url, item.title)}
     px="$3"
     py="$2"
   >
@@ -337,20 +302,7 @@ const GameItem = ({ item }) => (
           {item.title}
         </Text>
         <Text color="$gray.50" fos="$4" numberOfLines={2}>
-          {item.task}
-        </Text>
-      </Stack>
-      <Stack
-        als="flex-end"
-        bg="$color.s300"
-        br="$10"
-        fd="row"
-        h="auto"
-        px="$2"
-        py="$1"
-      >
-        <Text color="white" fos="$3">
-          {Math.floor(Math.random() * (200 - 50 + 1)) + 50} points
+          {item.description}
         </Text>
       </Stack>
     </Stack>
@@ -387,14 +339,7 @@ export const BookItem = ({
         w="100%"
       />
       <XStack ai="center" gap="$2" mt="$2">
-        <Text
-          color="$gray.50"
-          flex={1}
-          fontStyle="italic"
-          fos="$4"
-          fow="600"
-          numberOfLines={2}
-        >
+        <Text color="$gray.50" flex={1} fontStyle="italic" fos="$4" fow="600" numberOfLines={2}>
           {item.condition}
         </Text>
         {loading ? <ActivityIndicator color="#666" size="small" /> : null}
