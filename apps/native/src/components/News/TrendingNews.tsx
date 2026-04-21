@@ -1,7 +1,4 @@
-import {
-  LegendList,
-  type LegendListRenderItemProps,
-} from "@legendapp/list/react-native";
+import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { News } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { useCallback } from "react";
@@ -10,6 +7,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { Card, Text, XStack } from "tamagui";
 
 import { Image } from "#/components/ui";
+import { isAdReady } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 
@@ -23,10 +21,8 @@ const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
 export default function TrendingNews({ news }: { news: News[] }) {
   const renderItem = useCallback(
-    ({ item }: LegendListRenderItemProps<News>) => (
-      <TrendingNewsItem item={item} />
-    ),
-    []
+    ({ item }: LegendListRenderItemProps<News>) => <TrendingNewsItem item={item} />,
+    [],
   );
 
   return (
@@ -69,9 +65,9 @@ const TrendingNewsItem = ({ item }: { item: News }) => {
   const onPress = useCallback(() => {
     if (
       Math.random() < 0.65 &&
-      (appOpenAdSheetState.customAdReady || appOpenAdSheetState.nativeAdReady)
+      (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
     ) {
-      appOpenAdSheetState.open(onAdClose);
+      appOpenAdSheetState.open("news-click-ads", onAdClose);
     } else if (item?.type === "video") {
       navigation.navigate("SingleLive", {
         slug: item.slug,
@@ -86,23 +82,9 @@ const TrendingNewsItem = ({ item }: { item: News }) => {
   }, [item, navigation, onAdClose]);
 
   return (
-    <Card
-      bordered
-      h={ITEM_HEIGHT}
-      mx={SPACING}
-      onPress={onPress}
-      overflow="hidden"
-      w={ITEM_WIDTH}
-    >
+    <Card bordered h={ITEM_HEIGHT} mx={SPACING} onPress={onPress} overflow="hidden" w={ITEM_WIDTH}>
       <Card.Footer padded>
-        <XStack
-          backgroundColor="$p500"
-          bottom={0}
-          f={1}
-          left={0}
-          pos="absolute"
-          right={0}
-        >
+        <XStack backgroundColor="$p500" bottom={0} f={1} left={0} pos="absolute" right={0}>
           <Text color="$s50" fow="700" px={20} py={12}>
             {item.title}
           </Text>

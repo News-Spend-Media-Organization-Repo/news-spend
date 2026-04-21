@@ -18,12 +18,10 @@ import { useUpdates } from "./lib/UpdatesProvider";
 import { Navigation } from "./navigation";
 import { CONSTANTS } from "./navigation/constants";
 import { linking } from "./navigation/linking";
-import {
-  navigationRef,
-  useNavigationPersistence,
-} from "./navigation/navigationUtils";
+import { navigationRef, useNavigationPersistence } from "./navigation/navigationUtils";
 import { Provider } from "./provider";
 import { authState, hydrateAuth } from "./state/auth";
+import { preloadAds } from "./state/adManager";
 import { createMMKVPersister } from "./utils/clientPersister";
 import { storage } from "./utils/storage";
 
@@ -42,6 +40,7 @@ mobileAds()
 
 initSentry();
 hydrateAuth();
+preloadAds(["news-click-ads", "discover-tab"]);
 
 function AppContent() {
   useTanStackQueryDevTools(queryClient);
@@ -53,7 +52,7 @@ function AppContent() {
   });
   const { onNavigationStateChange, onReady } = useNavigationPersistence(
     storage,
-    CONSTANTS.PERSISTENCE_KEY
+    CONSTANTS.PERSISTENCE_KEY,
   );
 
   const { loadingComplete } = useCachedResources();
@@ -78,10 +77,7 @@ function AppContent() {
   const persister = createMMKVPersister();
 
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{ persister }}
-    >
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
       <Provider>
         <Navigation
           linking={linking}

@@ -6,12 +6,9 @@ import { Spinner, Stack, Text } from "tamagui";
 import { Stop } from "tamagui-phosphor";
 
 import { Button, Image } from "#/components/ui";
+import { isAdReady } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
-import {
-  getAudioPlaylist,
-  loadTrack,
-  usePlayerState,
-} from "#/state/audioPlayerState";
+import { getAudioPlaylist, loadTrack, usePlayerState } from "#/state/audioPlayerState";
 
 export const StationItem = memo(
   ({ item, stationList }: { item: Station; stationList?: Station[] }) => {
@@ -33,18 +30,14 @@ export const StationItem = memo(
         loadTrack(item, stationList);
         if (
           activeTrack?.id !== item.id &&
-          (appOpenAdSheetState.customAdReady ||
-            appOpenAdSheetState.nativeAdReady)
+          (isAdReady("discover-tab") || appOpenAdSheetState.nativeAdReady)
         ) {
-          appOpenAdSheetState.open();
+          appOpenAdSheetState.open("discover-tab");
         }
       }
     }, [activeTrack, playbackState, audioPlayer, stationList, item]);
 
-    const tagsString = useMemo(
-      () => item.tags.join(", ") || "Unknown",
-      [item.tags]
-    );
+    const tagsString = useMemo(() => item.tags.join(", ") || "Unknown", [item.tags]);
 
     const statusIcon = useMemo(() => {
       if (!isActive) {
@@ -113,5 +106,5 @@ export const StationItem = memo(
         ) : null}
       </Button>
     );
-  }
+  },
 );

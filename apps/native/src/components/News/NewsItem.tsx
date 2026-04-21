@@ -5,6 +5,7 @@ import { Circle, Stack, Text, XStack, YStack } from "tamagui";
 
 import { Button, Image } from "#/components/ui";
 import type { RouterOutputs } from "#/lib/orpc";
+import { isAdReady } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 
@@ -21,9 +22,9 @@ export default function NewsItem({
   const onPress = () => {
     if (
       Math.random() < 0.65 &&
-      (appOpenAdSheetState.customAdReady || appOpenAdSheetState.nativeAdReady)
+      (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
     ) {
-      appOpenAdSheetState.open(onAdClose);
+      appOpenAdSheetState.open("news-click-ads", onAdClose);
     } else if (news.type === "article") {
       navigation.navigate("News", {
         slug: news.slug,
@@ -85,11 +86,7 @@ export default function NewsItem({
             </Circle>
           )}
         </Stack>
-        <YStack
-          flex={1}
-          gap={latest ? 0 : "$4"}
-          jc={latest ? "space-between" : "center"}
-        >
+        <YStack flex={1} gap={latest ? 0 : "$4"} jc={latest ? "space-between" : "center"}>
           {latest && (
             <Text color="$p500" fontWeight="700">
               {typeof news.category === "object" && news.category?.title}
@@ -107,15 +104,7 @@ export default function NewsItem({
                 })}
               </Text>
             </XStack>
-            <Button
-              als="flex-end"
-              bg="$color.s300"
-              br="$10"
-              fd="row"
-              h="auto"
-              px="$2"
-              py="$1"
-            >
+            <Button als="flex-end" bg="$color.s300" br="$10" fd="row" h="auto" px="$2" py="$1">
               <Button.Text fos="$3">{news.points} points</Button.Text>
             </Button>
           </XStack>

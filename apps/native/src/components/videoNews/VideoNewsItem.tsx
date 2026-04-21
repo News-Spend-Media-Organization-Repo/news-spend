@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Card, Stack, Text, useWindowDimensions, XStack } from "tamagui";
 
 import { Image } from "#/components/ui";
+import { isAdReady } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 
@@ -13,9 +14,9 @@ const VideoNewsItem = ({ videoNews }: { videoNews: News }) => {
   const onPress = () => {
     if (
       Math.random() < 0.65 &&
-      (appOpenAdSheetState.customAdReady || appOpenAdSheetState.nativeAdReady)
+      (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
     ) {
-      appOpenAdSheetState.open(onAdClose);
+      appOpenAdSheetState.open("news-click-ads", onAdClose);
     } else {
       navigation.navigate("SingleLive", {
         slug: videoNews.slug,
@@ -36,23 +37,9 @@ const VideoNewsItem = ({ videoNews }: { videoNews: News }) => {
 
   return (
     <Stack bg="$background">
-      <Card
-        bg="transparent"
-        h={height * 0.3}
-        mr={25}
-        onPress={onPress}
-        overflow="hidden"
-        w="100%"
-      >
+      <Card bg="transparent" h={height * 0.3} mr={25} onPress={onPress} overflow="hidden" w="100%">
         <Card.Footer padded>
-          <XStack
-            backgroundColor="$p500"
-            bottom={0}
-            f={1}
-            left={0}
-            pos="absolute"
-            right={0}
-          >
+          <XStack backgroundColor="$p500" bottom={0} f={1} left={0} pos="absolute" right={0}>
             <Text color="$s50" fow="700" px={20} py={12}>
               {videoNews?.title}
             </Text>
