@@ -56,12 +56,13 @@ const PromoVideo = ({ item, onLoad, autoPlay = false, posterSource, ref }: Promo
   //   }
   // }, [item.url, autoPlay]);
 
-  // Auto-pause when screen loses focus
-  // useEffect(() => {
-  //   if (!focused) {
-  //     videoRef.current?.pause();
-  //   }
-  // }, [focused]);
+  useEffect(() => {
+    if (!focused) {
+      try {
+        videoRef.current?.pause();
+      } catch {}
+    }
+  }, [focused]);
 
   useImperativeHandle(
     ref,
