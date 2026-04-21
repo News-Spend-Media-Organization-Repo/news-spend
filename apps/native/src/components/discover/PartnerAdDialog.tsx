@@ -105,7 +105,7 @@ export function PartnerAdDialog({
           { text: "Close Ad", style: "cancel", onPress: handleDidClose },
           { text: "RESUME", onPress: () => {} },
         ],
-        { cancelable: false }
+        { cancelable: false },
       );
       return;
     }
@@ -118,7 +118,7 @@ export function PartnerAdDialog({
     (open: boolean) => {
       if (!open) handleClose();
     },
-    [handleClose]
+    [handleClose],
   );
 
   const handleAdClick = useCallback(() => {
@@ -147,7 +147,6 @@ export function PartnerAdDialog({
       return;
     }
 
-    // custom
     if (!ad) {
       if (fallbackToAppWall) {
         navigate("LuckyAppWall");
@@ -171,11 +170,7 @@ export function PartnerAdDialog({
 
   const trigger =
     hideTrigger || externalOpen ? null : children ? (
-      <TriggerElement
-        onPress={handleTriggerPress}
-        {...triggerProps}
-        style={{ cursor: "pointer" }}
-      >
+      <TriggerElement onPress={handleTriggerPress} {...triggerProps} style={{ cursor: "pointer" }}>
         {children}
       </TriggerElement>
     ) : (
@@ -225,12 +220,7 @@ export function PartnerAdDialog({
             x={0}
             y={0}
           >
-            <Screen
-              bg="transparent"
-              contentContainerStyle={insets}
-              flex={1}
-              gap="$5"
-            >
+            <Screen bg="transparent" contentContainerStyle={insets} flex={1} gap="$5">
               {/* Close / countdown button */}
               <Button
                 als="flex-end"
