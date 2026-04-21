@@ -15,49 +15,42 @@ import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 function LiveHome() {
   const theme = useTheme();
   const tabBarHeight = useBottomTabBarHeight();
-  const {
-    data,
-    isPending,
-    refetch,
-    isLoading,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useAllNews({
-    type: "video",
-  });
+  const { data, isPending, refetch, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useAllNews({
+      type: "video",
+    });
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
   const renderItem = useCallback(
     ({ item }: { item: News }) => <VideoNewsItem videoNews={item} />,
-    []
+    [],
   );
 
-  const allPages = useMemo(
-    () => data?.pages.flatMap((page) => page?.docs) ?? [],
-    [data]
-  );
+  const allPages = useMemo(() => data?.pages.flatMap((page) => page?.docs) ?? [], [data]);
 
-  const renderHeader = useCallback(
-    () => <LiveListHeader news={allPages[0]} />,
-    [allPages]
-  );
+  const renderHeader = useCallback(() => <LiveListHeader news={allPages[0]} />, [allPages]);
 
   const keyExtractor = (item: News) => item.id;
 
   const videoNews = useMemo(() => {
-    if (!allPages.length) return [];
+    if (!allPages.length) {
+      return [];
+    }
     // remove the first item because it's already rendered in the header
     return allPages;
     // return allPages.slice(1);
   }, [allPages]);
 
   const onEndReached = useCallback(() => {
-    if (isFetchingNextPage || !hasNextPage) return;
+    if (isFetchingNextPage || !hasNextPage) {
+      return;
+    }
     fetchNextPage();
   }, [isFetchingNextPage, fetchNextPage, hasNextPage]);
 
-  if (isPending) return <LiveListSkeleton />;
+  if (isPending) {
+    return <LiveListSkeleton />;
+  }
 
   return (
     <Screen px="$1.5">
@@ -67,7 +60,7 @@ function LiveHome() {
           paddingTop: 15,
         }}
         data={videoNews}
-        estimatedItemSize={280}
+        estimatedItemSize={283}
         ItemSeparatorComponent={() => <Stack h="$1.5" />}
         keyExtractor={keyExtractor}
         ListFooterComponent={isFetchingNextPage ? <Spinner /> : null}
@@ -75,14 +68,12 @@ function LiveHome() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl
-            onRefresh={refetchByUser}
-            refreshing={isRefetchingByUser}
-          />
+          <RefreshControl onRefresh={refetchByUser} refreshing={isRefetchingByUser} />
         }
         renderItem={renderItem}
         scrollEnabled={!isPending}
         showsVerticalScrollIndicator={false}
+        suggestEstimatedItemSize
       />
     </Screen>
   );

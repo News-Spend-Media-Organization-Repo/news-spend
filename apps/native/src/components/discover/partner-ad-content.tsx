@@ -28,9 +28,7 @@ type PartnerAdContentProps = {
 // ─── YouTube ID helper ────────────────────────────────────────────────────────
 
 function extractYouTubeId(url: string): string {
-  const match = url.match(
-    /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-  );
+  const match = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
   return match && match[2].length === 11 ? match[2] : "";
 }
 
@@ -48,8 +46,7 @@ export function PartnerAdContent({
 
   const isYouTubeAd = ad.type === "video" && ad.videoType === "YOUTUBE";
   const isUploadedVideoAd =
-    ad.type === "video" &&
-    (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
+    ad.type === "video" && (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
   // Only fall back to image if it's genuinely not a video of any kind
   const isImageAd = !(isUploadedVideoAd || isYouTubeAd);
 
@@ -95,20 +92,17 @@ export function PartnerAdContent({
   // ── YouTube ──────────────────────────────────────────────────────────────────
   const videoId = useMemo(
     () => (isYouTubeAd && ad.videoUrl ? extractYouTubeId(ad.videoUrl) : null),
-    [isYouTubeAd, ad.videoUrl]
+    [isYouTubeAd, ad.videoUrl],
   );
 
   // ── Image ────────────────────────────────────────────────────────────────────
   const { url: imageUrl, blurhash } = useMemo(
     () => getImageData(isImageAd ? ad.media : null),
-    [isImageAd, ad.media]
+    [isImageAd, ad.media],
   );
 
   const partner = typeof ad.partner !== "string" ? ad.partner : null;
-  const partnerLogo = useMemo(
-    () => getImageData(partner?.logo),
-    [partner?.logo]
-  );
+  const partnerLogo = useMemo(() => getImageData(partner?.logo), [partner?.logo]);
 
   return (
     <Stack
@@ -152,9 +146,7 @@ export function PartnerAdContent({
                   onPress={togglePlaying}
                   size="$2.5"
                 >
-                  <Button.Icon color="white">
-                    {isPlaying ? <Pause /> : <Play />}
-                  </Button.Icon>
+                  <Button.Icon color="white">{isPlaying ? <Pause /> : <Play />}</Button.Icon>
                 </Button>
                 <Button
                   aria-label={muted ? "Unmute video" : "Mute video"}
@@ -165,9 +157,7 @@ export function PartnerAdContent({
                   }}
                   size="$2.5"
                 >
-                  <Button.Icon color="white">
-                    {muted ? <Volume2 /> : <VolumeOff />}
-                  </Button.Icon>
+                  <Button.Icon color="white">{muted ? <Volume2 /> : <VolumeOff />}</Button.Icon>
                 </Button>
               </XStack>
             </Stack>
@@ -191,12 +181,7 @@ export function PartnerAdContent({
         )}
 
         {showAdLabel ? (
-          <Text
-            alignSelf="flex-start"
-            borderColor="$color"
-            borderWidth={1}
-            px={1}
-          >
+          <Text alignSelf="flex-start" borderColor="$color" borderWidth={1} px={1}>
             Ad
           </Text>
         ) : null}
@@ -206,22 +191,17 @@ export function PartnerAdContent({
       <Stack ai="center" jc="center">
         <Image
           aria-label="Partner logo"
-          height={100}
+          contentFit="contain"
+          height={120}
           placeholder={{ blurhash: partnerLogo?.blurhash }}
           source={{ uri: partnerLogo?.url ?? undefined }}
-          width={100}
+          width={120}
         />
         <H3 ta="center">{ad.title}</H3>
         <Text fontSize={16} maxWidth={350} textAlign="center">
           {ad.condition}
         </Text>
-        <Button
-          borderRadius="$8"
-          gap="$2"
-          minWidth="$11"
-          mt="$5"
-          onPress={onAdClick}
-        >
+        <Button borderRadius="$8" gap="$2" minWidth="$11" mt="$5" onPress={onAdClick}>
           <Button.Text>{getCtaLabel(ad.cta)}</Button.Text>
           <Button.Icon color="#fff">
             <CaretRight />

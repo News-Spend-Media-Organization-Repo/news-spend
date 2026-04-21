@@ -11,6 +11,9 @@ const PromotionMedia: CollectionConfig = {
   access: {
     read: () => true,
   },
+  admin: {
+    hidden: () => true,
+  },
   fields: [
     {
       name: "title",
@@ -35,8 +38,7 @@ const PromotionMedia: CollectionConfig = {
     {
       name: "items",
       admin: {
-        description:
-          "💡Promotion images and video url, one video url and at least three images",
+        description: "💡Promotion images and video url, one video url and at least three images",
       },
       label: "Items",
       type: "array",
@@ -45,7 +47,7 @@ const PromotionMedia: CollectionConfig = {
       validate: (val) => {
         const videoBlks = val?.filter(
           // @ts-expect-error
-          (item) => item.layout?.[0]?.blockType === "promo-video-source"
+          (item) => item.layout?.[0]?.blockType === "promo-video-source",
         );
 
         if (videoBlks?.length === 0) {

@@ -9,16 +9,6 @@ import { Image } from "#/components/ui";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { authState } from "#/state/auth";
 
-const tasks = [
-  "Play and Reach Level 10",
-  "Download and Complete the Tutorial",
-  "Play and Finish Level 5",
-  "Complete your first purchase in the game",
-  "Make it to level 10 today!",
-  "Achieve 1000 points in the game",
-  "Complete the tutorial",
-];
-
 export function GamesTab() {
   const { user } = useSnapshot(authState);
   const navigation = useNavigation();
@@ -27,68 +17,45 @@ export function GamesTab() {
     queryFn: async () => {
       const page = Math.floor(Math.random() * 850) + 1;
       const res = await fetch(
-        `https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=${page}`
+        `https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=${page}`,
       );
       const res_1 = await res.json();
       return res_1?.items ?? [];
     },
-    select(data) {
-      return data?.map((item) => ({
-        ...item,
-        task: tasks[Math.floor(Math.random() * tasks.length)],
-      }));
-    },
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
   const onItemClick = useCallback(
-    (gameUrl?: string) => {
+    (gameUrl?: string, title?: string) => {
       if (!user || user.isAnonymous) {
         navigation.navigate("SignIn", { redirect: "SurveyTab" });
         return;
       }
 
       if (gameUrl) {
-        navigation.navigate("SurveyWebView" as any, { url: gameUrl });
+        navigation.navigate("SurveyWebView" as any, { url: gameUrl, type: "game", title });
       }
     },
-    [navigation, user]
+    [navigation, user],
   );
 
-  const renderItem = ({ item, index }) => (
-    <XStack
-      ai="flex-start"
-      gap="$2.5"
-      onPress={() => onItemClick(item.url)}
-      p="$3"
-    >
-      <Image br="$3" height={80} source={{ uri: item.image }} width={80} />
-      <Stack flex={1} h="100%" jc="space-between">
-        <Stack>
+  const renderItem = useCallback(
+    ({ item }) => (
+      <XStack ai="flex-start" gap="$2.5" onPress={() => onItemClick(item.url, item.title)} p="$3">
+        <Image br="$3" height={80} source={{ uri: item.image }} width={80} />
+        <Stack flex={1} gap="$2">
           <Paragraph fos="$5" fow="600" numberOfLines={2}>
             {item.title}
           </Paragraph>
-          <Text color="$gray.50" numberOfLines={2}>
-            {item.task}
-          </Text>
+          <Paragraph color="$gray.50" fos="$4" numberOfLines={2}>
+            {item.description}
+          </Paragraph>
         </Stack>
-
-        <Stack
-          als="flex-end"
-          bg="$color.s300"
-          br="$10"
-          fd="row"
-          h="auto"
-          px="$2"
-          py="$1"
-        >
-          <Text color="white" fos="$3">
-            {Math.floor(Math.random() * (200 - 50 + 1)) + 50} points
-          </Text>
-        </Stack>
-      </Stack>
-    </XStack>
+      </XStack>
+    ),
+    [onItemClick],
   );
 
   return (
@@ -97,7 +64,8 @@ export function GamesTab() {
         paddingBottom: 25,
       }}
       data={data}
-      estimatedItemSize={100}
+      estimatedItemSize={120}
+      keyExtractor={(item) => item.id}
       ListEmptyComponent={isPending ? <Text>Loading...</Text> : null}
       onRefresh={refetchByUser}
       refreshing={isRefetchingByUser}

@@ -1,13 +1,38 @@
-import { useNavigation } from "@react-navigation/native";
+import { useMutation } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { AlertDialog, Button, type DialogProps, XStack, YStack } from "tamagui";
+import { toast } from "sonner-native";
+
+import { authClient } from "#/lib/authClient";
+import { hydrateAuth } from "#/state/auth";
 
 type Dialog = DialogProps & {
   trigger?: ReactNode;
 };
 
 export function ConfirmAsGuest({ trigger }: Dialog) {
-  const navigation = useNavigation();
+  const anonymousSignInMutation = useMutation({
+    mutationFn: async () => {
+      const response = await authClient.signIn.anonymous();
+
+      if (response.error) {
+        throw new Error("Failed to sign in anonymously");
+      }
+
+      await hydrateAuth();
+    },
+    onSuccess: () => {
+      console.log("Anonymous sign-in successful");
+      toast.success("Signed in as a guest");
+    },
+    onError: () => {
+      toast.error("Failed to sign in as a guest");
+    },
+  });
+
+  const onConfirmGuest = async () => {
+    await anonymousSignInMutation.mutateAsync();
+  };
 
   return (
     <AlertDialog native>
@@ -52,20 +77,13 @@ export function ConfirmAsGuest({ trigger }: Dialog) {
           <YStack gap="$4">
             {/* <AlertDialog.Title>Accept</AlertDialog.Title> */}
             <AlertDialog.Description>
-              Are you sure you want to skip registration? You can still complete
-              registration later, but you will not get the welcome points
+              Are you sure you want to skip registration? You can still complete registration later,
+              but you will not get the welcome points
             </AlertDialog.Description>
 
             <XStack gap="$3" jc="flex-end">
-              <AlertDialog.Action
-                asChild
-                onPress={() =>
-                  navigation.navigate("TOS", {
-                    goto: "Root",
-                  })
-                }
-              >
-                <Button>YES, SKIP</Button>
+              <AlertDialog.Action asChild onPress={onConfirmGuest}>
+                <Button>{anonymousSignInMutation.isPending ? "Loading..." : "YES, SKIP"}</Button>
               </AlertDialog.Action>
               <AlertDialog.Cancel asChild>
                 <Button color="#9C9C9">CANCEL</Button>

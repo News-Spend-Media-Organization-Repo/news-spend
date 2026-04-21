@@ -27,6 +27,9 @@ export const PromoVideoSourceBlock: Block = {
       admin: {
         description: "Upload an MP4 video file",
         condition: (_, siblingData) => siblingData?.videoSource === "upload",
+        components: {
+          afterInput: ["@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField"],
+        },
       },
     },
     {
@@ -34,8 +37,10 @@ export const PromoVideoSourceBlock: Block = {
       label: "Video URL",
       type: "text",
       admin: {
-        condition: (_, siblingData) =>
-          ["normal", "youtube"].includes(siblingData?.videoSource),
+        condition: (_, siblingData) => ["normal", "youtube"].includes(siblingData?.videoSource),
+        components: {
+          afterInput: ["@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField"],
+        },
       },
       validate: (_val: any, { siblingData }: any) => {
         if (!["normal", "youtube"].includes(siblingData?.videoSource)) {
@@ -47,8 +52,7 @@ export const PromoVideoSourceBlock: Block = {
         try {
           new URL(siblingData.url);
           if (siblingData.videoSource === "youtube") {
-            const youtubeRegex =
-              /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+            const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
             if (!youtubeRegex.test(siblingData.url)) {
               return "Invalid YouTube link";
             }
@@ -57,6 +61,24 @@ export const PromoVideoSourceBlock: Block = {
         } catch {
           return "Please enter a valid URL";
         }
+      },
+    },
+    {
+      name: "thumbnail",
+      type: "upload",
+      relationTo: "media",
+      admin: {
+        description:
+          "Upload a custom thumbnail, or leave empty to auto-generate from video on save",
+      },
+    },
+    {
+      // Hidden fingerprint — tracks what the thumbnail was generated from
+      name: "thumbnailSource",
+      type: "text",
+      admin: {
+        condition: () => false,
+        readOnly: true,
       },
     },
   ],

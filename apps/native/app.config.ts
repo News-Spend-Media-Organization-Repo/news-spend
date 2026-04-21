@@ -50,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     version: VERSION,
 
     runtimeVersion: {
-      policy: "fingerprint",
+      policy: "appVersion",
     },
 
     updates: {
@@ -63,9 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: `${PACKAGE_NAME}${packageSuffix}`,
-      // versionCode: VERSION_CODE,
-      googleServicesFile:
-        process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+      googleServicesFile: "./google-services.json",
     },
 
     // iOS configuration

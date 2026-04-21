@@ -1,12 +1,15 @@
-import { proxy, subscribe } from "valtio";
+import { proxy } from "valtio";
+
+import type { AdPlacement } from "./adManager";
 
 type AppOpenAdSheetState = {
   isOpen: boolean;
   customAdReady?: boolean;
   nativeAdReady?: boolean;
   adType: "custom" | "native";
+  placement: AdPlacement;
   onCloseCallback?: undefined | (() => void);
-  open: (onCloseCallback?: () => void) => void;
+  open: (placement: AdPlacement, onCloseCallback?: () => void) => void;
   close: () => void;
 };
 
@@ -15,8 +18,10 @@ export const appOpenAdSheetState = proxy<AppOpenAdSheetState>({
   onCloseCallback: undefined,
   customAdReady: false,
   nativeAdReady: false,
-  adType: Math.random() < 0.4 ? "custom" : "native", // Randomly choose ad type for demonstration
-  open: (onCloseCallback) => {
+  adType: Math.random() < 0.4 ? "custom" : "native",
+  placement: "news-click-ads",
+  open: (placement, onCloseCallback) => {
+    appOpenAdSheetState.placement = placement;
     appOpenAdSheetState.isOpen = true;
     appOpenAdSheetState.onCloseCallback = onCloseCallback;
   },
@@ -27,15 +32,8 @@ export const appOpenAdSheetState = proxy<AppOpenAdSheetState>({
   },
 });
 
-subscribe(appOpenAdSheetState, () =>
-  console.log("state has changed to", appOpenAdSheetState)
-);
-
 export const setAdType = () => {
-  const rand = Math.random();
-
-  console.log("Setting ad type, random value:", rand);
-  appOpenAdSheetState.adType = rand < 0.4 ? "custom" : "native";
+  appOpenAdSheetState.adType = Math.random() < 0.4 ? "custom" : "native";
 };
 
 export const setCustomAdReady = (ready: boolean) => {

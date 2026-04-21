@@ -7,23 +7,21 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import type { ComponentRef, JSX, RefObject } from "react";
+import type { JSX, RefObject } from "react";
 import { memo, useCallback, useEffect, useRef } from "react";
 import { Spinner, Stack } from "tamagui";
 import { subscribeKey } from "valtio/utils";
 
 import AdCarousel, { type AdCarouselRef } from "#/components/Ads/AdCarousel";
 import NewsItemAd from "#/components/Ads/NewsItemAd";
-import NewsItemGoogleAds, {
-  type NewsItemGoogleAdRef,
-} from "#/components/Ads/NewsItemGoogleAd";
+import type { NewsItemGoogleAdRef } from "#/components/Ads/NewsItemGoogleAd";
+import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { routeState } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
-
 import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
@@ -41,18 +39,10 @@ const MemoizedListHeader = memo(
     news: RouterOutputs["news"]["home"]["docs"];
     specialCoverage: RouterOutputs["news"]["home"]["docs"];
     books: PartnerContent[];
-  }) => (
-    <HomeListHeader
-      books={books}
-      news={news}
-      specialCoverage={specialCoverage}
-    />
-  )
+  }) => <HomeListHeader books={books} news={news} specialCoverage={specialCoverage} />,
 );
 
-const MemoizedSeparator = memo(() => (
-  <Stack boc="#d7d7d7" bw="$0.25" mx="$3" my="$3" w="100%" />
-));
+const MemoizedSeparator = memo(() => <Stack boc="#d7d7d7" bw="$0.25" mx="$3" my="$3" w="100%" />);
 
 const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
@@ -62,17 +52,12 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const videoNews = useAllNews({
     type: "video",
   });
-  const flattenedVideoNews = videoNews?.data?.pages.flatMap(
-    (page) => page?.docs
-  );
+  const flattenedVideoNews = videoNews?.data?.pages.flatMap((page) => page?.docs);
 
   const previousTabName = useRef(routeState.tabName);
   useEffect(() => {
     const unsubscribe = subscribeKey(routeState, "tabName", (v) => {
-      if (
-        v !== previousTabName.current &&
-        previousTabName.current === "latest"
-      ) {
+      if (v !== previousTabName.current && previousTabName.current === "latest") {
         for (const mediaRef of mediaRefs.current) {
           try {
             mediaRef?.pause();
@@ -99,7 +84,9 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       }),
       getNextPageParam: (lastPage) => lastPage.nextPage,
       initialPageParam: undefined,
-    })
+      staleTime: 5 * 60 * 1000, // 5 min — prevents refetch on tab switch
+      gcTime: 10 * 60 * 1000, // 10 min — keep cached data in memory
+    }),
   );
 
   const partnerContent = useQuery(
@@ -110,19 +97,44 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         limit: 12,
         page: 1,
       },
-    })
+    }),
   );
 
   const flattenedPartnerContent = partnerContent?.data?.docs;
 
-  const trendingNews = useQuery(
-    orpc.news.trending.queryOptions({ input: { limit: 3 } })
-  );
+  const trendingNews = useQuery(orpc.news.trending.queryOptions({ input: { limit: 3 } }));
 
   const flattenedNews = news?.pages.flatMap((page) => page.docs);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
   const trendingRefetch = useRefreshByUser(trendingNews.refetch);
+
+  useEffect(() => {
+    if (!flattenedNews) {
+      return;
+    }
+
+    flattenedNews.slice(0, 10).forEach((item, idx) => {
+      if (
+        item &&
+        "_type" in item &&
+        item._type === "ad" &&
+        ("type" in item ? item.type === "gAd" || item.type === "inHouse" : false)
+      ) {
+        const cell = gBannerRefs.current[idx];
+        const adId = item.id;
+        if (adId && loadedAds.current.has(adId)) {
+          return;
+        }
+        if (cell && !cell?.isAdLoaded()) {
+          cell.loadAd();
+          if (adId) {
+            loadedAds.current.add(adId);
+          }
+        }
+      }
+    });
+  }, [flattenedNews]);
 
   // #region Callbacks
   const resetInfiniteQueryPagination = useCallback(() => {
@@ -135,7 +147,9 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
     });
 
     queryClient.setQueryData(qKey, (oldData) => {
-      if (!oldData) return;
+      if (!oldData) {
+        return;
+      }
 
       return {
         pages: oldData.pages.slice(0, 1),
@@ -146,7 +160,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
   const keyExtractor = useCallback(
     (item: RouterOutputs["news"]["home"]["docs"][0]) => item?.id ?? "",
-    []
+    [],
   );
 
   const handleRefresh = useCallback(() => {
@@ -154,11 +168,8 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
     refetchByUser();
     trendingRefetch.refetchByUser();
     clearTabAdCache("latest");
-  }, [
-    resetInfiniteQueryPagination,
-    refetchByUser,
-    trendingRefetch.refetchByUser,
-  ]);
+    loadedAds.current.clear();
+  }, [resetInfiniteQueryPagination, refetchByUser, trendingRefetch.refetchByUser]);
 
   const onEndReached = useCallback(() => {
     if (hasNextPage && !isFetching) {
@@ -171,16 +182,11 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       item?._type === "ad" && item?.type === "adCarousel"
         ? `adCarousel-${item?.videoSource}`
         : (item?.type ?? item?._type),
-    []
+    [],
   );
 
   const renderItem = useCallback(
-    ({
-      item,
-      index,
-    }: LegendListRenderItemProps<
-      RouterOutputs["news"]["home"]["docs"][number]
-    >) => {
+    ({ item, index }: LegendListRenderItemProps<RouterOutputs["news"]["home"]["docs"][number]>) => {
       const itemId =
         item && "id" in item
           ? item.id
@@ -194,11 +200,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
       let content: JSX.Element | null = null;
 
-      if (
-        item &&
-        "type" in item &&
-        (item.type === "article" || item.type === "video")
-      ) {
+      if (item && "type" in item && (item.type === "article" || item.type === "video")) {
         content = <NewsItem latest news={item} />;
       } else if (item && "_type" in item && item._type === "relatedNews") {
         content = <RelatedNews news={"data" in item ? item.data : undefined} />;
@@ -248,7 +250,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         </Stack>
       );
     },
-    []
+    [],
   );
 
   const FooterItem = useCallback(
@@ -258,7 +260,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
           <Spinner />
         </Stack>
       ) : null,
-    [hasNextPage, isFetching]
+    [hasNextPage, isFetching],
   );
 
   const onViewableItemsChanged = useRef(({ changed }) => {
@@ -270,21 +272,27 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         }
       }
 
-      if (
-        (item.item.type === "gAd" || item.item.type === "inHouse") &&
-        item.isViewable
-      ) {
+      if ((item.item.type === "gAd" || item.item.type === "inHouse") && item.isViewable) {
+        const adId = item.item.id;
+        if (!adId || loadedAds.current.has(adId)) {
+          return;
+        }
+
         const cell = gBannerRefs?.current[item.index];
         if (cell && !cell?.isAdLoaded()) {
           cell?.loadAd();
+          loadedAds.current.add(adId);
         }
 
-        // TODO: find a way to load next ad ahead
-        // const nextCell = gBannerRefs?.current[item.index + 1];
-        // console.log("nextCell: ", nextCell);
-        // if (nextCell && !nextCell?.isAdLoaded()) {
-        //   nextCell?.loadAd();
-        // }
+        // Preload next 2 Google ads ahead (skips in-house ads which have no refs)
+        let preloaded = 0;
+        for (let i = item.index + 1; i < gBannerRefs.current.length && preloaded < 2; i++) {
+          const nextCell = gBannerRefs.current[i];
+          if (nextCell && !nextCell.isAdLoaded()) {
+            nextCell.loadAd();
+            preloaded++;
+          }
+        }
       }
     }
   });
@@ -302,6 +310,24 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         paddingTop: 15,
       }}
       data={flattenedNews}
+      getEstimatedItemSize={(item) => {
+        if ("type" in item && (item.type === "article" || item.type === "video")) {
+          return 127;
+        }
+        if ("_type" in item && item._type === "relatedNews") {
+          return 272;
+        }
+        if ("type" in item && item.type === "adCarousel") {
+          return 265;
+        }
+        if ("_type" in item && item._type === "ad") {
+          return 127;
+        }
+        if ("_type" in item && item._type === "rewardTask") {
+          return 127;
+        }
+        return 150;
+      }}
       getItemType={getItemType}
       ItemSeparatorComponent={MemoizedSeparator}
       keyExtractor={keyExtractor}
@@ -317,14 +343,21 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       onEndReachedThreshold={0.5}
       onRefresh={handleRefresh}
       onViewableItemsChanged={onViewableItemsChanged.current}
+      recycleItems
       ref={ref}
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
-      suggestEstimatedItemSize
+      // suggestEstimatedItemSize
       viewabilityConfig={{
         itemVisiblePercentThreshold: 40,
       }}
+      // waitForInitialLayout
+      // onItemSizeChanged={(info) => {
+      //   console.log(
+      //     info.itemData?._type + " " + info.itemData?.type + " " + info.size
+      //   );
+      // }}
     />
   );
 });
