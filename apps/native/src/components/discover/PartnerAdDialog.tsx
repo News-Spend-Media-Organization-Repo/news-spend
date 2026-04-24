@@ -1,5 +1,4 @@
 import { Slot } from "@radix-ui/react-slot";
-import { useNavigation } from "@react-navigation/native";
 import { X } from "@tamagui/lucide-icons";
 import { type ReactNode, useCallback, useState } from "react";
 import { Alert, Linking, Platform, useWindowDimensions } from "react-native";
@@ -82,7 +81,9 @@ export function PartnerAdDialog({
   // ── YouTube state (kept here so it resets with dialog) ───────────────────────
   const [ytPlaying, setYtPlaying] = useState(false);
   const onYtStateChange = useCallback((state: string) => {
-    if (state === "ended") setYtPlaying(false);
+    if (state === "ended") {
+      setYtPlaying(false);
+    }
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -116,7 +117,9 @@ export function PartnerAdDialog({
   // Only acts on close (open=false) since we control open ourselves via handleTriggerPress.
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open) handleClose();
+      if (!open) {
+        handleClose();
+      }
     },
     [handleClose],
   );
@@ -132,11 +135,15 @@ export function PartnerAdDialog({
         android: ad?.links?.androidPlayStore,
       }) ?? ad?.links?.website;
 
-    if (link) Linking.openURL(link);
+    if (link) {
+      Linking.openURL(link);
+    }
   }, [onAdClick, ad]);
 
   const handleTriggerPress = useCallback(() => {
-    if (onOpen?.() === false) return;
+    if (onOpen?.() === false) {
+      return;
+    }
 
     if (adType === "native") {
       if (googleAd.isLoaded) {

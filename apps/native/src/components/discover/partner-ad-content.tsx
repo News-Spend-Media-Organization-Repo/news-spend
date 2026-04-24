@@ -101,7 +101,7 @@ export function PartnerAdContent({
     [isImageAd, ad.media],
   );
 
-  const partner = typeof ad.partner !== "string" ? ad.partner : null;
+  const partner = typeof ad.partner === "string" ? null : ad.partner;
   const partnerLogo = useMemo(() => getImageData(partner?.logo), [partner?.logo]);
 
   return (
@@ -173,6 +173,7 @@ export function PartnerAdContent({
         ) : (
           <Image
             aria-label="Advertisement banner"
+            contentFit="contain"
             height={height * 0.3}
             placeholder={{ blurhash }}
             source={imageUrl}
