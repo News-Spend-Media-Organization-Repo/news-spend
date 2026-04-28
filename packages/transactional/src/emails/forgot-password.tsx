@@ -1,5 +1,4 @@
 import { Body, Button, Container, Head, Html, Img, Preview, Section, Text } from "react-email";
-import * as React from "react";
 
 type ForgotPasswordEmailProps = {
   resetLink: string;
@@ -14,7 +13,7 @@ export const ForgotPasswordEmail = ({ resetLink }: ForgotPasswordEmailProps) => 
         <Section style={logoSection}>
           <Img
             alt="News Spend Logo"
-            src="https://newsspend.com/images/email-banner.jpg"
+            src="https://newsspend.com/images/newsspend-logo.jpeg"
             style={logo}
           />
         </Section>

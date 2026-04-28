@@ -11,7 +11,6 @@ import {
   Section,
   Text,
 } from "react-email";
-import * as React from "react";
 
 type AccountDeletedEmailProps = {
   username: string;
@@ -26,7 +25,7 @@ export const AccountDeletedEmail = ({ username = "User" }: AccountDeletedEmailPr
         <Section style={logoSection}>
           <Img
             alt="News Spend Logo"
-            src="https://newsspend.com/images/email-banner.jpg"
+            src="https://newsspend.com/images/newsspend-logo.jpeg"
             style={logo}
           />
         </Section>
