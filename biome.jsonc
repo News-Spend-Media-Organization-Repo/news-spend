@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "javascript": {
     "globals": [
-      "Bun"
+      "Bun",
+      "__DEV__"
     ]
   },
   "linter": {
