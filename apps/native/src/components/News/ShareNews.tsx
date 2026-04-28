@@ -25,7 +25,7 @@ export const ShareNews = ({ news, onShare }) => {
   const numColumns = 3;
   const gap = 10;
   const currentScreen = route.name === "SingleLive" ? "video" : "article";
-  const url = `https://csb-9i1lhi-lac.vercel.app/${currentTabPath}/${currentScreen}/${news.slug}`;
+  const url = `https://newsspend.com/${currentTabPath}/${currentScreen}/${news.slug}`;
 
   useGlobalBackHandler(() => {
     if (open) {

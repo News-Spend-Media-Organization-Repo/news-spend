@@ -15,16 +15,7 @@ import {
 import { type ReactElement, useCallback, useMemo, useState } from "react";
 import { Alert, Linking, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Avatar,
-  ListItem,
-  Paragraph,
-  Progress,
-  Spinner,
-  Stack,
-  Text,
-  XStack,
-} from "tamagui";
+import { Avatar, ListItem, Paragraph, Progress, Spinner, Stack, Text, XStack } from "tamagui";
 import { useSnapshot } from "valtio";
 
 import { Screen } from "#/components/Screen";
@@ -140,7 +131,7 @@ function SettingsHome() {
       if (screen === "RateApp") {
         const storeUrl = Platform.select({
           ios: "https://apps.apple.com/us/app/news-spend/id1550745257",
-          android: "market://details?id=com.newsspend.media",
+          android: "market://details?id=com.newsspend.app",
         });
 
         try {
@@ -158,7 +149,7 @@ function SettingsHome() {
       }
       navigation.navigate(screen);
     },
-    [navigation]
+    [navigation],
   );
 
   return (
@@ -221,7 +212,7 @@ function ListHeaderComponent() {
     orpc.activity.totalPoints.queryOptions({
       enabled: Boolean(user),
       refetchInterval: 10 * 60 * 1000,
-    })
+    }),
   );
 
   const avatarBg = useMemo(() => randomColor(), []);
@@ -255,20 +246,11 @@ function ListHeaderComponent() {
           <XStack ai="center" gap="$1">
             {user ? (
               <Button h="auto" onPress={() => refetch()} unstyled w="auto">
-                <Button.Text
-                  color="black"
-                  fontSize={24}
-                  fontWeight="700"
-                  m="$0"
-                >
+                <Button.Text color="black" fontSize={24} fontWeight="700" m="$0">
                   {totalPoints ?? 0}
                 </Button.Text>
                 <Button.Icon color="$p500">
-                  {isLoading || isRefetching ? (
-                    <Spinner color="$gray" />
-                  ) : (
-                    <RefreshCw size={16} />
-                  )}
+                  {isLoading || isRefetching ? <Spinner color="$gray" /> : <RefreshCw size={16} />}
                 </Button.Icon>
               </Button>
             ) : null}
@@ -294,11 +276,7 @@ function ListHeaderComponent() {
 
       <Stack>
         <Progress bg="$s300" h="$1.5" value={Math.max(progressPercentage, 3)}>
-          <Progress.Indicator
-            animation="medium"
-            bg="$p500"
-            borderRadius={999}
-          />
+          <Progress.Indicator animation="medium" bg="$p500" borderRadius={999} />
         </Progress>
         <Paragraph fontSize="$4" fow="700" m="$0">
           {totalPoints ?? 0} / {maxValue.toLocaleString()} points

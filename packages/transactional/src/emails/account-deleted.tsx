@@ -10,16 +10,13 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
-import * as React from "react";
+} from "react-email";
 
 type AccountDeletedEmailProps = {
   username: string;
 };
 
-export const AccountDeletedEmail = ({
-  username = "User",
-}: AccountDeletedEmailProps) => (
+export const AccountDeletedEmail = ({ username = "User" }: AccountDeletedEmailProps) => (
   <Html>
     <Head />
     <Preview>Your News-Spend Media account has been deleted</Preview>
@@ -28,7 +25,7 @@ export const AccountDeletedEmail = ({
         <Section style={logoSection}>
           <Img
             alt="News Spend Logo"
-            src="https://newsspend.com/images/email-banner.jpg"
+            src="https://newsspend.com/images/newsspend-logo.jpeg"
             style={logo}
           />
         </Section>
@@ -38,15 +35,15 @@ export const AccountDeletedEmail = ({
         <Text style={text}>Dear {username},</Text>
 
         <Text style={text}>
-          We're writing to confirm that your News-Spend Media account has been
-          successfully deleted as per your request.
+          We're writing to confirm that your News-Spend Media account has been successfully deleted
+          as per your request.
         </Text>
 
         <Section style={section}>
           <Heading style={h2}>What This Means</Heading>
           <Text style={text}>
-            Your account and all associated data have been permanently removed
-            from our system, including:
+            Your account and all associated data have been permanently removed from our system,
+            including:
           </Text>
           <ul style={list}>
             <li style={listItem}>Your profile information</li>
@@ -60,32 +57,28 @@ export const AccountDeletedEmail = ({
         <Section style={section}>
           <Heading style={h2}>We're Sorry to See You Go</Heading>
           <Text style={text}>
-            Thank you for being part of the News-Spend Media community. We hope
-            your experience with us was valuable, and we're sorry to see you
-            leave.
+            Thank you for being part of the News-Spend Media community. We hope your experience with
+            us was valuable, and we're sorry to see you leave.
           </Text>
         </Section>
 
         <Section style={section}>
           <Heading style={h2}>Come Back Anytime</Heading>
           <Text style={text}>
-            If you change your mind, you're always welcome to create a new
-            account and rejoin our community. We'd love to have you back!
+            If you change your mind, you're always welcome to create a new account and rejoin our
+            community. We'd love to have you back!
           </Text>
         </Section>
 
         <Text style={text}>
-          If you did not request this deletion or have any concerns, please
-          contact our support team immediately at{" "}
-          <Link href="mailto:support@newsspend.com">support@newsspend.com</Link>
-          .
+          If you did not request this deletion or have any concerns, please contact our support team
+          immediately at <Link href="mailto:support@newsspend.com">support@newsspend.com</Link>.
         </Text>
 
         <Hr style={hr} />
 
         <Text style={footer}>
-          &copy; {new Date().getFullYear()} News Spend Media. All rights
-          reserved.
+          &copy; {new Date().getFullYear()} News Spend Media. All rights reserved.
         </Text>
       </Container>
     </Body>

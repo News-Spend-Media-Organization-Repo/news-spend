@@ -1,13 +1,9 @@
 import type { ConfigContext, ExpoConfig } from "@expo/config";
 
-const APP_VARIANT = process.env.APP_VARIANT as
-  | "development"
-  | "beta"
-  | "preview"
-  | "production";
+const APP_VARIANT = process.env.APP_VARIANT as "development" | "beta" | "preview" | "production";
 const APP_ENV = process.env.APP_ENV as "local" | "preview" | "production";
 
-const PACKAGE_NAME = "com.newsspend.media"; // Base package name
+const PACKAGE_NAME = "com.newsspend.app"; // Base package name
 const VERSION = "2.0.5";
 // const VERSION_CODE = 28;
 

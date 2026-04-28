@@ -1,23 +1,10 @@
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Link,
-  Preview,
-  Section,
-  Text,
-} from "@react-email/components";
-import * as React from "react";
+import { Body, Container, Head, Heading, Html, Link, Preview, Section, Text } from "react-email";
 
 export function NewsSpendVerificationEmail({ otp = "123456" }) {
   return (
     <Html>
       <Head />
-      <Preview>
-        Verify Your News Spend Media Account -- Unlock Your Dream Journey!
-      </Preview>
+      <Preview>Verify Your News Spend Media Account -- Unlock Your Dream Journey!</Preview>
       <Body
         style={{
           backgroundColor: "#f4f4f4",
@@ -111,8 +98,7 @@ export function NewsSpendVerificationEmail({ otp = "123456" }) {
                   marginTop: "10px",
                 }}
               >
-                This code will expire in 10 minutes. Enter it quickly to
-                activate your dream!
+                This code will expire in 10 minutes. Enter it quickly to activate your dream!
               </Text>
             </Section>
 
@@ -149,12 +135,8 @@ export function NewsSpendVerificationEmail({ otp = "123456" }) {
               marginBottom: "20px",
             }}
           >
-            If you did not request this verification, please contact our support
-            team at{" "}
-            <Link
-              href="mailto:support@newsspend.com"
-              style={{ color: "#0066cc" }}
-            >
+            If you did not request this verification, please contact our support team at{" "}
+            <Link href="mailto:support@newsspend.com" style={{ color: "#0066cc" }}>
               support@newsspend.com
             </Link>
             .
@@ -168,8 +150,8 @@ export function NewsSpendVerificationEmail({ otp = "123456" }) {
               marginBottom: "20px",
             }}
           >
-            We're excited to have you join our community of dreamers, achievers,
-            and go-getters. Together, we'll turn your dreams into reality!
+            We're excited to have you join our community of dreamers, achievers, and go-getters.
+            Together, we'll turn your dreams into reality!
           </Text>
         </Container>
       </Body>

@@ -21,7 +21,7 @@ import { authState } from "#/state/auth";
 
 const msg =
   "News-spend media gives me all the latest news and helps me to achieve my dreams. I have been enjoying it and would like to share it with you. Get it from this link";
-const url = "https://csb-9i1lhi-lac.vercel.app/";
+const url = "https://newsspend.com/";
 
 const ShareApp = () => {
   const addActivityMutation = useAddActivity();
@@ -40,11 +40,10 @@ const ShareApp = () => {
       {
         onSuccess: (response) => {
           toast.success("Points earned", {
-            description:
-              "You earned 20 points for sharing News Spend Media App!",
+            description: "You earned 20 points for sharing News Spend Media App!",
           });
         },
-      }
+      },
     );
   };
 
@@ -89,17 +88,11 @@ const ShareApp = () => {
             if (res) {
               awardPoint();
             } else {
-              ToastAndroid.show(
-                "Could not open SMS. Please try again",
-                ToastAndroid.SHORT
-              );
+              ToastAndroid.show("Could not open SMS. Please try again", ToastAndroid.SHORT);
             }
           } catch (error) {
             console.error(error);
-            ToastAndroid.show(
-              "Could not open SMS. Please try again",
-              ToastAndroid.SHORT
-            );
+            ToastAndroid.show("Could not open SMS. Please try again", ToastAndroid.SHORT);
           }
         },
       },
@@ -112,31 +105,23 @@ const ShareApp = () => {
             if (res) {
               awardPoint();
             } else {
-              ToastAndroid.show(
-                "Could not open SMS. Please try again",
-                ToastAndroid.SHORT
-              );
+              ToastAndroid.show("Could not open SMS. Please try again", ToastAndroid.SHORT);
             }
           } catch (error) {
             console.error(error);
-            ToastAndroid.show(
-              "Could not open Email. Please try again",
-              ToastAndroid.SHORT
-            );
+            ToastAndroid.show("Could not open Email. Please try again", ToastAndroid.SHORT);
           }
         },
       },
       {
         text: "Invite Messenger Friends",
         Icon: MessengerLogo,
-        onPress: async () =>
-          onShare(Share.Social.MESSENGER as Social, "com.facebook.orca"),
+        onPress: async () => onShare(Share.Social.MESSENGER as Social, "com.facebook.orca"),
       },
       {
         text: "Invite Whatsapp Friends",
         Icon: WhatsappLogo,
-        onPress: async () =>
-          onShare(Share.Social.WHATSAPP as Social, "com.whatsapp"),
+        onPress: async () => onShare(Share.Social.WHATSAPP as Social, "com.whatsapp"),
       },
       {
         text: "Copy link",
@@ -165,10 +150,7 @@ const ShareApp = () => {
             if (res.success) {
               awardPoint();
             } else {
-              ToastAndroid.show(
-                "Could not share. Please try again",
-                ToastAndroid.SHORT
-              );
+              ToastAndroid.show("Could not share. Please try again", ToastAndroid.SHORT);
             }
           } catch (error) {
             console.log(error);
@@ -177,7 +159,7 @@ const ShareApp = () => {
         },
       },
     ],
-    []
+    [],
   );
   return (
     <Screen>
