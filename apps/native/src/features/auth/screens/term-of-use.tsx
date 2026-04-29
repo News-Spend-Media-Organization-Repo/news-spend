@@ -1,10 +1,6 @@
-import { Platform } from "react-native";
-import { Paragraph, SizableText, Stack, Text, YStack } from "tamagui";
-import { useSnapshot } from "valtio";
-
-import { Screen } from "#/components/Screen";
-import { routeState } from "#/state/route-state";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
+import { View } from "react-native";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 
 const terms = [
   {
@@ -38,47 +34,42 @@ const terms = [
       "News Spend Media reserves the right to terminate your account and/or suspend your access to the app at any time, for any reason, without notice.",
   },
   {
-    title: "8. Changes to the Terms of Use",
+    title: "7. Disclaimer",
     description:
-      "News Spend Media reserves the right to change these terms of use at any time. If we make any changes, we will post the revised terms of use on the News Spend Media website and app. Your continued use of the app after the revised terms of use have been posted constitutes your acceptance of the changes.",
+      "The News Spend Media app is provided 'as is' without warranty of any kind, express or implied. News Spend Media makes no representations or warranties about the accuracy, reliability, or completeness of the app.",
   },
   {
-    title: "Contact Us",
+    title: "8. Limitation of Liability",
     description:
-      "If you have any questions about these terms of use, please contact us at support@newsspendmedia.com",
+      "News Spend Media shall not be liable for any indirect, incidental, or consequential damages arising out of your use of the app.",
+  },
+  {
+    title: "9. Governing Law",
+    description:
+      "These terms and conditions shall be governed by and construed in accordance with the laws of the country in which News Spend Media operates.",
+  },
+  {
+    title: "10. Changes",
+    description:
+      "News Spend Media reserves the right to modify these terms and conditions at any time. Your continued use of the app constitutes acceptance of the modified terms.",
   },
 ];
 
-export default function TermOfUse() {
-  const { reactNavTabName } = useSnapshot(routeState);
-  const insets = useSafeAreaInsetsStyle(
-    reactNavTabName === "SettingsHome" ? ["bottom"] : ["bottom", "top"],
-    "padding"
-  );
+const TermOfUse = () => (
+  <Screen
+    className="px-5"
+    contentContainerClassName="gap-6 py-4"
+    preset="scroll"
+    safeAreaEdges={["bottom"]}
+  >
+    <Text variant="HeadingMedium">Terms of Use</Text>
+    {terms.map((term) => (
+      <View className="gap-1" key={term.title}>
+        <Text className="font-semibold">{term.title}</Text>
+        <Text variant="caption">{term.description}</Text>
+      </View>
+    ))}
+  </Screen>
+);
 
-  return (
-    <Screen
-      contentContainerStyle={{
-        ...insets,
-        paddingTop: Platform.OS === "ios" ? 10 : (insets?.paddingTop ?? 0) + 10,
-      }}
-      preset="scroll"
-      px="$2.5"
-    >
-      <SizableText fos={16} lh="$1" mb="$3" size="$4">
-        By using the News Spend Media mobile app, you agree to the following
-        terms of use:
-      </SizableText>
-      <YStack gap="$4">
-        {terms.map((term) => (
-          <Stack gap="$2" key={term.title}>
-            <Text fontSize={18} fontWeight="700">
-              {term.title}
-            </Text>
-            <Paragraph size="$4">{term.description}</Paragraph>
-          </Stack>
-        ))}
-      </YStack>
-    </Screen>
-  );
-}
+export default TermOfUse;

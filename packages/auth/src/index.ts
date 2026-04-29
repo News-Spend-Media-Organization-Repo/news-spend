@@ -49,14 +49,10 @@ export const auth = betterAuth({
         });
 
         // Clean up push tokens
-        await pool.query("DELETE FROM push_tokens WHERE user_id = $1", [
-          user.id,
-        ]);
+        await pool.query("DELETE FROM push_tokens WHERE user_id = $1", [user.id]);
 
         // Clean up activities
-        await pool.query("DELETE FROM activities WHERE user_id = $1", [
-          user.id,
-        ]);
+        await pool.query("DELETE FROM activities WHERE user_id = $1", [user.id]);
       },
     },
     fields: {
@@ -166,14 +162,7 @@ export const auth = betterAuth({
         if (newSession) {
           await pool.query(
             "INSERT INTO activities (action, description, point, user_id, type, id) VALUES ($1, $2, $3, $4, $5, $6)",
-            [
-              "signUp",
-              "Reward for signing up",
-              "500",
-              newSession.user.id,
-              "point",
-              randomUUID(),
-            ]
+            ["signUp", "Reward for signing up", "500", newSession.user.id, "point", randomUUID()],
           );
           sendWelcomeEmail(newSession.user.email, newSession.user.name);
         }
@@ -183,11 +172,9 @@ export const auth = betterAuth({
         // delete user push token if exist
         const pushToken = ctx.body?.pushToken;
         if (pushToken) {
-          pool
-            .query("DELETE FROM push_tokens WHERE token = $1", [pushToken])
-            .catch((e) => {
-              logger.error({ err: e }, "Failed to delete push token");
-            });
+          pool.query("DELETE FROM push_tokens WHERE token = $1", [pushToken]).catch((e) => {
+            logger.error({ err: e }, "Failed to delete push token");
+          });
         }
       }
     }),
@@ -196,9 +183,7 @@ export const auth = betterAuth({
         const user = ctx.body;
 
         const [usernameResult, emailResult] = await Promise.all([
-          pool.query("SELECT * FROM users WHERE username = $1", [
-            user.username,
-          ]),
+          pool.query("SELECT * FROM users WHERE username = $1", [user.username]),
           pool.query("SELECT * FROM users WHERE email = $1", [user.email]),
         ]);
 
@@ -227,6 +212,7 @@ export const auth = betterAuth({
             message: "Validation failed",
             cause: new z.ZodError(validationIssues),
             issues: new z.ZodError(validationIssues).issues,
+            code: "VALIDATION_FAILED",
           });
         }
       }
@@ -278,10 +264,9 @@ export const auth = betterAuth({
           // check if username or email exist
           const customErr: $ZodIssue[] = [];
 
-          const usernameExist = await pool.query(
-            "SELECT * FROM users WHERE username = $1",
-            [user.username]
-          );
+          const usernameExist = await pool.query("SELECT * FROM users WHERE username = $1", [
+            user.username,
+          ]);
 
           if (usernameExist.rows.length) {
             customErr.push({
