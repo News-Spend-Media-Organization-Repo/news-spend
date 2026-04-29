@@ -160,11 +160,21 @@ export const auth = betterAuth({
       if (ctx.path.startsWith("/email-otp/verify-email")) {
         const newSession = ctx.context.newSession;
         if (newSession) {
-          await pool.query(
-            "INSERT INTO activities (action, description, point, user_id, type, id) VALUES ($1, $2, $3, $4, $5, $6)",
-            ["signUp", "Reward for signing up", "500", newSession.user.id, "point", randomUUID()],
+          // Guard against awarding welcome points more than once.
+          // A user can call verify-email multiple times (e.g. OTP re-request)
+          // so we must check before inserting.
+          const existing = await pool.query(
+            "SELECT id FROM activities WHERE user_id = $1 AND action = $2 LIMIT 1",
+            [newSession.user.id, "signUp"],
           );
-          sendWelcomeEmail(newSession.user.email, newSession.user.name);
+
+          if (!existing.rows.length) {
+            await pool.query(
+              "INSERT INTO activities (action, description, point, user_id, type, id) VALUES ($1, $2, $3, $4, $5, $6)",
+              ["signUp", "Reward for signing up", "500", newSession.user.id, "point", randomUUID()],
+            );
+            sendWelcomeEmail(newSession.user.email, newSession.user.name);
+          }
         }
       }
 
