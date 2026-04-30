@@ -1,15 +1,14 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
+import { BottomSheet } from "heroui-native";
 import { CaretRightIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BackHandler } from "react-native";
+import { BackHandler, StyleSheet, View } from "react-native";
 import { NativeAd, TestIds } from "react-native-google-mobile-ads";
-import { Sheet } from "tamagui";
 import { useSnapshot } from "valtio";
-
-import { Button } from "#/components/ui/Button";
 import { type AdPlacement, consumeAd } from "#/state/adManager";
 import { appOpenAdSheetState, setAdType, setNativeAdReady } from "#/state/appOpenAdState";
-
+import { Button } from "../../heroui/button";
+import { Icon } from "../../heroui/icon";
 import CustomNewsOpenAd from "./CustomNewsOpenAd";
 import NativeNewsOpenAd from "./NativeNewsOpenAd";
 
@@ -19,7 +18,6 @@ const AppOpenAd = () => {
   const [loading, setLoading] = useState(false);
   const [nativeAd, setNativeAd] = useState<NativeAd | undefined>();
   const [customAd, setCustomAd] = useState<PartnerContent | null>(null);
-
   const consumedPlacementRef = useRef<AdPlacement | null>(null);
 
   useEffect(() => {
@@ -64,11 +62,11 @@ const AppOpenAd = () => {
       }
       return false;
     };
-    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
-    return () => subscription.remove();
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
   }, [isOpen]);
 
-  const onPress = useCallback(() => {
+  const onClose = useCallback(() => {
     appOpenAdSheetState.close();
   }, []);
 
@@ -95,42 +93,41 @@ const AppOpenAd = () => {
   };
 
   return (
-    <Sheet
-      animation="fast"
-      disableDrag
-      dismissOnOverlayPress={false}
-      forceRemoveScrollEnabled={isOpen}
-      modal
-      open={isOpen}
-      position={0}
-      snapPoints={[90]}
-      zIndex={100_000}
-    >
-      {/* <Sheet.Overlay bg="rgba(0,0,0,0.5)" /> */}
-      {/* <Sheet.Handle /> */}
-      <Sheet.Frame bg="transparent" flex={1} gap="$5">
-        <Button
-          als="flex-end"
-          bg="$background"
-          borderRadius="$6"
-          jc="space-between"
-          onPress={onPress}
-          // py={15}
-          pressStyle={{
-            zIndex: "$4",
-            backgroundColor: "#f5f5f5",
+    <BottomSheet isOpen={isOpen}>
+      {/*<BottomSheet.Trigger asChild>
+        <Button variant="secondary">Open Bottom Sheet</Button>
+      </BottomSheet.Trigger>*/}
+      <BottomSheet.Portal>
+        <BottomSheet.Overlay />
+        <BottomSheet.Content
+          backgroundClassName="bg-transparent rounded-none"
+          contentContainerClassName="p-0"
+          contentContainerProps={{
+            style: StyleSheet.absoluteFill,
           }}
-          w="80%"
-          zi="$3"
+          enableDynamicSizing={false}
+          enableOverDrag={false}
+          enablePanDownToClose={false}
+          handleComponent={null}
+          snapPoints={["95%"]}
         >
-          <Button.Text color="$color">Continue </Button.Text>
-          <Button.Icon color="black">
-            <CaretRightIcon />
-          </Button.Icon>
-        </Button>
-        {renderAd()}
-      </Sheet.Frame>
-    </Sheet>
+          <View className="flex-1 gap-3">
+            <View className="gap-3">
+              <Button
+                className="w-[80%] justify-end self-end bg-white"
+                onPress={onClose}
+                size="sm"
+                variant="tertiary"
+              >
+                <Button.Label>Continue</Button.Label>
+                <Icon name={CaretRightIcon} size={20} />
+              </Button>
+            </View>
+            <View className="flex-1 bg-white">{renderAd()}</View>
+          </View>
+        </BottomSheet.Content>
+      </BottomSheet.Portal>
+    </BottomSheet>
   );
 };
 

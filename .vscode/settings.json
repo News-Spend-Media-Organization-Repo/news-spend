@@ -35,7 +35,6 @@
   ],
   "debug.console.closeOnEnd": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit",
     "source.formatDocument": "explicit",
     "source.fixAll.biome": "explicit",
     "source.organizeImports.biome": "explicit"
@@ -43,30 +42,6 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
-  "eslint.rules.customizations": [
-    {
-      "rule": "*",
-      "severity": "warn"
-    }
-  ],
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "astro",
-    "typescript",
-    "typescriptreact"
-  ],
-  "eslint.workingDirectories": [
-    {
-      "pattern": "apps/*/"
-    },
-    {
-      "pattern": "packages/*/"
-    },
-    {
-      "pattern": "tooling/*/"
-    }
-  ],
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.astro": true,
@@ -87,12 +62,26 @@
     "**/node_modules": true
   },
   "files.insertFinalNewline": true,
-  "prettier.documentSelectors": ["**/*.astro"],
+  "prettier.documentSelectors": [
+    "**/*.astro"
+  ],
   "tailwindCSS.experimental.classRegex": [
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
-    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
-    ["(?:twMerge|twJoin|cn)\\(([^\\);]*)[\\);]", "[`'\"`]([^'\"`,;]*)[`'\"`]"],
-    ["className[=:]\\s*", "[\"'`]([^\"'`]*)[\"'`]"]
+    [
+      "cva\\(([^)]*)\\)",
+      "[\"'`]([^\"'`]*).*?[\"'`]"
+    ],
+    [
+      "cx\\(([^)]*)\\)",
+      "(?:'|\"|`)([^']*)(?:'|\"|`)"
+    ],
+    [
+      "(?:twMerge|twJoin|cn)\\(([^\\);]*)[\\);]",
+      "[`'\"`]([^'\"`,;]*)[`'\"`]"
+    ],
+    [
+      "className[=:]\\s*",
+      "[\"'`]([^\"'`]*)[\"'`]"
+    ]
   ],
   "tailwindCSS.experimental.configFile": "./tooling/tailwind/src/tailwind.ts",
   "typescript.enablePromptUseWorkspaceTsdk": true,

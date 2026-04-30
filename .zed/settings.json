@@ -2,6 +2,22 @@
   "format_on_save": "on",
   "formatter": "language_server",
   "lsp": {
+    "vtsls": {
+      "settings": {
+        "typescript": {
+          "tsserver": {
+            "maxTsServerMemory": 4096
+          },
+          "disableAutomaticTypeAcquisition": true
+        },
+        "javascript": {
+          "tsserver": {
+            "maxTsServerMemory": 4096
+          },
+          "disableAutomaticTypeAcquisition": true
+        }
+      }
+    },
     "tailwindcss-language-server": {
       "settings": {
         "classAttributes": [
@@ -37,15 +53,6 @@
         "classFunctions": [
           "useResolveClassNames"
         ]
-      }
-    },
-    "typescript-language-server": {
-      "settings": {
-        "typescript": {
-          "preferences": {
-            "includePackageJsonAutoImports": "on"
-          }
-        }
       }
     },
     "oxfmt": {

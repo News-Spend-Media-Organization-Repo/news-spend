@@ -4,14 +4,26 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "#/*": ["src/*"],
-      "#/images/*": ["assets/images/*"],
-      "~/*": ["./*"],
-      "@/*": ["./*"]
+      "#/*": [
+        "src/*"
+      ],
+      "#/images/*": [
+        "assets/images/*"
+      ],
+      "~/*": [
+        "./*"
+      ],
+      "@/*": [
+        "./*"
+      ]
     },
     "strictNullChecks": true,
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "ignoreDeprecations": "6.0"
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
 }
