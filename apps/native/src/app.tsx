@@ -1,3 +1,4 @@
+import "./global.css";
 import "react-native-url-polyfill/auto";
 import { useMMKVDevTools } from "@rozenite/mmkv-plugin";
 import { useReactNavigationDevTools } from "@rozenite/react-navigation-plugin";
@@ -7,8 +8,8 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect } from "react";
 import mobileAds from "react-native-google-mobile-ads";
+import { Uniwind } from "uniwind";
 import { useSnapshot } from "valtio";
-
 import AppOpenAd from "./components/Ads/AppOpenAd";
 import LotteryReward from "./components/dialogs/LotteryReward";
 import useCachedResources from "./hooks/useCachedResources";
@@ -20,10 +21,12 @@ import { CONSTANTS } from "./navigation/constants";
 import { linking } from "./navigation/linking";
 import { navigationRef, useNavigationPersistence } from "./navigation/navigationUtils";
 import { Provider } from "./provider";
-import { authState, hydrateAuth } from "./state/auth";
 import { preloadAds } from "./state/adManager";
+import { authState, hydrateAuth } from "./state/auth";
 import { createMMKVPersister } from "./utils/clientPersister";
 import { storage } from "./utils/storage";
+
+Uniwind.setTheme("light");
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,7 +45,7 @@ initSentry();
 hydrateAuth();
 preloadAds(["news-click-ads", "discover-tab"]);
 
-function AppContent() {
+export function App() {
   useTanStackQueryDevTools(queryClient);
   useReactNavigationDevTools({ ref: navigationRef });
   useMMKVDevTools({
@@ -108,6 +111,4 @@ function AppContent() {
   );
 }
 
-export default Sentry.wrap(function App() {
-  return <AppContent />;
-});
+export default Sentry.wrap(App);

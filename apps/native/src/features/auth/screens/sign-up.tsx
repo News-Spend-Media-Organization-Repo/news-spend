@@ -1,24 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
-import {
-  Controller,
-  FormProvider,
-  type SubmitHandler,
-  useForm,
-} from "react-hook-form";
-import {
-  KeyboardAwareScrollView,
-  KeyboardController,
-} from "react-native-keyboard-controller";
+import { Spinner } from "heroui-native";
+import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
+import { View } from "react-native";
+import { KeyboardAwareScrollView, KeyboardController } from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
-import { H2, Spinner, Stack, Text, YStack } from "tamagui";
 import * as z from "zod";
-
-import { Screen } from "#/components/Screen";
-import FormInput from "#/components/text-input";
-import { Button } from "#/components/ui";
-import Select from "#/components/ui/select";
-
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import { FormSelectField } from "#/components/heroui/select";
+import { StandardItem } from "#/components/heroui/select-item";
+import { Text } from "#/components/heroui/text";
+import FormInput from "#/components/heroui/text-input";
 import useSignUp from "../hooks/useSignUp";
 
 const schema = z.object({
@@ -27,26 +20,31 @@ const schema = z.object({
     .trim()
     .min(3, "Name must be at least 3 characters")
     .max(30, "Name must not exceed 30 characters"),
-  email: z.email("Please enter a valid email address").trim(),
-  password: z
-    .string("Please enter a password")
-    .min(8, "Password must be at least 8 characters"),
+  email: z
+    .string("Enter a valid email address")
+    .trim()
+    .toLowerCase()
+    .check(z.email("Invalid email address")),
+  password: z.string("Please enter a password").min(8, "Password must be at least 8 characters"),
   username: z
     .string("Please enter a username")
     .min(3, "Username must be at least 3 characters")
     .max(30, "Username must not exceed 30 characters")
     .trim()
-    .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Username can only contain letters, numbers and underscores"
-    ),
+    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
   phone: z
     .string("Please enter your phone number")
     .trim()
     .min(10, "Phone number must be at least 10 digits")
     .max(15, "Phone number must not exceed 15 digits")
     .regex(/^\+?[0-9]+$/, "Please enter a valid phone number"),
-  wish: z.string("Please select your wish"),
+  wish: z.object(
+    {
+      label: z.string(),
+      value: z.string("Select your wish"),
+    },
+    "Select your wish",
+  ),
 });
 
 const defaultValues = {
@@ -55,7 +53,6 @@ const defaultValues = {
   password: "123456qwerty",
   username: "ricky",
   phone: "1234567890",
-  // wish: "I want to relocate abroad",
 };
 
 export type SignUpInput = z.input<typeof schema>;
@@ -71,188 +68,160 @@ export default function SignUp() {
 
   const onSubmit: SubmitHandler<SignUpInput> = (input) => {
     KeyboardController.dismiss();
+    const { wish, ...rest } = input;
 
-    signUpMutation.mutate(input, {
-      onSuccess({ data, error }) {
-        if (!error) {
-          navigation.navigate("Verification", {
-            email: input.email,
-            otpSent: true,
-          });
-        }
-
-        if (error) {
-          if (error.message?.endsWith("email already exists")) {
-            return formMethods.setError("email", {
-              type: "server",
-              message: error.message,
+    signUpMutation.mutate(
+      {
+        ...rest,
+        wish: wish.value,
+      },
+      {
+        onSuccess({ data, error }) {
+          if (!error) {
+            navigation.navigate("Verification", {
+              email: input.email,
+              otpSent: true,
             });
           }
 
-          if (
-            error.code === "VALIDATION_FAILED" &&
-            // @ts-expect-error
-            error.cause?.name === "ZodError"
-          ) {
-            // @ts-expect-error
-            for (const issue of error.issues) {
-              const fieldName = issue.path[0] as keyof SignUpInput;
-
-              formMethods.setError(fieldName, {
+          if (error) {
+            if (error.message?.endsWith("email already exists")) {
+              return formMethods.setError("email", {
                 type: "server",
-                message: issue.message,
+                message: error.message,
               });
             }
 
-            return;
-          }
+            if (
+              error.code === "VALIDATION_FAILED" &&
+              // @ts-expect-error
+              error.cause?.name === "ZodError"
+            ) {
+              // @ts-expect-error
+              for (const issue of error.issues) {
+                const fieldName = issue.path[0] as keyof SignUpInput;
 
+                formMethods.setError(fieldName, {
+                  type: "server",
+                  message: issue.message,
+                });
+              }
+
+              return;
+            }
+
+            toast.error("Sign Up Failed", {
+              description: "Please check your information and try again",
+            });
+          }
+        },
+        onError(error) {
           toast.error("Sign Up Failed", {
-            description: "Please check your information and try again",
+            description: "Something went wrong. Please check your connection and try again.",
           });
-        }
-        // setToken(res.token);
-        // setUser(data.user);
+        },
       },
-      onError(error) {
-        console.log("🚀 ~ file: sign-up.tsx:89 ~ onError ~ error:", error);
-        toast.error("Sign Up Failed", {
-          description:
-            "Something went wrong. Please check your connection and try again.",
-        });
-      },
-    });
+    );
   };
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]}>
       <KeyboardAwareScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 12,
-        }}
+        className="px-3"
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-        <H2 mb="$8" mt="$5" ta="center">
-          Create Account
-        </H2>
-        <Stack gap="$9">
+        <Text className="mt-5 mb-8 text-center font-bold text-2xl">Create Account</Text>
+        <View className="flex-col gap-9">
           <FormProvider {...formMethods}>
-            <YStack gap="$4.5">
+            <View className="flex-col gap-4">
               <FormInput name="name" placeholder="First Name" />
               <FormInput name="username" placeholder="Username" />
-              <FormInput
-                keyboardType="phone-pad"
-                name="phone"
-                placeholder="Phone"
+              <FormInput isMultiline name="phone" placeholder="Phone" />
+              <FormInput name="email" placeholder="Email" />
+              <FormInput isPassword name="password" placeholder="Password" />
+
+              <FormSelectField
+                name="wish"
+                options={options}
+                placeholder="Make a wish"
+                renderItem={(option, { isSelected }) => (
+                  <StandardItem isSelected={isSelected} label={option.label} />
+                )}
+                scrollable
               />
-              <FormInput
-                keyboardType="email-address"
-                name="email"
-                placeholder="Email"
-              />
-              <FormInput
-                name="password"
-                placeholder="Password"
-                secureTextEntry
-              />
-              <YStack gap="$1.5">
-                <Controller
-                  control={formMethods.control}
-                  name="wish"
-                  render={({ field: { onChange, value } }) => (
-                    <Select
-                      onChange={onChange}
-                      options={options}
-                      placeholder="Make a wish"
-                      snapPoints={[90]}
-                      snapPointsMode="percent"
-                      value={value}
-                    />
-                  )}
-                />
-                {formMethods.formState.errors.wish ? (
-                  <Text color="red" pl="$2">
-                    {formMethods.formState.errors.wish?.message}
-                  </Text>
-                ) : null}
-              </YStack>
-            </YStack>
+            </View>
           </FormProvider>
           <Button
-            disabled={signUpMutation.isPending}
+            isDisabled={signUpMutation.isPending}
             onPress={formMethods.handleSubmit(onSubmit)}
           >
-            {signUpMutation.isPending ? (
-              <Button.Icon>
-                <Spinner color="$s50" />
-              </Button.Icon>
-            ) : null}
-            <Button.Text>Submit</Button.Text>
+            {signUpMutation.isPending ? <Spinner /> : null}
+            <Button.Label>Submit</Button.Label>
           </Button>
-        </Stack>
+        </View>
       </KeyboardAwareScrollView>
     </Screen>
   );
 }
 
 const options = [
-  { title: "I want business capital", value: "I want business capital" },
-  { title: "I want to relocate abroad", value: "I want to relocate abroad" },
-  { title: "Vacation expenses paid", value: "Vacation expenses paid" },
-  { title: "I want business partner", value: "I want business partner" },
-  { title: "Oversea study scholarship", value: "Oversea study scholarship" },
+  { label: "I want business capital", value: "I want business capital" },
+  { label: "I want to relocate abroad", value: "I want to relocate abroad" },
+  { label: "Vacation expenses paid", value: "Vacation expenses paid" },
+  { label: "I want business partner", value: "I want business partner" },
+  { label: "Oversea study scholarship", value: "Oversea study scholarship" },
   {
-    title: "An all expense-paid vacation to your dream destination",
+    label: "An all expense-paid vacation to your dream destination",
     value: "An all expense-paid vacation to your dream destination",
   },
   {
-    title: "A brand-new laptop for work or study",
+    label: "A brand-new laptop for work or study",
     value: "A brand-new laptop for work or study",
   },
   {
-    title: "Visa application assistance",
+    label: "Visa application assistance",
     value: "Visa application assistance",
   },
   {
-    title: "Business capital to kickstart or expand business",
+    label: "Business capital to kickstart or expand business",
     value: "Business capital to kickstart or expand business",
   },
-  { title: "Study abroad scholarship", value: "Study abroad scholarship" },
+  { label: "Study abroad scholarship", value: "Study abroad scholarship" },
   {
-    title: "A fully-funded online tech skills program",
+    label: "A fully-funded online tech skills program",
     value: "A fully-funded online tech skills program",
   },
   {
-    title: "Free groceries for an entire month",
+    label: "Free groceries for an entire month",
     value: "Free groceries for an entire month",
   },
   {
-    title: "Rent support for a whole year",
+    label: "Rent support for a whole year",
     value: "Rent support for a whole year",
   },
   {
-    title: "An exciting shopping spree experience",
+    label: "An exciting shopping spree experience",
     value: "An exciting shopping spree experience",
   },
   {
-    title: "Seed funding to launch your startup",
+    label: "Seed funding to launch your startup",
     value: "Seed funding to launch your startup",
   },
   {
-    title: "Comprehensive health insurance coverage",
+    label: "Comprehensive health insurance coverage",
     value: "Comprehensive health insurance coverage",
   },
   {
-    title: "Assistance with paying off outstanding debts",
+    label: "Assistance with paying off outstanding debts",
     value: "Assistance with paying off outstanding debts",
   },
   {
-    title: "6 month paid gym membership",
+    label: "6 month paid gym membership",
     value: "6 month paid gym membership",
   },
   {
-    title: "A complete home makeover/ furnishing package",
+    label: "A complete home makeover/ furnishing package",
     value: "A complete home makeover/ furnishing package",
   },
 ];

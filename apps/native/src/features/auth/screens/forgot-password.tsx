@@ -1,20 +1,24 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft } from "@tamagui/lucide-icons";
+import { Spinner } from "heroui-native";
+import { ArrowLeftIcon } from "phosphor-react-native";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
-import { Keyboard } from "react-native";
+import { Keyboard, Pressable, View } from "react-native";
 import { toast } from "sonner-native";
-import { H2, Spinner, Stack, Text } from "tamagui";
 import { z } from "zod";
-
-import { Screen } from "#/components/Screen";
-import FormInput from "#/components/text-input";
-import { Button } from "#/components/ui";
-
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import FormInput from "#/components/heroui/text-input";
 import useForgotPassword from "../hooks/useForgotPassword";
 
 const schema = z.object({
-  email: z.string().trim().check(z.email()).toLowerCase(),
+  email: z
+    .string("Enter a valid email address")
+    .trim()
+    .toLowerCase()
+    .check(z.email("Invalid email address")),
 });
 
 export type ForgotPasswordInput = z.infer<typeof schema>;
@@ -28,10 +32,9 @@ const ForgotPassword = () => {
 
   const onSubmit: SubmitHandler<ForgotPasswordInput> = (data) => {
     resetMutation.mutate(data, {
-      onError(error) {
+      onError(_error) {
         toast.error("Reset Failed", {
-          description:
-            "Unable to send reset link. Please check your email address and try again.",
+          description: "Unable to send reset link. Please check your email address and try again.",
         });
       },
       onSuccess({ data, error }) {
@@ -44,8 +47,7 @@ const ForgotPassword = () => {
         }
         navigation.replace("SignIn");
         toast.success("Check Your Email", {
-          description:
-            "We've sent a password reset link to your email address.",
+          description: "We've sent a password reset link to your email address.",
         });
       },
     });
@@ -54,36 +56,33 @@ const ForgotPassword = () => {
   };
 
   return (
-    <Screen bg="$background" pt="$4" px="$2.5" safeAreaEdges={["bottom"]}>
-      <ArrowLeft onPress={() => navigation.goBack()} />
+    <Screen className="px-6 pt-safe-offset-5" safeAreaEdges={["bottom"]}>
+      <Pressable hitSlop={10} onPress={() => navigation.goBack()}>
+        <Icon className="size-6" name={ArrowLeftIcon} />
+      </Pressable>
 
-      <Stack flex={1} gap="$11" mt="$8">
-        <Stack gap="$5">
-          <H2 ta="center">Forgot Password</H2>
-          <Text color="#737373">
-            Don't worry! It occurs. Please enter the email address linked with
-            your account.
+      <View className="mt-8 flex-1 gap-11">
+        <View className="gap-5">
+          <Text className="text-center font-bold text-3xl">Forgot Password</Text>
+          <Text className="text-center text-gray-500">
+            Don't worry! It occurs. Please enter the email address linked with your account.
           </Text>
 
           <FormProvider {...formMethods}>
-            <Stack mt="$5">
+            <View className="mt-5">
               <FormInput name="email" placeholder="example@email.com" />
-            </Stack>
+            </View>
           </FormProvider>
-        </Stack>
+        </View>
         <Button
-          disabled={resetMutation.isPending}
-          mt="$3"
+          className="mt-3"
+          isDisabled={resetMutation.isPending}
           onPress={formMethods.handleSubmit(onSubmit)}
         >
-          {resetMutation.isPending ? (
-            <Button.Icon>
-              <Spinner color="$s50" />
-            </Button.Icon>
-          ) : null}
-          <Button.Text>Send Code</Button.Text>
+          {resetMutation.isPending ? <Spinner /> : null}
+          <Button.Label>Send Code</Button.Label>
         </Button>
-      </Stack>
+      </View>
     </Screen>
   );
 };

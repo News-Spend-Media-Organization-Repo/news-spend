@@ -1,16 +1,19 @@
+import { useNavigation } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
-import { H2, Image, Stack, Text } from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui";
+import { Image, View } from "react-native";
+import { useSnapshot } from "valtio";
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { authClient } from "#/lib/authClient";
-import { setAuthSession } from "#/state/auth";
-
+import { authState, setAuthSession } from "#/state/auth";
 import { userQueryOptions } from "../hooks/useUser";
 
 export default function RegSuccess() {
   const { data, isPending, error } = authClient.useSession();
   const queryClient = useQueryClient();
+  const navigation = useNavigation();
+  const { status } = useSnapshot(authState);
 
   const onContinue = () => {
     if (!data?.user) {
@@ -18,24 +21,30 @@ export default function RegSuccess() {
     }
     queryClient.setQueryData(userQueryOptions.queryKey, data);
     setAuthSession(data, "signIn");
+    // When the session already exists (status is already "signIn"), the auth
+    // state doesn't change so React Navigation won't auto-reset to Tab.
+    // Navigate explicitly in that case.
+    if (status === "signIn") {
+      navigation.reset({ index: 0, routes: [{ name: "Tab" }] });
+    }
   };
+
   return (
-    <Screen bg="$background" px="$2.5" safeAreaEdges={["bottom"]}>
-      <Stack ai="center" flex={1} jc="flex-end" mb="$6">
-        <Image source={require("#/images/Group-5.jpg")} />
-      </Stack>
-      <Stack ai="center" gap="$15">
-        <H2 color="$s200">Registration Successful</H2>
+    <Screen className="px-6" safeAreaEdges={["bottom"]}>
+      <View className="mb-6 flex-1 items-center justify-center">
+        <Image className="size-full object-contain" source={require("#/images/Group-5.jpg")} />
+      </View>
+      <View className="mb-8 items-center gap-3">
+        <Text className="font-bold text-gray-600 text-xl">Registration Successful</Text>
         <Text>You have been awarded with 500 points</Text>
-        <Button
-          disabled={Boolean(error) || isPending}
-          mb="$10"
-          onPress={onContinue}
-          w="100%"
-        >
-          <Button.Text>Continue</Button.Text>
-        </Button>
-      </Stack>
+      </View>
+      <Button
+        className="mb-10 w-full"
+        isDisabled={Boolean(error) || isPending}
+        onPress={onContinue}
+      >
+        <Button.Label>Continue</Button.Label>
+      </Button>
     </Screen>
   );
 }

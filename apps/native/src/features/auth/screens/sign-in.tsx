@@ -1,28 +1,23 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
+import { Spinner } from "heroui-native";
 import { useState } from "react";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
-import { Keyboard } from "react-native";
-import { H2, Paragraph, Spinner, Stack, Text, Unspaced, YStack } from "tamagui";
+import { Keyboard, View } from "react-native";
 import * as z from "zod";
-
-import { Screen } from "#/components/Screen";
-import FormInput from "#/components/text-input";
-import { Button } from "#/components/ui/Button";
-import { authState } from "#/state/auth";
-
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import FormInput from "#/components/heroui/text-input";
 import useLogin from "../hooks/useLogin";
 
 const schema = z.object({
   email: z
-    .string("Email is required")
+    .string("Enter an email")
     .trim()
-    .check(
-      z.email({
-        message: "Invalid email",
-      })
-    ),
-  password: z.string("Password is required"),
+    .min(1, "Email cannot be empty")
+    .check(z.email({ message: "Invalid email" })),
+  password: z.string("Enter a password").min(1, "Password is required"),
 });
 
 const defaultValues = {
@@ -30,7 +25,7 @@ const defaultValues = {
   password: "123456qwerty",
 };
 
-export type LoginInput = z.input<typeof schema>; // TODO: move to schema file
+export type LoginInput = z.input<typeof schema>;
 
 export default function SignIn() {
   const navigation = useNavigation();
@@ -41,74 +36,50 @@ export default function SignIn() {
     defaultValues: __DEV__ ? defaultValues : undefined,
   });
 
-  const { handleSubmit, setError } = formMethods;
+  const { handleSubmit } = formMethods;
 
   const onSubmit: SubmitHandler<LoginInput> = (data) => {
     setServerError(null);
     Keyboard.dismiss();
-
     loginMutation.mutate(data, {});
   };
 
   return (
-    <Screen bg="$background" px="$2.5" safeAreaEdges={["bottom"]}>
-      <H2 maxWidth={300} mb="$11" mt="$7">
+    <Screen className="px-6 pt-4" safeAreaEdges={["bottom"]}>
+      <Text className="mt-7 mb-11 max-w-75 font-bold text-3xl">
         Welcome back! Glad to see you, Again!
-      </H2>
-      <Stack gap="$9">
+      </Text>
+      <View className="flex-col gap-9">
         <FormProvider {...formMethods}>
-          <YStack gap="$5">
-            <FormInput
-              keyboardType="email-address"
-              name="email"
-              placeholder="Email"
-            />
-            <FormInput name="password" placeholder="Password" secureTextEntry />
-            <Unspaced>
-              <Stack gap="$2" mt="$2">
-                {serverError ? (
-                  <Paragraph color="red" fos="$4">
-                    {serverError}
-                  </Paragraph>
-                ) : null}
-                {/* <Link href="/forgot-password" asChild> */}
-                <Paragraph
-                  als="flex-end"
-                  color="$color.gray.50"
-                  onPress={() => navigation.navigate("ForgotPassword")}
-                  size="$3"
-                >
-                  Forgot password?
-                </Paragraph>
-                {/* </Link> */}
-              </Stack>
-            </Unspaced>
-          </YStack>
+          <View className="flex-col gap-5">
+            <FormInput name="email" placeholder="Email" />
+            <FormInput isPassword name="password" placeholder="Password" />
+
+            <View className="mt-2 flex-col gap-2">
+              {serverError ? <Text className="text-lg text-red-500">{serverError}</Text> : null}
+              <Text
+                className="text-right text-gray-500 text-sm"
+                onPress={() => navigation.navigate("ForgotPassword")}
+              >
+                Forgot password?
+              </Text>
+            </View>
+          </View>
         </FormProvider>
-        <Button
-          disabled={loginMutation.isPending}
-          // onPress={() => (authState.isGuest = true)}
-          onPress={handleSubmit(onSubmit)}
-        >
-          {loginMutation.isPending ? (
-            <Button.Icon color="$50">
-              <Spinner />
-            </Button.Icon>
-          ) : null}
-          <Button.Text>Sign In</Button.Text>
+        <Button isDisabled={loginMutation.isPending} onPress={handleSubmit(onSubmit)}>
+          {loginMutation.isPending ? <Spinner /> : null}
+          <Button.Label>Sign In</Button.Label>
         </Button>
-      </Stack>
-      <Paragraph fontSize="$3" mb="$6" mt="auto" ta="center">
-        Don&apos;t have an account?
+      </View>
+      <Text className="mt-auto mb-6 text-center text-sm">
+        Don&apos;t have an account?{" "}
         <Text
-          color="$s300"
-          fontSize="$3"
-          fontWeight="700"
+          className="font-bold text-primary text-sm"
           onPress={() => navigation.navigate("SignUp")}
         >
           Register here
         </Text>
-      </Paragraph>
+      </Text>
     </Screen>
   );
 }
