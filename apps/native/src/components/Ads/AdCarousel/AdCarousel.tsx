@@ -141,7 +141,7 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
         <Text color="$gray.50" flex={1} numberOfLines={2}>
           {item.title}: {item.condition}
         </Text>
-        <Button ghost h="auto" onPress={() => console.log(adCarouselRef.current?.isPlaying())}>
+        <Button ghost h="auto" onPress={onShare}>
           <Button.Icon color="black">
             <Share2 />
           </Button.Icon>
