@@ -43,7 +43,7 @@ export function FormTextInput({
             <Input
               autoCapitalize="none"
               className={cn(
-                "flex-1 rounded-lg border-[oklch(0.90_0.004_286.32)] px-4 android:shadow-none",
+                "flex-1 rounded-lg border-field-border px-4 android:shadow-none",
                 isPassword && "pr-10",
               )}
               multiline={isMultiline}

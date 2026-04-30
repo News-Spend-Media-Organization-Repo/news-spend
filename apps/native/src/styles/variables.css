@@ -16,7 +16,7 @@
     --s-500: oklch(0.559 0.0778 73.22);
     --gray-50: oklch(0.556 0 0);
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     --color-p-50: var(--p-50);
     --color-p-75: var(--p-75);
@@ -34,6 +34,4 @@
     --color-s-400: var(--s-400);
     --color-s-500: var(--s-500);
     --color-gray-50: var(--gray-50);
-
-    --field-border: oklch(0.90 0.004 286.32);
 }
