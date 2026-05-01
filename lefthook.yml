@@ -6,6 +6,8 @@ pre-commit:
         - "**/*.jsx"
         - "**/*.ts"
         - "**/*.tsx"
+      exclude:
+        - "**/*-types.d.ts"
       stage_fixed: true
     - run: bun run oxfmt --write {staged_files}
       glob:
@@ -13,4 +15,6 @@ pre-commit:
         - "**/*.jsx"
         - "**/*.ts"
         - "**/*.tsx"
+      exclude:
+        - "**/*-types.d.ts"
       stage_fixed: true
