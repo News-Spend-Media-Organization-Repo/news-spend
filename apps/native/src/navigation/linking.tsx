@@ -7,6 +7,22 @@ import { routeState } from "#/state/route-state";
 
 const prefixes = [Linking.createURL(""), "https://link.newsspend.com/"];
 
+// ---------------------------------------------------------------------------
+// Detour bridge — lets the DetourDeepLinkHandler feed deferred-install URLs
+// into React Navigation's subscriber without coupling the two modules.
+// ---------------------------------------------------------------------------
+let _deeplinkListener: ((url: string) => void) | null = null;
+let _pendingDeeplinkUrl: string | null = null;
+
+export function notifyDeepLink(url: string) {
+  if (_deeplinkListener) {
+    _deeplinkListener(url);
+  } else {
+    // NavigationContainer hasn't subscribed yet — stash and flush on subscribe.
+    _pendingDeeplinkUrl = url;
+  }
+}
+
 function ensureScheme(url: string) {
   // Check if the URL already starts with any of the valid schemes
   if (prefixes.some((scheme) => url?.startsWith(scheme))) {
@@ -45,6 +61,14 @@ export const linking: LinkingOptions<RootParamList> = {
     }
   },
   subscribe(listener) {
+    _deeplinkListener = listener;
+
+    // Flush any deferred link that arrived before navigation was ready.
+    if (_pendingDeeplinkUrl) {
+      listener(ensureScheme(_pendingDeeplinkUrl));
+      _pendingDeeplinkUrl = null;
+    }
+
     const onReceiveURL = ({ url }: { url: string }) => {
       listener(ensureScheme(url));
     };
@@ -83,6 +107,7 @@ export const linking: LinkingOptions<RootParamList> = {
     );
 
     return () => {
+      _deeplinkListener = null;
       eventListenerSub.remove();
       notificationListenerSub.remove();
     };
