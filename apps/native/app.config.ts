@@ -67,7 +67,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...config.ios,
       bundleIdentifier: `${PACKAGE_NAME}${packageSuffix}`,
       buildNumber: VERSION,
-      associatedDomains: ["applinks:link.newsspend.com"],
+      associatedDomains: ["applinks:link.newsspend.com", "applinks:newspend.godetour.link"],
     },
     extra: {
       pushbaseAppId: "81cf379f-92d1-4a78-b9e8-6728fd919562",

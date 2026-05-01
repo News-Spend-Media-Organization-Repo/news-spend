@@ -15,5 +15,5 @@ export const detourConfig: Config = {
   apiKey: process.env.EXPO_PUBLIC_DETOUR_API_KEY as string,
   appID: process.env.EXPO_PUBLIC_DETOUR_APP_ID as string,
   shouldUseClipboard: false,
-  linkProcessingMode: "deferred-only",
+  linkProcessingMode: "web-only",
 };

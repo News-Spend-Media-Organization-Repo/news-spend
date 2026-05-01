@@ -5,7 +5,11 @@ import * as Notifications from "expo-notifications";
 import { segmentClient } from "#/lib/segmentClient";
 import { routeState } from "#/state/route-state";
 
-const prefixes = [Linking.createURL(""), "https://link.newsspend.com/"];
+const prefixes = [
+  Linking.createURL(""),
+  "https://link.newsspend.com/",
+  "https://newspend.godetour.link/",
+];
 
 // ---------------------------------------------------------------------------
 // Detour bridge — lets the DetourDeepLinkHandler feed deferred-install URLs
