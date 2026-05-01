@@ -52,8 +52,18 @@ export default function SignIn() {
       <View className="flex-col gap-9">
         <FormProvider {...formMethods}>
           <View className="flex-col gap-5">
-            <FormInput name="email" placeholder="Email" />
-            <FormInput isPassword name="password" placeholder="Password" />
+            <FormInput
+              keyboardType="email-address"
+              name="email"
+              placeholder="Email"
+              textContentType="emailAddress"
+            />
+            <FormInput
+              isPassword
+              name="password"
+              placeholder="Password"
+              textContentType="password"
+            />
 
             <View className="mt-2 flex-col gap-2">
               {serverError ? <Text className="text-lg text-red-500">{serverError}</Text> : null}

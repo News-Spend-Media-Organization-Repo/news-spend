@@ -135,10 +135,16 @@ export default function SignUp() {
         <View className="flex-col gap-9">
           <FormProvider {...formMethods}>
             <View className="flex-col gap-4">
-              <FormInput name="name" placeholder="First Name" />
-              <FormInput name="username" placeholder="Username" />
-              <FormInput isMultiline name="phone" placeholder="Phone" />
-              <FormInput name="email" placeholder="Email" />
+              <FormInput name="name" placeholder="First Name" textContentType="name" />
+              <FormInput name="username" placeholder="Username" textContentType="username" />
+              <FormInput name="phone" placeholder="Phone" textContentType="telephoneNumber" />
+              <FormInput
+                autoCapitalize="none"
+                keyboardType="email-address"
+                name="email"
+                placeholder="Email"
+                textContentType="emailAddress"
+              />
               <FormInput isPassword name="password" placeholder="Password" />
 
               <FormSelectField

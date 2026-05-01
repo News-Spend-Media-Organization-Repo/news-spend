@@ -81,8 +81,18 @@ const ResetPassword = () => {
           <Text className="text-center font-bold text-3xl">Change Password</Text>
           <FormProvider {...formMethods}>
             <View className="gap-5">
-              <FormInput isPassword name="password" placeholder="New password" />
-              <FormInput isPassword name="confirmPassword" placeholder="Confirm new password" />
+              <FormInput
+                isPassword
+                name="password"
+                placeholder="New password"
+                textContentType="newPassword"
+              />
+              <FormInput
+                isPassword
+                name="confirmPassword"
+                placeholder="Confirm new password"
+                textContentType="newPassword"
+              />
             </View>
           </FormProvider>
         </View>
