@@ -1,18 +1,11 @@
 import { LegendList } from "@legendapp/list/react-native";
-import type { Partner } from "@news-spend-media/payload/types";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Tabs } from "heroui-native/tabs";
 import { useState } from "react";
-import {
-  Paragraph,
-  Separator,
-  SizableText,
-  Spinner,
-  Stack,
-  Tabs,
-} from "tamagui";
+import { ActivityIndicator, View } from "react-native";
 
-import { Screen } from "#/components/Screen";
-import { tokens } from "#/constants/tokens";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { useFavoriteStores } from "#/state/favoriteStoreState";
@@ -39,7 +32,7 @@ function ShopHome() {
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
-    })
+    }),
   );
 
   const {
@@ -66,90 +59,55 @@ function ShopHome() {
   const allStores = allStoresData?.pages.flatMap((page) => page.docs) ?? [];
 
   return (
-    <Screen gap="$4">
+    <Screen preset="fixed">
       <Tabs
-        defaultValue="allStores"
-        flexDirection="column"
-        mx="$2"
+        className="mx-2 flex-1 pt-4"
         onValueChange={setActiveTab}
-        overflow="hidden"
-        pt="$4"
         value={activeTab}
+        variant="primary"
       >
-        <Tabs.List
-          borderColor="$borderColor"
-          borderRadius="$4"
-          borderWidth="$0.25"
-          disablePassBorderRadius
-          overflow="hidden"
-        >
-          <Tabs.Tab
-            borderRadius={0}
-            flex={1}
-            style={{
-              backgroundColor:
-                activeTab === "allStores"
-                  ? tokens.color.p400.val
-                  : "transparent",
-            }}
-            value="allStores"
-          >
-            <SizableText
-              {...(activeTab === "allStores" && { color: "$background" })}
-            >
-              All Stores
-            </SizableText>
-          </Tabs.Tab>
-          <Separator vertical />
-          <Tabs.Tab
-            borderRadius={0}
-            flex={1}
-            style={{
-              backgroundColor:
-                activeTab === "popular" ? tokens.color.p400.val : "transparent",
-            }}
-            value="popular"
-          >
-            <SizableText
-              {...(activeTab === "popular" && { color: "$background" })}
-            >
-              Popular
-            </SizableText>
-          </Tabs.Tab>
-          <Separator vertical />
-          <Tabs.Tab
-            borderRadius={0}
-            flex={1}
-            style={{
-              backgroundColor:
-                activeTab === "favorites"
-                  ? tokens.color.p400.val
-                  : "transparent",
-            }}
-            value="favorites"
-          >
-            <SizableText
-              {...(activeTab === "favorites" && { color: "$background" })}
-            >
-              Favorites
-            </SizableText>
-          </Tabs.Tab>
+        <Tabs.List className="w-full justify-between rounded-lg">
+          <Tabs.Indicator className="rounded-lg bg-p-400" />
+          <Tabs.Trigger className="flex-1" value="allStores">
+            {({ isSelected }) => (
+              <Tabs.Label className={isSelected ? "text-accent-foreground" : "text-foreground"}>
+                All Stores
+              </Tabs.Label>
+            )}
+          </Tabs.Trigger>
+          <Tabs.Separator betweenValues={["allStores", "popular"]} />
+          <Tabs.Trigger className="flex-1" value="popular">
+            {({ isSelected }) => (
+              <Tabs.Label className={isSelected ? "text-accent-foreground" : "text-foreground"}>
+                Popular
+              </Tabs.Label>
+            )}
+          </Tabs.Trigger>
+          <Tabs.Separator betweenValues={["popular", "favorites"]} />
+          <Tabs.Trigger className="flex-1" value="favorites">
+            {({ isSelected }) => (
+              <Tabs.Label className={isSelected ? "text-accent-foreground" : "text-foreground"}>
+                Favorites
+              </Tabs.Label>
+            )}
+          </Tabs.Trigger>
         </Tabs.List>
-        <Paragraph py="$2">
-          Earn credit while shopping at your favorite store
-        </Paragraph>
 
-        <Tabs.Content mb="$7" value="allStores">
+        <Text className="py-2" variant="body">
+          Earn credit while shopping at your favorite store
+        </Text>
+
+        <Tabs.Content
+          forceMount
+          style={activeTab === "allStores" ? { flex: 1 } : { display: "none" }}
+          value="allStores"
+        >
           <LegendList
-            contentContainerStyle={{
-              paddingBottom: 300,
-            }}
+            contentContainerStyle={{ paddingBottom: 300 }}
             data={allStores}
-            ItemSeparatorComponent={() => <Stack h={40} />}
+            ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id}
-            ListEmptyComponent={
-              allStoresPending || allStoresLoading ? <Spinner /> : null
-            }
+            ListEmptyComponent={allStoresPending || allStoresLoading ? <ActivityIndicator /> : null}
             onEndReached={() => {
               if (hasNextAllStores) {
                 fetchNextAllStores();
@@ -159,35 +117,42 @@ function ShopHome() {
             refreshing={isRefetchingByUser}
             renderItem={({ item }) => <ShopItem item={item} />}
             showsVerticalScrollIndicator={false}
+            style={{ flex: 1 }}
           />
         </Tabs.Content>
-        <Tabs.Content value="popular">
+
+        <Tabs.Content
+          forceMount
+          style={activeTab === "popular" ? { flex: 1 } : { display: "none" }}
+          value="popular"
+        >
           <LegendList
-            contentContainerStyle={{
-              paddingBottom: 250,
-            }}
+            contentContainerStyle={{ paddingBottom: 250 }}
             data={popularStores ?? []}
-            ItemSeparatorComponent={() => <Stack h={40} />}
+            ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id}
-            ListEmptyComponent={popularPending ? <Spinner /> : null}
+            ListEmptyComponent={popularPending ? <ActivityIndicator /> : null}
             onRefresh={refetchByUser}
             refreshing={isRefetchingByUser}
             renderItem={({ item }) => <ShopItem item={item} />}
             showsVerticalScrollIndicator={false}
+            style={{ flex: 1 }}
           />
         </Tabs.Content>
-        <Tabs.Content value="favorites">
+
+        <Tabs.Content
+          forceMount
+          style={activeTab === "favorites" ? { flex: 1 } : { display: "none" }}
+          value="favorites"
+        >
           <LegendList
-            contentContainerStyle={{
-              paddingBottom: 250,
-            }}
+            contentContainerStyle={{ paddingBottom: 250 }}
             data={favorites}
-            ItemSeparatorComponent={() => <Stack h={40} />}
+            ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id!}
-            renderItem={({ item }) => (
-              <ShopItem item={item as Readonly<Partner>} />
-            )}
+            renderItem={({ item }) => <ShopItem item={item} />}
             showsVerticalScrollIndicator={false}
+            style={{ flex: 1 }}
           />
         </Tabs.Content>
       </Tabs>
