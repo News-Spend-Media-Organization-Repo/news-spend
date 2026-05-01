@@ -5,7 +5,7 @@ import * as Notifications from "expo-notifications";
 import { segmentClient } from "#/lib/segmentClient";
 import { routeState } from "#/state/route-state";
 
-const prefixes = [Linking.createURL(""), "https://newsspend.com/"];
+const prefixes = [Linking.createURL(""), "https://link.newsspend.com/"];
 
 function ensureScheme(url: string) {
   // Check if the URL already starts with any of the valid schemes

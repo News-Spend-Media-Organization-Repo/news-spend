@@ -4,7 +4,9 @@
     "slug": "news-spend-media",
     "scheme": "news-spend",
     "description": "Read the latest news and articles from News Spend Media",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "jsEngine": "hermes",
@@ -28,11 +30,14 @@
           "data": [
             {
               "scheme": "https",
-              "host": "newsspend.com",
+              "host": "link.newsspend.com",
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
