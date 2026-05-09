@@ -6,6 +6,12 @@
       "sourceType": "github",
       "computedHash": "d2fc03a13d03678d40799726a144ba72ba1cb08126176ddbf0a0461c901aef29"
     },
+    "payload": {
+      "source": "payloadcms/skills",
+      "sourceType": "github",
+      "skillPath": "skills/payload/SKILL.md",
+      "computedHash": "868c518cec5efe3862accee8ef3751b72fac06d7e12a27c263dc17320f27b20c"
+    },
     "uniwind": {
       "source": "uni-stack/uniwind",
       "sourceType": "github",
