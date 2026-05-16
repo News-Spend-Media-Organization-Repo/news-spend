@@ -5,11 +5,8 @@ import z from "zod";
 import { protectedProcedure, publicProcedure } from "../..";
 import { withCache } from "../../lib/cache";
 import { createAdManager, DEFAULT_AD_CONFIG } from "./ad-manager";
-import {
-  fetchMainNews,
-  fetchPromoMedia,
-  fetchRelatedNews,
-} from "./content-fetchers";
+import { newsAnalyticsRouter } from "./analytics";
+import { fetchMainNews, fetchPromoMedia, fetchRelatedNews } from "./content-fetchers";
 import {
   composeFeed,
   composeSimpleFeed,
@@ -46,41 +43,35 @@ function buildWhere(input: AllNewsInput) {
   return where;
 }
 
-const all = publicProcedure
-  .input(AllInputSchema)
-  .handler(async ({ input, context }) => {
-    const { payload } = context;
-    const where = buildWhere(input);
+const all = publicProcedure.input(AllInputSchema).handler(async ({ input, context }) => {
+  const { payload } = context;
+  const where = buildWhere(input);
 
-    // Fetch news items (depth 1, exclude heavy fields for list views)
-    const data = await payload.find({
-      collection: "news",
-      where,
-      limit: input.limit || 10,
-      page: input.page || 1,
-      depth: 1,
-      select: { content: false, keyPoints: false },
-    });
-
-    // Only inject ads if input.includeAds is true (default: true)
-    if (input.includeAds !== false) {
-      // Create ad manager and compose simple feed with ads
-      const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
-      const docsWithAds = composeSimpleFeed(data.docs, adManager, 4);
-
-      return { ...data, docs: docsWithAds };
-    }
-
-    // If ads are not included, return plain news
-    return data;
+  // Fetch news items (depth 1, exclude heavy fields for list views)
+  const data = await payload.find({
+    collection: "news",
+    where,
+    limit: input.limit || 10,
+    page: input.page || 1,
+    depth: 1,
+    select: { content: false, keyPoints: false },
   });
 
+  // Only inject ads if input.includeAds is true (default: true)
+  if (input.includeAds !== false) {
+    // Create ad manager and compose simple feed with ads
+    const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
+    const docsWithAds = composeSimpleFeed(data.docs, adManager, 4);
+
+    return { ...data, docs: docsWithAds };
+  }
+
+  // If ads are not included, return plain news
+  return data;
+});
+
 const trending = publicProcedure
-  .input(
-    z
-      .object({ limit: z.number().min(1).max(50).nullish().default(3) })
-      .nullish()
-  )
+  .input(z.object({ limit: z.number().min(1).max(50).nullish().default(3) }).nullish())
   .handler(async ({ input, context }) => {
     const { payload } = context;
     const limit = input?.limit ?? 3;
@@ -110,9 +101,7 @@ const trending = publicProcedure
           });
           // preserve score order from cache
           const docsById = new Map(res.docs.map((d) => [d.id, d]));
-          const ordered = candidateIds
-            .map((id) => docsById.get(id))
-            .filter(Boolean);
+          const ordered = candidateIds.map((id) => docsById.get(id)).filter(Boolean);
           cachedResult = ordered.slice(0, limit);
         }
       }
@@ -154,9 +143,7 @@ const trending = publicProcedure
   });
 
 const recordView = publicProcedure
-  .input(
-    z.object({ newsId: z.string().optional(), slug: z.string().optional() })
-  )
+  .input(z.object({ newsId: z.string().optional(), slug: z.string().optional() }))
   .handler(async ({ input, context }) => {
     const { payload, user, request } = context;
     if (!(input.newsId || input.slug)) {
@@ -189,8 +176,7 @@ const recordView = publicProcedure
         dedupeKey = `news:view:${doc?.id}:user:${user.id}`;
       } else {
         const hdr =
-          request?.headers?.get?.("x-forwarded-for") ||
-          request?.headers?.get?.("x-real-ip");
+          request?.headers?.get?.("x-forwarded-for") || request?.headers?.get?.("x-real-ip");
         const ip = hdr ? String(hdr).split(",")[0]?.trim() : "anonymous";
         dedupeKey = `news:view:${doc?.id}:ip:${ip}`;
       }
@@ -239,46 +225,41 @@ const recordView = publicProcedure
     return { ok: true, views: doc.views ?? 0, incremented: false };
   });
 
-const home = publicProcedure
-  .input(HomeInputSchema)
-  .handler(async ({ input, context }) => {
-    const { payload } = context;
-    const limit = input?.limit || 12;
-    const page = input?.page || 1;
+const home = publicProcedure.input(HomeInputSchema).handler(async ({ input, context }) => {
+  const { payload } = context;
+  const limit = input?.limit || 12;
+  const page = input?.page || 1;
 
-    // 1. Fetch main news with cache (90s TTL) — this is the heaviest query
-    const news = await withCache(
-      `news:home:${page}:${limit}`,
-      { ttl: 90 },
-      () =>
-        fetchMainNews({
-          payload,
-          type: "article",
-          limit,
-          page,
-        })
-    );
+  // 1. Fetch main news with cache (90s TTL) — this is the heaviest query
+  const news = await withCache(`news:home:${page}:${limit}`, { ttl: 90 }, () =>
+    fetchMainNews({
+      payload,
+      type: "article",
+      limit,
+      page,
+    }),
+  );
 
-    // 2. Fetch supporting data in parallel (lightweight, randomized per request)
-    const [related, promotionMedia] = await Promise.all([
-      fetchRelatedNews({ payload, limit: 3 }),
-      fetchPromoMedia({ payload, limit: 1 }),
-    ]);
+  // 2. Fetch supporting data in parallel (lightweight, randomized per request)
+  const [related, promotionMedia] = await Promise.all([
+    fetchRelatedNews({ payload, limit: 3 }),
+    fetchPromoMedia({ payload, limit: 1 }),
+  ]);
 
-    // 3. Initialize ad manager (pool is cached in Redis for 5 min)
-    const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
+  // 3. Initialize ad manager (pool is cached in Redis for 5 min)
+  const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
 
-    // 4. Compose the feed using the feed composer (synchronous)
-    const feedData: FeedComposerData = {
-      mainNews: news.docs,
-      relatedNews: related.docs,
-      promotionMedia: promotionMedia.docs,
-    };
+  // 4. Compose the feed using the feed composer (synchronous)
+  const feedData: FeedComposerData = {
+    mainNews: news.docs,
+    relatedNews: related.docs,
+    promotionMedia: promotionMedia.docs,
+  };
 
-    const composedFeed = composeFeed(adManager, feedData, DEFAULT_FEED_CONFIG);
+  const composedFeed = composeFeed(adManager, feedData, DEFAULT_FEED_CONFIG);
 
-    return { ...news, docs: composedFeed };
-  });
+  return { ...news, docs: composedFeed };
+});
 
 const liveVideos = publicProcedure.handler(async ({ context }) => {
   const { payload } = context;
@@ -300,7 +281,7 @@ const one = publicProcedure
     z.object({
       slug: z.string(),
       type: z.string().optional().default("article"),
-    })
+    }),
   )
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
@@ -324,44 +305,39 @@ const one = publicProcedure
     return news.docs[0];
   });
 
-const relatedNews = publicProcedure
-  .input(z.number().optional())
-  .handler(async ({ context }) => {
-    const { payload } = context;
-    const queryCount = await payload.find({
-      collection: "news",
-      pagination: false,
-      where: { _status: { equals: "published" } },
-    });
-    const randomPage =
-      Math.floor(Math.random() * (queryCount.totalPages || 1)) + 1;
-    const items = await payload.find({
+const relatedNews = publicProcedure.input(z.number().optional()).handler(async ({ context }) => {
+  const { payload } = context;
+  const queryCount = await payload.find({
+    collection: "news",
+    pagination: false,
+    where: { _status: { equals: "published" } },
+  });
+  const randomPage = Math.floor(Math.random() * (queryCount.totalPages || 1)) + 1;
+  const items = await payload.find({
+    collection: "news",
+    depth: 1,
+    limit: 3,
+    page: randomPage,
+    sort: "-createdAt",
+    where: { _status: { equals: "published" } },
+    select: { content: false, keyPoints: false },
+  });
+  let relatedDocs = items.docs;
+  if (relatedDocs.length < 3 && queryCount.totalDocs > 3) {
+    const remainingItems = await payload.find({
       collection: "news",
       depth: 1,
-      limit: 3,
-      page: randomPage,
+      limit: 3 - relatedDocs.length,
       sort: "-createdAt",
+      page: 1,
       where: { _status: { equals: "published" } },
       select: { content: false, keyPoints: false },
     });
-    let relatedDocs = items.docs;
-    if (relatedDocs.length < 3 && queryCount.totalDocs > 3) {
-      const remainingItems = await payload.find({
-        collection: "news",
-        depth: 1,
-        limit: 3 - relatedDocs.length,
-        sort: "-createdAt",
-        page: 1,
-        where: { _status: { equals: "published" } },
-        select: { content: false, keyPoints: false },
-      });
-      relatedDocs = [...relatedDocs, ...remainingItems.docs];
-    }
-    const shuffledItems = relatedDocs
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-    return shuffledItems;
-  });
+    relatedDocs = [...relatedDocs, ...remainingItems.docs];
+  }
+  const shuffledItems = relatedDocs.sort(() => Math.random() - 0.5).slice(0, 3);
+  return shuffledItems;
+});
 
 const likeDislikeInput = z.object({
   newsId: z.string(),
@@ -369,78 +345,74 @@ const likeDislikeInput = z.object({
   slug: z.string(),
 });
 
-const like = protectedProcedure
-  .input(likeDislikeInput)
-  .handler(async ({ input, context }) => {
-    const { payload } = context;
-    const reaction = await payload.find({
-      collection: "reactions",
-      where: {
-        news: { equals: input.newsId },
-        user: { equals: input.userId },
-      },
-    });
-
-    if (reaction.docs && reaction.docs.length > 0 && reaction.docs[0]) {
-      const existing = reaction.docs[0];
-      if (existing.type === "like") {
-        return await payload.delete({
-          collection: "reactions",
-          id: existing.id,
-        });
-      }
-      return await payload.update({
-        collection: "reactions",
-        where: { id: { equals: existing.id } },
-        data: { type: "like" },
-      });
-    }
-
-    return await payload.create({
-      collection: "reactions",
-      data: {
-        news: input.newsId,
-        user: input.userId,
-        type: "like",
-      },
-    });
+const like = protectedProcedure.input(likeDislikeInput).handler(async ({ input, context }) => {
+  const { payload } = context;
+  const reaction = await payload.find({
+    collection: "reactions",
+    where: {
+      news: { equals: input.newsId },
+      user: { equals: input.userId },
+    },
   });
 
-const dislike = protectedProcedure
-  .input(likeDislikeInput)
-  .handler(async ({ input, context }) => {
-    const { payload } = context;
-    const reaction = await payload.find({
-      collection: "reactions",
-      where: {
-        news: { equals: input.newsId },
-        user: { equals: input.userId },
-      },
-    });
-
-    if (reaction.docs.length > 0 && reaction.docs[0]) {
-      if (reaction.docs[0].type === "dislike") {
-        return await payload.delete({
-          collection: "reactions",
-          id: reaction.docs[0].id,
-        });
-      }
-      return await payload.update({
+  if (reaction.docs && reaction.docs.length > 0 && reaction.docs[0]) {
+    const existing = reaction.docs[0];
+    if (existing.type === "like") {
+      return await payload.delete({
         collection: "reactions",
-        where: { id: { equals: reaction.docs[0].id } },
-        data: { type: "dislike" },
+        id: existing.id,
       });
     }
-
-    return await payload.create({
+    return await payload.update({
       collection: "reactions",
-      data: {
-        news: input.newsId,
-        user: input.userId,
-        type: "dislike",
-      },
+      where: { id: { equals: existing.id } },
+      data: { type: "like" },
     });
+  }
+
+  return await payload.create({
+    collection: "reactions",
+    data: {
+      news: input.newsId,
+      user: input.userId,
+      type: "like",
+    },
   });
+});
+
+const dislike = protectedProcedure.input(likeDislikeInput).handler(async ({ input, context }) => {
+  const { payload } = context;
+  const reaction = await payload.find({
+    collection: "reactions",
+    where: {
+      news: { equals: input.newsId },
+      user: { equals: input.userId },
+    },
+  });
+
+  if (reaction.docs.length > 0 && reaction.docs[0]) {
+    if (reaction.docs[0].type === "dislike") {
+      return await payload.delete({
+        collection: "reactions",
+        id: reaction.docs[0].id,
+      });
+    }
+    return await payload.update({
+      collection: "reactions",
+      where: { id: { equals: reaction.docs[0].id } },
+      data: { type: "dislike" },
+    });
+  }
+
+  return await payload.create({
+    collection: "reactions",
+    data: {
+      news: input.newsId,
+      user: input.userId,
+      type: "dislike",
+    },
+  });
+});
 
 const categories = publicProcedure
   .route({
@@ -475,4 +447,5 @@ export const newsRouter = {
   like,
   dislike,
   categories,
+  analytics: newsAnalyticsRouter,
 };

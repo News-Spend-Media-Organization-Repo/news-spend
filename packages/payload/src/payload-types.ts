@@ -84,6 +84,7 @@ export interface Config {
     "lottery-winners": LotteryWinner;
     media: Media;
     news: News;
+    "news-analytics": NewsAnalytic;
     "notification-deliveries": NotificationDelivery;
     "notification-inbox": NotificationInbox;
     notifications: Notification;
@@ -121,6 +122,7 @@ export interface Config {
     "lottery-winners": LotteryWinnersSelect<false> | LotteryWinnersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
+    "news-analytics": NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
     "notification-deliveries":
       | NotificationDeliveriesSelect<false>
       | NotificationDeliveriesSelect<true>;
@@ -841,6 +843,42 @@ export interface LotteryWinner {
   prize?: string | null;
   claimed?: boolean | null;
   claimedAt?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-analytics".
+ */
+export interface NewsAnalytic {
+  id: string;
+  article: string | News;
+  event: "impression" | "view" | "read" | "like" | "dislike" | "share" | "comment";
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ("android" | "ios" | "web") | null;
+  /**
+   * Event-specific data: position, screen, timeSpent, scrollDepth, shareMethod
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  timestamp: string;
   createdBy?: {
     relationTo: "admins";
     value: string | Admin;
@@ -1711,6 +1749,10 @@ export interface PayloadLockedDocument {
         value: string | News;
       } | null)
     | ({
+        relationTo: "news-analytics";
+        value: string | NewsAnalytic;
+      } | null)
+    | ({
         relationTo: "notification-deliveries";
         value: string | NotificationDelivery;
       } | null)
@@ -2126,6 +2168,24 @@ export interface NewsSelect<T extends boolean = true> {
   lastModifiedBy?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-analytics_select".
+ */
+export interface NewsAnalyticsSelect<T extends boolean = true> {
+  article?: T;
+  event?: T;
+  userId?: T;
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  metadata?: T;
+  timestamp?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
