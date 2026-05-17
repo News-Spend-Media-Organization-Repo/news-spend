@@ -1,7 +1,7 @@
 import { Play } from "@tamagui/lucide-icons";
 import { useAudioPlaylistStatus } from "expo-audio";
 import type { Station } from "radio-browser-api";
-import { memo, useCallback, useMemo, useRef } from "react";
+import { memo, type ReactNode, useCallback, useMemo, useRef } from "react";
 import { Spinner, Stack, Text } from "tamagui";
 import { Stop } from "tamagui-phosphor";
 
@@ -13,10 +13,8 @@ import { getAudioPlaylist, loadTrack, usePlayerState } from "#/state/audioPlayer
 export const StationItem = memo(
   ({ item, stationList }: { item: Station; stationList?: Station[] }) => {
     const audioPlayer = getAudioPlaylist();
-    const playerState = usePlayerState();
-    const activeTrack = playerState.currentTrack;
-    const playbackState = useAudioPlaylistStatus(audioPlayer!);
-    const isActive = activeTrack?.id === item?.id;
+    const { currentTrack } = usePlayerState();
+    const isActive = currentTrack?.id === item?.id;
 
     const placeholderRef = useRef<string>("");
     if (!placeholderRef.current) {
@@ -24,43 +22,17 @@ export const StationItem = memo(
     }
 
     const handlePress = useCallback(() => {
-      if (activeTrack?.id === item.id && playbackState.playing) {
-        audioPlayer?.pause();
+      if (isActive && audioPlayer) {
+        audioPlayer.pause();
       } else {
         loadTrack(item, stationList);
-        if (
-          activeTrack?.id !== item.id &&
-          (isAdReady("discover-tab") || appOpenAdSheetState.nativeAdReady)
-        ) {
+        if (isAdReady("discover-tab") || appOpenAdSheetState.nativeAdReady) {
           appOpenAdSheetState.open("discover-tab");
         }
       }
-    }, [activeTrack, playbackState, audioPlayer, stationList, item]);
+    }, [isActive, audioPlayer, stationList, item]);
 
     const tagsString = useMemo(() => item.tags.join(", ") || "Unknown", [item.tags]);
-
-    const statusIcon = useMemo(() => {
-      if (!isActive) {
-        return null;
-      }
-
-      if (playbackState.isBuffering) {
-        return <Spinner color="#fff" size="small" />;
-      }
-
-      if (playbackState.playing) {
-        return <Stop color="#fff" size={16} />;
-      }
-
-      return <Play color="#fff" size={16} />;
-    }, [isActive, playbackState]);
-
-    const statusBgColor = useMemo(() => {
-      if (!isActive) {
-        return;
-      }
-      return playbackState.playing ? "#4CAF50" : "#5D3FD3";
-    }, [isActive, playbackState]);
 
     return (
       <Button
@@ -89,22 +61,39 @@ export const StationItem = memo(
         <Text color="#777" fos={12} numberOfLines={1}>
           {tagsString}
         </Text>
-        {isActive ? (
-          <Stack
-            alignItems="center"
-            bg={statusBgColor}
-            br={12}
-            height={24}
-            justifyContent="center"
-            pos="absolute"
-            right={8}
-            top={8}
-            width={24}
-          >
-            {statusIcon}
-          </Stack>
-        ) : null}
+        {isActive && audioPlayer ? <ActiveStationIndicator audioPlayer={audioPlayer} /> : null}
       </Button>
+    );
+  },
+);
+
+const ActiveStationIndicator = memo(
+  ({ audioPlayer }: { audioPlayer: NonNullable<ReturnType<typeof getAudioPlaylist>> }) => {
+    const playbackState = useAudioPlaylistStatus(audioPlayer);
+
+    let icon: ReactNode = <Play color="#fff" size={16} />;
+    if (playbackState.isBuffering) {
+      icon = <Spinner color="#fff" size="small" />;
+    } else if (playbackState.playing) {
+      icon = <Stop color="#fff" size={16} />;
+    }
+
+    const bgColor = playbackState.playing ? "#4CAF50" : "#5D3FD3";
+
+    return (
+      <Stack
+        alignItems="center"
+        bg={bgColor}
+        br={12}
+        height={24}
+        justifyContent="center"
+        pos="absolute"
+        right={8}
+        top={8}
+        width={24}
+      >
+        {icon}
+      </Stack>
     );
   },
 );

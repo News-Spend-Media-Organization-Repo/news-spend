@@ -35,10 +35,19 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
     refetchInterval: 3 * 10_000,
     enabled: !!activeTrack?.url && playbackState.playing,
     select: useCallback(
-      (data: any) => {
-        const metadata = data?.metadata?.title;
-        const artist = metadata?.split(" - ")[1];
-        const title = metadata?.split(" - ")[0];
+      (data: { metadata: Record<string, unknown> | null; success: boolean }) => {
+        const rawTitle = data?.metadata?.title as string | undefined;
+        const parts = rawTitle?.split(" - ") ?? [];
+
+        let title: string | undefined;
+        let artist: string | undefined;
+
+        if (parts.length >= 2) {
+          title = parts[1];
+          artist = parts[0];
+        } else if (parts.length === 1) {
+          title = parts[0];
+        }
 
         return {
           title: title || activeTrack?.name || "Live Radio",
