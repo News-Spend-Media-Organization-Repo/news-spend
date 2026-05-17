@@ -100,8 +100,9 @@ const byGenreGroup = publicProcedure.handler(async () => {
 const top = publicProcedure.input(TopInput).handler(async ({ input }) => {
   const api = new RadioBrowserApi("News Spend Media", true);
   try {
-    const stations = await api.getStationsByVotes(input.limit);
-    return stations ?? [];
+    const stations = await api.getStationsByVotes(input.limit * 3);
+    const shuffled = (stations ?? []).sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, input.limit);
   } catch (error) {
     console.error(error);
     return [];

@@ -6,9 +6,14 @@ import { Spinner, Stack, Text } from "tamagui";
 import { Stop } from "tamagui-phosphor";
 
 import { Button, Image } from "#/components/ui";
-import { isAdReady } from "#/state/adManager";
+import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
-import { getAudioPlaylist, loadTrack, usePlayerState } from "#/state/audioPlayerState";
+import {
+  getAudioPlaylist,
+  loadTrack,
+  togglePlayback,
+  usePlayerState,
+} from "#/state/audioPlayerState";
 
 export const StationItem = memo(
   ({ item, stationList }: { item: Station; stationList?: Station[] }) => {
@@ -23,10 +28,13 @@ export const StationItem = memo(
 
     const handlePress = useCallback(() => {
       if (isActive && audioPlayer) {
-        audioPlayer.pause();
+        togglePlayback();
       } else {
         loadTrack(item, stationList);
-        if (isAdReady("discover-tab") || appOpenAdSheetState.nativeAdReady) {
+        if (
+          shouldShowNewsClickAd() &&
+          (isAdReady("discover-tab") || appOpenAdSheetState.nativeAdReady)
+        ) {
           appOpenAdSheetState.open("discover-tab");
         }
       }

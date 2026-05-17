@@ -1,8 +1,4 @@
-import {
-  type AudioPlaylist,
-  type AudioPlaylistOptions,
-  createAudioPlaylist,
-} from "expo-audio";
+import { type AudioPlaylist, createAudioPlaylist } from "expo-audio";
 import type { Station } from "radio-browser-api";
 import { toast } from "sonner-native";
 import { proxy, subscribe, useSnapshot } from "valtio";
@@ -10,6 +6,7 @@ import { proxy, subscribe, useSnapshot } from "valtio";
 import { storage } from "#/utils/storage";
 
 const TIMER_THRESHOLD = 1800;
+const HTTP_TO_HTTPS = /^http:/;
 
 export type TrackInfo = {
   id: string;
@@ -117,9 +114,9 @@ function stationToTrack(station: Station): TrackInfo {
   } else if (station?.urlResolved?.startsWith("https:")) {
     trackUrl = station.urlResolved;
   } else if (station.url) {
-    trackUrl = station.url.replace(/^http:/, "https:");
+    trackUrl = station.url.replace(HTTP_TO_HTTPS, "https:");
   } else if (station.urlResolved) {
-    trackUrl = station.urlResolved.replace(/^http:/, "https:");
+    trackUrl = station.urlResolved.replace(HTTP_TO_HTTPS, "https:");
   }
 
   return {
@@ -136,18 +133,17 @@ function updatePlaylistState() {
   if (!audioPlaylist) {
     return;
   }
-  playerState.hasNext =
-    audioPlaylist.currentIndex < audioPlaylist.trackCount - 1;
+  playerState.hasNext = audioPlaylist.currentIndex < audioPlaylist.trackCount - 1;
   playerState.hasPrevious = audioPlaylist.currentIndex > 0;
 }
 
-// Live radio streams can't be resumed — force a fresh connection by
-// removing and re-inserting the source at the same index
+// Live radio streams can't be resumed — force a fresh connection
 function reloadCurrentStream() {
   if (!audioPlaylist) {
     return;
   }
-  const station = currentStationList[audioPlaylist.currentIndex];
+  const currentIndex = audioPlaylist.currentIndex;
+  const station = currentStationList[currentIndex];
   if (!station) {
     return;
   }
@@ -155,11 +151,12 @@ function reloadCurrentStream() {
   const track = stationToTrack(station);
   playerState.currentTrack = track;
 
-  const index = audioPlaylist.currentIndex;
-  audioPlaylist.remove(index);
-  audioPlaylist.insert({ uri: track.url }, index);
-  audioPlaylist.skipTo(index);
+  audioPlaylist.pause();
+  audioPlaylist.clear();
+  audioPlaylist.add({ uri: track.url });
+  audioPlaylist.skipTo(0);
   audioPlaylist.play();
+  updatePlaylistState();
 }
 
 // --- Playback controls ---
@@ -211,14 +208,12 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
   const stations = stationList?.length ? stationList : [item];
   const startIndex = Math.max(
     0,
-    stations.findIndex((s) => s?.id === item?.id)
+    stations.findIndex((s) => s?.id === item?.id),
   );
   const tracks = stations.map(stationToTrack).filter((t) => t.url);
 
   if (!tracks.length) {
-    toast.info(
-      "There was an error loading the station. Please try another station."
-    );
+    toast.info("There was an error loading the station. Please try another station.");
     return;
   }
 
@@ -226,18 +221,22 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
 
   try {
     if (audioPlaylist) {
+      audioPlaylist.pause();
       audioPlaylist.clear();
-      for (const track of tracks) {
-        audioPlaylist.add({ uri: track.url });
-      }
     } else {
-      // Fallback if setupAudio wasn't called — create on the fly
-      const options: AudioPlaylistOptions = {
-        sources: tracks.map((t) => ({ uri: t.url })),
-        loop: "none",
-      };
-      audioPlaylist = createAudioPlaylist(options);
+      audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
+      audioPlaylist.addListener("playlistStatusUpdate", ({ playing }) => {
+        if (playing) {
+          startTimer();
+        } else {
+          stopTimer();
+        }
+      });
       playerState.isReady = true;
+    }
+
+    for (const track of tracks) {
+      audioPlaylist.add({ uri: track.url });
     }
 
     currentStationList = stations;
@@ -247,8 +246,7 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
   } catch (error) {
     console.error(error);
     toast.info("Playback Error", {
-      description:
-        "There was an error playing this station. Please try another station.",
+      description: "There was an error playing this station. Please try another station.",
     });
   }
 };

@@ -1,5 +1,5 @@
 declare module "node-internet-radio" {
-  type StationInfo = {
+  export type StationInfo = {
     artist?: string;
     bitrate?: number;
     genre?: string;
