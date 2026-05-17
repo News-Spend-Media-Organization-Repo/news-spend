@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs, sql } from "@payloadcms/db-postgres";
+import { type MigrateDownArgs, type MigrateUpArgs, sql } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -17,7 +17,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "news_analytics_rels" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"order" integer,
@@ -25,7 +25,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"path" varchar NOT NULL,
   	"admins_id" uuid
   );
-  
+
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "news_analytics_id" uuid;
   ALTER TABLE "news_analytics" ADD CONSTRAINT "news_analytics_article_id_news_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."news"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "news_analytics_rels" ADD CONSTRAINT "news_analytics_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."news_analytics"("id") ON DELETE cascade ON UPDATE no action;
@@ -51,7 +51,7 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "news_analytics" CASCADE;
   DROP TABLE "news_analytics_rels" CASCADE;
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_news_analytics_fk";
-  
+
   DROP INDEX "payload_locked_documents_rels_news_analytics_id_idx";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "news_analytics_id";
   DROP TYPE "public"."enum_news_analytics_event";

@@ -7,7 +7,6 @@
  */
 
 import type {} from "@payloadcms/db-postgres";
-import { sql, relations } from "@payloadcms/db-postgres/drizzle";
 import {
   pgTable,
   index,
@@ -25,11 +24,8 @@ import {
   text,
   pgEnum,
 } from "@payloadcms/db-postgres/drizzle/pg-core";
-export const enum_activities_type = pgEnum("enum_activities_type", [
-  "point",
-  "badge",
-  "reward",
-]);
+import { sql, relations } from "@payloadcms/db-postgres/drizzle";
+export const enum_activities_type = pgEnum("enum_activities_type", ["point", "badge", "reward"]);
 export const enum_activities_action = pgEnum("enum_activities_action", [
   "signUp",
   "watchLive",
@@ -52,33 +48,35 @@ export const enum_admins_role = pgEnum("enum_admins_role", [
   "viewer",
   "partner",
 ]);
-export const enum_content_reports_report_type = pgEnum(
-  "enum_content_reports_report_type",
-  ["comment", "news"]
-);
-export const enum_content_reports_reason = pgEnum(
-  "enum_content_reports_reason",
-  [
-    "spam",
-    "harassment",
-    "hate-speech",
-    "misinformation",
-    "personal-info",
-    "inappropriate",
-    "off-topic",
-    "trolling",
-    "illegal",
-    "other",
-  ]
-);
-export const enum_content_reports_status = pgEnum(
-  "enum_content_reports_status",
-  ["pending", "reviewing", "resolved", "dismissed"]
-);
-export const enum_content_reports_resolution = pgEnum(
-  "enum_content_reports_resolution",
-  ["noAction", "warning", "removed", "suspended", "banned"]
-);
+export const enum_content_reports_report_type = pgEnum("enum_content_reports_report_type", [
+  "comment",
+  "news",
+]);
+export const enum_content_reports_reason = pgEnum("enum_content_reports_reason", [
+  "spam",
+  "harassment",
+  "hate-speech",
+  "misinformation",
+  "personal-info",
+  "inappropriate",
+  "off-topic",
+  "trolling",
+  "illegal",
+  "other",
+]);
+export const enum_content_reports_status = pgEnum("enum_content_reports_status", [
+  "pending",
+  "reviewing",
+  "resolved",
+  "dismissed",
+]);
+export const enum_content_reports_resolution = pgEnum("enum_content_reports_resolution", [
+  "noAction",
+  "warning",
+  "removed",
+  "suspended",
+  "banned",
+]);
 export const enum_feedback_type = pgEnum("enum_feedback_type", [
   "general",
   "bug",
@@ -86,117 +84,130 @@ export const enum_feedback_type = pgEnum("enum_feedback_type", [
   "advertisement",
   "other",
 ]);
-export const enum_lottery_winners_prize_tier = pgEnum(
-  "enum_lottery_winners_prize_tier",
-  ["HIGH", "MID", "LOW", "NONE"]
-);
+export const enum_lottery_winners_prize_tier = pgEnum("enum_lottery_winners_prize_tier", [
+  "HIGH",
+  "MID",
+  "LOW",
+  "NONE",
+]);
 export const enum_news_type = pgEnum("enum_news_type", ["article", "video"]);
-export const enum_news_status = pgEnum("enum_news_status", [
+export const enum_news_status = pgEnum("enum_news_status", ["draft", "published"]);
+export const enum__news_v_version_type = pgEnum("enum__news_v_version_type", ["article", "video"]);
+export const enum__news_v_version_status = pgEnum("enum__news_v_version_status", [
   "draft",
   "published",
 ]);
-export const enum__news_v_version_type = pgEnum("enum__news_v_version_type", [
-  "article",
-  "video",
+export const enum_news_analytics_event = pgEnum("enum_news_analytics_event", [
+  "impression",
+  "view",
+  "read",
+  "like",
+  "dislike",
+  "share",
+  "comment",
 ]);
-export const enum__news_v_version_status = pgEnum(
-  "enum__news_v_version_status",
-  ["draft", "published"]
-);
-export const enum_notification_deliveries_status = pgEnum(
-  "enum_notification_deliveries_status",
-  ["pending", "delivered", "failed"]
-);
-export const enum_notification_inbox_type = pgEnum(
-  "enum_notification_inbox_type",
-  ["breaking_news", "news", "promo", "misc"]
-);
-export const enum_notifications_device_types = pgEnum(
-  "enum_notifications_device_types",
-  ["all", "ios", "android"]
-);
+export const enum_news_analytics_platform = pgEnum("enum_news_analytics_platform", [
+  "android",
+  "ios",
+  "web",
+]);
+export const enum_notification_deliveries_status = pgEnum("enum_notification_deliveries_status", [
+  "pending",
+  "delivered",
+  "failed",
+]);
+export const enum_notification_inbox_type = pgEnum("enum_notification_inbox_type", [
+  "breaking_news",
+  "news",
+  "promo",
+  "misc",
+]);
+export const enum_notifications_device_types = pgEnum("enum_notifications_device_types", [
+  "all",
+  "ios",
+  "android",
+]);
 export const enum_notifications_type = pgEnum("enum_notifications_type", [
   "breaking_news",
   "news",
   "promo",
   "misc",
 ]);
-export const enum_notifications_delivery_action = pgEnum(
-  "enum_notifications_delivery_action",
-  ["send-now", "schedule"]
-);
-export const enum_notifications_target_type = pgEnum(
-  "enum_notifications_target_type",
-  ["all", "segment", "specific"]
-);
+export const enum_notifications_delivery_action = pgEnum("enum_notifications_delivery_action", [
+  "send-now",
+  "schedule",
+]);
+export const enum_notifications_target_type = pgEnum("enum_notifications_target_type", [
+  "all",
+  "segment",
+  "specific",
+]);
 export const enum_notifications_segment = pgEnum("enum_notifications_segment", [
   "active-users",
   "inactive-users",
   "new-users",
 ]);
-export const enum_notifications_priority = pgEnum(
-  "enum_notifications_priority",
-  ["default", "high", "normal"]
-);
+export const enum_notifications_priority = pgEnum("enum_notifications_priority", [
+  "default",
+  "high",
+  "normal",
+]);
 export const enum_notifications_status = pgEnum("enum_notifications_status", [
   "draft",
   "published",
 ]);
 export const enum__notifications_v_version_device_types = pgEnum(
   "enum__notifications_v_version_device_types",
-  ["all", "ios", "android"]
+  ["all", "ios", "android"],
 );
-export const enum__notifications_v_version_type = pgEnum(
-  "enum__notifications_v_version_type",
-  ["breaking_news", "news", "promo", "misc"]
-);
+export const enum__notifications_v_version_type = pgEnum("enum__notifications_v_version_type", [
+  "breaking_news",
+  "news",
+  "promo",
+  "misc",
+]);
 export const enum__notifications_v_version_delivery_action = pgEnum(
   "enum__notifications_v_version_delivery_action",
-  ["send-now", "schedule"]
+  ["send-now", "schedule"],
 );
 export const enum__notifications_v_version_target_type = pgEnum(
   "enum__notifications_v_version_target_type",
-  ["all", "segment", "specific"]
+  ["all", "segment", "specific"],
 );
 export const enum__notifications_v_version_segment = pgEnum(
   "enum__notifications_v_version_segment",
-  ["active-users", "inactive-users", "new-users"]
+  ["active-users", "inactive-users", "new-users"],
 );
 export const enum__notifications_v_version_priority = pgEnum(
   "enum__notifications_v_version_priority",
-  ["default", "high", "normal"]
+  ["default", "high", "normal"],
 );
-export const enum__notifications_v_version_status = pgEnum(
-  "enum__notifications_v_version_status",
-  ["draft", "published"]
+export const enum__notifications_v_version_status = pgEnum("enum__notifications_v_version_status", [
+  "draft",
+  "published",
+]);
+export const enum_partner_content_blocks_promo_video_source_video_source = pgEnum(
+  "enum_partner_content_blocks_promo_video_source_video_source",
+  ["upload", "normal", "youtube"],
 );
-export const enum_partner_content_blocks_promo_video_source_video_source =
-  pgEnum("enum_partner_content_blocks_promo_video_source_video_source", [
-    "upload",
-    "normal",
-    "youtube",
-  ]);
-export const enum_partner_content_placements = pgEnum(
-  "enum_partner_content_placements",
-  [
-    "homepage-trending-books",
-    "homepage-ads-banner",
-    "discover-tab",
-    "points-mall-books",
-    "points-mall-apps",
-    "connect-brand-video",
-    "connect-brands-tab",
-    "lucky-app-wall",
-    "shop-tab",
-    "news-click-ads",
-    "banner-news-post",
-    "news-post",
-    "product-display",
-    "push-notification",
-    "email-campaign",
-    "video-section",
-  ]
-);
+export const enum_partner_content_placements = pgEnum("enum_partner_content_placements", [
+  "homepage-trending-books",
+  "homepage-ads-banner",
+  "discover-tab",
+  "points-mall-books",
+  "points-mall-apps",
+  "connect-brand-video",
+  "connect-brands-tab",
+  "lucky-app-wall",
+  "shop-tab",
+  "news-click-ads",
+  "banner-news-post",
+  "news-post",
+  "product-display",
+  "push-notification",
+  "email-campaign",
+  "video-section",
+]);
 export const enum_partner_content_type = pgEnum("enum_partner_content_type", [
   "book",
   "app",
@@ -209,34 +220,36 @@ export const enum_partner_content_type = pgEnum("enum_partner_content_type", [
   "custom",
   "",
 ]);
-export const enum_partner_content_ad_size = pgEnum(
-  "enum_partner_content_ad_size",
-  [
-    "BANNER",
-    "LARGE_BANNER",
-    "FULL_BANNER",
-    "LEADERBOARD",
-    "INLINE_RECTANGLE",
-    "MEDIUM_RECTANGLE",
-    "LARGE_RECTANGLE",
-    "HALF_PAGE",
-    "WIDE_SKYSCRAPER",
-    "BILLBOARD",
-    "ANCHORED_ADAPTIVE",
-  ]
-);
-export const enum_partner_content_video_type = pgEnum(
-  "enum_partner_content_video_type",
-  ["UPLOAD", "YOUTUBE", "EXTERNAL"]
-);
-export const enum_partner_content_status = pgEnum(
-  "enum_partner_content_status",
-  ["draft", "active", "paused", "archived"]
-);
-export const enum_partner_conversions_status = pgEnum(
-  "enum_partner_conversions_status",
-  ["clicked", "converted", "awarded", "failed"]
-);
+export const enum_partner_content_ad_size = pgEnum("enum_partner_content_ad_size", [
+  "BANNER",
+  "LARGE_BANNER",
+  "FULL_BANNER",
+  "LEADERBOARD",
+  "INLINE_RECTANGLE",
+  "MEDIUM_RECTANGLE",
+  "LARGE_RECTANGLE",
+  "HALF_PAGE",
+  "WIDE_SKYSCRAPER",
+  "BILLBOARD",
+  "ANCHORED_ADAPTIVE",
+]);
+export const enum_partner_content_video_type = pgEnum("enum_partner_content_video_type", [
+  "UPLOAD",
+  "YOUTUBE",
+  "EXTERNAL",
+]);
+export const enum_partner_content_status = pgEnum("enum_partner_content_status", [
+  "draft",
+  "active",
+  "paused",
+  "archived",
+]);
+export const enum_partner_conversions_status = pgEnum("enum_partner_conversions_status", [
+  "clicked",
+  "converted",
+  "awarded",
+  "failed",
+]);
 export const enum_partners_status = pgEnum("enum_partners_status", [
   "prospective",
   "active",
@@ -251,71 +264,60 @@ export const enum_partners_category = pgEnum("enum_partners_category", [
   "business",
   "other",
 ]);
-export const enum_partners_integration_method = pgEnum(
-  "enum_partners_integration_method",
-  ["manual", "webhook", "postback", "csv"]
+export const enum_partners_integration_method = pgEnum("enum_partners_integration_method", [
+  "manual",
+  "webhook",
+  "postback",
+  "csv",
+]);
+export const enum_promotion_media_blocks_promo_video_source_video_source = pgEnum(
+  "enum_promotion_media_blocks_promo_video_source_video_source",
+  ["upload", "normal", "youtube"],
 );
-export const enum_promotion_media_blocks_promo_video_source_video_source =
-  pgEnum("enum_promotion_media_blocks_promo_video_source_video_source", [
-    "upload",
-    "normal",
-    "youtube",
-  ]);
-export const enum_push_tokens_device_type = pgEnum(
-  "enum_push_tokens_device_type",
-  ["ios", "android", "web"]
-);
-export const enum_push_tokens_status = pgEnum("enum_push_tokens_status", [
-  "active",
-  "inactive",
+export const enum_push_tokens_device_type = pgEnum("enum_push_tokens_device_type", [
+  "ios",
+  "android",
+  "web",
 ]);
-export const enum_reactions_type = pgEnum("enum_reactions_type", [
-  "like",
-  "dislike",
-  "none",
-]);
-export const enum_shop_analytics_type = pgEnum("enum_shop_analytics_type", [
-  "view",
-  "click",
-]);
+export const enum_push_tokens_status = pgEnum("enum_push_tokens_status", ["active", "inactive"]);
+export const enum_reactions_type = pgEnum("enum_reactions_type", ["like", "dislike", "none"]);
+export const enum_shop_analytics_type = pgEnum("enum_shop_analytics_type", ["view", "click"]);
 export const enum_shop_analytics_device = pgEnum("enum_shop_analytics_device", [
   "mobile",
   "tablet",
   "desktop",
   "unknown",
 ]);
-export const enum_shop_analytics_platform = pgEnum(
-  "enum_shop_analytics_platform",
-  ["android", "ios", "web"]
-);
-export const enum_witness_reports_report_type = pgEnum(
-  "enum_witness_reports_report_type",
-  ["shortMessage", "video", "picture"]
-);
-export const enum_payload_jobs_log_task_slug = pgEnum(
-  "enum_payload_jobs_log_task_slug",
-  [
-    "inline",
-    "sendScheduledNotification",
-    "checkPushReceipts",
-    "processLottery",
-    "cleanupAnonymousUsers",
-  ]
-);
-export const enum_payload_jobs_log_state = pgEnum(
-  "enum_payload_jobs_log_state",
-  ["failed", "succeeded"]
-);
-export const enum_payload_jobs_task_slug = pgEnum(
-  "enum_payload_jobs_task_slug",
-  [
-    "inline",
-    "sendScheduledNotification",
-    "checkPushReceipts",
-    "processLottery",
-    "cleanupAnonymousUsers",
-  ]
-);
+export const enum_shop_analytics_platform = pgEnum("enum_shop_analytics_platform", [
+  "android",
+  "ios",
+  "web",
+]);
+export const enum_witness_reports_report_type = pgEnum("enum_witness_reports_report_type", [
+  "shortMessage",
+  "video",
+  "picture",
+]);
+export const enum_payload_jobs_log_task_slug = pgEnum("enum_payload_jobs_log_task_slug", [
+  "inline",
+  "sendScheduledNotification",
+  "checkPushReceipts",
+  "processLottery",
+  "cleanupAnonymousUsers",
+  "generateVideoThumbnail",
+]);
+export const enum_payload_jobs_log_state = pgEnum("enum_payload_jobs_log_state", [
+  "failed",
+  "succeeded",
+]);
+export const enum_payload_jobs_task_slug = pgEnum("enum_payload_jobs_task_slug", [
+  "inline",
+  "sendScheduledNotification",
+  "checkPushReceipts",
+  "processLottery",
+  "cleanupAnonymousUsers",
+  "generateVideoThumbnail",
+]);
 
 export const accounts = pgTable(
   "accounts",
@@ -357,7 +359,7 @@ export const accounts = pgTable(
   (columns) => [
     index("accounts_updated_at_idx").on(columns.updatedAt),
     index("accounts_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const accounts_rels = pgTable(
@@ -384,7 +386,7 @@ export const accounts_rels = pgTable(
       foreignColumns: [admins.id],
       name: "accounts_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const activities = pgTable(
@@ -426,7 +428,7 @@ export const activities = pgTable(
     index("activities_news_idx").on(columns.news),
     index("activities_updated_at_idx").on(columns.updatedAt),
     index("activities_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const activities_rels = pgTable(
@@ -453,7 +455,7 @@ export const activities_rels = pgTable(
       foreignColumns: [admins.id],
       name: "activities_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const admins_sessions = pgTable(
@@ -481,7 +483,7 @@ export const admins_sessions = pgTable(
       foreignColumns: [admins.id],
       name: "admins_sessions_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const admins = pgTable(
@@ -532,7 +534,7 @@ export const admins = pgTable(
     index("admins_updated_at_idx").on(columns.updatedAt),
     index("admins_created_at_idx").on(columns.createdAt),
     uniqueIndex("admins_email_idx").on(columns.email),
-  ]
+  ],
 );
 
 export const admins_rels = pgTable(
@@ -559,7 +561,7 @@ export const admins_rels = pgTable(
       foreignColumns: [admins.id],
       name: "admins_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const categories_breadcrumbs = pgTable(
@@ -583,7 +585,7 @@ export const categories_breadcrumbs = pgTable(
       foreignColumns: [categories.id],
       name: "categories_breadcrumbs_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const categories = pgTable(
@@ -622,7 +624,7 @@ export const categories = pgTable(
     index("categories_parent_idx").on(columns.parent),
     index("categories_updated_at_idx").on(columns.updatedAt),
     index("categories_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const categories_rels = pgTable(
@@ -649,7 +651,7 @@ export const categories_rels = pgTable(
       foreignColumns: [admins.id],
       name: "categories_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const comments = pgTable(
@@ -670,12 +672,9 @@ export const comments = pgTable(
     parent: uuid("parent_id").references((): AnyPgColumn => comments.id, {
       onDelete: "set null",
     }),
-    replyingTo: uuid("replying_to_id").references(
-      (): AnyPgColumn => comments.id,
-      {
-        onDelete: "set null",
-      }
-    ),
+    replyingTo: uuid("replying_to_id").references((): AnyPgColumn => comments.id, {
+      onDelete: "set null",
+    }),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -698,7 +697,7 @@ export const comments = pgTable(
     index("comments_replying_to_idx").on(columns.replyingTo),
     index("comments_updated_at_idx").on(columns.updatedAt),
     index("comments_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const comments_rels = pgTable(
@@ -732,7 +731,7 @@ export const comments_rels = pgTable(
       foreignColumns: [admins.id],
       name: "comments_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const content_reports = pgTable(
@@ -778,7 +777,7 @@ export const content_reports = pgTable(
     index("content_reports_resolved_by_idx").on(columns.resolvedBy),
     index("content_reports_updated_at_idx").on(columns.updatedAt),
     index("content_reports_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const content_reports_rels = pgTable(
@@ -819,7 +818,7 @@ export const content_reports_rels = pgTable(
       foreignColumns: [admins.id],
       name: "content_reports_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const feedback = pgTable(
@@ -849,7 +848,7 @@ export const feedback = pgTable(
   (columns) => [
     index("feedback_updated_at_idx").on(columns.updatedAt),
     index("feedback_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const feedback_rels = pgTable(
@@ -876,7 +875,7 @@ export const feedback_rels = pgTable(
       foreignColumns: [admins.id],
       name: "feedback_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const identity_verification = pgTable(
@@ -921,14 +920,14 @@ export const identity_verification = pgTable(
   (columns) => [
     index("identity_verification_user_idx").on(columns.user),
     index("identity_verification_government_id_government_id_front_idx").on(
-      columns.governmentId_front
+      columns.governmentId_front,
     ),
     index("identity_verification_government_id_government_id_back_idx").on(
-      columns.governmentId_back
+      columns.governmentId_back,
     ),
     index("identity_verification_updated_at_idx").on(columns.updatedAt),
     index("identity_verification_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const identity_verification_rels = pgTable(
@@ -955,7 +954,7 @@ export const identity_verification_rels = pgTable(
       foreignColumns: [admins.id],
       name: "identity_verification_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const lottery = pgTable(
@@ -982,9 +981,7 @@ export const lottery = pgTable(
       precision: 3,
     }),
     drawSeed: varchar("draw_seed"),
-    ticketPrice: numeric("ticket_price", { mode: "number" })
-      .notNull()
-      .default(50),
+    ticketPrice: numeric("ticket_price", { mode: "number" }).notNull().default(50),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -1004,7 +1001,7 @@ export const lottery = pgTable(
     uniqueIndex("lottery_name_idx").on(columns.name),
     index("lottery_updated_at_idx").on(columns.updatedAt),
     index("lottery_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const lottery_rels = pgTable(
@@ -1038,7 +1035,7 @@ export const lottery_rels = pgTable(
       foreignColumns: [admins.id],
       name: "lottery_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const lottery_tickets = pgTable(
@@ -1077,7 +1074,7 @@ export const lottery_tickets = pgTable(
     index("lottery_tickets_lottery_idx").on(columns.lottery),
     index("lottery_tickets_updated_at_idx").on(columns.updatedAt),
     index("lottery_tickets_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const lottery_tickets_rels = pgTable(
@@ -1104,7 +1101,7 @@ export const lottery_tickets_rels = pgTable(
       foreignColumns: [admins.id],
       name: "lottery_tickets_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const lottery_winners = pgTable(
@@ -1149,7 +1146,7 @@ export const lottery_winners = pgTable(
     index("lottery_winners_user_idx").on(columns.user),
     index("lottery_winners_updated_at_idx").on(columns.updatedAt),
     index("lottery_winners_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const lottery_winners_rels = pgTable(
@@ -1176,7 +1173,7 @@ export const lottery_winners_rels = pgTable(
       foreignColumns: [admins.id],
       name: "lottery_winners_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const media = pgTable(
@@ -1231,21 +1228,32 @@ export const media = pgTable(
     sizes_mobile_mimeType: varchar("sizes_mobile_mime_type"),
     sizes_mobile_filesize: numeric("sizes_mobile_filesize", { mode: "number" }),
     sizes_mobile_filename: varchar("sizes_mobile_filename"),
+    sizes_videoThumbnail_url: varchar("sizes_video_thumbnail_url"),
+    sizes_videoThumbnail_width: numeric("sizes_video_thumbnail_width", {
+      mode: "number",
+    }),
+    sizes_videoThumbnail_height: numeric("sizes_video_thumbnail_height", {
+      mode: "number",
+    }),
+    sizes_videoThumbnail_mimeType: varchar("sizes_video_thumbnail_mime_type"),
+    sizes_videoThumbnail_filesize: numeric("sizes_video_thumbnail_filesize", {
+      mode: "number",
+    }),
+    sizes_videoThumbnail_filename: varchar("sizes_video_thumbnail_filename"),
   },
   (columns) => [
     index("media_updated_at_idx").on(columns.updatedAt),
     index("media_created_at_idx").on(columns.createdAt),
     uniqueIndex("media_filename_idx").on(columns.filename),
     index("media_sizes_thumbnail_sizes_thumbnail_filename_idx").on(
-      columns.sizes_thumbnail_filename
+      columns.sizes_thumbnail_filename,
     ),
-    index("media_sizes_card_sizes_card_filename_idx").on(
-      columns.sizes_card_filename
+    index("media_sizes_card_sizes_card_filename_idx").on(columns.sizes_card_filename),
+    index("media_sizes_mobile_sizes_mobile_filename_idx").on(columns.sizes_mobile_filename),
+    index("media_sizes_video_thumbnail_sizes_video_thumbnail_filena_idx").on(
+      columns.sizes_videoThumbnail_filename,
     ),
-    index("media_sizes_mobile_sizes_mobile_filename_idx").on(
-      columns.sizes_mobile_filename
-    ),
-  ]
+  ],
 );
 
 export const media_rels = pgTable(
@@ -1272,7 +1280,7 @@ export const media_rels = pgTable(
       foreignColumns: [admins.id],
       name: "media_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const news_key_points = pgTable(
@@ -1291,7 +1299,7 @@ export const news_key_points = pgTable(
       foreignColumns: [news.id],
       name: "news_key_points_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const news = pgTable(
@@ -1309,9 +1317,7 @@ export const news = pgTable(
     content: jsonb("content"),
     url: varchar("url"),
     wordCount: numeric("word_count", { mode: "number" }).default(0),
-    readTimeMinutes: numeric("read_time_minutes", { mode: "number" }).default(
-      0
-    ),
+    readTimeMinutes: numeric("read_time_minutes", { mode: "number" }).default(0),
     views: numeric("views", { mode: "number" }).default(0),
     excerpt: varchar("excerpt"),
     publishedAt: timestamp("published_at", {
@@ -1352,7 +1358,7 @@ export const news = pgTable(
     index("news_category_idx").on(columns.category),
     index("news_created_at_idx").on(columns.createdAt),
     index("news__status_idx").on(columns._status),
-  ]
+  ],
 );
 
 export const news_rels = pgTable(
@@ -1379,7 +1385,7 @@ export const news_rels = pgTable(
       foreignColumns: [admins.id],
       name: "news_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const _news_v_version_key_points = pgTable(
@@ -1399,7 +1405,7 @@ export const _news_v_version_key_points = pgTable(
       foreignColumns: [_news_v.id],
       name: "_news_v_version_key_points_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const _news_v = pgTable(
@@ -1441,15 +1447,10 @@ export const _news_v = pgTable(
     version_author: uuid("version_author_id").references(() => admins.id, {
       onDelete: "set null",
     }),
-    version_category: uuid("version_category_id").references(
-      () => categories.id,
-      {
-        onDelete: "set null",
-      }
-    ),
-    version_hasBeenPublished: boolean("version_has_been_published").default(
-      false
-    ),
+    version_category: uuid("version_category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    version_hasBeenPublished: boolean("version_has_been_published").default(false),
     version_likesCount: numeric("version_likes_count", {
       mode: "number",
     }).default(0),
@@ -1461,8 +1462,7 @@ export const _news_v = pgTable(
       withTimezone: true,
       precision: 3,
     }),
-    version__status:
-      enum__news_v_version_status("version__status").default("draft"),
+    version__status: enum__news_v_version_status("version__status").default("draft"),
     createdAt: timestamp("created_at", {
       mode: "string",
       withTimezone: true,
@@ -1485,14 +1485,12 @@ export const _news_v = pgTable(
     index("_news_v_version_version_image_idx").on(columns.version_image),
     index("_news_v_version_version_author_idx").on(columns.version_author),
     index("_news_v_version_version_category_idx").on(columns.version_category),
-    index("_news_v_version_version_created_at_idx").on(
-      columns.version_createdAt
-    ),
+    index("_news_v_version_version_created_at_idx").on(columns.version_createdAt),
     index("_news_v_version_version__status_idx").on(columns.version__status),
     index("_news_v_created_at_idx").on(columns.createdAt),
     index("_news_v_updated_at_idx").on(columns.updatedAt),
     index("_news_v_latest_idx").on(columns.latest),
-  ]
+  ],
 );
 
 export const _news_v_rels = pgTable(
@@ -1519,7 +1517,79 @@ export const _news_v_rels = pgTable(
       foreignColumns: [admins.id],
       name: "_news_v_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
+);
+
+export const news_analytics = pgTable(
+  "news_analytics",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    article: uuid("article_id")
+      .notNull()
+      .references(() => news.id, {
+        onDelete: "set null",
+      }),
+    event: enum_news_analytics_event("event").notNull(),
+    userId: varchar("user_id"),
+    sessionId: varchar("session_id").notNull(),
+    deviceId: varchar("device_id").notNull(),
+    platform: enum_news_analytics_platform("platform"),
+    metadata: jsonb("metadata"),
+    timestamp: timestamp("timestamp", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("news_analytics_article_idx").on(columns.article),
+    index("news_analytics_event_idx").on(columns.event),
+    index("news_analytics_user_id_idx").on(columns.userId),
+    index("news_analytics_timestamp_idx").on(columns.timestamp),
+    index("news_analytics_updated_at_idx").on(columns.updatedAt),
+    index("news_analytics_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const news_analytics_rels = pgTable(
+  "news_analytics_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("news_analytics_rels_order_idx").on(columns.order),
+    index("news_analytics_rels_parent_idx").on(columns.parent),
+    index("news_analytics_rels_path_idx").on(columns.path),
+    index("news_analytics_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [news_analytics.id],
+      name: "news_analytics_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "news_analytics_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
 );
 
 export const notification_deliveries = pgTable(
@@ -1535,9 +1605,7 @@ export const notification_deliveries = pgTable(
       onDelete: "set null",
     }),
     pushToken: varchar("push_token").notNull(),
-    status: enum_notification_deliveries_status("status")
-      .notNull()
-      .default("pending"),
+    status: enum_notification_deliveries_status("status").notNull().default("pending"),
     errorMessage: varchar("error_message"),
     expoTicketId: varchar("expo_ticket_id"),
     deliveredAt: timestamp("delivered_at", {
@@ -1569,7 +1637,7 @@ export const notification_deliveries = pgTable(
     index("notification_user_idx").on(columns.notification, columns.user),
     index("status_idx").on(columns.status),
     index("expoTicketId_idx").on(columns.expoTicketId),
-  ]
+  ],
 );
 
 export const notification_deliveries_rels = pgTable(
@@ -1596,7 +1664,7 @@ export const notification_deliveries_rels = pgTable(
       foreignColumns: [admins.id],
       name: "notification_deliveries_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const notification_inbox = pgTable(
@@ -1642,7 +1710,7 @@ export const notification_inbox = pgTable(
     index("notification_inbox_created_at_idx").on(columns.createdAt),
     index("user_notification_idx").on(columns.user, columns.notification),
     index("user_type_idx").on(columns.user, columns.type),
-  ]
+  ],
 );
 
 export const notification_inbox_rels = pgTable(
@@ -1669,7 +1737,7 @@ export const notification_inbox_rels = pgTable(
       foreignColumns: [admins.id],
       name: "notification_inbox_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const notifications_device_types = pgTable(
@@ -1688,7 +1756,7 @@ export const notifications_device_types = pgTable(
       foreignColumns: [notifications.id],
       name: "notifications_device_types_parent_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const notifications = pgTable(
@@ -1699,8 +1767,7 @@ export const notifications = pgTable(
     body: varchar("body"),
     type: enum_notifications_type("type").default("misc"),
     data: jsonb("data"),
-    deliveryAction:
-      enum_notifications_delivery_action("delivery_action").default("send-now"),
+    deliveryAction: enum_notifications_delivery_action("delivery_action").default("send-now"),
     scheduledFor: timestamp("scheduled_for", {
       mode: "string",
       withTimezone: true,
@@ -1732,7 +1799,7 @@ export const notifications = pgTable(
       .notNull(),
     _status: enum_notifications_status("_status").default("draft"),
   },
-  (columns) => [index("notifications__status_idx").on(columns._status)]
+  (columns) => [index("notifications__status_idx").on(columns._status)],
 );
 
 export const notifications_rels = pgTable(
@@ -1766,7 +1833,7 @@ export const notifications_rels = pgTable(
       foreignColumns: [admins.id],
       name: "notifications_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const _notifications_v_version_device_types = pgTable(
@@ -1779,15 +1846,13 @@ export const _notifications_v_version_device_types = pgTable(
   },
   (columns) => [
     index("_notifications_v_version_device_types_order_idx").on(columns.order),
-    index("_notifications_v_version_device_types_parent_idx").on(
-      columns.parent
-    ),
+    index("_notifications_v_version_device_types_parent_idx").on(columns.parent),
     foreignKey({
       columns: [columns["parent"]],
       foreignColumns: [_notifications_v.id],
       name: "_notifications_v_version_device_types_parent_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const _notifications_v = pgTable(
@@ -1799,25 +1864,19 @@ export const _notifications_v = pgTable(
     }),
     version_title: varchar("version_title"),
     version_body: varchar("version_body"),
-    version_type:
-      enum__notifications_v_version_type("version_type").default("misc"),
+    version_type: enum__notifications_v_version_type("version_type").default("misc"),
     version_data: jsonb("version_data"),
-    version_deliveryAction: enum__notifications_v_version_delivery_action(
-      "version_delivery_action"
-    ).default("send-now"),
+    version_deliveryAction:
+      enum__notifications_v_version_delivery_action("version_delivery_action").default("send-now"),
     version_scheduledFor: timestamp("version_scheduled_for", {
       mode: "string",
       withTimezone: true,
       precision: 3,
     }),
-    version_targetType: enum__notifications_v_version_target_type(
-      "version_target_type"
-    ).default("all"),
+    version_targetType:
+      enum__notifications_v_version_target_type("version_target_type").default("all"),
     version_segment: enum__notifications_v_version_segment("version_segment"),
-    version_priority:
-      enum__notifications_v_version_priority("version_priority").default(
-        "default"
-      ),
+    version_priority: enum__notifications_v_version_priority("version_priority").default("default"),
     version_sound: boolean("version_sound").default(true),
     version_badge: numeric("version_badge", { mode: "number" }),
     version_sentAt: timestamp("version_sent_at", {
@@ -1835,8 +1894,7 @@ export const _notifications_v = pgTable(
       withTimezone: true,
       precision: 3,
     }),
-    version__status:
-      enum__notifications_v_version_status("version__status").default("draft"),
+    version__status: enum__notifications_v_version_status("version__status").default("draft"),
     createdAt: timestamp("created_at", {
       mode: "string",
       withTimezone: true,
@@ -1855,13 +1913,11 @@ export const _notifications_v = pgTable(
   },
   (columns) => [
     index("_notifications_v_parent_idx").on(columns.parent),
-    index("_notifications_v_version_version__status_idx").on(
-      columns.version__status
-    ),
+    index("_notifications_v_version_version__status_idx").on(columns.version__status),
     index("_notifications_v_created_at_idx").on(columns.createdAt),
     index("_notifications_v_updated_at_idx").on(columns.updatedAt),
     index("_notifications_v_latest_idx").on(columns.latest),
-  ]
+  ],
 );
 
 export const _notifications_v_rels = pgTable(
@@ -1895,7 +1951,7 @@ export const _notifications_v_rels = pgTable(
       foreignColumns: [admins.id],
       name: "_notifications_v_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const partner_content_blocks_promo_video_source = pgTable(
@@ -1906,34 +1962,29 @@ export const partner_content_blocks_promo_video_source = pgTable(
     _path: text("_path").notNull(),
     id: varchar("id").primaryKey(),
     videoSource:
-      enum_partner_content_blocks_promo_video_source_video_source(
-        "video_source"
-      ).default("upload"),
+      enum_partner_content_blocks_promo_video_source_video_source("video_source").default("upload"),
     video: uuid("video_id").references(() => media.id, {
       onDelete: "set null",
     }),
     url: varchar("url"),
+    thumbnail: uuid("thumbnail_id").references(() => media.id, {
+      onDelete: "set null",
+    }),
+    thumbnailSource: varchar("thumbnail_source"),
     blockName: varchar("block_name"),
   },
   (columns) => [
-    index("partner_content_blocks_promo_video_source_order_idx").on(
-      columns._order
-    ),
-    index("partner_content_blocks_promo_video_source_parent_id_idx").on(
-      columns._parentID
-    ),
-    index("partner_content_blocks_promo_video_source_path_idx").on(
-      columns._path
-    ),
-    index("partner_content_blocks_promo_video_source_video_idx").on(
-      columns.video
-    ),
+    index("partner_content_blocks_promo_video_source_order_idx").on(columns._order),
+    index("partner_content_blocks_promo_video_source_parent_id_idx").on(columns._parentID),
+    index("partner_content_blocks_promo_video_source_path_idx").on(columns._path),
+    index("partner_content_blocks_promo_video_source_video_idx").on(columns.video),
+    index("partner_content_blocks_promo_video_source_thumbnail_idx").on(columns.thumbnail),
     foreignKey({
       columns: [columns["_parentID"]],
       foreignColumns: [partner_content.id],
       name: "partner_content_blocks_promo_video_source_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const partner_content_blocks_promo_image = pgTable(
@@ -1950,9 +2001,7 @@ export const partner_content_blocks_promo_image = pgTable(
   },
   (columns) => [
     index("partner_content_blocks_promo_image_order_idx").on(columns._order),
-    index("partner_content_blocks_promo_image_parent_id_idx").on(
-      columns._parentID
-    ),
+    index("partner_content_blocks_promo_image_parent_id_idx").on(columns._parentID),
     index("partner_content_blocks_promo_image_path_idx").on(columns._path),
     index("partner_content_blocks_promo_image_image_idx").on(columns.image),
     foreignKey({
@@ -1960,7 +2009,7 @@ export const partner_content_blocks_promo_image = pgTable(
       foreignColumns: [partner_content.id],
       name: "partner_content_blocks_promo_image_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const partner_content_items = pgTable(
@@ -1969,20 +2018,16 @@ export const partner_content_items = pgTable(
     _order: integer("_order").notNull(),
     _parentID: uuid("_parent_id").notNull(),
     id: varchar("id").primaryKey(),
-    thumbnail: uuid("thumbnail_id").references(() => media.id, {
-      onDelete: "set null",
-    }),
   },
   (columns) => [
     index("partner_content_items_order_idx").on(columns._order),
     index("partner_content_items_parent_id_idx").on(columns._parentID),
-    index("partner_content_items_thumbnail_idx").on(columns.thumbnail),
     foreignKey({
       columns: [columns["_parentID"]],
       foreignColumns: [partner_content.id],
       name: "partner_content_items_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const partner_content_placements = pgTable(
@@ -2001,7 +2046,7 @@ export const partner_content_placements = pgTable(
       foreignColumns: [partner_content.id],
       name: "partner_content_placements_parent_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const partner_content = pgTable(
@@ -2066,7 +2111,7 @@ export const partner_content = pgTable(
     index("partner_content_partner_idx").on(columns.partner),
     index("partner_content_updated_at_idx").on(columns.updatedAt),
     index("partner_content_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const partner_content_rels = pgTable(
@@ -2093,7 +2138,7 @@ export const partner_content_rels = pgTable(
       foreignColumns: [admins.id],
       name: "partner_content_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const partner_conversions = pgTable(
@@ -2116,9 +2161,7 @@ export const partner_conversions = pgTable(
         onDelete: "set null",
       }),
     clickId: varchar("click_id").notNull(),
-    status: enum_partner_conversions_status("status")
-      .notNull()
-      .default("clicked"),
+    status: enum_partner_conversions_status("status").notNull().default("clicked"),
     pointsAwarded: numeric("points_awarded", { mode: "number" }).default(0),
     partnerOrderId: varchar("partner_order_id"),
     metadata: jsonb("metadata"),
@@ -2160,7 +2203,7 @@ export const partner_conversions = pgTable(
     index("partner_conversions_status_idx").on(columns.status),
     index("partner_conversions_updated_at_idx").on(columns.updatedAt),
     index("partner_conversions_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const partner_conversions_rels = pgTable(
@@ -2187,7 +2230,7 @@ export const partner_conversions_rels = pgTable(
       foreignColumns: [admins.id],
       name: "partner_conversions_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const partners = pgTable(
@@ -2238,7 +2281,7 @@ export const partners = pgTable(
     index("partners_logo_idx").on(columns.logo),
     index("partners_updated_at_idx").on(columns.updatedAt),
     index("partners_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const partners_rels = pgTable(
@@ -2265,7 +2308,7 @@ export const partners_rels = pgTable(
       foreignColumns: [admins.id],
       name: "partners_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const promotion_media_blocks_promo_video_source = pgTable(
@@ -2275,36 +2318,31 @@ export const promotion_media_blocks_promo_video_source = pgTable(
     _parentID: uuid("_parent_id").notNull(),
     _path: text("_path").notNull(),
     id: varchar("id").primaryKey(),
-    videoSource: enum_promotion_media_blocks_promo_video_source_video_source(
-      "video_source"
-    )
+    videoSource: enum_promotion_media_blocks_promo_video_source_video_source("video_source")
       .notNull()
       .default("upload"),
     video: uuid("video_id").references(() => media.id, {
       onDelete: "set null",
     }),
     url: varchar("url"),
+    thumbnail: uuid("thumbnail_id").references(() => media.id, {
+      onDelete: "set null",
+    }),
+    thumbnailSource: varchar("thumbnail_source"),
     blockName: varchar("block_name"),
   },
   (columns) => [
-    index("promotion_media_blocks_promo_video_source_order_idx").on(
-      columns._order
-    ),
-    index("promotion_media_blocks_promo_video_source_parent_id_idx").on(
-      columns._parentID
-    ),
-    index("promotion_media_blocks_promo_video_source_path_idx").on(
-      columns._path
-    ),
-    index("promotion_media_blocks_promo_video_source_video_idx").on(
-      columns.video
-    ),
+    index("promotion_media_blocks_promo_video_source_order_idx").on(columns._order),
+    index("promotion_media_blocks_promo_video_source_parent_id_idx").on(columns._parentID),
+    index("promotion_media_blocks_promo_video_source_path_idx").on(columns._path),
+    index("promotion_media_blocks_promo_video_source_video_idx").on(columns.video),
+    index("promotion_media_blocks_promo_video_source_thumbnail_idx").on(columns.thumbnail),
     foreignKey({
       columns: [columns["_parentID"]],
       foreignColumns: [promotion_media.id],
       name: "promotion_media_blocks_promo_video_source_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const promotion_media_blocks_promo_image = pgTable(
@@ -2323,9 +2361,7 @@ export const promotion_media_blocks_promo_image = pgTable(
   },
   (columns) => [
     index("promotion_media_blocks_promo_image_order_idx").on(columns._order),
-    index("promotion_media_blocks_promo_image_parent_id_idx").on(
-      columns._parentID
-    ),
+    index("promotion_media_blocks_promo_image_parent_id_idx").on(columns._parentID),
     index("promotion_media_blocks_promo_image_path_idx").on(columns._path),
     index("promotion_media_blocks_promo_image_image_idx").on(columns.image),
     foreignKey({
@@ -2333,7 +2369,7 @@ export const promotion_media_blocks_promo_image = pgTable(
       foreignColumns: [promotion_media.id],
       name: "promotion_media_blocks_promo_image_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const promotion_media_items = pgTable(
@@ -2351,7 +2387,7 @@ export const promotion_media_items = pgTable(
       foreignColumns: [promotion_media.id],
       name: "promotion_media_items_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const promotion_media = pgTable(
@@ -2379,7 +2415,7 @@ export const promotion_media = pgTable(
   (columns) => [
     index("promotion_media_updated_at_idx").on(columns.updatedAt),
     index("promotion_media_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const promotion_media_rels = pgTable(
@@ -2406,7 +2442,7 @@ export const promotion_media_rels = pgTable(
       foreignColumns: [admins.id],
       name: "promotion_media_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const push_tokens = pgTable(
@@ -2450,7 +2486,7 @@ export const push_tokens = pgTable(
     index("push_tokens_user_idx").on(columns.user),
     index("push_tokens_updated_at_idx").on(columns.updatedAt),
     index("push_tokens_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const push_tokens_rels = pgTable(
@@ -2477,7 +2513,7 @@ export const push_tokens_rels = pgTable(
       foreignColumns: [admins.id],
       name: "push_tokens_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const reactions = pgTable(
@@ -2515,7 +2551,7 @@ export const reactions = pgTable(
     index("reactions_news_idx").on(columns.news),
     index("reactions_updated_at_idx").on(columns.updatedAt),
     index("reactions_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const reactions_rels = pgTable(
@@ -2542,7 +2578,7 @@ export const reactions_rels = pgTable(
       foreignColumns: [admins.id],
       name: "reactions_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const sessions = pgTable(
@@ -2576,7 +2612,7 @@ export const sessions = pgTable(
   (columns) => [
     index("sessions_updated_at_idx").on(columns.updatedAt),
     index("sessions_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const sessions_rels = pgTable(
@@ -2603,7 +2639,7 @@ export const sessions_rels = pgTable(
       foreignColumns: [admins.id],
       name: "sessions_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const shop_analytics = pgTable(
@@ -2645,7 +2681,7 @@ export const shop_analytics = pgTable(
     index("shop_analytics_timestamp_idx").on(columns.timestamp),
     index("shop_analytics_updated_at_idx").on(columns.updatedAt),
     index("shop_analytics_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const shop_analytics_rels = pgTable(
@@ -2672,7 +2708,7 @@ export const shop_analytics_rels = pgTable(
       foreignColumns: [admins.id],
       name: "shop_analytics_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const survey = pgTable(
@@ -2701,7 +2737,7 @@ export const survey = pgTable(
   (columns) => [
     index("survey_updated_at_idx").on(columns.updatedAt),
     index("survey_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const survey_rels = pgTable(
@@ -2735,7 +2771,7 @@ export const survey_rels = pgTable(
       foreignColumns: [admins.id],
       name: "survey_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const ticket_purchase_log = pgTable(
@@ -2773,7 +2809,7 @@ export const ticket_purchase_log = pgTable(
     index("ticket_purchase_log_lottery_idx").on(columns.lottery),
     index("ticket_purchase_log_updated_at_idx").on(columns.updatedAt),
     index("ticket_purchase_log_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const ticket_purchase_log_rels = pgTable(
@@ -2800,7 +2836,7 @@ export const ticket_purchase_log_rels = pgTable(
       foreignColumns: [admins.id],
       name: "ticket_purchase_log_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const users = pgTable(
@@ -2818,11 +2854,9 @@ export const users = pgTable(
     isAnonymous: boolean("is_anonymous"),
     dailyRead: jsonb("daily_read")
       .notNull()
-      .default(
-        sql`'{"count":0,"updatedAt":"2025-02-19T18:06:57.781Z"}'::jsonb`
-      ),
+      .default(sql`'{"count":0,"updatedAt":"2025-02-19T18:06:57.781Z"}'::jsonb`),
     notificationPreferences: jsonb("notification_preferences").default(
-      sql`'{"types":{"BREAKING_NEWS":true,"NEWS":true,"COMMENT":false,"EARNING_OPPORTUNITY":false,"MISC":false}}'::jsonb`
+      sql`'{"types":{"BREAKING_NEWS":true,"NEWS":true,"COMMENT":false,"EARNING_OPPORTUNITY":false,"MISC":false}}'::jsonb`,
     ),
     lastActive: timestamp("last_active", {
       mode: "string",
@@ -2847,12 +2881,10 @@ export const users = pgTable(
   },
   (columns) => [
     uniqueIndex("users_username_idx").on(columns.username),
-    index("users_notification_preferences_idx").on(
-      columns.notificationPreferences
-    ),
+    index("users_notification_preferences_idx").on(columns.notificationPreferences),
     index("users_updated_at_idx").on(columns.updatedAt),
     index("users_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const users_rels = pgTable(
@@ -2879,7 +2911,7 @@ export const users_rels = pgTable(
       foreignColumns: [admins.id],
       name: "users_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const verifications = pgTable(
@@ -2911,7 +2943,7 @@ export const verifications = pgTable(
   (columns) => [
     index("verifications_updated_at_idx").on(columns.updatedAt),
     index("verifications_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const verifications_rels = pgTable(
@@ -2938,7 +2970,7 @@ export const verifications_rels = pgTable(
       foreignColumns: [admins.id],
       name: "verifications_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const witness_reports = pgTable(
@@ -2948,8 +2980,7 @@ export const witness_reports = pgTable(
     name: varchar("name").notNull(),
     title: varchar("title").notNull(),
     description: varchar("description"),
-    reportType:
-      enum_witness_reports_report_type("report_type").default("shortMessage"),
+    reportType: enum_witness_reports_report_type("report_type").default("shortMessage"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -2968,7 +2999,7 @@ export const witness_reports = pgTable(
   (columns) => [
     index("witness_reports_updated_at_idx").on(columns.updatedAt),
     index("witness_reports_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const witness_reports_rels = pgTable(
@@ -3002,7 +3033,7 @@ export const witness_reports_rels = pgTable(
       foreignColumns: [admins.id],
       name: "witness_reports_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const payload_kv = pgTable(
@@ -3012,7 +3043,7 @@ export const payload_kv = pgTable(
     key: varchar("key").notNull(),
     data: jsonb("data").notNull(),
   },
-  (columns) => [uniqueIndex("payload_kv_key_idx").on(columns.key)]
+  (columns) => [uniqueIndex("payload_kv_key_idx").on(columns.key)],
 );
 
 export const payload_jobs_log = pgTable(
@@ -3046,7 +3077,7 @@ export const payload_jobs_log = pgTable(
       foreignColumns: [payload_jobs.id],
       name: "payload_jobs_log_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const payload_jobs = pgTable(
@@ -3096,7 +3127,7 @@ export const payload_jobs = pgTable(
     index("payload_jobs_processing_idx").on(columns.processing),
     index("payload_jobs_updated_at_idx").on(columns.updatedAt),
     index("payload_jobs_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const payload_locked_documents = pgTable(
@@ -3123,7 +3154,7 @@ export const payload_locked_documents = pgTable(
     index("payload_locked_documents_global_slug_idx").on(columns.globalSlug),
     index("payload_locked_documents_updated_at_idx").on(columns.updatedAt),
     index("payload_locked_documents_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const payload_locked_documents_rels = pgTable(
@@ -3146,6 +3177,7 @@ export const payload_locked_documents_rels = pgTable(
     "lottery-winnersID": uuid("lottery_winners_id"),
     mediaID: uuid("media_id"),
     newsID: uuid("news_id"),
+    "news-analyticsID": uuid("news_analytics_id"),
     "notification-deliveriesID": uuid("notification_deliveries_id"),
     "notification-inboxID": uuid("notification_inbox_id"),
     notificationsID: uuid("notifications_id"),
@@ -3167,81 +3199,46 @@ export const payload_locked_documents_rels = pgTable(
     index("payload_locked_documents_rels_order_idx").on(columns.order),
     index("payload_locked_documents_rels_parent_idx").on(columns.parent),
     index("payload_locked_documents_rels_path_idx").on(columns.path),
-    index("payload_locked_documents_rels_accounts_id_idx").on(
-      columns.accountsID
-    ),
-    index("payload_locked_documents_rels_activities_id_idx").on(
-      columns.activitiesID
-    ),
+    index("payload_locked_documents_rels_accounts_id_idx").on(columns.accountsID),
+    index("payload_locked_documents_rels_activities_id_idx").on(columns.activitiesID),
     index("payload_locked_documents_rels_admins_id_idx").on(columns.adminsID),
-    index("payload_locked_documents_rels_categories_id_idx").on(
-      columns.categoriesID
-    ),
-    index("payload_locked_documents_rels_comments_id_idx").on(
-      columns.commentsID
-    ),
-    index("payload_locked_documents_rels_content_reports_id_idx").on(
-      columns.contentReportsID
-    ),
-    index("payload_locked_documents_rels_feedback_id_idx").on(
-      columns.feedbackID
-    ),
+    index("payload_locked_documents_rels_categories_id_idx").on(columns.categoriesID),
+    index("payload_locked_documents_rels_comments_id_idx").on(columns.commentsID),
+    index("payload_locked_documents_rels_content_reports_id_idx").on(columns.contentReportsID),
+    index("payload_locked_documents_rels_feedback_id_idx").on(columns.feedbackID),
     index("payload_locked_documents_rels_identity_verification_id_idx").on(
-      columns["identity-verificationID"]
+      columns["identity-verificationID"],
     ),
     index("payload_locked_documents_rels_lottery_id_idx").on(columns.lotteryID),
-    index("payload_locked_documents_rels_lottery_tickets_id_idx").on(
-      columns["lottery-ticketsID"]
-    ),
-    index("payload_locked_documents_rels_lottery_winners_id_idx").on(
-      columns["lottery-winnersID"]
-    ),
+    index("payload_locked_documents_rels_lottery_tickets_id_idx").on(columns["lottery-ticketsID"]),
+    index("payload_locked_documents_rels_lottery_winners_id_idx").on(columns["lottery-winnersID"]),
     index("payload_locked_documents_rels_media_id_idx").on(columns.mediaID),
     index("payload_locked_documents_rels_news_id_idx").on(columns.newsID),
+    index("payload_locked_documents_rels_news_analytics_id_idx").on(columns["news-analyticsID"]),
     index("payload_locked_documents_rels_notification_deliveries_id_idx").on(
-      columns["notification-deliveriesID"]
+      columns["notification-deliveriesID"],
     ),
     index("payload_locked_documents_rels_notification_inbox_id_idx").on(
-      columns["notification-inboxID"]
+      columns["notification-inboxID"],
     ),
-    index("payload_locked_documents_rels_notifications_id_idx").on(
-      columns.notificationsID
-    ),
-    index("payload_locked_documents_rels_partner_content_id_idx").on(
-      columns["partner-contentID"]
-    ),
+    index("payload_locked_documents_rels_notifications_id_idx").on(columns.notificationsID),
+    index("payload_locked_documents_rels_partner_content_id_idx").on(columns["partner-contentID"]),
     index("payload_locked_documents_rels_partner_conversions_id_idx").on(
-      columns["partner-conversionsID"]
+      columns["partner-conversionsID"],
     ),
-    index("payload_locked_documents_rels_partners_id_idx").on(
-      columns.partnersID
-    ),
-    index("payload_locked_documents_rels_promotion_media_id_idx").on(
-      columns["promotion-mediaID"]
-    ),
-    index("payload_locked_documents_rels_push_tokens_id_idx").on(
-      columns["push-tokensID"]
-    ),
-    index("payload_locked_documents_rels_reactions_id_idx").on(
-      columns.reactionsID
-    ),
-    index("payload_locked_documents_rels_sessions_id_idx").on(
-      columns.sessionsID
-    ),
-    index("payload_locked_documents_rels_shop_analytics_id_idx").on(
-      columns["shop-analyticsID"]
-    ),
+    index("payload_locked_documents_rels_partners_id_idx").on(columns.partnersID),
+    index("payload_locked_documents_rels_promotion_media_id_idx").on(columns["promotion-mediaID"]),
+    index("payload_locked_documents_rels_push_tokens_id_idx").on(columns["push-tokensID"]),
+    index("payload_locked_documents_rels_reactions_id_idx").on(columns.reactionsID),
+    index("payload_locked_documents_rels_sessions_id_idx").on(columns.sessionsID),
+    index("payload_locked_documents_rels_shop_analytics_id_idx").on(columns["shop-analyticsID"]),
     index("payload_locked_documents_rels_survey_id_idx").on(columns.surveyID),
     index("payload_locked_documents_rels_ticket_purchase_log_id_idx").on(
-      columns["ticket-purchase-logID"]
+      columns["ticket-purchase-logID"],
     ),
     index("payload_locked_documents_rels_users_id_idx").on(columns.usersID),
-    index("payload_locked_documents_rels_verifications_id_idx").on(
-      columns.verificationsID
-    ),
-    index("payload_locked_documents_rels_witness_reports_id_idx").on(
-      columns["witness-reportsID"]
-    ),
+    index("payload_locked_documents_rels_verifications_id_idx").on(columns.verificationsID),
+    index("payload_locked_documents_rels_witness_reports_id_idx").on(columns["witness-reportsID"]),
     foreignKey({
       columns: [columns["parent"]],
       foreignColumns: [payload_locked_documents.id],
@@ -3311,6 +3308,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["newsID"]],
       foreignColumns: [news.id],
       name: "payload_locked_documents_rels_news_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["news-analyticsID"]],
+      foreignColumns: [news_analytics.id],
+      name: "payload_locked_documents_rels_news_analytics_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["notification-deliveriesID"]],
@@ -3392,7 +3394,7 @@ export const payload_locked_documents_rels = pgTable(
       foreignColumns: [witness_reports.id],
       name: "payload_locked_documents_rels_witness_reports_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const payload_preferences = pgTable(
@@ -3420,7 +3422,7 @@ export const payload_preferences = pgTable(
     index("payload_preferences_key_idx").on(columns.key),
     index("payload_preferences_updated_at_idx").on(columns.updatedAt),
     index("payload_preferences_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const payload_preferences_rels = pgTable(
@@ -3447,7 +3449,7 @@ export const payload_preferences_rels = pgTable(
       foreignColumns: [admins.id],
       name: "payload_preferences_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const payload_migrations = pgTable(
@@ -3474,7 +3476,7 @@ export const payload_migrations = pgTable(
   (columns) => [
     index("payload_migrations_updated_at_idx").on(columns.updatedAt),
     index("payload_migrations_created_at_idx").on(columns.createdAt),
-  ]
+  ],
 );
 
 export const news_category_items = pgTable(
@@ -3496,7 +3498,7 @@ export const news_category_items = pgTable(
       foreignColumns: [news_category.id],
       name: "news_category_items_parent_id_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const news_category = pgTable("news_category", {
@@ -3537,7 +3539,7 @@ export const news_category_rels = pgTable(
       foreignColumns: [admins.id],
       name: "news_category_rels_admins_fk",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export const payload_jobs_stats = pgTable("payload_jobs_stats", {
@@ -3572,21 +3574,18 @@ export const relations_accounts = relations(accounts, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_activities_rels = relations(
-  activities_rels,
-  ({ one }) => ({
-    parent: one(activities, {
-      fields: [activities_rels.parent],
-      references: [activities.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [activities_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
+export const relations_activities_rels = relations(activities_rels, ({ one }) => ({
+  parent: one(activities, {
+    fields: [activities_rels.parent],
+    references: [activities.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [activities_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
 export const relations_activities = relations(activities, ({ one, many }) => ({
   user: one(users, {
     fields: [activities.user],
@@ -3602,16 +3601,13 @@ export const relations_activities = relations(activities, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_admins_sessions = relations(
-  admins_sessions,
-  ({ one }) => ({
-    _parentID: one(admins, {
-      fields: [admins_sessions._parentID],
-      references: [admins.id],
-      relationName: "sessions",
-    }),
-  })
-);
+export const relations_admins_sessions = relations(admins_sessions, ({ one }) => ({
+  _parentID: one(admins, {
+    fields: [admins_sessions._parentID],
+    references: [admins.id],
+    relationName: "sessions",
+  }),
+}));
 export const relations_admins_rels = relations(admins_rels, ({ one }) => ({
   parent: one(admins, {
     fields: [admins_rels.parent],
@@ -3642,36 +3638,30 @@ export const relations_admins = relations(admins, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_categories_breadcrumbs = relations(
-  categories_breadcrumbs,
-  ({ one }) => ({
-    _parentID: one(categories, {
-      fields: [categories_breadcrumbs._parentID],
-      references: [categories.id],
-      relationName: "breadcrumbs",
-    }),
-    doc: one(categories, {
-      fields: [categories_breadcrumbs.doc],
-      references: [categories.id],
-      relationName: "doc",
-    }),
-  })
-);
-export const relations_categories_rels = relations(
-  categories_rels,
-  ({ one }) => ({
-    parent: one(categories, {
-      fields: [categories_rels.parent],
-      references: [categories.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [categories_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
+export const relations_categories_breadcrumbs = relations(categories_breadcrumbs, ({ one }) => ({
+  _parentID: one(categories, {
+    fields: [categories_breadcrumbs._parentID],
+    references: [categories.id],
+    relationName: "breadcrumbs",
+  }),
+  doc: one(categories, {
+    fields: [categories_breadcrumbs.doc],
+    references: [categories.id],
+    relationName: "doc",
+  }),
+}));
+export const relations_categories_rels = relations(categories_rels, ({ one }) => ({
+  parent: one(categories, {
+    fields: [categories_rels.parent],
+    references: [categories.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [categories_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
 export const relations_categories = relations(categories, ({ one, many }) => ({
   image: one(media, {
     fields: [categories.image],
@@ -3732,49 +3722,43 @@ export const relations_comments = relations(comments, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_content_reports_rels = relations(
-  content_reports_rels,
-  ({ one }) => ({
-    parent: one(content_reports, {
-      fields: [content_reports_rels.parent],
-      references: [content_reports.id],
-      relationName: "_rels",
-    }),
-    commentsID: one(comments, {
-      fields: [content_reports_rels.commentsID],
-      references: [comments.id],
-      relationName: "comments",
-    }),
-    newsID: one(news, {
-      fields: [content_reports_rels.newsID],
-      references: [news.id],
-      relationName: "news",
-    }),
-    adminsID: one(admins, {
-      fields: [content_reports_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_content_reports = relations(
-  content_reports,
-  ({ one, many }) => ({
-    reportedBy: one(users, {
-      fields: [content_reports.reportedBy],
-      references: [users.id],
-      relationName: "reportedBy",
-    }),
-    resolvedBy: one(admins, {
-      fields: [content_reports.resolvedBy],
-      references: [admins.id],
-      relationName: "resolvedBy",
-    }),
-    _rels: many(content_reports_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_content_reports_rels = relations(content_reports_rels, ({ one }) => ({
+  parent: one(content_reports, {
+    fields: [content_reports_rels.parent],
+    references: [content_reports.id],
+    relationName: "_rels",
+  }),
+  commentsID: one(comments, {
+    fields: [content_reports_rels.commentsID],
+    references: [comments.id],
+    relationName: "comments",
+  }),
+  newsID: one(news, {
+    fields: [content_reports_rels.newsID],
+    references: [news.id],
+    relationName: "news",
+  }),
+  adminsID: one(admins, {
+    fields: [content_reports_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_content_reports = relations(content_reports, ({ one, many }) => ({
+  reportedBy: one(users, {
+    fields: [content_reports.reportedBy],
+    references: [users.id],
+    relationName: "reportedBy",
+  }),
+  resolvedBy: one(admins, {
+    fields: [content_reports.resolvedBy],
+    references: [admins.id],
+    relationName: "resolvedBy",
+  }),
+  _rels: many(content_reports_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_feedback_rels = relations(feedback_rels, ({ one }) => ({
   parent: one(feedback, {
     fields: [feedback_rels.parent],
@@ -3805,7 +3789,7 @@ export const relations_identity_verification_rels = relations(
       references: [admins.id],
       relationName: "admins",
     }),
-  })
+  }),
 );
 export const relations_identity_verification = relations(
   identity_verification,
@@ -3828,7 +3812,7 @@ export const relations_identity_verification = relations(
     _rels: many(identity_verification_rels, {
       relationName: "_rels",
     }),
-  })
+  }),
 );
 export const relations_lottery_rels = relations(lottery_rels, ({ one }) => ({
   parent: one(lottery, {
@@ -3852,72 +3836,60 @@ export const relations_lottery = relations(lottery, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_lottery_tickets_rels = relations(
-  lottery_tickets_rels,
-  ({ one }) => ({
-    parent: one(lottery_tickets, {
-      fields: [lottery_tickets_rels.parent],
-      references: [lottery_tickets.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [lottery_tickets_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_lottery_tickets = relations(
-  lottery_tickets,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [lottery_tickets.user],
-      references: [users.id],
-      relationName: "user",
-    }),
-    lottery: one(lottery, {
-      fields: [lottery_tickets.lottery],
-      references: [lottery.id],
-      relationName: "lottery",
-    }),
-    _rels: many(lottery_tickets_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
-export const relations_lottery_winners_rels = relations(
-  lottery_winners_rels,
-  ({ one }) => ({
-    parent: one(lottery_winners, {
-      fields: [lottery_winners_rels.parent],
-      references: [lottery_winners.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [lottery_winners_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_lottery_winners = relations(
-  lottery_winners,
-  ({ one, many }) => ({
-    lottery: one(lottery, {
-      fields: [lottery_winners.lottery],
-      references: [lottery.id],
-      relationName: "lottery",
-    }),
-    user: one(users, {
-      fields: [lottery_winners.user],
-      references: [users.id],
-      relationName: "user",
-    }),
-    _rels: many(lottery_winners_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_lottery_tickets_rels = relations(lottery_tickets_rels, ({ one }) => ({
+  parent: one(lottery_tickets, {
+    fields: [lottery_tickets_rels.parent],
+    references: [lottery_tickets.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [lottery_tickets_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_lottery_tickets = relations(lottery_tickets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [lottery_tickets.user],
+    references: [users.id],
+    relationName: "user",
+  }),
+  lottery: one(lottery, {
+    fields: [lottery_tickets.lottery],
+    references: [lottery.id],
+    relationName: "lottery",
+  }),
+  _rels: many(lottery_tickets_rels, {
+    relationName: "_rels",
+  }),
+}));
+export const relations_lottery_winners_rels = relations(lottery_winners_rels, ({ one }) => ({
+  parent: one(lottery_winners, {
+    fields: [lottery_winners_rels.parent],
+    references: [lottery_winners.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [lottery_winners_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_lottery_winners = relations(lottery_winners, ({ one, many }) => ({
+  lottery: one(lottery, {
+    fields: [lottery_winners.lottery],
+    references: [lottery.id],
+    relationName: "lottery",
+  }),
+  user: one(users, {
+    fields: [lottery_winners.user],
+    references: [users.id],
+    relationName: "user",
+  }),
+  _rels: many(lottery_winners_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_media_rels = relations(media_rels, ({ one }) => ({
   parent: one(media, {
     fields: [media_rels.parent],
@@ -3935,16 +3907,13 @@ export const relations_media = relations(media, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_news_key_points = relations(
-  news_key_points,
-  ({ one }) => ({
-    _parentID: one(news, {
-      fields: [news_key_points._parentID],
-      references: [news.id],
-      relationName: "keyPoints",
-    }),
-  })
-);
+export const relations_news_key_points = relations(news_key_points, ({ one }) => ({
+  _parentID: one(news, {
+    fields: [news_key_points._parentID],
+    references: [news.id],
+    relationName: "keyPoints",
+  }),
+}));
 export const relations_news_rels = relations(news_rels, ({ one }) => ({
   parent: one(news, {
     fields: [news_rels.parent],
@@ -3988,7 +3957,7 @@ export const relations__news_v_version_key_points = relations(
       references: [_news_v.id],
       relationName: "version_keyPoints",
     }),
-  })
+  }),
 );
 export const relations__news_v_rels = relations(_news_v_rels, ({ one }) => ({
   parent: one(_news_v, {
@@ -4030,6 +3999,28 @@ export const relations__news_v = relations(_news_v, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
+export const relations_news_analytics_rels = relations(news_analytics_rels, ({ one }) => ({
+  parent: one(news_analytics, {
+    fields: [news_analytics_rels.parent],
+    references: [news_analytics.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [news_analytics_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_news_analytics = relations(news_analytics, ({ one, many }) => ({
+  article: one(news, {
+    fields: [news_analytics.article],
+    references: [news.id],
+    relationName: "article",
+  }),
+  _rels: many(news_analytics_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_notification_deliveries_rels = relations(
   notification_deliveries_rels,
   ({ one }) => ({
@@ -4043,7 +4034,7 @@ export const relations_notification_deliveries_rels = relations(
       references: [admins.id],
       relationName: "admins",
     }),
-  })
+  }),
 );
 export const relations_notification_deliveries = relations(
   notification_deliveries,
@@ -4061,41 +4052,35 @@ export const relations_notification_deliveries = relations(
     _rels: many(notification_deliveries_rels, {
       relationName: "_rels",
     }),
-  })
+  }),
 );
-export const relations_notification_inbox_rels = relations(
-  notification_inbox_rels,
-  ({ one }) => ({
-    parent: one(notification_inbox, {
-      fields: [notification_inbox_rels.parent],
-      references: [notification_inbox.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [notification_inbox_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_notification_inbox = relations(
-  notification_inbox,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [notification_inbox.user],
-      references: [users.id],
-      relationName: "user",
-    }),
-    notification: one(notifications, {
-      fields: [notification_inbox.notification],
-      references: [notifications.id],
-      relationName: "notification",
-    }),
-    _rels: many(notification_inbox_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_notification_inbox_rels = relations(notification_inbox_rels, ({ one }) => ({
+  parent: one(notification_inbox, {
+    fields: [notification_inbox_rels.parent],
+    references: [notification_inbox.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [notification_inbox_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_notification_inbox = relations(notification_inbox, ({ one, many }) => ({
+  user: one(users, {
+    fields: [notification_inbox.user],
+    references: [users.id],
+    relationName: "user",
+  }),
+  notification: one(notifications, {
+    fields: [notification_inbox.notification],
+    references: [notifications.id],
+    relationName: "notification",
+  }),
+  _rels: many(notification_inbox_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_notifications_device_types = relations(
   notifications_device_types,
   ({ one }) => ({
@@ -4104,28 +4089,25 @@ export const relations_notifications_device_types = relations(
       references: [notifications.id],
       relationName: "deviceTypes",
     }),
-  })
+  }),
 );
-export const relations_notifications_rels = relations(
-  notifications_rels,
-  ({ one }) => ({
-    parent: one(notifications, {
-      fields: [notifications_rels.parent],
-      references: [notifications.id],
-      relationName: "_rels",
-    }),
-    usersID: one(users, {
-      fields: [notifications_rels.usersID],
-      references: [users.id],
-      relationName: "users",
-    }),
-    adminsID: one(admins, {
-      fields: [notifications_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
+export const relations_notifications_rels = relations(notifications_rels, ({ one }) => ({
+  parent: one(notifications, {
+    fields: [notifications_rels.parent],
+    references: [notifications.id],
+    relationName: "_rels",
+  }),
+  usersID: one(users, {
+    fields: [notifications_rels.usersID],
+    references: [users.id],
+    relationName: "users",
+  }),
+  adminsID: one(admins, {
+    fields: [notifications_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
 export const relations_notifications = relations(notifications, ({ many }) => ({
   deviceTypes: many(notifications_device_types, {
     relationName: "deviceTypes",
@@ -4142,44 +4124,38 @@ export const relations__notifications_v_version_device_types = relations(
       references: [_notifications_v.id],
       relationName: "version_deviceTypes",
     }),
-  })
+  }),
 );
-export const relations__notifications_v_rels = relations(
-  _notifications_v_rels,
-  ({ one }) => ({
-    parent: one(_notifications_v, {
-      fields: [_notifications_v_rels.parent],
-      references: [_notifications_v.id],
-      relationName: "_rels",
-    }),
-    usersID: one(users, {
-      fields: [_notifications_v_rels.usersID],
-      references: [users.id],
-      relationName: "users",
-    }),
-    adminsID: one(admins, {
-      fields: [_notifications_v_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations__notifications_v = relations(
-  _notifications_v,
-  ({ one, many }) => ({
-    parent: one(notifications, {
-      fields: [_notifications_v.parent],
-      references: [notifications.id],
-      relationName: "parent",
-    }),
-    version_deviceTypes: many(_notifications_v_version_device_types, {
-      relationName: "version_deviceTypes",
-    }),
-    _rels: many(_notifications_v_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations__notifications_v_rels = relations(_notifications_v_rels, ({ one }) => ({
+  parent: one(_notifications_v, {
+    fields: [_notifications_v_rels.parent],
+    references: [_notifications_v.id],
+    relationName: "_rels",
+  }),
+  usersID: one(users, {
+    fields: [_notifications_v_rels.usersID],
+    references: [users.id],
+    relationName: "users",
+  }),
+  adminsID: one(admins, {
+    fields: [_notifications_v_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations__notifications_v = relations(_notifications_v, ({ one, many }) => ({
+  parent: one(notifications, {
+    fields: [_notifications_v.parent],
+    references: [notifications.id],
+    relationName: "parent",
+  }),
+  version_deviceTypes: many(_notifications_v_version_device_types, {
+    relationName: "version_deviceTypes",
+  }),
+  _rels: many(_notifications_v_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_partner_content_blocks_promo_video_source = relations(
   partner_content_blocks_promo_video_source,
   ({ one }) => ({
@@ -4193,7 +4169,12 @@ export const relations_partner_content_blocks_promo_video_source = relations(
       references: [media.id],
       relationName: "video",
     }),
-  })
+    thumbnail: one(media, {
+      fields: [partner_content_blocks_promo_video_source.thumbnail],
+      references: [media.id],
+      relationName: "thumbnail",
+    }),
+  }),
 );
 export const relations_partner_content_blocks_promo_image = relations(
   partner_content_blocks_promo_image,
@@ -4208,23 +4189,15 @@ export const relations_partner_content_blocks_promo_image = relations(
       references: [media.id],
       relationName: "image",
     }),
-  })
+  }),
 );
-export const relations_partner_content_items = relations(
-  partner_content_items,
-  ({ one }) => ({
-    _parentID: one(partner_content, {
-      fields: [partner_content_items._parentID],
-      references: [partner_content.id],
-      relationName: "items",
-    }),
-    thumbnail: one(media, {
-      fields: [partner_content_items.thumbnail],
-      references: [media.id],
-      relationName: "thumbnail",
-    }),
-  })
-);
+export const relations_partner_content_items = relations(partner_content_items, ({ one }) => ({
+  _parentID: one(partner_content, {
+    fields: [partner_content_items._parentID],
+    references: [partner_content.id],
+    relationName: "items",
+  }),
+}));
 export const relations_partner_content_placements = relations(
   partner_content_placements,
   ({ one }) => ({
@@ -4233,61 +4206,52 @@ export const relations_partner_content_placements = relations(
       references: [partner_content.id],
       relationName: "placements",
     }),
-  })
+  }),
 );
-export const relations_partner_content_rels = relations(
-  partner_content_rels,
-  ({ one }) => ({
-    parent: one(partner_content, {
-      fields: [partner_content_rels.parent],
-      references: [partner_content.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [partner_content_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_partner_content = relations(
-  partner_content,
-  ({ one, many }) => ({
-    media: one(media, {
-      fields: [partner_content.media],
-      references: [media.id],
-      relationName: "media",
-    }),
-    "_blocks_promo-video-source": many(
-      partner_content_blocks_promo_video_source,
-      {
-        relationName: "_blocks_promo-video-source",
-      }
-    ),
-    "_blocks_promo-image": many(partner_content_blocks_promo_image, {
-      relationName: "_blocks_promo-image",
-    }),
-    items: many(partner_content_items, {
-      relationName: "items",
-    }),
-    video: one(media, {
-      fields: [partner_content.video],
-      references: [media.id],
-      relationName: "video",
-    }),
-    partner: one(partners, {
-      fields: [partner_content.partner],
-      references: [partners.id],
-      relationName: "partner",
-    }),
-    placements: many(partner_content_placements, {
-      relationName: "placements",
-    }),
-    _rels: many(partner_content_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_partner_content_rels = relations(partner_content_rels, ({ one }) => ({
+  parent: one(partner_content, {
+    fields: [partner_content_rels.parent],
+    references: [partner_content.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [partner_content_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_partner_content = relations(partner_content, ({ one, many }) => ({
+  media: one(media, {
+    fields: [partner_content.media],
+    references: [media.id],
+    relationName: "media",
+  }),
+  "_blocks_promo-video-source": many(partner_content_blocks_promo_video_source, {
+    relationName: "_blocks_promo-video-source",
+  }),
+  "_blocks_promo-image": many(partner_content_blocks_promo_image, {
+    relationName: "_blocks_promo-image",
+  }),
+  items: many(partner_content_items, {
+    relationName: "items",
+  }),
+  video: one(media, {
+    fields: [partner_content.video],
+    references: [media.id],
+    relationName: "video",
+  }),
+  partner: one(partners, {
+    fields: [partner_content.partner],
+    references: [partners.id],
+    relationName: "partner",
+  }),
+  placements: many(partner_content_placements, {
+    relationName: "placements",
+  }),
+  _rels: many(partner_content_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_partner_conversions_rels = relations(
   partner_conversions_rels,
   ({ one }) => ({
@@ -4301,31 +4265,28 @@ export const relations_partner_conversions_rels = relations(
       references: [admins.id],
       relationName: "admins",
     }),
-  })
+  }),
 );
-export const relations_partner_conversions = relations(
-  partner_conversions,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [partner_conversions.user],
-      references: [users.id],
-      relationName: "user",
-    }),
-    partner: one(partners, {
-      fields: [partner_conversions.partner],
-      references: [partners.id],
-      relationName: "partner",
-    }),
-    content: one(partner_content, {
-      fields: [partner_conversions.content],
-      references: [partner_content.id],
-      relationName: "content",
-    }),
-    _rels: many(partner_conversions_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_partner_conversions = relations(partner_conversions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [partner_conversions.user],
+    references: [users.id],
+    relationName: "user",
+  }),
+  partner: one(partners, {
+    fields: [partner_conversions.partner],
+    references: [partners.id],
+    relationName: "partner",
+  }),
+  content: one(partner_content, {
+    fields: [partner_conversions.content],
+    references: [partner_content.id],
+    relationName: "content",
+  }),
+  _rels: many(partner_conversions_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_partners_rels = relations(partners_rels, ({ one }) => ({
   parent: one(partners, {
     fields: [partners_rels.parent],
@@ -4361,7 +4322,12 @@ export const relations_promotion_media_blocks_promo_video_source = relations(
       references: [media.id],
       relationName: "video",
     }),
-  })
+    thumbnail: one(media, {
+      fields: [promotion_media_blocks_promo_video_source.thumbnail],
+      references: [media.id],
+      relationName: "thumbnail",
+    }),
+  }),
 );
 export const relations_promotion_media_blocks_promo_image = relations(
   promotion_media_blocks_promo_image,
@@ -4376,96 +4342,75 @@ export const relations_promotion_media_blocks_promo_image = relations(
       references: [media.id],
       relationName: "image",
     }),
-  })
+  }),
 );
-export const relations_promotion_media_items = relations(
-  promotion_media_items,
-  ({ one }) => ({
-    _parentID: one(promotion_media, {
-      fields: [promotion_media_items._parentID],
-      references: [promotion_media.id],
-      relationName: "items",
-    }),
-  })
-);
-export const relations_promotion_media_rels = relations(
-  promotion_media_rels,
-  ({ one }) => ({
-    parent: one(promotion_media, {
-      fields: [promotion_media_rels.parent],
-      references: [promotion_media.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [promotion_media_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_promotion_media = relations(
-  promotion_media,
-  ({ many }) => ({
-    "_blocks_promo-video-source": many(
-      promotion_media_blocks_promo_video_source,
-      {
-        relationName: "_blocks_promo-video-source",
-      }
-    ),
-    "_blocks_promo-image": many(promotion_media_blocks_promo_image, {
-      relationName: "_blocks_promo-image",
-    }),
-    items: many(promotion_media_items, {
-      relationName: "items",
-    }),
-    _rels: many(promotion_media_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
-export const relations_push_tokens_rels = relations(
-  push_tokens_rels,
-  ({ one }) => ({
-    parent: one(push_tokens, {
-      fields: [push_tokens_rels.parent],
-      references: [push_tokens.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [push_tokens_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_push_tokens = relations(
-  push_tokens,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [push_tokens.user],
-      references: [users.id],
-      relationName: "user",
-    }),
-    _rels: many(push_tokens_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
-export const relations_reactions_rels = relations(
-  reactions_rels,
-  ({ one }) => ({
-    parent: one(reactions, {
-      fields: [reactions_rels.parent],
-      references: [reactions.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [reactions_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
+export const relations_promotion_media_items = relations(promotion_media_items, ({ one }) => ({
+  _parentID: one(promotion_media, {
+    fields: [promotion_media_items._parentID],
+    references: [promotion_media.id],
+    relationName: "items",
+  }),
+}));
+export const relations_promotion_media_rels = relations(promotion_media_rels, ({ one }) => ({
+  parent: one(promotion_media, {
+    fields: [promotion_media_rels.parent],
+    references: [promotion_media.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [promotion_media_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_promotion_media = relations(promotion_media, ({ many }) => ({
+  "_blocks_promo-video-source": many(promotion_media_blocks_promo_video_source, {
+    relationName: "_blocks_promo-video-source",
+  }),
+  "_blocks_promo-image": many(promotion_media_blocks_promo_image, {
+    relationName: "_blocks_promo-image",
+  }),
+  items: many(promotion_media_items, {
+    relationName: "items",
+  }),
+  _rels: many(promotion_media_rels, {
+    relationName: "_rels",
+  }),
+}));
+export const relations_push_tokens_rels = relations(push_tokens_rels, ({ one }) => ({
+  parent: one(push_tokens, {
+    fields: [push_tokens_rels.parent],
+    references: [push_tokens.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [push_tokens_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_push_tokens = relations(push_tokens, ({ one, many }) => ({
+  user: one(users, {
+    fields: [push_tokens.user],
+    references: [users.id],
+    relationName: "user",
+  }),
+  _rels: many(push_tokens_rels, {
+    relationName: "_rels",
+  }),
+}));
+export const relations_reactions_rels = relations(reactions_rels, ({ one }) => ({
+  parent: one(reactions, {
+    fields: [reactions_rels.parent],
+    references: [reactions.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [reactions_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
 export const relations_reactions = relations(reactions, ({ one, many }) => ({
   user: one(users, {
     fields: [reactions.user],
@@ -4498,34 +4443,28 @@ export const relations_sessions = relations(sessions, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_shop_analytics_rels = relations(
-  shop_analytics_rels,
-  ({ one }) => ({
-    parent: one(shop_analytics, {
-      fields: [shop_analytics_rels.parent],
-      references: [shop_analytics.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [shop_analytics_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_shop_analytics = relations(
-  shop_analytics,
-  ({ one, many }) => ({
-    store: one(partners, {
-      fields: [shop_analytics.store],
-      references: [partners.id],
-      relationName: "store",
-    }),
-    _rels: many(shop_analytics_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_shop_analytics_rels = relations(shop_analytics_rels, ({ one }) => ({
+  parent: one(shop_analytics, {
+    fields: [shop_analytics_rels.parent],
+    references: [shop_analytics.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [shop_analytics_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_shop_analytics = relations(shop_analytics, ({ one, many }) => ({
+  store: one(partners, {
+    fields: [shop_analytics.store],
+    references: [partners.id],
+    relationName: "store",
+  }),
+  _rels: many(shop_analytics_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_survey_rels = relations(survey_rels, ({ one }) => ({
   parent: one(survey, {
     fields: [survey_rels.parent],
@@ -4561,26 +4500,23 @@ export const relations_ticket_purchase_log_rels = relations(
       references: [admins.id],
       relationName: "admins",
     }),
-  })
+  }),
 );
-export const relations_ticket_purchase_log = relations(
-  ticket_purchase_log,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [ticket_purchase_log.user],
-      references: [users.id],
-      relationName: "user",
-    }),
-    lottery: one(lottery, {
-      fields: [ticket_purchase_log.lottery],
-      references: [lottery.id],
-      relationName: "lottery",
-    }),
-    _rels: many(ticket_purchase_log_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_ticket_purchase_log = relations(ticket_purchase_log, ({ one, many }) => ({
+  user: one(users, {
+    fields: [ticket_purchase_log.user],
+    references: [users.id],
+    relationName: "user",
+  }),
+  lottery: one(lottery, {
+    fields: [ticket_purchase_log.lottery],
+    references: [lottery.id],
+    relationName: "lottery",
+  }),
+  _rels: many(ticket_purchase_log_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_users_rels = relations(users_rels, ({ one }) => ({
   parent: one(users, {
     fields: [users_rels.parent],
@@ -4598,65 +4534,53 @@ export const relations_users = relations(users, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_verifications_rels = relations(
-  verifications_rels,
-  ({ one }) => ({
-    parent: one(verifications, {
-      fields: [verifications_rels.parent],
-      references: [verifications.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [verifications_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
+export const relations_verifications_rels = relations(verifications_rels, ({ one }) => ({
+  parent: one(verifications, {
+    fields: [verifications_rels.parent],
+    references: [verifications.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [verifications_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
 export const relations_verifications = relations(verifications, ({ many }) => ({
   _rels: many(verifications_rels, {
     relationName: "_rels",
   }),
 }));
-export const relations_witness_reports_rels = relations(
-  witness_reports_rels,
-  ({ one }) => ({
-    parent: one(witness_reports, {
-      fields: [witness_reports_rels.parent],
-      references: [witness_reports.id],
-      relationName: "_rels",
-    }),
-    mediaID: one(media, {
-      fields: [witness_reports_rels.mediaID],
-      references: [media.id],
-      relationName: "media",
-    }),
-    adminsID: one(admins, {
-      fields: [witness_reports_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
-export const relations_witness_reports = relations(
-  witness_reports,
-  ({ many }) => ({
-    _rels: many(witness_reports_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
+export const relations_witness_reports_rels = relations(witness_reports_rels, ({ one }) => ({
+  parent: one(witness_reports, {
+    fields: [witness_reports_rels.parent],
+    references: [witness_reports.id],
+    relationName: "_rels",
+  }),
+  mediaID: one(media, {
+    fields: [witness_reports_rels.mediaID],
+    references: [media.id],
+    relationName: "media",
+  }),
+  adminsID: one(admins, {
+    fields: [witness_reports_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_witness_reports = relations(witness_reports, ({ many }) => ({
+  _rels: many(witness_reports_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_payload_kv = relations(payload_kv, () => ({}));
-export const relations_payload_jobs_log = relations(
-  payload_jobs_log,
-  ({ one }) => ({
-    _parentID: one(payload_jobs, {
-      fields: [payload_jobs_log._parentID],
-      references: [payload_jobs.id],
-      relationName: "log",
-    }),
-  })
-);
+export const relations_payload_jobs_log = relations(payload_jobs_log, ({ one }) => ({
+  _parentID: one(payload_jobs, {
+    fields: [payload_jobs_log._parentID],
+    references: [payload_jobs.id],
+    relationName: "log",
+  }),
+}));
 export const relations_payload_jobs = relations(payload_jobs, ({ many }) => ({
   log: many(payload_jobs_log, {
     relationName: "log",
@@ -4734,6 +4658,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.newsID],
       references: [news.id],
       relationName: "news",
+    }),
+    "news-analyticsID": one(news_analytics, {
+      fields: [payload_locked_documents_rels["news-analyticsID"]],
+      references: [news_analytics.id],
+      relationName: "news-analytics",
     }),
     "notification-deliveriesID": one(notification_deliveries, {
       fields: [payload_locked_documents_rels["notification-deliveriesID"]],
@@ -4815,7 +4744,7 @@ export const relations_payload_locked_documents_rels = relations(
       references: [witness_reports.id],
       relationName: "witness-reports",
     }),
-  })
+  }),
 );
 export const relations_payload_locked_documents = relations(
   payload_locked_documents,
@@ -4823,7 +4752,7 @@ export const relations_payload_locked_documents = relations(
     _rels: many(payload_locked_documents_rels, {
       relationName: "_rels",
     }),
-  })
+  }),
 );
 export const relations_payload_preferences_rels = relations(
   payload_preferences_rels,
@@ -4838,50 +4767,38 @@ export const relations_payload_preferences_rels = relations(
       references: [admins.id],
       relationName: "admins",
     }),
-  })
+  }),
 );
-export const relations_payload_preferences = relations(
-  payload_preferences,
-  ({ many }) => ({
-    _rels: many(payload_preferences_rels, {
-      relationName: "_rels",
-    }),
-  })
-);
-export const relations_payload_migrations = relations(
-  payload_migrations,
-  () => ({})
-);
-export const relations_news_category_items = relations(
-  news_category_items,
-  ({ one }) => ({
-    _parentID: one(news_category, {
-      fields: [news_category_items._parentID],
-      references: [news_category.id],
-      relationName: "items",
-    }),
-    category: one(categories, {
-      fields: [news_category_items.category],
-      references: [categories.id],
-      relationName: "category",
-    }),
-  })
-);
-export const relations_news_category_rels = relations(
-  news_category_rels,
-  ({ one }) => ({
-    parent: one(news_category, {
-      fields: [news_category_rels.parent],
-      references: [news_category.id],
-      relationName: "_rels",
-    }),
-    adminsID: one(admins, {
-      fields: [news_category_rels.adminsID],
-      references: [admins.id],
-      relationName: "admins",
-    }),
-  })
-);
+export const relations_payload_preferences = relations(payload_preferences, ({ many }) => ({
+  _rels: many(payload_preferences_rels, {
+    relationName: "_rels",
+  }),
+}));
+export const relations_payload_migrations = relations(payload_migrations, () => ({}));
+export const relations_news_category_items = relations(news_category_items, ({ one }) => ({
+  _parentID: one(news_category, {
+    fields: [news_category_items._parentID],
+    references: [news_category.id],
+    relationName: "items",
+  }),
+  category: one(categories, {
+    fields: [news_category_items.category],
+    references: [categories.id],
+    relationName: "category",
+  }),
+}));
+export const relations_news_category_rels = relations(news_category_rels, ({ one }) => ({
+  parent: one(news_category, {
+    fields: [news_category_rels.parent],
+    references: [news_category.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [news_category_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
 export const relations_news_category = relations(news_category, ({ many }) => ({
   items: many(news_category_items, {
     relationName: "items",
@@ -4890,10 +4807,7 @@ export const relations_news_category = relations(news_category, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_payload_jobs_stats = relations(
-  payload_jobs_stats,
-  () => ({})
-);
+export const relations_payload_jobs_stats = relations(payload_jobs_stats, () => ({}));
 
 type DatabaseSchema = {
   enum_activities_type: typeof enum_activities_type;
@@ -4909,6 +4823,8 @@ type DatabaseSchema = {
   enum_news_status: typeof enum_news_status;
   enum__news_v_version_type: typeof enum__news_v_version_type;
   enum__news_v_version_status: typeof enum__news_v_version_status;
+  enum_news_analytics_event: typeof enum_news_analytics_event;
+  enum_news_analytics_platform: typeof enum_news_analytics_platform;
   enum_notification_deliveries_status: typeof enum_notification_deliveries_status;
   enum_notification_inbox_type: typeof enum_notification_inbox_type;
   enum_notifications_device_types: typeof enum_notifications_device_types;
@@ -4978,6 +4894,8 @@ type DatabaseSchema = {
   _news_v_version_key_points: typeof _news_v_version_key_points;
   _news_v: typeof _news_v;
   _news_v_rels: typeof _news_v_rels;
+  news_analytics: typeof news_analytics;
+  news_analytics_rels: typeof news_analytics_rels;
   notification_deliveries: typeof notification_deliveries;
   notification_deliveries_rels: typeof notification_deliveries_rels;
   notification_inbox: typeof notification_inbox;
@@ -5065,6 +4983,8 @@ type DatabaseSchema = {
   relations__news_v_version_key_points: typeof relations__news_v_version_key_points;
   relations__news_v_rels: typeof relations__news_v_rels;
   relations__news_v: typeof relations__news_v;
+  relations_news_analytics_rels: typeof relations_news_analytics_rels;
+  relations_news_analytics: typeof relations_news_analytics;
   relations_notification_deliveries_rels: typeof relations_notification_deliveries_rels;
   relations_notification_deliveries: typeof relations_notification_deliveries;
   relations_notification_inbox_rels: typeof relations_notification_inbox_rels;

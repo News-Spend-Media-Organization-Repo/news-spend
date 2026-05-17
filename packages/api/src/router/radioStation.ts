@@ -1,4 +1,4 @@
-// @ts-expect-error
+import type { StationInfo } from "node-internet-radio";
 import internetRadio from "node-internet-radio";
 import { RadioBrowserApi } from "radio-browser-api";
 import z from "zod";
@@ -15,13 +15,7 @@ const genres = [
   {
     tag: "rock",
     displayName: "Rock",
-    tagList: [
-      "rock",
-      "hard rock",
-      "classic rock",
-      "alternative rock",
-      "indie rock",
-    ],
+    tagList: ["rock", "hard rock", "classic rock", "alternative rock", "indie rock"],
   },
   {
     tag: "jazz",
@@ -31,14 +25,7 @@ const genres = [
   {
     tag: "afrobeats",
     displayName: "Afrobeat",
-    tagList: [
-      "afrobeat",
-      "afrofusion",
-      "afrobeats",
-      "afropop",
-      "highlife",
-      "nigerian music",
-    ],
+    tagList: ["afrobeat", "afrofusion", "afrobeats", "afropop", "highlife", "nigerian music"],
   },
   {
     tag: "classical",
@@ -84,7 +71,7 @@ const byGenreGroup = publicProcedure.handler(async () => {
       order: "random",
       reverse: true,
       removeDuplicates: true,
-    })
+    }),
   );
 
   const nigerianStations = await api.searchStations({
@@ -113,43 +100,40 @@ const byGenreGroup = publicProcedure.handler(async () => {
 const top = publicProcedure.input(TopInput).handler(async ({ input }) => {
   const api = new RadioBrowserApi("News Spend Media", true);
   try {
-    const stations = await api.getStationsByVotes(input.limit);
-    return stations ?? [];
+    const stations = await api.getStationsByVotes(input.limit * 3);
+    const shuffled = (stations ?? []).sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, input.limit);
   } catch (error) {
     console.error(error);
     return [];
   }
 });
 
-const getStreamMetadata = publicProcedure
-  .input(StreamMetadataInput)
-  .handler(async ({ input }) => {
-    const getStationInfoAsync = (url: string) =>
-      new Promise((resolve, reject) => {
-        internetRadio.getStationInfo(url, (error: any, station: any) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(station);
-          }
-        });
+const getStreamMetadata = publicProcedure.input(StreamMetadataInput).handler(async ({ input }) => {
+  const getStationInfoAsync = (url: string) =>
+    new Promise<StationInfo>((resolve, reject) => {
+      internetRadio.getStationInfo(url, (error, station) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(station);
+        }
       });
+    });
 
-    try {
-      const station = await getStationInfoAsync(input.streamUrl);
-
-      return {
-        metadata: station,
-        success: true,
-      };
-    } catch (error) {
-      console.error("Error getting station info:", error);
-      throw new Error(
-        // @ts-expect-error
-        `Failed to get station info: ${error?.message ?? "Unknown error"}`
-      );
-    }
-  });
+  try {
+    const station = await getStationInfoAsync(input.streamUrl);
+    return {
+      metadata: station,
+      success: true,
+    };
+  } catch {
+    return {
+      metadata: null,
+      success: false,
+    };
+  }
+});
 
 export const radioStationRouter = {
   byGenreGroup,

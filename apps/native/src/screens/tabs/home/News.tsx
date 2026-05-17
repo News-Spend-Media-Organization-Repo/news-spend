@@ -1,10 +1,6 @@
 import { Skeleton } from "@alloc/moti/skeleton";
 import { isDefinedError } from "@orpc/client";
-import {
-  useFocusEffect,
-  useNavigation,
-  useRoute,
-} from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { ArrowLeft, User } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -32,6 +28,7 @@ import { Image } from "#/components/ui";
 import { Button } from "#/components/ui/Button";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { useDislikeNews, useLikeNews, useNews } from "#/hooks/news";
+import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
 import { useReadingTracker } from "#/hooks/news/useNewsTracker";
 import useAddActivity from "#/hooks/point/useAddActivity";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -43,17 +40,13 @@ import { getImageData } from "#/utils/getImageData";
 const SingleNews = () => {
   const navigation = useNavigation("News");
   const { id, slug } = useRoute("News").params;
-  const { data, refetch, isError, error, isFetchedAfterMount } = useNews(
-    slug as string
-  );
+  const { data, refetch, isError, error, isFetchedAfterMount } = useNews(slug as string);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
   const { height } = useWindowDimensions();
   const likeMutation = useLikeNews();
   const dislikeMutation = useDislikeNews();
   const addActivityMutation = useAddActivity();
-  const recordViewMutation = useMutation(
-    orpc.news.recordView.mutationOptions()
-  );
+  const recordViewMutation = useMutation(orpc.news.recordView.mutationOptions());
 
   const { url, blurhash } = getImageData(data?.image);
 
@@ -61,7 +54,7 @@ const SingleNews = () => {
     orpc.activity.byNewsId.queryOptions({
       input: { newsId: data?.id ?? "", action: "read" },
       enabled: !!authState.user && !!data,
-    })
+    }),
   );
 
   const {
@@ -74,11 +67,26 @@ const SingleNews = () => {
     stopTracking,
   } = useReadingTracker(data, getUserPoint.data);
 
-  console.log(
-    !inRapidScroll,
-    elapsedSeconds >= minReadingSeconds,
-    hasScrolledThreshold
+  const { trackView, trackRead, trackLike, trackDislike, trackShare, trackComment } =
+    useNewsAnalytics(data ? { id: data.id, slug: data.slug } : undefined);
+
+  // Track article view once per focus
+  const hasTrackedView = useRef(false);
+  const prevViewId = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (!data) return;
+      if (prevViewId.current !== data.id) {
+        hasTrackedView.current = false;
+        prevViewId.current = data.id;
+      }
+      if (hasTrackedView.current) return;
+      hasTrackedView.current = true;
+      trackView();
+    }, [data, trackView]),
   );
+
+  console.log(!inRapidScroll, elapsedSeconds >= minReadingSeconds, hasScrolledThreshold);
 
   // Award points once reading conditions are met
   useEffect(() => {
@@ -95,6 +103,8 @@ const SingleNews = () => {
       hasScrolledThreshold
     ) {
       stopTracking();
+      // Track read event for analytics
+      trackRead(elapsedSeconds, 0.85);
       addActivityMutation.mutate(
         {
           newsId: data.id,
@@ -118,7 +128,7 @@ const SingleNews = () => {
             });
             queryClient.invalidateQueries(userQueryOptions);
           },
-        }
+        },
       );
     }
   }, [
@@ -132,6 +142,7 @@ const SingleNews = () => {
     addActivityMutation.isPending,
     addActivityMutation.isSuccess,
     addActivityMutation.isError,
+    trackRead,
   ]);
 
   // Record a view once per article
@@ -148,15 +159,10 @@ const SingleNews = () => {
       if (hasRecordedView.current) return;
       hasRecordedView.current = true;
       recordViewMutation.mutate({ newsId: data.id });
-    }, [data])
+    }, [data]),
   );
 
-  if (
-    isFetchedAfterMount &&
-    isError &&
-    isDefinedError(error) &&
-    error.data?.code === "NOT_FOUND"
-  ) {
+  if (isFetchedAfterMount && isError && isDefinedError(error) && error.data?.code === "NOT_FOUND") {
     navigation.replace("NotFound");
     return null;
   }
@@ -173,6 +179,7 @@ const SingleNews = () => {
     if (!authState.user || authState.user.isAnonymous) {
       return navigation.navigate("SignIn", { redirect: "News" });
     }
+    trackLike();
     likeMutation.mutate({
       newsId: data?.id ?? "",
       userId: authState.user.id,
@@ -184,6 +191,7 @@ const SingleNews = () => {
     if (!authState.user || authState.user.isAnonymous) {
       return navigation.navigate("SignIn", { redirect: "News" });
     }
+    trackDislike();
     dislikeMutation.mutate({
       newsId: data?.id ?? "",
       userId: authState.user.id,
@@ -200,10 +208,7 @@ const SingleNews = () => {
           keyboardShouldPersistTaps="always"
           onScroll={handleScroll}
           refreshControl={
-            <RefreshControl
-              onRefresh={refetchByUser}
-              refreshing={isRefetchingByUser}
-            />
+            <RefreshControl onRefresh={refetchByUser} refreshing={isRefetchingByUser} />
           }
           scrollEnabled={Boolean(data)}
           scrollEventThrottle={16}
@@ -227,12 +232,7 @@ const SingleNews = () => {
               </Button.Icon>
             </Button>
 
-            <Skeleton
-              colorMode="light"
-              disableExitAnimation
-              height={height * 0.3}
-              width="100%"
-            >
+            <Skeleton colorMode="light" disableExitAnimation height={height * 0.3} width="100%">
               {data ? (
                 <Image
                   borderBottomLeftRadius={8}
@@ -248,56 +248,32 @@ const SingleNews = () => {
           </Stack>
 
           <Stack gap="$5" px="$3">
-            <Skeleton
-              colorMode="light"
-              disableExitAnimation
-              height={50}
-              width="100%"
-            >
+            <Skeleton colorMode="light" disableExitAnimation height={50} width="100%">
               <Heading fontSize={20} lh={25}>
                 {data?.title}
               </Heading>
             </Skeleton>
 
             <XStack ai="center" jc="space-between">
-              <Skeleton
-                colorMode="light"
-                disableExitAnimation
-                height={17}
-                width={100}
-              >
+              <Skeleton colorMode="light" disableExitAnimation height={17} width={100}>
                 <XStack ai="center" gap="$0.75">
                   <User size={15} />
                   <Text fontWeight="700">
-                    {typeof data?.author === "object"
-                      ? data?.author.fullName
-                      : ""}
+                    {typeof data?.author === "object" ? data?.author.fullName : ""}
                   </Text>
                 </XStack>
               </Skeleton>
 
-              <Skeleton
-                colorMode="light"
-                disableExitAnimation
-                height={17}
-                width={110}
-              >
+              <Skeleton colorMode="light" disableExitAnimation height={17} width={110}>
                 {data ? (
                   <Text color="#737373" fos={12}>
-                    {format(
-                      new Date(data?.createdAt ?? new Date()),
-                      "do MMMM yyy | p"
-                    )}
+                    {format(new Date(data?.createdAt ?? new Date()), "do MMMM yyy | p")}
                   </Text>
                 ) : null}
               </Skeleton>
             </XStack>
 
-            <Skeleton
-              colorMode="light"
-              disableExitAnimation
-              show={!data?.content}
-            >
+            <Skeleton colorMode="light" disableExitAnimation show={!data?.content}>
               <Stack mt="$1">
                 <Separator h={2} mb={2} />
                 <Heading fos="$5" mb={3}>
@@ -330,8 +306,10 @@ const SingleNews = () => {
 
       <NewsActionBar
         news={data}
+        onComment={trackComment}
         onDislike={handleDislike}
         onLike={handleLike}
+        onShare={trackShare}
       />
 
       <ReadingTrackerDebug

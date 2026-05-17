@@ -95,11 +95,11 @@ export const AllTab = () => {
   const { data: musicData, isPending: isMusicPending } = useQuery(
     orpc.radioStation.top.queryOptions({
       input: { limit: 6 },
+      staleTime: 5 * 60 * 1000,
       select: (data) =>
         data?.map((item) => ({
           ...item,
           type: "music",
-          task: tasks[Math.floor(Math.random() * tasks.length)],
         })),
     }),
   );
