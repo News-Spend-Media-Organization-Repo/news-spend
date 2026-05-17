@@ -1,3 +1,4 @@
+import { useRecyclingEffect } from "@legendapp/list/react-native";
 import { memo, useCallback, useImperativeHandle, useRef, useState } from "react";
 import {
   NativeAd,
@@ -29,33 +30,35 @@ const MAX_RETRIES = 3;
 
 const NewsItemGoogleAds = memo(({ item, index, tab, ref: parentRef }: NewsItemGoogleAdProp) => {
   const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(() => !!getCachedAd(tab, item.id));
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(() => getCachedAd(tab, item.id));
 
-  const loadingRef = useRef(loading);
-  const loadedRef = useRef(loaded);
+  // loadingRef is the source of truth — never synced from state, always set imperatively.
+  // This ensures loadAd() guards are accurate even when called synchronously inside
+  // useRecyclingEffect (before the async setLoading state update has re-rendered).
+  const loadingRef = useRef(false);
+  const loadedRef = useRef(!!getCachedAd(tab, item.id));
   const attemptsRef = useRef(0);
-  loadingRef.current = loading;
-  loadedRef.current = loaded;
+  const itemRef = useRef(item);
+  const tabRef = useRef(tab);
+  itemRef.current = item;
+  tabRef.current = tab;
 
   const loadAd = useCallback(() => {
-    // console.log("Load Ad called: ", item.id + " index: ", index);
     if (loadedRef.current || loadingRef.current) {
       return;
     }
     if (attemptsRef.current >= MAX_RETRIES) {
-      console.warn(`[Ad] MAX RETRIES reached id=${item.id}`);
+      console.warn(`[Ad] MAX RETRIES reached id=${itemRef.current.id}`);
       return;
     }
 
     attemptsRef.current += 1;
-    // console.log(
-    //   `[Ad] attempt ${attemptsRef.current}/${MAX_RETRIES} id=${item.id}`
-    // );
+    loadingRef.current = true;
     setLoading(true);
 
     const timeout = setTimeout(() => {
-      console.warn(`[Ad] TIMEOUT attempt=${attemptsRef.current} id=${item.id}`);
+      console.warn(`[Ad] TIMEOUT attempt=${attemptsRef.current} id=${itemRef.current.id}`);
+      loadingRef.current = false;
       setLoading(false);
       loadAd();
     }, 10_000);
@@ -66,14 +69,16 @@ const NewsItemGoogleAds = memo(({ item, index, tab, ref: parentRef }: NewsItemGo
       .then((ad) => {
         clearTimeout(timeout);
         attemptsRef.current = 0;
-        setCachedAd(tab, item.id, ad);
+        setCachedAd(tabRef.current, itemRef.current.id, ad);
+        loadedRef.current = true;
+        loadingRef.current = false;
         setNativeAd(ad);
-        setLoaded(true);
         setLoading(false);
       })
       .catch((err) => {
         clearTimeout(timeout);
-        console.error(`[Ad] ERROR attempt=${attemptsRef.current} id=${item.id}`, err);
+        console.error(`[Ad] ERROR attempt=${attemptsRef.current} id=${itemRef.current.id}`, err);
+        loadingRef.current = false;
         setLoading(false);
         loadAd();
       });
@@ -83,6 +88,28 @@ const NewsItemGoogleAds = memo(({ item, index, tab, ref: parentRef }: NewsItemGo
     loadAd,
     isAdLoaded: () => loadedRef.current,
   }));
+
+  // Fires on mount AND on every genuine recycle to a different ad item.
+  // Guard with prevItem.id so re-renders of the same item don't retrigger.
+  useRecyclingEffect(({ item: recycledItem, prevItem }) => {
+    const isSameItem = prevItem != null && prevItem.id === recycledItem.id;
+    if (isSameItem) {
+      return;
+    }
+
+    const cached = getCachedAd(tabRef.current, recycledItem.id);
+    attemptsRef.current = 0;
+    loadedRef.current = !!cached;
+    loadingRef.current = false;
+
+    if (cached) {
+      setNativeAd(cached as NativeAd);
+      setLoading(false);
+    } else {
+      setLoading(true);
+      loadAd();
+    }
+  });
 
   if (!nativeAd || loading) {
     return (

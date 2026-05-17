@@ -173,6 +173,7 @@ export interface Config {
       processLottery: TaskProcessLottery;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
+      deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
       inline: {
         input: unknown;
         output: unknown;
@@ -431,6 +432,14 @@ export interface Media {
       filename?: string | null;
     };
     mobile?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    videoThumbnail?: {
       url?: string | null;
       width?: number | null;
       height?: number | null;
@@ -1631,7 +1640,8 @@ export interface PayloadJob {
           | "checkPushReceipts"
           | "processLottery"
           | "cleanupAnonymousUsers"
-          | "generateVideoThumbnail";
+          | "generateVideoThumbnail"
+          | "deleteVideoThumbTemp";
         taskID: string;
         input?:
           | {
@@ -1672,6 +1682,7 @@ export interface PayloadJob {
         | "processLottery"
         | "cleanupAnonymousUsers"
         | "generateVideoThumbnail"
+        | "deleteVideoThumbTemp"
       )
     | null;
   queue?: string | null;
@@ -2120,6 +2131,16 @@ export interface MediaSelect<T extends boolean = true> {
               filename?: T;
             };
         mobile?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        videoThumbnail?:
           | T
           | {
               url?: T;
@@ -2755,6 +2776,18 @@ export interface TaskGenerateVideoThumbnail {
     success?: boolean | null;
     thumbnailId?: string | null;
     reason?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskDeleteVideoThumbTemp".
+ */
+export interface TaskDeleteVideoThumbTemp {
+  input: {
+    mediaId: string;
+  };
+  output: {
+    deleted?: boolean | null;
   };
 }
 /**

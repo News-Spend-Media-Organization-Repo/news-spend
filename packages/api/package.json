@@ -28,7 +28,7 @@
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
     "@payloadcms/db-postgres": "catalog:",
-    "@sentry/node": "^8",
+    "@sentry/node": "^9",
     "croner": "^9.1.0",
     "date-fns": "^4.1.0",
     "dotenv": "catalog:",

@@ -52,6 +52,7 @@ import { migrations } from "./migrations";
 import { nestedDocsPlusPlugin } from "./plugins/nestedDocsPlusPlugin";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
+import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processLotteryTask } from "./tasks/processLottery";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
@@ -61,6 +62,7 @@ const dirname = path.dirname(filename);
 
 const baseConfig: Config = {
   cors: "*",
+  logger: "sync",
   admin: {
     user: Admins.slug,
     meta: {
@@ -141,6 +143,7 @@ const baseConfig: Config = {
       processLotteryTask,
       cleanupAnonymousUsersTask,
       generateVideoThumbnailTask,
+      deleteVideoThumbTempTask,
     ],
     autoRun: [
       {

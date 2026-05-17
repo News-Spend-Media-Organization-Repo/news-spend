@@ -17,7 +17,7 @@
     "@orpc/server": "catalog:",
     "@orpc/standard-server-fetch": "catalog:",
     "@orpc/zod": "catalog:",
-    "@sentry/node": "^10",
+    "@sentry/node": "^9",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-kit": "^0.31.10",
