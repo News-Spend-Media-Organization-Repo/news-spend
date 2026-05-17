@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { sql } from "@payloadcms/db-postgres";
 import {
   BoldFeature,
   FixedToolbarFeature,
@@ -36,10 +37,7 @@ export const Media: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data }) => {
-        if (!data.filename) {
-          return data;
-        }
-        console.log("🚀 ~ file: Media.ts:12 ~ data:", data);
+        if (!data.filename) return data;
         const match = data.filename.match(REGEX_FILENAME);
         const { name = data.filename, ext = "" } = match?.groups || {};
         data.filename = `${slugify(name, { lower: true, strict: true })}${ext}`;
@@ -47,12 +45,11 @@ export const Media: CollectionConfig = {
       },
     ],
     afterChange: [
+      // Step 1: Extract frame from video, stash on req for afterOperation
       async ({ doc, req, operation }) => {
         if (operation !== "create" || !req.file || !doc.mimeType?.startsWith("video/")) {
           return doc;
         }
-
-        console.log("🎬 [video-thumbnail] Starting for:", doc.filename);
 
         fs.mkdirSync(TMP_DIR, { recursive: true });
 
@@ -77,8 +74,115 @@ export const Media: CollectionConfig = {
           const filesize = fs.statSync(outputPath).size;
           const thumbName = `${crypto.randomUUID()}.jpg`;
 
-          console.log("🎬 [video-thumbnail] Extracted:", filesize, "bytes");
+          console.log(
+            "🎬 [video-thumbnail] Extracted:",
+            filesize,
+            "bytes, stashing for afterOperation",
+          );
 
+          (req as any).__videoThumb = { fileData, filesize, thumbName, videoDocId: doc.id };
+        } catch (err) {
+          console.error("🎬 [video-thumbnail] Extraction failed:", err);
+        } finally {
+          try {
+            fs.unlinkSync(inputPath);
+          } catch {
+            /* ignore */
+          }
+          try {
+            fs.unlinkSync(outputPath);
+          } catch {
+            /* ignore */
+          }
+        }
+
+        return doc;
+      },
+
+      // Step 2: Re-apply thumbnail sizes after cloud storage plugin's update wipes them
+      async ({ doc, req, operation }) => {
+        // Cloud storage calls payload.update with skipCloudStorage=true after uploading
+        // That update wipes our drizzle-written sizes. Re-apply them here.
+        const pending = (req as any).__videoThumbSizes as
+          | {
+              videoDocId: string;
+              s: {
+                url: string;
+                width: number | null;
+                height: number | null;
+                mimeType: string | null;
+                filesize: number | null;
+                filename: string | null;
+              };
+              thumbDocId: string;
+            }
+          | undefined;
+
+        if (
+          operation !== "update" ||
+          !req.context?.skipCloudStorage ||
+          !pending ||
+          doc.id !== pending.videoDocId
+        ) {
+          return doc;
+        }
+
+        delete (req as any).__videoThumbSizes;
+
+        console.log(
+          "🎬 [video-thumbnail] Re-applying sizes after cloud storage update:",
+          pending.videoDocId,
+        );
+
+        try {
+          const { s, videoDocId, thumbDocId } = pending;
+          await (req.payload.db as any).drizzle.execute(sql`
+            UPDATE media SET
+              sizes_video_thumbnail_url       = ${s.url},
+              sizes_video_thumbnail_width     = ${s.width ?? null},
+              sizes_video_thumbnail_height    = ${s.height ?? null},
+              sizes_video_thumbnail_mime_type = ${s.mimeType ?? null},
+              sizes_video_thumbnail_filesize  = ${s.filesize ?? null},
+              sizes_video_thumbnail_filename  = ${s.filename ?? null}
+            WHERE id = ${videoDocId}
+          `);
+          console.log("🎬 [video-thumbnail] Sizes persisted for:", videoDocId);
+
+          await req.payload.jobs.queue({
+            task: "deleteVideoThumbTemp",
+            input: { mediaId: thumbDocId },
+          });
+
+          console.log("🎬 [video-thumbnail] Done");
+        } catch (err) {
+          console.error("🎬 [video-thumbnail] Failed re-applying sizes:", err);
+        }
+
+        return doc;
+      },
+    ],
+    afterOperation: [
+      // Step 1.5: Create temp thumb doc (gets sharp-processed + SFTP-uploaded),
+      // stash sizes data on req so afterChange step 2 can persist it after cloud storage update
+      async ({ operation, result, req }) => {
+        const stash = (req as any).__videoThumb;
+        if (operation !== "create" || !stash) return result;
+
+        delete (req as any).__videoThumb;
+
+        const { fileData, filesize, thumbName, videoDocId } = stash as {
+          fileData: Buffer;
+          filesize: number;
+          thumbName: string;
+          videoDocId: string;
+        };
+
+        console.log(
+          "🎬 [video-thumbnail] afterOperation: creating thumb doc for video:",
+          videoDocId,
+        );
+
+        try {
           const thumbDoc = await req.payload.create({
             collection: "media",
             data: {
@@ -95,36 +199,32 @@ export const Media: CollectionConfig = {
             },
           });
 
-          await req.payload.update({
-            collection: "media",
-            id: doc.id,
-            data: {
-              sizes: thumbDoc.sizes,
-            },
-          });
+          const s = thumbDoc.sizes?.videoThumbnail;
+          console.log("🎬 [video-thumbnail] size entry:", JSON.stringify(s));
 
-          await req.payload.jobs.queue({
-            task: "deleteVideoThumbTemp",
-            input: { mediaId: String(thumbDoc.id) },
-          });
-
-          console.log("🎬 [video-thumbnail] Done for:", doc.filename);
+          if (s?.url) {
+            // Stash for step 2 afterChange — cloud storage will fire payload.update on
+            // the video doc next (skipCloudStorage=true), which wipes our sizes.
+            // Step 2 afterChange catches that update and re-applies.
+            (req as any).__videoThumbSizes = {
+              videoDocId,
+              thumbDocId: String(thumbDoc.id),
+              s: {
+                url: s.url,
+                width: s.width ?? null,
+                height: s.height ?? null,
+                mimeType: s.mimeType ?? null,
+                filesize: s.filesize ?? null,
+                filename: s.filename ?? null,
+              },
+            };
+            console.log("🎬 [video-thumbnail] Stashed sizes for post-cloud-storage write");
+          }
         } catch (err) {
-          console.error("🎬 [video-thumbnail] Failed:", err);
-        } finally {
-          try {
-            fs.unlinkSync(inputPath);
-          } catch {
-            /* ignore */
-          }
-          try {
-            fs.unlinkSync(outputPath);
-          } catch {
-            /* ignore */
-          }
+          console.error("🎬 [video-thumbnail] Failed in afterOperation:", err);
         }
 
-        return doc;
+        return result;
       },
     ],
   },
