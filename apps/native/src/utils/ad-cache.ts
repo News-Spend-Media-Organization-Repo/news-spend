@@ -9,9 +9,9 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>();
 
-const makeKey = (tab: string, id: string) => `${tab}:${id}`;
+const makeKey = (tab: string | undefined, id: string) => `${tab ?? "default"}:${id}`;
 
-export const getCachedAd = (tab: string, id: string): NativeAd | null => {
+export const getCachedAd = (tab: string | undefined, id: string): NativeAd | null => {
   const entry = cache.get(makeKey(tab, id));
   if (!entry) {
     return null;
@@ -23,7 +23,7 @@ export const getCachedAd = (tab: string, id: string): NativeAd | null => {
   return entry.ad;
 };
 
-export const setCachedAd = (tab: string, id: string, ad: NativeAd) => {
+export const setCachedAd = (tab: string | undefined, id: string, ad: NativeAd) => {
   cache.set(makeKey(tab, id), { ad, cachedAt: Date.now() });
 };
 

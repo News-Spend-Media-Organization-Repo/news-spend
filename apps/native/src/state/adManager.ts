@@ -59,6 +59,20 @@ export function isAdReady(placement: AdPlacement): boolean {
   return adManagerState.slots[placement]?.status === "ready";
 }
 
+const NEWS_CLICK_AD_INTERVAL = 7;
+let newsClickAdPressCount = 0;
+
+/**
+ * Increments the global press counter and returns true every
+ * NEWS_CLICK_AD_INTERVAL presses, signalling that an ad should be shown.
+ * The counter always resets at the interval boundary regardless of whether
+ * an ad is actually available, keeping the cadence predictable.
+ */
+export function shouldShowNewsClickAd(): boolean {
+  newsClickAdPressCount = (newsClickAdPressCount + 1) % NEWS_CLICK_AD_INTERVAL;
+  return newsClickAdPressCount === 0;
+}
+
 export function consumeAd(placement: AdPlacement): PartnerContent | null {
   const slot = getSlot(placement);
   const data = slot.data;

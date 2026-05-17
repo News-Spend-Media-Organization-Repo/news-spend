@@ -14,11 +14,19 @@ import {
   WhatsappLogo,
 } from "tamagui-phosphor";
 
+import type { News } from "@news-spend-media/payload/types";
+
 import BannerAds from "#/components/Ads/BannerAds";
 import { Button } from "#/components/ui/Button";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 
-export const ShareNews = ({ news, onShare }) => {
+export const ShareNews = ({
+  news,
+  onShare,
+}: {
+  news: News;
+  onShare?: (shareMethod: string) => void;
+}) => {
   const route = useRoute();
   const currentTabPath = route.name === "News" ? "news" : "live";
   const [open, setOpen] = useState(false);
@@ -50,7 +58,7 @@ export const ShareNews = ({ news, onShare }) => {
             appId: "",
           });
 
-          result.success && onShare?.();
+          result.success && onShare?.("facebook");
         } catch (error) {
           console.log(error.message);
         }
@@ -69,7 +77,7 @@ export const ShareNews = ({ news, onShare }) => {
             appId: "",
           });
 
-          result.success && onShare?.();
+          result.success && onShare?.("messenger");
         } catch (error) {
           console.log(error.message);
         }
@@ -88,7 +96,7 @@ export const ShareNews = ({ news, onShare }) => {
             appId: "",
           });
 
-          result.success && onShare?.();
+          result.success && onShare?.("whatsapp");
         } catch (error) {
           console.log(error.message);
         }
@@ -107,7 +115,7 @@ export const ShareNews = ({ news, onShare }) => {
             appId: "",
           });
 
-          result.success && onShare?.();
+          result.success && onShare?.("twitter");
         } catch (error) {
           console.log(error.message);
         }
@@ -120,6 +128,7 @@ export const ShareNews = ({ news, onShare }) => {
         try {
           await Clipboard.setStringAsync(`${news.title} \n ${url}`);
           ToastAndroid.show("Link copied to clipboard", ToastAndroid.SHORT);
+          onShare?.("copy_link");
         } catch (error) {
           console.error(error);
         }
@@ -135,7 +144,7 @@ export const ShareNews = ({ news, onShare }) => {
             title: "Share via",
             url,
           });
-          result.success && onShare?.();
+          result.success && onShare?.("other");
         } catch (error) {
           console.log(error.message);
         }

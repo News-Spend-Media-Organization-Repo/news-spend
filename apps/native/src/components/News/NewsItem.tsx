@@ -5,7 +5,7 @@ import { Circle, Stack, Text, XStack, YStack } from "tamagui";
 
 import { Button, Image } from "#/components/ui";
 import type { RouterOutputs } from "#/lib/orpc";
-import { isAdReady } from "#/state/adManager";
+import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 
@@ -21,7 +21,7 @@ export default function NewsItem({
 
   const onPress = () => {
     if (
-      Math.random() < 0.65 &&
+      shouldShowNewsClickAd() &&
       (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
     ) {
       appOpenAdSheetState.open("news-click-ads", onAdClose);
