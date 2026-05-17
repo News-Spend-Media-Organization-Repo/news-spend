@@ -66,9 +66,36 @@ subscribe(playerState, () => {
 
 let audioPlaylist: AudioPlaylist | null = null;
 let currentStationList: Station[] = [];
+let streamFailureTimeout: NodeJS.Timeout | null = null;
+
+const STREAM_TIMEOUT_MS = 15_000;
+
+function clearStreamTimeout() {
+  if (streamFailureTimeout) {
+    clearTimeout(streamFailureTimeout);
+    streamFailureTimeout = null;
+  }
+}
+
+function setStreamTimeout(stationName: string) {
+  clearStreamTimeout();
+  streamFailureTimeout = setTimeout(() => {
+    if (
+      audioPlaylist &&
+      !audioPlaylist.playing &&
+      !audioPlaylist.isBuffering &&
+      !audioPlaylist.isLoaded
+    ) {
+      playerState.currentTrack = null;
+      toast.info("Unable to connect to station", {
+        description: `${stationName} is not responding. Please try another station.`,
+      });
+    }
+    streamFailureTimeout = null;
+  }, STREAM_TIMEOUT_MS);
+}
 
 export function setupAudio() {
-  // Destroy existing playlist if any (e.g. re-login without closing app)
   if (audioPlaylist) {
     audioPlaylist.destroy();
     audioPlaylist = null;
@@ -76,9 +103,9 @@ export function setupAudio() {
 
   audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
 
-  // Background-safe listener — fires even when app is backgrounded
   audioPlaylist.addListener("playlistStatusUpdate", ({ playing }) => {
     if (playing) {
+      clearStreamTimeout();
       startTimer();
     } else {
       stopTimer();
@@ -149,7 +176,6 @@ function reloadCurrentStream() {
   }
 
   const track = stationToTrack(station);
-  playerState.currentTrack = track;
 
   audioPlaylist.pause();
   audioPlaylist.clear();
@@ -157,11 +183,15 @@ function reloadCurrentStream() {
   audioPlaylist.skipTo(0);
   audioPlaylist.play();
   updatePlaylistState();
+
+  playerState.currentTrack = track;
+  setStreamTimeout(station.name ?? "Unknown Station");
 }
 
 // --- Playback controls ---
 
 export const releaseAudioPlaylist = () => {
+  clearStreamTimeout();
   if (audioPlaylist) {
     audioPlaylist.clear();
     audioPlaylist.destroy();
@@ -217,8 +247,6 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
     return;
   }
 
-  playerState.currentTrack = stationToTrack(item);
-
   try {
     if (audioPlaylist) {
       audioPlaylist.pause();
@@ -227,6 +255,7 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
       audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
       audioPlaylist.addListener("playlistStatusUpdate", ({ playing }) => {
         if (playing) {
+          clearStreamTimeout();
           startTimer();
         } else {
           stopTimer();
@@ -243,8 +272,12 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
     audioPlaylist.skipTo(startIndex);
     audioPlaylist.play();
     updatePlaylistState();
+
+    playerState.currentTrack = stationToTrack(item);
+    setStreamTimeout(item.name ?? "Unknown Station");
   } catch (error) {
     console.error(error);
+    playerState.currentTrack = null;
     toast.info("Playback Error", {
       description: "There was an error playing this station. Please try another station.",
     });
