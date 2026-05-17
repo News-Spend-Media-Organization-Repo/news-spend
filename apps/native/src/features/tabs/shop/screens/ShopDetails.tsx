@@ -1,32 +1,16 @@
-import {
-  useFocusEffect,
-  useNavigation,
-  useRoute,
-} from "@react-navigation/native";
-import {
-  type InfiniteData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import { type InfiniteData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Separator, Spinner } from "heroui-native";
 import { ArrowLeftIcon, HeartIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BackHandler, Platform, StyleSheet } from "react-native";
+import { BackHandler, Platform, StyleSheet, View } from "react-native";
 import WebView from "react-native-webview";
-import {
-  Paragraph,
-  Separator,
-  SizableText,
-  Spinner,
-  Square,
-  Stack,
-  Text,
-  XStack,
-} from "tamagui";
 
 import { ScreenHeader } from "#/components";
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui/Button";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { useFavoriteStores } from "#/state/favoriteStoreState";
 
@@ -51,12 +35,8 @@ const ShopDetails = () => {
           initialPageParam: undefined,
         });
         const cacheData =
-          queryClient.getQueryData<InfiniteData<RouterOutputs["store"]["all"]>>(
-            qKey
-          );
-        return cacheData?.pages
-          .flatMap((page) => page.docs)
-          ?.find((s) => s.slug === slug);
+          queryClient.getQueryData<InfiniteData<RouterOutputs["store"]["all"]>>(qKey);
+        return cacheData?.pages.flatMap((page) => page.docs)?.find((s) => s.slug === slug);
       },
       initialDataUpdatedAt: () => {
         const qKey = orpc.store.all.infiniteKey({
@@ -69,14 +49,11 @@ const ShopDetails = () => {
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    })
+    }),
   );
 
   const trackViewMutation = useMutation(orpc.store.trackView.mutationOptions());
-
-  const trackClickMutation = useMutation(
-    orpc.store.trackClick.mutationOptions()
-  );
+  const trackClickMutation = useMutation(orpc.store.trackClick.mutationOptions());
 
   useEffect(() => {
     if (storeId || store?.id) {
@@ -90,11 +67,7 @@ const ShopDetails = () => {
 
   const isStoreFavorite = isFavorite(store?.id ?? "");
 
-  const webViewRef = useRef<
-    WebView & {
-      canGoBack: boolean;
-    }
-  >(null);
+  const webViewRef = useRef<WebView & { canGoBack: boolean }>(null);
 
   const onAndroidBackPress = useCallback(() => {
     if (webViewRef.current?.canGoBack) {
@@ -109,10 +82,7 @@ const ShopDetails = () => {
       let subscription: ReturnType<typeof BackHandler.addEventListener>;
 
       if (Platform.OS === "android") {
-        subscription = BackHandler.addEventListener(
-          "hardwareBackPress",
-          onAndroidBackPress
-        );
+        subscription = BackHandler.addEventListener("hardwareBackPress", onAndroidBackPress);
       }
 
       return () => {
@@ -120,7 +90,7 @@ const ShopDetails = () => {
           subscription.remove();
         }
       };
-    }, [onAndroidBackPress])
+    }, [onAndroidBackPress]),
   );
 
   const handleShopNow = useCallback(() => {
@@ -130,36 +100,24 @@ const ShopDetails = () => {
       device: "mobile",
     });
     setOpenShop(true);
-  }, []);
+  }, [trackClickMutation, storeId, store]);
+
+  const headerLeft = (
+    <Button isIconOnly onPress={() => navigation.goBack()} variant="ghost">
+      <Icon color="#fff" name={ArrowLeftIcon} size={24} />
+    </Button>
+  );
+
+  const headerRight = (
+    <Button isIconOnly onPress={() => toggleFavoriteStore(store!)} variant="ghost">
+      <HeartIcon color="red" size={24} weight={isStoreFavorite ? "fill" : "regular"} />
+    </Button>
+  );
 
   if (openShop) {
     return (
-      <Screen safeAreaEdges={["bottom"]}>
-        <ScreenHeader
-          left={
-            <Stack
-              borderColor="$background"
-              jc="center"
-              onPress={() => navigation.goBack()}
-              px="$2"
-            >
-              <ArrowLeftIcon color="#fff" size={24} />
-            </Stack>
-          }
-          right={
-            <Button ghost onPress={() => toggleFavoriteStore(store!)}>
-              <Button.Icon color="red">
-                <HeartIcon
-                  color="$p500"
-                  size={24}
-                  weight={isStoreFavorite ? "fill" : "regular"}
-                />
-              </Button.Icon>
-            </Button>
-          }
-          title={store?.companyName || ""}
-        />
-
+      <Screen preset="fixed" safeAreaEdges={["bottom"]}>
+        <ScreenHeader left={headerLeft} right={headerRight} title={store?.companyName || ""} />
         <WebView
           allowsBackForwardNavigationGestures
           allowsInlineMediaPlayback
@@ -173,16 +131,18 @@ const ShopDetails = () => {
           pullToRefreshEnabled
           ref={webViewRef}
           renderLoading={() => (
-            <Stack
-              ai="center"
-              bg="rgba(0, 0, 0, 0.5)"
-              flex={1}
-              jc="center"
-              position="absolute"
-              style={StyleSheet.absoluteFill}
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                },
+              ]}
             >
-              <Spinner color="$background" size="large" />
-            </Stack>
+              <Spinner color="#fff" />
+            </View>
           )}
           source={{ uri: store?.websiteUrl ?? "" }}
           startInLoadingState
@@ -192,60 +152,34 @@ const ShopDetails = () => {
   }
 
   return (
-    <Screen>
-      <ScreenHeader
-        left={
-          <Stack
-            borderColor="$background"
-            jc="center"
-            onPress={() => navigation.goBack()}
-            px="$2"
-          >
-            <ArrowLeftIcon color="#fff" size={24} />
-          </Stack>
-        }
-        right={
-          <Button ghost onPress={() => toggleFavoriteStore(store!)}>
-            <Button.Icon color="red">
-              <HeartIcon
-                color="$p500"
-                size={24}
-                weight={isFavorite ? "fill" : "regular"}
-              />
-            </Button.Icon>
-          </Button>
-        }
-        title={store?.companyName || ""}
-      />
+    <Screen preset="scroll">
+      <ScreenHeader left={headerLeft} right={headerRight} title={store?.companyName || ""} />
 
-      <Stack p="$2">
-        <Square alignSelf="flex-start" bg="green" borderRadius="$2" px="$4">
-          <SizableText color="$background" fos="$3">
+      <View className="gap-2 p-2">
+        <View className="self-start rounded bg-green-500 px-4 py-0.5">
+          <Text className="text-white" variant="caption">
             Online
-          </SizableText>
-        </Square>
-        <XStack ai="center" jc="space-between">
-          <Text fos="$7" fow="700">
-            <Text color="green" fos="$11" fow="700">
-              {store?.cashBack}%
-            </Text>
-            Cash Back
+          </Text>
+        </View>
+
+        <View className="flex-row items-center justify-between">
+          <Text className="font-bold text-2xl">
+            <Text className="font-bold text-4xl text-green-500">{store?.cashBack}%</Text>
+            {" Cash Back"}
           </Text>
 
-          <Button borderRadius={100_000} onPress={handleShopNow} px="$5">
-            <Button.Text>Shop Now</Button.Text>
+          <Button className="rounded-full px-5" onPress={handleShopNow}>
+            <Button.Label>Shop Now</Button.Label>
           </Button>
-        </XStack>
-      </Stack>
+        </View>
+      </View>
 
-      <Separator />
+      <Separator className="my-1" />
 
-      <Stack px="$2">
-        <Paragraph fos="$5" fow="700">
-          Get {store?.cashBack} pt/₦ on every purchase
-        </Paragraph>
-        <Paragraph>{store?.description}</Paragraph>
-      </Stack>
+      <View className="gap-1 px-2">
+        <Text variant="subtitle">Get {store?.cashBack} pt/₦ on every purchase</Text>
+        <Text variant="body">{store?.description}</Text>
+      </View>
     </Screen>
   );
 };

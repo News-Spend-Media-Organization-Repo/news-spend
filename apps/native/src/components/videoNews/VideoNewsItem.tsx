@@ -3,7 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Card, Stack, Text, useWindowDimensions, XStack } from "tamagui";
 
 import { Image } from "#/components/ui";
-import { isAdReady } from "#/state/adManager";
+import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 
@@ -13,7 +13,7 @@ const VideoNewsItem = ({ videoNews }: { videoNews: News }) => {
 
   const onPress = () => {
     if (
-      Math.random() < 0.65 &&
+      shouldShowNewsClickAd() &&
       (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
     ) {
       appOpenAdSheetState.open("news-click-ads", onAdClose);
@@ -32,7 +32,9 @@ const VideoNewsItem = ({ videoNews }: { videoNews: News }) => {
     });
   };
 
-  if (!videoNews) return null;
+  if (!videoNews) {
+    return null;
+  }
   const { url, blurhash } = getImageData(videoNews.image);
 
   return (

@@ -4,7 +4,9 @@
     "slug": "news-spend-media",
     "scheme": "news-spend",
     "description": "Read the latest news and articles from News Spend Media",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "jsEngine": "hermes",
@@ -28,11 +30,29 @@
           "data": [
             {
               "scheme": "https",
-              "host": "newsspend.com",
+              "host": "link.newsspend.com",
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "newspend.godetour.link",
+              "pathPrefix": "/Mf4vgZvonH"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -47,6 +67,7 @@
       ],
       "expo-asset",
       "expo-dev-client",
+      "expo-localization",
       "expo-web-browser",
       "expo-secure-store",
       "@rnrepo/expo-config-plugin",

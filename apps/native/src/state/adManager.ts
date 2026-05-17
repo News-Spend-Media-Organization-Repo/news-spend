@@ -3,6 +3,7 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { proxy } from "valtio";
 
 import { client } from "#/lib/orpc";
+import { storage } from "#/utils/storage";
 
 export type AdPlacement = (typeof enum_partner_content_placements.enumValues)[number];
 
@@ -57,6 +58,22 @@ export function preloadAds(placements: AdPlacement[]): void {
 
 export function isAdReady(placement: AdPlacement): boolean {
   return adManagerState.slots[placement]?.status === "ready";
+}
+
+const NEWS_CLICK_AD_INTERVAL = 7;
+const NEWS_CLICK_AD_KEY = "news_click_ad_count";
+let newsClickAdPressCount = storage.getNumber(NEWS_CLICK_AD_KEY) ?? 0;
+
+/**
+ * Increments the global press counter and returns true every
+ * NEWS_CLICK_AD_INTERVAL presses, signalling that an ad should be shown.
+ * The counter always resets at the interval boundary regardless of whether
+ * an ad is actually available, keeping the cadence predictable.
+ */
+export function shouldShowNewsClickAd(): boolean {
+  newsClickAdPressCount = (newsClickAdPressCount + 1) % NEWS_CLICK_AD_INTERVAL;
+  return newsClickAdPressCount === 0;
+  storage.set(NEWS_CLICK_AD_KEY, newsClickAdPressCount);
 }
 
 export function consumeAd(placement: AdPlacement): PartnerContent | null {

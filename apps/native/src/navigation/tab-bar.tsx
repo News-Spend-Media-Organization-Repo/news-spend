@@ -2,32 +2,23 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
 import { useLinkBuilder } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
+import { cn, PressableFeedback } from "heroui-native";
+import { CaretDownIcon } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeInRight,
-  FadeOutDown,
-  FadeOutLeft,
-  LayoutAnimationConfig,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Circle, SizableText, Stack, Text, XStack } from "tamagui";
-import { CaretDown } from "tamagui-phosphor";
+import { View } from "react-native";
+import Animated, { Easing, FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { useSnapshot } from "valtio";
-
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
 import MusicPlayer from "#/components/MusicPlayer";
-import { Button } from "#/components/ui";
 import { orpc } from "#/lib/orpc";
 import { routeState } from "#/state/route-state";
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { buildHref } = useLinkBuilder();
-  const navigationState = navigation.getState();
-  const currentTabName = navigationState.routes[navigationState.index].name;
+  const currentTabName = state.routes[state.index].name;
   const { routeName } = useSnapshot(routeState);
   const [isLiveSectionVisible, setIsLiveSectionVisible] = useState(true);
-  const insets = useSafeAreaInsets();
   const isTabBarVisible = useMemo(
     () => ["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"].includes(routeName ?? ""),
     [routeName],
@@ -107,55 +98,40 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     <>
       <MusicPlayer />
       {isLiveSectionVisible && !isLoading && data && data?.length > 0 && (
-        <Stack bg="white">
-          <Animated.View
-            entering={FadeInDown.duration(300).easing(Easing.ease)}
-            exiting={FadeOutDown.easing(Easing.ease).duration(300)}
-          >
-            {/* biome-ignore-start assist/source/useSortedAttributes: none */}
-            <Button
-              unstyled
-              ai="center"
-              bg="red"
-              br={0}
-              jc="space-between"
-              onPress={() => setIsLiveSectionVisible((prev) => !prev)}
-              px="$3"
+        <Animated.View
+          className="bg-background"
+          entering={FadeInDown.duration(300).easing(Easing.ease)}
+          exiting={FadeOutDown.easing(Easing.ease).duration(300)}
+        >
+          <View className="flex-row justify-between bg-red-500 px-3">
+            <PressableFeedback
+              className="flex-1 flex-row items-center gap-2 py-3"
+              onPress={onLivePress}
             >
-              {/* biome-ignore-end assist/source/useSortedAttributes: none */}
-              <XStack ai="center" gap="$2">
-                <Circle bg="$background" size="$0.75" />
-                <Text color="$background">LIVE</Text>
-              </XStack>
-              <XStack ai="center" gap="$1" jc="center">
-                <Text color="#fff" fos="$3">
-                  HIDE
-                </Text>
+              <View className="size-2 rounded-full bg-white" />
+              <Text className="text-background">LIVE</Text>
+            </PressableFeedback>
+            <PressableFeedback
+              className="flex-row items-center justify-center gap-2 py-3"
+              onPress={() => setIsLiveSectionVisible((prev) => !prev)}
+            >
+              <Text className="text-background">HIDE</Text>
 
-                <CaretDown color="#fff" size={18} />
-              </XStack>
-            </Button>
-            <Stack bg="$p400" onPress={onLivePress} p="$3">
-              <LayoutAnimationConfig skipEntering skipExiting>
-                <Animated.Text
-                  entering={FadeInRight}
-                  exiting={FadeOutLeft}
-                  key={index}
-                  numberOfLines={2}
-                  style={{
-                    color: "white",
-                    fontFamily: "Inter-Medium",
-                    fontSize: 16,
-                  }}
-                >
-                  LIVE NOW: {data?.[index]?.title}
-                </Animated.Text>
-              </LayoutAnimationConfig>
-            </Stack>
-          </Animated.View>
-        </Stack>
+              <Icon color="#fff" name={CaretDownIcon} size={18} />
+            </PressableFeedback>
+          </View>
+          <PressableFeedback className="bg-p-400 p-4" onPress={onLivePress}>
+            <Text className="text-[16px] text-background" key={index} numberOfLines={2}>
+              LIVE NOW: {data?.[index]?.title}
+            </Text>
+          </PressableFeedback>
+        </Animated.View>
       )}
-      <XStack bg="$color.p500" pb={insets.bottom} pt="$1.5">
+      <Animated.View
+        className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
+        entering={FadeInDown.duration(300).easing(Easing.ease)}
+        exiting={FadeOutDown.easing(Easing.ease).duration(300)}
+      >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const label = options.tabBarLabel ?? options.title ?? route.name;
@@ -206,14 +182,19 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 />
               )}
               {label === "Settings" ? null : (
-                <SizableText color={isFocused ? "$s50" : "gray"} fontSize={12} lh={15} ta="center">
+                <Text
+                  className={cn(
+                    "text-center text-background text-xs",
+                    isFocused ? "font-semibold text-background" : "text-gray-500",
+                  )}
+                >
                   {label}
-                </SizableText>
+                </Text>
               )}
             </PlatformPressable>
           );
         })}
-      </XStack>
+      </Animated.View>
     </>
   );
 }

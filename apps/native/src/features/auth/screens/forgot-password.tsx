@@ -70,7 +70,12 @@ const ForgotPassword = () => {
 
           <FormProvider {...formMethods}>
             <View className="mt-5">
-              <FormInput name="email" placeholder="example@email.com" />
+              <FormInput
+                keyboardType="email-address"
+                name="email"
+                placeholder="example@email.com"
+                textContentType="emailAddress"
+              />
             </View>
           </FormProvider>
         </View>

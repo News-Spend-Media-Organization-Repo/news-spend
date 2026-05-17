@@ -104,8 +104,6 @@ export function App() {
         <LotteryReward />
 
         <AppOpenAd />
-
-        <UpdateModalComponent />
       </Provider>
     </PersistQueryClientProvider>
   );

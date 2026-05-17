@@ -17,12 +17,13 @@ import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 import { ShareNews } from "./ShareNews";
 
-interface NewsActionBarProps {
+type NewsActionBarProps = {
   news: News;
-  onLike?: () => void;
+  onComment?: () => void;
   onDislike?: () => void;
-  onShare?: () => void;
-}
+  onLike?: () => void;
+  onShare?: (shareMethod: string) => void;
+};
 
 export function NewsActionBar(props: NewsActionBarProps) {
   const commentRef = useRef<TamaguiElement>(null);
@@ -34,6 +35,7 @@ export function NewsActionBar(props: NewsActionBarProps) {
   const isDisliked = props.news?.userReaction === "dislike";
 
   const navigateToComments = (focus?: boolean) => {
+    props.onComment?.();
     if (route.name === "News") {
       navigation.navigate("Comment", {
         newsId: props.news?.id!,
@@ -112,8 +114,7 @@ export function NewsActionBar(props: NewsActionBarProps) {
                 )}
                 <Stack bottom={18} left={28} pos="absolute">
                   <SizableText fontWeight="600" size="$1">
-                    {(props.news?.likesCount ?? 0) +
-                      (props.news?.totalCommentLikes ?? 0)}
+                    {(props.news?.likesCount ?? 0) + (props.news?.totalCommentLikes ?? 0)}
                   </SizableText>
                 </Stack>
               </Stack>

@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { AlertDialog, Button, type DialogProps, XStack, YStack } from "tamagui";
 import { toast } from "sonner-native";
+import { AlertDialog, Button, type DialogProps, XStack, YStack } from "tamagui";
 
 import { authClient } from "#/lib/authClient";
 import { hydrateAuth } from "#/state/auth";

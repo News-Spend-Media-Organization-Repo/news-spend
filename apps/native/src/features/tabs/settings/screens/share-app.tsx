@@ -21,7 +21,7 @@ import { authState } from "#/state/auth";
 
 const msg =
   "News-spend media gives me all the latest news and helps me to achieve my dreams. I have been enjoying it and would like to share it with you. Get it from this link";
-const url = "https://newsspend.com/";
+const url = "https://link.newsspend.com/";
 
 const ShareApp = () => {
   const addActivityMutation = useAddActivity();

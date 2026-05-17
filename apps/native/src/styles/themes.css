@@ -58,7 +58,7 @@
             --field-background: oklch(0.2103 0.0059 285.89);
             --field-foreground: oklch(0.9911 0 0);
             --field-placeholder: oklch(0.705 0.015 286.067);
-            --field-border: transparent;
+            --field-border: oklch(0.40 0.006 286.033);
 
             --success: oklch(0.7329 0.1935 150.81);
             --success-foreground: oklch(0.2103 0.0059 285.89);

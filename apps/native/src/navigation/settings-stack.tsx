@@ -1,10 +1,11 @@
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import {
+  createNativeStackNavigator,
+  type NativeStackHeaderProps,
+} from "@react-navigation/native-stack";
 import { X } from "@tamagui/lucide-icons";
-
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
 import ScreenHeader from "#/components/ScreenHeader";
 import SettingsHome from "#/features/tabs/settings/screens/SettingsHome";
-
 import { sharedScreens } from "./shared-screens";
 
 const ROUTE_TITLES = {
@@ -32,6 +33,13 @@ type RouteNames = keyof typeof ROUTE_TITLES;
 function getRouteTitle(routeName: string): string {
   return ROUTE_TITLES[routeName as RouteNames] ?? routeName;
 }
+
+const screenHeader = ({ route }: NativeStackHeaderProps) => {
+  const title = getRouteTitle(route.name);
+
+  return <ScreenHeader title={title} />;
+};
+
 export default createNativeStackNavigator({
   layout: ({ children, state, descriptors, navigation }) => (
     <NavigatorErrorBoundary>{children}</NavigatorErrorBoundary>
@@ -48,9 +56,7 @@ export default createNativeStackNavigator({
           return (
             <ScreenHeader
               left={null}
-              right={
-                <X color="$background" onPress={() => navigation.goBack()} />
-              }
+              right={<X color="$background" onPress={() => navigation.goBack()} />}
               title="Settings"
             />
           );
@@ -62,11 +68,7 @@ export default createNativeStackNavigator({
   },
   screenOptions: {
     headerShown: true,
-    header({ route }) {
-      const title = getRouteTitle(route.name);
-
-      return <ScreenHeader title={title} />;
-    },
+    header: screenHeader,
     animation: "slide_from_right",
   },
   initialRouteName: "SettingsHome",

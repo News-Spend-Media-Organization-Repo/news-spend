@@ -7,7 +7,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { Card, Text, XStack } from "tamagui";
 
 import { Image } from "#/components/ui";
-import { isAdReady } from "#/state/adManager";
+import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 
@@ -64,7 +64,7 @@ const TrendingNewsItem = ({ item }: { item: News }) => {
 
   const onPress = useCallback(() => {
     if (
-      Math.random() < 0.65 &&
+      shouldShowNewsClickAd() &&
       (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
     ) {
       appOpenAdSheetState.open("news-click-ads", onAdClose);

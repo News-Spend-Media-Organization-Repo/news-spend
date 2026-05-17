@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Dialog } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { View } from "react-native";
@@ -45,9 +45,9 @@ export function ConfirmAsGuest({ trigger }: ConfirmAsGuestProps) {
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay />
-        <Dialog.Content>
-          <Dialog.Close variant="ghost" />
-          <Dialog.Description className="mb-6 leading-relaxed">
+        <Dialog.Content className="rounded-lg">
+          <Dialog.Close className="absolute top-3 right-2.5 z-50" variant="ghost" />
+          <Dialog.Description className="my-6 leading-relaxed">
             Are you sure you want to skip registration? You can still complete registration later,
             but you will not get the welcome points
           </Dialog.Description>
