@@ -3,6 +3,7 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { proxy } from "valtio";
 
 import { client } from "#/lib/orpc";
+import { storage } from "#/utils/storage";
 
 export type AdPlacement = (typeof enum_partner_content_placements.enumValues)[number];
 
@@ -60,7 +61,8 @@ export function isAdReady(placement: AdPlacement): boolean {
 }
 
 const NEWS_CLICK_AD_INTERVAL = 7;
-let newsClickAdPressCount = 0;
+const NEWS_CLICK_AD_KEY = "news_click_ad_count";
+let newsClickAdPressCount = storage.getNumber(NEWS_CLICK_AD_KEY) ?? 0;
 
 /**
  * Increments the global press counter and returns true every
@@ -71,6 +73,7 @@ let newsClickAdPressCount = 0;
 export function shouldShowNewsClickAd(): boolean {
   newsClickAdPressCount = (newsClickAdPressCount + 1) % NEWS_CLICK_AD_INTERVAL;
   return newsClickAdPressCount === 0;
+  storage.set(NEWS_CLICK_AD_KEY, newsClickAdPressCount);
 }
 
 export function consumeAd(placement: AdPlacement): PartnerContent | null {
