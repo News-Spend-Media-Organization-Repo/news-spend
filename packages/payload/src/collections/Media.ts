@@ -36,7 +36,9 @@ export const Media: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data }) => {
-        if (!data.filename) return data;
+        if (!data.filename) {
+          return data;
+        }
         console.log("🚀 ~ file: Media.ts:12 ~ data:", data);
         const match = data.filename.match(REGEX_FILENAME);
         const { name = data.filename, ext = "" } = match?.groups || {};
