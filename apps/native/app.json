@@ -9,15 +9,10 @@
     ],
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "jsEngine": "hermes",
     "icon": "./assets/icons/icon.png",
     "experiments": {
       "tsconfigPaths": true,
       "reactCompiler": true
-    },
-    "androidNavigationBar": {
-      "backgroundColor": "#000000",
-      "barStyle": "light-content"
     },
     "android": {
       "adaptiveIcon": {
@@ -185,8 +180,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "androidAppId": "ca-app-pub-6856140527698362~2914010933",
+          "iosAppId": "ca-app-pub-6856140527698362~4121095482",
           "delayAppMeasurementInit": false,
           "optimizeInitialization": true,
           "optimizeAdLoading": true,

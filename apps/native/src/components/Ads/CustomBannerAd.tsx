@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import { memo, useMemo } from "react";
 import { Dimensions, Platform, StyleSheet } from "react-native";
-import { BannerAd as GoogleBannerAd, TestIds } from "react-native-google-mobile-ads";
+import { BannerAd as GoogleBannerAd } from "react-native-google-mobile-ads";
 import { Stack, Text } from "tamagui";
 
+import { adUnits } from "#/lib/adUnits";
 import { Image } from "#/components/ui";
 import { orpc } from "#/lib/orpc";
 import { getBannerDimensions, getGoogleBannerSize } from "#/utils/ads";
@@ -81,7 +82,7 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
   }
 
   if (!data) {
-    return <GoogleBannerAd size={getGoogleBannerSize(size)} unitId={TestIds.BANNER} />;
+    return <GoogleBannerAd size={getGoogleBannerSize(size)} unitId={adUnits.banner} />;
   }
 
   // ← prefer bannerMedia, fall back to media for backwards compat

@@ -6,10 +6,10 @@ import {
   NativeAdView,
   NativeAsset,
   NativeAssetType,
-  TestIds,
 } from "react-native-google-mobile-ads";
 import { getTokens, Stack, Text, XStack, YStack } from "tamagui";
 
+import { adUnits } from "#/lib/adUnits";
 import { Image } from "#/components/ui";
 import { getCachedAd, setCachedAd } from "#/utils/ad-cache";
 
@@ -63,7 +63,7 @@ const NewsItemGoogleAds = memo(({ item, index, tab, ref: parentRef }: NewsItemGo
       loadAd();
     }, 10_000);
 
-    NativeAd.createForAdRequest(TestIds.NATIVE, {
+    NativeAd.createForAdRequest(adUnits.native, {
       adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_RIGHT,
     })
       .then((ad) => {

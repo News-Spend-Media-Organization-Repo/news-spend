@@ -2,12 +2,13 @@ import { X } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { XIcon } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { TestIds, useRewardedAd } from "react-native-google-mobile-ads";
+import { useRewardedAd } from "react-native-google-mobile-ads";
 import { toast } from "sonner-native";
 import { Dialog, H4, Paragraph, Spinner, Square, Unspaced } from "tamagui";
 import { Star } from "tamagui-phosphor";
 import { useSnapshot } from "valtio";
 
+import { adUnits } from "#/lib/adUnits";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/ui";
 import { orpc } from "#/lib/orpc";
@@ -26,13 +27,11 @@ export default memo(function LotteryReward() {
   const { data, isPending } = useQuery(
     orpc.lottery.getReward.queryOptions({
       enabled: Boolean(user),
-    })
+    }),
   );
   // console.log(data);
 
-  const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(
-    TestIds.REWARDED
-  );
+  const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(adUnits.rewarded);
 
   const claimRewardMutation = useMutation(
     orpc.lottery.claimReward.mutationOptions({
@@ -43,27 +42,22 @@ export default memo(function LotteryReward() {
           toast.success("Reward claimed!", {
             description: `${data.prize} points added!`,
           });
-          queryClient.invalidateQueries(
-            orpc.activity.totalPoints.queryOptions()
-          );
+          queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
         } else {
           toast.success("Reward claimed!", {
             description: `You claimed ${data.prize}! Please verify your identity to finish up.`,
           });
         }
-        queryClient.setQueryData(
-          orpc.lottery.getReward.queryKey(undefined),
-          (oldData) => ({
-            ...oldData,
-            claimed: true,
-          })
-        );
+        queryClient.setQueryData(orpc.lottery.getReward.queryKey(undefined), (oldData) => ({
+          ...oldData,
+          claimed: true,
+        }));
       },
       onError: () => {
         toast.error("Failed to claim reward!");
         setShowPrize(false);
       },
-    })
+    }),
   );
 
   // Effect: when data, user, and not pending, schedule the dialog to open and preload the ad.
@@ -191,8 +185,7 @@ export default memo(function LotteryReward() {
                   </Paragraph>
                   <H4 textAlign="center">Congratulations!</H4>
                   <Paragraph color="$gray.50" fos="$4" ta="center">
-                    You won {data.prize}{" "}
-                    {data.prizeTier === "LOW" ? "points" : ""} in the Lottery.
+                    You won {data.prize} {data.prizeTier === "LOW" ? "points" : ""} in the Lottery.
                   </Paragraph>
                 </Square>
               ) : (
@@ -207,21 +200,16 @@ export default memo(function LotteryReward() {
               <Square>
                 <H4 textAlign="center">Better luck next time!</H4>
                 <Paragraph color="$gray.50" fos="$4" ta="center">
-                  Unfortunately, you didn't win any prizes this time. Keep
-                  participating for more chances to win!
+                  Unfortunately, you didn't win any prizes this time. Keep participating for more
+                  chances to win!
                 </Paragraph>
               </Square>
             )}
 
             {data?.prize && !showPrize && (
-              <Button
-                disabled={claimRewardMutation.isPending}
-                onPress={handleClaimReward}
-              >
+              <Button disabled={claimRewardMutation.isPending} onPress={handleClaimReward}>
                 <Button.Text>
-                  {claimRewardMutation.isPending
-                    ? "Claiming Reward..."
-                    : "Claim your prize"}
+                  {claimRewardMutation.isPending ? "Claiming Reward..." : "Claim your prize"}
                 </Button.Text>
                 {claimRewardMutation.isPending && (
                   <Button.Icon>

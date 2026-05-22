@@ -2,7 +2,7 @@ import type { LinkingOptions, RootParamList } from "@react-navigation/native";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 
-import { segmentClient } from "#/lib/segmentClient";
+import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 import { routeState } from "#/state/route-state";
 
 const prefixes = [
@@ -55,7 +55,7 @@ export const linking: LinkingOptions<RootParamList> = {
 
       console.log(response.notification.request.content);
 
-      segmentClient.track("Notification Opened", {
+      trackNotificationOpen({
         ...response.notification.request.content,
       });
 
@@ -103,7 +103,7 @@ export const linking: LinkingOptions<RootParamList> = {
             screenUrl = `${invertedRouteMap[currentTab]}/${screenUrl?.split("/").slice(1).join("/")}`;
           }
           listener(ensureScheme(screenUrl));
-          segmentClient.track("Notification Opened", {
+          trackNotificationOpen({
             ...response.notification.request.content,
           });
         }

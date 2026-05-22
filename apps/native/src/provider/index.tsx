@@ -1,4 +1,3 @@
-import { AnalyticsProvider } from "@segment/analytics-react-native";
 import { DetourProvider } from "@swmansion/react-native-detour";
 import { HeroUINativeProvider } from "heroui-native";
 import { IconContext } from "phosphor-react-native";
@@ -17,7 +16,6 @@ import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
-import { segmentClient } from "#/lib/segmentClient";
 import { authState } from "#/state/auth";
 import config from "#/tamagui.config";
 
@@ -43,32 +41,30 @@ export const Provider = ({ children }: Props) => {
           }}
         >
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <AnalyticsProvider client={segmentClient}>
-              <KeyboardProvider>
-                <HeroUINativeProvider
-                  config={{
-                    devInfo: {
-                      stylingPrinciples: false,
-                    },
-                  }}
-                >
-                  <TamaguiProvider config={config} defaultTheme="light">
-                    <ErrorBoundary>
-                      <PortalProvider shouldAddRootHost>
-                        <IconContext.Provider
-                          value={{
-                            weight: "bold",
-                            color: tokens.color.p500.val,
-                          }}
-                        >
-                          {children}
-                        </IconContext.Provider>
-                      </PortalProvider>
-                    </ErrorBoundary>
-                  </TamaguiProvider>
-                </HeroUINativeProvider>
-              </KeyboardProvider>
-            </AnalyticsProvider>
+            <KeyboardProvider>
+              <HeroUINativeProvider
+                config={{
+                  devInfo: {
+                    stylingPrinciples: false,
+                  },
+                }}
+              >
+                <TamaguiProvider config={config} defaultTheme="light">
+                  <ErrorBoundary>
+                    <PortalProvider shouldAddRootHost>
+                      <IconContext.Provider
+                        value={{
+                          weight: "bold",
+                          color: tokens.color.p500.val,
+                        }}
+                      >
+                        {children}
+                      </IconContext.Provider>
+                    </PortalProvider>
+                  </ErrorBoundary>
+                </TamaguiProvider>
+              </HeroUINativeProvider>
+            </KeyboardProvider>
             <Toaster
               autoWiggleOnUpdate="toast-change"
               pauseWhenPageIsHidden

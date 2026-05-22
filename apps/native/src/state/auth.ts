@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/react-native";
 import { proxy, subscribe } from "valtio";
 
 import { authClient } from "#/lib/authClient";
-import { segmentClient } from "#/lib/segmentClient";
 import { queryClient } from "#/lib/tanstackQuery";
 import { storage } from "#/utils/storage";
 
@@ -17,7 +16,7 @@ const initialAuthState = {
 };
 
 const storedAuthState = JSON.parse(
-  storage.getString("AUTH_STATE") ?? JSON.stringify(initialAuthState)
+  storage.getString("AUTH_STATE") ?? JSON.stringify(initialAuthState),
 );
 
 export const authState = proxy<{
@@ -38,7 +37,7 @@ export const isAnonymous = () => authState.user?.isAnonymous === true;
 
 export const setAuthSession = (
   session: typeof authClient.$Infer.Session | null,
-  status: "signIn" | "signOut"
+  status: "signIn" | "signOut",
 ) => {
   authState.session = session;
   authState.user = session?.user || null;
@@ -153,9 +152,7 @@ subscribe(authState, () => {
       ip_address: "{{auto}}",
     });
     const { id, createdAt, updatedAt, ...rest } = authState.session.user;
-    segmentClient.identify(id.toString(), rest);
   } else {
     Sentry.setUser(null);
-    segmentClient.reset();
   }
 });

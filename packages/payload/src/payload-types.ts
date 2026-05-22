@@ -919,7 +919,15 @@ export interface NotificationDelivery {
    * The Expo push token used for this delivery
    */
   pushToken: string;
-  status: "pending" | "delivered" | "failed";
+  /**
+   * The push-token record for matching open events
+   */
+  deviceToken?: (string | null) | PushToken;
+  /**
+   * When the user opened this notification
+   */
+  openedAt?: string | null;
+  status: "pending" | "delivered" | "opened" | "failed";
   /**
    * Error message if delivery failed
    */
@@ -1036,6 +1044,53 @@ export interface Notification {
     value: string | Admin;
   } | null;
   _status?: ("draft" | "published") | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-tokens".
+ */
+export interface PushToken {
+  id: string;
+  /**
+   * The unique token for the push notification service.
+   */
+  token: string;
+  /**
+   * The user associated with the push token.
+   */
+  user: string | User;
+  deviceType?: ("ios" | "android" | "web") | null;
+  /**
+   * Name of the device (e.g., iPhone 13, Pixel 6)
+   */
+  deviceName?: string | null;
+  /**
+   * Model of the device
+   */
+  deviceModel?: string | null;
+  /**
+   * Version of the operating system
+   */
+  osVersion?: string | null;
+  /**
+   * Version of the app when token was registered
+   */
+  appVersion?: string | null;
+  status: "active" | "inactive";
+  /**
+   * Last time a notification was successfully sent to this token
+   */
+  lastUsed?: string | null;
+  createdBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: "admins";
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Per-user notification inbox. One record per user per campaign. Read by the mobile app to display notification history.
@@ -1358,53 +1413,6 @@ export interface PromotionMedia {
         id?: string | null;
       }[]
     | null;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "push-tokens".
- */
-export interface PushToken {
-  id: string;
-  /**
-   * The unique token for the push notification service.
-   */
-  token: string;
-  /**
-   * The user associated with the push token.
-   */
-  user: string | User;
-  deviceType?: ("ios" | "android" | "web") | null;
-  /**
-   * Name of the device (e.g., iPhone 13, Pixel 6)
-   */
-  deviceName?: string | null;
-  /**
-   * Model of the device
-   */
-  deviceModel?: string | null;
-  /**
-   * Version of the operating system
-   */
-  osVersion?: string | null;
-  /**
-   * Version of the app when token was registered
-   */
-  appVersion?: string | null;
-  status: "active" | "inactive";
-  /**
-   * Last time a notification was successfully sent to this token
-   */
-  lastUsed?: string | null;
   createdBy?: {
     relationTo: "admins";
     value: string | Admin;
@@ -2216,6 +2224,8 @@ export interface NotificationDeliveriesSelect<T extends boolean = true> {
   notification?: T;
   user?: T;
   pushToken?: T;
+  deviceToken?: T;
+  openedAt?: T;
   status?: T;
   errorMessage?: T;
   expoTicketId?: T;

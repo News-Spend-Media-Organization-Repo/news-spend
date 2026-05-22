@@ -70,7 +70,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       associatedDomains: ["applinks:link.newsspend.com", "applinks:newspend.godetour.link"],
     },
     extra: {
-      pushbaseAppId: "81cf379f-92d1-4a78-b9e8-6728fd919562",
       eas: {
         projectId: "f652bbae-90d7-4074-b356-70438f948249",
       },
