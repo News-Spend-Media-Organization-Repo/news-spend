@@ -1,6 +1,6 @@
 import { cn } from "heroui-native";
 import type React from "react";
-import type { Ref } from "react";
+import { useMemo, type Ref } from "react";
 import { Text as RNText, type TextProps as RNTextProps } from "react-native";
 import { tv } from "tailwind-variants";
 
@@ -30,15 +30,22 @@ export type AppTextProps = RNTextProps & {
   ref?: Ref<RNText>;
 };
 
-export const Text = ({ variant = "body", className, style, ref, ...props }: AppTextProps) => (
-  <RNText
-    accessibilityRole="text"
-    accessible
-    className={cn(textVariants({ variant }), className)}
-    ref={ref}
-    style={style}
-    {...props}
-  />
-);
+export const Text = ({ variant = "body", className, style, ref, ...props }: AppTextProps) => {
+  const resolvedClassName = useMemo(
+    () => cn(textVariants({ variant }), className),
+    [variant, className],
+  );
+
+  return (
+    <RNText
+      accessibilityRole="text"
+      accessible
+      className={resolvedClassName}
+      ref={ref}
+      style={style}
+      {...props}
+    />
+  );
+};
 
 Text.displayName = "Text";

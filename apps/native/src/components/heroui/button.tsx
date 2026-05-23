@@ -1,5 +1,6 @@
 import type { ButtonRootProps } from "heroui-native";
 import { Button as HeroUIButton } from "heroui-native";
+import { useMemo } from "react";
 import { tv } from "tailwind-variants";
 
 const buttonVariants = tv({
@@ -22,7 +23,9 @@ export type AppButtonProps = ButtonRootProps & {
 };
 
 export function Button({ className, size, ref, ...props }: AppButtonProps) {
-  return <HeroUIButton className={buttonVariants({ size, className })} ref={ref} {...props} />;
+  const resolvedClassName = useMemo(() => buttonVariants({ size, className }), [size, className]);
+
+  return <HeroUIButton className={resolvedClassName} ref={ref} {...props} />;
 }
 
 Button.displayName = "Button";

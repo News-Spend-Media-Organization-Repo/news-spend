@@ -6,6 +6,18 @@ import type { PayloadRequest, Where } from "payload";
 import type { Notification } from "../payload-types";
 import { getPayload } from "./getPayload";
 
+/**
+ * Maps notification campaign types to user preference keys.
+ * Only notifications with a mapped preference key are filtered.
+ * Types without a mapping (e.g., "promo") are sent to all users.
+ */
+const NOTIFICATION_TYPE_TO_PREFERENCE: Record<string, string | undefined> = {
+  breaking_news: "BREAKING_NEWS",
+  news: "NEWS",
+  misc: "MISC",
+  promo: undefined,
+};
+
 async function resolveTokens(
   notification: Notification,
   req: PayloadRequest,
@@ -19,6 +31,34 @@ async function resolveTokens(
       : undefined;
 
   if (notification.targetType === "all") {
+    const preferenceKey = NOTIFICATION_TYPE_TO_PREFERENCE[notification.type ?? "misc"];
+
+    if (preferenceKey) {
+      const { docs: users } = await payload.find({
+        collection: "users",
+        where: {
+          [`notificationPreferences.types.${preferenceKey}`]: { equals: true },
+        },
+        pagination: false,
+        req,
+      });
+
+      if (!users.length) {
+        return [];
+      }
+
+      const result = await payload.find({
+        collection: "push-tokens",
+        where: {
+          user: { in: users.map((user) => user.id) },
+          ...deviceTypeWhere,
+        },
+        pagination: false,
+        req,
+      });
+      return result.docs;
+    }
+
     const result = await payload.find({
       collection: "push-tokens",
       where: deviceTypeWhere,
