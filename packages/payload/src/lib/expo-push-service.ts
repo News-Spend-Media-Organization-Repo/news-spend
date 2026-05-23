@@ -1,18 +1,26 @@
 import type { PushToken } from "@news-spend-media/payload/types";
 import { subDays } from "date-fns";
-import {
-  Expo,
-  type ExpoPushMessage,
-  type ExpoPushTicket,
-} from "expo-server-sdk";
+import { Expo, type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
 import type { PayloadRequest, Where } from "payload";
 
 import type { Notification } from "../payload-types";
 import { getPayload } from "./getPayload";
 
+/**
+ * Maps notification campaign types to user preference keys.
+ * Only notifications with a mapped preference key are filtered.
+ * Types without a mapping (e.g., "promo") are sent to all users.
+ */
+const NOTIFICATION_TYPE_TO_PREFERENCE: Record<string, string | undefined> = {
+  breaking_news: "BREAKING_NEWS",
+  news: "NEWS",
+  misc: "MISC",
+  promo: undefined,
+};
+
 async function resolveTokens(
   notification: Notification,
-  req: PayloadRequest
+  req: PayloadRequest,
 ): Promise<PushToken[]> {
   const payload = await getPayload();
 
@@ -23,6 +31,34 @@ async function resolveTokens(
       : undefined;
 
   if (notification.targetType === "all") {
+    const preferenceKey = NOTIFICATION_TYPE_TO_PREFERENCE[notification.type ?? "misc"];
+
+    if (preferenceKey) {
+      const { docs: users } = await payload.find({
+        collection: "users",
+        where: {
+          [`notificationPreferences.types.${preferenceKey}`]: { equals: true },
+        },
+        pagination: false,
+        req,
+      });
+
+      if (!users.length) {
+        return [];
+      }
+
+      const result = await payload.find({
+        collection: "push-tokens",
+        where: {
+          user: { in: users.map((user) => user.id) },
+          ...deviceTypeWhere,
+        },
+        pagination: false,
+        req,
+      });
+      return result.docs;
+    }
+
     const result = await payload.find({
       collection: "push-tokens",
       where: deviceTypeWhere,
@@ -36,10 +72,7 @@ async function resolveTokens(
     return resolveSegmentTokens(notification.segment, deviceTypeWhere, req);
   }
 
-  if (
-    notification.targetType === "specific" &&
-    notification.specificUsers?.length
-  ) {
+  if (notification.targetType === "specific" && notification.specificUsers?.length) {
     const result = await payload.find({
       collection: "push-tokens",
       where: {
@@ -58,7 +91,7 @@ async function resolveTokens(
 async function resolveSegmentTokens(
   segment: string,
   deviceTypeWhere: Where | undefined,
-  req: PayloadRequest
+  req: PayloadRequest,
 ): Promise<PushToken[]> {
   const payload = await getPayload();
 
@@ -99,7 +132,7 @@ function extractUserId(token: PushToken): string | undefined {
 async function handleFailedTicket(
   ticket: ExpoPushTicket,
   token: PushToken,
-  req: PayloadRequest
+  req: PayloadRequest,
 ): Promise<void> {
   const payload = await getPayload();
   const errorCode = (ticket as { details?: { error?: string } }).details?.error;
@@ -159,6 +192,7 @@ async function recordDeliveryAndInbox(opts: {
       notification: notification.id,
       user: userId ?? null,
       pushToken: token.token,
+      deviceToken: token.id,
       status: isOk ? "pending" : "failed",
       ...(expoTicketId ? { expoTicketId } : {}),
       ...(!isOk && ticket.status === "error"
@@ -190,7 +224,7 @@ async function sendChunks(
   expo: Expo,
   messages: ExpoPushMessage[],
   req: PayloadRequest,
-  notificationId: string
+  notificationId: string,
 ): Promise<ExpoPushTicket[]> {
   const chunks = expo.chunkPushNotifications(messages);
   const tickets: ExpoPushTicket[] = [];
@@ -237,10 +271,7 @@ async function processTickets(opts: {
   }
 }
 
-export async function sendNotification(
-  notificationId: string,
-  req: PayloadRequest
-): Promise<void> {
+export async function sendNotification(notificationId: string, req: PayloadRequest): Promise<void> {
   const payload = await getPayload();
 
   try {

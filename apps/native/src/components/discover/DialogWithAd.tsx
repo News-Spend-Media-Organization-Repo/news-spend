@@ -2,12 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { X } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
-import {
-  Linking,
-  Platform,
-  Text as RNText,
-  useWindowDimensions,
-} from "react-native";
+import { Linking, Platform, Text as RNText, useWindowDimensions } from "react-native";
 import {
   NativeAd,
   NativeAdEventType,
@@ -15,19 +10,11 @@ import {
   NativeAsset,
   NativeAssetType,
   NativeMediaView,
-  TestIds,
 } from "react-native-google-mobile-ads";
 import { toast } from "sonner-native";
-import {
-  AlertDialog,
-  getTokens,
-  Spinner,
-  Stack,
-  Text,
-  Unspaced,
-  XStack,
-} from "tamagui";
+import { AlertDialog, getTokens, Spinner, Stack, Text, Unspaced, XStack } from "tamagui";
 
+import { adUnits } from "#/lib/adUnits";
 import { Button, Image } from "#/components/ui";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 import { orpc } from "#/lib/orpc";
@@ -59,9 +46,7 @@ export function DialogWithAd({
     ...queryOptions,
     queryKey,
   });
-  const lotteryTicketMutation = useMutation(
-    orpc.lotteryTicket.create.mutationOptions()
-  );
+  const lotteryTicketMutation = useMutation(orpc.lotteryTicket.create.mutationOptions());
   const [serverError, setServerError] = useState<string | null>(null);
   const navigation = useNavigation("GetTicket");
   const [randomNumber, setRandomNumber] = useState(Math.random());
@@ -92,40 +77,33 @@ export function DialogWithAd({
             description: `You purchased ${purchasedTickets} tickets`,
           });
 
-          queryClient.invalidateQueries(
-            orpc.activity.totalPoints.queryOptions()
-          );
+          queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
           queryClient.invalidateQueries({
             queryKey: orpc.lotteryTicket.getByUser.queryKey(),
           });
 
-          queryClient.setQueryData(
-            orpc.lotteryTicket.getByUser.key(),
-            (previousPoints) => {
-              if (previousPoints) {
-                return {
-                  ...previousPoints,
-                  lottery_tickets: {
-                    ...previousPoints.lottery_tickets,
-                    count:
-                      Number(previousPoints.lottery_tickets.count) +
-                      purchasedTickets,
-                  },
-                };
-              }
-
+          queryClient.setQueryData(orpc.lotteryTicket.getByUser.key(), (previousPoints) => {
+            if (previousPoints) {
               return {
+                ...previousPoints,
                 lottery_tickets: {
-                  count: purchasedTickets,
+                  ...previousPoints.lottery_tickets,
+                  count: Number(previousPoints.lottery_tickets.count) + purchasedTickets,
                 },
               };
             }
-          );
+
+            return {
+              lottery_tickets: {
+                count: purchasedTickets,
+              },
+            };
+          });
         },
         onError: ({ data, message }) => {
           setServerError("Sorry, something went wrong.");
         },
-      }
+      },
     );
   }, [open]);
 
@@ -237,12 +215,7 @@ export function DialogWithAd({
                 </Stack>
 
                 <XStack gap="$4">
-                  <Text
-                    color="$gray.50"
-                    flex={2}
-                    fontSize={16}
-                    numberOfLines={2}
-                  >
+                  <Text color="$gray.50" flex={2} fontSize={16} numberOfLines={2}>
                     {ad.data?.condition}
                   </Text>
 
@@ -279,10 +252,8 @@ export function DialogWithAd({
                       <>
                         You purchased {purchasedTickets ?? 0} ticket
                         {purchasedTickets === 1 ? "" : "s"}.{" "}
-                        <Text color="$s500">
-                          {(purchasedTickets ?? 0) * 50} points
-                        </Text>{" "}
-                        deducted from your account.
+                        <Text color="$s500">{(purchasedTickets ?? 0) * 50} points</Text> deducted
+                        from your account.
                       </>
                     )}
                   </Text>
@@ -324,9 +295,7 @@ export function DialogWithAd({
 
 const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
   const [error, setError] = useState(false);
-  const [nativeAd, setNativeAd] = useState<NativeAd | undefined>(
-    preloadedAd ?? undefined
-  );
+  const [nativeAd, setNativeAd] = useState<NativeAd | undefined>(preloadedAd ?? undefined);
   const tokens = getTokens();
 
   useEffect(() => {
@@ -335,7 +304,7 @@ const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
       return;
     }
 
-    NativeAd.createForAdRequest(TestIds.GAM_NATIVE)
+    NativeAd.createForAdRequest(adUnits.native)
       .then((ad) => {
         setNativeAd(ad);
       })
@@ -346,21 +315,16 @@ const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
 
   useEffect(() => {
     if (!nativeAd || nativeAd === preloadedAd) return;
-    const listener = nativeAd.addAdEventListener(
-      NativeAdEventType.CLICKED,
-      () => {
-        console.log("Native ad clicked");
-      }
-    );
+    const listener = nativeAd.addAdEventListener(NativeAdEventType.CLICKED, () => {
+      console.log("Native ad clicked");
+    });
     return () => {
       nativeAd.destroy();
     };
   }, [nativeAd, preloadedAd]);
 
   if (!nativeAd) {
-    return (
-      <Stack py="$3">{error ? <Text>Failed to load ad</Text> : null}</Stack>
-    );
+    return <Stack py="$3">{error ? <Text>Failed to load ad</Text> : null}</Stack>;
   }
 
   return (

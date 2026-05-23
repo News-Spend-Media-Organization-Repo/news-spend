@@ -51,36 +51,34 @@ const testNotification = publicProcedure
     return { success: true };
   });
 
-const newsCreate = publicProcedure
-  .input(NewsCreateInput)
-  .handler(async ({ input, context }) => {
-    const { payload } = context;
-    const { title, body, data } = input;
+const newsCreate = publicProcedure.input(NewsCreateInput).handler(async ({ input, context }) => {
+  const { payload } = context;
+  const { title, body, data } = input;
 
-    // Find users with BREAKING_NEWS enabled
-    const { docs: users } = await payload.find({
-      collection: "users",
-      where: {
-        "notificationPreferences.types.BREAKING_NEWS": { equals: true },
-      },
-    });
-
-    const { docs: pushTokens } = await payload.find({
-      collection: "push-tokens",
-      where: {
-        user: { in: users.map((user) => user.id) },
-      },
-    });
-
-    await sendNotification({
-      pushTokens,
-      title,
-      body,
-      data: data ?? {},
-    });
-
-    return { success: true };
+  // Find users with BREAKING_NEWS enabled
+  const { docs: users } = await payload.find({
+    collection: "users",
+    where: {
+      "notificationPreferences.types.BREAKING_NEWS": { equals: true },
+    },
   });
+
+  const { docs: pushTokens } = await payload.find({
+    collection: "push-tokens",
+    where: {
+      user: { in: users.map((user) => user.id) },
+    },
+  });
+
+  await sendNotification({
+    pushTokens,
+    title,
+    body,
+    data: data ?? {},
+  });
+
+  return { success: true };
+});
 
 const sendLotteryNotification = publicProcedure
   .input(LotteryNotificationInput)
@@ -101,7 +99,7 @@ const sendLotteryNotification = publicProcedure
       where: {
         user: {
           in: lotteryParticipants.map((lottery) =>
-            typeof lottery.user === "string" ? lottery.user : lottery.user.id
+            typeof lottery.user === "string" ? lottery.user : lottery.user.id,
           ),
         },
       },
@@ -121,8 +119,49 @@ const sendLotteryNotification = publicProcedure
     return { success: true };
   });
 
+const trackOpenInput = z.object({
+  title: z.string().optional(),
+  body: z.string().optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
+  routeName: z.string().optional(),
+});
+
+const trackOpen = publicProcedure.input(trackOpenInput).handler(async ({ input, context }) => {
+  const { payload } = context;
+  const notificationId = input.data?.notificationId as string | undefined;
+  const deviceToken = input.data?.deviceToken as string | undefined;
+
+  if (notificationId && deviceToken) {
+    const { docs } = await payload.find({
+      collection: "notification-deliveries",
+      where: {
+        and: [
+          { notification: { equals: notificationId } },
+          { deviceToken: { equals: deviceToken } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+    });
+
+    if (docs[0]) {
+      await payload.update({
+        collection: "notification-deliveries",
+        id: docs[0].id,
+        data: {
+          openedAt: new Date().toISOString(),
+          status: "opened",
+        },
+      });
+    }
+  }
+
+  return { success: true };
+});
+
 export const notificationsRouter = {
   testNotification,
   newsCreate,
   sendLotteryNotification,
+  trackOpen,
 };

@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { startOfWeek } from "date-fns";
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
-import { NativeAd, TestIds } from "react-native-google-mobile-ads";
+import { NativeAd } from "react-native-google-mobile-ads";
 import { Card, ScrollView, Stack, XStack } from "tamagui";
 import { CaretLeft } from "tamagui-phosphor";
 
+import { adUnits } from "#/lib/adUnits";
 import { DialogWithAd } from "#/components/discover/DialogWithAd";
 import { Screen } from "#/components/Screen";
 import { Button, Text } from "#/components/ui";
@@ -18,13 +19,9 @@ const GetTicket = () => {
   const navigation = useNavigation("GetTicket");
   const [value, setValue] = useState(0);
   const [open, setOpen] = useState(false);
-  const [preloadedNativeAd, setPreloadedNativeAd] = useState<NativeAd | null>(
-    null
-  );
+  const [preloadedNativeAd, setPreloadedNativeAd] = useState<NativeAd | null>(null);
   const totalPoints = useQuery(orpc.activity.totalPoints.queryOptions());
-  const { data: currentLottery } = useQuery(
-    orpc.lottery.current.queryOptions()
-  );
+  const { data: currentLottery } = useQuery(orpc.lottery.current.queryOptions());
   const [decrementInterval, setDecrementInterval] = useState<NodeJS.Timeout>();
   const [incrementInterval, setIncrementInterval] = useState<NodeJS.Timeout>();
 
@@ -32,7 +29,7 @@ const GetTicket = () => {
 
   // Preload native ad on mount
   useEffect(() => {
-    NativeAd.createForAdRequest(TestIds.GAM_NATIVE)
+    NativeAd.createForAdRequest(adUnits.native)
       .then(setPreloadedNativeAd)
       .catch(() => {
         // Silently fail - dialog will show custom ad fallback
@@ -44,20 +41,17 @@ const GetTicket = () => {
       () => () => {
         setValue(0);
       },
-      []
-    )
+      [],
+    ),
   );
 
   const onTicketPress = () => {
-    if (
-      (totalPoints?.data ?? 0) >=
-      value * (currentLottery?.ticketPrice ?? 50)
-    ) {
+    if ((totalPoints?.data ?? 0) >= value * (currentLottery?.ticketPrice ?? 50)) {
       setOpen(true);
     } else {
       Alert.alert(
         "Not enough points",
-        `You don't have enough points to buy ${value} ticket${value > 1 ? "s" : ""}. You currently have ${totalPoints.data} points.`
+        `You don't have enough points to buy ${value} ticket${value > 1 ? "s" : ""}. You currently have ${totalPoints.data} points.`,
       );
     }
   };
@@ -70,21 +64,9 @@ const GetTicket = () => {
   }
 
   return (
-    <Screen
-      bg="$p300"
-      contentContainerStyle={insets}
-      gap="$4"
-      systemBarStyle="light"
-    >
+    <Screen bg="$p300" contentContainerStyle={insets} gap="$4" systemBarStyle="light">
       <XStack ai="center" gap="$2.5" px="$2">
-        <Button
-          gap="$2"
-          ghost
-          h="auto"
-          onPress={() => navigation.goBack()}
-          p="$0"
-          py="$2"
-        >
+        <Button gap="$2" ghost h="auto" onPress={() => navigation.goBack()} p="$0" py="$2">
           <Button.Icon color="#fff">
             <CaretLeft />
           </Button.Icon>
@@ -92,11 +74,7 @@ const GetTicket = () => {
             Buy Lottery Tickets
           </Button.Text>
         </Button>
-        <Text
-          color="#fff"
-          ml="auto"
-          onPress={() => navigation.navigate("LotteryRules")}
-        >
+        <Text color="#fff" ml="auto" onPress={() => navigation.navigate("LotteryRules")}>
           Rules
         </Text>
       </XStack>
@@ -110,9 +88,7 @@ const GetTicket = () => {
           <Card bg="$s300" mx="$2" px="$6">
             <Card.Header>
               <Text color="$p400" ta="center">
-                The{" "}
-                {currentLottery?.name ??
-                  startOfLotteryPeriod.toLocaleDateString().split("/")}{" "}
+                The {currentLottery?.name ?? startOfLotteryPeriod.toLocaleDateString().split("/")}{" "}
                 game
               </Text>
             </Card.Header>
@@ -163,13 +139,7 @@ const GetTicket = () => {
                 </Button>
 
                 <XStack ai="center">
-                  <Text
-                    fontSize="$7"
-                    fontWeight="500"
-                    minWidth={34}
-                    px="$2"
-                    ta="center"
-                  >
+                  <Text fontSize="$7" fontWeight="500" minWidth={34} px="$2" ta="center">
                     {value}
                   </Text>
                   <Text color="$gray.50" fos={15}>
@@ -231,8 +201,7 @@ const GetTicket = () => {
             <Card.Footer my="$3">
               <XStack flex={1} gap="$2" jc="center">
                 <Text color="$p400">
-                  Required points: {value * (currentLottery?.ticketPrice ?? 50)}{" "}
-                  points
+                  Required points: {value * (currentLottery?.ticketPrice ?? 50)} points
                 </Text>
               </XStack>
             </Card.Footer>
@@ -240,8 +209,7 @@ const GetTicket = () => {
         </Stack>
 
         <Text color="$p50" fos={15} mt="$2">
-          Tips: {"\n"}Buy 10 or more tickets and your win ratio increases to
-          more than 50%.
+          Tips: {"\n"}Buy 10 or more tickets and your win ratio increases to more than 50%.
         </Text>
       </ScrollView>
       <DialogWithAd

@@ -3,8 +3,9 @@ import { BottomSheet } from "heroui-native";
 import { CaretRightIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
-import { NativeAd, TestIds } from "react-native-google-mobile-ads";
+import { NativeAd } from "react-native-google-mobile-ads";
 import { useSnapshot } from "valtio";
+import { adUnits } from "#/lib/adUnits";
 import { type AdPlacement, consumeAd } from "#/state/adManager";
 import { appOpenAdSheetState, setAdType, setNativeAdReady } from "#/state/appOpenAdState";
 import { Button } from "../../heroui/button";
@@ -35,7 +36,7 @@ const AppOpenAd = () => {
     setLoading(true);
     setError(false);
     try {
-      const ad = await NativeAd.createForAdRequest(TestIds.GAM_NATIVE_VIDEO, {});
+      const ad = await NativeAd.createForAdRequest(adUnits.native, {});
       setNativeAd(ad);
       setNativeAdReady(true);
     } catch {
