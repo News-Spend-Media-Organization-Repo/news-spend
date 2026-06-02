@@ -2,8 +2,6 @@ import { isDefinedError } from "@orpc/client";
 import * as Sentry from "@sentry/react-native";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 
-import { logout } from "#/state/auth";
-
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
@@ -12,7 +10,7 @@ export const queryClient = new QueryClient({
       if (error?.data?.httpStatus === 401) {
         Sentry.captureMessage("Session expired after retries");
         console.log("🚀 ~ Query error 401 after retries, logging out");
-        logout();
+        import("#/state/auth").then(({ logout }) => logout());
       }
       if (isDefinedError(error)) {
         console.error(error?.message);
@@ -26,7 +24,7 @@ export const queryClient = new QueryClient({
       if (error?.data?.httpStatus === 401) {
         Sentry.captureMessage("Session expired after retries", {});
         console.log("🚀 ~ Mutation error 401 after retries, logging out");
-        logout();
+        import("#/state/auth").then(({ logout }) => logout());
       }
       if (isDefinedError(error)) {
         console.error(error?.message);
