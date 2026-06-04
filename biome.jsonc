@@ -3,7 +3,8 @@
   "javascript": {
     "globals": [
       "Bun",
-      "__DEV__"
+      "__DEV__",
+      "jest"
     ]
   },
   "linter": {

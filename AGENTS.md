@@ -21,9 +21,11 @@ Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/
 | Build (CMS)            | `bun run build` (root) or `bun --filter @news-spend-media/cms build` |
 | Dev (CMS)              | `bun run dev` or `bun --filter @news-spend-media/cms dev`            |
 | Dev (Server)           | `bun --filter @news-spend-media/server dev`                          |
-| Test (single package)  | `cd packages/api && bun x vitest run`                                |
-| Test (watch mode)      | `cd packages/api && bun x vitest`                                    |
-| Test (single file)     | `cd packages/api && bun x vitest run path/to/file.test.ts`           |
+| Test (API)             | `cd packages/api && bun x vitest run`                                |
+| Test (API, watch)      | `cd packages/api && bun x vitest`                                    |
+| Test (API, single file)| `cd packages/api && bun x vitest run path/to/file.test.ts`           |
+| Test (Native)          | `cd apps/native && bun run test`                                     |
+| Test (Native, watch)   | `cd apps/native && bun run test:watch`                               |
 | Generate Payload types | `cd apps/cms && bun run generate:types`                              |
 | DB push                | `cd packages/db && bun run db:push`                                  |
 | DB migrate             | `cd packages/db && bun run db:migrate`                               |
@@ -163,7 +165,8 @@ tooling/
 | Better Auth         | Authentication                  |
 | Tailwind CSS        | Styling                         |
 | React Native / Expo | Mobile app                      |
-| Vitest              | Unit testing                    |
+| Jest                | Native unit testing             |
+| Vitest              | Web/API unit testing            |
 | Turborepo           | Monorepo task orchestration     |
 | Sentry              | Error tracking                  |
 
