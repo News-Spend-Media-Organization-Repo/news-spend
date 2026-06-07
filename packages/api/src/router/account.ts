@@ -1,3 +1,4 @@
+import { auth } from "@news-spend-media/auth";
 import { ORPCError } from "@orpc/client";
 import z from "zod";
 
@@ -8,7 +9,7 @@ const changePassword = protectedNoGuestProcedure
     z.object({
       oldPassword: z.string().min(6).max(100),
       newPassword: z.string().min(6).max(100),
-    })
+    }),
   )
   .handler(async ({ input, context }) => {
     const { user, payload } = context;
@@ -39,7 +40,7 @@ const updateProfile = protectedNoGuestProcedure
         name: z.string().optional(),
         phone: z.string().optional(),
       })
-      .catchall(z.any())
+      .catchall(z.any()),
   )
   .handler(async ({ input, context }) => {
     const {
@@ -92,23 +93,23 @@ const updateProfile = protectedNoGuestProcedure
       });
     }
 
-    const userUpdate = await payload.update({
-      collection: "users",
-      id: userId,
-      data: {
+    // const nameFormatted = input.name
+    //   ?.split(" ")
+    //   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+    //   .join(" ");
+
+    console.log(input.name);
+
+    const userUpdate = await auth.api.updateUser({
+      headers: context.headers,
+      body: {
         ...rest,
-        name: input.name
-          ?.split(" ")
-          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" "),
-        ...(user?.username?.toLowerCase().trim() ===
-        username?.toLowerCase().trim()
+        name: input.name,
+        ...(user?.username?.toLowerCase().trim() === username?.toLowerCase().trim()
           ? {}
           : { username }),
       },
     });
-
-    console.log(userUpdate);
 
     return userUpdate;
   });
@@ -120,7 +121,7 @@ const createPushToken = protectedProcedure
       deviceType: z.enum(["ios", "android", "web"]),
       deviceModel: z.string().optional(),
       deviceName: z.string().optional(),
-    })
+    }),
   )
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
@@ -178,7 +179,7 @@ const deletePushToken = protectedProcedure
   .input(
     z.object({
       token: z.string().optional(),
-    })
+    }),
   )
   .handler(async ({ input, context }) => {
     const { payload } = context;

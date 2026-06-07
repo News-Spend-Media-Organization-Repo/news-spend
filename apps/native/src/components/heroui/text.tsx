@@ -1,12 +1,15 @@
 import { cn } from "heroui-native";
 import type React from "react";
-import { useMemo, type Ref } from "react";
-import { Text as RNText, type TextProps as RNTextProps } from "react-native";
+import { type Ref, useContext, useMemo } from "react";
+import {
+  Text as RNText,
+  type TextProps as RNTextProps,
+  unstable_TextAncestorContext as TextAncestorContext,
+} from "react-native";
 import { tv } from "tailwind-variants";
 
 const textVariants = tv({
   base: "font-sans text-foreground",
-
   variants: {
     variant: {
       HeadingLarge: "font-semibold text-2xl/[33.6px]",
@@ -18,7 +21,6 @@ const textVariants = tv({
       link: "font-medium text-accent text-sm underline",
     },
   },
-
   defaultVariants: {
     variant: "body",
   },
@@ -31,9 +33,14 @@ export type AppTextProps = RNTextProps & {
 };
 
 export const Text = ({ variant = "body", className, style, ref, ...props }: AppTextProps) => {
+  const isNested = useContext(TextAncestorContext);
+
   const resolvedClassName = useMemo(
-    () => cn(textVariants({ variant }), className),
-    [variant, className],
+    () =>
+      isNested
+        ? cn(className) // nested: skip variant, just inherit + apply any extra classes
+        : cn(textVariants({ variant }), className), // top-level: apply full variant
+    [variant, className, isNested],
   );
 
   return (

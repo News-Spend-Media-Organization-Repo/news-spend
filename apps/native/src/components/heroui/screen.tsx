@@ -217,8 +217,7 @@ function ScreenWithScrolling(props: ScreenProps) {
   const { scrollEnabled, onContentSizeChange, onLayout } = useAutoPreset(props as AutoScreenProps);
 
   // Scroll to top when the active tab is tapped again (React Navigation behavior)
-  // Cast needed because KeyboardAwareScrollViewRef is compatible but not identical to ScrollView ref
-  useScrollToTop(ref as React.RefObject<ScrollView>);
+  useScrollToTop(ref);
 
   const scrollViewClassName = cn("h-full w-full flex-1", className);
   const scrollViewContentClassName = cn("items-stretch justify-start", contentContainerClassName);
@@ -342,7 +341,7 @@ export function Screen(props: ScreenProps) {
           {content}
         </KeyboardAvoidingView>
       ) : (
-        <View style={{ flex: 1 }}>{content}</View>
+        <View className="flex-1">{content}</View>
       )}
     </View>
   );

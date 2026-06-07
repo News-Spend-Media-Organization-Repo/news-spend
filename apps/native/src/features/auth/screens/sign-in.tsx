@@ -1,10 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
-import { Spinner } from "heroui-native";
+import { LinkButton, Spinner } from "heroui-native";
 import { useState } from "react";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
 import { Keyboard, View } from "react-native";
-import * as z from "zod";
+import { z } from "zod";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
@@ -67,12 +67,14 @@ export default function SignIn() {
 
             <View className="mt-2 flex-col gap-2">
               {serverError ? <Text className="text-lg text-red-500">{serverError}</Text> : null}
-              <Text
-                className="text-right text-gray-500 text-sm"
+              <LinkButton
+                className="self-end"
                 onPress={() => navigation.navigate("ForgotPassword")}
               >
-                Forgot password?
-              </Text>
+                <LinkButton.Label className="text-accent text-sm">
+                  Forgot password?
+                </LinkButton.Label>
+              </LinkButton>
             </View>
           </View>
         </FormProvider>
@@ -81,15 +83,14 @@ export default function SignIn() {
           <Button.Label>Sign In</Button.Label>
         </Button>
       </View>
-      <Text className="mt-auto mb-6 text-center text-sm">
-        Don&apos;t have an account?{" "}
-        <Text
-          className="font-bold text-primary text-sm"
-          onPress={() => navigation.navigate("SignUp")}
-        >
-          Register here
-        </Text>
-      </Text>
+      <View className="mt-auto mb-safe-offset-1 flex-row flex-wrap justify-center">
+        <Text className="text-sm">Don&apos;t have an account? </Text>
+        <LinkButton onPress={() => navigation.navigate("SignUp")}>
+          <LinkButton.Label className="font-bold text-primary text-sm">
+            Register here
+          </LinkButton.Label>
+        </LinkButton>
+      </View>
     </Screen>
   );
 }
