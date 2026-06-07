@@ -20,7 +20,7 @@ export const ActivityRow = React.memo(({ item, onPress }: ActivityRowProps) => {
     <PressableFeedback onPress={() => onPress(item)}>
       <View className="flex-row items-center gap-3 bg-surface px-4 py-3">
         <View
-          className="h-9 w-9 items-center justify-center rounded-xl"
+          className="size-9 items-center justify-center rounded-xl"
           style={{ backgroundColor: meta.bg }}
         >
           <Icon color="#000" name={meta.icon} size={20} />

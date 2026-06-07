@@ -5,7 +5,7 @@ import { addDays, subDays } from "date-fns";
 import { Select, Separator, Spinner } from "heroui-native";
 import React, { useCallback, useState } from "react";
 import { View } from "react-native";
-import { DateRangePicker } from "#/components/DateRangePicker";
+import { DateRangePicker } from "#/components/heroui/date-range-picker";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { ToggleButton, ToggleButtonGroup } from "#/components/heroui/toggle";
@@ -26,7 +26,7 @@ export default function Activities() {
     activityOptions[0],
   );
   const [dateRange, setDateRange] = useState<SelectOption | undefined>(dateRangeOptions[0]);
-  const [endDate, setEndDate] = useState(addDays(new Date(), 1));
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [toggle, setToggle] = useState<ActivityType>("posted");
   const [openDateDialog, setOpenDateDialog] = useState(false);
@@ -37,7 +37,7 @@ export default function Activities() {
     orpc.activity.byUserId.infiniteOptions({
       input: (pageParam: number | undefined) => ({
         startDate: startDate?.toISOString().slice(0, 10),
-        endDate: endDate.toISOString().slice(0, 10),
+        endDate: endDate?.toISOString().slice(0, 10),
         category: (activityOption?.value as Category) ?? "all",
         type: toggle,
         limit: 12,
@@ -99,14 +99,31 @@ export default function Activities() {
     }
   }, [activities]);
 
-  const renderItem = ({ item }: LegendListRenderItemProps<Activity>) => (
-    <ActivityRow item={item} onPress={onSelectActivity} />
+  const renderItem = useCallback(
+    ({ item }: LegendListRenderItemProps<Activity>) => (
+      <ActivityRow item={item} onPress={onSelectActivity} />
+    ),
+    [onSelectActivity],
   );
 
   return (
     <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+      <DateRangePicker
+        endDate={endDate}
+        label="Custom date range"
+        max={new Date()}
+        onDateFilter={onCustomFilter}
+        onOpenChange={setOpenDateDialog}
+        open={openDateDialog}
+        presentation="bottom-sheet"
+        startDate={startDate}
+      />
+
       <LegendList
-        contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          paddingBottom: 15,
+        }}
         data={allPages}
         ItemSeparatorComponent={() => <Separator />}
         keyExtractor={(item) => item.id}
@@ -193,12 +210,6 @@ export default function Activities() {
       />
 
       <ActivitySheet activity={selectedActivity} isOpen={sheetOpen} onOpenChange={setSheetOpen} />
-
-      <DateRangePicker
-        onDateFilter={onCustomFilter}
-        open={openDateDialog}
-        setOpen={setOpenDateDialog}
-      />
     </Screen>
   );
 }
