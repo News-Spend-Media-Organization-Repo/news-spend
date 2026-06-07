@@ -51,7 +51,7 @@ export const hydrateAuth = async () => {
     try {
       const session = await authClient.getSession();
 
-      console.log("Session data:", JSON.stringify(session, null, 2));
+      // console.log("Session data:", JSON.stringify(session, null, 2));
       if (session.data?.user) {
         const user = session.data.user;
         console.log("User found:", {

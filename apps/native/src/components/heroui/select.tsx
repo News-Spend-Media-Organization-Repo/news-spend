@@ -56,9 +56,7 @@ export function FormSelectField({
     >
       {label && (
         <Label>
-          <Label.Text className={cn("px-1.5 font-normal text-sm text-subtle-text", labelClassName)}>
-            {label}
-          </Label.Text>
+          <Label.Text className={cn("", labelClassName)}>{label}</Label.Text>
         </Label>
       )}
       <Select

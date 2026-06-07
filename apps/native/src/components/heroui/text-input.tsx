@@ -43,8 +43,8 @@ export function FormTextInput({
 
           {isMultiline ? (
             <TextArea
-              autoCapitalize="none"
-              className="w-full rounded-lg border-field-border px-4 android:shadow-none"
+              autoCapitalize="sentences"
+              className="w-full rounded-lg px-4 android:shadow-none"
               onBlur={onBlur}
               onChangeText={onChange}
               placeholder={placeholder}
@@ -55,10 +55,7 @@ export function FormTextInput({
             <View className="w-full flex-row items-center">
               <Input
                 autoCapitalize="none"
-                className={cn(
-                  "flex-1 rounded-lg border-field-border px-4 android:shadow-none",
-                  isPassword && "pr-10",
-                )}
+                className={cn("flex-1 rounded-lg px-4 android:shadow-none", isPassword && "pr-10")}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 placeholder={placeholder}
