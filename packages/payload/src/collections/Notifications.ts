@@ -173,8 +173,7 @@ const Notifications: CollectionConfig = {
       virtual: true,
       admin: {
         readOnly: true,
-        description:
-          "Total number of recipients who received this notification",
+        description: "Total number of recipients who received this notification",
       },
     },
     {
@@ -183,8 +182,7 @@ const Notifications: CollectionConfig = {
       virtual: true,
       admin: {
         readOnly: true,
-        description:
-          "Total number of recipients who failed to receive this notification",
+        description: "Total number of recipients who failed to receive this notification",
       },
     },
     {
@@ -215,6 +213,21 @@ const Notifications: CollectionConfig = {
     },
   ],
   hooks: {
+    afterDelete: [
+      async ({ doc, req }) => {
+        await req.payload.delete({
+          collection: "notification-inbox",
+          where: { notification: { equals: doc.id } },
+          req,
+        });
+
+        await req.payload.delete({
+          collection: "notification-deliveries",
+          where: { notification: { equals: doc.id } },
+          req,
+        });
+      },
+    ],
     afterChange: [
       async ({ operation, doc, req }) => {
         if (operation !== "create" && operation !== "update") {
