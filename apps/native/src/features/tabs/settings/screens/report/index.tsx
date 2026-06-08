@@ -1,20 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
-import { Checkbox, ControlField, FieldError, LinkButton } from "heroui-native";
+import { File as ExpoFile } from "expo-file-system";
+import { Checkbox, ControlField, FieldError, Label, LinkButton, Spinner } from "heroui-native";
 import { useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
-import { Label, Spinner } from "tamagui";
 import { z } from "zod";
+import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { FormSelectField } from "#/components/heroui/select";
 import { StandardItem } from "#/components/heroui/select-item";
 import { Text } from "#/components/heroui/text";
 import FormTextInput from "#/components/heroui/text-input";
-import { Button } from "#/components/ui/Button";
 import { openapi } from "#/lib/orpc";
 import ReportFileSheet from "./components/report-file-sheet";
 
@@ -72,14 +72,9 @@ function Report() {
       fd.append("title", data.title);
       fd.append("description", data.description);
       fd.append("reportType", data.reportType.value);
-      data.files.forEach((file, index) => {
-        fd.append("files[]", {
-          uri: file.uri,
-          type: file.type || "application/octet-stream",
-          name: file.name || `file-${index}.${file.uri.split(".").pop()}`,
-        } as any);
-      });
-
+      for (const file of data.files) {
+        fd.append("files[]", new ExpoFile(file.uri));
+      }
       createReportMutation.mutate(fd, {
         onSuccess: () => {
           toast("Thank you for your report!", {
@@ -102,7 +97,6 @@ function Report() {
       });
     }
   };
-
   return (
     <Screen className="bg-white" systemBarStyle="light">
       <KeyboardAwareScrollView contentContainerClassName="gap-4 px-2.5 pb-safe-2 pt-2">
@@ -143,7 +137,7 @@ function Report() {
                 )}
               />
               {formMethods.formState.errors.files ? (
-                <FieldError isInvalid>{formMethods.formState.errors["files"]?.message}</FieldError>
+                <FieldError isInvalid>{formMethods.formState.errors.files?.message}</FieldError>
               ) : null}
             </View>
 
@@ -178,15 +172,11 @@ function Report() {
             />
 
             <Button
-              disabled={createReportMutation.isPending}
+              isDisabled={createReportMutation.isPending}
               onPress={formMethods.handleSubmit(onSubmit)}
             >
-              {createReportMutation.isPending && (
-                <Button.Icon>
-                  <Spinner color="$s50" />
-                </Button.Icon>
-              )}
-              <Button.Text>Submit</Button.Text>
+              {createReportMutation.isPending && <Spinner />}
+              <Button.Label>Submit</Button.Label>
             </Button>
           </View>
         </FormProvider>

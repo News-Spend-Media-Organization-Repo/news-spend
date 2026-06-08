@@ -6,11 +6,7 @@ import { BatchLinkPlugin } from "@orpc/client/plugins";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { JsonifiedClient } from "@orpc/openapi-client";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
-import type {
-  InferRouterInputs,
-  InferRouterOutputs,
-  RouterClient,
-} from "@orpc/server";
+import type { InferRouterInputs, InferRouterOutputs, RouterClient } from "@orpc/server";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 
 import { getBaseUrl } from "#/utils/getBaseUrl";
@@ -27,19 +23,6 @@ const link = new RPCLink({
       headers.set("Cookie", cookies);
     }
     return Object.fromEntries(headers);
-  },
-  async fetch(request, init) {
-    const { fetch } = await import("expo/fetch");
-
-    const resp = await fetch(request.url, {
-      body: await request.blob(),
-      headers: request.headers,
-      method: request.method,
-      signal: request.signal,
-      ...init,
-    });
-
-    return resp;
   },
   interceptors: [
     // onError((error) => {
@@ -70,11 +53,6 @@ const openapiLink = new OpenAPILink(contract as unknown as typeof router, {
     }
     return Object.fromEntries(headers);
   },
-  fetch: (request, init) =>
-    globalThis.fetch(request, {
-      ...init,
-      credentials: "include",
-    }),
   // interceptors: [
   //   onError((error) => {
   //     console.error("interceptor error", error);
