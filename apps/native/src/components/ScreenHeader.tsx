@@ -1,9 +1,10 @@
 import { useNavigation } from "@react-navigation/native";
+import { PressableFeedback } from "heroui-native";
+import { ArrowLeftIcon } from "phosphor-react-native";
 import type { ReactNode } from "react";
-import { Paragraph, Stack, XStack } from "tamagui";
-import { ArrowLeft } from "tamagui-phosphor";
-
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
+import { View } from "react-native";
+import { Icon } from "./heroui/icon";
+import { Text } from "./heroui/text";
 
 type ScreenHeaderProps = {
   title: string;
@@ -13,42 +14,26 @@ type ScreenHeaderProps = {
 
 const ScreenHeader = ({ title, left, right }: ScreenHeaderProps) => {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsetsStyle(["top"]);
+
+  console.log(title);
 
   return (
-    <XStack
-      ai="center"
-      bg="$p500"
-      jc="center"
-      pos="relative"
-      px="$3"
-      py="$2"
-      style={insets}
-      width="100%"
-    >
+    <View className="relative w-full flex-row items-center justify-center bg-p-500 px-3 py-2 pt-safe-offset-1">
       {/* Left Item */}
-      <Stack ai="center" jc="center" px="$2" style={{ minWidth: 40 }}>
-        {left !== undefined ? (
-          left
-        ) : (
-          <ArrowLeft
-            color="$background"
-            onPress={() => navigation.goBack()}
-            size={24}
-          />
-        )}
-      </Stack>
+      <PressableFeedback
+        className="min-w-10 items-center justify-center px-2"
+        hitSlop={8}
+        onPress={() => navigation.goBack()}
+      >
+        {left === undefined ? <Icon color="white" name={ArrowLeftIcon} size={24} /> : left}
+      </PressableFeedback>
       {/* Title */}
-      <Stack ai="center" flex={1} jc="center">
-        <Paragraph color="$background" textTransform="capitalize">
-          {title}
-        </Paragraph>
-      </Stack>
+      <View className="flex-1 items-center justify-center">
+        <Text className="font-medium text-lg text-white capitalize">{title}</Text>
+      </View>
       {/* Right Item */}
-      <Stack ai="center" jc="center" px="$2" style={{ minWidth: 40 }}>
-        {right}
-      </Stack>
-    </XStack>
+      <View className="min-w-10 items-center justify-center px-2">{right}</View>
+    </View>
   );
 };
 

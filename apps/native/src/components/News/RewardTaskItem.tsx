@@ -5,7 +5,7 @@ import { Stack, Text, XStack, YStack } from "tamagui";
 import { Button, Image } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
 
-function RewardTaskItem({ item }: { item: RewardTaskItem }) {
+function RewardTaskItemCard({ item }: { item: RewardTaskItem }) {
   const ad = item.payload;
   const { url, blurhash } = getImageData(ad?.media);
 
@@ -47,15 +47,7 @@ function RewardTaskItem({ item }: { item: RewardTaskItem }) {
             {ad?.condition}
           </Text>
           <XStack alignItems="center" jc="flex-end">
-            <Button
-              als="flex-end"
-              bg="$color.s300"
-              br="$10"
-              fd="row"
-              h="auto"
-              px="$2"
-              py="$1"
-            >
+            <Button als="flex-end" bg="$color.s300" br="$10" fd="row" h="auto" px="$2" py="$1">
               <Button.Text fos="$3">{ad?.points} points</Button.Text>
             </Button>
           </XStack>
@@ -65,4 +57,4 @@ function RewardTaskItem({ item }: { item: RewardTaskItem }) {
   );
 }
 
-export default RewardTaskItem;
+export default RewardTaskItemCard;

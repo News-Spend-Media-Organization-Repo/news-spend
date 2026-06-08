@@ -4,7 +4,7 @@ const APP_VARIANT = process.env.APP_VARIANT as "development" | "beta" | "preview
 const APP_ENV = process.env.APP_ENV as "local" | "preview" | "production";
 
 const PACKAGE_NAME = "com.newsspend.app"; // Base package name
-const VERSION = "2.1.2";
+const VERSION = "2.1.3";
 // const VERSION_CODE = 28;
 
 // Package name suffix based on environment
@@ -66,8 +66,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...config.ios,
       bundleIdentifier: `${PACKAGE_NAME}${packageSuffix}`,
-      buildNumber: VERSION,
+      // buildNumber: VERSION,
       associatedDomains: ["applinks:link.newsspend.com", "applinks:newspend.godetour.link"],
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     extra: {
       eas: {

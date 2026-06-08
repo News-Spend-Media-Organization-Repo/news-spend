@@ -1,20 +1,20 @@
 import { LegendList } from "@legendapp/list/react-native";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Tabs } from "heroui-native/tabs";
 import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { useFavoriteStores } from "#/state/favoriteStoreState";
-
 import ShopItem from "../components/ShopItem";
 
 function ShopHome() {
   const [activeTab, setActiveTab] = useState("allStores");
   const { stores: favorites } = useFavoriteStores();
+  const bottomTabBarHeight = useBottomTabBarHeight();
 
   const {
     data: allStoresData,
@@ -103,7 +103,7 @@ function ShopHome() {
           value="allStores"
         >
           <LegendList
-            contentContainerStyle={{ paddingBottom: 300 }}
+            contentContainerStyle={{ paddingBottom: bottomTabBarHeight }}
             data={allStores}
             ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id}
@@ -127,7 +127,7 @@ function ShopHome() {
           value="popular"
         >
           <LegendList
-            contentContainerStyle={{ paddingBottom: 250 }}
+            contentContainerStyle={{ paddingBottom: bottomTabBarHeight }}
             data={popularStores ?? []}
             ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id}
@@ -146,7 +146,7 @@ function ShopHome() {
           value="favorites"
         >
           <LegendList
-            contentContainerStyle={{ paddingBottom: 250 }}
+            contentContainerStyle={{ paddingBottom: bottomTabBarHeight }}
             data={favorites}
             ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id!}

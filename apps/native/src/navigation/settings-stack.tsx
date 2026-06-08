@@ -2,8 +2,10 @@ import {
   createNativeStackNavigator,
   type NativeStackHeaderProps,
 } from "@react-navigation/native-stack";
-import { X } from "@tamagui/lucide-icons";
+import { PressableFeedback } from "heroui-native";
+import { XIcon } from "phosphor-react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
+import { Icon } from "#/components/heroui/icon";
 import ScreenHeader from "#/components/ScreenHeader";
 import SettingsHome from "#/features/tabs/settings/screens/SettingsHome";
 import { sharedScreens } from "./shared-screens";
@@ -56,7 +58,14 @@ export default createNativeStackNavigator({
           return (
             <ScreenHeader
               left={null}
-              right={<X color="$background" onPress={() => navigation.goBack()} />}
+              right={
+                <PressableFeedback
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => navigation.goBack()}
+                >
+                  <Icon color="white" name={XIcon} />
+                </PressableFeedback>
+              }
               title="Settings"
             />
           );

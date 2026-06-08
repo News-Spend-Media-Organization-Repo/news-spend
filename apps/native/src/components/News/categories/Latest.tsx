@@ -28,7 +28,7 @@ import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
 import RelatedNews from "../RelatedNews";
-import RewardTaskItem from "../RewardTaskItem";
+import RewardTaskItemCard from "../RewardTaskItem";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 
@@ -172,15 +172,6 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
   const renderItem = useCallback(
     ({ item, index }: LegendListRenderItemProps<RouterOutputs["news"]["home"]["docs"][number]>) => {
-      const itemId =
-        item && "id" in item
-          ? item.id
-          : item && "_id" in item
-            ? // fallback if some items use _id
-              // @ts-expect-error - some feed items may have _id
-              item._id
-            : undefined;
-
       let content: JSX.Element | null = null;
 
       if (item && "type" in item && (item.type === "article" || item.type === "video")) {
@@ -214,19 +205,9 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
           );
         } else {
           content = <NewsItemAd index={index} item={item} />;
-          // content = (
-          //   <NewsItemGoogleAds
-          //     index={index}
-          //     item={item}
-          //     ref={(itemRef: NewsItemGoogleAdRef | null) => {
-          //       gBannerRefs.current[index] = itemRef;
-          //     }}
-          //     tab="latest"
-          //   />
-          // );
         }
       } else if (item && "_type" in item && item._type === "rewardTask") {
-        content = <RewardTaskItem item={item} />;
+        content = <RewardTaskItemCard item={item} />;
       } else {
         content = null;
       }

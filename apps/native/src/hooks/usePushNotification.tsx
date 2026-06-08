@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useRef } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import { useSnapshot } from "valtio";
 
 import { orpc } from "#/lib/orpc";
@@ -37,7 +37,7 @@ const setupAndroidChannel = async () => {
 
 const registerForPushNotificationsAsync = async () => {
   if (!Device.isDevice) {
-    Alert.alert("Must use physical device for Push Notifications");
+    console.warn("Must use physical device for Push Notifications");
     return null;
   }
 
@@ -131,9 +131,8 @@ const usePushNotification = () => {
     );
   }, [user, saveToken]);
 
+  // Listeners don't depend on auth — set up once, unconditionally
   useEffect(() => {
-    const tokenRegistrationTimeout = setTimeout(registerToken, 5000);
-
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       console.log("Notification received:", notification);
     });
@@ -143,11 +142,16 @@ const usePushNotification = () => {
     });
 
     return () => {
-      clearTimeout(tokenRegistrationTimeout);
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, [registerToken]);
+  }, []); // ← empty deps, runs once
+
+  // Token registration depends on auth
+  useEffect(() => {
+    const timeout = setTimeout(registerToken, 5000);
+    return () => clearTimeout(timeout);
+  }, [registerToken]); // ← only re-runs when auth changes
 
   const sendPushNotification = useCallback(async (expoPushToken: string) => {
     const message = {

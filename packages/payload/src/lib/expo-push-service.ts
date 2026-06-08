@@ -73,10 +73,14 @@ async function resolveTokens(
   }
 
   if (notification.targetType === "specific" && notification.specificUsers?.length) {
+    const specificUserIds = notification.specificUsers.map((user) =>
+      typeof user === "string" ? user : user.id,
+    );
+
     const result = await payload.find({
       collection: "push-tokens",
       where: {
-        user: { in: notification.specificUsers },
+        user: { in: specificUserIds },
         ...deviceTypeWhere,
       },
       pagination: false,

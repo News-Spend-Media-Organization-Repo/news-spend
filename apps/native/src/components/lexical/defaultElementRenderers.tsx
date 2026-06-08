@@ -1,32 +1,19 @@
 import { Galeria } from "@nandorojo/galeria";
 import React from "react";
 import { Dimensions, Text as RNText } from "react-native";
-import {
-  H1,
-  H2,
-  H3,
-  H4,
-  H5,
-  H6,
-  Stack,
-  type TextProps,
-  type ViewProps,
-} from "tamagui";
+import { H1, H2, H3, H4, H5, H6, Stack, type TextProps, type ViewProps } from "tamagui";
 
 import { Image, Text } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
 
-import { PayloadLexicalReactRenderer } from "./PayloadLexicalReactRenderer";
+import { RichTextCaption } from "./RichTextCaption";
 import type {
   AbstractElementNode,
   ElementRenderers,
   PayloadLexicalReactRendererContent,
 } from "./types";
 
-function getElementStyle<Type extends string>({
-  indent,
-  format,
-}: AbstractElementNode<Type>): any {
+function getElementStyle<Type extends string>({ indent, format }: AbstractElementNode<Type>): any {
   const props: TextProps = {};
 
   if (indent > 0) {
@@ -50,7 +37,7 @@ export const defaultElementRenderers: ElementRenderers = {
           {
             // ...getElementStyle<"heading">(element),
           },
-          element.children
+          element.children,
         );
         return val;
       }
@@ -60,7 +47,7 @@ export const defaultElementRenderers: ElementRenderers = {
           {
             ...getElementStyle<"heading">(element),
           },
-          element.children
+          element.children,
         );
 
         // console.log(value);
@@ -72,7 +59,7 @@ export const defaultElementRenderers: ElementRenderers = {
           {
             ...getElementStyle<"heading">(element),
           },
-          element.children
+          element.children,
         );
       case "h4":
         return React.createElement(
@@ -80,7 +67,7 @@ export const defaultElementRenderers: ElementRenderers = {
           {
             ...getElementStyle<"heading">(element),
           },
-          element.children
+          element.children,
         );
       case "h5":
         return React.createElement(
@@ -88,7 +75,7 @@ export const defaultElementRenderers: ElementRenderers = {
           {
             ...getElementStyle<"heading">(element),
           },
-          element.children
+          element.children,
         );
       case "h6":
         return React.createElement(
@@ -96,7 +83,7 @@ export const defaultElementRenderers: ElementRenderers = {
           {
             ...getElementStyle<"heading">(element),
           },
-          element.children
+          element.children,
         );
       default:
         return React.createElement(
@@ -104,7 +91,7 @@ export const defaultElementRenderers: ElementRenderers = {
           {
             ...(getElementStyle<"heading">(element) as TextProps),
           },
-          element.children
+          element.children,
         );
     }
   },
@@ -114,7 +101,7 @@ export const defaultElementRenderers: ElementRenderers = {
       {
         ...(getElementStyle<"list">(element) as ViewProps),
       },
-      element.children
+      element.children,
     ),
   listItem: (element) => {
     return (
@@ -187,10 +174,7 @@ export const defaultElementRenderers: ElementRenderers = {
   horizontalrule: () => <Stack borderBottomWidth={1} />,
   upload: (element) => {
     const { width, height } = Dimensions.get("window");
-    if (
-      typeof element.value !== "number" &&
-      element.value.mimeType?.includes("image")
-    ) {
+    if (typeof element.value !== "number" && element.value.mimeType?.includes("image")) {
       const { url, blurhash } = getImageData(element.value);
       // console.log(url);
       const urls = [url ?? ""];
@@ -207,11 +191,7 @@ export const defaultElementRenderers: ElementRenderers = {
               />
             </Galeria.Image>
           </Galeria>
-          <PayloadLexicalReactRenderer
-            content={
-              element.value.caption as PayloadLexicalReactRendererContent
-            }
-          />
+          <RichTextCaption content={element.value.caption as PayloadLexicalReactRendererContent} />
         </Stack>
       );
     }

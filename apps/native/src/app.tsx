@@ -15,7 +15,6 @@ import LotteryReward from "./components/dialogs/LotteryReward";
 import useCachedResources from "./hooks/useCachedResources";
 import { initSentry } from "./lib/sentry";
 import { queryClient } from "./lib/tanstackQuery";
-import { useUpdates } from "./lib/UpdatesProvider";
 import { Navigation } from "./navigation";
 import { CONSTANTS } from "./navigation/constants";
 import { linking } from "./navigation/linking";
@@ -45,6 +44,7 @@ initSentry();
 hydrateAuth();
 preloadAds(["news-click-ads", "discover-tab"]);
 
+const persister = createMMKVPersister();
 export function App() {
   useTanStackQueryDevTools(queryClient);
   useReactNavigationDevTools({ ref: navigationRef });
@@ -59,7 +59,6 @@ export function App() {
   );
 
   const { loadingComplete } = useCachedResources();
-  const { UpdateModalComponent } = useUpdates();
 
   const authStatus = useSnapshot(authState).status;
 
@@ -76,8 +75,6 @@ export function App() {
   if (authStatus === "idle" || !loadingComplete) {
     return null;
   }
-
-  const persister = createMMKVPersister();
 
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>

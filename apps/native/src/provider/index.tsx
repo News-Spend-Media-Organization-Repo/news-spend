@@ -62,13 +62,14 @@ export const Provider = ({ children }: Props) => {
           <Toaster
             autoWiggleOnUpdate="toast-change"
             pauseWhenPageIsHidden
+            richColors
             toastOptions={{
               titleStyle: {
                 fontFamily: "Inter-SemiBold",
                 fontSize: 18,
               },
               descriptionStyle: {
-                fontFamily: "Inter-Medium",
+                fontFamily: "Inter-Regular",
                 fontSize: 16,
               },
             }}
