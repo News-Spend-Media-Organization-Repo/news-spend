@@ -1,11 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {
-  Home,
-  PlusCircle,
-  ShoppingCart,
-  Tag,
-  Video,
-} from "@tamagui/lucide-icons";
+import { Home, PlusCircle, ShoppingCart, Tag, Video } from "@tamagui/lucide-icons";
 
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
@@ -15,7 +9,6 @@ import ShopStack from "./shop-stack";
 import TabBar from "./tab-bar";
 
 export default createBottomTabNavigator({
-  implementation: "custom",
   tabBar: (props) => <TabBar {...props} />,
   backBehavior: "history",
   screens: {

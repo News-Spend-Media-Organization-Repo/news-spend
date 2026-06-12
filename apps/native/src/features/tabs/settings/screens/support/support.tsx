@@ -1,13 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
-import { FlashList } from "@shopify/flash-list";
-import { H4, ListItem, Paragraph, Stack } from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import type { SettingsStackParamList } from "#/types";
+import { ListGroup } from "heroui-native/list-group";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { Separator } from "heroui-native/separator";
+import { ScrollView, View } from "react-native";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 
 const options: {
   title: string;
-  screen: keyof SettingsStackParamList;
+  screen: any;
 }[] = [
   {
     title: "Frequently Asked Questions",
@@ -35,31 +36,39 @@ const Support = () => {
   const navigation = useNavigation();
 
   return (
-    <Screen>
-      <FlashList
-        data={options}
-        ListHeaderComponent={() => (
-          <Stack p="$4" ai="center">
-            <H4>Tell us how we can help you</H4>
-            <Paragraph textAlign="center">
-              Our team is always on hand to help you with any questions or
-              queries
-            </Paragraph>
-          </Stack>
-        )}
-        renderItem={({ item }) => (
-          <ListItem
-            onPress={() => navigation.navigate(item.screen, {})}
-            pressTheme
-            bg="$p50"
-            p="$4"
-            mb="$2"
-          >
-            <Paragraph fontWeight="700">{item.title}</Paragraph>
-          </ListItem>
-        )}
-      />
+    <Screen className="bg-background" systemBarStyle="light">
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View className="items-center px-4 py-4">
+          <Text className="font-semibold text-lg">Tell us how we can help you</Text>
+          <Text className="mt-1 text-center text-muted-foreground">
+            Our team is always on hand to help you with any questions or queries
+          </Text>
+        </View>
+
+        <ListGroup variant="transparent">
+          {options.map((item, index) => (
+            <View key={item.title}>
+              <PressableFeedback
+                animation={false}
+                onPress={() => navigation.navigate(item.screen, {})}
+              >
+                <PressableFeedback.Scale>
+                  <ListGroup.Item disabled>
+                    <ListGroup.ItemContent>
+                      <ListGroup.ItemTitle>{item.title}</ListGroup.ItemTitle>
+                    </ListGroup.ItemContent>
+                    <ListGroup.ItemSuffix />
+                  </ListGroup.Item>
+                </PressableFeedback.Scale>
+                <PressableFeedback.Ripple />
+              </PressableFeedback>
+              {index < options.length - 1 && <Separator className="mx-4" />}
+            </View>
+          ))}
+        </ListGroup>
+      </ScrollView>
     </Screen>
   );
 };
+
 export default Support;

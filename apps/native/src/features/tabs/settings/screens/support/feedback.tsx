@@ -1,23 +1,25 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { Spinner } from "heroui-native/spinner";
+import { StarIcon } from "phosphor-react-native";
 import { FormProvider, useForm } from "react-hook-form";
+import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
-import { H4, Label, Spinner, Stack, Text, XStack } from "tamagui";
-import { StarFill } from "tamagui-phosphor";
 import { useSnapshot } from "valtio";
 import { z } from "zod";
-
-import { Screen } from "#/components/Screen";
-import FormInput from "#/components/text-input";
-import { Button } from "#/components/ui/Button";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import FormTextInput from "#/components/heroui/text-input";
 import { orpc } from "#/lib/orpc";
 import { authState } from "#/state/auth";
 
 const formSchema = z
   .object({
     name: z.string().min(3, "Name must be at least 3 characters"),
-    email: z.email(),
+    email: z.string().email("Enter a valid email"),
     message: z.string().min(30, "Message must be at least 30 characters"),
     rating: z
       .number({
@@ -36,8 +38,8 @@ const Feedback = () => {
 
   const formMethods = useForm<z.infer<typeof formSchema>>({
     defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
+      name: user?.name ?? "",
+      email: user?.email ?? "",
       message: "",
       rating: 0,
     },
@@ -53,8 +55,8 @@ const Feedback = () => {
           description: "We'll get back to you shortly.",
         });
         formMethods.reset({
-          name: user?.name || "",
-          email: user?.email || "",
+          name: user?.name ?? "",
+          email: user?.email ?? "",
           message: "",
           rating: 0,
         });
@@ -65,85 +67,70 @@ const Feedback = () => {
         });
         console.log(err);
       },
-    })
+    }),
   );
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     mutation.mutate({
-      type: "general",
+      type: "general" as const,
       ...data,
     });
   };
 
+  const currentRating = watch("rating") ?? 0;
+
   return (
-    <Screen>
+    <Screen className="bg-background" safeAreaEdges={["bottom"]} systemBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={100}
+        contentContainerClassName="gap-6 px-5 pt-5 pb-12"
         showsVerticalScrollIndicator={false}
       >
+        <Text className="font-semibold text-lg">We'd love to hear from you!</Text>
+
         <FormProvider {...formMethods}>
-          <Stack gap="$4" p="$3">
-            <H4>We'd love to hear from you!</H4>
+          <View className="gap-5">
+            <FormTextInput label="Name" name="name" placeholder="Your name" />
 
-            <Stack gap="$5">
-              <Stack gap="$2">
-                <Label>Name</Label>
+            <FormTextInput label="Email" name="email" placeholder="Your email" />
 
-                <FormInput name="name" placeholder="Your name" />
-              </Stack>
+            {/* Star rating */}
+            <View className="gap-3">
+              <Text className="font-semibold">How would you rate your experience?</Text>
+              <View className="flex-row gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Icon
+                    color={i < currentRating ? "#ffb300" : "#a1a1aa"}
+                    key={i}
+                    name={StarIcon}
+                    onPress={() => setValue("rating", i + 1, { shouldValidate: true })}
+                    s
+                    size={32}
+                    weight={i < currentRating ? "fill" : "regular"}
+                  />
+                ))}
+              </View>
+              {formState.errors.rating && (
+                <Text className="pl-2 text-red-500 text-sm">{formState.errors.rating.message}</Text>
+              )}
+            </View>
 
-              <Stack gap="$2">
-                <Label>Email</Label>
-
-                <FormInput name="email" placeholder="Your email" />
-              </Stack>
-
-              <Stack gap="$3">
-                <Label>How would you rate your experience?</Label>
-
-                {/* stars */}
-                <XStack flex={1}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <StarFill
-                      color={i >= (watch("rating") ?? 0) ? "#aaa" : "#ffb300"}
-                      key={i}
-                      onPress={() => setValue("rating", i + 1)}
-                      size="$6"
-                    />
-                  ))}
-                </XStack>
-                {formState.errors.rating && (
-                  <Text color="red" fos="$4" pl="$2">
-                    {formState.errors.rating.message}
-                  </Text>
-                )}
-              </Stack>
-
-              <Stack gap="$2">
-                <Label>What can we do better?</Label>
-                <FormInput
-                  multiline
-                  name="message"
-                  placeholder="Type here..."
-                />
-              </Stack>
-
-              <Button
-                disabled={mutation.isPending}
-                onPress={handleSubmit(onSubmit)}
-              >
-                <Button.Text>Submit</Button.Text>
-                {mutation.isPending ? (
-                  <Button.Icon>
-                    <Spinner color="$s50" />
-                  </Button.Icon>
-                ) : null}
-              </Button>
-            </Stack>
-          </Stack>
+            <FormTextInput
+              label="What can we do better?"
+              multiline
+              name="message"
+              placeholder="Type here..."
+            />
+          </View>
         </FormProvider>
+
+        <Button isDisabled={mutation.isPending} onPress={handleSubmit(onSubmit)}>
+          {mutation.isPending ? <Spinner /> : null}
+          <Button.Label>Submit</Button.Label>
+        </Button>
       </KeyboardAwareScrollView>
     </Screen>
   );
 };
+
 export default Feedback;
