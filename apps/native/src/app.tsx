@@ -105,5 +105,6 @@ export function App() {
     </PersistQueryClientProvider>
   );
 }
+const RootComponent = __DEV__ ? App : Sentry.wrap(App);
 
-export default Sentry.wrap(App);
+export default RootComponent;
