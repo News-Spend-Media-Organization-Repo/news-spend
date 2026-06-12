@@ -3,22 +3,24 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
 import { useLinkBuilder } from "@react-navigation/native";
 import { cn } from "heroui-native";
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import Animated, { Easing, FadeInDown, FadeOutDown } from "react-native-reanimated";
-import { useSnapshot } from "valtio";
 import { Text } from "#/components/heroui/text";
 import MusicPlayer from "#/components/MusicPlayer";
-import { routeState } from "#/state/route-state";
 import LiveBanner from "./live-banner";
 
-function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { buildHref } = useLinkBuilder();
-  const { routeName } = useSnapshot(routeState);
+const VISIBLE_SCREENS = new Set(["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"]);
 
-  const isTabBarVisible = useMemo(
-    () => ["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"].includes(routeName ?? ""),
-    [routeName],
-  );
+function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const currentRoute = state.routes[state.index];
+  const nestedState = currentRoute.state;
+  const activeRouteName = nestedState
+    ? nestedState.routes[nestedState.index ?? 0].name
+    : currentRoute.name;
+
+  const { buildHref } = useLinkBuilder();
+
+  const isTabBarVisible = nestedState ? VISIBLE_SCREENS.has(activeRouteName) : true;
 
   if (!isTabBarVisible) {
     return null;

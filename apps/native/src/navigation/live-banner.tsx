@@ -76,7 +76,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     });
   }, [data, navigation, index, currentTabName]);
 
-  if (isLoading || !data || data.length === 0) {
+  if (!isVisible || isLoading || !data || data.length === 0) {
     return null;
   }
 
