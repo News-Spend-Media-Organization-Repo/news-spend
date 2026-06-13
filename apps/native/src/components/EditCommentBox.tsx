@@ -1,30 +1,18 @@
 import { formatDistance } from "date-fns";
 import type { RefObject } from "react";
 import { useEffect, useState } from "react";
-import type { TextInput } from "react-native";
+import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
-import {
-  Avatar,
-  Form,
-  Paragraph,
-  Separator,
-  Spinner,
-  Stack,
-  Text,
-  TextArea,
-  XStack,
-  YStack,
-} from "tamagui";
 import { useSnapshot } from "valtio";
 import { subscribeKey } from "valtio/utils";
 
+import { Button } from "#/components/heroui/button";
+import { Text } from "#/components/heroui/text";
 import useUpdateComment from "#/hooks/comments/useUpdateComment";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 import { authState } from "#/state/auth";
 import { commentState, setEditingComment } from "#/state/commentState";
-
-import { Button } from "./ui";
 
 type EditCommentBoxProps = {
   newsId?: string;
@@ -36,9 +24,7 @@ type EditCommentBoxProps = {
   inputRef?: RefObject<TextInput> | ((instance: TextInput | null) => void);
 };
 
-function isRefObject<T>(
-  ref?: RefObject<T> | ((instance: T | null) => void)
-): ref is RefObject<T> {
+function isRefObject<T>(ref?: RefObject<T> | ((instance: T | null) => void)): ref is RefObject<T> {
   return !!ref && typeof ref !== "function" && "current" in ref;
 }
 
@@ -76,7 +62,6 @@ export const EditCommentBox = (props: EditCommentBoxProps) => {
     toast.loading("Updating comment", { description: "Please wait..." });
     updateCommentMutation.mutate(
       {
-        // newsId: props.newsId,
         text,
         commentId: editingCommentId,
       },
@@ -95,7 +80,7 @@ export const EditCommentBox = (props: EditCommentBoxProps) => {
             description: "Comment could not be updated",
           });
         },
-      }
+      },
     );
   };
 
@@ -103,123 +88,91 @@ export const EditCommentBox = (props: EditCommentBoxProps) => {
     setEditingComment(undefined);
   };
 
-  const commentUser =
-    typeof editingComment?.user === "object" ? editingComment.user : null;
+  const commentUser = typeof editingComment?.user === "object" ? editingComment.user : null;
 
   return (
     <>
       {editingComment && (
-        <Stack
-          bottom={0}
-          flex={1}
-          jc="flex-end"
-          left={0}
-          pos="absolute"
-          right={0}
-          top={0}
-        >
-          <YStack
-            animation="medium"
-            bg="rgba(0,0,0,0.5)"
-            bottom={0}
-            enterStyle={{ y: 100 }}
-            exitStyle={{ opacity: 0, y: 100 }}
-            left={0}
+        <View className="absolute inset-0 flex-1 justify-end">
+          {/* Overlay backdrop */}
+          <Pressable
+            className="absolute inset-0"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
             onPress={() => {
               if (
                 inputRef &&
                 typeof inputRef !== "function" &&
                 "current" in inputRef &&
-                (inputRef as any).current
+                (inputRef as unknown as { current: TextInput | null }).current
               ) {
-                (inputRef as any).current.blur();
+                (inputRef as unknown as { current: TextInput | null }).current?.blur();
               }
-              // setEditingComment(undefined);
             }}
-            position="absolute"
-            right={0}
-            top={0}
           />
           <KeyboardStickyView>
-            <Stack bg="$background" gap="$3">
-              <XStack gap="$2.5" pt="$2" px="$2.5">
-                <Avatar backgroundColor="purple" circular size="$2">
-                  <Text color="#fff" fos="$6">
-                    {commentUser?.username
-                      ?.charAt(0)
-                      .toLocaleUpperCase()
-                      .toUpperCase() ?? "U"}
+            <View className="bg-background gap-3">
+              {/* Comment info header */}
+              <View className="flex-row gap-2.5 pt-2 px-2.5">
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-purple-600">
+                  <Text className="text-[#fff] text-base">
+                    {commentUser?.username?.charAt(0).toLocaleUpperCase().toUpperCase() ?? "U"}
                   </Text>
-                </Avatar>
-                <YStack gap="$2">
-                  <XStack alignItems="center" justifyContent="space-between">
-                    <XStack ai="center" gap="$2">
-                      <Paragraph color="#0A0909" fontWeight="700" fos="$5">
+                </View>
+                <View className="flex-1 gap-2">
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2">
+                      <Text className="font-bold text-[#0A0909]" variant="subtitle">
                         {(commentUser?.username ?? "").charAt(0).toUpperCase() +
                           (commentUser?.username ?? "").slice(1)}{" "}
                         {commentUser?.userId === user?.id && "(You)"}
-                      </Paragraph>
-                      <Text color="#737373">
-                        {formatDistance(
-                          new Date(editingComment.createdAt),
-                          new Date(),
-                          {
-                            addSuffix: true,
-                          }
-                        )}
                       </Text>
-                    </XStack>
-                  </XStack>
+                      <Text className="text-[#737373] text-sm">
+                        {formatDistance(new Date(editingComment.createdAt), new Date(), {
+                          addSuffix: true,
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-[#0A0909] text-[15px]">{editingComment.text}</Text>
+                </View>
+              </View>
 
-                  <Paragraph color="#0A0909" fos="$5">
-                    {editingComment.text}
-                  </Paragraph>
-                </YStack>
-              </XStack>
-              <Separator />
-              <Form gap="$2.5" onSubmit={onUpdate} pb="$2" px={10} w="100%">
-                <TextArea
+              <View className="h-px bg-separator" />
+
+              {/* Edit form */}
+              <View className="w-full gap-2.5 pb-2 px-2.5">
+                <TextInput
                   autoFocus
-                  bg="$p50"
-                  borderColor="transparent"
-                  borderWidth={2}
+                  className="bg-p-50 border-2 border-transparent rounded-lg pt-2.5 px-4 text-base align-top"
                   onChangeText={(value: string) => setText(value)}
-                  pt="$2.5"
                   ref={inputRef as any}
                   value={text}
-                  verticalAlign="top"
+                  multiline
+                  placeholderTextColorClassName="accent-gray-400"
                 />
-                <XStack gap="$2" jc="flex-end">
-                  <Button onPress={onCancel} outlined>
-                    <Button.Text color="black">Cancel</Button.Text>
+                <View className="flex-row gap-2 justify-end">
+                  <Button variant="ghost" onPress={onCancel} className="border border-p-300">
+                    <Button.Label className="text-black">Cancel</Button.Label>
                   </Button>
-                  <Form.Trigger asChild>
-                    {/* // cancel button */}
-                    <Button
-                      alignSelf="flex-end"
-                      disabled={!text || updateCommentMutation.isPending}
-                      flexDirection="column"
+                  <Button
+                    className="self-end flex-col"
+                    disabled={!text || updateCommentMutation.isPending}
+                    onPress={onUpdate}
+                  >
+                    {updateCommentMutation.isPending && (
+                      <ActivityIndicator className="text-p-300" />
+                    )}
+                    <Button.Label
+                      className={updateCommentMutation.isPending ? "hidden" : "font-extrabold"}
                     >
-                      {updateCommentMutation.isPending && (
-                        <Button.Icon>
-                          <Spinner color="$p300" />
-                        </Button.Icon>
-                      )}
-                      <Button.Text
-                        display={
-                          updateCommentMutation.isPending ? "none" : "flex"
-                        }
-                        fontWeight="800"
-                      >
-                        {updateCommentMutation.isPending ? "Saving..." : "Save"}
-                      </Button.Text>
-                    </Button>
-                  </Form.Trigger>
-                </XStack>
-              </Form>
-            </Stack>
+                      {updateCommentMutation.isPending ? "Saving..." : "Save"}
+                    </Button.Label>
+                  </Button>
+                </View>
+              </View>
+            </View>
           </KeyboardStickyView>
-        </Stack>
+        </View>
       )}
     </>
   );

@@ -2,17 +2,19 @@ import type { Comment } from "@nsm/payload/payload-types";
 import { useNavigation } from "@react-navigation/native";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CaretDownIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef } from "react";
-import type { TextInput } from "react-native";
+import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { H3, Paragraph, Spinner, Stack, XStack, YStack } from "tamagui";
-import { CaretDown } from "tamagui-phosphor";
 
 import CommentCard from "#/components/comment/CommentCard";
 import { EditCommentBox } from "#/components/EditCommentBox";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Image } from "#/components/heroui/image";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { CommentBox } from "#/components/index";
-import { Screen } from "#/components/Screen";
-import { Button, Image, Text } from "#/components/ui";
 import useGetComments from "#/hooks/comments/useGetComments";
 import { useFocusBackHandler } from "#/hooks/useBackHandler";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -66,7 +68,7 @@ const LiveComments = ({ route }) => {
       },
       initialData: () =>
         queryClient.getQueryData(
-          orpc.news.one.queryKey({ input: { slug: newsSlug, type: "video" } })
+          orpc.news.one.queryKey({ input: { slug: newsSlug, type: "video" } }),
         ),
       initialDataUpdatedAt: () => {
         const qKey = orpc.news.one.queryKey({
@@ -75,7 +77,7 @@ const LiveComments = ({ route }) => {
 
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    })
+    }),
   );
 
   const onEndReached = () => {
@@ -85,83 +87,70 @@ const LiveComments = ({ route }) => {
   };
 
   const renderItem: ListRenderItem<Comment> = useCallback(
-    ({ item }) => <CommentCard comment={item} ref={ref} />,
-    [data]
+    ({ item }) => <CommentCard comment={item} />,
+    [],
   );
 
   if (isError) {
     return (
       <Screen>
-        <Stack ai="center" flex={1} jc="center">
+        <View className="flex-1 items-center justify-center">
           <Text>Something went wrong</Text>
-        </Stack>
+        </View>
       </Screen>
     );
   }
 
   if (isLoading) {
-    return <Spinner color="$p300" />;
+    return <ActivityIndicator className="text-p-300" />;
   }
 
   const allPages = data?.pages.flatMap((page) => page?.docs) ?? [];
   const { url, blurhash } = getImageData(news.data?.image);
 
   return (
-    <Screen
-      // keyboardOffset={200}
-      preset="fixed"
-      safeAreaEdges={["top", "bottom"]}
-    >
-      <KeyboardAvoidingView
-        behavior="padding"
-        keyboardVerticalOffset={50}
-        style={{ flex: 1 }}
-      >
+    <Screen preset="fixed" safeAreaEdges={["top", "bottom"]}>
+      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={50} style={{ flex: 1 }}>
         <FlashList
           contentContainerStyle={{ paddingBottom: 60, paddingTop: 0 }}
           data={allPages}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <YStack ai="center" flex={1} jc="center">
-              <Paragraph>No comments yet</Paragraph>
-            </YStack>
+            <View className="flex-1 items-center justify-center">
+              <Text>No comments yet</Text>
+            </View>
           }
           ListFooterComponent={
-            isFetchingNextPage ? <Spinner color="$p300" /> : null
+            isFetchingNextPage ? <ActivityIndicator className="text-p-300" /> : null
           }
           ListHeaderComponent={
-            <YStack gap="$5" mb="$6">
-              <XStack ai="center" px="$2">
-                <Button ghost onPress={() => navigation.goBack()}>
-                  <Button.Icon color="black">
-                    <CaretDown size={24} />
-                  </Button.Icon>
+            <View className="mb-6 gap-5">
+              <View className="flex-row items-center px-2">
+                <Button onPress={() => navigation.goBack()} variant="ghost">
+                  <Icon className="text-black" name={CaretDownIcon} size={24} />
                 </Button>
                 <Image
-                  borderRadius={10}
+                  className="min-h-[60px] w-[60px] rounded-lg"
                   contentFit="cover"
-                  minHeight={60}
-                  placeholder={{
-                    blurhash,
-                  }}
+                  placeholder={{ blurhash }}
                   source={url}
-                  w={60}
                 />
-                <Stack flex={1} px="$2.5">
-                  <Paragraph numberOfLines={3}>{news.data?.title}</Paragraph>
-                </Stack>
-              </XStack>
+                <View className="flex-1 px-2.5">
+                  <Text className="text-sm" numberOfLines={3}>
+                    {news.data?.title}
+                  </Text>
+                </View>
+              </View>
 
-              <H3 fontWeight="400" pl="$4">
+              <Text className="pl-4 font-normal text-lg">
                 Comments ({news.data?.totalComments ?? 0})
-              </H3>
-            </YStack>
+              </Text>
+            </View>
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           onRefresh={refetchByUser}
           refreshing={isRefetchingByUser}
-          // ItemSeparatorComponent={() => <Separator bw={10} boc="transparent" />}
           renderItem={renderItem}
           showsVerticalScrollIndicator={false}
         />

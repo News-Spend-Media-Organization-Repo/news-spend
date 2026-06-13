@@ -1,9 +1,10 @@
 import type { Comment } from "@news-spend-media/payload/types";
 import React from "react";
-import { Button, Stack } from "tamagui";
-import { DotsThreeVertical } from "tamagui-phosphor";
+import { View } from "react-native";
+import { DotsThreeVertical } from "phosphor-react-native";
 import { useSnapshot } from "valtio";
 
+import { Icon } from "#/components/heroui/icon";
 import PostReportSheet from "#/components/sheets/PostReportSheet";
 import {
   DropdownMenuContent,
@@ -39,14 +40,15 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
   // Check if the time difference is less than 15 minutes (900,000 milliseconds)
   const isLessThan15Minutes = timeDifference < 900_000;
 
-  const commentUser =
-    typeof comment.user === "object" ? comment.user.id : comment.user;
+  const commentUser = typeof comment.user === "object" ? comment.user.id : comment.user;
 
   return (
-    <Stack>
+    <View>
       <DropdownMenuRoot>
         <DropdownMenuTrigger>
-          <Button icon={<DotsThreeVertical size={24} />} unstyled />
+          <View className="p-1">
+            <Icon name={DotsThreeVertical} size={24} />
+          </View>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {auth.session?.user?.id === commentUser && (
@@ -62,10 +64,7 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
             </DropdownMenuGroup>
           )}
           {auth.session?.user?.id !== commentUser && (
-            <DropdownMenuItem
-              key="report"
-              onSelect={() => setShowReportSheet(true)}
-            >
+            <DropdownMenuItem key="report" onSelect={() => setShowReportSheet(true)}>
               <DropdownMenuItemTitle>Report</DropdownMenuItemTitle>
             </DropdownMenuItem>
           )}
@@ -78,7 +77,7 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
         postId={comment.id}
         reportType="comment"
       />
-    </Stack>
+    </View>
   );
 }
 

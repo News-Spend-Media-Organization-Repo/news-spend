@@ -1,19 +1,16 @@
 import { LegendList } from "@legendapp/list/react-native";
-import type { News } from "@news-spend-media/payload/types";
+import type { FeedItem } from "@news-spend-media/api/router/news/content-builders";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { memo, useCallback, useMemo } from "react";
-import { RefreshControl } from "react-native";
-import { Spinner, Stack, useTheme } from "tamagui";
-
+import { ActivityIndicator, RefreshControl } from "react-native";
+import { Screen } from "#/components/heroui/screen";
 import LiveListHeader from "#/components/News/LiveListHeader";
 import LiveListSkeleton from "#/components/News/LiveListSkeleton";
-import { Screen } from "#/components/Screen";
 import VideoNewsItem from "#/components/videoNews/VideoNewsItem";
 import { useAllNews } from "#/hooks/news";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 
 function LiveHome() {
-  const theme = useTheme();
   const tabBarHeight = useBottomTabBarHeight();
   const { data, isPending, refetch, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useAllNews({
@@ -21,16 +18,18 @@ function LiveHome() {
     });
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
-  const renderItem = useCallback(
-    ({ item }: { item: News }) => <VideoNewsItem videoNews={item} />,
-    [],
-  );
+  const renderItem = useCallback(({ item }: { item: FeedItem }) => {
+    if (item.type !== "article" && item.type !== "video") {
+      return null;
+    }
+    return <VideoNewsItem videoNews={item} />;
+  }, []);
 
   const allPages = useMemo(() => data?.pages.flatMap((page) => page?.docs) ?? [], [data]);
 
-  const renderHeader = useCallback(() => <LiveListHeader news={allPages[0]} />, [allPages]);
+  const _renderHeader = useCallback(() => <LiveListHeader news={allPages[0]} />, [allPages]);
 
-  const keyExtractor = (item: News) => item.id;
+  const keyExtractor = (item: FeedItem) => item.id;
 
   const videoNews = useMemo(() => {
     if (!allPages.length) {
@@ -53,17 +52,17 @@ function LiveHome() {
   }
 
   return (
-    <Screen px="$1.5">
+    <Screen contentContainerClassName="px-2" systemBarStyle="light">
       <LegendList
         contentContainerStyle={{
-          paddingBottom: tabBarHeight / 2,
+          paddingBottom: tabBarHeight + 20,
           paddingTop: 15,
+          gap: 28,
         }}
         data={videoNews}
         estimatedItemSize={283}
-        ItemSeparatorComponent={() => <Stack h="$1.5" />}
         keyExtractor={keyExtractor}
-        ListFooterComponent={isFetchingNextPage ? <Spinner /> : null}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
         // ListHeaderComponent={renderHeader}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
@@ -71,9 +70,6 @@ function LiveHome() {
           <RefreshControl onRefresh={refetchByUser} refreshing={isRefetchingByUser} />
         }
         renderItem={renderItem}
-        scrollEnabled={!isPending}
-        showsVerticalScrollIndicator={false}
-        suggestEstimatedItemSize
       />
     </Screen>
   );

@@ -4,6 +4,7 @@ import type { News, PartnerContent } from "@news-spend-media/payload/types";
 
 export type RelatedNewsItem = {
   _type: "relatedNews";
+  type: "relatedNews";
   id: string;
   data: (News | PartnerContent | (PartnerContent & { _type: string }))[];
 };
@@ -37,27 +38,17 @@ export type InHouseAdItem = {
 };
 
 export type AdItem = GoogleAdItem | InHouseAdItem;
-export type FeedItem =
-  | News
-  | RelatedNewsItem
-  | PromotionMediaItem
-  | RewardTaskItem
-  | AdItem;
+export type FeedItem = News | RelatedNewsItem | PromotionMediaItem | RewardTaskItem | AdItem;
 
 /**
  * Builds a related news section with optional reward task insertion
  */
-export function buildRelatedNews(
-  docs: News[],
-  randomTaskItem?: PartnerContent
-): RelatedNewsItem {
+export function buildRelatedNews(docs: News[], randomTaskItem?: PartnerContent): RelatedNewsItem {
   // console.log("buildRelatedNews called", docs);
 
-  let shuffledDocs: (
-    | News
-    | PartnerContent
-    | (PartnerContent & { _type: string })
-  )[] = docs.sort(() => Math.random() - 0.5);
+  let shuffledDocs: (News | PartnerContent | (PartnerContent & { _type: string }))[] = docs.sort(
+    () => Math.random() - 0.5,
+  );
 
   if (randomTaskItem) {
     // Insert randomTaskItem at a random position in the array

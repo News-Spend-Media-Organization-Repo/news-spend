@@ -1,23 +1,23 @@
 import { useNavigation } from "@react-navigation/native";
 import { FlashList } from "@shopify/flash-list";
-import { ArrowLeft } from "@tamagui/lucide-icons";
 import {
   type InfiniteData,
   useInfiniteQuery,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { ArrowLeftIcon } from "phosphor-react-native";
 import { useEffect, useRef } from "react";
-import type { TextInput } from "react-native";
+import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { Paragraph, Spinner, Stack, YStack } from "tamagui";
-
+import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
 import Reply from "#/components/comment/Reply";
-import { CommentBox } from "#/components/CommentBox";
 import { EditCommentBox } from "#/components/EditCommentBox";
-import { Screen } from "#/components/Screen";
-import { Button, Text } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 
@@ -48,13 +48,11 @@ function LiveCommentReply({ route }) {
         // const comments = utils.comments.all.getInfiniteData({
         //   newsId: rest.newsId,
         // });
-        const comments = queryClient.getQueryData<
-          InfiniteData<RouterOutputs["comments"]["all"]>
-        >(
+        const comments = queryClient.getQueryData<InfiniteData<RouterOutputs["comments"]["all"]>>(
           orpc.comments.all.infiniteKey({
             input: () => ({ newsId: rest.newsId }),
             initialPageParam: undefined,
-          })
+          }),
         );
         const comment = comments?.pages
           .flatMap((page) => page.docs)
@@ -68,7 +66,7 @@ function LiveCommentReply({ route }) {
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    })
+    }),
   );
 
   const replies = useInfiniteQuery(
@@ -82,18 +80,16 @@ function LiveCommentReply({ route }) {
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
       gcTime: 0,
-    })
+    }),
   );
-  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
-    replies.refetch
-  );
+  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(replies.refetch);
 
   if (isError) {
     return (
       <Screen>
-        <Stack flex={1} mt={10} px={10}>
-          <Paragraph textAlign="center">Something went wrong</Paragraph>
-        </Stack>
+        <View className="mt-2.5 flex-1 px-2.5">
+          <Text className="text-center">Something went wrong</Text>
+        </View>
       </Screen>
     );
   }
@@ -105,60 +101,46 @@ function LiveCommentReply({ route }) {
   };
 
   if (replies.isLoading) {
-    return <Spinner color="$p300" />;
+    return <ActivityIndicator className="text-p-300" />;
   }
 
   const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
 
   return (
     <Screen safeAreaEdges={["bottom", "top"]}>
-      <KeyboardAvoidingView
-        behavior="padding"
-        keyboardVerticalOffset={50}
-        style={{ flex: 1 }}
-      >
-        <Stack flex={1} px={10}>
+      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={50} style={{ flex: 1 }}>
+        <View className="flex-1 px-2.5">
           <Button
-            ai="center"
-            gap="$2"
-            ghost
-            h="auto"
-            jc="flex-start"
+            className="h-auto flex-row items-center justify-start gap-2 p-0"
             onPress={() => navigation.goBack()}
-            p="$0"
+            variant="ghost"
           >
-            <Button.Icon color="black">
-              <ArrowLeft size={30} />
-            </Button.Icon>
-            <Button.Text>
-              <Text fos="$5">
-                {data?.totalReplies}
-                {(data?.totalReplies ?? 0) > 1 ? " Replies" : " Reply"}
-              </Text>
-            </Button.Text>
+            <Icon className="text-black" name={ArrowLeftIcon} size={30} />
+            <Button.Label className="text-[15px]">
+              {data?.totalReplies}
+              {(data?.totalReplies ?? 0) > 1 ? " Replies" : " Reply"}
+            </Button.Label>
           </Button>
           <FlashList
             contentContainerStyle={{ paddingBottom: 50 }}
             data={allPages}
             keyExtractor={(item) => (typeof item === "string" ? item : item.id)}
             ListEmptyComponent={
-              <YStack ai="center" flex={1} jc="center">
-                <Paragraph>No replies yet</Paragraph>
-              </YStack>
+              <View className="flex-1 items-center justify-center">
+                <Text>No replies yet</Text>
+              </View>
             }
-            ListFooterComponent={
-              replies.isFetchingNextPage ? <Spinner /> : null
-            }
-            ListHeaderComponent={<CommentCard comment={data} ref={ref} />}
+            ListFooterComponent={replies.isFetchingNextPage ? <ActivityIndicator /> : null}
+            ListHeaderComponent={<CommentCard comment={data} />}
             ListHeaderComponentStyle={{ marginVertical: 15 }}
             onEndReached={onEndReached}
             onEndReachedThreshold={0.5}
             onRefresh={refetchByUser}
             refreshing={isRefetchingByUser && !replies.isFetchingNextPage}
-            renderItem={({ item }) => <Reply comment={item} ref={ref} />}
+            renderItem={({ item }) => <Reply comment={item} />}
             showsVerticalScrollIndicator={false}
           />
-        </Stack>
+        </View>
         <CommentBox
           inputRef={ref}
           newsId={typeof data?.news === "string" ? data?.news : data?.news?.id}
