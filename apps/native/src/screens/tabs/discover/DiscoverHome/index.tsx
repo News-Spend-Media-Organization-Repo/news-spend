@@ -1,28 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
-import { Gem, PlayCircle } from "@tamagui/lucide-icons";
+import { PlayCircleIcon, SketchLogoIcon } from "phosphor-react-native";
 import { useState } from "react";
-import { useWindowDimensions } from "react-native";
-import {
-  SceneMap,
-  TabBar,
-  TabBarIndicator,
-  TabBarItem,
-  TabView,
-} from "react-native-tab-view";
-import { useTheme, XStack } from "tamagui";
-
-import {
-  AllTab,
-  AppTab,
-  BooksTab,
-  GamesTab,
-  MusicTab,
-  SurveyTab,
-} from "#/components/discover";
+import { useWindowDimensions, View } from "react-native";
+import { SceneMap, TabBar, TabBarIndicator, TabBarItem, TabView } from "react-native-tab-view";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
 import { useConnectBrand } from "#/hooks/discover/useConnectBrand";
+import { AllTab, AppTab, BooksTab, GamesTab, MusicTab, SurveyTab } from "./components";
 
 const renderScene = SceneMap({
   all: AllTab,
@@ -34,7 +19,6 @@ const renderScene = SceneMap({
 });
 
 function DiscoverHome() {
-  const theme = useTheme();
   const navigation = useNavigation("DiscoverHome");
   const layout = useWindowDimensions();
   const [index, setIndex] = useState(0);
@@ -50,40 +34,27 @@ function DiscoverHome() {
   const { onOpen, onCountdownComplete } = useConnectBrand();
 
   return (
-    <Screen contentContainerStyle={{ gap: 16 }} pt="$2">
-      <XStack gap="$3" px="$2">
-        <PartnerAdDialog
-          asChild
-          onCountdownComplete={onCountdownComplete}
-          onOpen={onOpen}
-        >
-          <Button flex={1} h="auto" py="$4">
-            <Button.Icon color="white">
-              <Gem />
-            </Button.Icon>
-            <Button.Text>Connect Brands</Button.Text>
+    <Screen contentContainerClassName="gap-4 pt-2" systemBarStyle="light">
+      <View className="flex-row gap-3 px-2">
+        <PartnerAdDialog asChild onCountdownComplete={onCountdownComplete} onOpen={onOpen}>
+          <Button className="flex-1">
+            <SketchLogoIcon color="white" size={20} weight="bold" />
+            <Button.Label>Connect Brands</Button.Label>
           </Button>
         </PartnerAdDialog>
 
-        <Button
-          flex={1}
-          h="auto"
-          onPress={() => navigation.navigate("PlayLottery")}
-          py="$4"
-        >
-          <Button.Icon color="white">
-            <PlayCircle />
-          </Button.Icon>
-          <Button.Text>Play Lottery</Button.Text>
+        <Button className="flex-1" onPress={() => navigation.navigate("PlayLottery")}>
+          <PlayCircleIcon color="white" size={20} weight="bold" />
+          <Button.Label>Play Lottery</Button.Label>
         </Button>
-      </XStack>
+      </View>
 
       <TabView
         commonOptions={{
           labelStyle: {
-            color: theme.s50.val,
+            color: "#ffffff",
             fontSize: 14,
-            fontFamily: "Inter-SemiBold",
+            // fontFamily: "Inter-Light",
             textTransform: "capitalize",
           },
           sceneStyle: { backgroundColor: "white" },
@@ -98,19 +69,16 @@ function DiscoverHome() {
             {...props}
             bounces
             inactiveColor="gray"
-            indicatorStyle={{ backgroundColor: theme.s50.val }}
+            indicatorStyle={{ backgroundColor: "#ffffff" }}
             pressColor="transparent"
             renderIndicator={(indicatorProps) => {
               const width = indicatorProps.getTabWidth(index) - 15;
               return <TabBarIndicator {...indicatorProps} width={width} />;
             }}
             renderTabBarItem={({ key, ...props }) => (
-              <TabBarItem
-                {...props}
-                style={{ minHeight: 0, paddingVertical: 0 }}
-              />
+              <TabBarItem {...props} style={{ minHeight: 0, paddingVertical: 0 }} />
             )}
-            style={{ backgroundColor: theme.p500.val }}
+            style={{ backgroundColor: "#00223d" }}
             tabStyle={{ width: "auto", padding: 0 }}
           />
         )}

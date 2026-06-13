@@ -1,20 +1,12 @@
-import {
-  LegendList,
-  type LegendListRenderItemProps,
-} from "@legendapp/list/react-native";
+import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Image } from "expo-image";
+import { cn, PressableFeedback } from "heroui-native";
 import { memo, useCallback, useId, useMemo } from "react";
-import { Pressable } from "react-native";
-import {
-  Paragraph,
-  Spinner,
-  Stack,
-  Text as TamaguiText,
-  XStack,
-} from "tamagui";
+import { ActivityIndicator, View } from "react-native";
 
-import { Image } from "#/components/ui";
+import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
@@ -37,20 +29,11 @@ function BooksTabComponent() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  const {
-    data,
-    isPending,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    refetch,
-  } = useInfiniteQuery(queryOptions);
+  const { data, isPending, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
+    useInfiniteQuery(queryOptions);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-  const flatData = useMemo(
-    () => data?.pages.flatMap((page) => page.docs) ?? [],
-    [data]
-  );
+  const flatData = useMemo(() => data?.pages.flatMap((page) => page.docs) ?? [], [data]);
 
   const renderItem = useCallback(
     (props: LegendListRenderItemProps<PartnerContent>) => {
@@ -59,43 +42,42 @@ function BooksTabComponent() {
       const loading = isLoading(item.id);
 
       return (
-        <Pressable onPress={() => handleClick(item)}>
-          <Stack br="$2" mb="$2" opacity={loading ? 0.7 : 1} ov="hidden">
-            <Image
-              contentFit="cover"
-              minHeight={220}
-              placeholder={{ blurhash }}
-              source={{ uri: url ?? "" }}
-              w="100%"
-            />
-            <XStack ai="center" gap="$2" mt="$2">
-              <TamaguiText
-                color="$gray.50"
-                flex={1}
-                fontStyle="italic"
-                fow="600"
-                numberOfLines={2}
-              >
-                {item.condition}
-              </TamaguiText>
-              {loading ? <Spinner color="#666" size="small" /> : null}
-            </XStack>
-          </Stack>
-        </Pressable>
+        <PressableFeedback onPress={() => handleClick(item)}>
+          <PressableFeedback.Scale>
+            <View className={cn("mb-2 overflow-hidden rounded-lg", loading && "opacity-70")}>
+              <Image
+                contentFit="cover"
+                placeholder={{ blurhash }}
+                source={{ uri: url ?? "" }}
+                style={{ minHeight: 220, width: "100%" }}
+              />
+              <View className="mt-2 flex-row items-center gap-2">
+                <Text
+                  className="flex-1 font-semibold text-gray-500 text-sm italic"
+                  numberOfLines={2}
+                >
+                  {item.condition}
+                </Text>
+                {loading ? <ActivityIndicator color="#666" size="small" /> : null}
+              </View>
+            </View>
+          </PressableFeedback.Scale>
+          <PressableFeedback.Ripple />
+        </PressableFeedback>
       );
     },
-    [handleClick, isLoading]
+    [handleClick, isLoading],
   );
 
   const keyExtractor = useCallback((item: PartnerContent) => item.id, []);
 
   const emptyList = useCallback(
     () => (
-      <Stack ai="center" h="100%" jc="center">
-        <Paragraph fos="$5">No books found</Paragraph>
-      </Stack>
+      <View className="flex-1 items-center justify-center">
+        <Text className="text-base">No books found</Text>
+      </View>
     ),
-    []
+    [],
   );
 
   const onEndReached = useCallback(() => {
@@ -107,11 +89,11 @@ function BooksTabComponent() {
   const footer = useCallback(
     () =>
       hasNextPage ? (
-        <Stack ai="center" py="$4">
-          <Spinner />
-        </Stack>
+        <View className="items-center py-4">
+          <ActivityIndicator />
+        </View>
       ) : null,
-    [hasNextPage]
+    [hasNextPage],
   );
 
   const onRefresh = useCallback(() => {
@@ -119,7 +101,7 @@ function BooksTabComponent() {
   }, [refetchByUser]);
 
   if (isPending) {
-    return <Spinner />;
+    return <ActivityIndicator />;
   }
 
   return (

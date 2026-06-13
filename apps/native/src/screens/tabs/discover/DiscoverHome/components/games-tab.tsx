@@ -1,11 +1,12 @@
+import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
-import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { Paragraph, Stack, Text, XStack } from "tamagui";
+import { View } from "react-native";
 import { useSnapshot } from "valtio";
 
-import { Image } from "#/components/ui";
+import { GameItem } from "./game-item";
+import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { authState } from "#/state/auth";
 
@@ -42,31 +43,27 @@ export function GamesTab() {
   );
 
   const renderItem = useCallback(
-    ({ item }) => (
-      <XStack ai="flex-start" gap="$2.5" onPress={() => onItemClick(item.url, item.title)} p="$3">
-        <Image br="$3" height={80} source={{ uri: item.image }} width={80} />
-        <Stack flex={1} gap="$2">
-          <Paragraph fos="$5" fow="600" numberOfLines={2}>
-            {item.title}
-          </Paragraph>
-          <Paragraph color="$gray.50" fos="$4" numberOfLines={2}>
-            {item.description}
-          </Paragraph>
-        </Stack>
-      </XStack>
+    ({ item }: { item: any }) => (
+      <GameItem item={item} onPress={() => onItemClick(item.url, item.title)} />
     ),
     [onItemClick],
   );
 
   return (
-    <FlashList
+    <LegendList
       contentContainerStyle={{
         paddingBottom: 25,
       }}
       data={data}
       estimatedItemSize={120}
-      keyExtractor={(item) => item.id}
-      ListEmptyComponent={isPending ? <Text>Loading...</Text> : null}
+      keyExtractor={(item: any) => item.id}
+      ListEmptyComponent={
+        isPending ? (
+          <View className="flex-1 items-center justify-center">
+            <Text>Loading...</Text>
+          </View>
+        ) : null
+      }
       onRefresh={refetchByUser}
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
