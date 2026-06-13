@@ -159,7 +159,7 @@ function SettingsHome() {
       >
         <ListHeader onPress={handlePress} />
         <View className="p-4">
-          <Text className="text-center font-medium text-md text-muted-foreground">
+          <Text className="text-center font-medium text-md text-muted">
             Version {appVersion} ({buildNumber})
           </Text>
         </View>

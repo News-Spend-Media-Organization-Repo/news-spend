@@ -5,9 +5,11 @@ import { CaretDownIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import Animated, { Easing, FadeInDown, FadeOutDown } from "react-native-reanimated";
+import { useSnapshot } from "valtio";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
+import { hideLiveBanner, liveBannerState, showLiveBanner } from "#/state/route-state";
 
 type LiveBannerProps = {
   currentTabName: string;
@@ -15,7 +17,7 @@ type LiveBannerProps = {
 };
 
 function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
-  const [isVisible, setIsVisible] = useState(true);
+  const { isHidden } = useSnapshot(liveBannerState);
   const [index, setIndex] = useState(0);
   const prevIdRef = useRef<string>(null);
 
@@ -23,7 +25,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     orpc.news.liveVideos.queryOptions({
       meta: { persist: false },
       select: (news) => news?.docs,
-      enabled: isVisible,
+      enabled: !isHidden,
     }),
   );
 
@@ -35,14 +37,14 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
   );
 
   useEffect(() => {
-    if (liveQuery.data?.id !== prevIdRef.current && isVisible) {
+    if (liveQuery.data?.id !== prevIdRef.current && !isHidden) {
       refetch();
       prevIdRef.current = liveQuery.data?.id ?? null;
     }
-  }, [liveQuery.data, isVisible, refetch]);
+  }, [liveQuery.data, isHidden, refetch]);
 
   useEffect(() => {
-    if (!isVisible || (data?.length ?? 0) <= 1) {
+    if (isHidden || (data?.length ?? 0) <= 1) {
       return;
     }
 
@@ -54,13 +56,20 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [data, index, isVisible]);
+  }, [data, index, isHidden]);
 
   useEffect(() => {
     if (data && index >= data.length) {
       setIndex(0);
     }
   }, [data, index]);
+
+  // Reset hide state when there's no live data
+  useEffect(() => {
+    if (!isLoading && (!data || data.length === 0)) {
+      showLiveBanner();
+    }
+  }, [isLoading, data]);
 
   const onLivePress = useCallback(() => {
     if (!data) {
@@ -76,7 +85,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     });
   }, [data, navigation, index, currentTabName]);
 
-  if (!isVisible || isLoading || !data || data.length === 0) {
+  if (isHidden || isLoading || !data || data.length === 0) {
     return null;
   }
 
@@ -96,7 +105,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
         </PressableFeedback>
         <PressableFeedback
           className="flex-row items-center justify-center gap-2 py-3"
-          onPress={() => setIsVisible((prev) => !prev)}
+          onPress={hideLiveBanner}
         >
           <Text className="text-background">HIDE</Text>
           <Icon color="#fff" name={CaretDownIcon} size={18} />
