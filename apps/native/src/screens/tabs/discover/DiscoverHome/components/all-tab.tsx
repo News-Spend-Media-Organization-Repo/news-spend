@@ -6,7 +6,7 @@ import {
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useIsFocused } from "@react-navigation/native";
 import { type QueryObserverResult, useQueries } from "@tanstack/react-query";
-import { Image } from "expo-image";
+import { Image } from "#/components/heroui/image";
 import { cn } from "heroui-native";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";

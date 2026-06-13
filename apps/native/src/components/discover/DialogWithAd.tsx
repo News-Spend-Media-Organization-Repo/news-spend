@@ -1,8 +1,9 @@
 import { useNavigation } from "@react-navigation/native";
-import { X } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Dialog } from "heroui-native";
+import { XIcon } from "phosphor-react-native";
 import { useEffect, useId, useRef, useState } from "react";
-import { Linking, Platform, Text as RNText, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Linking, Platform, useWindowDimensions, View } from "react-native";
 import {
   NativeAd,
   NativeAdEventType,
@@ -12,11 +13,12 @@ import {
   NativeMediaView,
 } from "react-native-google-mobile-ads";
 import { toast } from "sonner-native";
-import { AlertDialog, getTokens, Spinner, Stack, Text, Unspaced, XStack } from "tamagui";
 
-import { adUnits } from "#/lib/adUnits";
-import { Button, Image } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Image } from "#/components/heroui/image";
+import { Text } from "#/components/heroui/text";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { getCtaLabel } from "#/utils";
@@ -62,7 +64,9 @@ export function DialogWithAd({
   });
 
   useEffect(() => {
-    if (!open || hasAwardedRef.current) return;
+    if (!open || hasAwardedRef.current) {
+      return;
+    }
 
     hasAwardedRef.current = true;
 
@@ -136,140 +140,84 @@ export function DialogWithAd({
   };
 
   return (
-    <AlertDialog onOpenChange={onOpenChange} open={open}>
-      <AlertDialog.Portal>
-        <AlertDialog.Overlay
-          animation="quick"
-          bg="rgba(0,0,0,0.5)"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-          key="overlay"
-          opacity={0.8}
-        />
-        <AlertDialog.Content
-          // bordered
-          animation={[
-            "quick",
-            {
-              opacity: {
-                overshootClamping: true,
-              },
-            },
-          ]}
-          br="$0"
-          elevate
-          enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-          exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-          key="connectBrand-ad"
-          // x={0}
-          minHeight="$20"
-          opacity={1}
-          p="$0"
-          pb="$8"
-          // y={0}
-          // fullscreen
-          px="$2"
-          scale={1}
-          w={width - 40}
+    <Dialog isOpen={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="bg-black/50" isCloseOnPress={false} />
+        <Dialog.Content
+          className="rounded-none p-0 px-2 pb-8"
+          isSwipeable={false}
+          style={{ width: width - 40, minHeight: 80 }}
         >
-          <Stack gap="$4">
+          <View className="gap-4">
             {randomNumber < 0.4 ? (
               <>
-                <Text
-                  alignSelf="flex-start"
-                  boc="$gray.50"
-                  br="$1"
-                  bw={1}
-                  color="$gray.50"
-                  mt="$2"
-                  px="$0.5"
-                >
+                <Text className="mt-2 self-start rounded-sm border border-gray-50 px-0.5 text-gray-50">
                   AD
                 </Text>
 
-                <XStack ai="center" gap="$2" pl="$3">
+                <View className="flex-row items-center gap-2 pl-3">
                   <Image
+                    className="size-7.5"
                     contentFit="cover"
-                    height={30}
-                    placeholder={{
-                      blurhash,
-                    }}
+                    placeholder={{ blurhash }}
                     source={url}
-                    width={30}
                   />
-                  <Text fontWeight="600" fos="$5">
-                    {ad.data?.title}
-                  </Text>
-                </XStack>
+                  <Text className="font-semibold text-base">{ad.data?.title}</Text>
+                </View>
 
-                <Stack ai="center">
+                <View className="items-center">
                   <Image
+                    className="size-50"
                     contentFit="cover"
-                    height={200}
-                    placeholder={{
-                      blurhash,
-                    }}
+                    placeholder={{ blurhash }}
                     source={url}
-                    width={200}
                   />
-                </Stack>
+                </View>
 
-                <XStack gap="$4">
-                  <Text color="$gray.50" flex={2} fontSize={16} numberOfLines={2}>
+                <View className="flex-row gap-4">
+                  <Text className="flex-2 text-base text-gray-50" numberOfLines={2}>
                     {ad.data?.condition}
                   </Text>
 
-                  <Button
-                    // minWidth="$11"
-                    borderRadius="$5"
-                    flex={1}
-                    h="auto"
-                    onPress={handlePress}
-                  >
-                    <Button.Text>Visit</Button.Text>
+                  <Button className="h-auto flex-1 rounded-lg" onPress={handlePress}>
+                    <Button.Label>Visit</Button.Label>
                   </Button>
-                </XStack>
+                </View>
               </>
             ) : (
               <NativeAdMob preloadedAd={preloadedNativeAd} />
             )}
-            <Unspaced>
-              <Stack ai="center" gap="$2.5" mt="$2">
-                {randomNumber < 0.4 ? (
-                  <Text fos="$3" ta="center">
-                    {getCtaLabel(ad.data?.cta)} and Get{" "}
-                    <Text color="$s500">{ad.data?.points ?? 0}</Text> points
-                  </Text>
-                ) : null}
 
-                {lotteryTicketMutation.isPending ? (
-                  <Spinner als="center" />
-                ) : (
-                  <Text fos="$4" ta="center">
-                    {serverError ? (
-                      serverError
-                    ) : (
-                      <>
-                        You purchased {purchasedTickets ?? 0} ticket
-                        {purchasedTickets === 1 ? "" : "s"}.{" "}
-                        <Text color="$s500">{(purchasedTickets ?? 0) * 50} points</Text> deducted
-                        from your account.
-                      </>
-                    )}
-                  </Text>
-                )}
-              </Stack>
-            </Unspaced>
-          </Stack>
+            <View className="mt-2 items-center gap-2.5">
+              {randomNumber < 0.4 ? (
+                <Text className="text-center text-sm">
+                  {getCtaLabel(ad.data?.cta)} and Get{" "}
+                  <Text className="text-s-500">{ad.data?.points ?? 0}</Text> points
+                </Text>
+              ) : null}
+
+              {lotteryTicketMutation.isPending ? (
+                <ActivityIndicator className="self-center" />
+              ) : (
+                <Text className="text-center text-sm">
+                  {serverError ? (
+                    serverError
+                  ) : (
+                    <>
+                      You purchased {purchasedTickets ?? 0} ticket
+                      {purchasedTickets === 1 ? "" : "s"}.{" "}
+                      <Text className="text-s-500">{(purchasedTickets ?? 0) * 50} points</Text>{" "}
+                      deducted from your account.
+                    </>
+                  )}
+                </Text>
+              )}
+            </View>
+          </View>
 
           <Button
-            als="center"
-            boc="$gray.50"
-            borderWidth={1.5}
-            bottom="$-7"
-            br="$9"
-            disabled={lotteryTicketMutation.isPending}
-            h={35}
+            className="absolute -bottom-7 z-10 h-9 w-9 items-center justify-center self-center rounded-full border border-gray-50 bg-white"
+            isDisabled={lotteryTicketMutation.isPending}
             onPress={() => {
               onOpenChange(false);
               if (!serverError) {
@@ -279,24 +227,19 @@ export function DialogWithAd({
                 });
               }
             }}
-            position="absolute"
-            unstyled
-            w={35}
+            variant="ghost"
           >
-            <Button.Icon color="$gray.50">
-              <X />
-            </Button.Icon>
+            <XIcon color="#9CA3AF" size={20} weight="bold" />
           </Button>
-        </AlertDialog.Content>
-      </AlertDialog.Portal>
-    </AlertDialog>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
   );
 }
 
 const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
   const [error, setError] = useState(false);
   const [nativeAd, setNativeAd] = useState<NativeAd | undefined>(preloadedAd ?? undefined);
-  const tokens = getTokens();
 
   useEffect(() => {
     if (preloadedAd) {
@@ -314,7 +257,9 @@ const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
   }, [preloadedAd]);
 
   useEffect(() => {
-    if (!nativeAd || nativeAd === preloadedAd) return;
+    if (!nativeAd || nativeAd === preloadedAd) {
+      return;
+    }
     const listener = nativeAd.addAdEventListener(NativeAdEventType.CLICKED, () => {
       console.log("Native ad clicked");
     });
@@ -324,76 +269,50 @@ const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
   }, [nativeAd, preloadedAd]);
 
   if (!nativeAd) {
-    return <Stack py="$3">{error ? <Text>Failed to load ad</Text> : null}</Stack>;
+    return <View className="py-3">{error ? <Text>Failed to load ad</Text> : null}</View>;
   }
 
   return (
     <NativeAdView nativeAd={nativeAd}>
-      <Stack gap="$4">
-        <Stack my="$2">
-          <Text
-            alignSelf="flex-start"
-            boc="$gray.50"
-            br="$1"
-            bw={1}
-            color="$gray.50"
-            mt="$2"
-            px="$0.5"
-          >
+      <View className="gap-4">
+        <View className="my-2">
+          <Text className="mt-2 self-start rounded-sm border border-gray-50 px-0.5 text-gray-50">
             AD
           </Text>
-        </Stack>
+        </View>
 
-        <XStack ai="center" gap="$2" pl="$3">
+        <View className="flex-row items-center gap-2 pl-3">
           {nativeAd.icon ? (
             <NativeAsset assetType={NativeAssetType.ICON}>
-              <Image
-                contentFit="cover"
-                height={30}
-                source={{ uri: nativeAd.icon?.url }}
-                width={30}
-              />
+              <Image className="size-7.5" contentFit="cover" source={{ uri: nativeAd.icon?.url }} />
             </NativeAsset>
           ) : null}
 
           <NativeAsset assetType={NativeAssetType.HEADLINE}>
-            <Text fontWeight="600" fos="$5">
-              {nativeAd.headline}
-            </Text>
+            <Text className="font-semibold text-base">{nativeAd.headline}</Text>
           </NativeAsset>
-        </XStack>
+        </View>
 
         <NativeMediaView
           style={{
-            // minHeight: 200,
-            // width: "100%",
             paddingHorizontal: 16,
           }}
         />
 
-        <XStack gap="$4">
+        <View className="flex-row gap-4">
           <NativeAsset assetType={NativeAssetType.BODY}>
-            <Text color="$gray.50" flex={2} fontSize={16} numberOfLines={2}>
+            <Text className="flex-2 text-base text-gray-50" numberOfLines={2}>
               {nativeAd.body}
             </Text>
           </NativeAsset>
 
           <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
-            <RNText
-              style={{
-                color: "white",
-                fontFamily: "Inter-Medium",
-                backgroundColor: tokens.color.p300.val,
-                paddingHorizontal: 28,
-                paddingVertical: 14,
-                borderRadius: 15,
-              }}
-            >
-              {nativeAd.callToAction}
-            </RNText>
+            <Button size="sm">
+              <Button.Label>{nativeAd.callToAction}</Button.Label>
+            </Button>
           </NativeAsset>
-        </XStack>
-      </Stack>
+        </View>
+      </View>
     </NativeAdView>
   );
 };

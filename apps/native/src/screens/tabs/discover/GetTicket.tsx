@@ -1,31 +1,30 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { MinusCircle, PlusCircle } from "@tamagui/lucide-icons";
 import { useQuery } from "@tanstack/react-query";
 import { startOfWeek } from "date-fns";
-import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Card, PressableFeedback } from "heroui-native";
+import { MinusCircleIcon, PlusCircleIcon } from "phosphor-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, View } from "react-native";
 import { NativeAd } from "react-native-google-mobile-ads";
-import { Card, ScrollView, Stack, XStack } from "tamagui";
-import { CaretLeft } from "tamagui-phosphor";
 
-import { adUnits } from "#/lib/adUnits";
+import { ScreenHeader } from "#/components";
 import { DialogWithAd } from "#/components/discover/DialogWithAd";
-import { Screen } from "#/components/Screen";
-import { Button, Text } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 const GetTicket = () => {
   const navigation = useNavigation("GetTicket");
   const [value, setValue] = useState(0);
   const [open, setOpen] = useState(false);
   const [preloadedNativeAd, setPreloadedNativeAd] = useState<NativeAd | null>(null);
+  const decrementIntervalRef = useRef<NodeJS.Timeout>();
+  const incrementIntervalRef = useRef<NodeJS.Timeout>();
+
   const totalPoints = useQuery(orpc.activity.totalPoints.queryOptions());
   const { data: currentLottery } = useQuery(orpc.lottery.current.queryOptions());
-  const [decrementInterval, setDecrementInterval] = useState<NodeJS.Timeout>();
-  const [incrementInterval, setIncrementInterval] = useState<NodeJS.Timeout>();
-
-  const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
 
   // Preload native ad on mount
   useEffect(() => {
@@ -64,154 +63,110 @@ const GetTicket = () => {
   }
 
   return (
-    <Screen bg="$p300" contentContainerStyle={insets} gap="$4" systemBarStyle="light">
-      <XStack ai="center" gap="$2.5" px="$2">
-        <Button gap="$2" ghost h="auto" onPress={() => navigation.goBack()} p="$0" py="$2">
-          <Button.Icon color="#fff">
-            <CaretLeft />
-          </Button.Icon>
-          <Button.Text color="#fff" fos="$4">
-            Buy Lottery Tickets
-          </Button.Text>
-        </Button>
-        <Text color="#fff" ml="auto" onPress={() => navigation.navigate("LotteryRules")}>
-          Rules
-        </Text>
-      </XStack>
+    <Screen className="bg-p-300" systemBarStyle="light">
+      <ScreenHeader
+        className="bg-p-300"
+        right={
+          <Text className="text-white" onPress={() => navigation.navigate("LotteryRules")}>
+            Rules
+          </Text>
+        }
+        title="Buy Lottery Tickets"
+      />
 
-      <ScrollView gap="$5" px="$4">
-        <Stack gap="$4">
-          <Text color="$s50" fos="$7" lh="$7" ta="center">
+      <View className="gap-5 px-4">
+        <View className="gap-4">
+          <Text className="text-center text-s-50 text-xl">
             Win a Laptop, Phone, More points, and other household items
           </Text>
 
-          <Card bg="$s300" mx="$2" px="$6">
-            <Card.Header>
-              <Text color="$p400" ta="center">
+          <Card className="mx-2 rounded-xl bg-s-300 px-6">
+            <Card.Body className="p-0 pt-3">
+              <Text className="text-center text-p-400">
                 The {currentLottery?.name ?? startOfLotteryPeriod.toLocaleDateString().split("/")}{" "}
                 game
               </Text>
-            </Card.Header>
-            <XStack>
-              <XStack
-                ai="center"
-                als="center"
-                boc="$p400"
-                borderBottomLeftRadius="$10"
-                borderRightWidth="$0"
-                borderTopLeftRadius="$10"
-                borderWidth={1}
-                flex={1}
-                jc="center"
-                minHeight={50}
-              >
-                <Button
-                  disabled={value === 0}
+            </Card.Body>
+
+            {/* Counter + Go button */}
+            <View className="my-3 flex-row items-center">
+              <View className="flex min-h-12.5 flex-1 flex-row items-center justify-center rounded-l-full border border-p-400 border-r-0">
+                <PressableFeedback
+                  className="w-11 items-center justify-center"
+                  isDisabled={value === 0}
                   onLongPress={() => {
-                    const intervalId = setInterval(() => {
+                    const id = setInterval(() => {
                       setValue((v) => {
                         if (v <= 0) {
-                          clearInterval(intervalId);
+                          clearInterval(id);
                           return 0;
                         }
                         return v - 1;
                       });
                     }, 200);
-
-                    setDecrementInterval(intervalId);
+                    decrementIntervalRef.current = id;
                   }}
-                  onPress={() => setValue(value - 1)}
+                  onPress={() => setValue((v) => Math.max(0, v - 1))}
                   onPressOut={() => {
-                    clearInterval(decrementInterval);
+                    clearInterval(decrementIntervalRef.current);
                   }}
-                  style={{
-                    width: 46,
-                    // height: 50,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  unstyled
                 >
-                  <Button.Icon color="$p500" height={14} width={14}>
-                    <MinusCircle />
-                  </Button.Icon>
-                </Button>
+                  <MinusCircleIcon color="#1a1a2e" size={20} />
+                </PressableFeedback>
 
-                <XStack ai="center">
-                  <Text fontSize="$7" fontWeight="500" minWidth={34} px="$2" ta="center">
-                    {value}
-                  </Text>
-                  <Text color="$gray.50" fos={15}>
-                    Tickets
-                  </Text>
-                </XStack>
+                <View className="flex-row items-center">
+                  <Text className="min-w-8.5 px-2 text-center font-medium text-xl">{value}</Text>
+                  <Text className="text-gray-50 text-sm">Tickets</Text>
+                </View>
 
-                <Button
+                <PressableFeedback
+                  className="w-11 items-center justify-center"
+                  isDisabled={value >= 100}
                   onLongPress={() => {
-                    const intervalId = setInterval(() => {
+                    const id = setInterval(() => {
                       setValue((v) => {
                         if (v >= 100) {
-                          clearInterval(intervalId);
+                          clearInterval(id);
                           return 100;
                         }
                         return v + 1;
                       });
                     }, 200);
-
-                    setIncrementInterval(intervalId);
+                    incrementIntervalRef.current = id;
                   }}
-                  onPress={() => setValue(value + 1)}
+                  onPress={() => setValue((v) => Math.min(100, v + 1))}
                   onPressOut={() => {
-                    clearInterval(incrementInterval);
+                    clearInterval(incrementIntervalRef.current);
                   }}
-                  style={{
-                    width: 46,
-                    // height: 50,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  unstyled
                 >
-                  <Button.Icon color="$p500" height={14} width={14}>
-                    <PlusCircle />
-                  </Button.Icon>
-                </Button>
-              </XStack>
-              <Button
-                bblr="$0"
-                bbrr="$10"
-                blw={0}
-                boc="$p500"
-                borderBottomRightRadius="$10"
-                borderTopRightRadius="$10"
-                btlr="$0"
-                btrr="$10"
-                bw={1}
-                disabled={value <= 0 || totalPoints.isPending}
-                h={50}
-                onPress={onTicketPress}
-                w="$7"
-              >
-                <Button.Text>Go</Button.Text>
-              </Button>
-            </XStack>
+                  <PlusCircleIcon color="#1a1a2e" size={20} />
+                </PressableFeedback>
+              </View>
 
-            <Card.Footer my="$3">
-              <XStack flex={1} gap="$2" jc="center">
-                <Text color="$p400">
+              <Button
+                className="h-12.5 w-22 rounded-r-full rounded-l-none border border-p-400 border-l-0"
+                isDisabled={value <= 0 || totalPoints.isPending}
+                onPress={onTicketPress}
+              >
+                <Button.Label>Go</Button.Label>
+              </Button>
+            </View>
+
+            <Card.Footer className="p-0 pb-3">
+              <View className="flex flex-1 flex-row justify-center gap-2">
+                <Text className="text-p-400">
                   Required points: {value * (currentLottery?.ticketPrice ?? 50)} points
                 </Text>
-              </XStack>
+              </View>
             </Card.Footer>
           </Card>
-        </Stack>
+        </View>
 
-        <Text color="$p50" fos={15} mt="$2">
+        <Text className="mt-2 text-[15px] text-p-50">
           Tips: {"\n"}Buy 10 or more tickets and your win ratio increases to more than 50%.
         </Text>
-      </ScrollView>
+      </View>
+
       <DialogWithAd
         open={open}
         preloadedNativeAd={preloadedNativeAd}
@@ -221,4 +176,5 @@ const GetTicket = () => {
     </Screen>
   );
 };
+
 export default GetTicket;

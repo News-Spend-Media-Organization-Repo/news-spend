@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { Image } from "#/components/heroui/image";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { View } from "react-native";
 import { Text } from "#/components/heroui/text";

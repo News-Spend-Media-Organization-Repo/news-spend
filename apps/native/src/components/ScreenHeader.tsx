@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { PressableFeedback } from "heroui-native";
+import { cn, PressableFeedback } from "heroui-native";
 import { ArrowLeftIcon } from "phosphor-react-native";
 import type { ReactNode } from "react";
 import { View } from "react-native";
@@ -10,15 +10,19 @@ type ScreenHeaderProps = {
   title: string;
   left?: ReactNode;
   right?: ReactNode;
+  className?: string;
 };
 
-const ScreenHeader = ({ title, left, right }: ScreenHeaderProps) => {
+const ScreenHeader = ({ title, left, right, className }: ScreenHeaderProps) => {
   const navigation = useNavigation();
 
-  console.log(title);
-
   return (
-    <View className="relative w-full flex-row items-center justify-center bg-p-500 px-3 py-2 pt-safe-offset-1">
+    <View
+      className={cn(
+        "relative w-full flex-row items-center justify-center bg-p-500 px-3 py-2 pt-safe-offset-1",
+        className,
+      )}
+    >
       {/* Left Item */}
       <PressableFeedback
         className="min-w-10 items-center justify-center px-2"

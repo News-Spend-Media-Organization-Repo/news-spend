@@ -1,5 +1,5 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { Image } from "expo-image";
+import { Image } from "#/components/heroui/image";
 import { cn, PressableFeedback } from "heroui-native";
 import { ActivityIndicator, View } from "react-native";
 import { Text } from "#/components/heroui/text";
