@@ -34,7 +34,7 @@ function DiscoverHome() {
   const { onOpen, onCountdownComplete } = useConnectBrand();
 
   return (
-    <Screen contentContainerClassName="gap-4 pt-2" systemBarStyle="light">
+    <Screen contentContainerClassName="gap-4 pt-safe" systemBarStyle="light">
       <View className="flex-row gap-3 px-2">
         <PartnerAdDialog asChild onCountdownComplete={onCountdownComplete} onOpen={onOpen}>
           <Button className="flex-1">

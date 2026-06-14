@@ -1,9 +1,10 @@
 import type { Comment } from "@news-spend-media/payload/types";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { ArrowBendUpLeft, ClockIcon, HeartStraightIcon } from "phosphor-react-native";
 import { formatDistance } from "date-fns";
-import { memo, useMemo } from "react";
-import { View } from "react-native";
+import { Separator } from "heroui-native";
+import { ArrowBendUpLeftIcon, ClockIcon, HeartStraightIcon } from "phosphor-react-native";
+import { memo, type RefObject, useMemo } from "react";
+import { type TextInput, View } from "react-native";
 import { useSnapshot } from "valtio";
 
 import { Button } from "#/components/heroui/button";
@@ -13,20 +14,21 @@ import useLikeComment from "#/hooks/comments/useLikeComment";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
-import { setActiveComment } from "#/state/commentState";
+import { startReply } from "#/state/commentState";
+import { isRefObject } from "#/utils/comment-utils";
 import { randomColor } from "#/utils/index";
-
 import CommentOptionPopover from "./CommentOptionPopover";
 
 type CommentReplyProps = {
   comment: Comment;
+  inputRef?: RefObject<TextInput | null>;
   parentId?: string;
   replyingTo?: string;
   setReplyingTo?: (id: string) => void;
   setParentId?: (id: string) => void;
 };
 
-const Reply = memo(({ comment }: CommentReplyProps) => {
+const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
   const route = useRoute();
   const { commentId: parentCommentId, newsId } = route.params as {
     commentId?: string;
@@ -49,7 +51,12 @@ const Reply = memo(({ comment }: CommentReplyProps) => {
   ]);
 
   const onReply = () => {
-    setActiveComment(parentComment, comment);
+    startReply(comment, parentComment);
+    setTimeout(() => {
+      if (isRefObject(inputRef) && inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 50);
   };
 
   const onLike = () => {
@@ -58,42 +65,33 @@ const Reply = memo(({ comment }: CommentReplyProps) => {
         redirect: "CommentReply",
       });
     }
-
-    mutate({
-      commentId: comment.id,
-    });
+    mutate({ commentId: comment.id });
   };
 
+  const username = typeof comment.user === "object" ? comment.user.username : "Unknown";
+
   return (
-    <View className="ml-10 px-2.5">
+    <View className="ml-8 px-2.5">
       <View className="flex-row">
         <View className="flex-1 flex-row gap-2.5">
           <View
             className="h-8 w-8 items-center justify-center rounded-full"
             style={{ backgroundColor: avatarBg }}
           >
-            <Text className="text-[#fff] text-base">
-              {(typeof comment.user === "object" &&
-                comment.user.username.charAt(0).toUpperCase()) ||
-                "U"}
-            </Text>
+            <Text className="text-base text-white">{username.charAt(0).toUpperCase()}</Text>
           </View>
 
           <View className="flex-1 gap-2">
             <View className="flex-row items-center justify-between">
               <View className="gap-0">
-                <Text className="font-bold text-[#0A0909]" variant="subtitle">
-                  {((typeof comment.user === "object" &&
-                    comment.user.username.charAt(0).toUpperCase()) ||
-                    "U") +
-                    ((typeof comment.user === "object" && comment.user.username.slice(1)) ||
-                      "Unknown")}{" "}
+                <Text className="font-bold text-[#0A0909]" variant="caption">
+                  {username.charAt(0).toUpperCase() + username.slice(1)}{" "}
                   {(typeof comment.user !== "string" && comment.user?.id) === auth.user?.id &&
                     "(You)"}
                 </Text>
 
                 <View className="flex-row items-center gap-1">
-                  <Icon name={ClockIcon} size={16} className="text-[#737373]" />
+                  <Icon color="#737373" name={ClockIcon} size={14} />
                   <Text className="text-[#737373] text-sm">
                     {formatDistance(new Date(comment.createdAt), new Date(), {
                       addSuffix: true,
@@ -106,11 +104,11 @@ const Reply = memo(({ comment }: CommentReplyProps) => {
             <Text className="text-[#0A0909] text-[15px] leading-[18px]">{comment.text}</Text>
 
             <View className="flex-row items-center gap-5">
-              <Button variant="ghost" className="flex-row items-center gap-1 p-0" onPress={onLike}>
+              <Button className="flex-row items-center gap-1 p-0" onPress={onLike} variant="ghost">
                 <Icon
+                  color={isLiked ? "#fb2d2d" : "#737373"}
                   name={HeartStraightIcon}
                   size={16}
-                  className={isLiked ? "text-[#fb2d2d]" : "text-[#737373]"}
                   weight={isLiked ? "fill" : "bold"}
                 />
                 <Button.Label
@@ -120,8 +118,8 @@ const Reply = memo(({ comment }: CommentReplyProps) => {
                 </Button.Label>
               </Button>
 
-              <Button variant="ghost" className="p-0" onPress={onReply}>
-                <Icon name={ArrowBendUpLeft} size={16} className="text-[#737373]" />
+              <Button className="p-0" onPress={onReply} variant="ghost">
+                <Icon color="#737373" name={ArrowBendUpLeftIcon} size={16} />
                 <Button.Label className="text-[#737373] text-[15px]">Reply</Button.Label>
               </Button>
             </View>
@@ -133,7 +131,7 @@ const Reply = memo(({ comment }: CommentReplyProps) => {
         </View>
       </View>
 
-      <View className="h-px bg-p-200 my-3.5" />
+      <Separator className="my-3.5" />
     </View>
   );
 });

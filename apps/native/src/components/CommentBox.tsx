@@ -1,107 +1,252 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import type { RefObject } from "react";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, TextInput, View } from "react-native";
-import { KeyboardEvents } from "react-native-keyboard-controller";
+import { InputGroup } from "heroui-native";
+import { PaperPlaneTiltIcon, XIcon } from "phosphor-react-native";
+import { type RefObject, useCallback } from "react";
+import { ActivityIndicator, Pressable, type TextInput, View } from "react-native";
+import { toast } from "sonner-native";
 import { useSnapshot } from "valtio";
 
-import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
+import useUpdateComment from "#/hooks/comments/useUpdateComment";
 import { useCreateComment } from "#/hooks/news";
+import { useKeyboardDismiss } from "#/hooks/use-keyboard-dismiss";
+import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 import { authState } from "#/state/auth";
-import { commentState, setActiveComment } from "#/state/commentState";
+import {
+  commentState,
+  getParentId,
+  getReplyingToId,
+  resetCommentState,
+  setDraft,
+} from "#/state/commentState";
+import { getUsername, isRefObject } from "#/utils/comment-utils";
+import { Button } from "./heroui/button";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type CommentBoxProps = {
   newsId: string;
   newsSlug?: string;
-  onBlur?: () => void;
-  /**
-   * Pass the text input ref from the parent via prop `inputRef`
-   * instead of using `forwardRef`, which is deprecated in this codebase.
-   */
   inputRef?: RefObject<TextInput | null> | ((instance: TextInput | null) => void);
+  onBlur?: () => void;
 };
 
-function isRefObject<T>(ref?: RefObject<T> | ((instance: T | null) => void)): ref is RefObject<T> {
-  return !!ref && typeof ref !== "function" && "current" in ref;
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function ReplyChip({ username, onDismiss }: { username: string; onDismiss: () => void }) {
+  return (
+    <View className="flex-row items-center gap-1.5 px-2.5 pt-2">
+      <Text className="flex-1 text-secondary text-sm" numberOfLines={1}>
+        Replying to <Text className="font-bold text-primary text-sm">@{username}</Text>
+      </Text>
+      <Pressable hitSlop={8} onPress={onDismiss}>
+        <Icon className="text-tertiary" name={XIcon} size={16} />
+      </Pressable>
+    </View>
+  );
 }
 
-export const CommentBox = (props: CommentBoxProps) => {
-  const { inputRef } = props;
-  const [text, setText] = useState("");
+function EditPreview({
+  text,
+  username,
+  onDismiss,
+}: {
+  text: string;
+  username: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <View className="flex-row gap-2.5 px-2.5 pt-2">
+      <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-600">
+        <Text className="text-base text-white">{username.charAt(0).toUpperCase()}</Text>
+      </View>
+      <View className="flex-1 gap-1">
+        <View className="flex-row items-center justify-between">
+          <Text className="font-bold text-sm">{username}</Text>
+          <Pressable hitSlop={8} onPress={onDismiss}>
+            <Icon className="text-tertiary" name={XIcon} size={16} />
+          </Pressable>
+        </View>
+        <Text className="text-secondary text-sm" numberOfLines={2}>
+          {text}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
+export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxProps) => {
   const { user } = authState;
-  const { replyingToComment, parentComment } = useSnapshot(commentState);
+  const { mode, target, draft } = useSnapshot(commentState);
   const navigation = useNavigation();
   const route = useRoute();
-  const params = route.params as { commentId?: string } | undefined;
+  const routeCommentId = (route.params as { commentId?: string } | undefined)?.commentId;
 
-  useEffect(() => {
-    const hideSubscription = KeyboardEvents.addListener("keyboardDidHide", () => {
-      if (isRefObject(inputRef) && inputRef.current) {
-        inputRef.current.blur();
-      }
-      setActiveComment(undefined, undefined);
-      setText("");
-    });
+  const createMutation = useCreateComment(newsSlug as string);
+  const updateMutation = useUpdateComment(newsSlug as string);
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
-    return () => {
-      hideSubscription.remove();
-    };
-  }, [inputRef]);
+  const handleKeyboardDismiss = useCallback(() => {
+    if (commentState.mode === "reply") {
+      commentState.mode = "idle";
+      commentState.target = undefined;
+      commentState.parent = undefined;
+    }
+    onBlur?.();
+  }, [onBlur]);
 
-  const createCommentMutation = useCreateComment(props.newsSlug as string);
+  useKeyboardDismiss(inputRef, handleKeyboardDismiss);
 
-  const onSubmit = () => {
+  useGlobalBackHandler(() => {
+    if (commentState.mode !== "idle") {
+      resetCommentState();
+      return true;
+    }
+    return false;
+  });
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+
+  const handlePost = () => {
     if (!user || user.isAnonymous) {
-      // Navigation types may not include SignIn params; coerce here to pass a redirect.
-      navigation.navigate("SignIn" as any, { redirect: route.name } as any);
+      navigation.navigate("SignIn", { redirect: route.name });
       return;
     }
-
-    createCommentMutation.mutate(
+    createMutation.mutate(
       {
-        newsId: props.newsId,
-        text,
-        replyingTo: commentState.replyingToComment?.id,
-        parentId: params?.commentId ?? commentState.parentComment?.id,
+        newsId,
+        text: draft,
+        replyingTo: getReplyingToId(),
+        parentId: routeCommentId ?? getParentId(),
       },
       {
         onSuccess: () => {
-          if (isRefObject(inputRef) && inputRef.current) {
-            inputRef.current.blur();
+          resetCommentState();
+          if (isRefObject(inputRef)) {
+            inputRef.current?.blur();
           }
         },
       },
     );
   };
 
-  const getUsername = (u: unknown): string | undefined => {
-    if (!u) return;
-    if (typeof u === "string") return u;
-    return (u as { username?: string }).username;
+  const handleSave = () => {
+    const editId = commentState.target?._id;
+    if (!editId) {
+      toast.error("No comment selected to update");
+      return;
+    }
+    toast.loading("Updating comment", { description: "Please wait..." });
+    updateMutation.mutate(
+      { text: draft, commentId: editId },
+      {
+        onSuccess: () => {
+          resetCommentState();
+          toast.dismiss();
+          toast.success("Comment updated");
+          if (isRefObject(inputRef)) {
+            inputRef.current?.blur();
+          }
+        },
+        onError: (err) => {
+          toast.dismiss();
+          console.error(err);
+          toast.error("Something went wrong", {
+            description: "Comment could not be updated",
+          });
+        },
+      },
+    );
   };
-  const username = getUsername(replyingToComment?.user) ?? getUsername(parentComment?.user);
 
-  return (
-    <View className="w-full bg-background gap-2.5 pb-2 px-2.5">
-      <TextInput
-        className="bg-p-50 border-2 border-transparent rounded-lg pt-2.5 px-4 text-base"
-        onChangeText={(value) => setText(String(value))}
-        placeholder={username ? `Replying to ${username}` : "Write a comment..."}
-        placeholderTextColorClassName="accent-gray-400"
-        ref={inputRef as any}
-        value={text}
-        multiline
-      />
-      <Button
-        className="self-end flex-col"
-        disabled={!text || createCommentMutation.isPending}
-        onPress={onSubmit}
-      >
-        {createCommentMutation.isPending ? <ActivityIndicator className="text-p-300" /> : null}
-        <Button.Label className={createCommentMutation.isPending ? "hidden" : "font-extrabold"}>
-          {createCommentMutation.isPending ? "Posting..." : "Post"}
-        </Button.Label>
-      </Button>
+  const handleCancel = () => {
+    resetCommentState();
+    if (isRefObject(inputRef)) {
+      inputRef.current?.blur();
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Derived values
+  // ---------------------------------------------------------------------------
+
+  const isEdit = mode === "edit";
+  const isReply = mode === "reply";
+  const targetUsername = getUsername(target?.user) ?? "someone";
+  const originalText = target?.text ?? "";
+  const placeholder = isReply ? `Replying to @${targetUsername}…` : "Write a comment…";
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
+  const composerContent = (
+    <View className="w-full bg-background">
+      {isReply && <ReplyChip onDismiss={handleCancel} username={targetUsername} />}
+
+      {isEdit && (
+        <>
+          <EditPreview onDismiss={handleCancel} text={originalText} username={targetUsername} />
+          <View className="mx-2.5 mt-2 h-px bg-separator" />
+        </>
+      )}
+
+      <View className="gap-2.5 px-2.5 pt-2 pb-2">
+        <InputGroup>
+          <InputGroup.Input
+            autoFocus={isEdit}
+            className="rounded-lg align-top text-base"
+            multiline
+            numberOfLines={4}
+            onChangeText={setDraft}
+            placeholder={placeholder}
+            placeholderTextColorClassName="accent-gray-400"
+            ref={inputRef as never}
+            selectionColorClassName="accent-gray-400"
+            value={draft}
+          />
+          <InputGroup.Suffix>
+            <Button
+              hitSlop={20}
+              isDisabled={!draft}
+              onPress={isEdit ? handleSave : handlePost}
+              size="sm"
+            >
+              {isPending ? (
+                <ActivityIndicator color="#888" size="small" />
+              ) : (
+                <Icon color="white" name={PaperPlaneTiltIcon} size={20} />
+              )}
+            </Button>
+          </InputGroup.Suffix>
+        </InputGroup>
+      </View>
     </View>
   );
+
+  if (isEdit) {
+    return (
+      <View className="absolute inset-0 flex-1 justify-end">
+        <Pressable
+          className="absolute inset-0"
+          onPress={handleCancel}
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        />
+        {composerContent}
+      </View>
+    );
+  }
+
+  return composerContent;
 };

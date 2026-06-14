@@ -1,22 +1,15 @@
 import type { Comment } from "@news-spend-media/payload/types";
+import { Menu, Separator } from "heroui-native";
+import { DotsThreeVerticalIcon } from "phosphor-react-native";
 import React from "react";
-import { View } from "react-native";
-import { DotsThreeVertical } from "phosphor-react-native";
 import { useSnapshot } from "valtio";
 
 import { Icon } from "#/components/heroui/icon";
 import PostReportSheet from "#/components/sheets/PostReportSheet";
-import {
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuItemTitle,
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
 import useDeleteComment from "#/hooks/comments/useDeleteComment";
 import { authState } from "#/state/auth";
-import { setEditingComment } from "#/state/commentState";
+import { startEdit } from "#/state/commentState";
+import { Button } from "../heroui/button";
 
 export function CommentOptionPopover({ comment }: { comment: Comment }) {
   const [showReportSheet, setShowReportSheet] = React.useState(false);
@@ -28,48 +21,60 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
   };
 
   const onEdit = () => {
-    setEditingComment(comment);
+    startEdit(comment);
   };
 
   const givenTime = new Date(comment.createdAt);
   const currentTime = new Date();
 
-  // Calculate the difference in milliseconds between the given time and the current time
   const timeDifference = currentTime.getTime() - givenTime.getTime();
 
-  // Check if the time difference is less than 15 minutes (900,000 milliseconds)
   const isLessThan15Minutes = timeDifference < 900_000;
 
   const commentUser = typeof comment.user === "object" ? comment.user.id : comment.user;
 
   return (
-    <View>
-      <DropdownMenuRoot>
-        <DropdownMenuTrigger>
-          <View className="p-1">
-            <Icon name={DotsThreeVertical} size={24} />
-          </View>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          {auth.session?.user?.id === commentUser && (
-            <DropdownMenuGroup>
-              {isLessThan15Minutes && (
-                <DropdownMenuItem key="edit" onSelect={onEdit}>
-                  <DropdownMenuItemTitle>Edit</DropdownMenuItemTitle>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem key="delete" onSelect={onDelete}>
-                <DropdownMenuItemTitle>Delete</DropdownMenuItemTitle>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          )}
-          {auth.session?.user?.id !== commentUser && (
-            <DropdownMenuItem key="report" onSelect={() => setShowReportSheet(true)}>
-              <DropdownMenuItemTitle>Report</DropdownMenuItemTitle>
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenuRoot>
+    <>
+      <Menu presentation="popover">
+        <Menu.Trigger asChild>
+          <Button className="p-1" hitSlop={8} variant="ghost">
+            <Icon name={DotsThreeVerticalIcon} size={24} />
+          </Button>
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Overlay className="bg-backdrop" />
+          <Menu.Content
+            align="end"
+            className="rounded-lg"
+            offset={4}
+            placement="bottom"
+            presentation="popover"
+            width={200}
+          >
+            {auth.session?.user?.id === commentUser && (
+              <>
+                {isLessThan15Minutes && (
+                  <>
+                    <Menu.Item onPress={onEdit}>
+                      <Menu.ItemTitle>Edit</Menu.ItemTitle>
+                    </Menu.Item>
+                    <Separator className="mx-2 my-1 opacity-75" />
+                  </>
+                )}
+
+                <Menu.Item onPress={onDelete} variant="danger">
+                  <Menu.ItemTitle>Delete</Menu.ItemTitle>
+                </Menu.Item>
+              </>
+            )}
+            {auth.session?.user?.id !== commentUser && (
+              <Menu.Item onPress={() => setShowReportSheet(true)}>
+                <Menu.ItemTitle>Report</Menu.ItemTitle>
+              </Menu.Item>
+            )}
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu>
 
       <PostReportSheet
         onOpenChange={setShowReportSheet}
@@ -77,7 +82,7 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
         postId={comment.id}
         reportType="comment"
       />
-    </View>
+    </>
   );
 }
 
