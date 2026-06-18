@@ -1,31 +1,20 @@
-import { Skeleton } from "@alloc/moti/skeleton";
 import { isDefinedError } from "@orpc/client";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
-import { ArrowLeft, User } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { Image } from "expo-image";
+import { Skeleton, SkeletonGroup } from "heroui-native/skeleton";
+import { ArrowLeft, User } from "phosphor-react-native";
 import { useCallback, useEffect, useRef } from "react";
-import { RefreshControl } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
-import {
-  Heading,
-  Paragraph,
-  ScrollView,
-  Separator,
-  Stack,
-  Text,
-  useWindowDimensions,
-  XStack,
-  YStack,
-} from "tamagui";
-
+import { Button } from "#/components/heroui/button";
+import { Text } from "#/components/heroui/text";
 import { PayloadLexicalReactRenderer } from "#/components/lexical/PayloadLexicalReactRenderer";
 import type { PayloadLexicalReactRendererContent } from "#/components/lexical/types";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
 import { Screen } from "#/components/Screen";
-import { Image } from "#/components/ui";
-import { Button } from "#/components/ui/Button";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { useDislikeNews, useLikeNews, useNews } from "#/hooks/news";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
@@ -39,10 +28,9 @@ import { getImageData } from "#/utils/getImageData";
 
 const SingleNews = () => {
   const navigation = useNavigation("News");
-  const { id, slug } = useRoute("News").params;
+  const { slug } = useRoute("News").params;
   const { data, refetch, isError, error, isFetchedAfterMount } = useNews(slug as string);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-  const { height } = useWindowDimensions();
   const likeMutation = useLikeNews();
   const dislikeMutation = useDislikeNews();
   const addActivityMutation = useAddActivity();
@@ -75,18 +63,20 @@ const SingleNews = () => {
   const prevViewId = useRef<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      if (!data) return;
+      if (!data) {
+        return;
+      }
       if (prevViewId.current !== data.id) {
         hasTrackedView.current = false;
         prevViewId.current = data.id;
       }
-      if (hasTrackedView.current) return;
+      if (hasTrackedView.current) {
+        return;
+      }
       hasTrackedView.current = true;
       trackView();
     }, [data, trackView]),
   );
-
-  console.log(!inRapidScroll, elapsedSeconds >= minReadingSeconds, hasScrolledThreshold);
 
   // Award points once reading conditions are met
   useEffect(() => {
@@ -151,12 +141,16 @@ const SingleNews = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!data) return;
+      if (!data) {
+        return;
+      }
       if (prevNewsId.current !== data.id) {
         hasRecordedView.current = false;
         prevNewsId.current = data.id;
       }
-      if (hasRecordedView.current) return;
+      if (hasRecordedView.current) {
+        return;
+      }
       hasRecordedView.current = true;
       recordViewMutation.mutate({ newsId: data.id });
     }, [data]),
@@ -169,9 +163,9 @@ const SingleNews = () => {
 
   if (isError) {
     return (
-      <YStack ai="center" flex={1} jc="center">
-        <Text>Failed to load news article</Text>
-      </YStack>
+      <View className="flex-1 items-center justify-center">
+        <Text className="text-center">Failed to load news article</Text>
+      </View>
     );
   }
 
@@ -201,9 +195,9 @@ const SingleNews = () => {
 
   return (
     <Screen safeAreaEdges={["top"]}>
-      <Skeleton.Group show={!data}>
+      <SkeletonGroup show={!data}>
         <ScrollView
-          bg="$background"
+          className="bg-background"
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="always"
           onScroll={handleScroll}
@@ -214,95 +208,73 @@ const SingleNews = () => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <Stack mb="$3">
+          <View className="mb-3">
             <Button
-              bg="#C6C7C8"
-              borderRadius={4}
-              h={32}
-              left={10}
+              className="absolute top-[10px] left-[10px] z-10 size-8 rounded-[4px] bg-[#C6C7C8]"
               onPress={() => navigation.goBack()}
-              pos="absolute"
-              pressStyle={{ bg: "$p50" }}
-              top={10}
-              w={32}
-              zIndex="$2"
             >
-              <Button.Icon color="$p500">
-                <ArrowLeft />
-              </Button.Icon>
+              <ArrowLeft color="#00223d" size={20} />
             </Button>
 
-            <Skeleton colorMode="light" disableExitAnimation height={height * 0.3} width="100%">
+            <Skeleton className="h-[30vh] w-full">
               {data ? (
                 <Image
-                  borderBottomLeftRadius={8}
-                  borderBottomRightRadius={8}
+                  className="h-[30vh] w-full"
                   contentFit="cover"
-                  h={height * 0.3}
                   placeholder={{ blurhash }}
                   placeholderContentFit="cover"
                   source={url}
                 />
               ) : null}
             </Skeleton>
-          </Stack>
+          </View>
 
-          <Stack gap="$5" px="$3">
-            <Skeleton colorMode="light" disableExitAnimation height={50} width="100%">
-              <Heading fontSize={20} lh={25}>
-                {data?.title}
-              </Heading>
+          <View className="gap-5 px-3">
+            <Skeleton className="h-[50px] w-full">
+              <Text className="font-bold text-[20px] leading-[25px]">{data?.title}</Text>
             </Skeleton>
 
-            <XStack ai="center" jc="space-between">
-              <Skeleton colorMode="light" disableExitAnimation height={17} width={100}>
-                <XStack ai="center" gap="$0.75">
+            <View className="flex-row items-center justify-between">
+              <Skeleton className="h-[17px] w-[100px]">
+                <View className="flex-row items-center gap-[3px]">
                   <User size={15} />
-                  <Text fontWeight="700">
+                  <Text className="font-bold">
                     {typeof data?.author === "object" ? data?.author.fullName : ""}
                   </Text>
-                </XStack>
+                </View>
               </Skeleton>
 
-              <Skeleton colorMode="light" disableExitAnimation height={17} width={110}>
+              <Skeleton className="h-[17px] w-[110px]">
                 {data ? (
-                  <Text color="#737373" fos={12}>
+                  <Text className="text-[#737373] text-xs">
                     {format(new Date(data?.createdAt ?? new Date()), "do MMMM yyy | p")}
                   </Text>
                 ) : null}
               </Skeleton>
-            </XStack>
+            </View>
 
-            <Skeleton colorMode="light" disableExitAnimation show={!data?.content}>
-              <Stack mt="$1">
-                <Separator h={2} mb={2} />
-                <Heading fos="$5" mb={3}>
-                  KEY POINTS
-                </Heading>
+            <Skeleton show={!data?.content}>
+              <View className="mt-1">
+                <View className="mb-2 h-[2px] bg-border" />
+                <Text className="mb-3 font-bold text-base">KEY POINTS</Text>
                 {data?.keyPoints?.map(({ point }, i: number) => (
-                  <XStack gap="$2" key={i} pb="$2">
-                    <Paragraph fos="$2">{"\u2B24"}</Paragraph>
-                    <Paragraph p={0}>{point}</Paragraph>
-                  </XStack>
+                  <View className="flex-row gap-2 pb-2" key={i}>
+                    <Text className="text-xs">{"\u2B24"}</Text>
+                    <Text className="p-0">{point}</Text>
+                  </View>
                 ))}
-                <Separator h={2} pb={2} />
-              </Stack>
+                <View className="h-[2px] bg-border pb-2" />
+              </View>
             </Skeleton>
 
-            <Skeleton
-              colorMode="light"
-              disableExitAnimation
-              height={height * 0.6}
-              show={!data?.content}
-              width="100%"
-            >
+            <Skeleton className="h-[60vh] w-full" show={!data?.content}>
               <PayloadLexicalReactRenderer
                 content={data?.content as PayloadLexicalReactRendererContent}
               />
             </Skeleton>
-          </Stack>
+          </View>
         </ScrollView>
-      </Skeleton.Group>
+      </SkeletonGroup>
 
       <NewsActionBar
         news={data}

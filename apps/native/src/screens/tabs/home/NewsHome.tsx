@@ -1,16 +1,10 @@
 import type { NewsCategory } from "@news-spend-media/payload/types";
 import { useScrollToTop } from "@react-navigation/native";
-import type { FlashList, FlashListRef } from "@shopify/flash-list";
+import type { FlashListRef } from "@shopify/flash-list";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
-import {
-  type Route,
-  TabBar,
-  TabBarIndicator,
-  TabView,
-} from "react-native-tab-view";
-import { Spinner, useTheme, XStack } from "tamagui";
+import { type Route, TabBar, TabBarIndicator, TabView } from "react-native-tab-view";
 
 import Latest from "#/components/News/categories/Latest";
 import NewsCategoryComponent from "#/components/News/categories/NewsCategory";
@@ -19,7 +13,6 @@ import { setTabName } from "#/state/route-state";
 export default function NewsHome() {
   const [index, setIndex] = useState(0);
   const layout = useWindowDimensions();
-  const theme = useTheme();
 
   const [categories] = useMMKVObject<NewsCategory["items"]>("CATEGORIES");
 
@@ -31,17 +24,12 @@ export default function NewsHome() {
           key:
             typeof item.category === "string"
               ? item.category
-              : (item.category?.id ??
-                item.category?.title ??
-                `category-${key}`),
-          title:
-            typeof item.category === "string"
-              ? item.category
-              : item.category?.title,
-        })
+              : (item.category?.id ?? item.category?.title ?? `category-${key}`),
+          title: typeof item.category === "string" ? item.category : item.category?.title,
+        }),
       ),
     ],
-    [categories]
+    [categories],
   );
 
   // Create refs object for all lists
@@ -66,7 +54,7 @@ export default function NewsHome() {
         }
       }
     },
-    [index, routes]
+    [index, routes],
   );
 
   const renderScene = useCallback(
@@ -75,15 +63,10 @@ export default function NewsHome() {
         case "latest":
           return <Latest ref={createSetRef("latest")} />;
         default:
-          return (
-            <NewsCategoryComponent
-              ref={createSetRef(route.key)}
-              route={route.key}
-            />
-          );
+          return <NewsCategoryComponent ref={createSetRef(route.key)} route={route.key} />;
       }
     },
-    [routes, createSetRef]
+    [routes, createSetRef],
   );
 
   const onIndexChange = useCallback(
@@ -91,7 +74,7 @@ export default function NewsHome() {
       setIndex(newIndex);
       setTabName(routes[newIndex].key);
     },
-    [routes]
+    [routes],
   );
 
   const renderTabBar = useCallback(
@@ -101,7 +84,7 @@ export default function NewsHome() {
         bounces
         inactiveColor="gray"
         indicatorStyle={{
-          backgroundColor: theme.s50.val,
+          backgroundColor: "#fff",
         }}
         pressColor="transparent"
         renderIndicator={(indicatorProps) => {
@@ -110,7 +93,7 @@ export default function NewsHome() {
         }}
         scrollEnabled
         style={{
-          backgroundColor: theme.p500.val,
+          backgroundColor: "#00223d",
           height: 35,
         }}
         tabStyle={{
@@ -119,14 +102,14 @@ export default function NewsHome() {
         }}
       />
     ),
-    [theme, index]
+    [index],
   );
 
   return (
     <TabView
       commonOptions={{
         labelStyle: {
-          color: theme.s50.val,
+          color: "#fff",
           fontSize: 14,
           fontFamily: "Inter-SemiBold",
           textTransform: "capitalize",
@@ -138,9 +121,9 @@ export default function NewsHome() {
       onIndexChange={onIndexChange}
       pagerStyle={{ zIndex: -3 }}
       renderLazyPlaceholder={() => (
-        <XStack ai="center" backgroundColor="$background" flex={1} jc="center">
-          <Spinner />
-        </XStack>
+        <View className="flex-1 items-center justify-center bg-background">
+          <ActivityIndicator />
+        </View>
       )}
       renderScene={renderScene}
       renderTabBar={renderTabBar}

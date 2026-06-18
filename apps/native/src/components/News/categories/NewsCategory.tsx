@@ -1,21 +1,21 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
-import type { News } from "@news-spend-media/payload/types";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { Separator, Spinner } from "heroui-native";
 import { memo, useCallback, useRef } from "react";
-import { Separator, Spinner, Stack } from "tamagui";
-
+import { View } from "react-native";
 import NewsItemAds from "#/components/Ads/NewsItemAd";
 import NewsItemGoogleAds, { type NewsItemGoogleAdRef } from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { clearTabAdCache } from "#/utils/ad-cache";
-
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
 
-const MemoizedSeparator = memo(() => <Separator boc="#d7d7d7" my="$3" />);
+const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
-const NewsCategory = ({ route, ref }: { route: string; ref?: LegendListRef<News> }) => {
+type NewType = React.RefObject<LegendListRef>;
+
+const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
   const tabBarHeight = useBottomTabBarHeight();
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
   const { data, isPending, refetch, fetchNextPage, isFetching, hasNextPage } = useAllNews({
@@ -29,7 +29,7 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: LegendListRef<News>
     gBannerRefs.current.clear();
   });
 
-  const flattenedNewsRef = useRef<Array<any> | undefined>(undefined);
+  const flattenedNewsRef = useRef<any[] | undefined>(undefined);
 
   const renderItem = useCallback(
     ({ item, index }) => {
@@ -67,9 +67,9 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: LegendListRef<News>
   const FooterItem = useCallback(
     () =>
       hasNextPage && isFetching ? (
-        <Stack ai="center" jc="center" py="$4">
-          <Spinner />
-        </Stack>
+        <View className="flex items-center justify-center py-4">
+          <Spinner size="lg" />
+        </View>
       ) : null,
     [hasNextPage, isFetching],
   );
@@ -96,7 +96,7 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: LegendListRef<News>
         paddingHorizontal: 10,
       }}
       data={flattenedNews}
-      getEstimatedItemSize={() => 127}
+      // getEstimatedItemSize={() => 127}
       getItemType={(item) => item?.type ?? item?._type}
       ItemSeparatorComponent={MemoizedSeparator}
       keyExtractor={keyExtractor}

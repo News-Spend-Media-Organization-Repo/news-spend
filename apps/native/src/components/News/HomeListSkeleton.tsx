@@ -1,102 +1,69 @@
-import { MotiView, ScrollView } from "@alloc/moti";
-import { Skeleton } from "@alloc/moti/skeleton";
-import { Dimensions, StyleSheet } from "react-native";
-import { Separator, Stack, XStack } from "tamagui";
+import { SkeletonGroup } from "heroui-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 
-const colorMode = "light";
-
-const { height, width } = Dimensions.get("window");
 export default function HomeListSkeleton() {
-  // const { height, width } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
+
   return (
-    <ScrollView
-      contentContainerStyle={{
-        paddingTop: 10,
-        backgroundColor: "#ffffff",
-      }}
-      scrollEnabled={false}
-    >
-      <MotiView
-        animate={{ backgroundColor: "#ffffff" }}
-        style={styles.container}
-        transition={{
-          type: "timing",
-        }}
-      >
-        <XStack gap="$3.5" px={15}>
-          <Skeleton
-            colorMode={colorMode}
-            height={height * 0.33}
-            radius={8}
-            width={width * 0.88}
+    <ScrollView className="bg-white pt-2.5" contentContainerClassName="pb-4" scrollEnabled={false}>
+      <SkeletonGroup isLoading>
+        {/* Hero carousel */}
+        <View className="flex-row gap-3.5 px-3.75">
+          <SkeletonGroup.Item
+            className="rounded-lg"
+            style={{ width: width * 0.88, height: height * 0.33 }}
           />
-          <Skeleton
-            colorMode={colorMode}
-            height={height * 0.33}
-            radius={8}
-            width={width * 0.88}
+          <SkeletonGroup.Item
+            className="rounded-lg"
+            style={{ width: width * 0.88, height: height * 0.33 }}
           />
-        </XStack>
+        </View>
 
-        <Separator boc="transparent" borderWidth={8} />
+        {/* Section divider */}
+        <View className="my-2 h-2" />
 
-        <Stack gap="$4" px="$3">
-          <Skeleton colorMode={colorMode} height={20} width={200} />
-
-          <XStack gap={15}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton
-                colorMode={colorMode}
-                height={150}
-                key={index}
-                width={150}
+        {/* Horizontal scroll section */}
+        <View className="gap-4 px-3">
+          <SkeletonGroup.Item className="h-5 w-50 rounded-md" />
+          <View className="flex-row gap-3.75">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonGroup.Item
+                className="rounded-md"
+                key={i}
+                style={{ width: 150, height: 150 }}
               />
             ))}
-          </XStack>
-        </Stack>
+          </View>
+        </View>
 
-        <Separator boc="transparent" borderWidth={8} />
+        <View className="my-2 h-2" />
 
-        <Stack gap="$4" px="$3">
-          <Skeleton colorMode={colorMode} height={20} width={200} />
-
-          <XStack gap={15}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton
-                colorMode={colorMode}
-                height={170}
-                key={index}
-                width={120}
+        {/* Second horizontal scroll section */}
+        <View className="gap-4 px-3">
+          <SkeletonGroup.Item className="h-5 w-50 rounded-md" />
+          <View className="flex-row gap-3.75">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonGroup.Item
+                className="rounded-md"
+                key={i}
+                style={{ width: 120, height: 170 }}
               />
             ))}
-          </XStack>
-        </Stack>
+          </View>
+        </View>
 
-        <Separator boc="transparent" borderWidth={8} />
+        <View className="my-2 h-2" />
 
-        <Stack gap="$true" px="$3">
-          <Skeleton colorMode={colorMode} height={20} width={170} />
-
-          <Stack gap="$2.5">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton
-                colorMode={colorMode}
-                height={120}
-                key={index}
-                width="100%"
-              />
+        {/* Vertical list section */}
+        <View className="gap-4 px-3">
+          <SkeletonGroup.Item className="h-5 w-42.5 rounded-md" />
+          <View className="gap-2.5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonGroup.Item className="w-full rounded-md" key={i} style={{ height: 120 }} />
             ))}
-          </Stack>
-        </Stack>
-      </MotiView>
+          </View>
+        </View>
+      </SkeletonGroup>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-});

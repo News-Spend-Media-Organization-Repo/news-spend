@@ -3,14 +3,14 @@ import {
   type LegendListRef,
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
-import type { FeedItem } from "@news-spend-media/api/router/news/content-builders";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Separator, Spinner } from "heroui-native";
 import type { ComponentRef, JSX, RefObject } from "react";
 import { memo, useCallback, useEffect, useRef } from "react";
-import { Spinner, Stack } from "tamagui";
+import { View } from "react-native";
 import { subscribeKey } from "valtio/utils";
 import type { AdCarouselRef } from "#/components/Ads/AdCarousel";
 import AdCarousel from "#/components/Ads/AdCarousel";
@@ -44,7 +44,7 @@ const MemoizedListHeader = memo(
   }) => <HomeListHeader books={books} news={news} specialCoverage={specialCoverage} />,
 );
 
-const MemoizedSeparator = memo(() => <Stack boc="#d7d7d7" bw="$0.25" mx="$3" my="$3" w="100%" />);
+const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
 const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
@@ -212,11 +212,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         content = null;
       }
 
-      return (
-        <Stack gap="$2" px="$3">
-          {content}
-        </Stack>
-      );
+      return <View className="px-3">{content}</View>;
     },
     [],
   );
@@ -224,31 +220,12 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const FooterItem = useCallback(
     () =>
       hasNextPage && isFetching ? (
-        <Stack ai="center" jc="center" py="$4">
-          <Spinner />
-        </Stack>
+        <View className="flex items-center justify-center py-4">
+          <Spinner size="lg" />
+        </View>
       ) : null,
     [hasNextPage, isFetching],
   );
-
-  const getEstimatedItemSize = (item: FeedItem) => {
-    if ("type" in item && (item.type === "article" || item.type === "video")) {
-      return 127;
-    }
-    if ("_type" in item && item._type === "relatedNews") {
-      return 272;
-    }
-    if ("type" in item && item.type === "adCarousel") {
-      return 265;
-    }
-    if ("_type" in item && item._type === "ad") {
-      return 127;
-    }
-    if ("_type" in item && item._type === "rewardTask") {
-      return 127;
-    }
-    return 137;
-  };
 
   const onViewableItemsChanged = useRef(({ changed }) => {
     for (const item of changed) {
@@ -322,7 +299,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         paddingTop: 15,
       }}
       data={flattenedNews}
-      getEstimatedItemSize={getEstimatedItemSize}
+      // getEstimatedItemSize={getEstimatedItemSize}
       getItemType={getItemType}
       ItemSeparatorComponent={MemoizedSeparator}
       keyExtractor={keyExtractor}

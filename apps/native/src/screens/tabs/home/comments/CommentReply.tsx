@@ -1,28 +1,21 @@
 import { useNetInfo } from "@react-native-community/netinfo";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { FlashList } from "@shopify/flash-list";
-import { ArrowLeft } from "@tamagui/lucide-icons";
-import {
-  type InfiniteData,
-  useInfiniteQuery,
-  useQuery,
-} from "@tanstack/react-query";
+import { type InfiniteData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "phosphor-react-native";
 import { useEffect, useRef } from "react";
-import type { TextInput } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Paragraph, Spinner, YStack } from "tamagui";
-
+import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
 import Reply from "#/components/comment/Reply";
-import { CommentBox } from "#/components/CommentBox";
 import { EditCommentBox } from "#/components/EditCommentBox";
+import { Button } from "#/components/heroui/button";
+import { Text } from "#/components/heroui/text";
 import { Screen } from "#/components/Screen";
-import { Button, Text } from "#/components/ui";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 function CommentReplies() {
   const { commentId, ...rest } = useRoute().params;
@@ -45,13 +38,11 @@ function CommentReplies() {
     orpc.comments.one.queryOptions({
       input: commentId,
       initialData: () => {
-        const comments = queryClient.getQueryData<
-          InfiniteData<RouterOutputs["comments"]["all"]>
-        >(
+        const comments = queryClient.getQueryData<InfiniteData<RouterOutputs["comments"]["all"]>>(
           orpc.comments.all.infiniteKey({
             input: () => ({ newsId: rest.newsId }),
             initialPageParam: undefined,
-          })
+          }),
         );
         const comment = comments?.pages
           .flatMap((page) => page.docs)
@@ -65,7 +56,7 @@ function CommentReplies() {
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    })
+    }),
   );
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
@@ -78,7 +69,7 @@ function CommentReplies() {
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
       gcTime: 0,
-    })
+    }),
   );
 
   const onEndReached = () => {
@@ -90,18 +81,13 @@ function CommentReplies() {
   const navigation = useNavigation();
 
   const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
-  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
-    replies.refetch
-  );
-  const insets = useSafeAreaInsetsStyle(["top"]);
-
-  console.log(useSafeAreaInsets());
+  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(replies.refetch);
 
   if (isPending) {
     return (
-      <YStack ai="center" flex={1} justifyContent="center">
-        <Spinner />
-      </YStack>
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
     );
   }
 
@@ -128,37 +114,29 @@ function CommentReplies() {
           keyExtractor={(item) => (typeof item === "string" ? item : item.id)}
           ListEmptyComponent={
             replies.isLoading ? (
-              <Spinner />
+              <ActivityIndicator />
             ) : (
-              <YStack ai="center" flex={1} jc="center">
-                <Paragraph>No replies yet</Paragraph>
-              </YStack>
+              <View className="flex-1 items-center justify-center">
+                <Text>No replies yet</Text>
+              </View>
             )
           }
-          ListFooterComponent={replies.isFetchingNextPage ? <Spinner /> : null}
+          ListFooterComponent={replies.isFetchingNextPage ? <ActivityIndicator /> : null}
           ListHeaderComponent={
             <>
-              <Button
-                ai="center"
-                gap="$2"
-                ghost
-                h="auto"
-                jc="flex-start"
-                mb="$4"
-                mx={10}
-                onPress={() => navigation.goBack()}
-                p="$0"
-              >
-                <Button.Icon color="black">
+              <View className="mx-2.5 mb-4">
+                <Button
+                  className="h-auto flex-row items-center gap-2 p-0"
+                  onPress={() => navigation.goBack()}
+                  variant="ghost"
+                >
                   <ArrowLeft size={30} />
-                </Button.Icon>
-                <Button.Text>
-                  <Text fos="$5">
+                  <Text className="text-[15px]">
                     {data?.totalReplies}
                     {(data?.totalReplies ?? 0) > 1 ? " Replies" : " Reply"}
                   </Text>
-                </Button.Text>
-              </Button>
+                </Button>
+              </View>
               <CommentCard comment={data} ref={ref} />
             </>
           }

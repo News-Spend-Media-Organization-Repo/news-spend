@@ -6,14 +6,15 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { PartnerContent, PromoVideoSource } from "@news-spend-media/payload/types";
-import { Share2 } from "@tamagui/lucide-icons";
+import { ShareIcon } from "phosphor-react-native";
 import type React from "react";
-import { memo, useCallback, useImperativeHandle, useMemo, useRef } from "react";
-import { useWindowDimensions } from "react-native";
+import { useCallback, useImperativeHandle, useMemo, useRef } from "react";
+import { useWindowDimensions, View } from "react-native";
 import Share from "react-native-share";
 import { toast } from "sonner-native";
-import { Text, XStack } from "tamagui";
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
 import useAddActivity from "#/hooks/point/useAddActivity";
 import { authState } from "#/state/auth";
 import CarouselItem, { CustomScrollView } from "./CarouselItem";
@@ -84,14 +85,23 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
       return;
     }
     const blk = item.items?.[0].layout?.[0] as PromoVideoSource;
-    const shareResponse = await Share.open({
-      message: `Check out this amazing video on News Spend Media\n ${item.title}`,
-      url: blk?.url ?? undefined,
-      title: `Share promo video of ${item.title}`,
-    });
+    try {
+      const shareResponse = await Share.open({
+        message: `Check out this amazing video on News Spend Media\n ${item.title}`,
+        url: blk?.url ?? undefined,
+        title: `Share promo video of ${item.title}`,
+      });
 
-    if (shareResponse.success) {
-      awardPoint();
+      console.log(shareResponse);
+
+      if (shareResponse.dismissedAction) {
+        awardPoint();
+      }
+    } catch (error) {
+      // console.error("Error sharing promo video:", error);
+      // toast.error("Share failed", {
+      //   description: "There was an issue sharing the promo video.",
+      // });
     }
   }, [item, awardPoint]);
 
@@ -114,8 +124,9 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
   const memoizedData = useMemo(() => item.items ?? undefined, [item.items]);
 
   return (
-    <>
+    <View>
       <LegendList
+        contentContainerStyle={{ gap: 12 }}
         data={memoizedData}
         // decelerationRate="fast"
         // getItemType={(listItem) =>
@@ -137,18 +148,16 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
           minimumViewTime: 100,
         }}
       />
-      <XStack ai="center" gap="$5" jc="space-between">
-        <Text color="$gray.50" flex={1} numberOfLines={2}>
+      <View className="flex-row items-center justify-between gap-5">
+        <Text className="flex-1 text-gray-50 text-xs" numberOfLines={2}>
           {item.title}: {item.condition}
         </Text>
-        <Button ghost h="auto" onPress={onShare}>
-          <Button.Icon color="black">
-            <Share2 />
-          </Button.Icon>
+        <Button className="h-auto" onPress={onShare} variant="ghost">
+          <Icon name={ShareIcon} />
         </Button>
-      </XStack>
-    </>
+      </View>
+    </View>
   );
 };
 
-export default memo(AdCarousel);
+export default AdCarousel;

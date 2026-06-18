@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/react-native";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect } from "react";
+import mobileAds from "react-native-google-mobile-ads";
 import { Uniwind } from "uniwind";
 import { useSnapshot } from "valtio";
 import LotteryReward from "./components/dialogs/LotteryReward";
@@ -32,11 +33,11 @@ SplashScreen.setOptions({
   fade: true,
 });
 
-// mobileAds()
-//   .initialize()
-//   .then((_adapterStatuses) => {
-//     // Initialization complete!
-//   });
+mobileAds()
+  .initialize()
+  .then((_adapterStatuses) => {
+    // Initialization complete!
+  });
 
 initSentry();
 hydrateAuth();

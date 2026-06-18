@@ -53,8 +53,8 @@
     "@react-navigation/stack": "^8.0.0-alpha.41",
     "@rnrepo/build-tools": "^0.1.4",
     "@rnrepo/expo-config-plugin": "^0.3.1",
-    "@sentry/react-native": "^8.14.0",
-    "@shopify/flash-list": "2.3.1",
+    "@sentry/react-native": "~7.11.0",
+    "@shopify/flash-list": "2.0.2",
     "@swmansion/react-native-detour": "^2.3.0",
     "@tamagui/animations-react-native": "^1.144.3",
     "@tamagui/config": "^1.144.3",
@@ -117,7 +117,7 @@
     "react-native-mmkv": "^4.3.0",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-nitro-modules": "^0.35.2",
-    "react-native-pager-view": "8.0.2",
+    "react-native-pager-view": "8.0.1",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
@@ -161,11 +161,8 @@
   "expo": {
     "install": {
       "exclude": [
-        "@sentry/react-native"
+        "react-native-keyboard-controller"
       ]
-    },
-    "exclude": [
-      "react-native-keyboard-controller"
-    ]
+    }
   }
 }

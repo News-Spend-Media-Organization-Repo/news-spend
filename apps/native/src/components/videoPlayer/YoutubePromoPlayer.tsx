@@ -1,9 +1,8 @@
 import type { PromoVideoSource } from "@news-spend-media/payload/types";
 import { useIsFocused } from "@react-navigation/native";
 import { useCallback, useEffect, useImperativeHandle, useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import YoutubePlayer, { PLAYER_STATES } from "react-native-youtube-iframe";
-import { Stack } from "tamagui";
 
 function extractYouTubeId(url: string) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -70,15 +69,16 @@ const YoutubePromoPlayer = ({
   }, []);
 
   return (
-    <Stack height={200} overflow="hidden">
+    <View className="w-full overflow-hidden">
       <YoutubePlayer
+        className="size-full"
         height={200}
         onChangeState={onStateChange}
         play={playing}
         videoId={videoId}
         width={width * 0.85}
       />
-    </Stack>
+    </View>
   );
 };
 

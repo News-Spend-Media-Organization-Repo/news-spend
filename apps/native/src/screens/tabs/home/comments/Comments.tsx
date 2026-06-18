@@ -2,17 +2,18 @@ import type { Comment } from "@news-spend-media/payload/types";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
+import { CaretDown } from "phosphor-react-native";
 import { useCallback, useEffect, useRef } from "react";
-import type { TextInput } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { H3, Paragraph, Spinner, Stack, XStack, YStack } from "tamagui";
-import { CaretDown } from "tamagui-phosphor";
 
 import CommentCard from "#/components/comment/CommentCard";
 import { EditCommentBox } from "#/components/EditCommentBox";
+import { Button } from "#/components/heroui/button";
+import { Text } from "#/components/heroui/text";
 import { CommentBox } from "#/components/index";
 import { Screen } from "#/components/Screen";
-import { Button, Image } from "#/components/ui";
 import useGetComments from "#/hooks/comments/useGetComments";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
@@ -34,7 +35,7 @@ const Comments = () => {
       },
       initialData: () =>
         queryClient.getQueryData(
-          orpc.news.one.queryKey({ input: { slug: newsSlug, type: "article" } })
+          orpc.news.one.queryKey({ input: { slug: newsSlug, type: "article" } }),
         ),
       initialDataUpdatedAt: () => {
         const qKey = orpc.news.one.queryKey({
@@ -46,10 +47,12 @@ const Comments = () => {
 
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    })
+    }),
   );
-  const { data, fetchNextPage, isFetchingNextPage, hasNextPage, refetch } =
-    useGetComments(newsId, false);
+  const { data, fetchNextPage, isFetchingNextPage, hasNextPage, refetch } = useGetComments(
+    newsId,
+    false,
+  );
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
@@ -72,11 +75,13 @@ const Comments = () => {
 
   const renderItem: ListRenderItem<Comment> = useCallback(
     ({ item }: { item: Comment }) => <CommentCard comment={item} ref={ref} />,
-    [ref]
+    [ref],
   );
 
   const onEndReached = useCallback(() => {
-    if (isFetchingNextPage || !hasNextPage) return;
+    if (isFetchingNextPage || !hasNextPage) {
+      return;
+    }
     fetchNextPage();
   }, [isFetchingNextPage, fetchNextPage, hasNextPage]);
 
@@ -92,9 +97,9 @@ const Comments = () => {
 
   if (news.isPending) {
     return (
-      <YStack ai="center" flex={1} justifyContent="center">
-        <Spinner />
-      </YStack>
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
     );
   }
 
@@ -113,38 +118,36 @@ const Comments = () => {
           data={allPages}
           keyExtractor={keyExtractor}
           ListEmptyComponent={
-            <YStack ai="center" flex={1} jc="center">
-              <Paragraph>No comments yet</Paragraph>
-            </YStack>
+            <View className="flex-1 items-center justify-center">
+              <Text>No comments yet</Text>
+            </View>
           }
-          ListFooterComponent={isFetchingNextPage ? <Spinner /> : null}
+          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
           ListHeaderComponent={
-            <YStack gap="$3" mb="$6">
-              <XStack ai="center" px="$2">
-                <Button ghost onPress={() => navigation.goBack()}>
-                  <Button.Icon color="black">
-                    <CaretDown size={24} />
-                  </Button.Icon>
+            <View className="mb-6 gap-3">
+              <View className="flex-row items-center px-2">
+                <Button onPress={() => navigation.goBack()} variant="ghost">
+                  <CaretDown size={24} />
                 </Button>
                 <Image
-                  borderRadius={10}
+                  className="min-h-[60px] w-[60px] rounded-[10px]"
                   contentFit="cover"
-                  minHeight={60}
                   placeholder={{
                     blurhash,
                   }}
                   source={url}
-                  w={60}
                 />
-                <Stack als="flex-start" flex={1} px="$2.5">
-                  <Paragraph numberOfLines={3}>{news.data?.title}</Paragraph>
-                </Stack>
-              </XStack>
+                <View className="flex-1 self-start px-2.5">
+                  <Text className="leading-[18px]" numberOfLines={3}>
+                    {news.data?.title}
+                  </Text>
+                </View>
+              </View>
 
-              <H3 fontWeight="400" my="$2" pl="$4">
+              <Text className="my-2 pl-4 font-normal text-lg">
                 Comments ({allPages?.length ?? 0})
-              </H3>
-            </YStack>
+              </Text>
+            </View>
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
