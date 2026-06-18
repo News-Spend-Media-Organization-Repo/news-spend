@@ -1,20 +1,23 @@
+import { Galeria } from "@nandorojo/galeria";
 import { isDefinedError } from "@orpc/client";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Image } from "expo-image";
-import { Skeleton, SkeletonGroup } from "heroui-native/skeleton";
-import { ArrowLeft, User } from "phosphor-react-native";
+import { Separator } from "heroui-native";
+import { SkeletonGroup } from "heroui-native/skeleton-group";
+import { ArrowLeftIcon, UserIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
 import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Image } from "#/components/heroui/image";
+import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { PayloadLexicalReactRenderer } from "#/components/lexical/PayloadLexicalReactRenderer";
 import type { PayloadLexicalReactRendererContent } from "#/components/lexical/types";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
-import { Screen } from "#/components/Screen";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { useDislikeNews, useLikeNews, useNews } from "#/hooks/news";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
@@ -29,7 +32,8 @@ import { getImageData } from "#/utils/getImageData";
 const SingleNews = () => {
   const navigation = useNavigation("News");
   const { slug } = useRoute("News").params;
-  const { data, refetch, isError, error, isFetchedAfterMount } = useNews(slug as string);
+  const { data, refetch, isError, error, isFetchedAfterMount, isFetching, isPlaceholderData } =
+    useNews(slug as string);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
   const likeMutation = useLikeNews();
   const dislikeMutation = useDislikeNews();
@@ -194,10 +198,11 @@ const SingleNews = () => {
   };
 
   return (
-    <Screen safeAreaEdges={["top"]}>
-      <SkeletonGroup show={!data}>
+    <Screen>
+      <SkeletonGroup className="flex-1" isLoading={!data}>
         <ScrollView
-          className="bg-background"
+          className="bg-white"
+          contentContainerClassName="pb-4"
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="always"
           onScroll={handleScroll}
@@ -210,79 +215,85 @@ const SingleNews = () => {
         >
           <View className="mb-3">
             <Button
-              className="absolute top-[10px] left-[10px] z-10 size-8 rounded-[4px] bg-[#C6C7C8]"
+              className="absolute top-safe-offset-2 left-2.5 z-10 size-8 rounded-sm bg-[#C6C7C8]"
               onPress={() => navigation.goBack()}
             >
-              <ArrowLeft color="#00223d" size={20} />
+              <ArrowLeftIcon color="#00223d" size={20} />
             </Button>
 
-            <Skeleton className="h-[30vh] w-full">
-              {data ? (
-                <Image
-                  className="h-[30vh] w-full"
-                  contentFit="cover"
-                  placeholder={{ blurhash }}
-                  placeholderContentFit="cover"
-                  source={url}
-                />
-              ) : null}
-            </Skeleton>
+            <SkeletonGroup.Item className="h-[30vh] w-full">
+              <Galeria urls={[url]}>
+                <Galeria.Image>
+                  <Image
+                    className="h-[30vh] w-full"
+                    contentFit="cover"
+                    placeholder={{ blurhash }}
+                    placeholderContentFit="cover"
+                    source={url}
+                  />
+                </Galeria.Image>
+              </Galeria>
+            </SkeletonGroup.Item>
           </View>
 
           <View className="gap-5 px-3">
-            <Skeleton className="h-[50px] w-full">
-              <Text className="font-bold text-[20px] leading-[25px]">{data?.title}</Text>
-            </Skeleton>
+            <SkeletonGroup.Item className="h-12.5 w-full">
+              <Text className="font-bold text-[20px] leading-6.25">{data?.title}</Text>
+            </SkeletonGroup.Item>
 
             <View className="flex-row items-center justify-between">
-              <Skeleton className="h-[17px] w-[100px]">
-                <View className="flex-row items-center gap-[3px]">
-                  <User size={15} />
+              <SkeletonGroup.Item className="h-4.25 w-25">
+                <View className="flex-row items-center gap-0.75">
+                  <Icon name={UserIcon} size={15} />
                   <Text className="font-bold">
                     {typeof data?.author === "object" ? data?.author.fullName : ""}
                   </Text>
                 </View>
-              </Skeleton>
+              </SkeletonGroup.Item>
 
-              <Skeleton className="h-[17px] w-[110px]">
+              <SkeletonGroup.Item className="h-4.25 w-32.5">
                 {data ? (
                   <Text className="text-[#737373] text-xs">
                     {format(new Date(data?.createdAt ?? new Date()), "do MMMM yyy | p")}
                   </Text>
                 ) : null}
-              </Skeleton>
+              </SkeletonGroup.Item>
             </View>
 
-            <Skeleton show={!data?.content}>
+            <SkeletonGroup.Item className="h-[60vh] w-full">
               <View className="mt-1">
-                <View className="mb-2 h-[2px] bg-border" />
+                <Separator className="" />
                 <Text className="mb-3 font-bold text-base">KEY POINTS</Text>
                 {data?.keyPoints?.map(({ point }, i: number) => (
                   <View className="flex-row gap-2 pb-2" key={i}>
                     <Text className="text-xs">{"\u2B24"}</Text>
-                    <Text className="p-0">{point}</Text>
+                    <Text className="p-0" selectable>
+                      {point}
+                    </Text>
                   </View>
                 ))}
-                <View className="h-[2px] bg-border pb-2" />
+                <Separator className="" />
               </View>
-            </Skeleton>
+            </SkeletonGroup.Item>
 
-            <Skeleton className="h-[60vh] w-full" show={!data?.content}>
+            {isFetching && isPlaceholderData ? (
+              <View className="h-[60vh] w-full rounded-lg bg-neutral-200" />
+            ) : (
               <PayloadLexicalReactRenderer
                 content={data?.content as PayloadLexicalReactRendererContent}
               />
-            </Skeleton>
+            )}
           </View>
         </ScrollView>
-      </SkeletonGroup>
 
-      <NewsActionBar
-        news={data}
-        onComment={trackComment}
-        onDislike={handleDislike}
-        onLike={handleLike}
-        onShare={trackShare}
-      />
+        <NewsActionBar
+          news={data}
+          onComment={trackComment}
+          onDislike={handleDislike}
+          onLike={handleLike}
+          onShare={trackShare}
+        />
+      </SkeletonGroup>
 
       <ReadingTrackerDebug
         elapsedSeconds={elapsedSeconds}

@@ -313,12 +313,14 @@ function Live() {
             />
           )}
         </View>
-        <NewsActionBar
-          news={data}
-          onDislike={handleDislike}
-          onLike={handleLike}
-          onShare={onShare}
-        />
+        {data && (
+          <NewsActionBar
+            news={data}
+            onDislike={handleDislike}
+            onLike={handleLike}
+            onShare={onShare}
+          />
+        )}
       </SkeletonGroup>
     </Screen>
   );

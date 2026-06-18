@@ -1,6 +1,6 @@
 import type { News } from "@news-spend-media/payload/types";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Skeleton } from "heroui-native";
+import { Skeleton } from "heroui-native/skeleton";
 import {
   ChatIcon,
   PencilSimpleLineIcon,
