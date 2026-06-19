@@ -14,7 +14,7 @@ import { Icon } from "#/components/heroui/icon";
 import { Image } from "#/components/heroui/image";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
-import { PayloadLexicalReactRenderer } from "#/components/lexical/PayloadLexicalReactRenderer";
+import { PayloadLexicalReactRenderer } from "#/components/lexical/payload-lexical-react-renderer";
 import type { PayloadLexicalReactRendererContent } from "#/components/lexical/types";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
@@ -198,7 +198,13 @@ const SingleNews = () => {
   };
 
   return (
-    <Screen>
+    <Screen
+      SystemBarsProps={{
+        style: {
+          navigationBar: "dark",
+        },
+      }}
+    >
       <SkeletonGroup className="flex-1" isLoading={!data}>
         <ScrollView
           className="bg-white"

@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import WebView from "react-native-webview";
-import { View } from "tamagui";
 
 function extractTweetId(input: string): string | undefined {
   if (!input) {
@@ -17,10 +16,7 @@ function extractTweetId(input: string): string | undefined {
   try {
     const url = new URL(trimmed);
     const pathParts = url.pathname.split("/").filter(Boolean);
-    if (
-      url.hostname.includes("twitter.com") ||
-      url.hostname.includes("x.com")
-    ) {
+    if (url.hostname.includes("twitter.com") || url.hostname.includes("x.com")) {
       const statusIndex = pathParts.indexOf("status");
       if (statusIndex !== -1 && pathParts[statusIndex + 1]) {
         return pathParts[statusIndex + 1];
@@ -33,13 +29,7 @@ function extractTweetId(input: string): string | undefined {
   return;
 }
 
-export function TwitterEmbed({
-  tweetId,
-  theme = "light",
-}: {
-  tweetId: string;
-  theme?: string;
-}) {
+export function TwitterEmbed({ tweetId, theme = "light" }: { tweetId: string; theme?: string }) {
   const [webViewHeight, setWebViewHeight] = useState(200);
 
   const tweetIdValue = extractTweetId(tweetId);

@@ -3,16 +3,14 @@ import type {
   InstagramEmbedBlock,
   News,
   ReadAlsoBlock,
-  TwitterEmbedBlock,
+  TwitterPostBlock,
   YouTubeEmbedBlock,
 } from "@news-spend-media/payload/types";
-import { Stack } from "tamagui";
-
+import { View } from "react-native";
 import BannerAds from "#/components/Ads/BannerAds";
 import { InstagramEmbed } from "#/components/lexical/blocks/InstagramEmbed";
 import { TwitterEmbed } from "#/components/lexical/blocks/TwitterEmbed";
 import { YouTubeEmbed } from "#/components/lexical/blocks/YouTubeEmbed";
-
 import ReadAlso from "./blocks/read-also";
 import type { BlockRenderers } from "./types";
 
@@ -20,26 +18,20 @@ export const defaultBlockRenders: BlockRenderers<{
   ads: AdsBlock;
   instagramEmbed: InstagramEmbedBlock;
   readAlso: ReadAlsoBlock;
-  twitterEmbed: TwitterEmbedBlock;
+  twitterEmbed: TwitterPostBlock;
   youtubeEmbed: YouTubeEmbedBlock;
 }> = {
   ads: (props) => (
-    <Stack ai="center" jc="center" my="$3">
+    <View className="my-3 items-center justify-center">
       <BannerAds size={props.fields.type} />
-    </Stack>
+    </View>
   ),
   instagramEmbed: (props) => (
-    <InstagramEmbed
-      caption={props.fields.caption}
-      postUrl={props.fields.postUrl}
-    />
+    <InstagramEmbed caption={props.fields.caption ?? ""} postUrl={props.fields.postUrl} />
   ),
   readAlso: (props) => <ReadAlso news={props.fields.news as News} />,
   twitterEmbed: (props) => <TwitterEmbed tweetId={props.fields.tweetId} />,
   youtubeEmbed: (props) => (
-    <YouTubeEmbed
-      caption={props.fields.caption}
-      videoUrl={props.fields.videoUrl}
-    />
+    <YouTubeEmbed caption={props.fields.caption ?? ""} videoUrl={props.fields.videoUrl} />
   ),
 };
