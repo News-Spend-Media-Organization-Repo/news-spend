@@ -107,7 +107,14 @@ export default function Activities() {
   );
 
   return (
-    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+    <Screen
+      SystemBarsProps={{
+        style: {
+          navigationBar: "dark",
+          statusBar: "light",
+        },
+      }}
+    >
       <DateRangePicker
         endDate={endDate}
         label="Custom date range"

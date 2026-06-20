@@ -187,7 +187,7 @@ function ScreenWithoutScrolling(props: ScreenProps) {
     <View className={cn("h-full w-full flex-1", className)} style={style}>
       <View
         className={cn(
-          "flex-1 items-stretch justify-start",
+          "flex-1 items-stretch justify-start bg-white",
           preset === "fixed" && "justify-end",
           contentContainerClassName,
         )}
@@ -220,7 +220,10 @@ function ScreenWithScrolling(props: ScreenProps) {
   useScrollToTop(ref);
 
   const scrollViewClassName = cn("h-full w-full flex-1", className);
-  const scrollViewContentClassName = cn("items-stretch justify-start", contentContainerClassName);
+  const scrollViewContentClassName = cn(
+    "items-stretch justify-start bg-white",
+    contentContainerClassName,
+  );
   const scrollViewContentStyle = [ScrollViewProps?.contentContainerStyle, contentContainerStyle];
   const scrollViewStyle = [ScrollViewProps?.style, style];
 

@@ -5,6 +5,7 @@ import { IconContext } from "phosphor-react-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 import { PortalProvider, TamaguiProvider } from "tamagui";
 import { DetourDeepLinkHandler } from "#/components/DetourDeepLinkHandler";
@@ -31,46 +32,48 @@ export const Provider = ({ children }: Props) => {
   return (
     <DetourProvider config={detourConfig}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <KeyboardProvider>
-          <HeroUINativeProvider
-            config={{
-              devInfo: {
-                stylingPrinciples: false,
+        <SafeAreaProvider>
+          <KeyboardProvider>
+            <HeroUINativeProvider
+              config={{
+                devInfo: {
+                  stylingPrinciples: false,
+                },
+              }}
+            >
+              <TamaguiProvider config={config} defaultTheme="light">
+                <ErrorBoundary>
+                  <PortalProvider shouldAddRootHost>
+                    <IconContext.Provider
+                      value={{
+                        weight: "bold",
+                        // color: "#eee",
+                      }}
+                    >
+                      {children}
+                    </IconContext.Provider>
+                  </PortalProvider>
+                </ErrorBoundary>
+              </TamaguiProvider>
+            </HeroUINativeProvider>
+          </KeyboardProvider>
+          <Toaster
+            autoWiggleOnUpdate="toast-change"
+            pauseWhenPageIsHidden
+            richColors
+            toastOptions={{
+              titleStyle: {
+                fontFamily: "Inter-SemiBold",
+                fontSize: 18,
+              },
+              descriptionStyle: {
+                fontFamily: "Inter-Regular",
+                fontSize: 16,
               },
             }}
-          >
-            <TamaguiProvider config={config} defaultTheme="light">
-              <ErrorBoundary>
-                <PortalProvider shouldAddRootHost>
-                  <IconContext.Provider
-                    value={{
-                      weight: "bold",
-                      // color: "#eee",
-                    }}
-                  >
-                    {children}
-                  </IconContext.Provider>
-                </PortalProvider>
-              </ErrorBoundary>
-            </TamaguiProvider>
-          </HeroUINativeProvider>
-        </KeyboardProvider>
-        <Toaster
-          autoWiggleOnUpdate="toast-change"
-          pauseWhenPageIsHidden
-          richColors
-          toastOptions={{
-            titleStyle: {
-              fontFamily: "Inter-SemiBold",
-              fontSize: 18,
-            },
-            descriptionStyle: {
-              fontFamily: "Inter-Regular",
-              fontSize: 16,
-            },
-          }}
-        />
-        <DetourDeepLinkHandler />
+          />
+          <DetourDeepLinkHandler />
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     </DetourProvider>
   );

@@ -59,10 +59,7 @@ export default createNativeStackNavigator({
             <ScreenHeader
               left={null}
               right={
-                <PressableFeedback
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  onPress={() => navigation.goBack()}
-                >
+                <PressableFeedback hitSlop={20} onPress={() => navigation.goBack()}>
                   <Icon color="white" name={XIcon} />
                 </PressableFeedback>
               }

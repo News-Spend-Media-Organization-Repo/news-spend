@@ -26,7 +26,7 @@ const ScreenHeader = ({ title, left, right, className }: ScreenHeaderProps) => {
       {/* Left Item */}
       <PressableFeedback
         className="min-w-10 items-center justify-center px-2"
-        hitSlop={8}
+        hitSlop={20}
         onPress={() => navigation.goBack()}
       >
         {left === undefined ? <Icon color="white" name={ArrowLeftIcon} size={24} /> : left}
