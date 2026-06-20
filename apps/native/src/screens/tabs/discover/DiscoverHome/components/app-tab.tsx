@@ -1,8 +1,9 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import type { LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -33,7 +34,7 @@ export const AppTab = () => {
     (props: LegendListRenderItemProps<PartnerContent>) => {
       const { item } = props;
 
-      return <AppItem item={item} loading={isLoading(item.id)} onPress={() => handleClick(item)} />;
+      return <AppItem item={item} loading={isLoading(item.id)} onPress={() => console.log(item)} />;
     },
     [handleClick, isLoading],
   );
@@ -73,7 +74,7 @@ export const AppTab = () => {
   }
 
   return (
-    <LegendList
+    <TabLegendList
       data={appsData}
       estimatedItemSize={90}
       keyExtractor={keyExtractor}

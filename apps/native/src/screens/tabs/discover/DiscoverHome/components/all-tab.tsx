@@ -6,7 +6,6 @@ import {
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useIsFocused } from "@react-navigation/native";
 import { type QueryObserverResult, useQueries } from "@tanstack/react-query";
-import { Image } from "#/components/heroui/image";
 import { cn } from "heroui-native";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
@@ -14,9 +13,11 @@ import { Skeleton } from "heroui-native/skeleton";
 import type { Station } from "radio-browser-api";
 import { useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, RefreshControl, type ScrollViewProps, View } from "react-native";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSnapshot } from "valtio";
 import { Button } from "#/components/heroui/button";
+import { Image } from "#/components/heroui/image";
 import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { orpc } from "#/lib/orpc";
@@ -314,7 +315,7 @@ const MusicSection = ({ itemList }: { itemList: Station[] }) => {
       renderItem={renderStationItem}
       renderScrollComponent={CustomScrollView}
       showsHorizontalScrollIndicator={false}
-      style={{ height: 200 }}
+      style={{ height: "100%" }}
     />
   );
 };
@@ -551,7 +552,7 @@ export const AllTab = () => {
   );
 
   return (
-    <LegendList
+    <TabLegendList
       contentContainerStyle={{ paddingVertical: 12 }}
       data={sections}
       keyExtractor={keyExtractor}

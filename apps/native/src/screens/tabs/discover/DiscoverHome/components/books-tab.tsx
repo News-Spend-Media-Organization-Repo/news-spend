@@ -1,10 +1,11 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import type { LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { cn, PressableFeedback } from "heroui-native";
 import { memo, useCallback, useId, useMemo } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 
 import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
@@ -105,7 +106,7 @@ function BooksTabComponent() {
   }
 
   return (
-    <LegendList
+    <TabLegendList
       contentContainerStyle={{
         paddingVertical: 10,
         gap: 25,

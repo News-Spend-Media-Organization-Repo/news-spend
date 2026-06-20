@@ -1,9 +1,9 @@
-import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Card, Chip } from "heroui-native";
 import { useCallback } from "react";
 import { View } from "react-native";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSnapshot } from "valtio";
 
 import { Button } from "#/components/heroui/button";
@@ -220,18 +220,16 @@ export function SurveyTab() {
   }, [surveyQuery.isPending, surveyQuery.isError, offers.length, user, refetchByUser, navigation]);
 
   return (
-    <View className="flex-1">
-      <LegendList
-        contentContainerStyle={{ padding: 15 }}
-        data={otherSurveys}
-        keyExtractor={(item: Offer) => item?.id ?? ""}
-        ListEmptyComponent={renderListEmptyComponent}
-        ListHeaderComponent={renderTopRatedCard}
-        numColumns={2}
-        onRefresh={refetchByUser}
-        refreshing={isRefetchingByUser}
-        renderItem={renderSurveyCard}
-      />
-    </View>
+    <TabLegendList
+      contentContainerStyle={{ padding: 15 }}
+      data={otherSurveys}
+      keyExtractor={(item: Offer) => item?.id ?? ""}
+      ListEmptyComponent={renderListEmptyComponent}
+      ListHeaderComponent={renderTopRatedCard}
+      numColumns={2}
+      onRefresh={refetchByUser}
+      refreshing={isRefetchingByUser}
+      renderItem={renderSurveyCard}
+    />
   );
 }

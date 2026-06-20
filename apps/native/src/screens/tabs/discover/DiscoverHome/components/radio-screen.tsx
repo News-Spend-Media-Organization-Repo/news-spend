@@ -2,11 +2,10 @@ import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/reac
 import { useQuery } from "@tanstack/react-query";
 import { MusicNoteIcon } from "phosphor-react-native";
 import type { Station } from "radio-browser-api";
-import { memo, useCallback, useMemo } from "react";
-import { ActivityIndicator, RefreshControl, type ScrollViewProps, View } from "react-native";
+import { memo, type ReactNode, useCallback, useMemo } from "react";
+import { type ScrollViewProps, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
-import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
@@ -14,7 +13,7 @@ import { orpc } from "#/lib/orpc";
 import { StationItem } from "./radio-station-item";
 
 // Memoized section header to prevent unnecessary re-renders
-const SectionHeader = memo(({ title }: { title: string }) => (
+export const SectionHeader = memo(({ title }: { title: string }) => (
   <View className="my-2.5 flex-row items-center gap-2 px-4">
     <MusicNoteIcon color="#5D3FD3" size={18} weight="fill" />
     <Text className="font-semibold text-gray-800 text-lg">{title}</Text>
@@ -22,7 +21,7 @@ const SectionHeader = memo(({ title }: { title: string }) => (
 ));
 
 // Memoized station list to prevent unnecessary re-renders
-const StationList = memo(({ stations }: { stations: Station[] }) => {
+export const StationList = memo(({ stations }: { stations: Station[] }) => {
   const renderStationItem = useCallback(
     ({ item }: LegendListRenderItemProps<Station>) => (
       <StationItem item={item} stationList={stations} />
@@ -54,21 +53,18 @@ const StationList = memo(({ stations }: { stations: Station[] }) => {
       renderItem={renderStationItem}
       renderScrollComponent={CustomScrollView}
       showsHorizontalScrollIndicator={false}
-      style={{ height: 200 }}
+      style={{ height: "100%" }}
     />
   );
 });
 
-export const RadioStationsScreen = () => {
+type RadioSection = string | Station[];
+
+export function useRadioStations() {
   // Memoize the transform function to prevent recreation
   const transformData = useCallback(
-    (
-      data: {
-        stations: Station[];
-        displayName: string;
-      }[],
-    ) =>
-      data?.reduce<(string | Station[])[]>((acc, section) => {
+    (data: { stations: Station[]; displayName: string }[]) =>
+      data?.reduce<RadioSection[]>((acc, section) => {
         acc.push(section.displayName);
         acc.push(section.stations);
         return acc;
@@ -83,49 +79,11 @@ export const RadioStationsScreen = () => {
     }),
   );
 
-  // Memoize the retry function
-  const retryQueries = useCallback(() => {
-    if (isError) {
-      refetch();
-    }
-  }, [isError, refetch]);
-
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
-  // Memoize the refresh control
-  const refreshControl = useMemo(
-    () => <RefreshControl onRefresh={refetchByUser} refreshing={isRefetchingByUser} />,
-    [isRefetchingByUser, refetchByUser],
-  );
-
-  if (isPending) {
-    return (
-      <View className="flex-1 items-center justify-center p-5">
-        <ActivityIndicator color="#5D3FD3" size="large" />
-      </View>
-    );
-  }
-
-  if (isError && !data) {
-    return (
-      <View className="flex-1 items-center justify-center p-5">
-        <Text className="text-center text-base text-red-500">
-          Failed to load radio stations. Please check your connection.
-        </Text>
-        <Button onPress={retryQueries} size="sm" variant="primary">
-          <Button.Label>Retry</Button.Label>
-        </Button>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView
-      className="flex-1 bg-gray-100"
-      contentContainerStyle={{ paddingVertical: 16 }}
-      refreshControl={refreshControl}
-    >
-      {data?.map((item) => {
+  const sections: ReactNode = useMemo(
+    () =>
+      data?.map((item) => {
         if (typeof item === "string") {
           return <SectionHeader key={item} title={item} />;
         }
@@ -135,7 +93,17 @@ export const RadioStationsScreen = () => {
             stations={item}
           />
         );
-      })}
-    </ScrollView>
+      }),
+    [data],
   );
-};
+
+  return {
+    data,
+    isPending,
+    isError,
+    refetch,
+    isRefetchingByUser,
+    refetchByUser,
+    sections,
+  };
+}

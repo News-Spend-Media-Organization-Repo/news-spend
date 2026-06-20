@@ -64,7 +64,24 @@ subscribe(playerState, () => {
 
 // --- Playlist singleton ---
 
-let audioPlaylist: AudioPlaylist | null = null;
+// On Fast Refresh the JS module re-evaluates and a module-scope `let` would
+// reset to `null`, leaving the *previous* native AVPlayer/HTMLAudioElement
+// orphaned and still playing. Stash the active instance on globalThis so the
+// freshly re-evaluated module can find and destroy it before building a new one.
+const GLOBAL_AUDIO_KEY = "__newsSpendAudioPlaylist" as const;
+const globalForAudio = globalThis as typeof globalThis & {
+  [GLOBAL_AUDIO_KEY]?: AudioPlaylist | null;
+};
+
+function getStoredAudioPlaylist(): AudioPlaylist | null {
+  return globalForAudio[GLOBAL_AUDIO_KEY] ?? null;
+}
+
+function setStoredAudioPlaylist(playlist: AudioPlaylist | null): void {
+  globalForAudio[GLOBAL_AUDIO_KEY] = playlist;
+}
+
+let audioPlaylist: AudioPlaylist | null = getStoredAudioPlaylist();
 let currentStationList: Station[] = [];
 let streamFailureTimeout: NodeJS.Timeout | null = null;
 
@@ -77,22 +94,37 @@ function clearStreamTimeout() {
   }
 }
 
-function resetPlaylistState() {
-  try {
-    audioPlaylist?.pause();
-    audioPlaylist?.clear();
-  } catch {
-    try {
-      audioPlaylist?.destroy();
-    } catch {
-      // ignore
-    }
-    audioPlaylist = null;
+function disposeAudioPlaylist(): void {
+  const playlist = audioPlaylist;
+  audioPlaylist = null;
+  setStoredAudioPlaylist(null);
+  if (!playlist) {
+    return;
   }
+  try {
+    playlist.pause();
+  } catch {
+    // ignore
+  }
+  try {
+    playlist.clear();
+  } catch {
+    // ignore
+  }
+  try {
+    playlist.destroy();
+  } catch {
+    // ignore
+  }
+}
+
+function resetPlaylistState() {
+  disposeAudioPlaylist();
   currentStationList = [];
   playerState.currentTrack = null;
   playerState.hasNext = false;
   playerState.hasPrevious = false;
+  playerState.isReady = false;
 }
 
 function setStreamTimeout(stationName: string) {
@@ -114,12 +146,30 @@ function setStreamTimeout(stationName: string) {
 }
 
 export function setupAudio() {
+  // Re-evaluate module after Fast Refresh: the local `audioPlaylist` `let`
+  // was just rebound from globalThis, so this is the same instance. If a
+  // previous native instance exists (e.g. setupAudio was never re-called
+  // after a hot reload that dropped the `let`), tear it down to avoid the
+  // dual-player orphan.
+  const existing = audioPlaylist ?? getStoredAudioPlaylist();
+  if (existing && existing !== audioPlaylist) {
+    try {
+      existing.pause();
+    } catch {
+      // ignore
+    }
+    try {
+      existing.destroy();
+    } catch {
+      // ignore
+    }
+  }
   if (audioPlaylist) {
-    audioPlaylist.destroy();
-    audioPlaylist = null;
+    return;
   }
 
   audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
+  setStoredAudioPlaylist(audioPlaylist);
 
   audioPlaylist.addListener("playlistStatusUpdate", ({ playing }) => {
     if (playing) {
@@ -225,11 +275,7 @@ function reloadCurrentStream() {
 export const releaseAudioPlaylist = () => {
   clearStreamTimeout();
   stopTimer();
-  if (audioPlaylist) {
-    audioPlaylist.clear();
-    audioPlaylist.destroy();
-    audioPlaylist = null;
-  }
+  disposeAudioPlaylist();
   currentStationList = [];
   playerState.currentTrack = null;
   playerState.hasNext = false;
@@ -291,6 +337,7 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
       audioPlaylist.clear();
     } else {
       audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
+      setStoredAudioPlaylist(audioPlaylist);
       attachPlaylistListeners();
       playerState.isReady = true;
     }
@@ -309,12 +356,7 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
   } catch (error) {
     console.error(error);
     // On error, fully tear down so the next loadTrack starts fresh
-    try {
-      audioPlaylist?.destroy();
-    } catch {
-      // ignore
-    }
-    audioPlaylist = null;
+    disposeAudioPlaylist();
     currentStationList = [];
     playerState.currentTrack = null;
     playerState.hasNext = false;

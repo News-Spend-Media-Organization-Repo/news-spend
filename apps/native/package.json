@@ -95,6 +95,7 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
     "react-native": "0.85.3",
+    "react-native-collapsible-tab": "^0.1.1",
     "react-native-edge-to-edge": "^1.7.0",
     "react-native-gesture-handler": "~2.31.1",
     "react-native-get-random-values": "~1.11.0",

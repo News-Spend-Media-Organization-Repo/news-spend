@@ -1,14 +1,13 @@
-import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { View } from "react-native";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSnapshot } from "valtio";
-
-import { GameItem } from "./game-item";
 import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { authState } from "#/state/auth";
+import { GameItem } from "./game-item";
 
 export function GamesTab() {
   const { user } = useSnapshot(authState);
@@ -36,7 +35,11 @@ export function GamesTab() {
       }
 
       if (gameUrl) {
-        navigation.navigate("SurveyWebView" as any, { url: gameUrl, type: "game", title });
+        navigation.navigate("SurveyWebView" as any, {
+          url: gameUrl,
+          type: "game",
+          title,
+        });
       }
     },
     [navigation, user],
@@ -50,7 +53,7 @@ export function GamesTab() {
   );
 
   return (
-    <LegendList
+    <TabLegendList
       contentContainerStyle={{
         paddingBottom: 25,
       }}

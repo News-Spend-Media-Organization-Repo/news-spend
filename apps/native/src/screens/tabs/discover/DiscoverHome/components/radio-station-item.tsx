@@ -1,14 +1,13 @@
 import { useAudioPlaylistStatus } from "expo-audio";
-import { Image } from "expo-image";
-import { cn } from "heroui-native";
+import { Card, cn } from "heroui-native";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { PlayIcon, StopIcon } from "phosphor-react-native";
 import type { Station } from "radio-browser-api";
 import { memo, type ReactNode, useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { withUniwind } from "uniwind";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
+import { Image } from "#/components/ui";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import {
@@ -17,8 +16,6 @@ import {
   togglePlayback,
   usePlayerState,
 } from "#/state/audioPlayerState";
-
-const StyledImage = withUniwind(Image);
 
 export const StationItem = memo(
   ({ item, stationList }: { item: Station; stationList?: Station[] }) => {
@@ -50,25 +47,28 @@ export const StationItem = memo(
     return (
       <PressableFeedback onPress={handlePress}>
         <PressableFeedback.Scale>
-          <View
+          <Card
             className={cn(
-              "w-35 flex-col gap-4 rounded-xl bg-white p-2.5",
-              isActive && "border-2 border-[#5D3FD3]",
+              "w-35 flex-col gap-2 rounded-xl p-2.5",
+              isActive && "border-2 border-p-200",
             )}
+            variant="secondary"
           >
-            <StyledImage
+            <Image
               className="size-17.5 self-center rounded-full bg-gray-100"
               contentFit="cover"
               source={{ uri: item.favicon || placeholderRef.current }}
             />
-            <Text className="text-center font-semibold text-gray-800 text-sm" numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text className="text-center text-gray-500 text-xs" numberOfLines={1}>
-              {tagsString}
-            </Text>
+            <View className="gap-1">
+              <Text className="text-center font-semibold text-gray-800 text-sm" numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text className="text-center text-gray-500 text-xs" numberOfLines={1}>
+                {tagsString}
+              </Text>
+            </View>
             {isActive && audioPlayer ? <ActiveStationIndicator audioPlayer={audioPlayer} /> : null}
-          </View>
+          </Card>
         </PressableFeedback.Scale>
         <PressableFeedback.Ripple />
       </PressableFeedback>
