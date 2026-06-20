@@ -221,13 +221,14 @@ const SingleNews = () => {
         >
           <View className="mb-3">
             <Button
-              className="absolute top-safe-offset-2 left-2.5 z-10 size-8 rounded-sm bg-[#C6C7C8]"
+              className="absolute top-safe-offset-2 left-2.5 z-10 size-8 rounded-sm"
               onPress={() => navigation.goBack()}
+              variant="ghost"
             >
               <ArrowLeftIcon color="#00223d" size={20} />
             </Button>
 
-            <SkeletonGroup.Item className="h-[30vh] w-full">
+            <SkeletonGroup.Item className="h-[30vh] w-full rounded-md">
               <Galeria urls={[url]}>
                 <Galeria.Image>
                   <Image
@@ -243,12 +244,12 @@ const SingleNews = () => {
           </View>
 
           <View className="gap-5 px-3">
-            <SkeletonGroup.Item className="h-12.5 w-full">
+            <SkeletonGroup.Item className="h-12.5 w-full rounded-md">
               <Text className="font-bold text-[20px] leading-6.25">{data?.title}</Text>
             </SkeletonGroup.Item>
 
             <View className="flex-row items-center justify-between">
-              <SkeletonGroup.Item className="h-4.25 w-25">
+              <SkeletonGroup.Item className="h-4.25 w-25 rounded-md">
                 <View className="flex-row items-center gap-0.75">
                   <Icon name={UserIcon} size={15} />
                   <Text className="font-bold">
@@ -257,7 +258,7 @@ const SingleNews = () => {
                 </View>
               </SkeletonGroup.Item>
 
-              <SkeletonGroup.Item className="h-4.25 w-32.5">
+              <SkeletonGroup.Item className="h-4.25 w-32.5 rounded-md">
                 {data ? (
                   <Text className="text-[#737373] text-xs">
                     {format(new Date(data?.createdAt ?? new Date()), "do MMMM yyy | p")}
@@ -266,7 +267,7 @@ const SingleNews = () => {
               </SkeletonGroup.Item>
             </View>
 
-            <SkeletonGroup.Item className="h-[60vh] w-full">
+            <SkeletonGroup.Item className="h-[60vh] w-full rounded-md" isLoading={!data?.keyPoints}>
               <View className="mt-1">
                 <Separator className="" />
                 <Text className="mb-3 font-bold text-base">KEY POINTS</Text>
@@ -285,9 +286,11 @@ const SingleNews = () => {
             {isFetching && isPlaceholderData ? (
               <View className="h-[60vh] w-full rounded-lg bg-neutral-200" />
             ) : (
-              <PayloadLexicalReactRenderer
-                content={data?.content as PayloadLexicalReactRendererContent}
-              />
+              <SkeletonGroup.Item className="h-[60vh] w-full rounded-md" isLoading={!data?.content}>
+                <PayloadLexicalReactRenderer
+                  content={data?.content as PayloadLexicalReactRendererContent}
+                />
+              </SkeletonGroup.Item>
             )}
           </View>
         </ScrollView>
