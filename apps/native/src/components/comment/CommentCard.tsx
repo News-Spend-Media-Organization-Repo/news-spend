@@ -123,10 +123,16 @@ const CommentCard = memo(({ comment, isLast, parentId, replyingTo }: CommentCard
             </View>
           </View>
 
-          <Text className="text-[#0A0909] text-[15px] leading-[18px]">{comment.text}</Text>
+          <Text className="text-[#0A0909] text-[15px] leading-4.5">{comment.text}</Text>
 
           <View className="flex-row items-center gap-5">
-            <Button className="flex-row items-center gap-1 p-0" onPress={onLike} variant="ghost">
+            <Button
+              className="flex-row items-center gap-1 p-0"
+              feedbackVariant="none"
+              onPress={onLike}
+              size="sm"
+              variant="ghost"
+            >
               <Icon
                 color={isLiked ? "#fb2d2d" : "#737373"}
                 name={HeartStraightIcon}
@@ -140,15 +146,17 @@ const CommentCard = memo(({ comment, isLast, parentId, replyingTo }: CommentCard
               </Button.Label>
             </Button>
 
-            <Button className="p-0" onPress={onReply} variant="ghost">
+            <Button className="p-0" feedbackVariant="none" onPress={onReply} variant="ghost">
               <Icon color="#737373" name={ArrowBendUpLeftIcon} size={16} />
               <Button.Label className="text-[#737373] text-sm">Reply</Button.Label>
             </Button>
 
             <Button
               className="flex-row items-center gap-1.5 p-0"
+              feedbackVariant="none"
               isDisabled={isRepliesScreen}
               onPress={navigateToReplies}
+              size="sm"
               variant="ghost"
             >
               <Icon color="#737373" name={ChatIcon} size={18} />

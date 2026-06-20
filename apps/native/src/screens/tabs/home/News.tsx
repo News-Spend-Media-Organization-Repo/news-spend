@@ -202,6 +202,7 @@ const SingleNews = () => {
       SystemBarsProps={{
         style: {
           navigationBar: "dark",
+          statusBar: "auto",
         },
       }}
     >

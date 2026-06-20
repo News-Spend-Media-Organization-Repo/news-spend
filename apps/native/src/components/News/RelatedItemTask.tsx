@@ -1,6 +1,5 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { Linking, Platform, useWindowDimensions } from "react-native";
-import { Stack, Text, XStack } from "tamagui";
+import { Linking, Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
 
 import { Image } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
@@ -26,42 +25,33 @@ const RelatedItemTask = ({ item }: { item: PartnerContent }) => {
   }
 
   return (
-    <Stack gap="$2" mr={10} onPress={onPress} width={width * 0.42}>
-      <Stack ai="center" jc="center">
+    <Pressable className="mr-2.5 gap-2" onPress={onPress} style={{ width: width * 0.42 }}>
+      <View className="items-center justify-center">
         <Image
-          borderRadius={5}
           contentFit="cover"
-          h={width * 0.35}
           placeholder={{
             blurhash,
           }}
           placeholderContentFit="cover"
           recyclingKey={item.id}
           source={url}
-          w="100%"
+          style={{ borderRadius: 5, height: width * 0.35, width: "100%" }}
         />
-      </Stack>
-      <Stack gap="$2">
-        <Text ellipsizeMode="head" numberOfLines={3}>
+      </View>
+      <View className="gap-2">
+        <Text className="text-foreground" ellipsizeMode="tail" numberOfLines={3}>
           {item.condition}
         </Text>
-        <XStack alignItems="center" jc="space-between">
-          <Stack
-            als="flex-end"
-            bg="$color.s300"
-            br="$10"
-            fd="row"
-            h="auto"
-            px="$2"
-            py="$1"
+        <View className="flex-row items-center justify-between">
+          <View
+            className="h-auto flex-row self-end rounded-full bg-s-300 px-2 py-1"
+            style={{ backgroundColor: "#003964" }}
           >
-            <Text color="white" fos="$3">
-              {item.points} points
-            </Text>
-          </Stack>
-        </XStack>
-      </Stack>
-    </Stack>
+            <Text className="text-white text-xs">{item.points} points</Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 };
 

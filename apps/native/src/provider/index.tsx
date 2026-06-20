@@ -7,14 +7,12 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
-import { PortalProvider, TamaguiProvider } from "tamagui";
 import { DetourDeepLinkHandler } from "#/components/DetourDeepLinkHandler";
 import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { authState } from "#/state/auth";
-import config from "#/tamagui.config";
 
 type Props = {
   children: React.ReactNode;
@@ -41,20 +39,16 @@ export const Provider = ({ children }: Props) => {
                 },
               }}
             >
-              <TamaguiProvider config={config} defaultTheme="light">
-                <ErrorBoundary>
-                  <PortalProvider shouldAddRootHost>
-                    <IconContext.Provider
-                      value={{
-                        weight: "bold",
-                        // color: "#eee",
-                      }}
-                    >
-                      {children}
-                    </IconContext.Provider>
-                  </PortalProvider>
-                </ErrorBoundary>
-              </TamaguiProvider>
+              <ErrorBoundary>
+                <IconContext.Provider
+                  value={{
+                    weight: "bold",
+                    // color: "#eee",
+                  }}
+                >
+                  {children}
+                </IconContext.Provider>
+              </ErrorBoundary>
             </HeroUINativeProvider>
           </KeyboardProvider>
           <Toaster

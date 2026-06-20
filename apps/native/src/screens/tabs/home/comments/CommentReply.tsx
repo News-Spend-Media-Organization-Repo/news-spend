@@ -1,24 +1,22 @@
+import { LegendList } from "@legendapp/list/react-native";
 import { useNetInfo } from "@react-native-community/netinfo";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { FlashList } from "@shopify/flash-list";
 import { type InfiniteData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "phosphor-react-native";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
 import Reply from "#/components/comment/Reply";
 import { EditCommentBox } from "#/components/EditCommentBox";
-import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
-import { Screen } from "#/components/Screen";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 
 function CommentReplies() {
-  const { commentId, ...rest } = useRoute().params;
+  const { commentId, ...rest } = useRoute("CommentReply").params;
   const ref = useRef<TextInput>(null);
   const editRef = useRef<TextInput>(null);
   const { isConnected } = useNetInfo();
@@ -68,7 +66,6 @@ function CommentReplies() {
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
-      gcTime: 0,
     }),
   );
 
@@ -102,14 +99,13 @@ function CommentReplies() {
   // }
 
   return (
-    <Screen safeAreaEdges={["bottom"]}>
+    <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView systemBarStyle="auto">
       <KeyboardAvoidingView
         behavior="padding"
         // keyboardVerticalOffset={50}
         style={{ flex: 1 }}
       >
-        <FlashList
-          contentContainerStyle={{ paddingBottom: 50, paddingTop: 20 }}
+        <LegendList
           data={allPages}
           keyExtractor={(item) => (typeof item === "string" ? item : item.id)}
           ListEmptyComponent={
@@ -122,24 +118,7 @@ function CommentReplies() {
             )
           }
           ListFooterComponent={replies.isFetchingNextPage ? <ActivityIndicator /> : null}
-          ListHeaderComponent={
-            <>
-              <View className="mx-2.5 mb-4">
-                <Button
-                  className="h-auto flex-row items-center gap-2 p-0"
-                  onPress={() => navigation.goBack()}
-                  variant="ghost"
-                >
-                  <ArrowLeft size={30} />
-                  <Text className="text-[15px]">
-                    {data?.totalReplies}
-                    {(data?.totalReplies ?? 0) > 1 ? " Replies" : " Reply"}
-                  </Text>
-                </Button>
-              </View>
-              <CommentCard comment={data} ref={ref} />
-            </>
-          }
+          ListHeaderComponent={<CommentCard comment={data} ref={ref} />}
           ListHeaderComponentStyle={{ marginVertical: 15 }}
           // showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}

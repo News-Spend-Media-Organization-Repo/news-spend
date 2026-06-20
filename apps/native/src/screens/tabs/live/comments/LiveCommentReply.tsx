@@ -68,7 +68,6 @@ function LiveCommentReply({ route }) {
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
-      gcTime: 0,
     }),
   );
 

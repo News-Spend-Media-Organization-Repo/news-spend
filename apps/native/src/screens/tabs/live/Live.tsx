@@ -264,7 +264,7 @@ function Live() {
         <View className="flex-1 gap-4 px-2">
           {!commentQuery.data || commentQuery.data?.pages[0]?.totalDocs < 1 ? (
             <View className="flex-1">
-              <Text className="bg-background py-2 pl-2 font-normal text-lg">Comments</Text>
+              <Text className="bg-white py-2 pl-2 font-normal text-lg">Comments</Text>
               <View className="flex-1 items-center justify-center">
                 <Text className="text-center text-[15px]">Be the first to comment</Text>
                 <Button
@@ -303,7 +303,9 @@ function Live() {
               }
               renderItem={({ item }) =>
                 typeof item === "string" ? (
-                  <Text className="bg-background py-2 pl-2 font-normal text-lg">Comments</Text>
+                  <View className="bg-white py-2 pl-2">
+                    <Text className="font-normal text-lg">Comments</Text>
+                  </View>
                 ) : (
                   <CommentCard comment={item} />
                 )

@@ -187,7 +187,7 @@ function ScreenWithoutScrolling(props: ScreenProps) {
     <View className={cn("h-full w-full flex-1", className)} style={style}>
       <View
         className={cn(
-          "flex-1 items-stretch justify-start bg-white",
+          "flex-1 items-stretch justify-start",
           preset === "fixed" && "justify-end",
           contentContainerClassName,
         )}
@@ -220,10 +220,7 @@ function ScreenWithScrolling(props: ScreenProps) {
   useScrollToTop(ref);
 
   const scrollViewClassName = cn("h-full w-full flex-1", className);
-  const scrollViewContentClassName = cn(
-    "items-stretch justify-start bg-white",
-    contentContainerClassName,
-  );
+  const scrollViewContentClassName = cn("items-stretch justify-start", contentContainerClassName);
   const scrollViewContentStyle = [ScrollViewProps?.contentContainerStyle, contentContainerStyle];
   const scrollViewStyle = [ScrollViewProps?.style, style];
 
@@ -322,7 +319,7 @@ export function Screen(props: ScreenProps) {
 
   return (
     <View
-      className={cn("h-full w-full flex-1 bg-background", screenClassName)}
+      className={cn("h-full w-full flex-1 bg-white", screenClassName)}
       style={[
         $containerInsets,
         // backgroundColor prop now correctly overrides the bg-background class

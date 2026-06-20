@@ -3,7 +3,7 @@ import type { PromoVideoSource } from "@news-spend-media/payload/types";
 import { useIsFocused } from "@react-navigation/native";
 import type { VideoSource } from "expo-video";
 import { type Ref, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Stack } from "tamagui";
+import { View } from "react-native";
 
 import { Image, Video, type VideoRef } from "#/components/ui";
 
@@ -76,7 +76,7 @@ const PromoVideo = ({ item, onLoad, autoPlay = false, posterSource, ref }: Promo
   );
 
   return (
-    <Stack h="100%" w="100%" position="relative">
+    <View className="relative h-full w-full">
       {focused && (
         <Video
           allowsPictureInPicture={false}
@@ -94,7 +94,7 @@ const PromoVideo = ({ item, onLoad, autoPlay = false, posterSource, ref }: Promo
           style={{ width: "100%", height: "100%", borderRadius: 10 }}
         />
       )}
-      {(!autoPlay || !focused) && posterSource && (
+      {!(autoPlay && focused) && posterSource && (
         <Image
           source={posterSource}
           style={{
@@ -107,7 +107,7 @@ const PromoVideo = ({ item, onLoad, autoPlay = false, posterSource, ref }: Promo
           }}
         />
       )}
-    </Stack>
+    </View>
   );
 };
 

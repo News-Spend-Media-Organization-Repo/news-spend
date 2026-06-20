@@ -58,7 +58,7 @@ export function NewsActionBar(props: NewsActionBarProps) {
           onPress={() => navigateToComments(true)}
         >
           <Text className="text-background">Let's talk about it</Text>
-          <Icon className="text-background" name={PencilSimpleLineIcon} size={19} />
+          <Icon color="white" name={PencilSimpleLineIcon} size={16} />
         </Pressable>
 
         {/* Comment count */}

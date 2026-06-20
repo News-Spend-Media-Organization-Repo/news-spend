@@ -1,19 +1,17 @@
-import type { Comment } from "@news-spend-media/payload/types";
+import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Image } from "expo-image";
-import { CaretDown } from "phosphor-react-native";
+import { CaretDownIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-
 import CommentCard from "#/components/comment/CommentCard";
 import { EditCommentBox } from "#/components/EditCommentBox";
 import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { CommentBox } from "#/components/index";
-import { Screen } from "#/components/Screen";
+import { Image } from "#/components/ui";
 import useGetComments from "#/hooks/comments/useGetComments";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
@@ -73,9 +71,9 @@ const Comments = () => {
     }
   }, [params?.focus]);
 
-  const renderItem: ListRenderItem<Comment> = useCallback(
-    ({ item }: { item: Comment }) => <CommentCard comment={item} ref={ref} />,
-    [ref],
+  const renderItem = useCallback(
+    ({ item }: LegendListRenderItemProps<Comment>) => <CommentCard comment={item} />,
+    [],
   );
 
   const onEndReached = useCallback(() => {
@@ -107,14 +105,13 @@ const Comments = () => {
   const { url, blurhash } = getImageData(news.data?.image);
 
   return (
-    <Screen safeAreaEdges={["bottom"]}>
+    <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView systemBarStyle="auto">
       <KeyboardAvoidingView
         behavior="padding"
         // keyboardVerticalOffset={10}
         style={{ flex: 1 }}
       >
-        <FlashList
-          contentContainerStyle={{ paddingTop: 20 }}
+        <LegendList
           data={allPages}
           keyExtractor={keyExtractor}
           ListEmptyComponent={
@@ -126,11 +123,11 @@ const Comments = () => {
           ListHeaderComponent={
             <View className="mb-6 gap-3">
               <View className="flex-row items-center px-2">
-                <Button onPress={() => navigation.goBack()} variant="ghost">
-                  <CaretDown size={24} />
+                <Button hitSlop={14} onPress={() => navigation.goBack()} size="sm" variant="ghost">
+                  <CaretDownIcon size={20} />
                 </Button>
                 <Image
-                  className="min-h-[60px] w-[60px] rounded-[10px]"
+                  className="h-full w-15 rounded-[10px]"
                   contentFit="cover"
                   placeholder={{
                     blurhash,
@@ -138,13 +135,13 @@ const Comments = () => {
                   source={url}
                 />
                 <View className="flex-1 self-start px-2.5">
-                  <Text className="leading-[18px]" numberOfLines={3}>
+                  <Text className="font-semibold leading-4.5" numberOfLines={3}>
                     {news.data?.title}
                   </Text>
                 </View>
               </View>
 
-              <Text className="my-2 pl-4 font-normal text-lg">
+              <Text className="mt-2 pl-4 font-normal text-lg">
                 Comments ({allPages?.length ?? 0})
               </Text>
             </View>

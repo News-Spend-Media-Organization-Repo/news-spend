@@ -94,7 +94,7 @@ export default function NewsItem({
             </Text>
           )}
           <View className="flex-1">
-            <Text ellipsizeMode="head" numberOfLines={2}>
+            <Text ellipsizeMode="tail" numberOfLines={2}>
               {news?.title}
             </Text>
           </View>

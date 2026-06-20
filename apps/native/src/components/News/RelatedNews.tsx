@@ -88,7 +88,7 @@ const RelatedItem = memo(
           <RelatedImage item={item} width={width} />
         </View>
         <View className="gap-2">
-          <Text ellipsizeMode="head" numberOfLines={3}>
+          <Text ellipsizeMode="tail" numberOfLines={3}>
             {title}
           </Text>
           {isNewsItem && points > 0 && (

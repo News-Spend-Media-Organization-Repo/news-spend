@@ -1,6 +1,7 @@
 // biome-ignore lint/style/useFilenamingConvention: PascalCase matches the convention of this directory
 
 import { useEvent } from "expo";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, type VideoThumbnail, VideoView } from "expo-video";
 import { PauseIcon, PlayIcon, SpeakerHighIcon, SpeakerXIcon } from "phosphor-react-native";
@@ -20,9 +21,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { useTheme } from "tamagui";
-
-import { Image as ExpoImageComponent } from "./Image";
 
 export type { VideoSource } from "expo-video";
 
@@ -379,10 +377,9 @@ export const Video = ({
   onFullscreenUpdate,
   subtitles = [],
 }: VideoProps) => {
-  const theme = useTheme();
-  const textColor = theme.background.val;
-  const cardColor = theme.background.val;
-  const mutedColor = theme.placeholderColor?.val ?? "#aaaaaa";
+  const textColor = "#ffffff";
+  const cardColor = "#ffffff";
+  const mutedColor = "#003964";
 
   const videoViewRef = useRef<VideoView>(null);
   const [isMuted, setIsMuted] = useState(muted);
@@ -627,7 +624,7 @@ export const Video = ({
       {/* Poster thumbnail — shown until the user plays for the first time */}
       {Boolean(thumbnail && !hasPlayedOnce.current) && (
         <View pointerEvents="none" style={styles.thumbnailOverlay}>
-          <ExpoImageComponent contentFit={contentFit} source={thumbnail} style={styles.fill} />
+          <ExpoImage contentFit={contentFit} source={thumbnail} style={styles.fill} />
         </View>
       )}
 
