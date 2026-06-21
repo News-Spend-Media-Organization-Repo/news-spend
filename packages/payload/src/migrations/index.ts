@@ -20,7 +20,6 @@ import * as migration_20260523_173532 from "./20260523_173532";
 import * as migration_20260608_004551_notification_cascade_delete from "./20260608_004551_notification_cascade_delete";
 import * as migration_20260608_013824_fix_notification_cascade from "./20260608_013824_fix_notification_cascade";
 import * as migration_20260620_215834 from "./20260620_215834";
-import * as migration_20260621_220355_reactions_to_polymorphic from "./20260621_220355_reactions_to_polymorphic";
 import * as migration_20260621_220614_fix_user_news_cascade from "./20260621_220614_fix_user_news_cascade";
 
 export const migrations = [
@@ -134,11 +133,11 @@ export const migrations = [
     down: migration_20260620_215834.down,
     name: "20260620_215834",
   },
-  {
-    up: migration_20260621_220355_reactions_to_polymorphic.up,
-    down: migration_20260621_220355_reactions_to_polymorphic.down,
-    name: "20260621_220355_reactions_to_polymorphic",
-  },
+  // {
+  //   up: migration_20260621_220355_reactions_to_polymorphic.up,
+  //   down: migration_20260621_220355_reactions_to_polymorphic.down,
+  //   name: "20260621_220355_reactions_to_polymorphic",
+  // },
   {
     up: migration_20260621_220614_fix_user_news_cascade.up,
     down: migration_20260621_220614_fix_user_news_cascade.down,
