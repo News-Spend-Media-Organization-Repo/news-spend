@@ -32,7 +32,7 @@ import { authState } from "#/state/auth";
 import { getImageData } from "#/utils/getImageData";
 import { AppItem } from "./app-item";
 import { GameItem } from "./game-item";
-import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
+import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
 import { StationItem } from "./radio-station-item";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -571,6 +571,7 @@ export const AllTab = () => {
           if (Platform.OS === "ios") {
             const pull = -e.nativeEvent.contentOffset.y;
             if (pull >= 80) {
+              triggerRefreshHaptic();
               refetchAll();
             }
           }

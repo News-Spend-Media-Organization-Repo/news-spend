@@ -1,7 +1,12 @@
 import { ActivityIndicator, Platform } from "react-native";
 import { useCurrentTabScrollY, useHeaderMeasurements } from "react-native-collapsible-tab";
-import Animated, { Extrapolation, interpolate, useAnimatedStyle } from "react-native-reanimated";
-
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedReaction,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { useTabBarHeight } from "./tab-bar-height-context";
 
 const PULL_THRESHOLD = 80;
@@ -21,6 +26,17 @@ function IOSTabPullSpinner({ refreshing }: { refreshing: boolean }) {
   const scrollY = useCurrentTabScrollY();
   const { top: headerTop, height: headerHeight } = useHeaderMeasurements();
   const tabBarHeight = useTabBarHeight();
+
+  useAnimatedReaction(
+    () => scrollY.value,
+    (current, previous) => {
+      const pull = Math.max(0, -current);
+      const wasAbove = previous !== null && Math.max(0, -previous) >= PULL_THRESHOLD;
+      if (!wasAbove && pull >= PULL_THRESHOLD) {
+        scheduleOnRN(triggerLightHaptic);
+      }
+    },
+  );
 
   const animatedStyle = useAnimatedStyle(() => {
     const pull = Math.max(0, -scrollY.value);
@@ -56,4 +72,16 @@ function IOSTabPullSpinner({ refreshing }: { refreshing: boolean }) {
       <ActivityIndicator />
     </Animated.View>
   );
+}
+
+export function triggerRefreshHaptic() {
+  import("expo-haptics")
+    .then(({ impactAsync, ImpactFeedbackStyle }) => impactAsync(ImpactFeedbackStyle.Medium))
+    .catch(() => undefined);
+}
+
+function triggerLightHaptic() {
+  import("expo-haptics")
+    .then(({ impactAsync, ImpactFeedbackStyle }) => impactAsync(ImpactFeedbackStyle.Light))
+    .catch(() => undefined);
 }

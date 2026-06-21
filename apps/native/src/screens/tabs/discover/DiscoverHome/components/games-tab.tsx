@@ -8,7 +8,7 @@ import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { authState } from "#/state/auth";
 import { GameItem } from "./game-item";
-import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
+import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
 
 export function GamesTab() {
   const { user } = useSnapshot(authState);
@@ -85,6 +85,7 @@ export function GamesTab() {
           if (Platform.OS === "ios") {
             const pull = -e.nativeEvent.contentOffset.y;
             if (pull >= 80) {
+              triggerRefreshHaptic();
               refetchByUser();
             }
           }

@@ -11,7 +11,7 @@ import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { authState } from "#/state/auth";
-import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
+import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
 
 type Offer = RouterOutputs["survey"]["offers"]["getOffers"][number];
 
@@ -234,6 +234,7 @@ export function SurveyTab() {
           if (Platform.OS === "ios") {
             const pull = -e.nativeEvent.contentOffset.y;
             if (pull >= 80) {
+              triggerRefreshHaptic();
               refetchByUser();
             }
           }

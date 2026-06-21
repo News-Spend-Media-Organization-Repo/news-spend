@@ -9,7 +9,7 @@ import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { AppItem } from "./app-item";
-import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
+import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
 
 export const AppTab = () => {
   const { handleClick, isLoading } = usePartnerClick();
@@ -88,6 +88,7 @@ export const AppTab = () => {
           if (Platform.OS === "ios") {
             const pull = -e.nativeEvent.contentOffset.y;
             if (pull >= 80) {
+              triggerRefreshHaptic();
               refetchByUser();
             }
           }

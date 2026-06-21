@@ -8,14 +8,13 @@ import { ProgressBar } from "#/components/heroui/progress";
 import { Text } from "#/components/heroui/text";
 import { usePlayerState } from "#/state/audioPlayerState";
 
-import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
+import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
 import {
   type RadioSectionItem,
   SectionHeader,
   StationList,
   useRadioStations,
 } from "./radio-screen";
-import { useTabBarHeight } from "./tab-bar-height-context";
 
 const keyExtractor = (item: RadioSectionItem): string => {
   switch (item.type) {
@@ -100,6 +99,7 @@ export const MusicTab = () => {
           if (Platform.OS === "ios") {
             const pull = -e.nativeEvent.contentOffset.y;
             if (pull >= 80) {
+              triggerRefreshHaptic();
               refetchByUser();
             }
           }
