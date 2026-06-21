@@ -228,6 +228,7 @@ export function SurveyTab() {
       ListHeaderComponent={renderTopRatedCard}
       numColumns={2}
       onRefresh={refetchByUser}
+      progressViewOffset={0}
       refreshing={isRefetchingByUser}
       renderItem={renderSurveyCard}
     />

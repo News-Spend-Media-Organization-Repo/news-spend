@@ -12,7 +12,13 @@ import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Skeleton } from "heroui-native/skeleton";
 import type { Station } from "radio-browser-api";
 import { useCallback, useMemo, useRef } from "react";
-import { ActivityIndicator, RefreshControl, type ScrollViewProps, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  RefreshControl,
+  type ScrollViewProps,
+  View,
+} from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSnapshot } from "valtio";
@@ -547,7 +553,10 @@ export const AllTab = () => {
   }, []);
 
   const refreshControl = useMemo(
-    () => <RefreshControl onRefresh={refetchAll} refreshing={isRefetching} />,
+    () =>
+      Platform.OS === "android" ? (
+        <RefreshControl onRefresh={refetchAll} progressViewOffset={0} refreshing={isRefetching} />
+      ) : undefined,
     [isRefetching, refetchAll],
   );
 

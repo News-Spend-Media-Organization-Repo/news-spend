@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
-import { View } from "react-native";
+import { useCallback, useMemo } from "react";
+import { Platform, RefreshControl, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSnapshot } from "valtio";
 import { Text } from "#/components/heroui/text";
@@ -52,6 +52,18 @@ export function GamesTab() {
     [onItemClick],
   );
 
+  const refreshControl = useMemo(
+    () =>
+      Platform.OS === "android" ? (
+        <RefreshControl
+          onRefresh={refetchByUser}
+          progressViewOffset={0}
+          refreshing={isRefetchingByUser}
+        />
+      ) : undefined,
+    [refetchByUser, isRefetchingByUser],
+  );
+
   return (
     <TabLegendList
       contentContainerStyle={{
@@ -67,8 +79,7 @@ export function GamesTab() {
           </View>
         ) : null
       }
-      onRefresh={refetchByUser}
-      refreshing={isRefetchingByUser}
+      refreshControl={refreshControl}
       renderItem={renderItem}
     />
   );

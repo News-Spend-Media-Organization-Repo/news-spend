@@ -2,7 +2,7 @@ import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/reac
 import { useQuery } from "@tanstack/react-query";
 import { MusicNoteIcon } from "phosphor-react-native";
 import type { Station } from "radio-browser-api";
-import { memo, type ReactNode, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { type ScrollViewProps, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
@@ -12,16 +12,20 @@ import { orpc } from "#/lib/orpc";
 
 import { StationItem } from "./radio-station-item";
 
-// Memoized section header to prevent unnecessary re-renders
-export const SectionHeader = memo(({ title }: { title: string }) => (
-  <View className="my-2.5 flex-row items-center gap-2 px-4">
-    <MusicNoteIcon color="#5D3FD3" size={18} weight="fill" />
-    <Text className="font-semibold text-gray-800 text-lg">{title}</Text>
-  </View>
-));
+export type RadioSectionItem =
+  | { type: "header"; title: string }
+  | { type: "stations"; stations: Station[]; key: string };
 
-// Memoized station list to prevent unnecessary re-renders
-export const StationList = memo(({ stations }: { stations: Station[] }) => {
+export function SectionHeader({ title }: { title: string }) {
+  return (
+    <View className="my-2.5 flex-row items-center gap-2 px-4">
+      <MusicNoteIcon color="#5D3FD3" size={18} weight="fill" />
+      <Text className="font-semibold text-gray-800 text-lg">{title}</Text>
+    </View>
+  );
+}
+
+export function StationList({ stations }: { stations: Station[] }) {
   const renderStationItem = useCallback(
     ({ item }: LegendListRenderItemProps<Station>) => (
       <StationItem item={item} stationList={stations} />
@@ -29,21 +33,13 @@ export const StationList = memo(({ stations }: { stations: Station[] }) => {
     [stations],
   );
 
-  // Memoize the separator component
   const ItemSeparator = useMemo(() => () => <View className="w-4" />, []);
-
-  // Memoize the key extractor
   const keyExtractor = useCallback((item: Station) => item.id, []);
-
-  // Memoize the custom scroll view
   const CustomScrollView = useCallback((props: ScrollViewProps) => <ScrollView {...props} />, []);
 
   return (
     <LegendList
-      contentContainerStyle={{
-        paddingLeft: 16,
-        paddingRight: 8,
-      }}
+      contentContainerStyle={{ paddingLeft: 16, paddingRight: 8 }}
       data={stations}
       estimatedItemSize={200}
       horizontal
@@ -53,49 +49,38 @@ export const StationList = memo(({ stations }: { stations: Station[] }) => {
       renderItem={renderStationItem}
       renderScrollComponent={CustomScrollView}
       showsHorizontalScrollIndicator={false}
-      style={{ height: "100%" }}
+      style={{ height: 200 }}
     />
   );
-});
+}
 
-type RadioSection = string | Station[];
+type GenreGroup = { stations: Station[]; displayName: string };
 
 export function useRadioStations() {
-  // Memoize the transform function to prevent recreation
-  const transformData = useCallback(
-    (data: { stations: Station[]; displayName: string }[]) =>
-      data?.reduce<RadioSection[]>((acc, section) => {
-        acc.push(section.displayName);
-        acc.push(section.stations);
-        return acc;
-      }, []),
-    [],
-  );
-
   const { data, isPending, isError, refetch } = useQuery(
     orpc.radioStation.byGenreGroup.queryOptions({
-      select: transformData,
       staleTime: 5 * 60 * 1000,
     }),
   );
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
-  const sections: ReactNode = useMemo(
-    () =>
-      data?.map((item) => {
-        if (typeof item === "string") {
-          return <SectionHeader key={item} title={item} />;
-        }
-        return (
-          <StationList
-            key={item.length > 0 ? `stations-${item[0].id}` : "empty-stations"}
-            stations={item}
-          />
-        );
-      }),
-    [data],
-  );
+  const sections: RadioSectionItem[] = useMemo(() => {
+    const groups = (data ?? []) as GenreGroup[];
+    const items: RadioSectionItem[] = [];
+    for (const group of groups) {
+      items.push({ type: "header", title: group.displayName });
+      items.push({
+        type: "stations",
+        stations: group.stations,
+        key:
+          group.stations.length > 0
+            ? (group.stations[0]?.id ?? group.displayName)
+            : `empty-${group.displayName}`,
+      });
+    }
+    return items;
+  }, [data]);
 
   return {
     data,

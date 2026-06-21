@@ -83,6 +83,7 @@ export const AppTab = () => {
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       onRefresh={onRefresh}
+      progressViewOffset={0}
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
     />
