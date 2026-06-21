@@ -1,21 +1,25 @@
-import { LegendList } from "@legendapp/list/react-native";
 import * as Clipboard from "expo-clipboard";
+import { ListGroup } from "heroui-native/list-group";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { Separator } from "heroui-native/separator";
+
 import type { IconProps } from "phosphor-react-native";
 import {
-  ChatDots,
-  Copy,
-  EnvelopeSimple,
-  MessengerLogo,
-  ShareNetwork,
-  WhatsappLogo,
+  ChatDotsIcon,
+  CopyIcon,
+  EnvelopeSimpleIcon,
+  MessengerLogoIcon,
+  ShareNetworkIcon,
+  WhatsappLogoIcon,
 } from "phosphor-react-native";
 import { useMemo } from "react";
-import { Linking, Platform, ToastAndroid } from "react-native";
+import { Linking, Platform, ScrollView, View } from "react-native";
 import Share, { type Social } from "react-native-share";
 import { toast } from "sonner-native";
-import { ListItem, Paragraph, Separator, YGroup } from "tamagui";
 
-import { Screen } from "#/components/Screen";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import useAddActivity from "#/hooks/point/useAddActivity";
 import { authState } from "#/state/auth";
 
@@ -68,7 +72,7 @@ const ShareApp = () => {
       }
     } catch (error: any) {
       console.log("Share error:", error.message);
-      ToastAndroid.show("Could not share", ToastAndroid.SHORT);
+      toast.error("Could not share");
     }
   };
 
@@ -80,7 +84,7 @@ const ShareApp = () => {
     () => [
       {
         text: "Invite via SMS",
-        Icon: ChatDots,
+        Icon: ChatDotsIcon,
         onPress: async () => {
           try {
             const res = await Linking.openURL(`sms:?body=${msg} ${url}`);
@@ -88,57 +92,57 @@ const ShareApp = () => {
             if (res) {
               awardPoint();
             } else {
-              ToastAndroid.show("Could not open SMS. Please try again", ToastAndroid.SHORT);
+              toast.error("Could not open SMS. Please try again");
             }
           } catch (error) {
             console.error(error);
-            ToastAndroid.show("Could not open SMS. Please try again", ToastAndroid.SHORT);
+            toast.error("Could not open SMS. Please try again");
           }
         },
       },
       {
         text: "Invite via Email",
-        Icon: EnvelopeSimple,
+        Icon: EnvelopeSimpleIcon,
         onPress: async () => {
           try {
             const res = await Linking.openURL(`mailto:?body=${msg} ${url}`);
             if (res) {
               awardPoint();
             } else {
-              ToastAndroid.show("Could not open SMS. Please try again", ToastAndroid.SHORT);
+              toast.error("Could not open Email. Please try again");
             }
           } catch (error) {
             console.error(error);
-            ToastAndroid.show("Could not open Email. Please try again", ToastAndroid.SHORT);
+            toast.error("Could not open Email. Please try again");
           }
         },
       },
       {
         text: "Invite Messenger Friends",
-        Icon: MessengerLogo,
+        Icon: MessengerLogoIcon,
         onPress: async () => onShare(Share.Social.MESSENGER as Social, "com.facebook.orca"),
       },
       {
         text: "Invite Whatsapp Friends",
-        Icon: WhatsappLogo,
+        Icon: WhatsappLogoIcon,
         onPress: async () => onShare(Share.Social.WHATSAPP as Social, "com.whatsapp"),
       },
       {
         text: "Copy link",
-        Icon: Copy,
+        Icon: CopyIcon,
         onPress: async () => {
           try {
             await Clipboard.setStringAsync(`${msg} \n ${url}`);
-            ToastAndroid.show("Link copied to clipboard", ToastAndroid.SHORT);
+            toast.success("Link copied to clipboard");
           } catch (error) {
             console.error(error);
-            ToastAndroid.show("Could not copy link", ToastAndroid.SHORT);
+            toast.error("Could not copy link");
           }
         },
       },
       {
         text: "Share via...",
-        Icon: ShareNetwork,
+        Icon: ShareNetworkIcon,
         onPress: async () => {
           try {
             const res = await Share.open({
@@ -150,47 +154,50 @@ const ShareApp = () => {
             if (res.success) {
               awardPoint();
             } else {
-              ToastAndroid.show("Could not share. Please try again", ToastAndroid.SHORT);
+              toast.error("Could not share. Please try again");
             }
           } catch (error) {
-            console.log(error);
-            ToastAndroid.show("Could not share", ToastAndroid.SHORT);
+            // console.log(error);
+            // toast.error("Could not share");
           }
         },
       },
     ],
     [],
   );
-  return (
-    <Screen>
-      <Paragraph px="$4" py="$2">
-        Earn
-        <Paragraph color="$p500" fontWeight="600">
-          {" "}
-          20{" "}
-        </Paragraph>
-        credits for every friend you invite
-      </Paragraph>
 
-      <YGroup flex={1} size="$2">
-        <LegendList
-          data={options}
-          ItemSeparatorComponent={Separator}
-          keyExtractor={(item) => item.text}
-          renderItem={({ item: { text, Icon, onPress } }) => (
-            <YGroup.Item key={text}>
-              <ListItem
-                icon={<Icon />}
-                onPress={onPress}
-                pressTheme
-                // iconAfter={<CaretRight color="grey" />}
-                title={text}
-              />
-            </YGroup.Item>
-          )}
-        />
-      </YGroup>
+  return (
+    <Screen systemBarStyle="light">
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text className="px-4 py-2">
+          Earn <Text className="font-semibold text-accent">20</Text> credits for every friend you
+          invite
+        </Text>
+
+        <ListGroup variant="transparent">
+          {options.map(({ text, Icon: OptionIcon, onPress }, index) => (
+            <View key={text}>
+              <PressableFeedback animation={false} onPress={onPress}>
+                <PressableFeedback.Scale>
+                  <ListGroup.Item disabled>
+                    <ListGroup.ItemPrefix>
+                      <Icon name={OptionIcon} size={22} />
+                    </ListGroup.ItemPrefix>
+                    <ListGroup.ItemContent>
+                      <ListGroup.ItemTitle>{text}</ListGroup.ItemTitle>
+                    </ListGroup.ItemContent>
+                    <ListGroup.ItemSuffix />
+                  </ListGroup.Item>
+                </PressableFeedback.Scale>
+                <PressableFeedback.Ripple />
+              </PressableFeedback>
+              {index < options.length - 1 && <Separator className="mx-4" />}
+            </View>
+          ))}
+        </ListGroup>
+      </ScrollView>
     </Screen>
   );
 };
+
 export default ShareApp;

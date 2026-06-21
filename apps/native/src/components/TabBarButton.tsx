@@ -1,23 +1,18 @@
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import type React from "react";
-import { Pressable } from "react-native";
-import { SizableText } from "tamagui";
+import { Pressable, Text } from "react-native";
 
 type Props = BottomTabBarButtonProps & {
   label?: string;
   Icon?:
     | React.NamedExoticComponent<any>
-    | ((props: {
-        focused: boolean;
-        color: string;
-        size: number;
-      }) => React.ReactNode)
+    | ((props: { focused: boolean; color: string; size: number }) => React.ReactNode)
     | undefined;
 };
 
 export default function TabBarButton(props: Props) {
   const { onPress, accessibilityState, label, Icon } = props;
-  // console.log(accessibilityState);
+
   return (
     <Pressable
       onPress={onPress}
@@ -36,16 +31,18 @@ export default function TabBarButton(props: Props) {
           }}
         />
       )}
-      {label !== "Settings" ? (
-        <SizableText
-          color={accessibilityState?.selected ? "$s50" : "gray"}
-          fontSize={12}
-          lh={15}
-          ta="center"
+      {label === "Settings" ? null : (
+        <Text
+          style={{
+            color: accessibilityState?.selected ? "#fff" : "gray",
+            fontSize: 12,
+            lineHeight: 15,
+            textAlign: "center",
+          }}
         >
           {label}
-        </SizableText>
-      ) : null}
+        </Text>
+      )}
     </Pressable>
   );
 }

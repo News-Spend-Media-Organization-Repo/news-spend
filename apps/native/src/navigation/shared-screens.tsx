@@ -60,6 +60,7 @@ export const sharedScreens = {
       path: "/article/:newsSlug/comment/:commentId",
     },
     options: {
+      // presentation: "modal",
       animation: "slide_from_bottom",
     },
   }),
@@ -88,7 +89,7 @@ export const sharedScreens = {
       path: "/video/:slug/comment/:commentId",
     },
     options: {
-      // slide up from bottom
+      // presentation: "modal",
       animation: "slide_from_bottom",
     },
   }),

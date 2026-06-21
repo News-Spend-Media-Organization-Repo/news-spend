@@ -1,35 +1,32 @@
-import { Linking } from "react-native";
-import { Paragraph, Stack } from "tamagui";
+import { Linking, ScrollView, View } from "react-native";
 
-import { Screen } from "#/components/Screen";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 
-const Call = () => {
-  return (
-    <Screen>
-      <Stack p="$3" gap="$4">
-        <Paragraph>
+const Call = () => (
+  <Screen className="bg-background" systemBarStyle="light">
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <View className="gap-4 p-3">
+        <Text className="text-base leading-relaxed">
           Please reach out to us at{" "}
-          <Paragraph
+          <Text
+            className="font-semibold text-blue-500 underline"
             onPress={() => Linking.openURL("tel:+12265073364")}
-            color="blue"
-            fontWeight="600"
-            textDecorationLine="underline"
           >
             +1 (226) 507-3364
-          </Paragraph>{" "}
+          </Text>{" "}
           or{" "}
-          <Paragraph
+          <Text
+            className="font-semibold text-blue-500 underline"
             onPress={() => Linking.openURL("tel:+2349153849852")}
-            color="blue"
-            fontWeight="600"
-            textDecorationLine="underline"
           >
             +234 915 384 9852
-          </Paragraph>{" "}
+          </Text>{" "}
           and we'll get back to you shortly.
-        </Paragraph>
-      </Stack>
-    </Screen>
-  );
-};
+        </Text>
+      </View>
+    </ScrollView>
+  </Screen>
+);
+
 export default Call;

@@ -1,13 +1,15 @@
 import { useNavigation } from "@react-navigation/native";
-import { Clock, Play } from "@tamagui/lucide-icons";
 import { formatDistanceToNow } from "date-fns";
-import { Circle, Stack, Text, XStack, YStack } from "tamagui";
-
-import { Button, Image } from "#/components/ui";
+import { Chip, cn } from "heroui-native";
+import { ClockIcon, PlayIcon } from "phosphor-react-native";
+import { Pressable, View } from "react-native";
 import type { RouterOutputs } from "#/lib/orpc";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
+import { Icon } from "../heroui/icon";
+import { Image } from "../heroui/image";
+import { Text } from "../heroui/text";
 
 export default function NewsItem({
   news,
@@ -55,24 +57,19 @@ export default function NewsItem({
   };
 
   return (
-    <Stack
-      // p="$3"
-      onPress={onPress}
-    >
-      <XStack gap="$4">
-        <Stack ai="center" jc="center">
+    <Pressable onPress={onPress}>
+      <View className="flex-row gap-4">
+        <View className="items-center justify-center">
           <Image
-            borderRadius={10}
+            className="size-25 rounded-[10px]"
             contentFit="cover"
-            h={100}
             placeholder={{ blurhash }}
             placeholderContentFit="cover"
             recyclingKey={news?.id}
             source={url}
-            w={100}
           />
           {news.type === "video" && (
-            <Circle
+            <View
               ai="center"
               bg="black"
               boc="#fff"
@@ -82,34 +79,40 @@ export default function NewsItem({
               pos="absolute"
               size="$3"
             >
-              <Play fill="#fff" size={32} />
-            </Circle>
+              <Icon fill="#fff" name={PlayIcon} size={32} />
+            </View>
           )}
-        </Stack>
-        <YStack flex={1} gap={latest ? 0 : "$4"} jc={latest ? "space-between" : "center"}>
+        </View>
+        <View
+          className={cn("flex-1", latest ? "justify-between" : "justify-center", {
+            "gap-4": !latest,
+          })}
+        >
           {latest && (
-            <Text color="$p500" fontWeight="700">
-              {typeof news.category === "object" && news.category?.title}
+            <Text className="font-bold text-p-500">
+              {typeof news?.category === "object" ? news.category?.title : null}
             </Text>
           )}
-          <Text ellipsizeMode="head" numberOfLines={2}>
-            {news.title}
-          </Text>
-          <XStack alignItems="center" jc="space-between">
-            <XStack alignItems="center" gap="$1">
-              <Clock color="#737373" size={15} />
-              <Text color="#737373">
+          <View className="flex-1">
+            <Text ellipsizeMode="tail" numberOfLines={2}>
+              {news?.title}
+            </Text>
+          </View>
+          <View className="flex-row justify-between">
+            <View className="flex-row items-center gap-1">
+              <Icon color="#737373" name={ClockIcon} size={14} />
+              <Text className="text-[#737373]">
                 {formatDistanceToNow(new Date(news.createdAt), {
                   addSuffix: true,
                 })}
               </Text>
-            </XStack>
-            <Button als="flex-end" bg="$color.s300" br="$10" fd="row" h="auto" px="$2" py="$1">
-              <Button.Text fos="$3">{news.points} points</Button.Text>
-            </Button>
-          </XStack>
-        </YStack>
-      </XStack>
-    </Stack>
+            </View>
+            <Chip className="bg-s-300" size="sm">
+              <Chip.Label className="text-white">{news?.points} points</Chip.Label>
+            </Chip>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 }

@@ -319,7 +319,7 @@ export function Screen(props: ScreenProps) {
 
   return (
     <View
-      className={cn("h-full w-full flex-1 bg-background", screenClassName)}
+      className={cn("h-full w-full flex-1 bg-white", screenClassName)}
       style={[
         $containerInsets,
         // backgroundColor prop now correctly overrides the bg-background class

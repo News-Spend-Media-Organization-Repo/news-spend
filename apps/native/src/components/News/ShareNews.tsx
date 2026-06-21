@@ -1,24 +1,25 @@
+import type { News } from "@news-spend-media/payload/types";
 import { useRoute } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
-import { useState } from "react";
-import { FlatList, ToastAndroid } from "react-native";
-import Share, { type Social } from "react-native-share";
-import { Sheet, Stack, Text, XStack } from "tamagui";
+import { BottomSheet } from "heroui-native/bottom-sheet";
 import {
-  Copy,
-  DotsThreeOutlineVertical,
-  FacebookLogo,
-  MessengerLogo,
-  ShareNetwork,
-  TwitterLogo,
-  WhatsappLogo,
-} from "tamagui-phosphor";
-
-import type { News } from "@news-spend-media/payload/types";
+  CopyIcon,
+  DotsThreeOutlineVerticalIcon,
+  FacebookLogoIcon,
+  MessengerLogoIcon,
+  ShareNetworkIcon,
+  TwitterLogoIcon,
+  WhatsappLogoIcon,
+} from "phosphor-react-native";
+import { useState } from "react";
+import { FlatList, ToastAndroid, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Share, { type Social } from "react-native-share";
 
 import BannerAds from "#/components/Ads/BannerAds";
-import { Button } from "#/components/ui/Button";
-import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
 
 export const ShareNews = ({
   news,
@@ -28,26 +29,17 @@ export const ShareNews = ({
   onShare?: (shareMethod: string) => void;
 }) => {
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const currentTabPath = route.name === "News" ? "news" : "live";
-  const [open, setOpen] = useState(false);
-  const numColumns = 3;
+  const [visible, setVisible] = useState(false);
   const gap = 10;
   const currentScreen = route.name === "SingleLive" ? "video" : "article";
   const url = `https://link.newsspend.com/${currentTabPath}/${currentScreen}/${news.slug}`;
 
-  useGlobalBackHandler(() => {
-    if (open) {
-      setOpen(false);
-      return true;
-    }
-
-    return false;
-  });
-
   const options = [
     {
       text: "Facebook",
-      Icon: FacebookLogo,
+      Icon: FacebookLogoIcon,
       onPress: async () => {
         try {
           const result = await Share.shareSingle({
@@ -57,16 +49,15 @@ export const ShareNews = ({
             social: Share.Social.FACEBOOK as Social,
             appId: "",
           });
-
           result.success && onShare?.("facebook");
-        } catch (error) {
+        } catch (error: any) {
           console.log(error.message);
         }
       },
     },
     {
       text: "Messenger",
-      Icon: MessengerLogo,
+      Icon: MessengerLogoIcon,
       onPress: async () => {
         try {
           const result = await Share.shareSingle({
@@ -76,16 +67,15 @@ export const ShareNews = ({
             social: Share.Social.MESSENGER as Social,
             appId: "",
           });
-
           result.success && onShare?.("messenger");
-        } catch (error) {
+        } catch (error: any) {
           console.log(error.message);
         }
       },
     },
     {
       text: "Whatsapp",
-      Icon: WhatsappLogo,
+      Icon: WhatsappLogoIcon,
       onPress: async () => {
         try {
           const result = await Share.shareSingle({
@@ -95,16 +85,15 @@ export const ShareNews = ({
             social: Share.Social.WHATSAPP as Social,
             appId: "",
           });
-
           result.success && onShare?.("whatsapp");
-        } catch (error) {
+        } catch (error: any) {
           console.log(error.message);
         }
       },
     },
     {
       text: "Twitter",
-      Icon: TwitterLogo,
+      Icon: TwitterLogoIcon,
       onPress: async () => {
         try {
           const result = await Share.shareSingle({
@@ -114,21 +103,20 @@ export const ShareNews = ({
             social: Share.Social.TWITTER as Social,
             appId: "",
           });
-
           result.success && onShare?.("twitter");
-        } catch (error) {
+        } catch (error: any) {
           console.log(error.message);
         }
       },
     },
     {
       text: "Copy link",
-      Icon: Copy,
+      Icon: CopyIcon,
       onPress: async () => {
         try {
           await Clipboard.setStringAsync(`${news.title} \n ${url}`);
           ToastAndroid.show("Link copied to clipboard", ToastAndroid.SHORT);
-          onShare?.("copy_link");
+          // onShare?.("copy_link");
         } catch (error) {
           console.error(error);
         }
@@ -136,7 +124,7 @@ export const ShareNews = ({
     },
     {
       text: "Others",
-      Icon: DotsThreeOutlineVertical,
+      Icon: DotsThreeOutlineVerticalIcon,
       onPress: async () => {
         try {
           const result = await Share.open({
@@ -145,87 +133,57 @@ export const ShareNews = ({
             url,
           });
           result.success && onShare?.("other");
-        } catch (error) {
+        } catch (error: any) {
           console.log(error.message);
         }
       },
     },
   ];
 
+  const numColumns = 3;
+
   return (
     <>
       <Button
-        bg="$p500"
-        borderRadius="$10"
-        h={50}
-        onPress={() => setOpen(true)}
-        shadowColor="rgba(0, 0, 0, 0.25)"
-        style={{
-          elevation: 2,
-        }}
-        w={50}
+        className="size-12.5 rounded-full bg-p-500"
+        onPress={() => setVisible(true)}
+        style={{ elevation: 2, shadowColor: "rgba(0, 0, 0, 0.25)" }}
       >
-        <Button.Icon color="white">
-          <ShareNetwork size={28} />
-        </Button.Icon>
+        <Icon color="white" name={ShareNetworkIcon} size={28} weight="duotone" />
       </Button>
 
-      <Sheet
-        animation="easeIn"
-        dismissOnSnapToBottom
-        forceRemoveScrollEnabled={open}
-        modal
-        onOpenChange={setOpen}
-        open={open}
-        snapPointsMode="fit"
-        zIndex={100_000}
-      >
-        <Sheet.Overlay bg="rgba(0, 0, 0, 0.5)" />
-        <Sheet.Frame
-          // flex={1}
-          gap="$5"
-          // justifyContent="center"
-          // alignItems="center"
-          padding="$4"
-        >
-          <Stack justifyContent="center" px="$2" w="100%">
-            <Text ff="$body" fontSize="$8" ta="center">
-              Share
-            </Text>
-          </Stack>
-          <Stack>
-            <FlatList
-              // estimatedItemSize={8}
-              columnWrapperStyle={{
-                gap,
-                alignItems: "center",
-                justifyContent: "space-around",
-              }}
-              contentContainerStyle={{
-                gap: 20,
-              }}
-              data={options}
-              key={numColumns}
-              numColumns={numColumns}
-              renderItem={({ item: { Icon, ...item } }) => (
-                <Stack ai="center" gap="$2" key={item.text}>
-                  <Button h="$5" onPress={item.onPress} primary py={2} w="$5">
-                    <Button.Icon color="white">
-                      <Icon size={30} />
-                    </Button.Icon>
-                  </Button>
-                  <Text ff="$body" ta="center">
-                    {item.text}
-                  </Text>
-                </Stack>
-              )}
-            />
-          </Stack>
-          <XStack jc="center" mt="$2" w="100%">
-            <BannerAds size="LARGE_BANNER" />
-          </XStack>
-        </Sheet.Frame>
-      </Sheet>
+      <BottomSheet isOpen={visible} onOpenChange={setVisible}>
+        <BottomSheet.Portal>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
+            <View className="gap-5">
+              <FlatList
+                columnWrapperStyle={{
+                  gap,
+                  alignItems: "center",
+                  justifyContent: "space-around",
+                }}
+                contentContainerStyle={{ gap: 20 }}
+                data={options}
+                key={numColumns}
+                numColumns={numColumns}
+                renderItem={({ item: { Icon: ItemIcon, ...item } }) => (
+                  <View className="items-center gap-2" key={item.text}>
+                    <Button className="size-12 bg-p-500 py-2" onPress={item.onPress}>
+                      <Icon color="white" name={ItemIcon} size={30} weight="regular" />
+                    </Button>
+                    <Text className="text-center text-sm">{item.text}</Text>
+                  </View>
+                )}
+              />
+
+              <View className="mt-2 w-full items-center">
+                <BannerAds size="LARGE_BANNER" />
+              </View>
+            </View>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
     </>
   );
 };

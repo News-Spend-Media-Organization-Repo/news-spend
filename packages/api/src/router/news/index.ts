@@ -13,6 +13,7 @@ import {
   DEFAULT_FEED_CONFIG,
   type FeedComposerData,
 } from "./feed-composer";
+import { getNewsReactionCounts, getUserReactionForNews, type UserReaction } from "./user-reaction";
 
 // Input schemas
 const HomeInputSchema = z.object({
@@ -302,7 +303,9 @@ const one = publicProcedure
     if (!news.docs.length) {
       throw new Error("News not found");
     }
-    return news.docs[0];
+    const doc = news.docs[0]!;
+    const userReaction = await getUserReactionForNews(payload, user?.id, doc.id);
+    return { ...doc, userReaction };
   });
 
 const relatedNews = publicProcedure.input(z.number().optional()).handler(async ({ context }) => {
@@ -345,74 +348,110 @@ const likeDislikeInput = z.object({
   slug: z.string(),
 });
 
-const like = protectedProcedure.input(likeDislikeInput).handler(async ({ input, context }) => {
-  const { payload } = context;
-  const reaction = await payload.find({
-    collection: "reactions",
-    where: {
-      news: { equals: input.newsId },
-      user: { equals: input.userId },
-    },
-  });
+/**
+ * Shared response shape returned by like/dislike. The client uses this to
+ * reconcile the optimistic cache write with server truth — no refetch needed,
+ * so the icon doesn't get clobbered by a stale read.
+ */
+type ReactionResponse = {
+  userReaction: UserReaction;
+  likesCount: number;
+  dislikesCount: number;
+};
 
-  if (reaction.docs && reaction.docs.length > 0 && reaction.docs[0]) {
-    const existing = reaction.docs[0];
-    if (existing.type === "like") {
-      return await payload.delete({
+const like = protectedProcedure
+  .input(likeDislikeInput)
+  .handler(async ({ input, context }): Promise<ReactionResponse> => {
+    const { payload } = context;
+    const reaction = await payload.find({
+      collection: "reactions",
+      where: {
+        and: [
+          { "target.relationTo": { equals: "news" } },
+          { "target.value": { equals: input.newsId } },
+          { user: { equals: input.userId } },
+        ],
+      },
+    });
+
+    if (reaction.docs && reaction.docs.length > 0 && reaction.docs[0]) {
+      const existing = reaction.docs[0];
+      if (existing.type === "like") {
+        await payload.delete({
+          collection: "reactions",
+          id: existing.id,
+        });
+      } else {
+        await payload.update({
+          collection: "reactions",
+          where: { id: { equals: existing.id } },
+          data: { type: "like" },
+        });
+      }
+    } else {
+      await payload.create({
         collection: "reactions",
-        id: existing.id,
+        data: {
+          target: { relationTo: "news", value: input.newsId },
+          user: input.userId,
+          type: "like",
+        },
       });
     }
-    return await payload.update({
+
+    const [counts, userReaction] = await Promise.all([
+      getNewsReactionCounts(payload, input.newsId),
+      getUserReactionForNews(payload, input.userId, input.newsId),
+    ]);
+    return { userReaction, ...counts };
+  });
+
+const dislike = protectedProcedure
+  .input(likeDislikeInput)
+  .handler(async ({ input, context }): Promise<ReactionResponse> => {
+    const { payload } = context;
+    const reaction = await payload.find({
       collection: "reactions",
-      where: { id: { equals: existing.id } },
-      data: { type: "like" },
+      where: {
+        and: [
+          { "target.relationTo": { equals: "news" } },
+          { "target.value": { equals: input.newsId } },
+          { user: { equals: input.userId } },
+        ],
+      },
     });
-  }
 
-  return await payload.create({
-    collection: "reactions",
-    data: {
-      news: input.newsId,
-      user: input.userId,
-      type: "like",
-    },
-  });
-});
-
-const dislike = protectedProcedure.input(likeDislikeInput).handler(async ({ input, context }) => {
-  const { payload } = context;
-  const reaction = await payload.find({
-    collection: "reactions",
-    where: {
-      news: { equals: input.newsId },
-      user: { equals: input.userId },
-    },
-  });
-
-  if (reaction.docs.length > 0 && reaction.docs[0]) {
-    if (reaction.docs[0].type === "dislike") {
-      return await payload.delete({
+    if (reaction.docs.length > 0 && reaction.docs[0]) {
+      const existing = reaction.docs[0];
+      if (existing.type === "dislike") {
+        await payload.delete({
+          collection: "reactions",
+          id: existing.id,
+        });
+      } else {
+        await payload.update({
+          collection: "reactions",
+          where: { id: { equals: existing.id } },
+          data: { type: "dislike" },
+        });
+      }
+    } else {
+      await payload.create({
         collection: "reactions",
-        id: reaction.docs[0].id,
+        data: {
+          target: { relationTo: "news", value: input.newsId },
+          user: input.userId,
+          type: "dislike",
+        },
       });
     }
-    return await payload.update({
-      collection: "reactions",
-      where: { id: { equals: reaction.docs[0].id } },
-      data: { type: "dislike" },
-    });
-  }
 
-  return await payload.create({
-    collection: "reactions",
-    data: {
-      news: input.newsId,
-      user: input.userId,
-      type: "dislike",
-    },
+    const [counts, userReaction] = await Promise.all([
+      getNewsReactionCounts(payload, input.newsId),
+      getUserReactionForNews(payload, input.userId, input.newsId),
+    ]);
+    return { userReaction, ...counts };
   });
-});
 
 const categories = publicProcedure
   .route({

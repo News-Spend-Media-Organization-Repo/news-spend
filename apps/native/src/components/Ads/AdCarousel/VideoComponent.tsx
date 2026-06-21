@@ -2,13 +2,12 @@
 
 import type { PromoVideoSource } from "@news-spend-media/payload/types";
 import type React from "react";
-import { memo, useCallback, useState } from "react";
-import { Stack, Text } from "tamagui";
-
-import { Image } from "#/components/ui";
+import { useCallback, useState } from "react";
+import { Pressable, View } from "react-native";
+import { Image } from "#/components/heroui/image";
+import { Text } from "#/components/heroui/text";
 import PromoVideo from "#/components/videoPlayer/PromoVideo";
 import YoutubePromoPlayer from "#/components/videoPlayer/YoutubePromoPlayer";
-
 import type { AdCarouselRef } from "./types";
 
 const VideoComponent = ({
@@ -37,7 +36,7 @@ const VideoComponent = ({
 
   if (item.videoSource === "upload" || item.videoSource === "normal") {
     return (
-      <Stack h="100%" w="100%">
+      <View className="">
         <PromoVideo
           autoPlay={activated}
           item={{
@@ -48,15 +47,9 @@ const VideoComponent = ({
           ref={adCarouselRef}
         />
         {!activated && (
-          <Stack
-            ai="center"
-            bottom={0}
-            jc="center"
-            left={0}
+          <Pressable
+            className="absolute inset-0 items-center justify-center"
             onPress={handleActivate}
-            position="absolute"
-            right={0}
-            top={0}
           >
             {thumbnailUri && (
               <Image
@@ -69,29 +62,20 @@ const VideoComponent = ({
                 }}
               />
             )}
-            <Stack
-              ai="center"
-              backgroundColor="rgba(0,0,0,0.55)"
-              borderRadius={40}
-              h={80}
-              jc="center"
-              w={80}
-            >
-              <Text color="white" fontSize={32}>
-                ▶
-              </Text>
-            </Stack>
-          </Stack>
+            <View className="size-20 items-center justify-center rounded-[40px] bg-black/55">
+              <Text className="text-3xl text-white">▶</Text>
+            </View>
+          </Pressable>
         )}
-      </Stack>
+      </View>
     );
   }
 
   if (item.videoSource === "youtube") {
     return (
-      <Stack h="100%" w="100%">
+      <View className="aspect-video">
         <YoutubePromoPlayer item={item} ref={adCarouselRef} />
-      </Stack>
+      </View>
     );
   }
 

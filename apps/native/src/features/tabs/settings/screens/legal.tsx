@@ -1,31 +1,41 @@
 import { useNavigation } from "@react-navigation/native";
-import { ChevronRight } from "@tamagui/lucide-icons";
-import { ListItem, Separator, YGroup } from "tamagui";
-
-import { Screen } from "#/components/Screen";
+import { ListGroup } from "heroui-native/list-group";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { Separator } from "heroui-native/separator";
+import { Screen } from "#/components/heroui/screen";
 
 export default function LegalAgreement() {
   const navigation = useNavigation();
 
   return (
-    <Screen>
-      <YGroup borderRadius={0} alignSelf="center" bordered size="$4">
-        <YGroup.Item>
-          <ListItem
-            onPress={() => navigation.navigate("TermsOfUse")}
-            title="Terms of Use"
-            iconAfter={ChevronRight}
-          />
-        </YGroup.Item>
-        <Separator />
-        <YGroup.Item>
-          <ListItem
-            onPress={() => navigation.navigate("PrivacyPolicy")}
-            title="Privacy Policy"
-            iconAfter={ChevronRight}
-          />
-        </YGroup.Item>
-      </YGroup>
+    <Screen className="bg-background" systemBarStyle="light">
+      <ListGroup variant="transparent">
+        <PressableFeedback animation={false} onPress={() => navigation.navigate("TermsOfUse")}>
+          <PressableFeedback.Scale>
+            <ListGroup.Item disabled>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>Terms of Use</ListGroup.ItemTitle>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </PressableFeedback.Scale>
+          <PressableFeedback.Ripple />
+        </PressableFeedback>
+
+        <Separator className="mx-4" />
+
+        <PressableFeedback animation={false} onPress={() => navigation.navigate("PrivacyPolicy")}>
+          <PressableFeedback.Scale>
+            <ListGroup.Item disabled>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>Privacy Policy</ListGroup.ItemTitle>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </PressableFeedback.Scale>
+          <PressableFeedback.Ripple />
+        </PressableFeedback>
+      </ListGroup>
     </Screen>
   );
 }

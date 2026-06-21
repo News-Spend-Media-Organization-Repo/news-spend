@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { type InfiniteData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Separator, Spinner } from "heroui-native";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
 import { ArrowLeftIcon, HeartIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, Platform, StyleSheet, View } from "react-native";
@@ -116,7 +117,7 @@ const ShopDetails = () => {
 
   if (openShop) {
     return (
-      <Screen preset="fixed" safeAreaEdges={["bottom"]}>
+      <Screen preset="fixed" safeAreaEdges={["bottom"]} systemBarStyle="light">
         <ScreenHeader left={headerLeft} right={headerRight} title={store?.companyName || ""} />
         <WebView
           allowsBackForwardNavigationGestures
@@ -152,7 +153,7 @@ const ShopDetails = () => {
   }
 
   return (
-    <Screen preset="scroll">
+    <Screen preset="scroll" systemBarStyle="light">
       <ScreenHeader left={headerLeft} right={headerRight} title={store?.companyName || ""} />
 
       <View className="gap-2 p-2">

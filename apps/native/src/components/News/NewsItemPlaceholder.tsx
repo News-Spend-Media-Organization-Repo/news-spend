@@ -1,50 +1,19 @@
-import { Skeleton } from "@alloc/moti/skeleton";
-import { Stack, XStack, YStack } from "tamagui";
+import { SkeletonGroup } from "heroui-native";
+import { View } from "react-native";
 
-export default function NewsItemPlaceholder({
-  show,
-  latest,
-}: {
-  show: boolean;
-  latest?: boolean;
-}) {
+export default function NewsItemPlaceholder({ show, latest }: { show: boolean; latest?: boolean }) {
   return (
-    <Skeleton.Group show>
-      <Stack gap="$2.5">
-        <XStack gap="$4">
-          <Skeleton colorMode="light" height={100} radius={10} width={100} />
-
-          {/* <Skeleton> */}
-          <YStack
-            flex={1}
-            gap={latest ? 0 : "$4"}
-            jc={latest ? "space-between" : "center"}
-          >
-            {latest && (
-              <Skeleton
-                colorMode="light"
-                height={20}
-                radius="square"
-                width={100}
-              />
-            )}
-
-            <Skeleton
-              colorMode="light"
-              height={40}
-              radius="square"
-              width="100%"
-            />
-
-            <Skeleton
-              colorMode="light"
-              height={20}
-              radius="square"
-              width="100%"
-            />
-          </YStack>
-        </XStack>
-      </Stack>
-    </Skeleton.Group>
+    <SkeletonGroup isLoading={show}>
+      <View className="gap-2.5">
+        <View className="flex-row gap-4">
+          <SkeletonGroup.Item className="size-[100px] rounded-[10px]" />
+          <View className={`flex-1 ${latest ? "justify-between" : "justify-center gap-4"}`}>
+            {latest && <SkeletonGroup.Item className="h-5 w-[100px] rounded-sm" />}
+            <SkeletonGroup.Item className="h-10 w-full rounded-sm" />
+            <SkeletonGroup.Item className="h-5 w-full rounded-sm" />
+          </View>
+        </View>
+      </View>
+    </SkeletonGroup>
   );
 }

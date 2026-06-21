@@ -1,8 +1,9 @@
-import type { News } from "@news-spend-media/payload/types";
+import type { News } from "@news-spend-media/api/router/news/content-builders";
 import { useNavigation } from "@react-navigation/native";
-import { Card, Stack, Text, useWindowDimensions, XStack } from "tamagui";
-
-import { Image } from "#/components/ui";
+import { Card } from "heroui-native";
+import { Pressable, useWindowDimensions } from "react-native";
+import { Image } from "#/components/heroui/image";
+import { Text } from "#/components/heroui/text";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
@@ -38,30 +39,27 @@ const VideoNewsItem = ({ videoNews }: { videoNews: News }) => {
   const { url, blurhash } = getImageData(videoNews.image);
 
   return (
-    <Stack bg="$background">
-      <Card bg="transparent" h={height * 0.3} mr={25} onPress={onPress} overflow="hidden" w="100%">
-        <Card.Footer padded>
-          <XStack backgroundColor="$p500" bottom={0} f={1} left={0} pos="absolute" right={0}>
-            <Text color="$s50" fow="700" px={20} py={12}>
-              {videoNews?.title}
-            </Text>
-          </XStack>
-        </Card.Footer>
-        <Card.Background>
+    <Pressable
+      className="w-full overflow-hidden"
+      onPress={onPress}
+      style={{ height: height * 0.3 }}
+    >
+      <Card className="w-full flex-1 rounded-lg p-0">
+        <Card.Header className="flex-1">
           <Image
-            height={height * 0.3}
-            placeholder={{
-              blurhash,
-            }}
+            className="h-full w-full"
+            placeholder={{ blurhash }}
             placeholderContentFit="cover"
-            pos="absolute"
             source={url}
-            // transition={1000}
-            width="100%"
           />
-        </Card.Background>
+        </Card.Header>
+        <Card.Footer className="absolute inset-be-0 inset-x-0 bg-p-500 px-5 py-3">
+          <Text className="font-bold text-s-50" numberOfLines={2}>
+            {videoNews?.title}
+          </Text>
+        </Card.Footer>
       </Card>
-    </Stack>
+    </Pressable>
   );
 };
 export default VideoNewsItem;

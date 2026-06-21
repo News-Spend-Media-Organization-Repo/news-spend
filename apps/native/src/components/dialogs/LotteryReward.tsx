@@ -1,19 +1,19 @@
-import { X } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { XIcon } from "phosphor-react-native";
+import { Dialog } from "heroui-native";
+import { StarIcon } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { useRewardedAd } from "react-native-google-mobile-ads";
 import { toast } from "sonner-native";
-import { Dialog, H4, Paragraph, Spinner, Square, Unspaced } from "tamagui";
-import { Star } from "tamagui-phosphor";
 import { useSnapshot } from "valtio";
-
-import { adUnits } from "#/lib/adUnits";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
+import { Icon } from "../heroui/icon";
+import { Text } from "../ui";
 
 export default memo(function LotteryReward() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -23,20 +23,20 @@ export default memo(function LotteryReward() {
   const { session } = useSnapshot(authState);
   const user = session?.user;
 
-  // Fetch reward data when a user is authenticated.
   const { data, isPending } = useQuery(
     orpc.lottery.getReward.queryOptions({
       enabled: Boolean(user),
     }),
   );
-  // console.log(data);
 
   const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(adUnits.rewarded);
 
   const claimRewardMutation = useMutation(
     orpc.lottery.claimReward.mutationOptions({
       onSuccess: () => {
-        if (!data?.prize) return;
+        if (!data?.prize) {
+          return;
+        }
 
         if (data.prizeTier === "LOW") {
           toast.success("Reward claimed!", {
@@ -60,7 +60,6 @@ export default memo(function LotteryReward() {
     }),
   );
 
-  // Effect: when data, user, and not pending, schedule the dialog to open and preload the ad.
   useEffect(() => {
     if (data && !isPending && user) {
       timeoutRef.current = setTimeout(() => {
@@ -69,28 +68,27 @@ export default memo(function LotteryReward() {
       load();
 
       return () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
       };
     }
   }, [data, isPending, user, load]);
 
-  // Effect: When the ad is closed and the user earned the reward,
-  // show the prize content and claim the reward.
   useEffect(() => {
     if (isClosed && isEarnedReward) {
       setShowPrize(true);
       handleClaim();
-      // load(); // preload next ad if needed
     }
   }, [isClosed, isEarnedReward, load]);
 
-  // Helper: Claim the reward via mutation
   const handleClaim = useCallback(() => {
-    if (!data || claimRewardMutation.isPending) return;
+    if (!data || claimRewardMutation.isPending) {
+      return;
+    }
     claimRewardMutation.mutate({ winnerId: data.id });
   }, [data, claimRewardMutation]);
 
-  // When closing the dialog, perform cleanup and, if no prize exists, try to claim.
   const handleClose = () => {
     setDialogOpen(false);
     setShowPrize(false);
@@ -99,13 +97,15 @@ export default memo(function LotteryReward() {
     } else {
       handleClaim();
     }
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
   };
 
-  // Function called when the user taps the “Claim your prize” button.
-  // For a LOW prize, claim directly; for others, either show the ad or launch the brand connection dialog.
   const handleClaimReward = () => {
-    if (claimRewardMutation.isPending) return;
+    if (claimRewardMutation.isPending) {
+      return;
+    }
     if (isLoaded) {
       show();
     } else {
@@ -113,127 +113,79 @@ export default memo(function LotteryReward() {
     }
   };
 
-  // Navigate to the identity verification screen.
   const handleVerifyIdentity = () => {
     setDialogOpen(false);
-    // navigate("Tab", {
-    //   screen: "Settings",
-    //   params: {
-    //     screen: "VerifyIdentity",
-    //     initial: true,
-    //   },
-    // });
     handleClose();
   };
-
-  // Do not render until we have a reward data object.
-  // if (!data) return null;
 
   return (
     <>
       <Dialog
-        modal
+        isOpen={dialogOpen}
         onOpenChange={(openVal) => {
           setDialogOpen(openVal);
           if (!openVal) {
             handleClose();
           }
         }}
-        open={dialogOpen}
       >
         <Dialog.Portal>
-          <Dialog.Overlay
-            animation="slow"
-            bg="black"
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-            key="overlay"
-            opacity={0.5}
-          />
-          <Dialog.Content
-            animateOnly={["transform", "opacity"]}
-            animation={[
-              "fast",
-              {
-                opacity: {
-                  overshootClamping: true,
-                },
-              },
-            ]}
-            bordered
-            elevate
-            enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-            exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-            gap="$4"
-            key="content"
-            w="95%"
-          >
-            {data?.prize ? (
-              showPrize ? (
-                <Square>
-                  <Star color="$p500" size={48} />
-                  <Paragraph
-                    bg="$s75"
-                    br="$12"
-                    color="$s400"
-                    fow="800"
-                    mt="$2"
-                    px="$2.5"
-                    textAlign="center"
-                  >
+          <Dialog.Overlay />
+          <Dialog.Content className="w-[95%]">
+            <Dialog.Close className="absolute top-1 right-2" variant="ghost" />
+
+            {data?.prize && showPrize && (
+              <View className="items-center gap-2">
+                <Icon color="#00223d" name={StarIcon} size={48} weight="fill" />
+                <View className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: "#F7E0C0" }}>
+                  <Text className="text-center font-extrabold text-[#A57D47]">
                     {`${data.prize} ${data.prizeTier === "LOW" ? "points" : ""}`}
-                  </Paragraph>
-                  <H4 textAlign="center">Congratulations!</H4>
-                  <Paragraph color="$gray.50" fos="$4" ta="center">
-                    You won {data.prize} {data.prizeTier === "LOW" ? "points" : ""} in the Lottery.
-                  </Paragraph>
-                </Square>
-              ) : (
-                <Square>
-                  <H4 textAlign="center">Congratulations!</H4>
-                  <Paragraph color="$gray.50" fos="$4" ta="center">
-                    You have won a prize from the Lottery.
-                  </Paragraph>
-                </Square>
-              )
-            ) : (
-              <Square>
-                <H4 textAlign="center">Better luck next time!</H4>
-                <Paragraph color="$gray.50" fos="$4" ta="center">
+                  </Text>
+                </View>
+                <Text className="text-center font-semibold text-lg">Congratulations!</Text>
+                <Text className="text-center text-subtle-text">
+                  You won {data.prize} {data.prizeTier === "LOW" ? "points" : ""} in the Lottery.
+                </Text>
+              </View>
+            )}
+            {data?.prize && !showPrize && (
+              <View className="items-center gap-2">
+                <Text className="text-center font-semibold text-lg">Congratulations!</Text>
+                <Text className="text-center text-subtle-text">
+                  You have won a prize from the Lottery.
+                </Text>
+              </View>
+            )}
+            {!data?.prize && (
+              <View className="items-center gap-2">
+                <Text className="text-center font-semibold text-lg">Better luck next time!</Text>
+                <Text className="text-center text-subtle-text">
                   Unfortunately, you didn't win any prizes this time. Keep participating for more
                   chances to win!
-                </Paragraph>
-              </Square>
+                </Text>
+              </View>
             )}
 
             {data?.prize && !showPrize && (
-              <Button disabled={claimRewardMutation.isPending} onPress={handleClaimReward}>
-                <Button.Text>
+              <Button
+                className="mt-4"
+                isDisabled={claimRewardMutation.isPending}
+                onPress={handleClaimReward}
+              >
+                <Button.Label>
                   {claimRewardMutation.isPending ? "Claiming Reward..." : "Claim your prize"}
-                </Button.Text>
+                </Button.Label>
                 {claimRewardMutation.isPending && (
-                  <Button.Icon>
-                    <Spinner />
-                  </Button.Icon>
+                  <ActivityIndicator className="ml-2" color="#fff" size="small" />
                 )}
               </Button>
             )}
 
             {data?.prize && showPrize && data.prizeTier !== "LOW" && (
-              <Button onPress={handleVerifyIdentity}>
-                <Button.Text>Verify your Identity</Button.Text>
+              <Button className="mt-4" onPress={handleVerifyIdentity}>
+                <Button.Label>Verify your Identity</Button.Label>
               </Button>
             )}
-
-            <Unspaced>
-              <Dialog.Close asChild>
-                <Button ghost p="$1" position="absolute" right="$2" top="$1">
-                  <Button.Icon color="$p500">
-                    <XIcon size={16} />
-                  </Button.Icon>
-                </Button>
-              </Dialog.Close>
-            </Unspaced>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog>

@@ -1,13 +1,11 @@
-import { Skeleton } from "@alloc/moti/skeleton";
-import { Stack, useWindowDimensions } from "tamagui";
+import { Skeleton } from "heroui-native";
+import { useWindowDimensions } from "react-native";
 
 const VideoNewsItemPlaceholder = () => {
   const { height } = useWindowDimensions();
 
   return (
-    <Stack bg="transparent" h={height * 0.3} mr={25} overflow="hidden" w="100%">
-      <Skeleton colorMode="light" height="100%" width="100%" />
-    </Stack>
+    <Skeleton className="w-full overflow-hidden rounded-lg" style={{ height: height * 0.3 }} />
   );
 };
 export default VideoNewsItemPlaceholder;

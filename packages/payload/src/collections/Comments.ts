@@ -45,26 +45,81 @@ const Comments: CollectionConfig = {
         });
       },
     ],
-    afterRead: [
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation === "create") {
+          if (doc?.parent) {
+            const parentId = typeof doc.parent === "string" ? doc.parent : doc.parent.id;
+            const parent = await req.payload.findByID({
+              collection: "comments",
+              id: parentId,
+              depth: 0,
+            });
+            if (parent) {
+              await req.payload.update({
+                collection: "comments",
+                id: parentId,
+                data: {
+                  totalReplies: (parent.totalReplies ?? 0) + 1,
+                },
+              });
+            }
+          }
+          if (doc?.news) {
+            const newsId = typeof doc.news === "string" ? doc.news : doc.news.id;
+            const newsDoc = await req.payload.findByID({
+              collection: "news",
+              id: newsId,
+              depth: 0,
+            });
+            if (newsDoc) {
+              await req.payload.update({
+                collection: "news",
+                id: newsId,
+                data: {
+                  totalComments: (newsDoc.totalComments ?? 0) + 1,
+                },
+              });
+            }
+          }
+        }
+      },
+    ],
+    afterDelete: [
       async ({ doc, req }) => {
-        try {
-          const replies = await req.payload.count({
+        if (doc?.parent) {
+          const parentId = typeof doc.parent === "string" ? doc.parent : doc.parent.id;
+          const parent = await req.payload.findByID({
             collection: "comments",
-            overrideAccess: true,
-            where: {
-              parent: {
-                equals: doc?.id,
-              },
-            },
+            id: parentId,
+            depth: 0,
           });
-
-          return {
-            ...doc,
-            totalReplies: replies.totalDocs,
-          };
-        } catch (error) {
-          console.log("🚀 ~ file: Comments.ts:131 ~ error:", error);
-          return 0;
+          if (parent) {
+            await req.payload.update({
+              collection: "comments",
+              id: parentId,
+              data: {
+                totalReplies: Math.max((parent.totalReplies ?? 0) - 1, 0),
+              },
+            });
+          }
+        }
+        if (doc?.news) {
+          const newsId = typeof doc.news === "string" ? doc.news : doc.news.id;
+          const newsDoc = await req.payload.findByID({
+            collection: "news",
+            id: newsId,
+            depth: 0,
+          });
+          if (newsDoc) {
+            await req.payload.update({
+              collection: "news",
+              id: newsId,
+              data: {
+                totalComments: Math.max((newsDoc.totalComments ?? 0) - 1, 0),
+              },
+            });
+          }
         }
       },
     ],
@@ -106,12 +161,40 @@ const Comments: CollectionConfig = {
       type: "relationship",
       relationTo: "users",
       hasMany: true,
+      admin: {
+        hidden: true,
+        description:
+          "Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.",
+      },
     },
     {
       name: "dislikes",
       type: "relationship",
       relationTo: "users",
       hasMany: true,
+      admin: {
+        hidden: true,
+        description:
+          "Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.",
+      },
+    },
+    {
+      name: "likesCount",
+      type: "number",
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        hidden: process.env.NODE_ENV !== "development",
+      },
+    },
+    {
+      name: "dislikesCount",
+      type: "number",
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        hidden: process.env.NODE_ENV !== "development",
+      },
     },
     // virtual field for replies
     {
@@ -134,7 +217,7 @@ const Comments: CollectionConfig = {
       admin: {
         readOnly: true,
       },
-      virtual: true,
+      defaultValue: 0,
     },
   ],
 };

@@ -1,13 +1,12 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useCallback } from "react";
-import { Dimensions, type ScrollViewProps } from "react-native";
+import { Dimensions, Pressable, type ScrollViewProps, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
-import { Heading, Square, Stack, Text } from "tamagui";
-
-import { Image } from "#/components/ui";
 import type { RouterOutputs } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
+import { Image } from "../heroui/image";
+import { Text } from "../heroui/text";
 
 type NewsType = RouterOutputs["news"]["home"]["docs"];
 
@@ -22,57 +21,55 @@ export default function SpecialCoverage({ specialCoverage = [] }: { specialCover
     ({ item }: { item: NewsType[number] }) => {
       const { url, blurhash } = getImageData(item?.image);
       return (
-        <Stack
+        <Pressable
           onPress={() =>
             navigation.navigate("Home", {
               screen: "SingleLive",
               params: { id: item.id, slug: item.slug },
             })
           }
-          w={width * 0.31}
+          style={{ width: width * 0.31 }}
         >
-          <Stack>
-            <Image
-              br="$1"
-              contentFit="cover"
-              // flex={1}
-              h={height * 0.19}
-              ov="hidden"
-              placeholder={{ blurhash }}
-              recyclingKey={item.id}
-              source={url}
-              w="100%"
-            />
-            <Text fow="600" mt="$2" numberOfLines={2}>
-              {item?.title}
-            </Text>
-          </Stack>
-        </Stack>
+          <Image
+            className="w-full overflow-hidden rounded-xl"
+            contentFit="cover"
+            placeholder={{ blurhash }}
+            recyclingKey={item.id}
+            source={url}
+            style={{
+              height: height * 0.19,
+            }}
+          />
+          <Text className="font-medium" numberOfLines={2} variant="caption">
+            {item?.title}
+          </Text>
+        </Pressable>
       );
     },
     [navigation],
   );
 
   return (
-    <Stack gap="$1">
-      <Heading fos="$6" px="$3">
+    <View className="gap-1">
+      <Text className="px-4" variant="subtitle">
         Special Coverage
-      </Heading>
+      </Text>
 
       <LegendList
         contentContainerStyle={{
           paddingHorizontal: 15,
+          gap: 15,
         }}
         data={specialCoverage}
         estimatedItemSize={134}
         horizontal
-        ItemSeparatorComponent={() => <Square w={15} />}
+        // ItemSeparatorComponent={() => <Square w={15} />}
         // nestedScrollEnabled
         renderItem={coveragesRenderItem}
         renderScrollComponent={CustomScrollView}
         showsHorizontalScrollIndicator={false}
-        suggestEstimatedItemSize
+        // suggestEstimatedItemSize
       />
-    </Stack>
+    </View>
   );
 }

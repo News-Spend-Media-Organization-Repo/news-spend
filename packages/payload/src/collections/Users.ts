@@ -14,20 +14,35 @@ export const Users: CollectionConfig = {
     beforeDelete: [
       async ({ id, req }) => {
         const logger = req.payload.logger;
+        const drizzle = req.payload.db.drizzle;
+        // Wipe every child collection that holds a NOT NULL FK to users before
+        // the user row goes away. The companion migration
+        // (20260621_130000_fix_user_news_cascade) flips these FKs to CASCADE,
+        // so this hook is belt-and-braces — it makes the cleanup auditable
+        // and covers hasMany junction tables.
+        const statements: ReturnType<typeof sql>[] = [
+          sql`DELETE FROM push_tokens WHERE user_id = ${id}`,
+          sql`DELETE FROM activities WHERE user_id = ${id}`,
+          sql`DELETE FROM comments WHERE user_id = ${id}`,
+          sql`DELETE FROM reactions WHERE user_id = ${id}`,
+          sql`DELETE FROM content_reports WHERE reported_by_id = ${id}`,
+          sql`DELETE FROM identity_verification WHERE user_id = ${id}`,
+          sql`DELETE FROM lottery_tickets WHERE user_id = ${id}`,
+          sql`DELETE FROM lottery_winners WHERE user_id = ${id}`,
+          sql`DELETE FROM ticket_purchase_log WHERE user_id = ${id}`,
+          sql`DELETE FROM notification_inbox WHERE user_id = ${id}`,
+          sql`DELETE FROM notification_deliveries WHERE user_id = ${id}`,
+          sql`DELETE FROM partner_conversions WHERE user_id = ${id}`,
+          sql`DELETE FROM notifications_rels WHERE users_id = ${id}`,
+          sql`DELETE FROM survey_rels WHERE users_id = ${id}`,
+          sql`DELETE FROM lottery_rels WHERE users_id = ${id}`,
+          sql`DELETE FROM comments_rels WHERE users_id = ${id}`,
+        ];
         try {
-          await Promise.all([
-            req.payload.db.drizzle.execute(
-              sql`DELETE FROM push_tokens WHERE user_id = ${id}`
-            ),
-            req.payload.db.drizzle.execute(
-              sql`DELETE FROM activities WHERE user_id = ${id}`
-            ),
-          ]);
+          await Promise.all(statements.map((stmt) => drizzle.execute(stmt)));
         } catch (err) {
-          logger.error(
-            { err, userId: id },
-            "Error during user pre-delete cleanup"
-          );
+          logger.error({ err, userId: id }, "Error during user pre-delete cleanup");
+          throw err;
         }
       },
     ],

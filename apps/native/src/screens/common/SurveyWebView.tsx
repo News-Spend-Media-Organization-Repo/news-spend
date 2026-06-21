@@ -6,7 +6,7 @@ import WebView from "react-native-webview";
 import type { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
 
 import { ScreenHeader } from "#/components";
-import { Screen } from "#/components/Screen";
+import { Screen } from "#/components/heroui/screen";
 
 export default function SurveyWebView() {
   const [canGoBack, setCanGoBack] = useState(false);

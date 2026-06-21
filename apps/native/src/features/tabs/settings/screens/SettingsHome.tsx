@@ -1,5 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
+import * as Application from "expo-application";
 import {
   Avatar,
   Card,
@@ -147,6 +148,9 @@ function SettingsHome() {
     [navigation],
   );
 
+  const appVersion = Application.nativeApplicationVersion ?? "1.0.0";
+  const buildNumber = Application.nativeBuildVersion ?? "1";
+
   return (
     <Screen systemBarStyle="light">
       <ScrollView
@@ -154,6 +158,11 @@ function SettingsHome() {
         showsVerticalScrollIndicator={false}
       >
         <ListHeader onPress={handlePress} />
+        <View className="p-4">
+          <Text className="text-center font-medium text-md text-muted">
+            Version {appVersion} ({buildNumber})
+          </Text>
+        </View>
       </ScrollView>
       <Button
         className="absolute right-0 bottom-safe-offset-4 left-0 mx-4"

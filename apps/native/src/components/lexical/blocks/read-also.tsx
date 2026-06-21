@@ -1,8 +1,9 @@
 import type { News } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
-import { SizableText, Stack } from "tamagui";
+import { memo } from "react";
+import { Pressable, Text } from "react-native";
 
-function ReadAlso({ news }: { news: News }) {
+const ReadAlso = memo(function ReadAlso({ news }: { news: News }) {
   const navigation = useNavigation();
 
   const onPress = () => {
@@ -12,16 +13,21 @@ function ReadAlso({ news }: { news: News }) {
     });
   };
 
+  const label = news.type === "article" ? "Read Also" : "Watch Also";
+
   return (
-    <Stack backgroundColor="#F3F1F1" my="$3" onPress={onPress} px="$2">
-      <SizableText fow="700">
-        {news.type === "article" ? "Read Also" : "Watch Also"}:{" "}
-        <SizableText fos="$4" fow="600">
-          {news.title}
-        </SizableText>
-      </SizableText>
-    </Stack>
+    <Pressable
+      accessibilityLabel={`${label}: ${news.title}`}
+      accessibilityRole="link"
+      className="my-3 rounded-r-md border-primary border-l-2 bg-foreground/5 px-3 py-2 active:opacity-70"
+      onPress={onPress}
+    >
+      <Text className="mb-0.5 font-bold text-default-soft-hover text-sm uppercase tracking-wide">
+        {label}
+      </Text>
+      <Text className="font-semibold text-base text-foreground">{news.title}</Text>
+    </Pressable>
   );
-}
+});
 
 export default ReadAlso;

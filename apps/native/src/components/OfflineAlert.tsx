@@ -10,13 +10,10 @@ const OfflineAlert = () => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       if (!state.isConnected) {
         wasOffline.current = true;
-        toastId.current = toast.error(
-          "You are offline. Please check your internet connection.",
-          {
-            duration: Infinity,
-            dismissible: false,
-          }
-        );
+        toastId.current = toast.error("You are offline. Please check your internet connection.", {
+          duration: Number.POSITIVE_INFINITY,
+          dismissible: false,
+        });
       } else if (wasOffline.current) {
         toast.success("You are back online.", {
           duration: 2000,

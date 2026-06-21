@@ -1,76 +1,33 @@
-import type { Comment } from "@news-spend-media/payload/types";
+import { DotsThreeVerticalIcon } from "phosphor-react-native";
 import React from "react";
-import { Button, Stack } from "tamagui";
-import { DotsThreeVertical } from "tamagui-phosphor";
-import { useSnapshot } from "valtio";
 
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import CommentOptionSheet from "#/components/sheets/CommentOptionSheet";
 import PostReportSheet from "#/components/sheets/PostReportSheet";
-import {
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuItemTitle,
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
-import useDeleteComment from "#/hooks/comments/useDeleteComment";
-import { authState } from "#/state/auth";
-import { setEditingComment } from "#/state/commentState";
+import type { RouterOutputs } from "#/lib/orpc";
+
+type Comment = RouterOutputs["comments"]["one"];
 
 export function CommentOptionPopover({ comment }: { comment: Comment }) {
+  const [open, setOpen] = React.useState(false);
   const [showReportSheet, setShowReportSheet] = React.useState(false);
-  const deleteMutation = useDeleteComment();
-  const auth = useSnapshot(authState);
-
-  const onDelete = () => {
-    deleteMutation.mutate(comment.id);
-  };
-
-  const onEdit = () => {
-    setEditingComment(comment);
-  };
-
-  const givenTime = new Date(comment.createdAt);
-  const currentTime = new Date();
-
-  // Calculate the difference in milliseconds between the given time and the current time
-  const timeDifference = currentTime.getTime() - givenTime.getTime();
-
-  // Check if the time difference is less than 15 minutes (900,000 milliseconds)
-  const isLessThan15Minutes = timeDifference < 900_000;
-
-  const commentUser =
-    typeof comment.user === "object" ? comment.user.id : comment.user;
 
   return (
-    <Stack>
-      <DropdownMenuRoot>
-        <DropdownMenuTrigger>
-          <Button icon={<DotsThreeVertical size={24} />} unstyled />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          {auth.session?.user?.id === commentUser && (
-            <DropdownMenuGroup>
-              {isLessThan15Minutes && (
-                <DropdownMenuItem key="edit" onSelect={onEdit}>
-                  <DropdownMenuItemTitle>Edit</DropdownMenuItemTitle>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem key="delete" onSelect={onDelete}>
-                <DropdownMenuItemTitle>Delete</DropdownMenuItemTitle>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          )}
-          {auth.session?.user?.id !== commentUser && (
-            <DropdownMenuItem
-              key="report"
-              onSelect={() => setShowReportSheet(true)}
-            >
-              <DropdownMenuItemTitle>Report</DropdownMenuItemTitle>
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenuRoot>
+    <>
+      <Button className="p-1" hitSlop={8} onPress={() => setOpen(true)} variant="ghost">
+        <Icon name={DotsThreeVerticalIcon} size={24} />
+      </Button>
+
+      <CommentOptionSheet
+        comment={comment}
+        onOpenChange={setOpen}
+        onReport={() => {
+          setOpen(false);
+          setShowReportSheet(true);
+        }}
+        open={open}
+      />
 
       <PostReportSheet
         onOpenChange={setShowReportSheet}
@@ -78,7 +35,7 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
         postId={comment.id}
         reportType="comment"
       />
-    </Stack>
+    </>
   );
 }
 

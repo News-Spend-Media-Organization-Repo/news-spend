@@ -1,5 +1,8 @@
 import { useNavigation } from "@react-navigation/native";
-import { Button, H1, Stack } from "tamagui";
+import { View } from "react-native";
+
+import { Button } from "#/components/heroui/button";
+import { Text } from "#/components/heroui/text";
 
 const NotFound = () => {
   const navigation = useNavigation();
@@ -15,12 +18,12 @@ const NotFound = () => {
   };
 
   return (
-    <Stack ai="center" jc="center">
-      <H1>Page not found</H1>
-      <Button onPress={onGoBack} theme="dark">
-        {navigation.canGoBack() ? "Go back" : "Go home"}
+    <View className="flex-1 items-center justify-center">
+      <Text variant="HeadingLarge">Page not found</Text>
+      <Button className="mt-4" onPress={onGoBack}>
+        <Button.Label>{navigation.canGoBack() ? "Go back" : "Go home"}</Button.Label>
       </Button>
-    </Stack>
+    </View>
   );
 };
 

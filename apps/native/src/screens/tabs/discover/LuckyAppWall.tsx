@@ -1,25 +1,20 @@
-import {
-  LegendList,
-  type LegendListRenderItemProps,
-} from "@legendapp/list/react-native";
+import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { Linking, Platform } from "react-native";
-import { Paragraph, Spinner, Stack, XStack } from "tamagui";
-import { CaretLeft } from "tamagui-phosphor";
+import { ActivityIndicator, Linking, Platform, View } from "react-native";
 
-import { Screen } from "#/components/Screen";
-import { Button, Image, Text } from "#/components/ui";
+import { ScreenHeader } from "#/components";
+import { Image } from "#/components/heroui/image";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 function LuckyAppWall() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
 
   const queryOptions = orpc.partnerContent.random.queryOptions({
     input: {
@@ -37,11 +32,11 @@ function LuckyAppWall() {
 
   const emptyList = useCallback(
     () => (
-      <Stack ai="center" h="100%" jc="center">
-        <Paragraph fos="$5">No offers available</Paragraph>
-      </Stack>
+      <View className="h-full items-center justify-center">
+        <Text className="text-base">No offers available</Text>
+      </View>
     ),
-    []
+    [],
   );
 
   const onRefresh = useCallback(() => {
@@ -64,65 +59,44 @@ function LuckyAppWall() {
     Linking.openURL(url);
   }, []);
 
-  const renderAppItem = ({
-    item,
-  }: LegendListRenderItemProps<PartnerContent>) => {
+  const renderAppItem = ({ item }: LegendListRenderItemProps<PartnerContent>) => {
     const { blurhash, url } = getImageData(item.media);
 
     return (
-      <XStack ai="flex-start" gap="$2" onPress={() => handleClick(item)} p="$3">
+      <View className="flex-row items-start gap-2 p-3" onTouchEnd={() => handleClick(item)}>
         <Image
-          br="$3"
+          className="h-20 w-20 rounded-lg"
           contentFit="contain"
-          height={80}
           placeholder={{ blurhash }}
           source={{ uri: url ?? "" }}
-          width={80}
         />
-        <Stack flex={1} gap="$2">
-          <XStack ai="center" gap="$2">
-            <Text flex={1} fos="$5" numberOfLines={2}>
+        <View className="flex-1 gap-2">
+          <View className="flex-row items-center gap-2">
+            <Text className="flex-1 text-base" numberOfLines={2}>
               {item.title}
             </Text>
-          </XStack>
-          <Text
-            color="$gray.50"
-            fos="$3"
-            fost="italic"
-            fow="600"
-            numberOfLines={2}
-          >
+          </View>
+          <Text className="font-semibold text-gray-50 text-sm italic" numberOfLines={2}>
             {item.description}
           </Text>
-        </Stack>
-      </XStack>
+        </View>
+      </View>
     );
   };
 
   if (isPending) {
-    return <Spinner />;
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   return (
-    <Screen contentContainerStyle={{ paddingBottom: insets.paddingBottom }}>
-      <XStack ai="center" bg="$p500" gap="$2.5" pt={insets.paddingTop} px="$2">
-        <Button
-          gap="$2"
-          ghost
-          h="auto"
-          onPress={() => navigation.goBack()}
-          p="$0"
-          py="$2"
-        >
-          <Button.Icon color="#fff">
-            <CaretLeft />
-          </Button.Icon>
-          <Button.Text color="#fff" fos="$4">
-            Lucky App Wall
-          </Button.Text>
-        </Button>
-      </XStack>
-      <Stack flex={1}>
+    <Screen className="pb-safe" systemBarStyle="light">
+      <ScreenHeader title="Lucky App Wall" />
+
+      <View className="flex-1">
         <LegendList
           data={items ?? []}
           estimatedItemSize={100}
@@ -132,7 +106,7 @@ function LuckyAppWall() {
           refreshing={isRefetchingByUser}
           renderItem={renderAppItem}
         />
-      </Stack>
+      </View>
     </Screen>
   );
 }

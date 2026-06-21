@@ -95,6 +95,10 @@ export function useNavigationPersistence(storage: MMKVStorage, persistenceKey: s
       if (routeName !== newRouteName) {
         setRouteName(newRouteName);
 
+        if (__DEV__) {
+          console.log("Route changed to:", newRouteName);
+        }
+
         if (CONSTANTS.TAB_SCREENS.includes(newRouteName)) {
           setReactNavTabName(newRouteName);
         }

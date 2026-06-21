@@ -1,31 +1,23 @@
-import { Skeleton } from "@alloc/moti/skeleton";
+import { Galeria } from "@nandorojo/galeria";
 import { isDefinedError } from "@orpc/client";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
-import { ArrowLeft, User } from "@tamagui/lucide-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { Separator } from "heroui-native";
+import { SkeletonGroup } from "heroui-native/skeleton-group";
+import { ArrowLeftIcon, UserIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef } from "react";
-import { RefreshControl } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
-import {
-  Heading,
-  Paragraph,
-  ScrollView,
-  Separator,
-  Stack,
-  Text,
-  useWindowDimensions,
-  XStack,
-  YStack,
-} from "tamagui";
-
-import { PayloadLexicalReactRenderer } from "#/components/lexical/PayloadLexicalReactRenderer";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Image } from "#/components/heroui/image";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import { PayloadLexicalReactRenderer } from "#/components/lexical/payload-lexical-react-renderer";
 import type { PayloadLexicalReactRendererContent } from "#/components/lexical/types";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
-import { Screen } from "#/components/Screen";
-import { Image } from "#/components/ui";
-import { Button } from "#/components/ui/Button";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { useDislikeNews, useLikeNews, useNews } from "#/hooks/news";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
@@ -39,10 +31,10 @@ import { getImageData } from "#/utils/getImageData";
 
 const SingleNews = () => {
   const navigation = useNavigation("News");
-  const { id, slug } = useRoute("News").params;
-  const { data, refetch, isError, error, isFetchedAfterMount } = useNews(slug as string);
+  const { slug } = useRoute("News").params;
+  const { data, refetch, isError, error, isFetchedAfterMount, isFetching, isPlaceholderData } =
+    useNews(slug as string);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-  const { height } = useWindowDimensions();
   const likeMutation = useLikeNews();
   const dislikeMutation = useDislikeNews();
   const addActivityMutation = useAddActivity();
@@ -75,18 +67,20 @@ const SingleNews = () => {
   const prevViewId = useRef<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      if (!data) return;
+      if (!data) {
+        return;
+      }
       if (prevViewId.current !== data.id) {
         hasTrackedView.current = false;
         prevViewId.current = data.id;
       }
-      if (hasTrackedView.current) return;
+      if (hasTrackedView.current) {
+        return;
+      }
       hasTrackedView.current = true;
       trackView();
     }, [data, trackView]),
   );
-
-  console.log(!inRapidScroll, elapsedSeconds >= minReadingSeconds, hasScrolledThreshold);
 
   // Award points once reading conditions are met
   useEffect(() => {
@@ -151,12 +145,16 @@ const SingleNews = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!data) return;
+      if (!data) {
+        return;
+      }
       if (prevNewsId.current !== data.id) {
         hasRecordedView.current = false;
         prevNewsId.current = data.id;
       }
-      if (hasRecordedView.current) return;
+      if (hasRecordedView.current) {
+        return;
+      }
       hasRecordedView.current = true;
       recordViewMutation.mutate({ newsId: data.id });
     }, [data]),
@@ -169,9 +167,9 @@ const SingleNews = () => {
 
   if (isError) {
     return (
-      <YStack ai="center" flex={1} jc="center">
-        <Text>Failed to load news article</Text>
-      </YStack>
+      <View className="flex-1 items-center justify-center">
+        <Text className="text-center">Failed to load news article</Text>
+      </View>
     );
   }
 
@@ -200,10 +198,18 @@ const SingleNews = () => {
   };
 
   return (
-    <Screen safeAreaEdges={["top"]}>
-      <Skeleton.Group show={!data}>
+    <Screen
+      SystemBarsProps={{
+        style: {
+          navigationBar: "dark",
+          statusBar: "auto",
+        },
+      }}
+    >
+      <SkeletonGroup className="flex-1" isLoading={!data}>
         <ScrollView
-          bg="$background"
+          className="bg-white"
+          contentContainerClassName="pb-4"
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="always"
           onScroll={handleScroll}
@@ -214,103 +220,90 @@ const SingleNews = () => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <Stack mb="$3">
+          <View className="mb-3">
             <Button
-              bg="#C6C7C8"
-              borderRadius={4}
-              h={32}
-              left={10}
+              className="absolute top-safe-offset-2 left-2.5 z-10 size-8 rounded-sm"
               onPress={() => navigation.goBack()}
-              pos="absolute"
-              pressStyle={{ bg: "$p50" }}
-              top={10}
-              w={32}
-              zIndex="$2"
+              variant="ghost"
             >
-              <Button.Icon color="$p500">
-                <ArrowLeft />
-              </Button.Icon>
+              <ArrowLeftIcon color="#00223d" size={20} />
             </Button>
 
-            <Skeleton colorMode="light" disableExitAnimation height={height * 0.3} width="100%">
-              {data ? (
-                <Image
-                  borderBottomLeftRadius={8}
-                  borderBottomRightRadius={8}
-                  contentFit="cover"
-                  h={height * 0.3}
-                  placeholder={{ blurhash }}
-                  placeholderContentFit="cover"
-                  source={url}
-                />
-              ) : null}
-            </Skeleton>
-          </Stack>
+            <SkeletonGroup.Item className="h-[30vh] w-full rounded-md">
+              <Galeria urls={[url]}>
+                <Galeria.Image>
+                  <Image
+                    className="h-[30vh] w-full"
+                    contentFit="cover"
+                    placeholder={{ blurhash }}
+                    placeholderContentFit="cover"
+                    source={url}
+                  />
+                </Galeria.Image>
+              </Galeria>
+            </SkeletonGroup.Item>
+          </View>
 
-          <Stack gap="$5" px="$3">
-            <Skeleton colorMode="light" disableExitAnimation height={50} width="100%">
-              <Heading fontSize={20} lh={25}>
-                {data?.title}
-              </Heading>
-            </Skeleton>
+          <View className="gap-5 px-3">
+            <SkeletonGroup.Item className="h-12.5 w-full rounded-md">
+              <Text className="font-bold text-[20px] leading-6.25">{data?.title}</Text>
+            </SkeletonGroup.Item>
 
-            <XStack ai="center" jc="space-between">
-              <Skeleton colorMode="light" disableExitAnimation height={17} width={100}>
-                <XStack ai="center" gap="$0.75">
-                  <User size={15} />
-                  <Text fontWeight="700">
+            <View className="flex-row items-center justify-between">
+              <SkeletonGroup.Item className="h-4.25 w-25 rounded-md">
+                <View className="flex-row items-center gap-0.75">
+                  <Icon name={UserIcon} size={15} />
+                  <Text className="font-bold">
                     {typeof data?.author === "object" ? data?.author.fullName : ""}
                   </Text>
-                </XStack>
-              </Skeleton>
+                </View>
+              </SkeletonGroup.Item>
 
-              <Skeleton colorMode="light" disableExitAnimation height={17} width={110}>
+              <SkeletonGroup.Item className="h-4.25 w-32.5 rounded-md">
                 {data ? (
-                  <Text color="#737373" fos={12}>
+                  <Text className="text-[#737373] text-xs">
                     {format(new Date(data?.createdAt ?? new Date()), "do MMMM yyy | p")}
                   </Text>
                 ) : null}
-              </Skeleton>
-            </XStack>
+              </SkeletonGroup.Item>
+            </View>
 
-            <Skeleton colorMode="light" disableExitAnimation show={!data?.content}>
-              <Stack mt="$1">
-                <Separator h={2} mb={2} />
-                <Heading fos="$5" mb={3}>
-                  KEY POINTS
-                </Heading>
+            <SkeletonGroup.Item className="h-[60vh] w-full rounded-md" isLoading={!data?.keyPoints}>
+              <View className="mt-1">
+                <Separator className="" />
+                <Text className="mb-3 font-bold text-base">KEY POINTS</Text>
                 {data?.keyPoints?.map(({ point }, i: number) => (
-                  <XStack gap="$2" key={i} pb="$2">
-                    <Paragraph fos="$2">{"\u2B24"}</Paragraph>
-                    <Paragraph p={0}>{point}</Paragraph>
-                  </XStack>
+                  <View className="flex-row gap-2 pb-2" key={i}>
+                    <Text className="text-xs">{"\u2B24"}</Text>
+                    <Text className="p-0" selectable>
+                      {point}
+                    </Text>
+                  </View>
                 ))}
-                <Separator h={2} pb={2} />
-              </Stack>
-            </Skeleton>
+                <Separator className="" />
+              </View>
+            </SkeletonGroup.Item>
 
-            <Skeleton
-              colorMode="light"
-              disableExitAnimation
-              height={height * 0.6}
-              show={!data?.content}
-              width="100%"
-            >
-              <PayloadLexicalReactRenderer
-                content={data?.content as PayloadLexicalReactRendererContent}
-              />
-            </Skeleton>
-          </Stack>
+            {isFetching && isPlaceholderData ? (
+              <View className="h-[60vh] w-full rounded-lg bg-neutral-200" />
+            ) : (
+              <SkeletonGroup.Item className="h-[60vh] w-full rounded-md" isLoading={!data?.content}>
+                <PayloadLexicalReactRenderer
+                  content={data?.content as PayloadLexicalReactRendererContent}
+                />
+              </SkeletonGroup.Item>
+            )}
+          </View>
         </ScrollView>
-      </Skeleton.Group>
 
-      <NewsActionBar
-        news={data}
-        onComment={trackComment}
-        onDislike={handleDislike}
-        onLike={handleLike}
-        onShare={trackShare}
-      />
+        <NewsActionBar
+          news={data}
+          onComment={trackComment}
+          onDislike={handleDislike}
+          onLike={handleLike}
+          onShare={trackShare}
+        />
+      </SkeletonGroup>
 
       <ReadingTrackerDebug
         elapsedSeconds={elapsedSeconds}

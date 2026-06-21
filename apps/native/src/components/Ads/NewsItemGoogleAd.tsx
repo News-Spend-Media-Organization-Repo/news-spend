@@ -1,5 +1,6 @@
 import { useRecyclingEffect } from "@legendapp/list/react-native";
 import { memo, useCallback, useImperativeHandle, useRef, useState } from "react";
+import { View } from "react-native";
 import {
   NativeAd,
   NativeAdChoicesPlacement,
@@ -7,11 +8,10 @@ import {
   NativeAsset,
   NativeAssetType,
 } from "react-native-google-mobile-ads";
-import { getTokens, Stack, Text, XStack, YStack } from "tamagui";
-
 import { adUnits } from "#/lib/adUnits";
-import { Image } from "#/components/ui";
 import { getCachedAd, setCachedAd } from "#/utils/ad-cache";
+import { Image } from "../heroui/image";
+import { Text } from "../heroui/text";
 
 export type NewsItemGoogleAdProp = {
   index: number;
@@ -113,98 +113,49 @@ const NewsItemGoogleAds = memo(({ item, index, tab, ref: parentRef }: NewsItemGo
 
   if (!nativeAd || loading) {
     return (
-      <Stack
-        alignItems="center"
-        backgroundColor="$background"
-        justifyContent="center"
-        minHeight={90}
-        opacity={0.6}
-        paddingHorizontal="$2.5"
-      >
-        <Text
-          style={{
-            color: getTokens().color.p500.val,
-            fontFamily: "Inter-Bold",
-          }}
-        >
-          Advertisement
-        </Text>
-      </Stack>
+      <View className="min-h-22.5 items-center justify-center bg-background px-2.5 opacity-60">
+        <Text className="font-bold text-p-500">Advertisement</Text>
+      </View>
     );
   }
 
   return (
     <NativeAdView nativeAd={nativeAd} style={{ width: "100%", minHeight: 90 }}>
-      <Stack gap="$2.5">
-        <XStack gap="$4">
+      <View className="gap-2.5">
+        <View className="flex-row gap-4">
           {nativeAd.icon ? (
             <NativeAsset assetType={NativeAssetType.ICON}>
-              <Image
-                borderRadius={10}
-                height={100}
-                source={{ uri: nativeAd.icon.url }}
-                width={100}
-              />
+              <Image className="size-25 rounded-lg" source={{ uri: nativeAd.icon.url }} />
             </NativeAsset>
           ) : null}
 
-          <YStack flex={1} gap="$2.5">
-            <XStack jc="space-between">
+          <View className="flex-1 gap-2.5">
+            <View className="flex-1 flex-row justify-between">
               <NativeAsset assetType={NativeAssetType.HEADLINE}>
-                <Text
-                  style={{
-                    color: getTokens().color.p500.val,
-                    fontFamily: "Inter-Bold",
-                  }}
-                >
-                  {nativeAd.headline}
-                </Text>
+                <Text className="font-bold text-p-500">{nativeAd.headline}</Text>
               </NativeAsset>
-              <Text boc="$gray.50" br="$1" bw={1} color="$s300" fos={13} h="auto" px="$1">
-                AD
-              </Text>
-            </XStack>
+              <Text className="rounded-sm border border-gray-50 px-1 text-s-300 text-xs">AD</Text>
+            </View>
 
             <NativeAsset assetType={NativeAssetType.BODY}>
-              <Text
-                style={{
-                  color: getTokens().color.p500.val,
-                  fontFamily: "Inter-Medium",
-                }}
-              >
+              <Text className="text-sm" numberOfLines={2}>
                 {nativeAd.body}
               </Text>
             </NativeAsset>
 
-            <XStack alignItems="center" jc="space-between">
+            <View className="flex-row items-center justify-between">
               <NativeAsset assetType={NativeAssetType.STORE}>
-                <Text
-                  style={{
-                    color: getTokens().color.p500.val,
-                    fontFamily: "Inter-Medium",
-                  }}
-                >
-                  {nativeAd.store}
-                </Text>
+                <Text className="font-medium text-gray-50">{nativeAd.store}</Text>
               </NativeAsset>
               <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
-                <Text
-                  br="$10"
-                  px="$2"
-                  py="$1"
-                  style={{
-                    color: "white",
-                    fontFamily: "Inter-Medium",
-                    backgroundColor: getTokens().color.s300.val,
-                  }}
-                >
+                <Text className="rounded-full bg-s-300 px-2 py-1 font-medium text-white text-xs">
                   {nativeAd.callToAction}
                 </Text>
               </NativeAsset>
-            </XStack>
-          </YStack>
-        </XStack>
-      </Stack>
+            </View>
+          </View>
+        </View>
+      </View>
     </NativeAdView>
   );
 });

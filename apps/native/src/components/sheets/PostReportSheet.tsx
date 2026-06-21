@@ -1,24 +1,16 @@
-import { X } from "@tamagui/lucide-icons";
 import { useMutation } from "@tanstack/react-query";
+import { BottomSheet } from "heroui-native/bottom-sheet";
+import { RadioGroup } from "heroui-native/radio-group";
+import { X } from "phosphor-react-native";
 import React, { useId } from "react";
+import { View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
-import {
-  H4,
-  Label,
-  Paragraph,
-  RadioGroup,
-  Separator,
-  Sheet,
-  Spinner,
-  Stack,
-  XStack,
-  YStack,
-} from "tamagui";
 
-import { Button } from "#/components/ui";
-import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 const reportReasons = [
   { label: "Spam or Advertising", value: "spam" },
@@ -30,23 +22,13 @@ const reportReasons = [
   { label: "Off-Topic", value: "off-topic" },
   { label: "Trolling or Deliberate Provocation", value: "trolling" },
   { label: "Illegal Activity", value: "illegal" },
-  // { label: "Other", value: "other" },
 ] as const;
 
 function PostReportSheet(props) {
   const mutation = useMutation(orpc.postReport.create.mutationOptions());
   const [reason, setReason] = React.useState("");
-  const insets = useSafeAreaInsetsStyle(["bottom"]);
+  const insets = useSafeAreaInsets();
   const id = useId();
-
-  useGlobalBackHandler(() => {
-    if (props.open) {
-      props.onOpenChange(false);
-      return true;
-    }
-
-    return false;
-  });
 
   const onSubmit = () => {
     mutation.mutate(
@@ -69,98 +51,52 @@ function PostReportSheet(props) {
             description: "Something went wrong",
           });
         },
-      }
+      },
     );
   };
 
   return (
-    <Sheet
-      animation="easeOut"
-      dismissOnSnapToBottom
-      forceRemoveScrollEnabled={props.open}
-      // snapPoints={["fit", "50%"]}
-      modal
-      native
-      onOpenChange={props.onOpenChange}
-      open={props.open}
-      snapPointsMode="fit"
-    >
-      <Sheet.Overlay animation="easeOut" bg="rgba(0, 0, 0, 0.5)" />
+    <BottomSheet isOpen={props.open} onOpenChange={props.onOpenChange}>
+      <BottomSheet.Portal>
+        <BottomSheet.Overlay />
+        <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
+          <View className="gap-3.5 px-3 pt-3">
+            <View className="flex-row justify-between">
+              <View className="gap-1">
+                <Text className="font-bold text-lg">Report this comment</Text>
+                <Text className="text-gray-500 text-sm">Why are you reporting this comment?</Text>
+              </View>
+              <Button
+                className="size-8 rounded-full bg-[#d9d9d9]"
+                onPress={() => props.onOpenChange(false)}
+              >
+                <Icon name={X} size={20} weight="regular" />
+              </Button>
+            </View>
 
-      <Sheet.Frame flex={1} gap="$3.5" pt="$3" px="$3">
-        <Sheet.ScrollView
-          contentContainerStyle={{
-            gap: "$2.5",
-            paddingBottom: insets.paddingBottom,
-          }}
-        >
-          <XStack jc="space-between">
-            <Stack>
-              <H4>Report this comment</H4>
-              <Paragraph fos="$4">
-                Why are you reporting this comment?
-              </Paragraph>
-            </Stack>
-            <Button
-              bg="#d9d9d9"
-              borderRadius="$12"
-              h="$2"
-              onPress={() => props.onOpenChange(false)}
-              unstyled
-              w="$2"
-            >
-              <Button.Icon>
-                <X size={20} />
-              </Button.Icon>
-            </Button>
-          </XStack>
+            <View className="h-px bg-gray-200" />
 
-          <Separator />
-          <RadioGroup
-            aria-labelledby="Select one item"
-            name="form"
-            onValueChange={setReason}
-            value={reason}
-          >
-            <YStack gap="$0">
-              {reportReasons.map((reason, index) => (
-                <XStack
-                  ai="center"
-                  gap="$3"
-                  key={`${reason.value}-${props.postId}-${id}`}
-                >
+            <RadioGroup onValueChange={setReason} value={reason}>
+              <View className="gap-0">
+                {reportReasons.map((r) => (
                   <RadioGroup.Item
-                    id={`radiogroup-${reason.value}-${props.postId}-${id}`}
-                    value={reason.value}
+                    className="py-2"
+                    key={`${r.value}-${props.postId}-${id}`}
+                    value={r.value}
                   >
-                    <RadioGroup.Indicator />
+                    {r.label}
                   </RadioGroup.Item>
+                ))}
+              </View>
+            </RadioGroup>
 
-                  <Label
-                    flex={1}
-                    htmlFor={`radiogroup-${reason.value}-${props.postId}-${id}`}
-                    lh="$7"
-                  >
-                    {reason.label}
-                  </Label>
-                </XStack>
-              ))}
-            </YStack>
-          </RadioGroup>
-
-          <Stack>
-            <Button disabled={mutation.isPending || !reason} onPress={onSubmit}>
-              <Button.Text>Submit</Button.Text>
-              {mutation.isPending && (
-                <Button.Icon>
-                  <Spinner color="white" />
-                </Button.Icon>
-              )}
+            <Button className="w-full" disabled={mutation.isPending || !reason} onPress={onSubmit}>
+              Submit
             </Button>
-          </Stack>
-        </Sheet.ScrollView>
-      </Sheet.Frame>
-    </Sheet>
+          </View>
+        </BottomSheet.Content>
+      </BottomSheet.Portal>
+    </BottomSheet>
   );
 }
 

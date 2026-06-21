@@ -1,51 +1,101 @@
 import { proxy, subscribe } from "valtio";
-
 import type { RouterOutputs } from "#/lib/orpc";
 
-export const commentState = proxy<{
-  replyingTo: string | undefined;
-  parentCommentId: string | undefined;
-  replyingToComment: RouterOutputs["comments"]["one"] | undefined;
-  parentComment: RouterOutputs["comments"]["one"] | undefined;
-  editingComment: RouterOutputs["comments"]["one"] | undefined;
-}>({
-  replyingTo: undefined,
-  parentCommentId: undefined,
-  replyingToComment: undefined,
-  parentComment: undefined,
-  editingComment: undefined,
-});
+type CommentMode = "idle" | "reply" | "edit";
 
-export const setReplyingTo = (replyingTo: string | undefined) => {
-  commentState.replyingTo = replyingTo;
+type CommentOne = RouterOutputs["comments"]["one"];
+
+type CommentState = {
+  /** Draft text. Persists across keyboard dismiss so the user never loses work. */
+  draft: string;
+  mode: CommentMode;
+  /**
+   * reply mode → the top-level parent comment thread (used as parentId on submit)
+   * edit mode  → always undefined
+   */
+  parent: CommentOne | undefined;
+  /**
+   * reply mode → the specific comment being replied to (may be a nested reply)
+   * edit mode  → the comment being edited
+   */
+  target: CommentOne | undefined;
 };
+
+export const commentState = proxy<CommentState>({
+  mode: "idle",
+  target: undefined,
+  parent: undefined,
+  draft: "",
+});
 
 /**
- * Sets the active comment and updates the comment state.
+ * Open the composer in reply mode.
  *
- * @param {RouterOutputs["comments"]["one"] | undefined} parentComment - The comment being replied to
- * @param {RouterOutputs["comments"]["one"] | undefined} replyingToComent - The comment being replied to
+ * @param replyingToComment - The comment the user tapped "Reply" on.
+ * @param parentComment     - The top-level parent (pass when replying to a nested reply).
+ *                            Falls back to `replyingToComment` if omitted.
+ *
  */
-export const setActiveComment = (
-  parentComment: RouterOutputs["comments"]["one"] | undefined,
-  replyingToComent: RouterOutputs["comments"]["one"] | undefined
-) => {
-  commentState.replyingToComment = replyingToComent;
-  commentState.parentComment = parentComment;
-  commentState.replyingTo = replyingToComent?._id;
-  commentState.parentCommentId = parentComment?._id;
-};
+export function startReply(replyingToComment: CommentOne, parentComment?: CommentOne) {
+  commentState.mode = "reply";
+  commentState.target = replyingToComment;
+  commentState.parent = parentComment ?? replyingToComment;
+  // Draft intentionally not cleared — user may have been mid-typing.
+}
 
-export const setParentCommentId = (parentCommentId: string | undefined) => {
-  commentState.parentCommentId = parentCommentId;
-};
+/**
+ * Open the composer in edit mode, pre-filling the draft with the comment's text.
+ */
+export function startEdit(comment: CommentOne) {
+  commentState.mode = "edit";
+  commentState.target = comment;
+  commentState.parent = undefined;
+  commentState.draft = comment?.text ?? "";
+}
 
-export const setEditingComment = (
-  editingComment: RouterOutputs["comments"]["one"] | undefined
-) => {
-  commentState.editingComment = editingComment;
-};
+/**
+ * Reset the composer back to idle and clear all state.
+ */
+export function resetCommentState() {
+  commentState.mode = "idle";
+  commentState.target = undefined;
+  commentState.parent = undefined;
+  commentState.draft = "";
+}
 
-subscribe(commentState, () => {
-  console.log("commentState", commentState);
-});
+/** Update the draft text without touching mode or target. */
+export function setDraft(text: string) {
+  commentState.draft = text;
+}
+
+// ---------------------------------------------------------------------------
+// Convenience read helpers (avoid repetitive optional chaining at call sites)
+// ---------------------------------------------------------------------------
+
+/** The ID to pass as `replyingTo` on comment create. Undefined in idle/edit mode. */
+export function getReplyingToId(): string | undefined {
+  return commentState.mode === "reply" ? commentState.target?.id : undefined;
+}
+
+/** The ID to pass as `parentId` on comment create. Undefined in idle/edit mode. */
+export function getParentId(): string | undefined {
+  return commentState.mode === "reply" ? commentState.parent?.id : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Debug
+// ---------------------------------------------------------------------------
+
+if (__DEV__) {
+  subscribe(commentState, () => {
+    console.log(
+      "[commentState]",
+      JSON.stringify({
+        mode: commentState.mode,
+        target: commentState.target?.id,
+        parent: commentState.parent?.id,
+        draftLength: commentState.draft.length,
+      }),
+    );
+  });
+}

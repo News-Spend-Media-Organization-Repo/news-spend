@@ -1,14 +1,15 @@
 import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { News, PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
+import { Chip } from "heroui-native";
 import { memo, useCallback } from "react";
-import { type ScrollViewProps, useWindowDimensions } from "react-native";
+import { Pressable, type ScrollViewProps, useWindowDimensions, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
-import { Stack, Text, XStack } from "tamagui";
-import { Button, Image } from "#/components/ui";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
+import { Image } from "../heroui/image";
+import { Text } from "../heroui/text";
 import { RelatedItemTask } from "./RelatedItemTask";
 
 type RelatedNewsData = (News | PartnerContent | (PartnerContent & { _type: string }))[];
@@ -33,24 +34,35 @@ const RelatedImage = memo(({ item, width }: { item: News | PartnerContent; width
   const { url, blurhash } = getImageData(mediaSource);
   return (
     <Image
-      borderRadius={5}
+      className="w-full rounded-[5px]"
       contentFit="cover"
-      h={width * 0.35}
       placeholder={{
         blurhash,
       }}
       placeholderContentFit="cover"
       recyclingKey={item.id}
       source={url}
-      w="100%"
+      style={{
+        height: width * 0.35,
+      }}
     />
   );
 });
 
 const PointsButton = memo(({ points }: { points: number }) => (
-  <Button als="flex-end" bg="$color.s300" br="$10" fd="row" h="auto" px="$2" py="$1">
-    <Button.Text fos="$3">{points} points</Button.Text>
-  </Button>
+  <Chip
+    className="bg-s-300"
+    // als="flex-end"
+    // bg="$color.s300"
+    // br="$10"
+    // fd="row"
+    // h="auto"
+    // px="$2"
+    // py="$1"
+    size="sm"
+  >
+    {points} points
+  </Chip>
 ));
 
 const RelatedItem = memo(
@@ -71,21 +83,21 @@ const RelatedItem = memo(
     const points = isNewsItem ? (item.points ?? 0) : 0;
 
     return (
-      <Stack gap="$2" mr={10} onPress={onPress} width={width * 0.42}>
-        <Stack ai="center" jc="center">
+      <Pressable className="mr-2.5 gap-2" onPress={onPress} style={{ width: width * 0.42 }}>
+        <View className="items-center justify-center">
           <RelatedImage item={item} width={width} />
-        </Stack>
-        <Stack gap="$2">
-          <Text ellipsizeMode="head" numberOfLines={3}>
+        </View>
+        <View className="gap-2">
+          <Text ellipsizeMode="tail" numberOfLines={3}>
             {title}
           </Text>
           {isNewsItem && points > 0 && (
-            <XStack alignItems="center" jc="space-between">
+            <View className="flex-row items-center justify-between">
               <PointsButton points={points} />
-            </XStack>
+            </View>
           )}
-        </Stack>
-      </Stack>
+        </View>
+      </Pressable>
     );
   },
 );
@@ -134,7 +146,7 @@ function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
   }
 
   return (
-    <Stack gap="$3">
+    <View className="gap-3">
       <Text>People are also reading</Text>
       <LegendList
         data={news}
@@ -144,7 +156,7 @@ function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
         renderScrollComponent={CustomScrollView}
         showsHorizontalScrollIndicator={false}
       />
-    </Stack>
+    </View>
   );
 }
 

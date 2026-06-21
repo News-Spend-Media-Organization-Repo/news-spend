@@ -148,6 +148,15 @@
         }
       ],
       [
+        "expo-dev-client",
+        {
+          "launchMode": "most-recent",
+          "toolsButton": "false",
+          "skipOnboarding": "true",
+          "showMenuAtLaunch": "false"
+        }
+      ],
+      [
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",

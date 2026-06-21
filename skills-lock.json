@@ -6,11 +6,23 @@
       "sourceType": "github",
       "computedHash": "d2fc03a13d03678d40799726a144ba72ba1cb08126176ddbf0a0461c901aef29"
     },
+    "migrate-to-static-config": {
+      "source": "react-navigation/skills",
+      "sourceType": "github",
+      "skillPath": "skills/migrate-to-static-config/SKILL.md",
+      "computedHash": "2bcb236944f09f8ee778190e613b54284054e176551ed0a639aae428d360cbe9"
+    },
     "payload": {
       "source": "payloadcms/skills",
       "sourceType": "github",
       "skillPath": "skills/payload/SKILL.md",
       "computedHash": "868c518cec5efe3862accee8ef3751b72fac06d7e12a27c263dc17320f27b20c"
+    },
+    "react-native-best-practices": {
+      "source": "callstackincubator/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-best-practices/SKILL.md",
+      "computedHash": "15bd57b18d9ad0dcd003bd2c7ec6ed17d813cc671dd4d423e1d904d2a7b9d2bb"
     },
     "uniwind": {
       "source": "uni-stack/uniwind",

@@ -1,12 +1,14 @@
-import { Skeleton } from "@alloc/moti/skeleton";
-import { Stack, useWindowDimensions } from "tamagui";
+import { SkeletonGroup } from "heroui-native";
+import { useWindowDimensions, View } from "react-native";
 
 export default function TrendingNewsPlaceholder() {
   const { width, height } = useWindowDimensions();
 
   return (
-    <Stack height={height * 0.33} mr={25} width={width * 0.78}>
-      <Skeleton colorMode="light" height="100%" width="100%" />
-    </Stack>
+    <SkeletonGroup isLoading>
+      <View className="mr-[25px]" style={{ width: width * 0.78, height: height * 0.33 }}>
+        <SkeletonGroup.Item className="h-full w-full rounded-lg" />
+      </View>
+    </SkeletonGroup>
   );
 }

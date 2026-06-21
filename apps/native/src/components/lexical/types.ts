@@ -12,17 +12,14 @@ export type AbstractElementNode<Type extends string> = {
 } & AbstractNode<Type>;
 
 export type AbstractTextNode<Type extends string> = {
-  detail: number; // what is this
+  detail: number;
   format: "" | number;
-  mode: "normal"; // what is this
+  mode: "normal";
   style: string;
   text: string;
 } & AbstractNode<Type>;
 
-export type BlockNode<
-  BlockData extends Record<string, unknown>,
-  BlockType extends string,
-> = {
+export type BlockNode<BlockData extends Record<string, unknown>, BlockType extends string> = {
   fields: {
     id: string;
     blockName: string;
@@ -38,6 +35,20 @@ type UnknownBlockNode = {
     [key: string]: unknown;
   };
 } & AbstractNode<"block">;
+
+/**
+ * Inline block (Payload 3.x SerializedInlineBlockNode, `type: "inlineBlock"`).
+ * Inserted mid-paragraph/heading — appears as a child of paragraph/heading
+ * nodes, not at root. Emitted only when a block is registered as inline-capable
+ * via BlocksFeature. Unlike top-level blocks, fields carry no `blockName`.
+ */
+export type InlineBlockNode = {
+  fields: {
+    id: string;
+    blockType: string;
+    [key: string]: unknown;
+  };
+} & AbstractNode<"inlineBlock">;
 
 export type Root = {
   children: Node[];
@@ -57,7 +68,6 @@ export type Mark = {
 
 export type TextNode = AbstractTextNode<"text">;
 export type Linebreak = AbstractNode<"linebreak">;
-
 export type Horizontalrule = AbstractNode<"horizontalrule">;
 export type Tab = AbstractTextNode<"tab">;
 
@@ -90,7 +100,7 @@ export type AutoLinkNode = {
 } & AbstractElementNode<"autolink">;
 
 export type HeadingNode = {
-  tag: string;
+  tag: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
   children: TextNode[];
 } & AbstractElementNode<"heading">;
 
@@ -100,11 +110,16 @@ export type ParagraphNode = {
 
 export type ListItemNode = {
   children: (TextNode | ListNode)[];
+  /** 1-based counter used for ordered lists */
   value: number;
+  /** Present on checklist items */
+  checked?: boolean;
+  /** Inherited from parent list — passed down by serializer */
+  listType?: "number" | "bullet" | "check";
 } & AbstractElementNode<"listitem">;
 
 export type ListNode = {
-  tag: string;
+  tag: "ul" | "ol";
   listType: "number" | "bullet" | "check";
   start: number;
   children: ListItemNode[];
@@ -117,13 +132,26 @@ export type QuoteNode = {
 export type UploadNode<MediaType = Media> = {
   fields: null;
   relationTo: "media";
-  value: MediaType;
+  /** May be an unpopulated number if depth is insufficient */
+  value: MediaType | number;
 } & AbstractElementNode<"upload">;
+
+/**
+ * Relationship node (Payload 3.x SerializedRelationshipNode,
+ * `type: "relationship"`). Inline reference to another collection's document.
+ * Emitted only when RelationshipFeature is configured. `value` is the populated
+ * doc, or a raw id (number/string) when depth is insufficient.
+ */
+export type RelationshipNode = {
+  relationTo: string;
+  value: Record<string, unknown> | number | string;
+} & AbstractNode<"relationship">;
 
 export type Node =
   | HeadingNode
   | ParagraphNode
   | UploadNode
+  | RelationshipNode
   | TextNode
   | ListNode
   | ListItemNode
@@ -132,30 +160,25 @@ export type Node =
   | Tab
   | LinkNode
   | UnknownBlockNode
+  | InlineBlockNode
   | Horizontalrule
   | AutoLinkNode;
 
 export type ElementRenderers = {
   heading: (
-    props: { children: React.ReactNode } & Omit<HeadingNode, "children">
+    props: { children: React.ReactNode } & Omit<HeadingNode, "children">,
   ) => React.ReactNode;
-  list: (
-    props: { children: React.ReactNode } & Omit<ListNode, "children">
-  ) => React.ReactNode;
+  list: (props: { children: React.ReactNode } & Omit<ListNode, "children">) => React.ReactNode;
   listItem: (
-    props: { children: React.ReactNode } & Omit<ListItemNode, "children">
+    props: { children: React.ReactNode } & Omit<ListItemNode, "children">,
   ) => React.ReactNode;
   paragraph: (
-    props: { children: React.ReactNode } & Omit<ParagraphNode, "children">
+    props: { children: React.ReactNode } & Omit<ParagraphNode, "children">,
   ) => React.ReactNode;
-  quote: (
-    props: { children: React.ReactNode } & Omit<QuoteNode, "children">
-  ) => React.ReactNode;
-  link: (
-    props: { children: React.ReactNode } & Omit<LinkNode, "children">
-  ) => React.ReactNode;
+  quote: (props: { children: React.ReactNode } & Omit<QuoteNode, "children">) => React.ReactNode;
+  link: (props: { children: React.ReactNode } & Omit<LinkNode, "children">) => React.ReactNode;
   autolink: (
-    props: { children: React.ReactNode } & Omit<AutoLinkNode, "children">
+    props: { children: React.ReactNode } & Omit<AutoLinkNode, "children">,
   ) => React.ReactNode;
   linebreak: () => React.ReactNode;
   tab: () => React.ReactNode;
@@ -167,7 +190,7 @@ export type RenderMark = (mark: Mark) => React.ReactNode;
 
 export type BlockRenderers<Blocks extends { [key: string]: any }> = {
   [BlockName in Extract<keyof Blocks, string>]?: (
-    props: BlockNode<Blocks[BlockName], BlockName>
+    props: BlockNode<Blocks[BlockName], BlockName>,
   ) => React.ReactNode;
 };
 
@@ -175,15 +198,14 @@ export type PayloadLexicalReactRendererContent = {
   root: Root;
 };
 
-export type PayloadLexicalReactRendererProps<
-  Blocks extends { [key: string]: any },
-> = {
+export type PayloadLexicalReactRendererProps<Blocks extends { [key: string]: any }> = {
   content: PayloadLexicalReactRendererContent;
   elementRenderers?: ElementRenderers;
   renderMark?: RenderMark;
   blockRenderers?: BlockRenderers<Blocks>;
 };
 
+// Legacy — kept for any usage of the old serializer.tsx (can be removed)
 export type SerializedLexicalEditorState = {
   root: {
     type: string;

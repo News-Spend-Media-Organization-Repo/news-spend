@@ -1,18 +1,16 @@
-import { Slot } from "@radix-ui/react-slot";
-import { X } from "@tamagui/lucide-icons";
+import { Dialog, PressableFeedback } from "heroui-native";
+import { XIcon } from "phosphor-react-native";
 import { type ReactNode, useCallback, useState } from "react";
-import { Alert, Linking, Platform, useWindowDimensions } from "react-native";
-import { AlertDialog, Circle, Text } from "tamagui";
+import { Alert, Linking, Platform, useWindowDimensions, View } from "react-native";
 
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Text } from "#/components/heroui/text";
 import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
 import { useGoogleAd } from "#/hooks/discover/useGoogleAd";
 import { usePartnerAd } from "#/hooks/discover/usePartnerAd";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 import { navigate } from "#/navigation/navigationUtils";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
-import { Screen } from "../Screen";
 import { PartnerAdContent } from "./partner-ad-content";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -55,7 +53,6 @@ export function PartnerAdDialog({
   fallbackToAppWall = true,
 }: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
 
   // ── Dialog open state ────────────────────────────────────────────────────────
   const [internalOpen, setInternalOpen] = useState(false);
@@ -113,8 +110,7 @@ export function PartnerAdDialog({
     handleDidClose();
   }, [adType, countdown, handleDidClose]);
 
-  // Handles external close triggers (e.g. Android back, overlay tap via Tamagui).
-  // Only acts on close (open=false) since we control open ourselves via handleTriggerPress.
+  // Handles external close triggers (e.g. Android back, overlay tap via Dialog).
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
@@ -168,23 +164,44 @@ export function PartnerAdDialog({
       handleClose();
       return true;
     }
+
     return false;
   });
 
   // ── Trigger element ───────────────────────────────────────────────────────────
-  // Skip rendering trigger when hideTrigger is true
-  const TriggerElement = asChild ? Slot : Text;
 
-  const trigger =
-    hideTrigger || externalOpen ? null : children ? (
-      <TriggerElement onPress={handleTriggerPress} {...triggerProps} style={{ cursor: "pointer" }}>
-        {children}
-      </TriggerElement>
-    ) : (
+  const trigger = (() => {
+    if (hideTrigger || externalOpen) {
+      return null;
+    }
+
+    if (children) {
+      if (asChild) {
+        return (
+          <PressableFeedback
+            onPress={handleTriggerPress}
+            {...(triggerProps as React.ComponentProps<typeof PressableFeedback>)}
+          >
+            {children}
+          </PressableFeedback>
+        );
+      }
+      return (
+        <Text
+          className="cursor-pointer"
+          onPress={handleTriggerPress}
+          {...(triggerProps as React.ComponentProps<typeof Text>)}
+        >
+          {children}
+        </Text>
+      );
+    }
+    return (
       <Button onPress={handleTriggerPress} {...triggerProps}>
-        <Button.Text>{triggerText}</Button.Text>
+        <Button.Label>{triggerText}</Button.Label>
       </Button>
     );
+  })();
 
   // ── Dialog content ────────────────────────────────────────────────────────────
   const dialogContent =
@@ -204,62 +221,28 @@ export function PartnerAdDialog({
     <>
       {trigger}
 
-      <AlertDialog onOpenChange={handleOpenChange} open={isOpen}>
-        <AlertDialog.Portal>
-          <AlertDialog.Overlay
-            animation="quick"
-            bg="rgba(0,0,0,0.5)"
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-            key="overlay"
-            onPress={handleClose}
-            opacity={0.8}
-          />
-          <AlertDialog.Content
-            animation={["quick", { opacity: { overshootClamping: true } }]}
-            enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-            exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-            fullscreen
-            key="partner-ad"
-            opacity={1}
-            p="$0"
-            scale={1}
-            x={0}
-            y={0}
+      <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="bg-black/50" isCloseOnPress={false} />
+          <Dialog.Content
+            className="p-0"
+            isSwipeable={false}
+            style={{ width: "100%", height: "100%" }}
           >
-            <Screen bg="transparent" contentContainerStyle={insets} flex={1} gap="$5">
-              {/* Close / countdown button */}
-              <Button
-                als="flex-end"
-                bg="#f5f5f5"
-                borderRadius="$6"
-                br="$10"
-                h="auto"
-                jc="space-between"
-                mr="$2"
-                mt="$2"
-                onPress={handleClose}
-                p="$2"
-                pressStyle={{ zIndex: "$4" }}
-                zi="$3"
-              >
-                {adType === "custom" && countdown > 0 ? (
-                  <Button.Text color="$color" fontSize="$3">
-                    {`Reward in ${countdown} seconds`}
-                  </Button.Text>
-                ) : null}
-                <Button.Icon color="black">
-                  <Circle bg="white" br="$5" p="$2">
-                    <X size="$1" />
-                  </Circle>
-                </Button.Icon>
-              </Button>
+            {/* Close / countdown button */}
+            <View className="absolute top-2 right-2 z-10 flex-row items-center self-end rounded-full bg-[#f5f5f5] p-2">
+              {adType === "custom" && countdown > 0 ? (
+                <Text className="mr-1 text-sm">{`Reward in ${countdown} seconds`}</Text>
+              ) : null}
+              <PressableFeedback className="rounded-full bg-white p-2" onPress={handleClose}>
+                <XIcon color="black" size={20} />
+              </PressableFeedback>
+            </View>
 
-              {dialogContent}
-            </Screen>
-          </AlertDialog.Content>
-        </AlertDialog.Portal>
-      </AlertDialog>
+            {dialogContent}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
     </>
   );
 }

@@ -683,8 +683,16 @@ export interface Comment {
   news: string | News;
   parent?: (string | null) | Comment;
   replyingTo?: (string | null) | Comment;
+  /**
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
+   */
   likes?: (string | User)[] | null;
+  /**
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
+   */
   dislikes?: (string | User)[] | null;
+  likesCount?: number | null;
+  dislikesCount?: number | null;
   replies?: (string | Comment)[] | null;
   totalReplies?: number | null;
   createdBy?: {
@@ -1431,7 +1439,19 @@ export interface PromotionMedia {
 export interface Reaction {
   id: string;
   user: string | User;
-  news: string | News;
+  /**
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all rows have `target` set.
+   */
+  news?: (string | null) | News;
+  target:
+    | {
+        relationTo: "news";
+        value: string | News;
+      }
+    | {
+        relationTo: "comments";
+        value: string | Comment;
+      };
   type: "like" | "dislike" | "none";
   createdBy?: {
     relationTo: "admins";
@@ -1980,6 +2000,8 @@ export interface CommentsSelect<T extends boolean = true> {
   replyingTo?: T;
   likes?: T;
   dislikes?: T;
+  likesCount?: T;
+  dislikesCount?: T;
   replies?: T;
   totalReplies?: T;
   createdBy?: T;
@@ -2458,6 +2480,7 @@ export interface PushTokensSelect<T extends boolean = true> {
 export interface ReactionsSelect<T extends boolean = true> {
   user?: T;
   news?: T;
+  target?: T;
   type?: T;
   createdBy?: T;
   lastModifiedBy?: T;
