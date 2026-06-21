@@ -33,6 +33,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     orpc.publisher.onMessage.experimental_liveOptions({
       input: { channel: "live-news" },
       retry: true,
+      enabled: !isHidden,
     }),
   );
 

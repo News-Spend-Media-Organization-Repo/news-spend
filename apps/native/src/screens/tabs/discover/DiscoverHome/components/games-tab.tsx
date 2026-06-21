@@ -8,6 +8,7 @@ import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { authState } from "#/state/auth";
 import { GameItem } from "./game-item";
+import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 
 export function GamesTab() {
   const { user } = useSnapshot(authState);
@@ -65,22 +66,33 @@ export function GamesTab() {
   );
 
   return (
-    <TabLegendList
-      contentContainerStyle={{
-        paddingBottom: 25,
-      }}
-      data={data}
-      estimatedItemSize={120}
-      keyExtractor={(item: any) => item.id}
-      ListEmptyComponent={
-        isPending ? (
-          <View className="flex-1 items-center justify-center">
-            <Text>Loading...</Text>
-          </View>
-        ) : null
-      }
-      refreshControl={refreshControl}
-      renderItem={renderItem}
-    />
+    <View className="flex-1">
+      <TabLegendList
+        contentContainerStyle={{
+          paddingBottom: 25,
+        }}
+        data={data}
+        estimatedItemSize={120}
+        keyExtractor={(item: any) => item.id}
+        ListEmptyComponent={
+          isPending ? (
+            <View className="flex-1 items-center justify-center">
+              <Text>Loading...</Text>
+            </View>
+          ) : null
+        }
+        onScrollEndDrag={(e) => {
+          if (Platform.OS === "ios") {
+            const pull = -e.nativeEvent.contentOffset.y;
+            if (pull >= 80) {
+              refetchByUser();
+            }
+          }
+        }}
+        refreshControl={Platform.OS === "android" ? refreshControl : undefined}
+        renderItem={renderItem}
+      />
+      <PullToRefreshIndicator refreshing={isRefetchingByUser} />
+    </View>
   );
 }

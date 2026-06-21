@@ -2,13 +2,14 @@ import type { LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { AppItem } from "./app-item";
+import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 
 export const AppTab = () => {
   const { handleClick, isLoading } = usePartnerClick();
@@ -67,25 +68,40 @@ export const AppTab = () => {
 
   const onRefresh = useCallback(() => {
     refetchByUser();
-  }, []);
+  }, [refetchByUser]);
 
   if (isPending) {
     return <ActivityIndicator />;
   }
 
   return (
-    <TabLegendList
-      data={appsData}
-      estimatedItemSize={90}
-      keyExtractor={keyExtractor}
-      ListEmptyComponent={emptyList}
-      ListFooterComponent={footer}
-      onEndReached={onEndReached}
-      onEndReachedThreshold={0.5}
-      onRefresh={onRefresh}
-      progressViewOffset={0}
-      refreshing={isRefetchingByUser}
-      renderItem={renderItem}
-    />
+    <View className="flex-1">
+      <TabLegendList
+        data={appsData}
+        estimatedItemSize={90}
+        keyExtractor={keyExtractor}
+        ListEmptyComponent={emptyList}
+        ListFooterComponent={footer}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        onScrollEndDrag={(e) => {
+          if (Platform.OS === "ios") {
+            const pull = -e.nativeEvent.contentOffset.y;
+            if (pull >= 80) {
+              refetchByUser();
+            }
+          }
+        }}
+        renderItem={renderItem}
+        {...(Platform.OS === "android"
+          ? {
+              onRefresh,
+              progressViewOffset: 0,
+              refreshing: isRefetchingByUser,
+            }
+          : {})}
+      />
+      <PullToRefreshIndicator refreshing={isRefetchingByUser} />
+    </View>
   );
 };

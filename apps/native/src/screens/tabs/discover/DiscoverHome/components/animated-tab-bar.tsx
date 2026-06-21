@@ -33,6 +33,8 @@ type AnimatedTabBarProps = {
   indexDecimal: SharedValue<number>;
   activeIndex: number;
   onTabPress: (name: string) => void;
+  /** Called with the measured height of the tab bar (in px) once laid out. */
+  onLayout?: (height: number) => void;
   backgroundColor?: string;
   activeColor?: string;
   inactiveColor?: string;
@@ -78,6 +80,7 @@ export function AnimatedTabBar({
   indexDecimal,
   activeIndex,
   onTabPress,
+  onLayout: onBarLayout,
   backgroundColor = "#00223d",
   activeColor,
   inactiveColor,
@@ -164,6 +167,7 @@ export function AnimatedTabBar({
     <View
       accessibilityRole="tablist"
       className={cn("border-b border-b-white/10", containerClassName)}
+      onLayout={(e) => onBarLayout?.(e.nativeEvent.layout.height)}
       style={[{ backgroundColor }, containerStyle]}
     >
       <Animated.ScrollView

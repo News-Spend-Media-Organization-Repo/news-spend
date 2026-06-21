@@ -2,7 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Card, Chip } from "heroui-native";
 import { useCallback } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSnapshot } from "valtio";
 
@@ -11,6 +11,7 @@ import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { authState } from "#/state/auth";
+import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 
 type Offer = RouterOutputs["survey"]["offers"]["getOffers"][number];
 
@@ -220,17 +221,32 @@ export function SurveyTab() {
   }, [surveyQuery.isPending, surveyQuery.isError, offers.length, user, refetchByUser, navigation]);
 
   return (
-    <TabLegendList
-      contentContainerStyle={{ padding: 15 }}
-      data={otherSurveys}
-      keyExtractor={(item: Offer) => item?.id ?? ""}
-      ListEmptyComponent={renderListEmptyComponent}
-      ListHeaderComponent={renderTopRatedCard}
-      numColumns={2}
-      onRefresh={refetchByUser}
-      progressViewOffset={0}
-      refreshing={isRefetchingByUser}
-      renderItem={renderSurveyCard}
-    />
+    <View className="flex-1">
+      <PullToRefreshIndicator refreshing={isRefetchingByUser} />
+      <TabLegendList
+        contentContainerStyle={{ padding: 15 }}
+        data={otherSurveys}
+        keyExtractor={(item: Offer) => item?.id ?? ""}
+        ListEmptyComponent={renderListEmptyComponent}
+        ListHeaderComponent={renderTopRatedCard}
+        numColumns={2}
+        onScrollEndDrag={(e) => {
+          if (Platform.OS === "ios") {
+            const pull = -e.nativeEvent.contentOffset.y;
+            if (pull >= 80) {
+              refetchByUser();
+            }
+          }
+        }}
+        renderItem={renderSurveyCard}
+        {...(Platform.OS === "android"
+          ? {
+              onRefresh: refetchByUser,
+              progressViewOffset: 0,
+              refreshing: isRefetchingByUser,
+            }
+          : {})}
+      />
+    </View>
   );
 }

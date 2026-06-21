@@ -32,6 +32,7 @@ import { authState } from "#/state/auth";
 import { getImageData } from "#/utils/getImageData";
 import { AppItem } from "./app-item";
 import { GameItem } from "./game-item";
+import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 import { StationItem } from "./radio-station-item";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -561,14 +562,25 @@ export const AllTab = () => {
   );
 
   return (
-    <TabLegendList
-      contentContainerStyle={{ paddingVertical: 12 }}
-      data={sections}
-      keyExtractor={keyExtractor}
-      ref={listRef}
-      refreshControl={refreshControl}
-      renderItem={renderItem}
-      stickyHeaderIndices={stickyHeaderIndices}
-    />
+    <View className="flex-1">
+      <TabLegendList
+        contentContainerStyle={{ paddingVertical: 12 }}
+        data={sections}
+        keyExtractor={keyExtractor}
+        onScrollEndDrag={(e) => {
+          if (Platform.OS === "ios") {
+            const pull = -e.nativeEvent.contentOffset.y;
+            if (pull >= 80) {
+              refetchAll();
+            }
+          }
+        }}
+        ref={listRef}
+        refreshControl={Platform.OS === "android" ? refreshControl : undefined}
+        renderItem={renderItem}
+        stickyHeaderIndices={stickyHeaderIndices}
+      />
+      <PullToRefreshIndicator refreshing={isRefetching} />
+    </View>
   );
 };

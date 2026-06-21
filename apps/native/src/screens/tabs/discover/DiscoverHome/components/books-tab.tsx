@@ -4,7 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { cn, PressableFeedback } from "heroui-native";
 import { memo, useCallback, useId, useMemo } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 
 import { Text } from "#/components/heroui/text";
@@ -12,6 +12,8 @@ import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
+
+import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 
 const ITEM_HEIGHT = 280;
 
@@ -106,29 +108,45 @@ function BooksTabComponent() {
   }
 
   return (
-    <TabLegendList
-      contentContainerStyle={{
-        paddingVertical: 10,
-        gap: 25,
-        paddingHorizontal: 12,
-      }}
-      data={flatData}
-      estimatedItemSize={ITEM_HEIGHT}
-      key={id}
-      keyExtractor={keyExtractor}
-      ListEmptyComponent={emptyList}
-      ListFooterComponent={footer}
-      numColumns={2}
-      onEndReached={onEndReached}
-      onEndReachedThreshold={0.5}
-      onRefresh={onRefresh}
-      progressViewOffset={0}
-      refreshing={isRefetchingByUser}
-      renderItem={renderItem}
-      style={{
-        paddingHorizontal: 12,
-      }}
-    />
+    <View className="flex-1">
+      <TabLegendList
+        contentContainerStyle={{
+          paddingVertical: 10,
+          gap: 25,
+          paddingHorizontal: 12,
+        }}
+        data={flatData}
+        estimatedItemSize={ITEM_HEIGHT}
+        key={id}
+        keyExtractor={keyExtractor}
+        ListEmptyComponent={emptyList}
+        ListFooterComponent={footer}
+        numColumns={2}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        onRefresh={onRefresh}
+        onScrollEndDrag={(e) => {
+          if (Platform.OS === "ios") {
+            const pull = -e.nativeEvent.contentOffset.y;
+            if (pull >= 80) {
+              refetchByUser();
+            }
+          }
+        }}
+        renderItem={renderItem}
+        style={{
+          paddingHorizontal: 12,
+        }}
+        {...(Platform.OS === "android"
+          ? {
+              onRefresh,
+              progressViewOffset: 0,
+              refreshing: isRefetchingByUser,
+            }
+          : {})}
+      />
+      <PullToRefreshIndicator refreshing={isRefetchingByUser} />
+    </View>
   );
 }
 
