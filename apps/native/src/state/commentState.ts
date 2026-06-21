@@ -74,12 +74,12 @@ export function setDraft(text: string) {
 
 /** The ID to pass as `replyingTo` on comment create. Undefined in idle/edit mode. */
 export function getReplyingToId(): string | undefined {
-  return commentState.mode === "reply" ? commentState.target?._id : undefined;
+  return commentState.mode === "reply" ? commentState.target?.id : undefined;
 }
 
 /** The ID to pass as `parentId` on comment create. Undefined in idle/edit mode. */
 export function getParentId(): string | undefined {
-  return commentState.mode === "reply" ? commentState.parent?._id : undefined;
+  return commentState.mode === "reply" ? commentState.parent?.id : undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,8 +92,8 @@ if (__DEV__) {
       "[commentState]",
       JSON.stringify({
         mode: commentState.mode,
-        target: commentState.target?._id,
-        parent: commentState.parent?._id,
+        target: commentState.target?.id,
+        parent: commentState.parent?.id,
         draftLength: commentState.draft.length,
       }),
     );

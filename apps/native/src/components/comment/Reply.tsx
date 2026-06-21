@@ -34,7 +34,7 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
     commentId?: string;
     newsId?: string;
   };
-  const { mutate } = useLikeComment(newsId);
+  const { mutate } = useLikeComment(newsId ?? "", parentCommentId);
   const auth = useSnapshot(authState);
   const navigation = useNavigation();
 
@@ -65,7 +65,8 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
         redirect: "CommentReply",
       });
     }
-    mutate({ commentId: comment.id });
+
+    mutate(comment.id);
   };
 
   const username = typeof comment.user === "object" ? comment.user.username : "Unknown";

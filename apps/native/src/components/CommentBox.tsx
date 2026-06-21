@@ -142,7 +142,7 @@ export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxPro
   };
 
   const handleSave = () => {
-    const editId = commentState.target?._id;
+    const editId = commentState.target?.id;
     if (!editId) {
       toast.error("No comment selected to update");
       return;

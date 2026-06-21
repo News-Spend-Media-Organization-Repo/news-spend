@@ -21,8 +21,7 @@ function useLikeComment(newsId: string, parentId?: string) {
       onMutate: async (targetCommentId: string) => {
         // Cancel relevant queries
         await queryClient.cancelQueries({
-          queryKey: orpc.comments.one.queryOptions({ input: targetCommentId })
-            .queryKey,
+          queryKey: orpc.comments.one.queryOptions({ input: targetCommentId }).queryKey,
         });
         await queryClient.cancelQueries({
           queryKey: orpc.comments.all.key(),
@@ -30,8 +29,9 @@ function useLikeComment(newsId: string, parentId?: string) {
 
         // Snapshot previous data
         const previousComment = queryClient.getQueryData<Comment>(
-          orpc.comments.one.queryOptions({ input: targetCommentId }).queryKey
+          orpc.comments.one.queryOptions({ input: targetCommentId }).queryKey,
         );
+
         const previousComments = queryClient.getQueryData(
           orpc.comments.all.infiniteKey({
             input: (pageParam: number | undefined) => ({
@@ -40,20 +40,19 @@ function useLikeComment(newsId: string, parentId?: string) {
               page: pageParam,
             }),
             initialPageParam: undefined,
-          })
+          }),
         );
 
         const userId = authState.user?.id;
 
         // Helper to update likes array
-        const updateLikes = (
-          currentLikes: Comment["likes"] = [],
-          shouldRemove: boolean
-        ) => {
-          if (!userId) return currentLikes;
+        const updateLikes = (currentLikes: Comment["likes"] = [], shouldRemove: boolean) => {
+          if (!userId) {
+            return currentLikes;
+          }
           return shouldRemove
             ? currentLikes?.filter((user) =>
-                typeof user === "string" ? user !== userId : user?.id !== userId
+                typeof user === "string" ? user !== userId : user?.id !== userId,
               )
             : [...currentLikes, authState.user]; // Add the full authState.user object
         };
@@ -62,27 +61,21 @@ function useLikeComment(newsId: string, parentId?: string) {
         if (previousComment && userId) {
           // Ensure userId exists before attempting optimistic update
           const hasLikedPrev = previousComment.likes?.some((user) =>
-            typeof user === "string" ? user === userId : user?.id === userId
+            typeof user === "string" ? user === userId : user?.id === userId,
           );
 
-          const newLikes = updateLikes(
-            previousComment.likes ?? [],
-            hasLikedPrev ?? false
-          );
+          const newLikes = updateLikes(previousComment.likes ?? [], hasLikedPrev ?? false);
           const newUserReaction = newLikes?.some((user) =>
-            typeof user === "string" ? user === userId : user?.id === userId
+            typeof user === "string" ? user === userId : user?.id === userId,
           )
             ? "like"
             : "none";
 
-          queryClient.setQueryData(
-            orpc.comments.one.queryKey({ input: targetCommentId }),
-            {
-              ...previousComment,
-              likes: newLikes,
-              userReaction: newUserReaction,
-            }
-          );
+          queryClient.setQueryData(orpc.comments.one.queryKey({ input: targetCommentId }), {
+            ...previousComment,
+            likes: newLikes,
+            userReaction: newUserReaction,
+          });
         }
 
         // Optimistically update infinite comments (list or replies)
@@ -93,19 +86,12 @@ function useLikeComment(newsId: string, parentId?: string) {
             docs: page.docs.map((comment) => {
               if (comment.id === targetCommentId) {
                 const hasLikedPrev = comment.likes?.some((user) =>
-                  typeof user === "string"
-                    ? user === userId
-                    : user?.id === userId
+                  typeof user === "string" ? user === userId : user?.id === userId,
                 );
 
-                const newLikes = updateLikes(
-                  comment.likes ?? [],
-                  hasLikedPrev ?? false
-                );
+                const newLikes = updateLikes(comment.likes ?? [], hasLikedPrev ?? false);
                 const newUserReaction = newLikes?.some((user) =>
-                  typeof user === "string"
-                    ? user === userId
-                    : user?.id === userId
+                  typeof user === "string" ? user === userId : user?.id === userId,
                 )
                   ? "like"
                   : "none";
@@ -129,7 +115,7 @@ function useLikeComment(newsId: string, parentId?: string) {
               }),
               initialPageParam: undefined,
             }),
-            { ...previousComments, pages: newPages }
+            { ...previousComments, pages: newPages },
           );
         }
 
@@ -143,7 +129,7 @@ function useLikeComment(newsId: string, parentId?: string) {
           if (context?.previousComment) {
             queryClient.setQueryData(
               orpc.comments.one.queryKey({ input: variable }),
-              context.previousComment
+              context.previousComment,
             );
           }
           // Rollback infinite comments
@@ -153,26 +139,58 @@ function useLikeComment(newsId: string, parentId?: string) {
                 input: (pageParam) => ({ newsId, parentId, page: pageParam }),
                 initialPageParam: undefined,
               }),
-              context.previousComments
+              context.previousComments,
             );
           }
         }
       },
 
-      // Invalidate queries after mutation
-      onSettled: (_data, _error, variable) => {
-        queryClient.invalidateQueries({
-          queryKey: orpc.comments.one.queryOptions({ input: variable })
-            .queryKey,
+      // Dehydrate: trust the server response. onMutate already painted
+      // the optimistic state; onSuccess just replaces it with the
+      // authoritative server state. We derive `userReaction` from the
+      // server's `likes` array to keep the cache field consistent
+      // (the server response is a raw Payload doc and doesn't include
+      // this derived field).
+      onSuccess: (serverResponse, targetCommentId) => {
+        const userId = authState.user?.id;
+        const userReaction =
+          userId &&
+          serverResponse.likes?.some((u: string | { id?: string }) =>
+            typeof u === "string" ? u === userId : u?.id === userId,
+          )
+            ? ("like" as const)
+            : ("none" as const);
+
+        const enriched = { ...serverResponse, userReaction };
+
+        const singleKey = orpc.comments.one.queryKey({
+          input: targetCommentId,
         });
-        queryClient.invalidateQueries({
-          queryKey: orpc.comments.all.infiniteKey({
-            input: (pageParam) => ({ newsId, parentId, page: pageParam }),
-            initialPageParam: undefined,
+        if (queryClient.getQueryData(singleKey)) {
+          queryClient.setQueryData(singleKey, enriched);
+        }
+
+        const infiniteKey = orpc.comments.all.infiniteKey({
+          input: (pageParam: number | undefined) => ({
+            newsId,
+            parentId,
+            page: pageParam,
           }),
+          initialPageParam: undefined,
         });
+        const currentInfinite = queryClient.getQueryData(infiniteKey);
+        if (currentInfinite?.pages) {
+          const newPages = currentInfinite.pages.map((page: { docs: Comment[] }) => ({
+            ...page,
+            docs: page.docs.map((comment) => (comment.id === targetCommentId ? enriched : comment)),
+          }));
+          queryClient.setQueryData(infiniteKey, {
+            ...currentInfinite,
+            pages: newPages,
+          });
+        }
       },
-    })
+    }),
   );
 }
 

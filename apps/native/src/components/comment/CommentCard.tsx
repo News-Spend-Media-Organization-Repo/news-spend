@@ -92,12 +92,12 @@ const CommentCard = memo(({ comment, isLast, parentId, replyingTo }: CommentCard
 
   return (
     <View className="relative">
-      <View className="flex-row gap-[10px] px-[10px]">
+      <View className="flex-row gap-2.5 px-2.5">
         <View
           className="h-8 w-8 items-center justify-center rounded-full"
           style={{ backgroundColor: avatarBg }}
         >
-          <Text className="text-[#fff] text-base">
+          <Text className="text-base text-white">
             {(typeof comment.user === "object" && comment.user.username?.[0].toUpperCase()) ?? "U"}
           </Text>
         </View>

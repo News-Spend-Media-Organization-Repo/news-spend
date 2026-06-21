@@ -61,7 +61,7 @@ function CommentReplies() {
       input: (pageParam: number | undefined) => ({
         newsId: rest.newsId,
         parentId: commentId,
-        pageParam,
+        page: pageParam,
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,

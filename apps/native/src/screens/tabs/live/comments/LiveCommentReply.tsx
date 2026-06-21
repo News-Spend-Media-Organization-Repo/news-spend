@@ -63,7 +63,7 @@ function LiveCommentReply({ route }) {
       input: (pageParam: number | undefined) => ({
         newsId,
         parentId: commentId,
-        pageParam,
+        page: pageParam,
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,

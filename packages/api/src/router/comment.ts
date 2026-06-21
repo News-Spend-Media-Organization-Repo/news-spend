@@ -4,6 +4,48 @@ import z from "zod";
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { createRateLimitMiddleware } from "../lib/ratelimit";
 
+// Enriches a single comment doc with minimal user data (id + username).
+// We query comments with depth: 0 so relationships return IDs only, then
+// batch-fetch the users we actually need to avoid the full Payload user
+// object (which includes email, phone, sessions, accounts, etc.).
+type MinimalUser = { id: string; username: string };
+type CommentWithUser = {
+  user?: string | MinimalUser | null;
+  likes?: Array<string | MinimalUser>;
+  dislikes?: Array<string | MinimalUser>;
+  [key: string]: unknown;
+};
+
+async function enrichCommentWithUser(payload: any, doc: CommentWithUser): Promise<CommentWithUser> {
+  const userIds = new Set<string>();
+  if (typeof doc.user === "string") userIds.add(doc.user);
+  for (const u of doc.likes ?? []) {
+    if (typeof u === "string") userIds.add(u);
+  }
+  for (const u of doc.dislikes ?? []) {
+    if (typeof u === "string") userIds.add(u);
+  }
+  if (userIds.size === 0) return doc;
+
+  const users = await payload.find({
+    collection: "users",
+    where: { id: { in: [...userIds] } },
+    limit: userIds.size,
+    depth: 0,
+  });
+
+  const userMap = new Map<string, MinimalUser>(
+    users.docs.map((u: any) => [u.id, { id: u.id, username: u.username }]),
+  );
+
+  return {
+    ...doc,
+    user: typeof doc.user === "string" ? (userMap.get(doc.user) ?? doc.user) : doc.user,
+    likes: (doc.likes ?? []).map((u) => (typeof u === "string" ? (userMap.get(u) ?? u) : u)),
+    dislikes: (doc.dislikes ?? []).map((u) => (typeof u === "string" ? (userMap.get(u) ?? u) : u)),
+  };
+}
+
 // Input Schemas
 const CommentInput = z.object({
   text: z.string(),
@@ -31,37 +73,39 @@ export type AllCommentsInput = z.infer<typeof allCommentsInput>;
 
 // Procedures
 
-const allComments = publicProcedure
-  .input(allCommentsInput)
-  .handler(async ({ input, context }) => {
-    const { payload } = context;
-    const comments = await payload.find({
-      collection: "comments",
-      where: {
-        ...(input.parentId
-          ? { parent: { equals: input.parentId } }
-          : { parent: { exists: false } }),
-        "news.id": {
-          equals: input.newsId,
-        },
+const allComments = publicProcedure.input(allCommentsInput).handler(async ({ input, context }) => {
+  const { payload } = context;
+  const comments = await payload.find({
+    collection: "comments",
+    where: {
+      ...(input.parentId ? { parent: { equals: input.parentId } } : { parent: { exists: false } }),
+      "news.id": {
+        equals: input.newsId,
       },
-      sort: "-createdAt",
-      limit: input.limit || 10,
-      page: input.page || 1,
-    });
-
-    return comments;
+    },
+    sort: "-createdAt",
+    limit: input.limit || 10,
+    page: input.page || 1,
+    depth: 0,
   });
+
+  const enrichedDocs = await Promise.all(
+    comments.docs.map((doc: CommentWithUser) => enrichCommentWithUser(payload, doc)),
+  );
+
+  return { ...comments, docs: enrichedDocs };
+});
 
 const getComment = publicProcedure
   .input(z.string())
   .handler(async ({ input: commentId, context }) => {
     const { payload } = context;
-    return await payload.findByID({
+    const doc = await payload.findByID({
       collection: "comments",
       id: commentId,
-      depth: 3,
+      depth: 0,
     });
+    return enrichCommentWithUser(payload, doc);
   });
 
 const addComment = protectedNoGuestProcedure
@@ -145,7 +189,7 @@ const dislikeComment = protectedNoGuestProcedure
     }
 
     const userDislikedIndex = comment.dislikes?.findIndex((user) =>
-      typeof user === "string" ? user === userId : user?.id === userId
+      typeof user === "string" ? user === userId : user?.id === userId,
     );
 
     let operation: any;
@@ -156,9 +200,7 @@ const dislikeComment = protectedNoGuestProcedure
     } else {
       // User has already disliked the comment, so remove their ID
       operation = {
-        dislikes: comment.dislikes?.filter(
-          (_, index) => index !== userDislikedIndex
-        ),
+        dislikes: comment.dislikes?.filter((_, index) => index !== userDislikedIndex),
       };
     }
 
@@ -166,9 +208,10 @@ const dislikeComment = protectedNoGuestProcedure
       collection: "comments",
       id: commentId,
       data: operation,
+      depth: 0,
     });
 
-    return updatedComment;
+    return enrichCommentWithUser(payload, updatedComment);
   });
 
 const likeComment = protectedNoGuestProcedure
@@ -180,6 +223,7 @@ const likeComment = protectedNoGuestProcedure
     const comment = await payload.findByID({
       collection: "comments",
       id: commentId,
+      depth: 0,
     });
 
     if (!comment) {
@@ -189,7 +233,7 @@ const likeComment = protectedNoGuestProcedure
     }
 
     const userLikedIndex = comment.likes?.findIndex((user) =>
-      typeof user === "string" ? user === userId : user.id === userId
+      typeof user === "string" ? user === userId : user.id === userId,
     );
 
     let operation: any;
@@ -208,9 +252,10 @@ const likeComment = protectedNoGuestProcedure
       collection: "comments",
       id: commentId,
       data: operation,
+      depth: 0,
     });
 
-    return updatedComment;
+    return enrichCommentWithUser(payload, updatedComment);
   });
 
 export const commentRouter = {
