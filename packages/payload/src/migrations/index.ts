@@ -19,6 +19,7 @@ import * as migration_20260517_232052 from "./20260517_232052";
 import * as migration_20260523_173532 from "./20260523_173532";
 import * as migration_20260608_004551_notification_cascade_delete from "./20260608_004551_notification_cascade_delete";
 import * as migration_20260621_120000_reactions_to_polymorphic from "./20260621_120000_reactions_to_polymorphic";
+import * as migration_20260621_130000_fix_user_news_cascade from "./20260621_130000_fix_user_news_cascade";
 
 export const migrations = [
   {
@@ -125,5 +126,10 @@ export const migrations = [
     up: migration_20260621_120000_reactions_to_polymorphic.up,
     down: migration_20260621_120000_reactions_to_polymorphic.down,
     name: "20260621_120000_reactions_to_polymorphic",
+  },
+  {
+    up: migration_20260621_130000_fix_user_news_cascade.up,
+    down: migration_20260621_130000_fix_user_news_cascade.down,
+    name: "20260621_130000_fix_user_news_cascade",
   },
 ];
