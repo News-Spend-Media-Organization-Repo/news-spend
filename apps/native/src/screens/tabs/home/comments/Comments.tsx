@@ -28,17 +28,19 @@ const Comments = () => {
   const news = useQuery(
     orpc.news.one.queryOptions({
       input: {
-        slug: newsSlug,
+        slug: newsSlug ?? "",
         type: "article",
       },
       initialData: () =>
         queryClient.getQueryData(
-          orpc.news.one.queryKey({ input: { slug: newsSlug, type: "article" } }),
+          orpc.news.one.queryKey({
+            input: { slug: newsSlug ?? "", type: "article" },
+          }),
         ),
       initialDataUpdatedAt: () => {
         const qKey = orpc.news.one.queryKey({
           input: {
-            slug: newsSlug,
+            slug: newsSlug ?? "",
             type: "article",
           },
         });
@@ -48,7 +50,7 @@ const Comments = () => {
     }),
   );
   const { data, fetchNextPage, isFetchingNextPage, hasNextPage, refetch } = useGetComments(
-    newsId,
+    newsId ?? "",
     false,
   );
 

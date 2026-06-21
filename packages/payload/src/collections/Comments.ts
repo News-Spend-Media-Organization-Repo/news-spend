@@ -106,12 +106,40 @@ const Comments: CollectionConfig = {
       type: "relationship",
       relationTo: "users",
       hasMany: true,
+      admin: {
+        hidden: true,
+        description:
+          "Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.",
+      },
     },
     {
       name: "dislikes",
       type: "relationship",
       relationTo: "users",
       hasMany: true,
+      admin: {
+        hidden: true,
+        description:
+          "Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.",
+      },
+    },
+    {
+      name: "likesCount",
+      type: "number",
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        hidden: process.env.NODE_ENV !== "development",
+      },
+    },
+    {
+      name: "dislikesCount",
+      type: "number",
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        hidden: process.env.NODE_ENV !== "development",
+      },
     },
     // virtual field for replies
     {

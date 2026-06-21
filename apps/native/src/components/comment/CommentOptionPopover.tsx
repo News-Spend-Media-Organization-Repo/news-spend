@@ -1,80 +1,33 @@
-import type { Comment } from "@news-spend-media/payload/types";
-import { Menu, Separator } from "heroui-native";
 import { DotsThreeVerticalIcon } from "phosphor-react-native";
 import React from "react";
-import { useSnapshot } from "valtio";
 
+import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
+import CommentOptionSheet from "#/components/sheets/CommentOptionSheet";
 import PostReportSheet from "#/components/sheets/PostReportSheet";
-import useDeleteComment from "#/hooks/comments/useDeleteComment";
-import { authState } from "#/state/auth";
-import { startEdit } from "#/state/commentState";
-import { Button } from "../heroui/button";
+import type { RouterOutputs } from "#/lib/orpc";
+
+type Comment = RouterOutputs["comments"]["one"];
 
 export function CommentOptionPopover({ comment }: { comment: Comment }) {
+  const [open, setOpen] = React.useState(false);
   const [showReportSheet, setShowReportSheet] = React.useState(false);
-  const deleteMutation = useDeleteComment();
-  const auth = useSnapshot(authState);
-
-  const onDelete = () => {
-    deleteMutation.mutate(comment.id);
-  };
-
-  const onEdit = () => {
-    startEdit(comment);
-  };
-
-  const givenTime = new Date(comment.createdAt);
-  const currentTime = new Date();
-
-  const timeDifference = currentTime.getTime() - givenTime.getTime();
-
-  const isLessThan15Minutes = timeDifference < 900_000;
-
-  const commentUser = typeof comment.user === "object" ? comment.user.id : comment.user;
 
   return (
     <>
-      <Menu presentation="popover">
-        <Menu.Trigger asChild>
-          <Button className="p-1" hitSlop={8} variant="ghost">
-            <Icon name={DotsThreeVerticalIcon} size={24} />
-          </Button>
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Overlay className="bg-backdrop" />
-          <Menu.Content
-            align="end"
-            className="rounded-lg"
-            offset={4}
-            placement="bottom"
-            presentation="popover"
-            width={200}
-          >
-            {auth.session?.user?.id === commentUser && (
-              <>
-                {isLessThan15Minutes && (
-                  <>
-                    <Menu.Item onPress={onEdit}>
-                      <Menu.ItemTitle>Edit</Menu.ItemTitle>
-                    </Menu.Item>
-                    <Separator className="mx-2 my-1 opacity-75" />
-                  </>
-                )}
+      <Button className="p-1" hitSlop={8} onPress={() => setOpen(true)} variant="ghost">
+        <Icon name={DotsThreeVerticalIcon} size={24} />
+      </Button>
 
-                <Menu.Item onPress={onDelete} variant="danger">
-                  <Menu.ItemTitle>Delete</Menu.ItemTitle>
-                </Menu.Item>
-              </>
-            )}
-            {auth.session?.user?.id !== commentUser && (
-              <Menu.Item onPress={() => setShowReportSheet(true)}>
-                <Menu.ItemTitle>Report</Menu.ItemTitle>
-              </Menu.Item>
-            )}
-          </Menu.Content>
-        </Menu.Portal>
-      </Menu>
+      <CommentOptionSheet
+        comment={comment}
+        onOpenChange={setOpen}
+        onReport={() => {
+          setOpen(false);
+          setShowReportSheet(true);
+        }}
+        open={open}
+      />
 
       <PostReportSheet
         onOpenChange={setShowReportSheet}

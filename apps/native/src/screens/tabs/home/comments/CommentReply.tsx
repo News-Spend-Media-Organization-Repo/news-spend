@@ -38,18 +38,22 @@ function CommentReplies() {
       initialData: () => {
         const comments = queryClient.getQueryData<InfiniteData<RouterOutputs["comments"]["all"]>>(
           orpc.comments.all.infiniteKey({
-            input: () => ({ newsId: rest.newsId }),
+            input: (pageParam) => ({ newsId: rest.newsId, page: pageParam }),
             initialPageParam: undefined,
           }),
         );
-        const comment = comments?.pages
+        const found = comments?.pages
           .flatMap((page) => page.docs)
-          ?.find((comment) => comment.id === commentId);
-        return comment;
+          .find((comment) => comment.id === commentId);
+        if (!found) return undefined;
+        return {
+          ...found,
+          user: found.user ?? { id: "", username: "" },
+        } as RouterOutputs["comments"]["one"];
       },
       initialDataUpdatedAt: () => {
         const qKey = orpc.comments.all.infiniteKey({
-          input: () => ({ newsId: rest.newsId }),
+          input: (pageParam) => ({ newsId: rest.newsId, page: pageParam }),
           initialPageParam: undefined,
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;

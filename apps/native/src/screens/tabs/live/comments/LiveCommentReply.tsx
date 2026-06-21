@@ -40,17 +40,24 @@ function LiveCommentReply({ route }) {
       initialData: () => {
         const comments = queryClient.getQueryData<InfiniteData<RouterOutputs["comments"]["all"]>>(
           orpc.comments.all.infiniteKey({
-            input: () => ({ newsId }),
+            input: (pageParam) => ({ newsId, page: pageParam }),
             initialPageParam: undefined,
           }),
         );
-        return comments?.pages
+        const found = comments?.pages
           .flatMap((page) => page.docs)
           .find((comment) => comment.id === commentId);
+        if (!found) {
+          return;
+        }
+        return {
+          ...found,
+          user: found.user ?? { id: "", username: "" },
+        } as RouterOutputs["comments"]["one"];
       },
       initialDataUpdatedAt: () => {
         const qKey = orpc.comments.all.infiniteKey({
-          input: () => ({ newsId }),
+          input: (pageParam) => ({ newsId, page: pageParam }),
           initialPageParam: undefined,
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
@@ -102,7 +109,7 @@ function LiveCommentReply({ route }) {
   const newsIdForComposer = typeof data?.news === "string" ? data?.news : data?.news?.id;
 
   return (
-    <Screen disableKeyboardAvoidingView safeAreaEdges={["bottom", "top"]}>
+    <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView>
       <View className="flex-1 px-2.5">
         <Button
           className="h-auto flex-row items-center justify-start gap-2 p-0"
@@ -126,7 +133,7 @@ function LiveCommentReply({ route }) {
             </View>
           }
           ListFooterComponent={replies.isFetchingNextPage ? <ActivityIndicator /> : null}
-          ListHeaderComponent={<CommentCard comment={data} />}
+          ListHeaderComponent={<CommentCard comment={data} screenType="live" />}
           ListHeaderComponentStyle={{ marginVertical: 15 }}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
@@ -138,7 +145,9 @@ function LiveCommentReply({ route }) {
       </View>
 
       <KeyboardStickyView offset={{ closed: 0, opened: 20 }}>
-        <CommentBox inputRef={ref} newsId={newsIdForComposer} newsSlug={newsSlug} />
+        <View className="pb-safe">
+          <CommentBox inputRef={ref} newsId={newsIdForComposer} newsSlug={newsSlug} />
+        </View>
       </KeyboardStickyView>
     </Screen>
   );

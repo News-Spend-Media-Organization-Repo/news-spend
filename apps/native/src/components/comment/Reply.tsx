@@ -1,4 +1,3 @@
-import type { Comment } from "@news-spend-media/payload/types";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { formatDistance } from "date-fns";
 import { Separator } from "heroui-native";
@@ -11,13 +10,15 @@ import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import useLikeComment from "#/hooks/comments/useLikeComment";
-import { orpc } from "#/lib/orpc";
+import { type RouterOutputs, orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
 import { startReply } from "#/state/commentState";
 import { isRefObject } from "#/utils/comment-utils";
 import { randomColor } from "#/utils/index";
 import CommentOptionPopover from "./CommentOptionPopover";
+
+type Comment = RouterOutputs["comments"]["one"];
 
 type CommentReplyProps = {
   comment: Comment;
@@ -40,9 +41,7 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
 
   const avatarBg = useMemo(() => randomColor(), []);
 
-  const isLiked = comment.likes?.find((user) =>
-    typeof user === "string" ? user === auth.user?.id : user?.id === auth.user?.id,
-  );
+  const isLiked = comment.userReaction === "like";
 
   const parentComment = queryClient.getQueryData([
     orpc.comments.getComment.queryOptions({

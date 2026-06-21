@@ -366,8 +366,11 @@ const like = protectedProcedure
     const reaction = await payload.find({
       collection: "reactions",
       where: {
-        news: { equals: input.newsId },
-        user: { equals: input.userId },
+        and: [
+          { "target.relationTo": { equals: "news" } },
+          { "target.value": { equals: input.newsId } },
+          { user: { equals: input.userId } },
+        ],
       },
     });
 
@@ -389,7 +392,7 @@ const like = protectedProcedure
       await payload.create({
         collection: "reactions",
         data: {
-          news: input.newsId,
+          target: { relationTo: "news", value: input.newsId },
           user: input.userId,
           type: "like",
         },
@@ -410,8 +413,11 @@ const dislike = protectedProcedure
     const reaction = await payload.find({
       collection: "reactions",
       where: {
-        news: { equals: input.newsId },
-        user: { equals: input.userId },
+        and: [
+          { "target.relationTo": { equals: "news" } },
+          { "target.value": { equals: input.newsId } },
+          { user: { equals: input.userId } },
+        ],
       },
     });
 
@@ -433,7 +439,7 @@ const dislike = protectedProcedure
       await payload.create({
         collection: "reactions",
         data: {
-          news: input.newsId,
+          target: { relationTo: "news", value: input.newsId },
           user: input.userId,
           type: "dislike",
         },

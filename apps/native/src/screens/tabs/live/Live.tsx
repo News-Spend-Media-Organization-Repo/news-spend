@@ -307,7 +307,7 @@ function Live() {
                     <Text className="font-normal text-lg">Comments</Text>
                   </View>
                 ) : (
-                  <CommentCard comment={item} />
+                  <CommentCard comment={item} screenType="live" />
                 )
               }
               stickyHeaderHiddenOnScroll

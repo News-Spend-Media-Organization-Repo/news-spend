@@ -5,11 +5,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretDownIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, type TextInput, View } from "react-native";
-import { KeyboardStickyView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
 import { Button } from "#/components/heroui/button";
-import { Icon } from "#/components/heroui/icon";
 import { Image } from "#/components/heroui/image";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
@@ -70,10 +69,33 @@ const LiveComments = ({ route }) => {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const renderItem = useCallback(
-    ({ item }: LegendListRenderItemProps<Comment, string | undefined>) => (
-      <CommentCard comment={item} />
-    ),
-    [],
+    ({ item }: LegendListRenderItemProps<typeof headerItem | Comment>) => {
+      if ("__type" in item && item.__type === "postHeader") {
+        return (
+          <View className="mb-6 gap-5 bg-white">
+            <View className="flex-row items-center px-2">
+              <Button hitSlop={14} onPress={() => navigation.goBack()} size="sm" variant="ghost">
+                <CaretDownIcon size={20} />
+              </Button>
+              <Image
+                className="h-full w-15 rounded-[10px]"
+                contentFit="cover"
+                placeholder={{ blurhash: item.blurhash }}
+                source={item.url}
+              />
+              <View className="flex-1 px-2.5">
+                <Text className="text-base" numberOfLines={3} variant="subtitle">
+                  {item.title}
+                </Text>
+              </View>
+            </View>
+            <Text className="pl-4 font-normal text-lg">Comments ({item.totalComments})</Text>
+          </View>
+        );
+      }
+      return <CommentCard comment={item} screenType="live" />;
+    },
+    [navigation],
   );
 
   if (isError) {
@@ -99,13 +121,24 @@ const LiveComments = ({ route }) => {
   const allPages = data?.pages.flatMap((page) => page?.docs ?? []) ?? [];
   const { url, blurhash } = getImageData(news.data?.image);
 
+  const headerItem = {
+    __type: "postHeader" as const,
+    id: "post-header",
+    title: news.data?.title,
+    totalComments: news.data?.totalComments ?? 0,
+    url,
+    blurhash,
+  };
+
+  const listData = [headerItem, ...allPages];
+
   return (
-    <Screen className="bg-white" disableKeyboardAvoidingView preset="fixed" safeAreaEdges={[]}>
+    <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView preset="fixed">
       <LegendList
-        contentContainerClassName="pt-safe"
         contentContainerStyle={{ paddingBottom: 60 }}
-        data={allPages}
-        keyExtractor={(item) => item.id}
+        data={listData}
+        getItemType={(item) => ("__type" in item ? "postHeader" : "row")}
+        keyExtractor={(item) => ("__type" in item ? item.id : item.id)}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-12">
             <Text className="text-secondary">No comments yet. Be the first!</Text>
@@ -114,43 +147,23 @@ const LiveComments = ({ route }) => {
         ListFooterComponent={
           isFetchingNextPage ? <ActivityIndicator className="text-p-300" /> : null
         }
-        ListHeaderComponent={
-          <View className="mb-6 gap-5">
-            <View className="flex-row items-center px-2">
-              <Button onPress={() => navigation.goBack()} variant="ghost">
-                <Icon className="text-black" name={CaretDownIcon} size={24} />
-              </Button>
-              <Image
-                className="min-h-[60px] w-[60px] rounded-lg"
-                contentFit="cover"
-                placeholder={{ blurhash }}
-                source={url}
-              />
-              <View className="flex-1 px-2.5">
-                <Text className="text-base" numberOfLines={3} variant="subtitle">
-                  {news.data?.title}
-                </Text>
-              </View>
-            </View>
-            <Text className="pl-4 font-normal text-lg">
-              Comments ({news.data?.totalComments ?? 0})
-            </Text>
-          </View>
-        }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         onRefresh={refetchByUser}
         refreshing={isRefetchingByUser}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
+        stickyHeaderHiddenOnScroll
+        stickyHeaderIndices={[0]}
       />
-
-      {/* Single composer — handles idle, reply, and edit modes internally */}
-      <KeyboardStickyView offset={{ closed: 0, opened: 20 }}>
-        <View className="pb-safe">
-          <CommentBox inputRef={inputRef} newsId={newsId} newsSlug={newsSlug} />
-        </View>
-      </KeyboardStickyView>
+      <KeyboardAvoidingView
+        // automaticOffset
+        behavior={"padding"}
+        // className="flex-1"
+        // keyboardVerticalOffset={100}
+      >
+        <CommentBox inputRef={inputRef} newsId={newsId} newsSlug={newsSlug} />
+      </KeyboardAvoidingView>
     </Screen>
   );
 };

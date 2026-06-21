@@ -1,50 +1,14 @@
 import { ORPCError } from "@orpc/client";
 import z from "zod";
-
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { createRateLimitMiddleware } from "../lib/ratelimit";
-
-// Enriches a single comment doc with minimal user data (id + username).
-// We query comments with depth: 0 so relationships return IDs only, then
-// batch-fetch the users we actually need to avoid the full Payload user
-// object (which includes email, phone, sessions, accounts, etc.).
-type MinimalUser = { id: string; username: string };
-type CommentWithUser = {
-  user?: string | MinimalUser | null;
-  likes?: Array<string | MinimalUser>;
-  dislikes?: Array<string | MinimalUser>;
-  [key: string]: unknown;
-};
-
-async function enrichCommentWithUser(payload: any, doc: CommentWithUser): Promise<CommentWithUser> {
-  const userIds = new Set<string>();
-  if (typeof doc.user === "string") userIds.add(doc.user);
-  for (const u of doc.likes ?? []) {
-    if (typeof u === "string") userIds.add(u);
-  }
-  for (const u of doc.dislikes ?? []) {
-    if (typeof u === "string") userIds.add(u);
-  }
-  if (userIds.size === 0) return doc;
-
-  const users = await payload.find({
-    collection: "users",
-    where: { id: { in: [...userIds] } },
-    limit: userIds.size,
-    depth: 0,
-  });
-
-  const userMap = new Map<string, MinimalUser>(
-    users.docs.map((u: any) => [u.id, { id: u.id, username: u.username }]),
-  );
-
-  return {
-    ...doc,
-    user: typeof doc.user === "string" ? (userMap.get(doc.user) ?? doc.user) : doc.user,
-    likes: (doc.likes ?? []).map((u) => (typeof u === "string" ? (userMap.get(u) ?? u) : u)),
-    dislikes: (doc.dislikes ?? []).map((u) => (typeof u === "string" ? (userMap.get(u) ?? u) : u)),
-  };
-}
+import {
+  getCommentReactionCounts,
+  getUserReactionForComment,
+  getUserReactionsForComments,
+  getUsersMinimal,
+  type UserReaction,
+} from "./comment/user-reaction";
 
 // Input Schemas
 const CommentInput = z.object({
@@ -71,10 +35,21 @@ export type CommentInput = z.infer<typeof CommentInput>;
 export type UpdateCommentInput = z.infer<typeof updateCommentInput>;
 export type AllCommentsInput = z.infer<typeof allCommentsInput>;
 
+/**
+ * Shared response shape returned by like/dislike. The client uses this to
+ * reconcile the optimistic cache write with server truth — no refetch needed,
+ * so the icon doesn't get clobbered by a stale read.
+ */
+type ReactionResponse = {
+  userReaction: UserReaction;
+  likesCount: number;
+  dislikesCount: number;
+};
+
 // Procedures
 
 const allComments = publicProcedure.input(allCommentsInput).handler(async ({ input, context }) => {
-  const { payload } = context;
+  const { payload, user } = context;
   const comments = await payload.find({
     collection: "comments",
     where: {
@@ -89,9 +64,30 @@ const allComments = publicProcedure.input(allCommentsInput).handler(async ({ inp
     depth: 0,
   });
 
-  const enrichedDocs = await Promise.all(
-    comments.docs.map((doc: CommentWithUser) => enrichCommentWithUser(payload, doc)),
-  );
+  const docs = comments.docs as unknown as Array<
+    {
+      id: string;
+      user?: string | { id: string; username?: string };
+    } & Record<string, unknown>
+  >;
+  const commentIds = docs.map((d) => d.id);
+  const userIds = docs
+    .map((d) => (typeof d.user === "string" ? d.user : d.user?.id))
+    .filter((id): id is string => Boolean(id));
+
+  const [reactions, users] = await Promise.all([
+    getUserReactionsForComments(payload, user?.id, commentIds),
+    getUsersMinimal(payload, userIds),
+  ]);
+
+  const enrichedDocs = docs.map((doc) => ({
+    ...doc,
+    user:
+      typeof doc.user === "string"
+        ? (users.get(doc.user) ?? { id: doc.user, username: "" })
+        : doc.user,
+    userReaction: reactions.get(doc.id) ?? ("none" as const),
+  }));
 
   return { ...comments, docs: enrichedDocs };
 });
@@ -99,13 +95,26 @@ const allComments = publicProcedure.input(allCommentsInput).handler(async ({ inp
 const getComment = publicProcedure
   .input(z.string())
   .handler(async ({ input: commentId, context }) => {
-    const { payload } = context;
+    const { payload, user } = context;
     const doc = await payload.findByID({
       collection: "comments",
       id: commentId,
       depth: 0,
     });
-    return enrichCommentWithUser(payload, doc);
+    const [userReaction, users] = await Promise.all([
+      getUserReactionForComment(payload, user?.id, commentId),
+      getUsersMinimal(
+        payload,
+        typeof doc?.user === "string" ? [doc.user] : doc?.user?.id ? [doc.user.id] : [],
+      ),
+    ]);
+    const enrichedUser =
+      doc?.user == null
+        ? doc?.user
+        : typeof doc.user === "string"
+          ? (users.get(doc.user) ?? { id: doc.user, username: "" })
+          : doc.user;
+    return { ...doc, user: enrichedUser, userReaction };
   });
 
 const addComment = protectedNoGuestProcedure
@@ -127,10 +136,41 @@ const addComment = protectedNoGuestProcedure
     return newComment;
   });
 
+const DELETE_WINDOW_MS = 15 * 60 * 1000;
 const updateComment = protectedNoGuestProcedure
   .input(updateCommentInput)
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
+
+    const comment = await payload.findByID({
+      collection: "comments",
+      id: input.commentId,
+      depth: 0,
+    });
+
+    if (!comment) {
+      throw new ORPCError("NOT_FOUND", {
+        message: "Comment not found",
+      });
+    }
+
+    const commentUser = typeof comment.user === "string" ? comment.user : comment.user.id;
+
+    if (commentUser !== user.id) {
+      throw new ORPCError("NOT_FOUND", {
+        message: "Comment not found",
+      });
+    }
+
+    const createdAt = new Date(comment.createdAt).getTime();
+    const elapsed = Date.now() - createdAt;
+
+    if (elapsed >= DELETE_WINDOW_MS) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Delete window has expired",
+        data: { expiredAt: createdAt + DELETE_WINDOW_MS },
+      });
+    }
 
     const updatedComment = await payload.update({
       collection: "comments",
@@ -155,107 +195,137 @@ const deleteComment = protectedNoGuestProcedure
   .handler(async ({ input: commentId, context }) => {
     const { payload, user } = context;
 
+    const comment = await payload.findByID({
+      collection: "comments",
+      id: commentId,
+      depth: 0,
+    });
+
+    if (!comment) {
+      throw new ORPCError("NOT_FOUND", {
+        message: "Comment not found",
+      });
+    }
+
+    const commentUser = typeof comment.user === "string" ? comment.user : comment.user.id;
+
+    if (commentUser !== user.id) {
+      throw new ORPCError("NOT_FOUND", {
+        message: "Comment not found",
+      });
+    }
+
     await payload.delete({
       collection: "comments",
-      where: {
-        user: {
-          equals: user.id,
-        },
-        id: {
-          equals: commentId,
-        },
-      },
+      id: commentId,
     });
 
     return { success: true };
   });
 
-const dislikeComment = protectedNoGuestProcedure
-  .input(z.string())
-  .handler(async ({ input: commentId, context }) => {
-    const { payload, user } = context;
-    const userId = user.id;
-
-    const comment = await payload.findByID({
-      collection: "comments",
-      id: commentId,
-      depth: 0,
-    });
-
-    if (!comment) {
-      throw new ORPCError("NOT_FOUND", {
-        message: "Comment not found",
-      });
-    }
-
-    const userDislikedIndex = comment.dislikes?.findIndex((user) =>
-      typeof user === "string" ? user === userId : user?.id === userId,
-    );
-
-    let operation: any;
-    if (userDislikedIndex === -1 || userDislikedIndex === undefined) {
-      operation = {
-        dislikes: [...(comment.dislikes || []), userId],
-      };
-    } else {
-      // User has already disliked the comment, so remove their ID
-      operation = {
-        dislikes: comment.dislikes?.filter((_, index) => index !== userDislikedIndex),
-      };
-    }
-
-    const updatedComment = await payload.update({
-      collection: "comments",
-      id: commentId,
-      data: operation,
-      depth: 0,
-    });
-
-    return enrichCommentWithUser(payload, updatedComment);
-  });
-
 const likeComment = protectedNoGuestProcedure
   .input(z.string())
-  .handler(async ({ input: commentId, context }) => {
+  .handler(async ({ input: commentId, context }): Promise<ReactionResponse> => {
     const { payload, user } = context;
     const userId = user.id;
 
-    const comment = await payload.findByID({
-      collection: "comments",
-      id: commentId,
+    const existing = await payload.find({
+      collection: "reactions",
+      where: {
+        and: [
+          { "target.relationTo": { equals: "comments" } },
+          { "target.value": { equals: commentId } },
+          { user: { equals: userId } },
+        ],
+      },
+      limit: 1,
       depth: 0,
     });
 
-    if (!comment) {
-      throw new ORPCError("NOT_FOUND", {
-        message: "Comment not found",
+    if (existing.docs.length > 0 && existing.docs[0]) {
+      const row = existing.docs[0];
+      if (row.type === "like") {
+        // Toggle off: delete the row
+        await payload.delete({
+          collection: "reactions",
+          id: row.id,
+        });
+      } else {
+        // Switch from dislike/none to like
+        await payload.update({
+          collection: "reactions",
+          id: row.id,
+          data: { type: "like" },
+        });
+      }
+    } else {
+      // No existing reaction: create a new "like" row
+      await payload.create({
+        collection: "reactions",
+        data: {
+          user: userId,
+          target: { relationTo: "comments", value: commentId },
+          type: "like",
+        },
       });
     }
 
-    const userLikedIndex = comment.likes?.findIndex((user) =>
-      typeof user === "string" ? user === userId : user.id === userId,
-    );
+    const [counts, userReaction] = await Promise.all([
+      getCommentReactionCounts(payload, commentId),
+      getUserReactionForComment(payload, userId, commentId),
+    ]);
+    return { userReaction, ...counts };
+  });
 
-    let operation: any;
-    if (userLikedIndex === -1 || userLikedIndex === undefined) {
-      operation = {
-        likes: [...(comment.likes || []), userId],
-      };
-    } else {
-      // User has already liked the comment, so remove their ID
-      operation = {
-        likes: comment.likes?.filter((_, index) => index !== userLikedIndex),
-      };
-    }
+const dislikeComment = protectedNoGuestProcedure
+  .input(z.string())
+  .handler(async ({ input: commentId, context }): Promise<ReactionResponse> => {
+    const { payload, user } = context;
+    const userId = user.id;
 
-    const updatedComment = await payload.update({
-      collection: "comments",
-      id: commentId,
-      data: operation,
+    const existing = await payload.find({
+      collection: "reactions",
+      where: {
+        and: [
+          { "target.relationTo": { equals: "comments" } },
+          { "target.value": { equals: commentId } },
+          { user: { equals: userId } },
+        ],
+      },
+      limit: 1,
       depth: 0,
     });
 
-    return enrichCommentWithUser(payload, updatedComment);
+    if (existing.docs.length > 0 && existing.docs[0]) {
+      const row = existing.docs[0];
+      if (row.type === "dislike") {
+        await payload.delete({
+          collection: "reactions",
+          id: row.id,
+        });
+      } else {
+        await payload.update({
+          collection: "reactions",
+          id: row.id,
+          data: { type: "dislike" },
+        });
+      }
+    } else {
+      await payload.create({
+        collection: "reactions",
+        data: {
+          user: userId,
+          target: { relationTo: "comments", value: commentId },
+          type: "dislike",
+        },
+      });
+    }
+
+    const [counts, userReaction] = await Promise.all([
+      getCommentReactionCounts(payload, commentId),
+      getUserReactionForComment(payload, userId, commentId),
+    ]);
+    return { userReaction, ...counts };
   });
 
 export const commentRouter = {
