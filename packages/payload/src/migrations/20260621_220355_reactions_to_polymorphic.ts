@@ -218,7 +218,10 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     GROUP BY "news_id";
   `);
 
-  for (const row of commentCounts.rows as Array<{ news_id: string; count: string }>) {
+  for (const row of commentCounts.rows as Array<{
+    news_id: string;
+    count: string;
+  }>) {
     await payload.update({
       collection: "news",
       id: row.news_id,
@@ -239,7 +242,10 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     GROUP BY "parent_id";
   `);
 
-  for (const row of replyCounts.rows as Array<{ parent_id: string; count: string }>) {
+  for (const row of replyCounts.rows as Array<{
+    parent_id: string;
+    count: string;
+  }>) {
     await payload.update({
       collection: "comments",
       id: row.parent_id,
