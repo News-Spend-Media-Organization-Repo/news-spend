@@ -27,33 +27,6 @@ const News: CollectionConfig = {
     //   },
     // ],
     beforeChange: [calculateNewsMetrics],
-    afterRead: [
-      async ({ doc, req }) => {
-        if (!doc?.id) {
-          return doc;
-        }
-        try {
-          const comments = req.payload.count({
-            collection: "comments",
-            where: {
-              news: {
-                equals: doc?.id,
-              },
-            },
-            req,
-          });
-
-          const result = await Promise.all([comments]);
-          return {
-            ...doc,
-            totalComments: result[0]?.totalDocs ?? 0,
-          };
-        } catch (error) {
-          console.log(`🚀 ~ file: News.ts:329 ~ error: ${error}`);
-          return doc;
-        }
-      },
-    ],
     afterChange: [sendNotificationOnCreate],
   },
   versions: {
@@ -161,13 +134,7 @@ const News: CollectionConfig = {
           return [
             ...defaultFeatures,
             BlocksFeature({
-              blocks: [
-                AdsBlock,
-                ReadAlsoBlock,
-                "twitterEmbed",
-                "youtubeEmbed",
-                "instagramEmbed",
-              ],
+              blocks: [AdsBlock, ReadAlsoBlock, "twitterEmbed", "youtubeEmbed", "instagramEmbed"],
             }),
           ];
         },
@@ -294,20 +261,15 @@ const News: CollectionConfig = {
         hidden: process.env.NODE_ENV !== "development",
       },
     },
-    // virtual fields
+    // persisted count fields (updated by hooks on Comments collection)
     {
       name: "totalComments",
       type: "number",
-      virtual: true,
       admin: {
         readOnly: true,
         hidden: process.env.NODE_ENV !== "development",
       },
       defaultValue: 0,
-      access: {
-        create: () => false,
-        update: () => false,
-      },
     },
     {
       name: "totalCommentLikes",

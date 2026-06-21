@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import CommentCard from "#/components/comment/CommentCard";
-import { EditCommentBox } from "#/components/EditCommentBox";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
@@ -60,7 +59,6 @@ const Comments = () => {
 
   // input ref
   const ref = useRef<TextInput>(null);
-  const editRef = useRef<TextInput>(null);
   useEffect(() => {
     if (params?.focus && ref.current) {
       const timeout = setTimeout(() => {
@@ -156,7 +154,6 @@ const Comments = () => {
           showsVerticalScrollIndicator={false}
         />
         <CommentBox inputRef={ref} newsId={newsId} newsSlug={newsSlug} />
-        <EditCommentBox inputRef={editRef} />
       </KeyboardAvoidingView>
     </Screen>
   );

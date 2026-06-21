@@ -208,6 +208,51 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     });
   }
 
+  // 5. Backfill news.totalComments and comments.totalReplies
+  payload.logger.info("Backfilling totalComments and totalReplies counts");
+
+  const commentCounts = await db.execute(sql`
+    SELECT "news_id", COUNT(*) AS count
+    FROM "comments"
+    WHERE "news_id" IS NOT NULL
+    GROUP BY "news_id";
+  `);
+
+  for (const row of commentCounts.rows as Array<{ news_id: string; count: string }>) {
+    await payload.update({
+      collection: "news",
+      id: row.news_id,
+      data: {
+        totalComments: Number.parseInt(row.count, 10),
+      },
+      depth: 0,
+      overrideAccess: true,
+    });
+  }
+
+  payload.logger.info(`Updated totalComments for ${commentCounts.rows.length} news docs`);
+
+  const replyCounts = await db.execute(sql`
+    SELECT "parent_id", COUNT(*) AS count
+    FROM "comments"
+    WHERE "parent_id" IS NOT NULL
+    GROUP BY "parent_id";
+  `);
+
+  for (const row of replyCounts.rows as Array<{ parent_id: string; count: string }>) {
+    await payload.update({
+      collection: "comments",
+      id: row.parent_id,
+      data: {
+        totalReplies: Number.parseInt(row.count, 10),
+      },
+      depth: 0,
+      overrideAccess: true,
+    });
+  }
+
+  payload.logger.info(`Updated totalReplies for ${replyCounts.rows.length} comment docs`);
+
   payload.logger.info("Migration complete");
 }
 

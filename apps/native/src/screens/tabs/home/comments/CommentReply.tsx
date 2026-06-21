@@ -8,7 +8,7 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
 import Reply from "#/components/comment/Reply";
-import { EditCommentBox } from "#/components/EditCommentBox";
+
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -18,7 +18,6 @@ import { queryClient } from "#/lib/tanstackQuery";
 function CommentReplies() {
   const { commentId, ...rest } = useRoute("CommentReply").params;
   const ref = useRef<TextInput>(null);
-  const editRef = useRef<TextInput>(null);
   const { isConnected } = useNetInfo();
 
   useEffect(() => {
@@ -136,7 +135,6 @@ function CommentReplies() {
           inputRef={ref}
           newsId={typeof data?.news === "string" ? data?.news : data?.news?.id}
         />
-        <EditCommentBox inputRef={editRef} />
       </KeyboardAvoidingView>
     </Screen>
   );
