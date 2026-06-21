@@ -38,13 +38,20 @@ import { type MigrateDownArgs, type MigrateUpArgs, sql } from "@payloadcms/db-po
  *   - Run a follow-up schema migration to drop the legacy columns
  */
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
-  // 1. Backfill reactions.target from reactions.news
+  // 1. Backfill reactions.target from reactions.news.
+  // Polymorphic `target` lives in reactions_rels (path = "target", news_id or
+  // comments_id set). The reactions.news_id column is legacy; the rels row
+  // is the source of truth.
   await db.execute(sql`
-    UPDATE "reactions"
-    SET "target_id" = "news_id",
-        "target_relation_to" = 'news'
-    WHERE "target_id" IS NULL
-      AND "news_id" IS NOT NULL;
+    INSERT INTO "reactions_rels" ("parent_id", "path", "news_id", "order")
+    SELECT r.id, 'target', r.news_id, 0
+    FROM "reactions" r
+    WHERE r.news_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM "reactions_rels" rel
+        WHERE rel."parent_id" = r.id
+          AND rel."path" = 'target'
+      );
   `);
 
   payload.logger.info("Backfilled reactions.target from reactions.news");
@@ -56,7 +63,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   const limit = 100;
   let processed = 0;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const comments = await payload.find({
       collection: "comments",
@@ -161,13 +167,14 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   payload.logger.info(`Created reaction rows for ${processed} comments' inline likes/dislikes`);
 
   // 4. Recalculate news.likesCount / news.dislikesCount
-  // We can't rely on the afterChange hook here because step 1 was an UPDATE,
-  // not a CREATE. So we recount manually for every news doc that has reactions.
+  // We can't rely on the afterChange hook here because step 1 was an INSERT
+  // into reactions_rels (not a Payload create), so the hook didn't fire.
+  // Recount manually for every news doc that has reactions.
   const newsWithReactions = await db.execute(sql`
-    SELECT DISTINCT "target_id" AS news_id
-    FROM "reactions"
-    WHERE "target_relation_to" = 'news'
-      AND "target_id" IS NOT NULL;
+    SELECT DISTINCT "news_id"
+    FROM "reactions_rels"
+    WHERE "path" = 'target'
+      AND "news_id" IS NOT NULL;
   `);
 
   const newsIds = (newsWithReactions.rows as Array<{ news_id: string }>).map((row) => row.news_id);
