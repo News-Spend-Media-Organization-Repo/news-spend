@@ -59,3 +59,5 @@ Dockerfile.debug
 .git
 .opencode
 .next
+.agents
+migrations
