@@ -8,7 +8,7 @@ import { resendAdapter } from "@payloadcms/email-resend";
 import { sentryPlugin } from "@payloadcms/plugin-sentry";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import * as Sentry from "@sentry/nextjs";
-import { buildConfig, type Config, deepMerge } from "payload";
+import { buildConfig, type Config, type SanitizedConfig, deepMerge } from "payload";
 import computeBlurhash from "payload-blurhash-plugin";
 import sharp from "sharp";
 
@@ -226,5 +226,20 @@ const baseConfig: Config = {
   },
 };
 
-export const configurePayload = (overrides?: Partial<Config>) =>
-  buildConfig(deepMerge(baseConfig, overrides ?? {}));
+const globalForPayload = global as typeof global & {
+  __payloadConfig?: Promise<SanitizedConfig>;
+};
+
+export const configurePayload = (overrides?: Partial<Config>): Promise<SanitizedConfig> => {
+  if (globalForPayload.__payloadConfig && !overrides) {
+    return globalForPayload.__payloadConfig;
+  }
+
+  const config = buildConfig(deepMerge(baseConfig, overrides ?? {}));
+
+  if (!overrides) {
+    globalForPayload.__payloadConfig = config;
+  }
+
+  return config;
+};

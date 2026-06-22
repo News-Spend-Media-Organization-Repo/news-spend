@@ -113,8 +113,7 @@ export class SftpConnectionPool {
     // Add timeout to connection config if not present
     this.connectionConfig = {
       ...options.connection,
-      readyTimeout:
-        options.connection.readyTimeout ?? this.options.connectionTimeoutMs,
+      readyTimeout: options.connection.readyTimeout ?? this.options.connectionTimeoutMs,
     };
 
     this.log("Connection pool initialized", {
@@ -143,9 +142,7 @@ export class SftpConnectionPool {
    */
   private async createConnection(): Promise<PooledConnection> {
     if (this.isShuttingDown) {
-      throw new SftpConnectionError(
-        "Pool is shutting down, cannot create new connections"
-      );
+      throw new SftpConnectionError("Pool is shutting down, cannot create new connections");
     }
 
     const connectionId = `sftp-${++this.connectionCounter}`;
@@ -162,7 +159,7 @@ export class SftpConnectionPool {
         {
           maxAttempts: 3,
           operationName: `createConnection-${connectionId}`,
-        }
+        },
       );
 
       const connection: PooledConnection = {
@@ -194,7 +191,7 @@ export class SftpConnectionPool {
 
       throw new SftpConnectionError(
         `Failed to create SFTP connection: ${error instanceof Error ? error.message : String(error)}`,
-        error
+        error,
       );
     }
   }
@@ -202,9 +199,7 @@ export class SftpConnectionPool {
   /**
    * Checks if a connection is still healthy
    */
-  private async checkConnectionHealth(
-    connection: PooledConnection
-  ): Promise<boolean> {
+  private async checkConnectionHealth(connection: PooledConnection): Promise<boolean> {
     try {
       // Simple health check: list current directory
       await connection.client.cwd();
@@ -261,12 +256,9 @@ export class SftpConnectionPool {
       const idleTime = now - connection.lastUsedAt;
       if (idleTime > this.options.idleTimeoutMs) {
         // Keep minimum connections even if idle
-        const availableConnections =
-          this.pool.length - connectionsToRemove.length;
+        const availableConnections = this.pool.length - connectionsToRemove.length;
         if (availableConnections > this.options.minConnections) {
-          this.log(
-            `Connection ${connection.id} idle for ${idleTime}ms, marking for removal`
-          );
+          this.log(`Connection ${connection.id} idle for ${idleTime}ms, marking for removal`);
           connectionsToRemove.push(connection);
           continue;
         }
@@ -307,9 +299,9 @@ export class SftpConnectionPool {
             {
               error: error instanceof Error ? error.message : String(error),
             },
-            "Failed to create minimum connection"
+            "Failed to create minimum connection",
           );
-        })
+        }),
       );
 
       await Promise.all(promises);
@@ -329,15 +321,9 @@ export class SftpConnectionPool {
     }, this.options.healthCheckIntervalMs);
 
     // Don't prevent Node.js from exiting
-    if (
-      typeof this.healthCheckTimer === "object" &&
-      "unref" in this.healthCheckTimer
-    ) {
+    if (typeof this.healthCheckTimer === "object" && "unref" in this.healthCheckTimer) {
       this.healthCheckTimer.unref();
     }
-
-    // Run initial health check
-    this.ensureMinimumConnections();
   }
 
   /**
@@ -361,7 +347,6 @@ export class SftpConnectionPool {
 
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
-    process.on("beforeExit", shutdown);
   }
 
   /**
@@ -405,7 +390,7 @@ export class SftpConnectionPool {
 
     if (!connection) {
       throw new SftpConnectionError(
-        `Unable to acquire connection. Pool size: ${this.pool.length}, Max: ${this.options.maxConnections}`
+        `Unable to acquire connection. Pool size: ${this.pool.length}, Max: ${this.options.maxConnections}`,
       );
     }
 
@@ -451,9 +436,7 @@ export class SftpConnectionPool {
    * });
    * ```
    */
-  async withConnection<T>(
-    operation: (client: SftpClientInstance) => Promise<T>
-  ): Promise<T> {
+  async withConnection<T>(operation: (client: SftpClientInstance) => Promise<T>): Promise<T> {
     const client = await this.acquire();
 
     try {
@@ -510,9 +493,7 @@ export class SftpConnectionPool {
     }
 
     // Close all connections
-    const closePromises = this.pool.map((connection) =>
-      this.removeConnection(connection)
-    );
+    const closePromises = this.pool.map((connection) => this.removeConnection(connection));
 
     await Promise.all(closePromises);
 
