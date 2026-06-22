@@ -7,32 +7,35 @@ import { type MigrateDownArgs, type MigrateUpArgs, sql } from "@payloadcms/db-po
  *   - reactions.news_id → news.id (flat FK)
  *   - comments.likes[] / comments.dislikes[] → inline relationship arrays
  *
- * After schema change (handled by the auto-generated schema migration):
- *   - reactions.target_id + reactions.target_relation_to (polymorphic)
- *   - comments.likesCount / comments.dislikesCount (denormalized)
+ * After schema change (handled by 20260620_215834):
+ *   - reactions_rels has polymorphic FK columns (news_id, comments_id) with
+ *     path = "target" to store the polymorphic `target` relationship
+ *   - comments has likes_count / dislikes_count / total_replies columns
+ *   - news has total_comments column
  *
  * This script assumes the schema migration has already run, so:
- *   - reactions has both the old news_id column and the new target_id/target_relation_to columns
- *   - comments has the new likes_count / dislikes_count columns
- *   - comments.likes[] and comments.dislikes[] columns still exist (legacy, will be dropped later)
- *   - reactions.news_id column still exists (legacy, will be dropped later)
+ *   - reactions.news_id is now nullable (legacy, will be dropped later)
+ *   - comments.likes[] and comments.dislikes[] still exist (legacy, will be dropped later)
+ *   - reactions_rels.news_id and reactions_rels.comments_id are nullable
+ *     (a polymorphic row sets exactly one of the two)
  *
  * Steps:
- *   1. Backfill reactions.target from reactions.news (relationTo = "news")
- *   2. Create new reaction rows from comments.likes[] (relationTo = "comments", type = "like")
- *   3. Create new reaction rows from comments.dislikes[] (relationTo = "comments", type = "dislike")
- *   4. Recalculate news.likesCount / news.dislikesCount from reactions
+ *   1. Backfill reactions_rels (path="target", news_id) from reactions.news
+ *   2. Create new reaction rows from comments.likes[] (target=comments, type=like)
+ *   3. Create new reaction rows from comments.dislikes[] (target=comments, type=dislike)
+ *   4. Recalculate news.likes_count / news.dislikes_count via bulk SQL
+ *   5. Recalculate news.total_comments and comments.total_replies via bulk SQL
  *
- * Each reaction create in step 2/3 fires the afterChange hook on the reactions
- * collection, which recalculates the target doc's likesCount/dislikesCount.
- * So comments get their counts backfilled automatically.
- *
- * Step 4 is needed for news because we only UPDATE existing rows in step 1,
- * which does NOT fire the afterChange hook. We recount manually.
+ * Steps 2/3 use payload.create, which fires the afterChange hook and backfills
+ * comment counts. Step 1 is a raw INSERT into reactions_rels (no hook fires),
+ * so we recalculate the affected counters in steps 4/5 with bulk SQL — bulk
+ * SQL is one statement per table, doesn't write _news_v version rows, and
+ * doesn't fight with any concurrent process touching the news or comments
+ * tables. (Per-row payload.update was tried first and deadlocked.)
  *
  * After this migration completes successfully:
- *   - All reactions rows have target set
- *   - All comments and news have correct likesCount/dislikesCount
+ *   - All reactions rows have a polymorphic target set
+ *   - All news and comments have correct counter columns
  *   - Safe to remove the legacy `news` field from Reactions.ts
  *   - Safe to remove the legacy `likes`/`dislikes` fields from Comments.ts
  *   - Run a follow-up schema migration to drop the legacy columns
@@ -166,105 +169,91 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 
   payload.logger.info(`Created reaction rows for ${processed} comments' inline likes/dislikes`);
 
-  // 4. Recalculate news.likesCount / news.dislikesCount
+  // 4. Recalculate news.likes_count / news.dislikes_count.
   // We can't rely on the afterChange hook here because step 1 was an INSERT
   // into reactions_rels (not a Payload create), so the hook didn't fire.
-  // Recount manually for every news doc that has reactions.
-  const newsWithReactions = await db.execute(sql`
-    SELECT DISTINCT "news_id"
-    FROM "reactions_rels"
-    WHERE "path" = 'target'
-      AND "news_id" IS NOT NULL;
+  // We use bulk SQL instead of per-row payload.update because:
+  //   - payload.update writes a row to _news_v (versions: { drafts: true }),
+  //     which is slow and can deadlock against any other process touching news
+  //   - bulk SQL is one statement per table, completes in milliseconds
+  //   - bulk SQL is idempotent: the count is recomputed from source data
+  await db.execute(sql`
+    WITH counts AS (
+      SELECT
+        rel."news_id" AS id,
+        COUNT(*) FILTER (WHERE r.type = 'like')    AS likes,
+        COUNT(*) FILTER (WHERE r.type = 'dislike') AS dislikes
+      FROM "reactions_rels" rel
+      JOIN "reactions" r ON r.id = rel."parent_id"
+      WHERE rel."path" = 'target'
+        AND rel."news_id" IS NOT NULL
+      GROUP BY rel."news_id"
+    )
+    UPDATE "news" n
+    SET "likes_count" = COALESCE(c.likes, 0),
+        "dislikes_count" = COALESCE(c.dislikes, 0)
+    FROM counts c
+    WHERE n.id = c.id;
   `);
 
-  const newsIds = (newsWithReactions.rows as Array<{ news_id: string }>).map((row) => row.news_id);
-
-  payload.logger.info(`Recalculating reaction counts for ${newsIds.length} news docs`);
-
-  for (const newsId of newsIds) {
-    const [likesResult, dislikesResult] = await Promise.all([
-      payload.count({
-        collection: "reactions",
-        where: {
-          "target.value": { equals: newsId },
-          "target.relationTo": { equals: "news" },
-          type: { equals: "like" },
-        },
-        overrideAccess: true,
-      }),
-      payload.count({
-        collection: "reactions",
-        where: {
-          "target.value": { equals: newsId },
-          "target.relationTo": { equals: "news" },
-          type: { equals: "dislike" },
-        },
-        overrideAccess: true,
-      }),
-    ]);
-
-    await payload.update({
-      collection: "news",
-      id: newsId,
-      data: {
-        likesCount: likesResult.totalDocs,
-        dislikesCount: dislikesResult.totalDocs,
-      },
-      depth: 0,
-      overrideAccess: true,
-    });
-  }
-
-  // 5. Backfill news.totalComments and comments.totalReplies
-  payload.logger.info("Backfilling totalComments and totalReplies counts");
-
-  const commentCounts = await db.execute(sql`
-    SELECT "news_id", COUNT(*) AS count
-    FROM "comments"
-    WHERE "news_id" IS NOT NULL
-    GROUP BY "news_id";
+  // Zero out counters on news rows that have no reactions, in case a prior
+  // partial run left non-zero values. Combined with the UPDATE above, every
+  // news row's likes_count and dislikes_count now reflects the truth.
+  await db.execute(sql`
+    UPDATE "news" n
+    SET "likes_count" = 0, "dislikes_count" = 0
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "reactions_rels" rel
+      JOIN "reactions" r ON r.id = rel."parent_id"
+      WHERE rel."path" = 'target'
+        AND rel."news_id" = n.id
+    );
   `);
 
-  for (const row of commentCounts.rows as Array<{
-    news_id: string;
-    count: string;
-  }>) {
-    await payload.update({
-      collection: "news",
-      id: row.news_id,
-      data: {
-        totalComments: Number.parseInt(row.count, 10),
-      },
-      depth: 0,
-      overrideAccess: true,
-    });
-  }
+  payload.logger.info("Recalculated news.likes_count and news.dislikes_count");
 
-  payload.logger.info(`Updated totalComments for ${commentCounts.rows.length} news docs`);
-
-  const replyCounts = await db.execute(sql`
-    SELECT "parent_id", COUNT(*) AS count
-    FROM "comments"
-    WHERE "parent_id" IS NOT NULL
-    GROUP BY "parent_id";
+  // 5. Backfill news.total_comments and comments.total_replies.
+  await db.execute(sql`
+    WITH counts AS (
+      SELECT "news_id" AS id, COUNT(*)::numeric AS cnt
+      FROM "comments"
+      WHERE "news_id" IS NOT NULL
+      GROUP BY "news_id"
+    )
+    UPDATE "news" n
+    SET "total_comments" = COALESCE(c.cnt, 0)
+    FROM counts c
+    WHERE n.id = c.id;
   `);
 
-  for (const row of replyCounts.rows as Array<{
-    parent_id: string;
-    count: string;
-  }>) {
-    await payload.update({
-      collection: "comments",
-      id: row.parent_id,
-      data: {
-        totalReplies: Number.parseInt(row.count, 10),
-      },
-      depth: 0,
-      overrideAccess: true,
-    });
-  }
+  await db.execute(sql`
+    UPDATE "news" n
+    SET "total_comments" = 0
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "comments" c WHERE c."news_id" = n.id
+    );
+  `);
 
-  payload.logger.info(`Updated totalReplies for ${replyCounts.rows.length} comment docs`);
+  await db.execute(sql`
+    WITH counts AS (
+      SELECT "parent_id" AS id, COUNT(*)::numeric AS cnt
+      FROM "comments"
+      WHERE "parent_id" IS NOT NULL
+      GROUP BY "parent_id"
+    )
+    UPDATE "comments" c
+    SET "total_replies" = COALESCE(cnt.cnt, 0)
+    FROM counts cnt
+    WHERE c.id = cnt.id;
+  `);
+
+  await db.execute(sql`
+    UPDATE "comments" c
+    SET "total_replies" = 0
+    WHERE "parent_id" IS NULL;
+  `);
+
+  payload.logger.info("Recalculated news.total_comments and comments.total_replies");
 
   payload.logger.info("Migration complete");
 }
