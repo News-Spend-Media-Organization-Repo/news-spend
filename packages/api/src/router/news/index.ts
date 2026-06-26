@@ -301,7 +301,9 @@ const one = publicProcedure
       context: user?.id ? { userId: user.id } : undefined,
     });
     if (!news.docs.length) {
-      throw new Error("News not found");
+      throw new ORPCError("NOT_FOUND", {
+        message: "News not found",
+      });
     }
     const doc = news.docs[0]!;
     const userReaction = await getUserReactionForNews(payload, user?.id, doc.id);

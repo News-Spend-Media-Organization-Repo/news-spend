@@ -5,14 +5,11 @@ import {
   users,
 } from "@news-spend-media/payload/payload-generated-schema";
 import type { LotteryTicket } from "@news-spend-media/payload/types";
+import { ORPCError } from "@orpc/client";
 import { and, desc, eq, sql } from "@payloadcms/db-postgres/drizzle";
 import z from "zod";
 
-import {
-  protectedNoGuestProcedure,
-  protectedProcedure,
-  publicProcedure,
-} from "../index";
+import { protectedNoGuestProcedure, protectedProcedure, publicProcedure } from "../index";
 import { addActivity } from "../shared/activity";
 
 // Input schema for creating lottery tickets
@@ -38,7 +35,9 @@ const create = protectedNoGuestProcedure
     });
 
     if (currentLottery.totalDocs < 1) {
-      throw new Error("No active lottery");
+      throw new ORPCError("NOT_FOUND", {
+        message: "No active lottery",
+      });
     }
 
     // Get user points
@@ -52,7 +51,9 @@ const create = protectedNoGuestProcedure
     const userPoints = pointsQuery[0]?.totalPoints ?? 0;
 
     if (userPoints < num_of_tickets) {
-      throw new Error("Not enough tickets");
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Not enough tickets",
+      });
     }
 
     // Check for existing ticket
@@ -101,7 +102,7 @@ const create = protectedNoGuestProcedure
         description: "Lottery ticket purchase",
         action: "ticketPurchase",
       },
-      context
+      context,
     );
 
     return result;
@@ -162,13 +163,15 @@ const boostLuck = protectedNoGuestProcedure.handler(async ({ context }) => {
     .where(
       and(
         eq(lottery_tickets.user, user.id),
-        eq(lottery_tickets.lottery, activeLottery.docs[0]?.id ?? "0")
-      )
+        eq(lottery_tickets.lottery, activeLottery.docs[0]?.id ?? "0"),
+      ),
     )
     .returning();
 
   if (!result) {
-    throw new Error("No lottery ticket found");
+    throw new ORPCError("NOT_FOUND", {
+      message: "No lottery ticket found",
+    });
   }
 
   return result;

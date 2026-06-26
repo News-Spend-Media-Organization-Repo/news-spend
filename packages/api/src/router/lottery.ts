@@ -1,14 +1,11 @@
 import logger from "@news-spend-media/logger";
 import type { Media } from "@news-spend-media/payload/types";
+import { ORPCError } from "@orpc/client";
 import { subWeeks } from "date-fns";
 import z from "zod";
 import { zfd } from "zod-form-data";
 
-import {
-  protectedNoGuestProcedure,
-  protectedProcedure,
-  publicProcedure,
-} from "../index";
+import { protectedNoGuestProcedure, protectedProcedure, publicProcedure } from "../index";
 import { addActivity } from "../shared/activity";
 
 // --- Schemas ---
@@ -16,10 +13,7 @@ const LotteryCreateInput = z.object({
   name: z
     .string()
     .default(
-      () =>
-        new Date().getDay() +
-        new Date().getMonth() +
-        new Date().getFullYear().toString()
+      () => new Date().getDay() + new Date().getMonth() + new Date().getFullYear().toString(),
     ),
   active: z.boolean().default(true),
 });
@@ -31,22 +25,14 @@ const verifyIdentityInput = zfd.formData({
   firstName: zfd.text(z.string().trim().min(3)),
   lastName: zfd.text(z.string().trim().min(3)),
   email: zfd.text(z.string().email()),
-  phoneNumber: zfd.text(
-    z.string().trim().regex(/^\d+$/, "Invalid phone number")
-  ),
+  phoneNumber: zfd.text(z.string().trim().regex(/^\d+$/, "Invalid phone number")),
   shippingAddress: zfd.text(z.string().trim().min(3)),
   "governmentId.front": zfd
     .file()
-    .refine(
-      (file) => file && file.size <= MAX_FILE_SIZE,
-      "File size must be less than 5MB"
-    ),
+    .refine((file) => file && file.size <= MAX_FILE_SIZE, "File size must be less than 5MB"),
   "governmentId.back": zfd
     .file()
-    .refine(
-      (file) => file && file.size <= MAX_FILE_SIZE,
-      "File size must be less than 5MB"
-    ),
+    .refine((file) => file && file.size <= MAX_FILE_SIZE, "File size must be less than 5MB"),
 });
 
 export type VerifyIdentityInput = z.infer<typeof verifyIdentityInput>;
@@ -58,17 +44,15 @@ const all = publicProcedure.handler(async ({ context }) =>
     collection: "lottery",
     pagination: false,
     sort: "-createdAt",
-  })
+  }),
 );
 
-const one = publicProcedure
-  .input(z.number())
-  .handler(async ({ input: id, context }) =>
-    context.payload.findByID({
-      id,
-      collection: "lottery",
-    })
-  );
+const one = publicProcedure.input(z.number()).handler(async ({ input: id, context }) =>
+  context.payload.findByID({
+    id,
+    collection: "lottery",
+  }),
+);
 
 const current = publicProcedure.handler(async ({ context }) => {
   const result = await context.payload.find({
@@ -78,24 +62,18 @@ const current = publicProcedure.handler(async ({ context }) => {
   return result.docs[0] ?? null;
 });
 
-const create = publicProcedure
-  .input(LotteryCreateInput)
-  .handler(async ({ input, context }) =>
-    context.payload.create({
-      collection: "lottery",
-      data: {
-        isActive: input.active ?? false,
-        name:
-          input.name ??
-          new Date().getDay() +
-            new Date().getMonth() +
-            new Date().getFullYear(),
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        ticketPrice: 3,
-      },
-    })
-  );
+const create = publicProcedure.input(LotteryCreateInput).handler(async ({ input, context }) =>
+  context.payload.create({
+    collection: "lottery",
+    data: {
+      isActive: input.active ?? false,
+      name: input.name ?? new Date().getDay() + new Date().getMonth() + new Date().getFullYear(),
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      ticketPrice: 3,
+    },
+  }),
+);
 
 const getReward = protectedProcedure.handler(async ({ context }) => {
   const oneWeekAgo = subWeeks(new Date(), 1);
@@ -124,11 +102,12 @@ const claimReward = protectedProcedure
       depth: 1,
     });
 
-    const lotteryWinnerId =
-      typeof winner.user === "string" ? winner.user : winner.user.id;
+    const lotteryWinnerId = typeof winner.user === "string" ? winner.user : winner.user.id;
 
     if (!winner || lotteryWinnerId !== user.id) {
-      throw new Error("Winner not found");
+      throw new ORPCError("NOT_FOUND", {
+        message: "Winner not found",
+      });
     }
 
     // Mark as claimed
@@ -152,7 +131,7 @@ const claimReward = protectedProcedure
             action: "lottery",
             description: "Lottery reward claimed",
           },
-          context
+          context,
         );
       }
     }
@@ -192,11 +171,7 @@ const verifyIdentity = protectedNoGuestProcedure
     let files: Media[] = [];
     const transactionID = await payload.db.beginTransaction();
     try {
-      const {
-        "governmentId.front": frontFile,
-        "governmentId.back": backFile,
-        ...rest
-      } = input;
+      const { "governmentId.front": frontFile, "governmentId.back": backFile, ...rest } = input;
       files = await Promise.all([
         payload.create({
           collection: "media",
@@ -235,7 +210,9 @@ const verifyIdentity = protectedNoGuestProcedure
       ]);
 
       if (!(files[0] && files[1])) {
-        throw new Error("File upload failed");
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "File upload failed",
+        });
       }
 
       const result = await payload.create({
@@ -274,16 +251,14 @@ const verifyIdentity = protectedNoGuestProcedure
     }
   });
 
-const identityStatus = protectedNoGuestProcedure.handler(
-  async ({ context }) => {
-    const result = await context.payload.find({
-      collection: "identity-verification",
-      depth: 0,
-      where: { user: { equals: context.user.id } },
-    });
-    return result.docs[0] ?? null;
-  }
-);
+const identityStatus = protectedNoGuestProcedure.handler(async ({ context }) => {
+  const result = await context.payload.find({
+    collection: "identity-verification",
+    depth: 0,
+    where: { user: { equals: context.user.id } },
+  });
+  return result.docs[0] ?? null;
+});
 
 const processLottery = publicProcedure.handler(async ({ context }) => {
   const { payload } = context;
