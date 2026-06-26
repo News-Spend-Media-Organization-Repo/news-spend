@@ -22,6 +22,16 @@ export function PayloadLexicalReactRenderer<Blocks extends { [key: string]: any 
   renderMark = defaultRenderMark,
   blockRenderers = defaultBlockRenders,
 }: PayloadLexicalReactRendererProps<Blocks>) {
+  const missingRenderersRef = React.useRef<string[]>([]);
+
+  // Flush missing renderer errors to Sentry after render
+  React.useEffect(() => {
+    for (const msg of missingRenderersRef.current) {
+      Sentry.captureException(new Error(msg));
+    }
+    missingRenderersRef.current = [];
+  }, [content]);
+
   const renderElement = React.useCallback(
     (node: Node, children?: React.ReactNode) => {
       if (!elementRenderers) {
@@ -129,16 +139,16 @@ export function PayloadLexicalReactRenderer<Blocks extends { [key: string]: any 
 
       if (typeof renderer !== "function") {
         const label = isInline ? "inline-block" : "block";
+        const msg = `[PayloadLexicalReactRenderer] Missing ${label} renderer for blockType '${blockType}'.`;
+
         if (__DEV__) {
-          console.warn(
-            `[PayloadLexicalReactRenderer] Missing ${label} renderer for blockType '${blockType}'.`,
-          );
+          console.warn(msg);
         }
-        Sentry.captureException(
-          new Error(
-            `[PayloadLexicalReactRenderer] Missing ${label} renderer for blockType '${blockType}'`,
-          ),
-        );
+
+        // Queue error for Sentry instead of calling during render
+        if (!missingRenderersRef.current.includes(msg)) {
+          missingRenderersRef.current.push(msg);
+        }
         return null;
       }
 
@@ -148,22 +158,27 @@ export function PayloadLexicalReactRenderer<Blocks extends { [key: string]: any 
   );
 
   const serialize = React.useCallback(
-    (children: Node[], parentListType?: ListNode["listType"]): React.ReactNode[] | null =>
+    (
+      children: Node[],
+      parentListType?: ListNode["listType"],
+      isInsideLink = false,
+    ): React.ReactNode[] | null =>
       children?.map((node, index) => {
+        const nodeKey = (node as any).id ?? index;
+
         // ── Text ──────────────────────────────────────────────────────────────
         if (node.type === "text") {
-          return <React.Fragment key={index}>{renderText(node)}</React.Fragment>;
+          return <React.Fragment key={nodeKey}>{renderText(node)}</React.Fragment>;
         }
 
         // ── Top-level block ───────────────────────────────────────────────────
         if (node.type === "block") {
-          return <React.Fragment key={index}>{renderBlock(node)}</React.Fragment>;
+          return <React.Fragment key={nodeKey}>{renderBlock(node)}</React.Fragment>;
         }
 
         // ── Inline block (Payload 3.x SerializedInlineBlockNode) ──────────────
-        // Appear as children inside paragraphs/headings, not at root level.
         if (node.type === "inlineBlock") {
-          return <React.Fragment key={index}>{renderBlock(node, true)}</React.Fragment>;
+          return <React.Fragment key={nodeKey}>{renderBlock(node, true)}</React.Fragment>;
         }
 
         // ── Leaf / self-closing nodes ─────────────────────────────────────────
@@ -173,14 +188,24 @@ export function PayloadLexicalReactRenderer<Blocks extends { [key: string]: any 
           node.type === "upload" ||
           node.type === "horizontalrule"
         ) {
-          return <React.Fragment key={index}>{renderElement(node)}</React.Fragment>;
+          return <React.Fragment key={nodeKey}>{renderElement(node)}</React.Fragment>;
+        }
+
+        // ── Paragraph inside a link: unwrap to inline text ────────────────────
+        if (node.type === "paragraph" && isInsideLink) {
+          return (
+            <React.Fragment key={nodeKey}>
+              {serialize(node.children, undefined, true)}
+              {"\n"}
+            </React.Fragment>
+          );
         }
 
         // ── List — pass listType down to listitem children ────────────────────
         if (node.type === "list") {
           const serializedChildren = serialize(node.children, node.listType);
           return (
-            <React.Fragment key={index}>{renderElement(node, serializedChildren)}</React.Fragment>
+            <React.Fragment key={nodeKey}>{renderElement(node, serializedChildren)}</React.Fragment>
           );
         }
 
@@ -188,16 +213,17 @@ export function PayloadLexicalReactRenderer<Blocks extends { [key: string]: any 
         if (node.type === "listitem") {
           const nodeWithListType = parentListType ? { ...node, listType: parentListType } : node;
           return (
-            <React.Fragment key={index}>
+            <React.Fragment key={nodeKey}>
               {renderElement(nodeWithListType, serialize(node.children))}
             </React.Fragment>
           );
         }
 
-        // ── All other element nodes (paragraph, heading, quote, link…) ─────────
+        // ── All other element nodes (paragraph, heading, quote, link…) ───────
+        const childIsInsideLink = node.type === "link" || isInsideLink;
         return (
-          <React.Fragment key={index}>
-            {renderElement(node, serialize(node.children))}
+          <React.Fragment key={nodeKey}>
+            {renderElement(node, serialize(node?.children, undefined, childIsInsideLink))}
           </React.Fragment>
         );
       }),

@@ -1,6 +1,6 @@
 import { Galeria } from "@nandorojo/galeria";
-import { cn, Separator } from "heroui-native";
-import { Dimensions, Linking, View } from "react-native";
+import { Separator } from "heroui-native";
+import { Linking, View } from "react-native";
 import { Image } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
 import { Text } from "../heroui/text";
@@ -89,25 +89,17 @@ export const defaultElementRenderers: ElementRenderers = {
       return (
         <View className="my-0.5 flex-row items-center" style={indentStyle}>
           <Text className="mr-2 text-base text-foreground">{element.checked ? "☑" : "☐"}</Text>
-          <Text
-            className={cn(
-              "flex-1 text-base",
-              element.checked ? "text-default-soft line-through" : "text-foreground",
-            )}
-            selectable
-          >
-            {element.children}
-          </Text>
+          <View className="flex-1">{element.children}</View>
         </View>
       );
     }
 
-    // Ordered list — use node.value for the counter
+    // Ordered list
     if (element.listType === "number") {
       return (
         <View className="my-0.5 flex-row" style={indentStyle}>
           <Text className="w-6 text-base text-foreground">{element.value}.</Text>
-          <Text className="flex-1 text-base text-foreground">{element.children}</Text>
+          <View className="flex-1">{element.children}</View>
         </View>
       );
     }
@@ -116,7 +108,7 @@ export const defaultElementRenderers: ElementRenderers = {
     return (
       <View className="my-0.5 flex-row" style={indentStyle}>
         <Text className="mr-2 text-base text-foreground">•</Text>
-        <Text className="flex-1 text-base text-foreground">{element.children}</Text>
+        <View className="flex-1">{element.children}</View>
       </View>
     );
   },
@@ -128,20 +120,13 @@ export const defaultElementRenderers: ElementRenderers = {
         className="my-3 rounded-r-md border-foreground/30 border-l-2 bg-foreground/5 py-2 pl-3"
         style={indentStyle}
       >
-        <Text className="text-base text-foreground/70 italic" selectable>
-          {element.children}
-        </Text>
+        <View>{element.children}</View>
       </View>
     );
   },
 
   link: (element) => {
-    const url =
-      element.fields.linkType === "custom"
-        ? element.fields.url
-        : element.fields.linkType === "internal"
-          ? element.fields.url
-          : undefined;
+    const url = element.fields?.url;
 
     const handlePress = () => {
       if (url) {
@@ -153,7 +138,7 @@ export const defaultElementRenderers: ElementRenderers = {
       <Text
         accessibilityLabel={url}
         accessibilityRole="link"
-        className="text-primary underline"
+        className="text-blue-600 underline"
         onPress={handlePress}
         selectable
       >
@@ -188,8 +173,6 @@ export const defaultElementRenderers: ElementRenderers = {
   horizontalrule: () => <Separator className="my-4" />,
 
   upload: (element) => {
-    const { height } = Dimensions.get("window");
-
     // Guard: value may be an unpopulated ID (number) if depth was too low
     if (typeof element.value === "number") {
       return null;
@@ -197,18 +180,27 @@ export const defaultElementRenderers: ElementRenderers = {
 
     if (element.value.mimeType?.includes("image")) {
       const { url, blurhash } = getImageData(element.value);
-      const urls = [url ?? ""];
+
+      if (!url) {
+        return null;
+      }
+
+      const urls = [url];
+      const aspectRatio =
+        element.value.width && element.value.height
+          ? element.value.width / element.value.height
+          : 16 / 9;
 
       return (
         <View className="my-3">
           <Galeria urls={urls}>
             <Galeria.Image>
               <Image
-                height={height * 0.3}
-                objectFit="contain"
+                contentFit="contain"
                 placeholder={{ blurhash }}
                 placeholderContentFit="cover"
                 source={{ uri: urls[0] }}
+                style={{ width: "100%", aspectRatio }}
               />
             </Galeria.Image>
           </Galeria>

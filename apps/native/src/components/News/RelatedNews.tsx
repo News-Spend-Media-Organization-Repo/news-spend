@@ -50,17 +50,7 @@ const RelatedImage = memo(({ item, width }: { item: News | PartnerContent; width
 });
 
 const PointsButton = memo(({ points }: { points: number }) => (
-  <Chip
-    className="bg-s-300"
-    // als="flex-end"
-    // bg="$color.s300"
-    // br="$10"
-    // fd="row"
-    // h="auto"
-    // px="$2"
-    // py="$1"
-    size="sm"
-  >
+  <Chip className="bg-s-300" size="sm">
     {points} points
   </Chip>
 ));

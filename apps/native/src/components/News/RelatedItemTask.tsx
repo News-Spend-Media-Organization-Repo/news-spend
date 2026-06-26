@@ -1,6 +1,6 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
+import { Chip } from "heroui-native";
 import { Linking, Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
-
 import { Image } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
 
@@ -43,12 +43,9 @@ const RelatedItemTask = ({ item }: { item: PartnerContent }) => {
           {item.condition}
         </Text>
         <View className="flex-row items-center justify-between">
-          <View
-            className="h-auto flex-row self-end rounded-full bg-s-300 px-2 py-1"
-            style={{ backgroundColor: "#003964" }}
-          >
-            <Text className="text-white text-xs">{item.points} points</Text>
-          </View>
+          <Chip className="bg-s-300" size="sm">
+            {item.points} points
+          </Chip>
         </View>
       </View>
     </Pressable>
