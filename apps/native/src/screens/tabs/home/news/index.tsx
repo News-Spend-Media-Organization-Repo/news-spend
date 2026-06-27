@@ -1,14 +1,12 @@
 import { Galeria } from "@nandorojo/galeria";
 import { isDefinedError } from "@orpc/client";
-import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { format } from "date-fns";
 import { Separator } from "heroui-native";
 import { SkeletonGroup } from "heroui-native/skeleton-group";
 import { ArrowLeftIcon, UserIcon } from "phosphor-react-native";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
-import { toast } from "sonner-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Image } from "#/components/heroui/image";
@@ -18,195 +16,62 @@ import { PayloadLexicalReactRenderer } from "#/components/lexical/payload-lexica
 import type { PayloadLexicalReactRendererContent } from "#/components/lexical/types";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
-import { userQueryOptions } from "#/hooks/auth/useUser";
-import { useDislikeNews, useLikeNews, useNews } from "#/hooks/news";
-import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
-import { useReadingTracker } from "#/hooks/news/useNewsTracker";
-import useAddActivity from "#/hooks/point/useAddActivity";
+import { useNews } from "#/hooks/news";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
-import { orpc } from "#/lib/orpc";
-import { queryClient } from "#/lib/tanstackQuery";
-import { authState } from "#/state/auth";
 import { getImageData } from "#/utils/getImageData";
+import { useArticleActions } from "./hooks/use-article-actions";
+import { useArticleTracking } from "./hooks/use-article-tracking";
 
 const SingleNews = () => {
   const navigation = useNavigation("News");
   const { slug } = useRoute("News").params;
+
   const { data, refetch, isError, error, isFetchedAfterMount, isFetching, isPlaceholderData } =
     useNews(slug as string);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-  const likeMutation = useLikeNews();
-  const dislikeMutation = useDislikeNews();
-  const addActivityMutation = useAddActivity();
-  const recordViewMutation = useMutation(orpc.news.recordView.mutationOptions());
-
-  const { url, blurhash } = getImageData(data?.image);
-
-  const getUserPoint = useQuery(
-    orpc.activity.byNewsId.queryOptions({
-      input: { newsId: data?.id ?? "", action: "read" },
-      enabled: !!authState.user && !!data,
-    }),
-  );
 
   const {
+    handleScroll,
     elapsedSeconds,
     minReadingSeconds,
     hasScrolledThreshold,
     inRapidScroll,
     isTracking,
-    handleScroll,
-    stopTracking,
-  } = useReadingTracker(data, getUserPoint.data);
+    trackShare,
+    trackComment,
+  } = useArticleTracking(data);
 
-  const { trackView, trackRead, trackLike, trackDislike, trackShare, trackComment } =
-    useNewsAnalytics(data ? { id: data.id, slug: data.slug } : undefined);
-
-  // Track article view once per focus
-  const hasTrackedView = useRef(false);
-  const prevViewId = useRef<string | null>(null);
-  useFocusEffect(
-    useCallback(() => {
-      if (!data) {
-        return;
-      }
-      if (prevViewId.current !== data.id) {
-        hasTrackedView.current = false;
-        prevViewId.current = data.id;
-      }
-      if (hasTrackedView.current) {
-        return;
-      }
-      hasTrackedView.current = true;
-      trackView();
-    }, [data, trackView]),
-  );
-
-  // Award points once reading conditions are met
-  useEffect(() => {
-    if (
-      authState.user &&
-      !authState.user.isAnonymous &&
-      data &&
-      !addActivityMutation.isPending &&
-      !addActivityMutation.isSuccess &&
-      !addActivityMutation.isError &&
-      !getUserPoint.data?.length &&
-      !inRapidScroll &&
-      elapsedSeconds >= minReadingSeconds &&
-      hasScrolledThreshold
-    ) {
-      stopTracking();
-      // Track read event for analytics
-      trackRead(elapsedSeconds, 0.85);
-      addActivityMutation.mutate(
-        {
-          newsId: data.id,
-          action: "read",
-          type: "point",
-          point: data?.points ?? 0,
-          description: "Read a news article",
-        },
-        {
-          onSuccess: (res) => {
-            if (res?.message === "ALREADY_READ") {
-              return;
-            }
-            toast.success("Points earned", {
-              description: `You earned ${data.points} points for reading this article!`,
-            });
-            queryClient.invalidateQueries({
-              queryKey: orpc.activity.byNewsId.queryKey({
-                input: { newsId: data.id, action: "read" },
-              }),
-            });
-            queryClient.invalidateQueries(userQueryOptions);
-          },
-        },
-      );
-    }
-  }, [
-    elapsedSeconds,
-    minReadingSeconds,
-    hasScrolledThreshold,
-    inRapidScroll,
+  const { handleLike, handleDislike } = useArticleActions(
     data,
-    authState.user,
-    getUserPoint.data,
-    addActivityMutation.isPending,
-    addActivityMutation.isSuccess,
-    addActivityMutation.isError,
-    trackRead,
-  ]);
-
-  // Record a view once per article
-  const hasRecordedView = useRef(false);
-  const prevNewsId = useRef<string | null>(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!data) {
-        return;
-      }
-      if (prevNewsId.current !== data.id) {
-        hasRecordedView.current = false;
-        prevNewsId.current = data.id;
-      }
-      if (hasRecordedView.current) {
-        return;
-      }
-      hasRecordedView.current = true;
-      recordViewMutation.mutate({ newsId: data.id });
-    }, [data]),
+    // pass analytics callbacks as optional deps
+    // if you want to keep trackLike/trackDislike wired in,
+    // expose them from useArticleTracking instead
   );
 
-  // Navigate to NotFound in an effect so it doesn't fire during render
-  if (isError && isDefinedError(error) && error?.code === "NOT_FOUND") {
-    navigation?.replace("NotFound");
-    return null;
-  }
+  // Redirect on NOT_FOUND
+  useEffect(() => {
+    if (isError && isDefinedError(error) && error?.code === "NOT_FOUND") {
+      navigation.replace("NotFound");
+    }
+  }, [isError, error]);
 
-  if (isError) {
+  if (isFetchedAfterMount && isError) {
     return (
-      <View className="flex-1 items-center justify-center">
+      <Screen
+        className="flex-1 items-center justify-center"
+        SystemBarsProps={{
+          style: { navigationBar: "dark", statusBar: "auto" },
+        }}
+      >
         <Text className="text-center">Failed to load news article</Text>
-      </View>
+      </Screen>
     );
   }
 
-  const handleLike = () => {
-    if (!authState.user || authState.user.isAnonymous) {
-      return navigation.navigate("SignIn", { redirect: "News" });
-    }
-    trackLike();
-    likeMutation.mutate({
-      newsId: data?.id ?? "",
-      userId: authState.user.id,
-      slug,
-    });
-  };
-
-  const handleDislike = () => {
-    if (!authState.user || authState.user.isAnonymous) {
-      return navigation.navigate("SignIn", { redirect: "News" });
-    }
-    trackDislike();
-    dislikeMutation.mutate({
-      newsId: data?.id ?? "",
-      userId: authState.user.id,
-      slug,
-    });
-  };
+  const { url, blurhash } = getImageData(data?.image);
 
   return (
-    <Screen
-      SystemBarsProps={{
-        style: {
-          navigationBar: "dark",
-          statusBar: "auto",
-        },
-      }}
-    >
+    <Screen SystemBarsProps={{ style: { navigationBar: "dark", statusBar: "auto" } }}>
       <SkeletonGroup className="flex-1" isLoading={!data}>
         <ScrollView
           className="bg-white"
@@ -263,7 +128,7 @@ const SingleNews = () => {
               <SkeletonGroup.Item className="h-4.25 w-32.5 rounded-md">
                 {data ? (
                   <Text className="text-[#737373] text-xs">
-                    {format(new Date(data?.createdAt ?? new Date()), "do MMMM yyy | p")}
+                    {format(new Date(data.createdAt ?? new Date()), "do MMMM yyy | p")}
                   </Text>
                 ) : null}
               </SkeletonGroup.Item>
@@ -271,9 +136,9 @@ const SingleNews = () => {
 
             <SkeletonGroup.Item className="h-[60vh] w-full rounded-md" isLoading={!data?.keyPoints}>
               <View className="mt-1">
-                <Separator className="" />
+                <Separator />
                 <Text className="mb-3 font-bold text-base">KEY POINTS</Text>
-                {data?.keyPoints?.map(({ point }, i: number) => (
+                {data?.keyPoints?.map(({ point }, i) => (
                   <View className="flex-row gap-2 pb-2" key={i}>
                     <Text className="text-xs">{"\u2B24"}</Text>
                     <Text className="p-0" selectable>
@@ -281,7 +146,7 @@ const SingleNews = () => {
                     </Text>
                   </View>
                 ))}
-                <Separator className="" />
+                <Separator />
               </View>
             </SkeletonGroup.Item>
 
