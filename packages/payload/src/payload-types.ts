@@ -1615,7 +1615,7 @@ export interface AuditLog {
         value: string | User;
       } | null);
   /**
-   * Changed fields only — { field: { from, to } } (update operations)
+   * Changed fields only — { field: { from, to } }. Present on updates when originalDoc is available.
    */
   diff?:
     | {
@@ -1627,7 +1627,7 @@ export interface AuditLog {
     | boolean
     | null;
   /**
-   * Full document snapshot (create only). Absent on update/delete to save space.
+   * Full sanitized document. Present on create, and on update when originalDoc is unavailable (e.g. bulk ops).
    */
   snapshot?:
     | {

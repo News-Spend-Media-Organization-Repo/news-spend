@@ -104,6 +104,10 @@ export class SftpConnectionPool {
   private healthCheckTimer: NodeJS.Timeout | null = null;
   private readonly connectionConfig: ConnectOptions;
 
+  // Backoff state: consecutive failures since last successful connection
+  private consecutiveFailures = 0;
+  private lastFailureTime = 0;
+
   constructor(options: ConnectionPoolOptions) {
     this.options = {
       ...DEFAULT_POOL_OPTIONS,
@@ -283,29 +287,59 @@ export class SftpConnectionPool {
 
   /**
    * Ensures the pool has at least the minimum number of connections
+   *
+   * Implements exponential backoff to avoid hammering the server
+   * when connections keep failing (e.g. bad credentials).
    */
   private async ensureMinimumConnections(): Promise<void> {
-    const currentSize = this.pool.length;
-    if (currentSize < this.options.minConnections && !this.isShuttingDown) {
-      const needed = this.options.minConnections - currentSize;
-      this.log(`Creating ${needed} connection(s) to meet minimum`, {
-        current: currentSize,
-        minimum: this.options.minConnections,
-      });
+    if (this.isShuttingDown) {
+      return;
+    }
 
-      const promises = Array.from({ length: needed }, () =>
-        this.createConnection().catch((error) => {
+    const currentSize = this.pool.length;
+    if (currentSize >= this.options.minConnections) {
+      // Pool is healthy — reset backoff counter
+      this.consecutiveFailures = 0;
+      return;
+    }
+
+    // Exponential backoff: 30s, 60s, 120s, 240s, ... capped at ~1 hour
+    if (this.consecutiveFailures > 0) {
+      const backoffMs = Math.min(30_000 * 2 ** (this.consecutiveFailures - 1), 3_600_000);
+      const elapsed = Date.now() - this.lastFailureTime;
+      if (elapsed < backoffMs) {
+        this.log(
+          `Skipping connection attempt — next retry in ${Math.round((backoffMs - elapsed) / 1000)}s (failure #${this.consecutiveFailures})`,
+        );
+        return;
+      }
+    }
+
+    const needed = this.options.minConnections - currentSize;
+    this.log(`Creating ${needed} connection(s) to meet minimum`, {
+      current: currentSize,
+      minimum: this.options.minConnections,
+    });
+
+    const promises = Array.from({ length: needed }, () =>
+      this.createConnection()
+        .then(() => {
+          this.consecutiveFailures = 0;
+        })
+        .catch((error) => {
+          this.consecutiveFailures++;
+          this.lastFailureTime = Date.now();
           logger.error(
             {
               error: error instanceof Error ? error.message : String(error),
+              consecutiveFailures: this.consecutiveFailures,
             },
             "Failed to create minimum connection",
           );
         }),
-      );
+    );
 
-      await Promise.all(promises);
-    }
+    await Promise.all(promises);
   }
 
   /**

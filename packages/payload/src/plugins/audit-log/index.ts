@@ -57,12 +57,12 @@ function sanitize(data: unknown): Record<string, unknown> | unknown {
 /**
  * Compute a shallow diff between two objects.
  * Returns only the keys whose values changed, with { from, to } pairs.
- * Keeps logs lean — especially important for large `news` documents.
+ * Returns null if nothing changed (so we can fall back to snapshot).
  */
 function diff(
   original: Record<string, unknown>,
   updated: Record<string, unknown>,
-): Record<string, { from: unknown; to: unknown }> {
+): Record<string, { from: unknown; to: unknown }> | null {
   const changes: Record<string, { from: unknown; to: unknown }> = {};
   const keys = new Set([...Object.keys(original), ...Object.keys(updated)]);
 
@@ -70,13 +70,12 @@ function diff(
     if (OMIT_FIELDS.has(key)) {
       continue;
     }
-    // JSON stringify for stable deep equality without a dependency
     if (JSON.stringify(original[key]) !== JSON.stringify(updated[key])) {
       changes[key] = { from: original[key], to: updated[key] };
     }
   }
 
-  return changes;
+  return Object.keys(changes).length > 0 ? changes : null;
 }
 
 function extractIp(req: unknown): string | undefined {
@@ -105,31 +104,28 @@ function extractIp(req: unknown): string | undefined {
 }
 
 /**
- * Determine which collection the actor belongs to.
+ * Resolve the actor from a request into the polymorphic relationship format
+ * that Payload's Drizzle adapter expects: `{ relationTo, value }`.
+ *
  * Admins come from the CMS panel; users come from the app via oRPC.
- * Falls back to admins if the collection can't be determined.
+ * Returns `null` when no authenticated user is present.
  */
 function resolveActor(req: unknown): {
-  performedBy: string | number | null;
-  performedByCollection: typeof ADMIN_COLLECTION | typeof USER_COLLECTION;
+  performedBy: { relationTo: string; value: string | number } | null;
 } {
   if (!req || typeof req !== "object") {
-    return { performedBy: null, performedByCollection: ADMIN_COLLECTION };
+    return { performedBy: null };
   }
 
   const user = (req as Record<string, unknown>).user as Record<string, unknown> | null | undefined;
   if (!user?.id) {
-    return { performedBy: null, performedByCollection: ADMIN_COLLECTION };
+    return { performedBy: null };
   }
 
-  // Payload sets `collection` on the user object when using local API / JWT
   const collection = (user.collection as string) ?? ADMIN_COLLECTION;
-  const performedByCollection = collection === USER_COLLECTION ? USER_COLLECTION : ADMIN_COLLECTION;
+  const relationTo = collection === USER_COLLECTION ? USER_COLLECTION : ADMIN_COLLECTION;
 
-  return {
-    performedBy: user.id as string | number,
-    performedByCollection,
-  };
+  return { performedBy: { relationTo, value: user.id as string | number } };
 }
 
 // -------------------------------------------------------------------
@@ -146,9 +142,9 @@ const auditLogsCollection: CollectionConfig = {
     group: "System",
   },
   access: {
-    create: () => false,
-    update: () => false,
-    delete: () => false,
+    create: () => process.env.NODE_ENV === "development",
+    update: () => process.env.NODE_ENV === "development",
+    delete: () => process.env.NODE_ENV === "development",
     read: ({ req }) => !!req.user,
   },
   timestamps: true,
@@ -183,14 +179,16 @@ const auditLogsCollection: CollectionConfig = {
       name: "diff",
       type: "json",
       admin: {
-        description: "Changed fields only — { field: { from, to } } (update operations)",
+        description:
+          "Changed fields only — { field: { from, to } }. Present on updates when originalDoc is available.",
       },
     },
     {
       name: "snapshot",
       type: "json",
       admin: {
-        description: "Full document snapshot (create only). Absent on update/delete to save space.",
+        description:
+          "Full sanitized document. Present on create, and on update when originalDoc is unavailable (e.g. bulk ops).",
       },
     },
     {
@@ -208,9 +206,8 @@ type LogEntry = {
   collection: string;
   documentId: string;
   operation: "create" | "read" | "update" | "delete";
-  performedBy?: string | number | null;
-  performedByCollection?: typeof ADMIN_COLLECTION | typeof USER_COLLECTION;
-  diff?: Record<string, { from: unknown; to: unknown }>;
+  performedBy: { relationTo: string; value: string | number } | null;
+  diff?: Record<string, { from: unknown; to: unknown }> | null;
   snapshot?: unknown;
   ip?: string;
 };
@@ -257,19 +254,24 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     }
 
     const hook: CollectionAfterOperationHook = async ({ operation, result, args, req }) => {
-      if (!ops.includes(operation as LogEntry["operation"])) {
+      // Payload uses different operation names for single vs bulk operations
+      // (updateByID vs update, deleteByID vs delete). Normalize to the names
+      // used in AUDIT_TARGETS so the check works for both paths.
+      const normalized =
+        operation === "updateByID" ? "update" : operation === "deleteByID" ? "delete" : operation;
+      if (!ops.includes(normalized as LogEntry["operation"])) {
         return result;
       }
 
-      const { performedBy, performedByCollection } = resolveActor(req);
+      const { performedBy } = resolveActor(req);
       const ip = extractIp(req);
-      const op = operation as LogEntry["operation"];
+      const op = normalized as LogEntry["operation"];
 
       const resultObj = result as Record<string, unknown> | null;
       const bulkDocs = resultObj?.docs as Record<string, unknown>[] | undefined;
 
       if (bulkDocs) {
-        // Bulk operations — no per-doc originalDoc available
+        // Bulk operations — no per-doc originalDoc available, always snapshot
         for (const doc of bulkDocs) {
           if (doc?.id === undefined) {
             continue;
@@ -279,8 +281,7 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
             documentId: String(doc.id),
             operation: op,
             performedBy,
-            performedByCollection,
-            snapshot: op === "create" ? sanitize(doc) : undefined,
+            snapshot: op === "delete" ? undefined : sanitize(doc),
             ip,
           });
         }
@@ -297,20 +298,26 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
           documentId: String(documentId),
           operation: op,
           performedBy,
-          performedByCollection,
           ip,
         };
 
         if (op === "create") {
+          // Full snapshot on create — no before state exists
           logEntry.snapshot = sanitize(result as Record<string, unknown>);
-        } else if (op === "update" && originalDoc) {
-          // Store only the diff — not full before/after — keeps storage lean
-          logEntry.diff = diff(
-            sanitize(originalDoc) as Record<string, unknown>,
-            sanitize(result as Record<string, unknown>) as Record<string, unknown>,
-          );
+        } else if (op === "update") {
+          if (originalDoc) {
+            // Prefer diff when we have the before state
+            logEntry.diff = diff(
+              sanitize(originalDoc) as Record<string, unknown>,
+              sanitize(result as Record<string, unknown>) as Record<string, unknown>,
+            );
+          } else {
+            // originalDoc missing (e.g. called outside standard admin flow) —
+            // fall back to snapshotting the result so the update is never silent
+            logEntry.snapshot = sanitize(result as Record<string, unknown>);
+          }
         }
-        // delete: documentId is enough, no data stored
+        // delete: documentId is the record — no data needed
 
         await writeLog(req.payload, logEntry);
       }
@@ -335,9 +342,10 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     }
 
     const hook: GlobalAfterChangeHook = async ({ doc, previousDoc, req }) => {
-      const { performedBy, performedByCollection } = resolveActor(req);
+      const { performedBy } = resolveActor(req);
       const ip = extractIp(req);
 
+      // Globals always have previousDoc — diff is always possible here
       const changes =
         previousDoc && doc
           ? diff(
@@ -348,11 +356,12 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
 
       await writeLog(req.payload, {
         collection: g.slug,
-        documentId: g.slug, // globals are singletons — slug is the stable ID
+        documentId: g.slug,
         operation: "update",
         performedBy,
-        performedByCollection,
-        diff: changes,
+        // Fall back to snapshot if diff is empty (first-ever save)
+        diff: changes ?? undefined,
+        snapshot: changes ? undefined : sanitize(doc),
         ip,
       });
 
@@ -363,7 +372,6 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
       ...g,
       hooks: {
         ...g.hooks,
-        // Payload always provides afterChange as an array — no defensive spread needed
         afterChange: [...(g.hooks?.afterChange ?? []), hook],
       },
     } as GlobalConfig;
