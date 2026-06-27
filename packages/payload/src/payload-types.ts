@@ -101,6 +101,7 @@ export interface Config {
     users: User;
     verifications: Verification;
     "witness-reports": WitnessReport;
+    "audit-logs": AuditLog;
     "payload-kv": PayloadKv;
     "payload-jobs": PayloadJob;
     "payload-locked-documents": PayloadLockedDocument;
@@ -141,6 +142,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
     "witness-reports": WitnessReportsSelect<false> | WitnessReportsSelect<true>;
+    "audit-logs": AuditLogsSelect<false> | AuditLogsSelect<true>;
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>;
     "payload-jobs": PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     "payload-locked-documents":
@@ -1595,6 +1597,53 @@ export interface WitnessReport {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: string;
+  /**
+   * The collection slug where the operation occurred
+   */
+  collection: string;
+  documentId: string;
+  operation: "create" | "read" | "update" | "delete";
+  /**
+   * The admin who performed this action
+   */
+  performedBy?: (string | null) | Admin;
+  /**
+   * Document state before the change (update only — absent for bulk operations)
+   */
+  originalData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Document state after the change (create/update only)
+   */
+  newData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * IP address of the request
+   */
+  ip?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1854,6 +1903,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "witness-reports";
         value: string | WitnessReport;
+      } | null)
+    | ({
+        relationTo: "audit-logs";
+        value: string | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2594,6 +2647,21 @@ export interface WitnessReportsSelect<T extends boolean = true> {
   files?: T;
   createdBy?: T;
   lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  collection?: T;
+  documentId?: T;
+  operation?: T;
+  performedBy?: T;
+  originalData?: T;
+  newData?: T;
+  ip?: T;
   updatedAt?: T;
   createdAt?: T;
 }
