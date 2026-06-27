@@ -7,6 +7,8 @@ import type {
   Plugin,
 } from "payload";
 
+import { cleanupAuditLogsTask } from "./cleanup";
+
 // Collections to audit and which operations to track
 const AUDIT_TARGETS: Record<string, Array<"create" | "read" | "update" | "delete">> = {
   // Content — editorial accountability
@@ -184,6 +186,12 @@ function extractIp(req: unknown): string | undefined {
 
 export const auditLogPlugin: Plugin = (incomingConfig) => {
   const config = { ...incomingConfig };
+
+  // --- Register cleanup task ---
+  config.jobs = {
+    ...config.jobs,
+    tasks: [...(config.jobs?.tasks ?? []), cleanupAuditLogsTask],
+  };
 
   // --- Inject collection hooks ---
   const patchedCollections = (config.collections ?? []).map((collection) => {

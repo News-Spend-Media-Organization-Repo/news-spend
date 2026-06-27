@@ -176,6 +176,7 @@ export interface Config {
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
       deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
+      cleanupAuditLogs: TaskCleanupAuditLogs;
       inline: {
         input: unknown;
         output: unknown;
@@ -1718,7 +1719,8 @@ export interface PayloadJob {
           | "processLottery"
           | "cleanupAnonymousUsers"
           | "generateVideoThumbnail"
-          | "deleteVideoThumbTemp";
+          | "deleteVideoThumbTemp"
+          | "cleanupAuditLogs";
         taskID: string;
         input?:
           | {
@@ -1760,6 +1762,7 @@ export interface PayloadJob {
         | "cleanupAnonymousUsers"
         | "generateVideoThumbnail"
         | "deleteVideoThumbTemp"
+        | "cleanupAuditLogs"
       )
     | null;
   queue?: string | null;
@@ -2889,6 +2892,16 @@ export interface TaskDeleteVideoThumbTemp {
   };
   output: {
     deleted?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupAuditLogs".
+ */
+export interface TaskCleanupAuditLogs {
+  input?: unknown;
+  output: {
+    deletedCount?: number | null;
   };
 }
 /**
