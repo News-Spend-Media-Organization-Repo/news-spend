@@ -9,11 +9,25 @@ import type {
 
 // Collections to audit and which operations to track
 const AUDIT_TARGETS: Record<string, Array<"create" | "read" | "update" | "delete">> = {
-  posts: ["create", "update", "delete"],
-  media: ["create", "update", "delete"],
+  // Content — editorial accountability
+  news: ["create", "update", "delete"],
+  comments: ["create", "update", "delete"],
   categories: ["create", "update", "delete"],
-  // Audit user account lifecycle, but not reads (too noisy)
-  users: ["create", "delete"],
+  media: ["create", "update", "delete"],
+  "partner-content": ["create", "update", "delete"],
+  contentReports: ["create", "update", "delete"],
+
+  // Admin — privilege & role tracking
+  admins: ["create", "update", "delete"],
+
+  // Compliance — KYC, lottery, financial
+  "identity-verification": ["create", "update", "delete"],
+  lottery: ["create", "update", "delete"],
+  "lottery-winners": ["create", "update", "delete"],
+  "ticket-purchase-log": ["create"],
+
+  // User account lifecycle
+  users: ["create", "update", "delete"],
 };
 
 // Globals are singletons — only "update" is meaningful
