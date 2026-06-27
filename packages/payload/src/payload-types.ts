@@ -101,6 +101,7 @@ export interface Config {
     users: User;
     verifications: Verification;
     "witness-reports": WitnessReport;
+    "audit-logs": AuditLog;
     "payload-kv": PayloadKv;
     "payload-jobs": PayloadJob;
     "payload-locked-documents": PayloadLockedDocument;
@@ -141,6 +142,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
     "witness-reports": WitnessReportsSelect<false> | WitnessReportsSelect<true>;
+    "audit-logs": AuditLogsSelect<false> | AuditLogsSelect<true>;
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>;
     "payload-jobs": PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     "payload-locked-documents":
@@ -174,6 +176,7 @@ export interface Config {
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
       deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
+      cleanupAuditLogs: TaskCleanupAuditLogs;
       inline: {
         input: unknown;
         output: unknown;
@@ -1595,6 +1598,52 @@ export interface WitnessReport {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: string;
+  collection: string;
+  documentId: string;
+  operation: "create" | "read" | "update" | "delete";
+  performedBy?:
+    | ({
+        relationTo: "admins";
+        value: string | Admin;
+      } | null)
+    | ({
+        relationTo: "users";
+        value: string | User;
+      } | null);
+  /**
+   * Changed fields only — { field: { from, to } }. Present on updates when originalDoc is available.
+   */
+  diff?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Full sanitized document. Present on create, and on update when originalDoc is unavailable (e.g. bulk ops).
+   */
+  snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  ip?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1669,7 +1718,8 @@ export interface PayloadJob {
           | "processLottery"
           | "cleanupAnonymousUsers"
           | "generateVideoThumbnail"
-          | "deleteVideoThumbTemp";
+          | "deleteVideoThumbTemp"
+          | "cleanupAuditLogs";
         taskID: string;
         input?:
           | {
@@ -1711,6 +1761,7 @@ export interface PayloadJob {
         | "cleanupAnonymousUsers"
         | "generateVideoThumbnail"
         | "deleteVideoThumbTemp"
+        | "cleanupAuditLogs"
       )
     | null;
   queue?: string | null;
@@ -1854,6 +1905,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "witness-reports";
         value: string | WitnessReport;
+      } | null)
+    | ({
+        relationTo: "audit-logs";
+        value: string | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2599,6 +2654,21 @@ export interface WitnessReportsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  collection?: T;
+  documentId?: T;
+  operation?: T;
+  performedBy?: T;
+  diff?: T;
+  snapshot?: T;
+  ip?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -2821,6 +2891,16 @@ export interface TaskDeleteVideoThumbTemp {
   };
   output: {
     deleted?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupAuditLogs".
+ */
+export interface TaskCleanupAuditLogs {
+  input?: unknown;
+  output: {
+    deletedCount?: number | null;
   };
 }
 /**

@@ -1,6 +1,6 @@
 import type { RewardTaskItem } from "@news-spend-media/api/router/news/content-builders";
-import { Linking, Platform, View } from "react-native";
-
+import { Chip } from "heroui-native";
+import { Linking, Platform, Pressable, View } from "react-native";
 import { getImageData } from "#/utils/getImageData";
 import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
@@ -27,7 +27,7 @@ function RewardTaskItemCard({ item }: { item: RewardTaskItem }) {
   };
 
   return (
-    <View className="gap-2.5" onPress={onPress}>
+    <Pressable className="gap-2.5" onPress={onPress}>
       <View className="flex-row gap-4">
         <Image
           className="size-25 rounded-[10px]"
@@ -44,13 +44,13 @@ function RewardTaskItemCard({ item }: { item: RewardTaskItem }) {
             {ad?.condition}
           </Text>
           <View className="flex-row items-center justify-end">
-            <Text className="rounded-full bg-s-300 px-2 py-1 text-white text-xs">
-              {ad?.points} points
-            </Text>
+            <Chip className="bg-s-300" size="sm">
+              {ad.points} points
+            </Chip>
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

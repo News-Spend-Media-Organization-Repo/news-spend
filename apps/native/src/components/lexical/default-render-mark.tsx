@@ -3,7 +3,7 @@ import { Text } from "react-native";
 import type { RenderMark } from "./types";
 
 export const defaultRenderMark: RenderMark = (mark) => {
-  // Inline code — needs a View wrapper for background
+  // Inline code — explicit color is intentional for distinct UI
   if (mark.code) {
     return (
       <Text
@@ -32,11 +32,7 @@ export const defaultRenderMark: RenderMark = (mark) => {
   // Subscript
   if (mark.subscript) {
     return (
-      <Text
-        className="text-foreground text-xs"
-        selectable
-        style={[buildTextStyle(mark), { lineHeight: 14 }]}
-      >
+      <Text className="text-xs" selectable style={buildTextStyle(mark)}>
         {mark.text}
       </Text>
     );
@@ -45,11 +41,7 @@ export const defaultRenderMark: RenderMark = (mark) => {
   // Superscript
   if (mark.superscript) {
     return (
-      <Text
-        className="text-foreground text-xs"
-        selectable
-        style={[buildTextStyle(mark), { lineHeight: 14 }]}
-      >
+      <Text className="text-xs" selectable style={buildTextStyle(mark)}>
         {mark.text}
       </Text>
     );
@@ -59,15 +51,11 @@ export const defaultRenderMark: RenderMark = (mark) => {
   const hasStyle = Object.keys(style).length > 0;
 
   if (!hasStyle) {
-    return (
-      <Text className="text-foreground" selectable>
-        {mark.text}
-      </Text>
-    );
+    return <Text selectable>{mark.text}</Text>;
   }
 
   return (
-    <Text className="text-foreground" selectable style={style}>
+    <Text selectable style={style}>
       {mark.text}
     </Text>
   );
@@ -76,20 +64,16 @@ export const defaultRenderMark: RenderMark = (mark) => {
 function buildTextStyle(mark: Parameters<RenderMark>[0]): Record<string, any> {
   const style: Record<string, any> = {};
 
-  if (mark.bold) {
-    style.fontWeight = "700";
+  if (mark.bold && mark.italic) {
+    style.fontFamily = "Inter-BoldItalic";
+  } else if (mark.bold) {
     style.fontFamily = "Inter-Bold";
-  }
-
-  if (mark.italic) {
-    style.fontStyle = "italic";
-    style.fontFamily = mark.bold ? "Inter-BoldItalic" : "Inter-MediumItalic";
+  } else if (mark.italic) {
+    style.fontFamily = "Inter-MediumItalic";
   }
 
   if (mark.underline && mark.strikethrough) {
-    // React Native only supports one textDecorationLine value at a time
-    // underline takes precedence; strikethrough handled visually if needed
-    style.textDecorationLine = "underline";
+    style.textDecorationLine = "underline line-through";
   } else if (mark.underline) {
     style.textDecorationLine = "underline";
   } else if (mark.strikethrough) {

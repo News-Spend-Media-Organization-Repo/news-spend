@@ -4,6 +4,7 @@ import {
   enum_partner_content_status,
   enum_partner_content_type,
 } from "@news-spend-media/payload/payload-generated-schema";
+import { ORPCError } from "@orpc/client";
 import type { SelectType, TransformCollectionWithSelect, Where } from "payload";
 import z from "zod";
 
@@ -51,7 +52,9 @@ export const partnerContentById = publicProcedure
       id: input.id,
     });
     if (!result) {
-      throw new Error(`Partner content with id ${input.id} not found`);
+      throw new ORPCError("NOT_FOUND", {
+        message: `Partner content with id ${input.id} not found`,
+      });
     }
     return result;
   });

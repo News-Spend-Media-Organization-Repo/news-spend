@@ -145,7 +145,7 @@ export const getYoutubeThumbnailUrl = (url: string): string | null => {
 export const PartnerContent: CollectionConfig = {
   slug: "partner-content",
   admin: {
-    group: "Ads & Partners",
+    group: "Partners",
     defaultColumns: ["title", "type", "partner", "status", "points"],
     useAsTitle: "title",
     description: "Manage promotions for books, banners, videos, shop items, etc.",

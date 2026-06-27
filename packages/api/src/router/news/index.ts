@@ -154,8 +154,12 @@ const recordView = publicProcedure
     }
 
     const where: Where = {};
-    if (input.newsId) where.id = { equals: input.newsId };
-    if (input.slug) where.slug = { equals: input.slug };
+    if (input.newsId) {
+      where.id = { equals: input.newsId };
+    }
+    if (input.slug) {
+      where.slug = { equals: input.slug };
+    }
     where._status = { equals: "published" };
 
     const news = await payload.find({
@@ -165,10 +169,11 @@ const recordView = publicProcedure
       depth: 0,
     });
     const doc = news.docs[0];
-    if (!doc)
+    if (!doc) {
       throw new ORPCError("NOT_FOUND", {
         message: "News not found",
       });
+    }
 
     // determine dedupe key: prefer user id, fallback to IP header
     let dedupeKey = "";
@@ -299,9 +304,12 @@ const one = publicProcedure
       depth: 2,
       limit: 1,
       context: user?.id ? { userId: user.id } : undefined,
+      // draft: false,
     });
     if (!news.docs.length) {
-      throw new Error("News not found");
+      throw new ORPCError("NOT_FOUND", {
+        message: "News not found",
+      });
     }
     const doc = news.docs[0]!;
     const userReaction = await getUserReactionForNews(payload, user?.id, doc.id);
@@ -314,6 +322,7 @@ const relatedNews = publicProcedure.input(z.number().optional()).handler(async (
     collection: "news",
     pagination: false,
     where: { _status: { equals: "published" } },
+    draft: false,
   });
   const randomPage = Math.floor(Math.random() * (queryCount.totalPages || 1)) + 1;
   const items = await payload.find({
@@ -323,6 +332,7 @@ const relatedNews = publicProcedure.input(z.number().optional()).handler(async (
     page: randomPage,
     sort: "-createdAt",
     where: { _status: { equals: "published" } },
+    draft: false,
     select: { content: false, keyPoints: false },
   });
   let relatedDocs = items.docs;
@@ -334,6 +344,7 @@ const relatedNews = publicProcedure.input(z.number().optional()).handler(async (
       sort: "-createdAt",
       page: 1,
       where: { _status: { equals: "published" } },
+      draft: false,
       select: { content: false, keyPoints: false },
     });
     relatedDocs = [...relatedDocs, ...remainingItems.docs];

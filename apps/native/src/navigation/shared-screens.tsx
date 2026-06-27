@@ -29,7 +29,7 @@ import LuckyAppWall from "#/screens/tabs/discover/LuckyAppWall";
 import PlayLottery from "#/screens/tabs/discover/PlayLottery";
 import CommentReplies from "#/screens/tabs/home/comments/CommentReply";
 import Comments from "#/screens/tabs/home/comments/Comments";
-import SingleNews from "#/screens/tabs/home/News";
+import SingleNews from "#/screens/tabs/home/news";
 import LiveCommentReply from "#/screens/tabs/live/comments/LiveCommentReply";
 import LiveComments from "#/screens/tabs/live/comments/LiveComments";
 import Live from "#/screens/tabs/live/Live";

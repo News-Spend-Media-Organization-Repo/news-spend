@@ -114,6 +114,9 @@ export default function NewsHome() {
           fontFamily: "Inter-SemiBold",
           textTransform: "capitalize",
         },
+        sceneStyle: {
+          backgroundColor: "white",
+        },
       }}
       initialLayout={{ width: layout.width, height: 0 }}
       lazy

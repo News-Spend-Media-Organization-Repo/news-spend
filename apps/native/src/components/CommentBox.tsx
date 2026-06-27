@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { InputGroup } from "heroui-native";
+import { InputGroup, Separator } from "heroui-native";
 import { PaperPlaneTiltIcon, XIcon } from "phosphor-react-native";
 import { type RefObject, useCallback } from "react";
 import { ActivityIndicator, Pressable, type TextInput, View } from "react-native";
@@ -198,7 +198,7 @@ export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxPro
       {isEdit && (
         <>
           <EditPreview onDismiss={handleCancel} text={originalText} username={targetUsername} />
-          <View className="mx-2.5 mt-2 h-px bg-separator" />
+          <Separator className="mx-2.5 mt-2" />
         </>
       )}
 

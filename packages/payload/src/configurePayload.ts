@@ -8,7 +8,7 @@ import { resendAdapter } from "@payloadcms/email-resend";
 import { sentryPlugin } from "@payloadcms/plugin-sentry";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import * as Sentry from "@sentry/nextjs";
-import { buildConfig, type Config, type SanitizedConfig, deepMerge } from "payload";
+import { buildConfig, type Config, deepMerge, type SanitizedConfig } from "payload";
 import computeBlurhash from "payload-blurhash-plugin";
 import sharp from "sharp";
 
@@ -49,6 +49,7 @@ import {
 import Admins from "./collections/Admins";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
+import { auditLogPlugin } from "./plugins/audit-log";
 import { nestedDocsPlusPlugin } from "./plugins/nestedDocsPlusPlugin";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
@@ -197,6 +198,7 @@ const baseConfig: Config = {
     nestedDocsPlusPlugin({
       collections: ["categories"],
     }),
+    auditLogPlugin,
   ],
   email: resendAdapter({
     defaultFromAddress: process.env.RESEND_DEFAULT_FROM_ADDRESS || "admin@mail.newsspend.com",

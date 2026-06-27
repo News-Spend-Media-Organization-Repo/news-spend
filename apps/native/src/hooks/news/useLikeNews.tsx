@@ -13,7 +13,7 @@ export default function useLikeNews() {
 
   return useMutation(
     orpc.news.like.mutationOptions({
-      onMutate: async (data) => {
+      onMutate: (data) => {
         // Cancel any outgoing refetches
         // (so they don't overwrite our optimistic update)
         queryClient.cancelQueries({
@@ -36,11 +36,11 @@ export default function useLikeNews() {
           newLikesCount = Math.max(0, newLikesCount - 1);
           newUserReaction = "none";
         } else if (hasDisliked) {
-          newLikesCount = newLikesCount + 1;
+          newLikesCount += 1;
           newDislikesCount = Math.max(0, newDislikesCount - 1);
           newUserReaction = "like";
         } else {
-          newLikesCount = newLikesCount + 1;
+          newLikesCount += 1;
           newUserReaction = "like";
         }
 

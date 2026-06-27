@@ -1,7 +1,7 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { Admin } from "@news-spend-media/payload/types";
 import { isDefinedError } from "@orpc/client";
-import { useNavigation, usePreventRemove, useRoute } from "@react-navigation/native";
+import { CommonActions, useNavigation, usePreventRemove, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Alert } from "heroui-native/alert";
@@ -30,7 +30,7 @@ type YTState = "unstarted" | "video cue" | "buffering" | "playing" | "paused" | 
 const POINTS_THRESHOLD = 20 * 60; // 20 minutes in seconds
 
 function Live() {
-  const navigation = useNavigation("SingleLive");
+  const navigation = useNavigation();
   const route = useRoute("SingleLive");
   const { width } = useWindowDimensions();
 
@@ -201,12 +201,20 @@ function Live() {
     return ["HEADER", ...commentQuery.data.pages[0].docs.slice(0, 3)];
   }, [commentQuery.data]);
 
-  if (isFetchedAfterMount && isError && isDefinedError(error) && error.data?.code === "NOT_FOUND") {
-    navigation.replace("NotFound");
+  // Navigate to NotFound in an effect so it doesn't fire during render
+  const isNotFoundError =
+    isFetchedAfterMount && isError && isDefinedError(error) && error.code === "NOT_FOUND";
+  useEffect(() => {
+    if (isNotFoundError) {
+      navigation.dispatch(CommonActions.reset({ routes: [{ name: "NotFound" }] }));
+    }
+  }, [isNotFoundError, navigation]);
+
+  if (isNotFoundError) {
     return null;
   }
 
-  if (isFetchedAfterMount && (isError || !data)) {
+  if (isFetchedAfterMount && isError) {
     return (
       <View className="flex-1 items-center justify-center">
         <Text>Failed to load news article</Text>
