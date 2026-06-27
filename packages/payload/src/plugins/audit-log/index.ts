@@ -3,6 +3,7 @@ import type {
   CollectionAfterOperationHook,
   CollectionConfig,
   GlobalAfterChangeHook,
+  GlobalConfig,
   Plugin,
 } from "payload";
 
@@ -140,18 +141,31 @@ function extractIp(req: unknown): string | undefined {
   if (!req || typeof req !== "object") {
     return;
   }
+
   const r = req as Record<string, unknown>;
   const headers = r.headers as Record<string, string | string[] | undefined> | undefined;
-  const socket = r.socket as Record<string, string | undefined> | undefined;
+  const socket = r.socket as Record<string, unknown> | undefined;
 
-  return (
-    (typeof headers?.["x-forwarded-for"] === "string"
-      ? headers["x-forwarded-for"].split(",")[0]?.trim()
-      : undefined) ??
-    (headers?.["x-real-ip"] as string | undefined) ??
-    socket?.remoteAddress ??
-    undefined
-  );
+  // 1. Handle x-forwarded-for (can be string or array)
+  const forwardedFor = headers?.["x-forwarded-for"];
+  if (forwardedFor) {
+    const rawIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+    if (typeof rawIp === "string") {
+      return rawIp.split(",")[0]?.trim();
+    }
+  }
+
+  // 2. Fallback to x-real-ip
+  if (typeof headers?.["x-real-ip"] === "string") {
+    return headers["x-real-ip"];
+  }
+
+  // 3. Fallback to direct socket address
+  if (socket && typeof socket.remoteAddress === "string") {
+    return socket.remoteAddress;
+  }
+
+  return;
 }
 
 export const auditLogPlugin: Plugin = (incomingConfig) => {
@@ -226,8 +240,8 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
 
   // --- Inject global hooks ---
   const patchedGlobals = (config.globals ?? []).map((global) => {
-    const globalConfig = global as { slug: string; hooks?: Record<string, unknown> };
-    if (!GLOBAL_AUDIT_TARGETS.includes(globalConfig.slug)) {
+    const slug = (global as GlobalConfig).slug;
+    if (!GLOBAL_AUDIT_TARGETS.includes(slug)) {
       return global;
     }
 
@@ -236,8 +250,8 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
       const ip = extractIp(req);
 
       await writeLog(req.payload, {
-        collection: globalConfig.slug,
-        documentId: globalConfig.slug,
+        collection: slug,
+        documentId: slug,
         operation: "update",
         performedBy: userId,
         originalData: previousDoc ?? undefined,
@@ -249,12 +263,19 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     };
 
     return {
-      ...globalConfig,
+      ...(global as GlobalConfig),
       hooks: {
-        ...globalConfig.hooks,
-        afterChange: [...((globalConfig.hooks?.afterChange as unknown[]) ?? []), hook],
+        ...(global as GlobalConfig).hooks,
+        afterChange: [
+          ...((Array.isArray((global as GlobalConfig).hooks?.afterChange)
+            ? (global as GlobalConfig).hooks!.afterChange!
+            : (global as GlobalConfig).hooks?.afterChange
+              ? [(global as GlobalConfig).hooks!.afterChange!]
+              : []) as GlobalAfterChangeHook[]),
+          hook,
+        ],
       },
-    };
+    } as GlobalConfig;
   });
 
   return {
