@@ -1,11 +1,7 @@
 import type { Category, NewsCategory } from "@news-spend-media/payload/types";
 import { isDefinedError } from "@orpc/client";
 import { useRoute } from "@react-navigation/native";
-import {
-  type InfiniteData,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { type InfiniteData, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { routeState } from "#/state/route-state";
@@ -22,7 +18,7 @@ export default function useNews(slug: string, type?: "article" | "video") {
         type: type ?? "article",
       },
       retry: (failureCount, error) => {
-        if (isDefinedError(error) && error?.data?.code === "NOT_FOUND") {
+        if (isDefinedError(error) && error?.code === "NOT_FOUND") {
           return false;
         }
         return failureCount < 3;
@@ -41,7 +37,7 @@ export default function useNews(slug: string, type?: "article" | "video") {
                     // includeAds: true,
                   }),
                   initialPageParam: undefined,
-                })
+                }),
               )
               ?.pages.flatMap((page) => page.docs);
 
@@ -50,10 +46,10 @@ export default function useNews(slug: string, type?: "article" | "video") {
             return news;
           }
           const categories = JSON.parse(
-            storage.getString("CATEGORIES") ?? "[]"
+            storage.getString("CATEGORIES") ?? "[]",
           ) as NewsCategory["items"];
           const category = categories?.find(
-            ({ category }) => (category as Category).id === routeState.tabName
+            ({ category }) => (category as Category).id === routeState.tabName,
           );
           const allNews = queryClient
             .getQueryData<InfiniteData<RouterOutputs["news"]["all"]>>(
@@ -65,7 +61,7 @@ export default function useNews(slug: string, type?: "article" | "video") {
                   includeAds: true,
                   category: (category?.category as unknown as Category)?.id,
                 }),
-              })
+              }),
             )
             ?.pages.flatMap((page) => page.docs);
 
@@ -82,7 +78,7 @@ export default function useNews(slug: string, type?: "article" | "video") {
                   includeAds: false,
                   page: pageParam,
                 }),
-              })
+              }),
             )
             ?.pages.flatMap((page) => page.docs);
 
@@ -99,10 +95,10 @@ export default function useNews(slug: string, type?: "article" | "video") {
             return queryClient.getQueryState(qKey)?.dataUpdatedAt;
           }
           const categories = JSON.parse(
-            storage.getString("CATEGORIES") ?? "[]"
+            storage.getString("CATEGORIES") ?? "[]",
           ) as NewsCategory["items"];
           const category = categories?.find(
-            ({ category }) => (category as Category).id === routeState.tabName
+            ({ category }) => (category as Category).id === routeState.tabName,
           );
 
           const qKey = orpc.news.all.queryKey({
@@ -126,6 +122,6 @@ export default function useNews(slug: string, type?: "article" | "video") {
           return queryClient.getQueryState(qKey)?.dataUpdatedAt;
         }
       },
-    })
+    }),
   );
 }

@@ -160,8 +160,9 @@ const SingleNews = () => {
     }, [data]),
   );
 
-  if (isFetchedAfterMount && isError && isDefinedError(error) && error.data?.code === "NOT_FOUND") {
-    navigation.replace("NotFound");
+  // Navigate to NotFound in an effect so it doesn't fire during render
+  if (isError && isDefinedError(error) && error?.code === "NOT_FOUND") {
+    navigation?.replace("NotFound");
     return null;
   }
 
