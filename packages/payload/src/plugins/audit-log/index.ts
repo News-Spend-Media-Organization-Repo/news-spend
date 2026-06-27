@@ -1,4 +1,10 @@
-import type { BasePayload, CollectionAfterOperationHook, CollectionConfig, Plugin } from "payload";
+import type {
+  BasePayload,
+  CollectionAfterOperationHook,
+  CollectionConfig,
+  GlobalAfterChangeHook,
+  Plugin,
+} from "payload";
 
 // Collections to audit and which operations to track
 const AUDIT_TARGETS: Record<string, Array<"create" | "read" | "update" | "delete">> = {
@@ -8,6 +14,9 @@ const AUDIT_TARGETS: Record<string, Array<"create" | "read" | "update" | "delete
   // Audit user account lifecycle, but not reads (too noisy)
   users: ["create", "delete"],
 };
+
+// Globals are singletons — only "update" is meaningful
+const GLOBAL_AUDIT_TARGETS: string[] = ["news-category"];
 
 // admin collection
 const ADMIN_COLLECTION = "admins";
@@ -148,6 +157,7 @@ function extractIp(req: unknown): string | undefined {
 export const auditLogPlugin: Plugin = (incomingConfig) => {
   const config = { ...incomingConfig };
 
+  // --- Inject collection hooks ---
   const patchedCollections = (config.collections ?? []).map((collection) => {
     const ops = AUDIT_TARGETS[collection.slug];
     if (!ops) {
@@ -155,14 +165,13 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     }
 
     const hook: CollectionAfterOperationHook = async ({ operation, result, args, req }) => {
-      if (!ops.includes(operation as "create" | "read" | "update" | "delete")) {
+      if (!ops.includes(operation as LogEntry["operation"])) {
         return result;
       }
 
       const userId = req?.user?.id ?? null;
       const ip = extractIp(req);
 
-      // Check for bulk operation (delete/update with `where` clause)
       const resultObj = result as Record<string, unknown> | null;
       const bulkDocs = resultObj?.docs as
         | Array<{ id: unknown; [key: string]: unknown }>
@@ -215,8 +224,42 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     };
   });
 
+  // --- Inject global hooks ---
+  const patchedGlobals = (config.globals ?? []).map((global) => {
+    const globalConfig = global as { slug: string; hooks?: Record<string, unknown> };
+    if (!GLOBAL_AUDIT_TARGETS.includes(globalConfig.slug)) {
+      return global;
+    }
+
+    const hook: GlobalAfterChangeHook = async ({ doc, previousDoc, req }) => {
+      const userId = req?.user?.id ?? null;
+      const ip = extractIp(req);
+
+      await writeLog(req.payload, {
+        collection: globalConfig.slug,
+        documentId: globalConfig.slug,
+        operation: "update",
+        performedBy: userId,
+        originalData: previousDoc ?? undefined,
+        newData: doc,
+        ip,
+      });
+
+      return doc;
+    };
+
+    return {
+      ...globalConfig,
+      hooks: {
+        ...globalConfig.hooks,
+        afterChange: [...((globalConfig.hooks?.afterChange as unknown[]) ?? []), hook],
+      },
+    };
+  });
+
   return {
     ...config,
     collections: [...patchedCollections, auditLogsCollection],
+    globals: patchedGlobals,
   };
 };
