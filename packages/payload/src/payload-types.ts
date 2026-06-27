@@ -1602,20 +1602,22 @@ export interface WitnessReport {
  */
 export interface AuditLog {
   id: string;
-  /**
-   * The collection slug where the operation occurred
-   */
   collection: string;
   documentId: string;
   operation: "create" | "read" | "update" | "delete";
+  performedBy?:
+    | ({
+        relationTo: "admins";
+        value: string | Admin;
+      } | null)
+    | ({
+        relationTo: "users";
+        value: string | User;
+      } | null);
   /**
-   * The admin who performed this action
+   * Changed fields only — { field: { from, to } } (update operations)
    */
-  performedBy?: (string | null) | Admin;
-  /**
-   * Document state before the change (update only — absent for bulk operations)
-   */
-  originalData?:
+  diff?:
     | {
         [k: string]: unknown;
       }
@@ -1625,9 +1627,9 @@ export interface AuditLog {
     | boolean
     | null;
   /**
-   * Document state after the change (create/update only)
+   * Full document snapshot (create only). Absent on update/delete to save space.
    */
-  newData?:
+  snapshot?:
     | {
         [k: string]: unknown;
       }
@@ -1636,9 +1638,6 @@ export interface AuditLog {
     | number
     | boolean
     | null;
-  /**
-   * IP address of the request
-   */
   ip?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -2662,8 +2661,8 @@ export interface AuditLogsSelect<T extends boolean = true> {
   documentId?: T;
   operation?: T;
   performedBy?: T;
-  originalData?: T;
-  newData?: T;
+  diff?: T;
+  snapshot?: T;
   ip?: T;
   updatedAt?: T;
   createdAt?: T;
