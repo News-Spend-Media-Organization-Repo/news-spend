@@ -35,19 +35,106 @@ const AUDIT_TARGETS: Record<string, Array<"create" | "read" | "update" | "delete
 // Globals are singletons — only "update" is meaningful
 const GLOBAL_AUDIT_TARGETS: string[] = ["news-category"];
 
-// admin collection
 const ADMIN_COLLECTION = "admins";
+const USER_COLLECTION = "users";
 
 // Fields to strip from logged data (sensitive / noisy)
-const OMIT_FIELDS = ["password", "salt", "hash", "tokens", "updatedAt", "__v"];
+const OMIT_FIELDS = new Set(["password", "salt", "hash", "tokens", "updatedAt", "__v"]);
 
-function sanitize(data: unknown): unknown {
-  if (!data || typeof data !== "object") {
+// -------------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------------
+
+function sanitize(data: unknown): Record<string, unknown> | unknown {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
     return data;
   }
-  const obj = data as Record<string, unknown>;
-  return Object.fromEntries(Object.entries(obj).filter(([key]) => !OMIT_FIELDS.includes(key)));
+  return Object.fromEntries(
+    Object.entries(data as Record<string, unknown>).filter(([key]) => !OMIT_FIELDS.has(key)),
+  );
 }
+
+/**
+ * Compute a shallow diff between two objects.
+ * Returns only the keys whose values changed, with { from, to } pairs.
+ * Keeps logs lean — especially important for large `news` documents.
+ */
+function diff(
+  original: Record<string, unknown>,
+  updated: Record<string, unknown>,
+): Record<string, { from: unknown; to: unknown }> {
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  const keys = new Set([...Object.keys(original), ...Object.keys(updated)]);
+
+  for (const key of keys) {
+    if (OMIT_FIELDS.has(key)) {
+      continue;
+    }
+    // JSON stringify for stable deep equality without a dependency
+    if (JSON.stringify(original[key]) !== JSON.stringify(updated[key])) {
+      changes[key] = { from: original[key], to: updated[key] };
+    }
+  }
+
+  return changes;
+}
+
+function extractIp(req: unknown): string | undefined {
+  if (!req || typeof req !== "object") {
+    return;
+  }
+
+  const r = req as Record<string, unknown>;
+  const headers = r.headers as Record<string, string | string[] | undefined> | undefined;
+  const socket = r.socket as Record<string, unknown> | undefined;
+
+  const forwardedFor = headers?.["x-forwarded-for"];
+  if (forwardedFor) {
+    const raw = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+    if (typeof raw === "string") {
+      return raw.split(",")[0]?.trim();
+    }
+  }
+
+  if (typeof headers?.["x-real-ip"] === "string") {
+    return headers["x-real-ip"];
+  }
+  if (socket && typeof socket.remoteAddress === "string") {
+    return socket.remoteAddress;
+  }
+}
+
+/**
+ * Determine which collection the actor belongs to.
+ * Admins come from the CMS panel; users come from the app via oRPC.
+ * Falls back to admins if the collection can't be determined.
+ */
+function resolveActor(req: unknown): {
+  performedBy: string | number | null;
+  performedByCollection: typeof ADMIN_COLLECTION | typeof USER_COLLECTION;
+} {
+  if (!req || typeof req !== "object") {
+    return { performedBy: null, performedByCollection: ADMIN_COLLECTION };
+  }
+
+  const user = (req as Record<string, unknown>).user as Record<string, unknown> | null | undefined;
+  if (!user?.id) {
+    return { performedBy: null, performedByCollection: ADMIN_COLLECTION };
+  }
+
+  // Payload sets `collection` on the user object when using local API / JWT
+  const collection = (user.collection as string) ?? ADMIN_COLLECTION;
+  const performedByCollection = collection === USER_COLLECTION ? USER_COLLECTION : ADMIN_COLLECTION;
+
+  return {
+    performedBy: user.id as string | number,
+    performedByCollection,
+  };
+}
+
+// -------------------------------------------------------------------
+// Audit logs collection
+// -------------------------------------------------------------------
 
 const auditLogsCollection: CollectionConfig = {
   slug: "audit-logs",
@@ -59,22 +146,18 @@ const auditLogsCollection: CollectionConfig = {
     group: "System",
   },
   access: {
-    // Only the plugin internals can create/mutate logs
     create: () => false,
     update: () => false,
     delete: () => false,
-    // Any authenticated admin can read
     read: ({ req }) => !!req.user,
   },
+  timestamps: true,
   fields: [
     {
       name: "collection",
       type: "text",
       required: true,
       index: true,
-      admin: {
-        description: "The collection slug where the operation occurred",
-      },
     },
     {
       name: "documentId",
@@ -90,110 +173,83 @@ const auditLogsCollection: CollectionConfig = {
       options: ["create", "read", "update", "delete"],
     },
     {
+      // Polymorphic — could be a CMS admin or an app user
       name: "performedBy",
       type: "relationship",
       index: true,
-      relationTo: ADMIN_COLLECTION,
-      admin: { description: "The admin who performed this action" },
+      relationTo: [ADMIN_COLLECTION, USER_COLLECTION],
     },
     {
-      name: "originalData",
+      name: "diff",
       type: "json",
       admin: {
-        description: "Document state before the change (update only — absent for bulk operations)",
+        description: "Changed fields only — { field: { from, to } } (update operations)",
       },
     },
     {
-      name: "newData",
+      name: "snapshot",
       type: "json",
       admin: {
-        description: "Document state after the change (create/update only)",
+        description: "Full document snapshot (create only). Absent on update/delete to save space.",
       },
     },
     {
       name: "ip",
       type: "text",
-      admin: { description: "IP address of the request" },
     },
   ],
 };
 
+// -------------------------------------------------------------------
+// Log writer
+// -------------------------------------------------------------------
+
 type LogEntry = {
   collection: string;
   documentId: string;
-  ip?: string;
-  newData?: unknown;
   operation: "create" | "read" | "update" | "delete";
-  originalData?: unknown;
   performedBy?: string | number | null;
+  performedByCollection?: typeof ADMIN_COLLECTION | typeof USER_COLLECTION;
+  diff?: Record<string, { from: unknown; to: unknown }>;
+  snapshot?: unknown;
+  ip?: string;
 };
 
-async function writeLog(payload: BasePayload, entry: LogEntry) {
+async function writeLog(payload: BasePayload, entry: LogEntry): Promise<void> {
   try {
     await payload.db.create({
       collection: "audit-logs",
-      data: {
-        ...entry,
-        originalData: entry.originalData ? sanitize(entry.originalData) : undefined,
-        newData: entry.newData ? sanitize(entry.newData) : undefined,
-      },
+      data: entry,
     });
   } catch (err) {
     payload.logger?.error?.(
       {
         err,
-        entry: {
-          collection: entry.collection,
-          documentId: entry.documentId,
-          operation: entry.operation,
-        },
+        collection: entry.collection,
+        documentId: entry.documentId,
+        operation: entry.operation,
       },
       "[audit-log] Failed to write log",
     );
   }
 }
 
-function extractIp(req: unknown): string | undefined {
-  if (!req || typeof req !== "object") {
-    return;
-  }
-
-  const r = req as Record<string, unknown>;
-  const headers = r.headers as Record<string, string | string[] | undefined> | undefined;
-  const socket = r.socket as Record<string, unknown> | undefined;
-
-  // 1. Handle x-forwarded-for (can be string or array)
-  const forwardedFor = headers?.["x-forwarded-for"];
-  if (forwardedFor) {
-    const rawIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
-    if (typeof rawIp === "string") {
-      return rawIp.split(",")[0]?.trim();
-    }
-  }
-
-  // 2. Fallback to x-real-ip
-  if (typeof headers?.["x-real-ip"] === "string") {
-    return headers["x-real-ip"];
-  }
-
-  // 3. Fallback to direct socket address
-  if (socket && typeof socket.remoteAddress === "string") {
-    return socket.remoteAddress;
-  }
-
-  return;
-}
+// -------------------------------------------------------------------
+// Plugin
+// -------------------------------------------------------------------
 
 export const auditLogPlugin: Plugin = (incomingConfig) => {
   const config = { ...incomingConfig };
 
-  // --- Register cleanup task ---
-  config.jobs = {
-    ...config.jobs,
-    tasks: [...(config.jobs?.tasks ?? []), cleanupAuditLogsTask],
-  };
+  // Register cleanup task (guard against missing export)
+  if (cleanupAuditLogsTask) {
+    config.jobs = {
+      ...config.jobs,
+      tasks: [...(config.jobs?.tasks ?? []), cleanupAuditLogsTask],
+    };
+  }
 
-  // --- Inject collection hooks ---
+  // --- Collection hooks ---
   const patchedCollections = (config.collections ?? []).map((collection) => {
     const ops = AUDIT_TARGETS[collection.slug];
     if (!ops) {
@@ -205,15 +261,15 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
         return result;
       }
 
-      const userId = req?.user?.id ?? null;
+      const { performedBy, performedByCollection } = resolveActor(req);
       const ip = extractIp(req);
+      const op = operation as LogEntry["operation"];
 
       const resultObj = result as Record<string, unknown> | null;
-      const bulkDocs = resultObj?.docs as
-        | Array<{ id: unknown; [key: string]: unknown }>
-        | undefined;
+      const bulkDocs = resultObj?.docs as Record<string, unknown>[] | undefined;
 
       if (bulkDocs) {
+        // Bulk operations — no per-doc originalDoc available
         for (const doc of bulkDocs) {
           if (doc?.id === undefined) {
             continue;
@@ -221,10 +277,10 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
           await writeLog(req.payload, {
             collection: collection.slug,
             documentId: String(doc.id),
-            operation: operation as LogEntry["operation"],
-            performedBy: userId,
-            // Bulk results don't carry originalDoc per document
-            newData: operation === "delete" ? undefined : sanitize(doc),
+            operation: op,
+            performedBy,
+            performedByCollection,
+            snapshot: op === "create" ? sanitize(doc) : undefined,
             ip,
           });
         }
@@ -234,18 +290,29 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
           (args as { id?: unknown } | null)?.id ??
           "unknown";
 
-        await writeLog(req.payload, {
+        const originalDoc = (args as { originalDoc?: Record<string, unknown> } | null)?.originalDoc;
+
+        const logEntry: LogEntry = {
           collection: collection.slug,
           documentId: String(documentId),
-          operation: operation as LogEntry["operation"],
-          performedBy: userId,
-          originalData:
-            operation === "update"
-              ? (args as { originalDoc?: unknown } | null)?.originalDoc
-              : undefined,
-          newData: operation === "delete" ? undefined : result,
+          operation: op,
+          performedBy,
+          performedByCollection,
           ip,
-        });
+        };
+
+        if (op === "create") {
+          logEntry.snapshot = sanitize(result as Record<string, unknown>);
+        } else if (op === "update" && originalDoc) {
+          // Store only the diff — not full before/after — keeps storage lean
+          logEntry.diff = diff(
+            sanitize(originalDoc) as Record<string, unknown>,
+            sanitize(result as Record<string, unknown>) as Record<string, unknown>,
+          );
+        }
+        // delete: documentId is enough, no data stored
+
+        await writeLog(req.payload, logEntry);
       }
 
       return result;
@@ -260,24 +327,32 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     };
   });
 
-  // --- Inject global hooks ---
+  // --- Global hooks ---
   const patchedGlobals = (config.globals ?? []).map((global) => {
-    const slug = (global as GlobalConfig).slug;
-    if (!GLOBAL_AUDIT_TARGETS.includes(slug)) {
-      return global;
+    const g = global as GlobalConfig;
+    if (!GLOBAL_AUDIT_TARGETS.includes(g.slug)) {
+      return g;
     }
 
     const hook: GlobalAfterChangeHook = async ({ doc, previousDoc, req }) => {
-      const userId = req?.user?.id ?? null;
+      const { performedBy, performedByCollection } = resolveActor(req);
       const ip = extractIp(req);
 
+      const changes =
+        previousDoc && doc
+          ? diff(
+              sanitize(previousDoc) as Record<string, unknown>,
+              sanitize(doc) as Record<string, unknown>,
+            )
+          : undefined;
+
       await writeLog(req.payload, {
-        collection: slug,
-        documentId: slug,
+        collection: g.slug,
+        documentId: g.slug, // globals are singletons — slug is the stable ID
         operation: "update",
-        performedBy: userId,
-        originalData: previousDoc ?? undefined,
-        newData: doc,
+        performedBy,
+        performedByCollection,
+        diff: changes,
         ip,
       });
 
@@ -285,17 +360,11 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     };
 
     return {
-      ...(global as GlobalConfig),
+      ...g,
       hooks: {
-        ...(global as GlobalConfig).hooks,
-        afterChange: [
-          ...((Array.isArray((global as GlobalConfig).hooks?.afterChange)
-            ? (global as GlobalConfig).hooks!.afterChange!
-            : (global as GlobalConfig).hooks?.afterChange
-              ? [(global as GlobalConfig).hooks!.afterChange!]
-              : []) as GlobalAfterChangeHook[]),
-          hook,
-        ],
+        ...g.hooks,
+        // Payload always provides afterChange as an array — no defensive spread needed
+        afterChange: [...(g.hooks?.afterChange ?? []), hook],
       },
     } as GlobalConfig;
   });
