@@ -13,7 +13,7 @@ const questions = [
   {
     question: "What can I do with the points I earn?",
     answer:
-      "You can bank your points to achieve your dream or use it to play lottery to win amazing prizes.",
+      "You can bank your Dream Points toward your goals in the Dream Fulfillment ecosystem or use them to enter the Giveaway for a chance to win amazing prizes.",
   },
   {
     question: "Can I advertise on the app?",

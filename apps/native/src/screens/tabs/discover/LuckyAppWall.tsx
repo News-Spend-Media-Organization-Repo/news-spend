@@ -94,7 +94,7 @@ function LuckyAppWall() {
 
   return (
     <Screen className="pb-safe" systemBarStyle="light">
-      <ScreenHeader title="Lucky App Wall" />
+      <ScreenHeader title="Featured Offers" />
 
       <View className="flex-1">
         <LegendList

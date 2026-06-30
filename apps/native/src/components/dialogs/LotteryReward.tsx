@@ -40,7 +40,7 @@ export default memo(function LotteryReward() {
 
         if (data.prizeTier === "LOW") {
           toast.success("Reward claimed!", {
-            description: `${data.prize} points added!`,
+            description: `${data.prize} Dream Points added!`,
           });
           queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
         } else {
@@ -139,12 +139,13 @@ export default memo(function LotteryReward() {
                 <Icon color="#00223d" name={StarIcon} size={48} weight="fill" />
                 <View className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: "#F7E0C0" }}>
                   <Text className="text-center font-extrabold text-[#A57D47]">
-                    {`${data.prize} ${data.prizeTier === "LOW" ? "points" : ""}`}
+                    {`${data.prize} ${data.prizeTier === "LOW" ? "Dream Points" : ""}`}
                   </Text>
                 </View>
                 <Text className="text-center font-semibold text-lg">Congratulations!</Text>
                 <Text className="text-center text-subtle-text">
-                  You won {data.prize} {data.prizeTier === "LOW" ? "points" : ""} in the Lottery.
+                  You won {data.prize} {data.prizeTier === "LOW" ? "Dream Points" : ""} in the
+                  Giveaway.
                 </Text>
               </View>
             )}
@@ -152,7 +153,7 @@ export default memo(function LotteryReward() {
               <View className="items-center gap-2">
                 <Text className="text-center font-semibold text-lg">Congratulations!</Text>
                 <Text className="text-center text-subtle-text">
-                  You have won a prize from the Lottery.
+                  You have won a prize from the Giveaway.
                 </Text>
               </View>
             )}

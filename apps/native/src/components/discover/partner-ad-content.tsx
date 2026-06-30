@@ -190,7 +190,7 @@ export function PartnerAdContent({
         />
         <Text className="text-center font-bold text-lg">{ad.title}</Text>
         <Text className="max-w-87.5 text-center text-base">{ad.condition}</Text>
-        <Button className="mt-5 min-w-30 gap-2 rounded-lg" onPress={onAdClick}>
+        <Button className="mt-5 min-w-30 gap-2 rounded-full" onPress={onAdClick}>
           <Button.Label>{getCtaLabel(ad.cta)}</Button.Label>
           <CaretRightIcon color="white" size={18} weight="bold" />
         </Button>

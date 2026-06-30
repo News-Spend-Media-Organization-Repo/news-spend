@@ -77,8 +77,10 @@ export function DialogWithAd({
       },
       {
         onSuccess: () => {
-          toast.success("Lottery ticket purchase", {
-            description: `You purchased ${purchasedTickets} tickets`,
+          toast.success("Giveaway entry confirmed", {
+            description: `You entered the Giveaway with ${purchasedTickets} ticket${
+              purchasedTickets === 1 ? "" : "s"
+            }`,
           });
 
           queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
@@ -204,9 +206,11 @@ export function DialogWithAd({
                     serverError
                   ) : (
                     <>
-                      You purchased {purchasedTickets ?? 0} ticket
+                      You entered the Giveaway with {purchasedTickets ?? 0} ticket
                       {purchasedTickets === 1 ? "" : "s"}.{" "}
-                      <Text className="text-s-500">{(purchasedTickets ?? 0) * 50} points</Text>{" "}
+                      <Text className="text-s-500">
+                        {(purchasedTickets ?? 0) * 50} Dream Points
+                      </Text>{" "}
                       deducted from your account.
                     </>
                   )}

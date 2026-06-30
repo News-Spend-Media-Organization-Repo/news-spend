@@ -29,8 +29,9 @@ const WelcomeEmail = ({ username = "there" }) => (
           <Text style={styles.listItem}>4. Track your earned points in your dashboard</Text>
 
           <Text style={styles.text}>
-            Please note that points expire after 12 months, and you can redeem them for various
-            rewards or enter our bi-weekly prize drawings.
+            Please note that Dream Points expire after 12 months, and you can redeem them for in-app
+            rewards or enter our bi-weekly Giveaway. See the in-app Giveaway Official Rules for full
+            details.
           </Text>
 
           <Text style={styles.text}>

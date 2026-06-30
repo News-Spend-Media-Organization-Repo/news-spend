@@ -110,14 +110,43 @@ export function PartnerAdDialog({
     handleDidClose();
   }, [adType, countdown, handleDidClose]);
 
-  // Handles external close triggers (e.g. Android back, overlay tap via Dialog).
+  // Handles open/close transitions. The `open === true` branch is the single
+  // entry point for user-initiated opens (whether from Dialog.Trigger, external
+  // `setOpen(true)`, or any other path), so it owns gate checks, native-ad
+  // dispatch, and the LuckyAppWall fallback.
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
         handleClose();
+        return;
       }
+
+      // Gate: caller can refuse to open (e.g. redirect to LuckyAppWall or auth).
+      if (onOpen?.() === false) {
+        return;
+      }
+
+      // Native ad path → show Google ad or fall back to LuckyAppWall.
+      if (adType === "native") {
+        if (googleAd.isLoaded) {
+          googleAd.show();
+        } else if (fallbackToAppWall) {
+          navigate("LuckyAppWall");
+        }
+        return;
+      }
+
+      // No ad available yet → LuckyAppWall fallback.
+      if (!ad) {
+        if (fallbackToAppWall) {
+          navigate("LuckyAppWall");
+        }
+        return;
+      }
+
+      setIsOpen(true);
     },
-    [handleClose],
+    [onOpen, adType, googleAd, ad, fallbackToAppWall, setIsOpen, handleClose],
   );
 
   const handleAdClick = useCallback(() => {
@@ -137,27 +166,8 @@ export function PartnerAdDialog({
   }, [onAdClick, ad]);
 
   const handleTriggerPress = useCallback(() => {
-    if (onOpen?.() === false) {
-      return;
-    }
-
-    if (adType === "native") {
-      if (googleAd.isLoaded) {
-        googleAd.show();
-      } else if (fallbackToAppWall) {
-        navigate("LuckyAppWall");
-      }
-      return;
-    }
-
-    if (!ad) {
-      if (fallbackToAppWall) {
-        navigate("LuckyAppWall");
-      }
-      return;
-    }
-    setIsOpen(true);
-  }, [onOpen, adType, googleAd, ad, setIsOpen, fallbackToAppWall]);
+    handleOpenChange(true);
+  }, [handleOpenChange]);
 
   useGlobalBackHandler(() => {
     if (isOpen) {
@@ -170,22 +180,16 @@ export function PartnerAdDialog({
 
   // ── Trigger element ───────────────────────────────────────────────────────────
 
-  const trigger = (() => {
+  const renderTrigger = () => {
     if (hideTrigger || externalOpen) {
       return null;
     }
 
+    if (asChild && children) {
+      return <Dialog.Trigger asChild>{children}</Dialog.Trigger>;
+    }
+
     if (children) {
-      if (asChild) {
-        return (
-          <PressableFeedback
-            onPress={handleTriggerPress}
-            {...(triggerProps as React.ComponentProps<typeof PressableFeedback>)}
-          >
-            {children}
-          </PressableFeedback>
-        );
-      }
       return (
         <Text
           className="cursor-pointer"
@@ -196,12 +200,13 @@ export function PartnerAdDialog({
         </Text>
       );
     }
+
     return (
       <Button onPress={handleTriggerPress} {...triggerProps}>
         <Button.Label>{triggerText}</Button.Label>
       </Button>
     );
-  })();
+  };
 
   // ── Dialog content ────────────────────────────────────────────────────────────
   const dialogContent =
@@ -218,32 +223,26 @@ export function PartnerAdDialog({
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <>
-      {trigger}
+    <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
+      {renderTrigger()}
 
-      <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="bg-black/50" isCloseOnPress={false} />
-          <Dialog.Content
-            className="p-0"
-            isSwipeable={false}
-            style={{ width: "100%", height: "100%" }}
-          >
-            {/* Close / countdown button */}
-            <View className="absolute top-2 right-2 z-10 flex-row items-center self-end rounded-full bg-[#f5f5f5] p-2">
-              {adType === "custom" && countdown > 0 ? (
-                <Text className="mr-1 text-sm">{`Reward in ${countdown} seconds`}</Text>
-              ) : null}
-              <PressableFeedback className="rounded-full bg-white p-2" onPress={handleClose}>
-                <XIcon color="black" size={20} />
-              </PressableFeedback>
-            </View>
+      <Dialog.Portal className="justify-start p-0">
+        <Dialog.Overlay className="bg-black/50" isCloseOnPress={false} />
+        <Dialog.Content isSwipeable={countdown <= 0} style={{ width: "100%", height: "100%" }}>
+          {/* Close / countdown button */}
+          <View className="z-10 mt-safe-offset-0 flex-row items-center self-end rounded-full bg-[#f5f5f5] px-2">
+            {adType === "custom" && countdown > 0 ? (
+              <Text className="mr-1 text-sm">{`Reward in ${countdown} seconds`}</Text>
+            ) : null}
+            <PressableFeedback className="rounded-full bg-white p-2" onPress={handleClose}>
+              <XIcon color="black" size={16} />
+            </PressableFeedback>
+          </View>
 
-            {dialogContent}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
-    </>
+          {dialogContent}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
   );
 }
 

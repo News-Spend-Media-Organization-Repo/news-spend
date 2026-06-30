@@ -234,7 +234,7 @@ const VerifyIdentity = () => {
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-base text-muted-foreground">
-          To ensure a safe and compliant prize delivery from the lottery, we need to verify your
+          To ensure a safe and compliant prize delivery from the Giveaway, we need to verify your
           identity.
         </Text>
 

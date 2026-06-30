@@ -1,5 +1,7 @@
 import type {
   BasePayload,
+  CollectionAfterLoginHook,
+  CollectionAfterLogoutHook,
   CollectionAfterOperationHook,
   CollectionConfig,
   GlobalAfterChangeHook,
@@ -9,8 +11,12 @@ import type {
 
 import { cleanupAuditLogsTask } from "./cleanup";
 
+type CrudOperation = "create" | "read" | "update" | "delete";
+type AuthOperation = "login" | "logout";
+type AuditOperation = CrudOperation | AuthOperation;
+
 // Collections to audit and which operations to track
-const AUDIT_TARGETS: Record<string, Array<"create" | "read" | "update" | "delete">> = {
+const AUDIT_TARGETS: Record<string, CrudOperation[]> = {
   // Content — editorial accountability
   news: ["create", "update", "delete"],
   comments: ["create", "update", "delete"],
@@ -145,7 +151,7 @@ const auditLogsCollection: CollectionConfig = {
     create: () => process.env.NODE_ENV === "development",
     update: () => process.env.NODE_ENV === "development",
     delete: () => process.env.NODE_ENV === "development",
-    read: ({ req }) => !!req.user,
+    read: ({ req }) => req.user?.collection === ADMIN_COLLECTION,
   },
   timestamps: true,
   fields: [
@@ -166,7 +172,7 @@ const auditLogsCollection: CollectionConfig = {
       type: "select",
       required: true,
       index: true,
-      options: ["create", "read", "update", "delete"],
+      options: ["create", "read", "update", "delete", "login", "logout"],
     },
     {
       // Polymorphic — could be a CMS admin or an app user
@@ -205,7 +211,7 @@ const auditLogsCollection: CollectionConfig = {
 type LogEntry = {
   collection: string;
   documentId: string;
-  operation: "create" | "read" | "update" | "delete";
+  operation: AuditOperation;
   performedBy: { relationTo: string; value: string | number } | null;
   diff?: Record<string, { from: unknown; to: unknown }> | null;
   snapshot?: unknown;
@@ -259,7 +265,7 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
       // used in AUDIT_TARGETS so the check works for both paths.
       const normalized =
         operation === "updateByID" ? "update" : operation === "deleteByID" ? "delete" : operation;
-      if (!ops.includes(normalized as LogEntry["operation"])) {
+      if (!ops.includes(normalized as CrudOperation)) {
         return result;
       }
 
@@ -325,13 +331,62 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
       return result;
     };
 
-    return {
+    let patchedCollection: CollectionConfig = {
       ...collection,
       hooks: {
         ...collection.hooks,
         afterOperation: [...(collection.hooks?.afterOperation ?? []), hook],
       },
     };
+
+    // Inject auth hooks for the admin collection so login/logout events
+    // are recorded alongside CRUD operations.
+    if (collection.slug === ADMIN_COLLECTION) {
+      const existingAuth =
+        typeof collection.auth === "object" && collection.auth ? collection.auth : {};
+
+      const afterLoginHook: CollectionAfterLoginHook = async ({ req, user }) => {
+        const ip = extractIp(req);
+        await writeLog(req.payload, {
+          collection: ADMIN_COLLECTION,
+          documentId: String(user.id),
+          operation: "login",
+          performedBy: { relationTo: ADMIN_COLLECTION, value: String(user.id) },
+          ip,
+        });
+      };
+
+      const afterLogoutHook: CollectionAfterLogoutHook = async ({ req }) => {
+        const { performedBy } = resolveActor(req);
+        const ip = extractIp(req);
+        await writeLog(req.payload, {
+          collection: ADMIN_COLLECTION,
+          documentId: String(performedBy?.value ?? "unknown"),
+          operation: "logout",
+          performedBy,
+          ip,
+        });
+      };
+
+      patchedCollection = {
+        ...patchedCollection,
+        auth: {
+          ...existingAuth,
+          afterLogin: [
+            ...(((existingAuth as Record<string, unknown>)
+              .afterLogin as CollectionAfterLoginHook[]) ?? []),
+            afterLoginHook,
+          ],
+          afterLogout: [
+            ...(((existingAuth as Record<string, unknown>)
+              .afterLogout as CollectionAfterLogoutHook[]) ?? []),
+            afterLogoutHook,
+          ],
+        },
+      } as CollectionConfig;
+    }
+
+    return patchedCollection;
   });
 
   // --- Global hooks ---

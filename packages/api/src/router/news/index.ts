@@ -13,6 +13,7 @@ import {
   DEFAULT_FEED_CONFIG,
   type FeedComposerData,
 } from "./feed-composer";
+import { sanitizeContent } from "./sanitize-content";
 import { getNewsReactionCounts, getUserReactionForNews, type UserReaction } from "./user-reaction";
 
 // Input schemas
@@ -313,7 +314,7 @@ const one = publicProcedure
     }
     const doc = news.docs[0]!;
     const userReaction = await getUserReactionForNews(payload, user?.id, doc.id);
-    return { ...doc, userReaction };
+    return { ...doc, content: sanitizeContent(doc.content), userReaction };
   });
 
 const relatedNews = publicProcedure.input(z.number().optional()).handler(async ({ context }) => {

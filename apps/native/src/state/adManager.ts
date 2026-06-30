@@ -72,8 +72,8 @@ let newsClickAdPressCount = storage.getNumber(NEWS_CLICK_AD_KEY) ?? 0;
  */
 export function shouldShowNewsClickAd(): boolean {
   newsClickAdPressCount = (newsClickAdPressCount + 1) % NEWS_CLICK_AD_INTERVAL;
-  return newsClickAdPressCount === 0;
   storage.set(NEWS_CLICK_AD_KEY, newsClickAdPressCount);
+  return newsClickAdPressCount === 0;
 }
 
 export function consumeAd(placement: AdPlacement): PartnerContent | null {

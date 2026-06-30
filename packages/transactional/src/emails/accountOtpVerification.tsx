@@ -121,8 +121,8 @@ export function NewsSpendVerificationEmail({ otp = "123456" }) {
                 color: "#333",
               }}
             >
-              <li>Earn points through engaging activities</li>
-              <li>Participate in bi-weekly prize draws</li>
+              <li>Earn Dream Points through engaging activities</li>
+              <li>Enter the bi-weekly Giveaway for a chance to win prizes</li>
               <li>Start your journey towards achieving your dreams</li>
             </ul>
           </Section>
