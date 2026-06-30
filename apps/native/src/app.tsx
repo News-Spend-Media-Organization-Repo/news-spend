@@ -10,6 +10,7 @@ import { useCallback, useEffect } from "react";
 import mobileAds from "react-native-google-mobile-ads";
 import { Uniwind } from "uniwind";
 import { useSnapshot } from "valtio";
+import AppOpenAd from "./components/Ads/AppOpenAd";
 import LotteryReward from "./components/dialogs/LotteryReward";
 import useCachedResources from "./hooks/useCachedResources";
 import { initSentry } from "./lib/sentry";
@@ -99,7 +100,7 @@ export function App() {
         />
         <LotteryReward />
 
-        {/*<AppOpenAd />*/}
+        <AppOpenAd />
       </Provider>
     </PersistQueryClientProvider>
   );
