@@ -106,13 +106,13 @@ const PlayLottery = () => {
             Rules
           </Text>
         }
-        title="Lottery Tickets"
+        title="Giveaway"
       />
 
       <View className="mb-4 gap-4">
         <View className="gap-2 bg-p-500 px-2 py-2">
           <Text className="text-center text-lg text-p-50">
-            Win a Laptop, Phone, More points, and other household items
+            Win Dream Points, airtime, data bundles, electronics, and other prizes
           </Text>
           <View className="flex-row gap-2">
             {prizes.map((prize, index) => (
@@ -149,7 +149,7 @@ const PlayLottery = () => {
           <View className="flex-row justify-between gap-1 p-2">
             <Text className="text-p-400">User: {item.users?.username}</Text>
             <Text className="text-s-400">
-              bought {item.lottery_tickets?.count} ticket
+              entered {item.lottery_tickets?.count} ticket
               {+(item.lottery_tickets?.count ?? 0) > 1 ? "s" : ""}
             </Text>
           </View>
@@ -157,7 +157,7 @@ const PlayLottery = () => {
       ))}
 
       <Button className="absolute right-5 bottom-safe-offset-2 left-5" onPress={onTestLuckPress}>
-        <Button.Label>Test My Luck</Button.Label>
+        <Button.Label>Enter Giveaway</Button.Label>
       </Button>
     </Screen>
   );

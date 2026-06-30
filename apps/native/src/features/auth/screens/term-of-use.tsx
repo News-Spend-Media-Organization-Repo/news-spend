@@ -26,7 +26,7 @@ const terms = [
   {
     title: "5. Points",
     description:
-      "You can earn points by reading news articles on the News Spend Media app. Points can be redeemed for rewards, such as gift cards, merchandise, and cash. News Spend Media reserves the right to change the redemption value of points at any time.",
+      "You can earn Dream Points by reading news articles and engaging with content on the News Spend Media app. Dream Points have no cash value. Dream Points may be used to enter the Giveaway or redeemed for in-app rewards described in the Giveaway Official Rules. News Spend Media reserves the right to change the redemption value of Dream Points at any time.",
   },
   {
     title: "6. Termination",

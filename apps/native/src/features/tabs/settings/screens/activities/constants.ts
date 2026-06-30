@@ -41,9 +41,9 @@ export const ACTION_META: Record<NonNullable<Activity["action"]>, ActionMeta> = 
   ticketPurchase: {
     icon: TicketIcon,
     bg: "#FFE4E6",
-    label: "Ticket purchase",
+    label: "Giveaway entry",
   },
-  lottery: { icon: DiceFiveIcon, bg: "#FEF9C3", label: "Lottery" },
+  lottery: { icon: DiceFiveIcon, bg: "#FEF9C3", label: "Giveaway" },
   surveyTask: { icon: ClipboardIcon, bg: "#FEF3C7", label: "Survey task" },
   musicListeningTime: { icon: MusicNoteIcon, bg: "#F0FFFE", label: "Music" },
   partnerContentTask: {

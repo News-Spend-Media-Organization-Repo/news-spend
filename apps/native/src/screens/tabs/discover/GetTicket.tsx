@@ -50,7 +50,7 @@ const GetTicket = () => {
     } else {
       Alert.alert(
         "Not enough points",
-        `You don't have enough points to buy ${value} ticket${value > 1 ? "s" : ""}. You currently have ${totalPoints.data} points.`,
+        `You don't have enough Dream Points to enter the Giveaway with ${value} ticket${value > 1 ? "s" : ""}. You currently have ${totalPoints.data} Dream Points.`,
       );
     }
   };
@@ -71,13 +71,13 @@ const GetTicket = () => {
             Rules
           </Text>
         }
-        title="Buy Lottery Tickets"
+        title="Get Giveaway Entries"
       />
 
       <View className="gap-5 px-4">
         <View className="gap-4">
           <Text className="text-center text-s-50 text-xl">
-            Win a Laptop, Phone, More points, and other household items
+            Win Dream Points, airtime, data bundles, and other prizes
           </Text>
 
           <Card className="mx-2 rounded-xl bg-s-300 px-6">
@@ -163,7 +163,8 @@ const GetTicket = () => {
         </View>
 
         <Text className="mt-2 text-[15px] text-p-50">
-          Tips: {"\n"}Buy 10 or more tickets and your win ratio increases to more than 50%.
+          Each Giveaway Ticket costs 50 Dream Points. The more tickets you hold, the greater your
+          chance of winning.
         </Text>
       </View>
 

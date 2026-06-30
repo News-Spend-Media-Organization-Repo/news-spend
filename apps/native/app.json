@@ -3,7 +3,26 @@
     "name": "News Spend",
     "slug": "news-spend-media",
     "scheme": "news-spend",
-    "description": "Read the latest news and articles from News Spend Media",
+    "description": "News Spend Media is a news and media platform designed to empower people through the power of information. We believe that the right information should inspire action, create opportunities, and help people move closer to the future they envision. More than a traditional news app, News Spend Media combines informative content, interactive media experiences, and meaningful engagement opportunities that help users stay informed while progressing toward their personal aspirations through our unique Dream Fulfillment ecosystem.\n\nStay Informed. Stay Empowered.\n• Access breaking news and trending stories from Nigeria and around the world\n• Explore business, entertainment, lifestyle, sports, technology, politics, and more\n• Listen to selected radio stations available within the app\n• Watch engaging videos, interviews, trailers, and selected YouTube Live programs\n• Earn Dream Points through reading news and participating in eligible activities\n• Track your progress toward goals and aspirations through the Dream Fulfillment ecosystem",
+    "subtitle": "News, media & Dream Fulfillment",
+    "category": "News",
+    "keywords": [
+      "news",
+      "nigeria",
+      "breaking news",
+      "trending",
+      "entertainment",
+      "sports",
+      "business",
+      "lifestyle",
+      "politics",
+      "technology",
+      "radio",
+      "live",
+      "dream points",
+      "giveaway"
+    ],
+    "promotionalText": "Read news, watch live content, and earn Dream Points toward a unique Dream Fulfillment ecosystem.",
     "assetBundlePatterns": [
       "**/*"
     ],

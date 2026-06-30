@@ -79,13 +79,13 @@ const BoostLuck = () => {
             Rules
           </Text>
         }
-        title="Buy Lottery Tickets"
+        title="Boost Your Entries"
       />
 
       <View className="gap-5 px-4 pt-2">
         <View className="gap-2">
           <Text className="text-center text-xl">
-            Win Apple Watch, Gift Cards, 1000 points and more
+            Win Dream Points, airtime, data bundles, and other prizes
           </Text>
           <Text className="text-center">
             Countdown: <Text className="text-lg text-p-500">{timeLeft}</Text> left
@@ -109,14 +109,10 @@ const BoostLuck = () => {
               onPress={() => navigation.navigate("GetTicket")}
               variant="ghost"
             >
-              <Button.Label className="text-p-400 underline">Purchase more tickets</Button.Label>
+              <Button.Label className="text-p-400 underline">Get more entries</Button.Label>
             </Button>
           </View>
         </Card>
-
-        <Text className="mx-1 mt-1 text-[15px]">
-          Buy 10 or more tickets and your win ratio increases to more than 50%.
-        </Text>
 
         <View className="gap-4">
           <Text className="text-center">Our sponsors wish you good luck.</Text>
@@ -124,7 +120,7 @@ const BoostLuck = () => {
           <PartnerAdDialog asChild onCountdownComplete={onCountdownComplete} onOpen={onDialogOpen}>
             <View className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
               <CoinsIcon color="white" size={20} />
-              <Text className="font-semibold text-white">Boost Your Luck</Text>
+              <Text className="font-semibold text-white">Boost Your Entries</Text>
             </View>
           </PartnerAdDialog>
         </View>

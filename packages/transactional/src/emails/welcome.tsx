@@ -70,18 +70,21 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
 
           <Text style={stepTitle}>💎 3. Turn Points into Real-Life Rewards</Text>
           <Text style={description}>This is where it becomes real:</Text>
-          <Text style={rewardTitle}>🎯 Achieve Your Dream</Text>
-          <Text style={description}>Reach your target → We help bring it to life</Text>
-          <Text style={rewardTitle}>🎁 Play Lottery &amp; Win</Text>
-          <Text style={description}>Join bi-weekly draws for exciting rewards like:</Text>
+          <Text style={rewardTitle}>🎯 Dream Fulfillment</Text>
+          <Text style={description}>
+            Track your progress toward goals that matter to you — scholarships, sponsored
+            experiences, shopping support, skill development, and more.
+          </Text>
+          <Text style={rewardTitle}>🎁 Enter the Giveaway</Text>
+          <Text style={description}>
+            Use your Dream Points to enter our bi-weekly Giveaway for a chance to win:
+          </Text>
           <ul style={rewardList}>
-            <li>Smartphones</li>
-            <li>Laptops</li>
-            <li>Home appliances</li>
-            <li>Data bundles</li>
-            <li>Shopping vouchers</li>
-            <li>Internet subscriptions</li>
+            <li>Dream Points</li>
+            <li>Airtime and data bundles</li>
+            <li>Promotional merchandise and electronics</li>
           </ul>
+          <Text style={description}>See the in-app Giveaway Official Rules for full details.</Text>
 
           <Text style={stepTitle}>🏦 4. Grow &amp; Bank Your Progress</Text>
           <ul style={steps}>
