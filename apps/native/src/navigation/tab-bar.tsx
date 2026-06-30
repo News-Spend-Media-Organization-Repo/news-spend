@@ -1,15 +1,21 @@
-// tab-bar.tsx
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
 import { useLinkBuilder } from "@react-navigation/native";
 import { cn } from "heroui-native";
 import { memo } from "react";
-import Animated, { Easing, FadeInDown, FadeOutDown } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeOutDown,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 import { Text } from "#/components/heroui/text";
 import MusicPlayer from "#/components/MusicPlayer";
 import LiveBanner from "./live-banner";
 
 const VISIBLE_SCREENS = new Set(["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"]);
+const VISIBLE_TABS = new Set(["Home", "Live", "Shop", "Discover"]); // not Settings
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const currentRoute = state.routes[state.index];
@@ -20,18 +26,41 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   const { buildHref } = useLinkBuilder();
 
-  const isTabBarVisible = nestedState ? VISIBLE_SCREENS.has(activeRouteName) : true;
+  const isTabBarVisible = nestedState
+    ? VISIBLE_SCREENS.has(activeRouteName)
+    : VISIBLE_TABS.has(currentRoute.name);
+
+  const currentTabName = state.routes[state.index].name;
+
+  const tabBarStyle = useAnimatedStyle(() => ({
+    // height: withTiming(isTabBarVisible ? TAB_BAR_HEIGHT : 0, { duration: 250, easing: Easing.ease }),
+    opacity: withTiming(isTabBarVisible ? 1 : 0, { duration: 200 }),
+    // backgroundColor: "#YOUR_P_500_HEX", // explicit, always set
+    overflow: "hidden",
+  }));
 
   if (!isTabBarVisible) {
     return null;
   }
 
-  const currentTabName = state.routes[state.index].name;
-
   return (
     <>
-      <MusicPlayer />
-      <LiveBanner currentTabName={currentTabName} navigation={navigation} />
+      <Animated.View
+        entering={FadeInDown.duration(300).easing(Easing.ease)}
+        exiting={FadeOutDown.easing(Easing.ease).duration(300)}
+        style={{ backgroundColor: "transparent" }}
+      >
+        <MusicPlayer />
+      </Animated.View>
+
+      <Animated.View
+        entering={FadeInDown.duration(300).easing(Easing.ease)}
+        exiting={FadeOutDown.easing(Easing.ease).duration(300)}
+        style={{ backgroundColor: "transparent" }}
+      >
+        <LiveBanner currentTabName={currentTabName} navigation={navigation} />
+      </Animated.View>
+
       <Animated.View
         className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
         entering={FadeInDown.duration(300).easing(Easing.ease)}
