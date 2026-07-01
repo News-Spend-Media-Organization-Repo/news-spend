@@ -1,6 +1,6 @@
 import { ErrorBoundary } from "@sentry/react-native";
 import { DetourProvider } from "@swmansion/react-native-detour";
-import { HeroUINativeProvider } from "heroui-native";
+import { type HeroUINativeConfig, HeroUINativeProvider } from "heroui-native";
 import { IconContext } from "phosphor-react-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -18,6 +18,17 @@ type Props = {
   children: React.ReactNode;
 };
 
+const config: HeroUINativeConfig = {
+  textProps: {
+    allowFontScaling: true,
+    maxFontSizeMultiplier: 1.2,
+    minimumFontScale: 0.5,
+  },
+  devInfo: {
+    stylingPrinciples: false,
+  },
+};
+
 export const Provider = ({ children }: Props) => {
   useListeningTimeSync();
   usePushNotification();
@@ -32,13 +43,7 @@ export const Provider = ({ children }: Props) => {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <KeyboardProvider>
-            <HeroUINativeProvider
-              config={{
-                devInfo: {
-                  stylingPrinciples: false,
-                },
-              }}
-            >
+            <HeroUINativeProvider config={config}>
               <ErrorBoundary>
                 <IconContext.Provider
                   value={{
