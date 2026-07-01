@@ -168,7 +168,7 @@ const boostLuck = protectedNoGuestProcedure.handler(async ({ context }) => {
     )
     .returning();
 
-  if (!result) {
+  if (!result.length) {
     throw new ORPCError("NOT_FOUND", {
       message: "No lottery ticket found",
     });

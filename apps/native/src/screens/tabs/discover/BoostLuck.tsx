@@ -1,5 +1,5 @@
 import { CommonActions, useNavigation } from "@react-navigation/native";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInDays, differenceInHours, endOfWeek } from "date-fns";
 import { Card } from "heroui-native";
 import { CoinsIcon } from "phosphor-react-native";
@@ -18,6 +18,7 @@ import { orpc } from "#/lib/orpc";
 const BoostLuck = () => {
   const navigation = useNavigation("BoostLuck");
   const advertCount = useRef(0);
+  const queryClient = useQueryClient();
   const { data } = useQuery(orpc.lotteryTicket.getByUser.queryOptions());
   const boostLuckMutation = useMutation(
     orpc.lotteryTicket.boostLuck.mutationOptions({
@@ -25,6 +26,14 @@ const BoostLuck = () => {
         advertCount.current += 1;
         toast.success("Luck Boosted!", {
           description: "",
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.lotteryTicket.getByUser.queryKey(),
+        });
+      },
+      onError: (error) => {
+        toast.error("Failed to boost luck", {
+          description: error.message,
         });
       },
     }),
@@ -43,7 +52,7 @@ const BoostLuck = () => {
   useFocusBackHandler(goToDiscoverHome);
 
   const onCountdownComplete = () => {
-    boostLuckMutation.mutate({});
+    boostLuckMutation.mutate(undefined);
   };
 
   const onDialogOpen = () => {
@@ -118,10 +127,10 @@ const BoostLuck = () => {
           <Text className="text-center">Our sponsors wish you good luck.</Text>
 
           <PartnerAdDialog asChild onCountdownComplete={onCountdownComplete} onOpen={onDialogOpen}>
-            <View className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
+            <Button className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
               <CoinsIcon color="white" size={20} />
-              <Text className="font-semibold text-white">Boost Your Entries</Text>
-            </View>
+              <Button.Label className="font-semibold text-white">Boost Your Entries</Button.Label>
+            </Button>
           </PartnerAdDialog>
         </View>
       </View>
