@@ -259,6 +259,9 @@ const BookItem = ({
           <Image
             className="rounded-lg"
             contentFit="cover"
+            placeholder={{
+              blurhash: item.media?.blurhash,
+            }}
             source={{ uri: url || "" }}
             style={{ minHeight: 180, width: "100%" }}
           />
