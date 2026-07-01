@@ -12,10 +12,10 @@ Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/
 
 | Task                   | Command                                                              |
 | ---------------------- | -------------------------------------------------------------------- |
-| Lint (check)           | `bun x ultracite check` or `bun run lint`                            |
-| Lint (auto-fix)        | `bun x ultracite fix` or `bun run lint:fix`                          |
-| Format (check)         | `bun run format`                                                     |
-| Format (fix)           | `bun run format:fix`                                                 |
+| Lint (check)           | `bun x biome lint .` or `bun run lint`                               |
+| Lint (auto-fix)        | `bun x biome check --write .` or `bun run lint:fix`                  |
+| Format (check)         | `bun x biome format .` or `bun run format`                           |
+| Format (fix)           | `bun x biome format --write .` or `bun run format:fix`               |
 | Typecheck (all)        | `bun run typecheck`                                                  |
 | Typecheck (single app) | `bun --filter @news-spend-media/cms typecheck`                       |
 | Build (CMS)            | `bun run build` (root) or `bun --filter @news-spend-media/cms build` |
@@ -31,31 +31,13 @@ Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/
 | DB migrate             | `cd packages/db && bun run db:migrate`                               |
 | DB studio              | `cd packages/db && bun run db:studio`                                |
 
-Run `bun x ultracite fix` before committing — pre-commit hooks (lefthook) enforce this.
+Run `bun x biome check --write` before committing — pre-commit hooks (lefthook) enforce this.
 
-## Linting & Formatting (Ultracite)
+## Linting & Formatting (Biome)
 
-This project uses **Ultracite** (oxlint + oxfmt) — NOT ESLint/Prettier.
+This project uses **Biome** for linting and formatting — NOT ESLint/Prettier.
 
-Config files: `.oxlintrc.json`, `.oxfmtrc.jsonc` at repo root.
-
-Key rules:
-
-- `reactHooks: "error"` — enforces Rules of Hooks
-- Most import/export rules disabled (monorepo flexibility)
-- React version: 19
-
-Formatting:
-
-- Double quotes (`singleQuote: false`)
-- Semicolons: yes
-- Trailing commas: `es5`
-- Tab width: 2 spaces, spaces (no tabs)
-- Print width: 80
-- `endOfLine: "lf"`
-- Arrow parens: always
-- Bracket spacing: yes
-- Sorted imports (experimental, ascending)
+Config files: `biome.jsonc` at repo root.
 
 ## TypeScript Config
 
@@ -172,9 +154,9 @@ tooling/
 
 ## Git Hooks (Lefthook)
 
-Pre-commit: runs `oxlint` and `oxfmt --write` on staged `.js/.jsx/.ts/.tsx` files, auto-stages fixes.
+Pre-commit: runs `bun x biome check --write` on staged files, auto-stages fixes.
 
-## What Ultracite Won't Catch
+## What Biome Won't Catch
 
 1. Business logic correctness
 2. Meaningful naming and self-documentation

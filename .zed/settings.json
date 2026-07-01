@@ -50,9 +50,7 @@
           "ListFooterComponentClassName",
           "ListHeaderComponentClassName"
         ],
-        "classFunctions": [
-          "useResolveClassNames"
-        ]
+        "classFunctions": ["useResolveClassNames"]
       }
     },
     "oxfmt": {
@@ -76,6 +74,15 @@
           "run": "onType",
           "typeAware": true,
           "unusedDisableDirectives": "deny"
+        }
+      }
+    },
+    "typescript-language-server": {
+      "settings": {
+        "typescript": {
+          "preferences": {
+            "includePackageJsonAutoImports": "on"
+          }
         }
       }
     }
