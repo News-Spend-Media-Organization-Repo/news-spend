@@ -7,8 +7,8 @@ import NewsHome from "#/screens/tabs/home/NewsHome";
 import { sharedScreens } from "./shared-screens";
 
 const Header = () => (
-  <View className="flex-row items-center justify-between bg-p-500 px-3 pt-safe">
-    <Text className="font-bold text-2xl text-background uppercase">News Spend Media</Text>
+  <View className="flex-row items-center justify-between bg-p-500 px-2 pt-safe">
+    <Text className="font-bold text-background text-lg uppercase">News Spend Media</Text>
   </View>
 );
 

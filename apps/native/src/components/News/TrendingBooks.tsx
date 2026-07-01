@@ -38,9 +38,7 @@ export default function TrendingBooks({ books = [] }: { books: PartnerContent[] 
 
   return (
     <View className="gap-1.5">
-      <Text className="px-4" variant="subtitle">
-        Trending Books
-      </Text>
+      <Text className="px-4 font-semibold text-base">Trending Books</Text>
 
       <LegendList
         contentContainerStyle={{
