@@ -9,7 +9,14 @@ import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { useConnectBrand } from "#/hooks/discover/useConnectBrand";
 
-import { AllTab, AppTab, BooksTab, GamesTab, MusicTab, SurveyTab } from "./components";
+import {
+  AllTab,
+  AppTab,
+  BooksTab,
+  GamesTab,
+  MusicTab,
+  SurveyTab,
+} from "./components";
 import { AnimatedTabBar } from "./components/animated-tab-bar";
 import { TabBarHeightProvider } from "./components/tab-bar-height-context";
 
@@ -19,14 +26,21 @@ function DiscoverHeader() {
 
   return (
     <View className="flex-row gap-3 bg-white px-2 py-3">
-      <PartnerAdDialog asChild onCountdownComplete={onCountdownComplete} onOpen={onOpen}>
+      <PartnerAdDialog
+        asChild
+        onCountdownComplete={onCountdownComplete}
+        onOpen={onOpen}
+      >
         <Button className="flex-1">
           <SketchLogoIcon color="white" size={20} weight="bold" />
           <Button.Label>Connect Brands</Button.Label>
         </Button>
       </PartnerAdDialog>
 
-      <Button className="flex-1" onPress={() => navigation.navigate("PlayLottery")}>
+      <Button
+        className="flex-1"
+        onPress={() => navigation.navigate("PlayLottery")}
+      >
         <PlayCircleIcon color="white" size={20} weight="bold" />
         <Button.Label>Giveaway</Button.Label>
       </Button>
@@ -51,8 +65,8 @@ function DiscoverHome() {
           renderHeader={DiscoverHeader}
           renderTabBar={(props) => (
             <AnimatedTabBar
-              activeLabelClassName="font-semibold text-base"
-              inactiveLabelClassName="text-sm font-medium"
+              activeLabelClassName="font-semibold text-sm"
+              inactiveLabelClassName="text-xs font-medium"
               onLayout={handleTabBarLayout}
               tabClassName="pb-1"
               {...props}

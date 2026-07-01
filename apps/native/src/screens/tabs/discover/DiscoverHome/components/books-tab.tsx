@@ -12,7 +12,10 @@ import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
-import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
+import {
+  PullToRefreshIndicator,
+  triggerRefreshHaptic,
+} from "./pull-to-refresh-indicator";
 
 const ITEM_HEIGHT = 280;
 
@@ -30,11 +33,20 @@ function BooksTabComponent() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  const { data, isPending, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
-    useInfiniteQuery(queryOptions);
+  const {
+    data,
+    isPending,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery(queryOptions);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-  const flatData = useMemo(() => data?.pages.flatMap((page) => page.docs) ?? [], [data]);
+  const flatData = useMemo(
+    () => data?.pages.flatMap((page) => page.docs) ?? [],
+    [data]
+  );
 
   const renderItem = useCallback(
     (props: LegendListRenderItemProps<PartnerContent>) => {
@@ -51,7 +63,7 @@ function BooksTabComponent() {
                 contentFit="cover"
                 placeholder={{ blurhash }}
                 source={{ uri: url ?? "" }}
-                style={{ minHeight: 200, width: "100%" }}
+                style={{ aspectRatio: 0.85, width: "100%" }}
               />
               <View className="mt-2 flex-row items-center gap-2">
                 <Text
@@ -60,7 +72,9 @@ function BooksTabComponent() {
                 >
                   {item.condition}
                 </Text>
-                {loading ? <ActivityIndicator color="#666" size="small" /> : null}
+                {loading ? (
+                  <ActivityIndicator color="#666" size="small" />
+                ) : null}
               </View>
             </View>
           </PressableFeedback.Scale>
@@ -68,7 +82,7 @@ function BooksTabComponent() {
         </PressableFeedback>
       );
     },
-    [handleClick, isLoading],
+    [handleClick, isLoading]
   );
 
   const keyExtractor = useCallback((item: PartnerContent) => item.id, []);
@@ -79,7 +93,7 @@ function BooksTabComponent() {
         <Text className="text-base">No books found</Text>
       </View>
     ),
-    [],
+    []
   );
 
   const onEndReached = useCallback(() => {
@@ -95,7 +109,7 @@ function BooksTabComponent() {
           <ActivityIndicator />
         </View>
       ) : null,
-    [hasNextPage],
+    [hasNextPage]
   );
 
   const onRefresh = useCallback(() => {
