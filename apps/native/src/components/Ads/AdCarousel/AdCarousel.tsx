@@ -6,7 +6,7 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { PartnerContent, PromoVideoSource } from "@news-spend-media/payload/types";
-import { ShareIcon } from "phosphor-react-native";
+import { ShareNetworkIcon } from "phosphor-react-native";
 import type React from "react";
 import { useCallback, useImperativeHandle, useMemo, useRef } from "react";
 import { useWindowDimensions, View } from "react-native";
@@ -40,9 +40,11 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
       },
       {
         onSuccess: (_response) => {
-          toast.success("Points earned", {
-            description: `You earned ${item?.points} points for sharing promo video!`,
-          });
+          setTimeout(() => {
+            toast.success("Points earned", {
+              description: `You earned ${item?.points} points for sharing promo video!`,
+            });
+          }, 2000);
         },
       },
     );
@@ -92,13 +94,15 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
         title: `Share promo video of ${item.title}`,
       });
 
-      console.log(shareResponse);
-
-      if (shareResponse.dismissedAction) {
+      if (shareResponse.success) {
         awardPoint();
+      } else {
+        toast.error("Share cancelled", {
+          description: "You need to complete the share to earn points.",
+        });
       }
     } catch (error) {
-      // console.error("Error sharing promo video:", error);
+      // console.error(error);
       // toast.error("Share failed", {
       //   description: "There was an issue sharing the promo video.",
       // });
@@ -153,7 +157,7 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
           {item.title}: {item.condition}
         </Text>
         <Button className="h-auto" onPress={onShare} variant="ghost">
-          <Icon name={ShareIcon} />
+          <Icon name={ShareNetworkIcon} />
         </Button>
       </View>
     </View>

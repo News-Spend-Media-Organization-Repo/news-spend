@@ -1,18 +1,17 @@
 import { useNavigation } from "@react-navigation/native";
-import { View } from "react-native";
-
+import { ScrollView } from "react-native";
 import { ScreenHeader } from "#/components";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 
 const LotteryRules = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation("LotteryRules");
 
   return (
     <Screen className="pb-safe" systemBarStyle="light">
       <ScreenHeader title="Giveaway Official Rules" />
 
-      <View className="gap-4 px-4 py-6">
+      <ScrollView contentContainerClassName="gap-4 px-4 py-6">
         <Text>
           1. <Text className="font-semibold">Giveaway Participation.</Text> NewsSpend Giveaways are
           an optional feature that provide users with an additional opportunity to earn rewards and
@@ -86,7 +85,7 @@ const LotteryRules = () => {
           Giveaway, users acknowledge that they have read, understood, and agreed to these Giveaway
           Rules and NewsSpend's Terms of Service.
         </Text>
-      </View>
+      </ScrollView>
     </Screen>
   );
 };

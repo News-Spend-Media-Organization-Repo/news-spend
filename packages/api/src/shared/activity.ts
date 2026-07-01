@@ -23,10 +23,7 @@ type ActivityCreateInputType = z.infer<typeof ActivityCreateInput>;
  * Adds an activity for a user, handling special logic for "read" and "musicListeningTime" actions.
  * This function is intended for cross-module use.
  */
-export async function addActivity(
-  input: ActivityCreateInputType,
-  ctx: Context
-) {
+export async function addActivity(input: ActivityCreateInputType, ctx: Context) {
   const { user, payload } = ctx;
   if (!user) {
     throw new ORPCError("UNAUTHORIZED");
@@ -64,10 +61,7 @@ export async function addActivity(
     // @ts-expect-error
     const { count, updatedAt } = dailyRead;
 
-    const isToday = isSameDay(
-      new Date(),
-      new Date(updatedAt ?? new Date().toISOString())
-    );
+    const isToday = isSameDay(new Date(), new Date(updatedAt ?? new Date().toISOString()));
 
     if (isToday && count! < 5) {
       await payload.update({
@@ -118,9 +112,11 @@ export async function addActivity(
     }
   }
 
-  if (rest.action === "connectBrandAd") {
+  if (rest.action === "connectBrandAd" || rest.action === "share") {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const cap = rest.action === "connectBrandAd" ? 8 : 5;
 
     const activities = await payload.find({
       collection: "activities",
@@ -129,7 +125,7 @@ export async function addActivity(
           equals: user.id,
         },
         action: {
-          equals: "connectBrandAd",
+          equals: rest.action,
         },
         createdAt: {
           greater_than_equal: today.toISOString(),
@@ -137,7 +133,7 @@ export async function addActivity(
       },
     });
 
-    if (activities.totalDocs >= 8) {
+    if (activities.totalDocs >= cap) {
       return {
         message: "CAP_REACHED",
       };
