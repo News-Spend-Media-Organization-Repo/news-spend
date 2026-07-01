@@ -4,7 +4,7 @@ import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 
 const Call = () => (
-  <Screen className="bg-background" systemBarStyle="light">
+  <Screen systemBarStyle="light">
     <ScrollView showsVerticalScrollIndicator={false}>
       <View className="gap-4 p-3">
         <Text className="text-base leading-relaxed">

@@ -187,7 +187,7 @@ export default function Notifications() {
   }
 
   return (
-    <Screen contentContainerClassName="bg-background" systemBarStyle="light">
+    <Screen systemBarStyle="light">
       <ListGroup variant="transparent">
         {NOTIFICATION_CONFIGS.map((config, index) => (
           <View key={config.type}>

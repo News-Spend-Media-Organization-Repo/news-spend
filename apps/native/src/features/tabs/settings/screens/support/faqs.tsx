@@ -43,7 +43,7 @@ const questions = [
 ];
 
 const FAQs = () => (
-  <Screen className="bg-background" systemBarStyle="light">
+  <Screen systemBarStyle="light">
     <ScrollView
       contentContainerClassName="p-4"
       layout={AccordionLayoutTransition}

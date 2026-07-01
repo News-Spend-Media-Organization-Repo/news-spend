@@ -8,7 +8,7 @@ export default function LegalAgreement() {
   const navigation = useNavigation("Legal");
 
   return (
-    <Screen className="bg-background" systemBarStyle="light">
+    <Screen systemBarStyle="light">
       <ListGroup variant="transparent">
         <PressableFeedback animation={false} onPress={() => navigation.navigate("TermsOfUse")}>
           <PressableFeedback.Scale>

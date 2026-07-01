@@ -317,7 +317,7 @@ export default function DataManager() {
   ];
 
   return (
-    <Screen className="bg-background" systemBarStyle="light">
+    <Screen systemBarStyle="light">
       <View className="gap-4">
         <ListGroup variant="transparent">
           {notificationOptions.map((option, index) => (

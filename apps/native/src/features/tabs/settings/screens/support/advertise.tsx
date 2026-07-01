@@ -61,7 +61,7 @@ const Advertise = () => {
   };
 
   return (
-    <Screen className="bg-background" safeAreaEdges={["bottom"]} systemBarStyle="light">
+    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={100}
         contentContainerClassName="gap-6 px-5 pt-5 pb-12"
