@@ -28,7 +28,7 @@ function DiscoverHeader() {
 
       <Button className="flex-1" onPress={() => navigation.navigate("PlayLottery")}>
         <PlayCircleIcon color="white" size={20} weight="bold" />
-        <Button.Label>Play Lottery</Button.Label>
+        <Button.Label>Giveaway</Button.Label>
       </Button>
     </View>
   );

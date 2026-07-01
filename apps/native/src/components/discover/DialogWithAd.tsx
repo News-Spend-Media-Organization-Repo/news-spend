@@ -226,8 +226,8 @@ export function DialogWithAd({
               onOpenChange(false);
               if (!serverError) {
                 navigation.reset({
-                  index: 0,
-                  routes: [{ name: "BoostLuck" }],
+                  index: 1,
+                  routes: [{ name: "DiscoverHome" }, { name: "BoostLuck" }],
                 });
               }
             }}

@@ -59,7 +59,7 @@ function ShopHome() {
   const allStores = allStoresData?.pages.flatMap((page) => page.docs) ?? [];
 
   return (
-    <Screen preset="fixed" systemBarStyle="light">
+    <Screen preset="fixed" systemBarStyle="light" className="bg-white">
       <Tabs
         className="mx-2 flex-1 pt-4"
         onValueChange={setActiveTab}

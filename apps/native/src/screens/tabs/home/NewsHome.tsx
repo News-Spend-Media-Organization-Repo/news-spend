@@ -124,7 +124,7 @@ export default function NewsHome() {
       onIndexChange={onIndexChange}
       pagerStyle={{ zIndex: -3 }}
       renderLazyPlaceholder={() => (
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="flex-1 items-center justify-center bg-white">
           <ActivityIndicator />
         </View>
       )}
