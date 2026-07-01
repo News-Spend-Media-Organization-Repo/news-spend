@@ -84,9 +84,13 @@ export default function NewsItem({
           )}
         </View>
         <View
-          className={cn("flex-1", latest ? "justify-between" : "justify-center", {
-            "gap-4": !latest,
-          })}
+          className={cn(
+            "flex-1",
+            latest ? "justify-between" : "justify-center",
+            {
+              "gap-4": !latest,
+            }
+          )}
         >
           {latest && (
             <Text className="font-bold text-p-500">
@@ -108,7 +112,9 @@ export default function NewsItem({
               </Text>
             </View>
             <Chip className="bg-s-300" size="sm">
-              <Chip.Label className="text-white">{news?.points} points</Chip.Label>
+              <Chip.Label className="text-white">
+                {news?.points} points
+              </Chip.Label>
             </Chip>
           </View>
         </View>

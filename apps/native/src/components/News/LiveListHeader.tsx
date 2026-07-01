@@ -46,7 +46,7 @@ export default function LiveListHeader({ news }: { news: News }) {
         />
       </View>
 
-      <Text variant="HeadingMedium" className="mt-2">
+      <Text className="mt-2" variant="HeadingMedium">
         Latest Videos
       </Text>
     </View>

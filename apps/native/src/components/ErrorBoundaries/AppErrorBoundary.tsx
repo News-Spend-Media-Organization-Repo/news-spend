@@ -14,9 +14,12 @@ type AppFallbackProps = {
 
 const FallbackComponent: React.FC<AppFallbackProps> = ({ resetError }) => (
   <View className="flex-1 items-center justify-center p-4">
-    <Text className="mb-2 font-semibold text-lg">Oops! Something went wrong</Text>
+    <Text className="mb-2 font-semibold text-lg">
+      Oops! Something went wrong
+    </Text>
     <Text className="mb-4 text-center">
-      Something unexpected happened. We've been notified and are working on a fix.
+      Something unexpected happened. We've been notified and are working on a
+      fix.
     </Text>
     <Button onPress={() => resetError?.()}>
       <Button.Label>Try Again</Button.Label>
@@ -24,7 +27,11 @@ const FallbackComponent: React.FC<AppFallbackProps> = ({ resetError }) => (
   </View>
 );
 
-export const AppErrorBoundary = ({ children }: { children: React.ReactNode }) => {
+export const AppErrorBoundary = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const handleError = (error: unknown) => {
     console.error("Error caught by AppErrorBoundary:", error);
   };

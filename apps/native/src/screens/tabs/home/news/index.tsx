@@ -26,8 +26,15 @@ const SingleNews = () => {
   const navigation = useNavigation("News");
   const { slug } = useRoute("News").params;
 
-  const { data, refetch, isError, error, isFetchedAfterMount, isFetching, isPlaceholderData } =
-    useNews(slug as string);
+  const {
+    data,
+    refetch,
+    isError,
+    error,
+    isFetchedAfterMount,
+    isFetching,
+    isPlaceholderData,
+  } = useNews(slug as string);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
   const {
@@ -42,7 +49,7 @@ const SingleNews = () => {
   } = useArticleTracking(data);
 
   const { handleLike, handleDislike } = useArticleActions(
-    data,
+    data
     // pass analytics callbacks as optional deps
     // if you want to keep trackLike/trackDislike wired in,
     // expose them from useArticleTracking instead
@@ -53,7 +60,7 @@ const SingleNews = () => {
     if (isError && isDefinedError(error) && error?.code === "NOT_FOUND") {
       navigation.replace("NotFound");
     }
-  }, [isError, error]);
+  }, [isError, error, navigation.replace]);
 
   if (isFetchedAfterMount && isError) {
     return (
@@ -71,7 +78,9 @@ const SingleNews = () => {
   const { url, blurhash } = getImageData(data?.image);
 
   return (
-    <Screen SystemBarsProps={{ style: { navigationBar: "dark", statusBar: "auto" } }}>
+    <Screen
+      SystemBarsProps={{ style: { navigationBar: "dark", statusBar: "auto" } }}
+    >
       <SkeletonGroup className="flex-1" isLoading={!data}>
         <ScrollView
           className="bg-white"
@@ -80,7 +89,10 @@ const SingleNews = () => {
           keyboardShouldPersistTaps="always"
           onScroll={handleScroll}
           refreshControl={
-            <RefreshControl onRefresh={refetchByUser} refreshing={isRefetchingByUser} />
+            <RefreshControl
+              onRefresh={refetchByUser}
+              refreshing={isRefetchingByUser}
+            />
           }
           scrollEnabled={Boolean(data)}
           scrollEventThrottle={16}
@@ -112,7 +124,9 @@ const SingleNews = () => {
 
           <View className="gap-5 px-3">
             <SkeletonGroup.Item className="h-12.5 w-full rounded-md">
-              <Text className="font-bold text-[20px] leading-6.25">{data?.title}</Text>
+              <Text className="font-bold text-[20px] leading-6.25">
+                {data?.title}
+              </Text>
             </SkeletonGroup.Item>
 
             <View className="flex-row items-center justify-between">
@@ -120,7 +134,9 @@ const SingleNews = () => {
                 <View className="flex-row items-center gap-0.75">
                   <Icon name={UserIcon} size={15} />
                   <Text className="font-bold">
-                    {typeof data?.author === "object" ? data?.author.fullName : ""}
+                    {typeof data?.author === "object"
+                      ? data?.author.fullName
+                      : ""}
                   </Text>
                 </View>
               </SkeletonGroup.Item>
@@ -128,13 +144,19 @@ const SingleNews = () => {
               <SkeletonGroup.Item className="h-4.25 w-32.5 rounded-md">
                 {data ? (
                   <Text className="text-[#737373] text-xs">
-                    {format(new Date(data.createdAt ?? new Date()), "do MMMM yyy | p")}
+                    {format(
+                      new Date(data.createdAt ?? new Date()),
+                      "do MMMM yyy | p"
+                    )}
                   </Text>
                 ) : null}
               </SkeletonGroup.Item>
             </View>
 
-            <SkeletonGroup.Item className="h-[60vh] w-full rounded-md" isLoading={!data?.keyPoints}>
+            <SkeletonGroup.Item
+              className="h-[60vh] w-full rounded-md"
+              isLoading={!data?.keyPoints}
+            >
               <View className="mt-1">
                 <Separator />
                 <Text className="mb-3 font-bold text-base">KEY POINTS</Text>
@@ -153,7 +175,10 @@ const SingleNews = () => {
             {isFetching && isPlaceholderData ? (
               <View className="h-[60vh] w-full rounded-lg bg-neutral-200" />
             ) : (
-              <SkeletonGroup.Item className="h-[60vh] w-full rounded-md" isLoading={!data?.content}>
+              <SkeletonGroup.Item
+                className="h-[60vh] w-full rounded-md"
+                isLoading={!data?.content}
+              >
                 <PayloadLexicalReactRenderer
                   content={data?.content as PayloadLexicalReactRendererContent}
                 />

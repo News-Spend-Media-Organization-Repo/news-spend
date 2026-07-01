@@ -1,4 +1,8 @@
-import { useNavigation, usePreventRemove, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  usePreventRemove,
+  useRoute,
+} from "@react-navigation/native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
@@ -31,7 +35,7 @@ export default function SurveyWebView() {
         clearTimeout(loadingTimeoutRef.current);
       }
     },
-    [],
+    []
   );
 
   const handleNavigationStateChange = (navState: WebViewNavigationEvent) => {
@@ -63,7 +67,7 @@ export default function SurveyWebView() {
           style: "destructive",
           onPress: () => navigation.dispatch(data.action),
         },
-      ],
+      ]
     );
   });
 

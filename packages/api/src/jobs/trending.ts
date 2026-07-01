@@ -31,7 +31,7 @@ export function startTrendingJob() {
           await r.zadd(zKey, ...args);
           await r.expire(zKey, 60 * 20);
         }
-      } catch (e) {
+      } catch {
         // ignore redis errors
       }
     } catch (err) {

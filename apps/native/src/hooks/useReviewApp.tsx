@@ -5,7 +5,7 @@ export default function useAppReview() {
   const { getItem, setItem } = useAsyncStorage("in_App_Review");
 
   const onReview = async () => {
-    const lastDateAppReviewed = await getItem();
+    const _lastDateAppReviewed = await getItem();
 
     // if (lastDateAppReviewed !== null) {
     //   const Today = new Date();

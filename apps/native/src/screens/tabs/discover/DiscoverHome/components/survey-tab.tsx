@@ -11,7 +11,10 @@ import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { authState } from "#/state/auth";
-import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
+import {
+  PullToRefreshIndicator,
+  triggerRefreshHaptic,
+} from "./pull-to-refresh-indicator";
 
 type Offer = RouterOutputs["survey"]["offers"]["getOffers"][number];
 
@@ -35,14 +38,18 @@ export function SurveyTab() {
     orpc.survey.offers.getOffers.queryOptions({
       input: { limit: 20 },
       staleTime: 60 * 1000,
-    }),
+    })
   );
 
-  const offers = ((surveyQuery.data ?? []) as Offer[]).sort((a, b) => b.points - a.points);
+  const offers = ((surveyQuery.data ?? []) as Offer[]).sort(
+    (a, b) => b.points - a.points
+  );
   const topRatedSurvey = offers.length ? offers[0] : null;
   const otherSurveys = offers.slice(1);
 
-  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(surveyQuery.refetch);
+  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
+    surveyQuery.refetch
+  );
 
   const handleStartSurvey = useCallback(
     (offer: Offer) => {
@@ -58,7 +65,7 @@ export function SurveyTab() {
         });
       }
     },
-    [navigation, user],
+    [navigation, user]
   );
 
   const renderSurveyCard = useCallback(
@@ -98,7 +105,7 @@ export function SurveyTab() {
         </Card.Footer>
       </Card>
     ),
-    [handleStartSurvey],
+    [handleStartSurvey]
   );
 
   const renderTopRatedCard = useCallback(() => {
@@ -116,16 +123,22 @@ export function SurveyTab() {
           </View>
 
           <View className="items-center justify-center">
-            <Text className="font-bold text-xl">{topRatedSurvey.points} Points</Text>
+            <Text className="font-bold text-xl">
+              {topRatedSurvey.points} Points
+            </Text>
             <Text className="text-gray-500">
-              {topRatedSurvey.description || `${topRatedSurvey.estimatedTime || "?"} mins`}
+              {topRatedSurvey.description ||
+                `${topRatedSurvey.estimatedTime || "?"} mins`}
             </Text>
           </View>
 
           <Button
             className="self-stretch"
             onPress={() =>
-              navigation.navigate("SignIn" as never, { redirect: "SurveyTab" } as never)
+              navigation.navigate(
+                "SignIn" as never,
+                { redirect: "SurveyTab" } as never
+              )
             }
           >
             <Button.Label>Sign In to Take Survey</Button.Label>
@@ -143,7 +156,8 @@ export function SurveyTab() {
           <Chip
             size="sm"
             style={{
-              backgroundColor: PROVIDER_COLORS[topRatedSurvey.provider] || "#9CA3AF",
+              backgroundColor:
+                PROVIDER_COLORS[topRatedSurvey.provider] || "#9CA3AF",
             }}
           >
             {PROVIDER_NAMES[topRatedSurvey.provider]}
@@ -151,13 +165,19 @@ export function SurveyTab() {
         </View>
 
         <View className="items-center justify-center">
-          <Text className="font-bold text-xl">{topRatedSurvey.points} Points</Text>
+          <Text className="font-bold text-xl">
+            {topRatedSurvey.points} Points
+          </Text>
           <Text className="text-gray-500">
-            {topRatedSurvey.description || `${topRatedSurvey.estimatedTime || "?"} mins`}
+            {topRatedSurvey.description ||
+              `${topRatedSurvey.estimatedTime || "?"} mins`}
           </Text>
         </View>
 
-        <Button className="self-stretch" onPress={() => handleStartSurvey(topRatedSurvey)}>
+        <Button
+          className="self-stretch"
+          onPress={() => handleStartSurvey(topRatedSurvey)}
+        >
           <Button.Label>Start Survey</Button.Label>
         </Button>
       </View>
@@ -208,8 +228,12 @@ export function SurveyTab() {
     if (offers.length === 0) {
       return (
         <View className="w-full flex-1 items-center justify-center gap-2 p-4">
-          <Text className="text-center font-semibold">No offers available right now</Text>
-          <Text className="text-center text-gray-500">Check back later for new surveys</Text>
+          <Text className="text-center font-semibold">
+            No offers available right now
+          </Text>
+          <Text className="text-center text-gray-500">
+            Check back later for new surveys
+          </Text>
           <Button onPress={refetchByUser}>
             <Button.Label>Refresh</Button.Label>
           </Button>
@@ -218,7 +242,14 @@ export function SurveyTab() {
     }
 
     return null;
-  }, [surveyQuery.isPending, surveyQuery.isError, offers.length, user, refetchByUser, navigation]);
+  }, [
+    surveyQuery.isPending,
+    surveyQuery.isError,
+    offers.length,
+    user,
+    refetchByUser,
+    navigation,
+  ]);
 
   return (
     <View className="flex-1">

@@ -16,7 +16,7 @@ const initialAuthState = {
 };
 
 const storedAuthState = JSON.parse(
-  storage.getString("AUTH_STATE") ?? JSON.stringify(initialAuthState),
+  storage.getString("AUTH_STATE") ?? JSON.stringify(initialAuthState)
 );
 
 export const authState = proxy<{
@@ -37,7 +37,7 @@ export const isAnonymous = () => authState.user?.isAnonymous === true;
 
 export const setAuthSession = (
   session: typeof authClient.$Infer.Session | null,
-  status: "signIn" | "signOut",
+  status: "signIn" | "signOut"
 ) => {
   authState.session = session;
   authState.user = session?.user || null;
@@ -109,7 +109,7 @@ export const logout = async () => {
           body: {
             pushToken,
           },
-          onSuccess(context) {
+          onSuccess(_context) {
             authState.session = null;
             authState.status = "signOut";
             authState.user = null;

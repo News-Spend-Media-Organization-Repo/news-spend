@@ -149,7 +149,12 @@ export const ShareNews = ({
         onPress={() => setVisible(true)}
         style={{ elevation: 2, shadowColor: "rgba(0, 0, 0, 0.25)" }}
       >
-        <Icon color="white" name={ShareNetworkIcon} size={28} weight="duotone" />
+        <Icon
+          color="white"
+          name={ShareNetworkIcon}
+          size={28}
+          weight="duotone"
+        />
       </Button>
 
       <BottomSheet isOpen={visible} onOpenChange={setVisible}>
@@ -169,8 +174,16 @@ export const ShareNews = ({
                 numColumns={numColumns}
                 renderItem={({ item: { Icon: ItemIcon, ...item } }) => (
                   <View className="items-center gap-2" key={item.text}>
-                    <Button className="size-12 bg-p-500 py-2" onPress={item.onPress}>
-                      <Icon color="white" name={ItemIcon} size={30} weight="regular" />
+                    <Button
+                      className="size-12 bg-p-500 py-2"
+                      onPress={item.onPress}
+                    >
+                      <Icon
+                        color="white"
+                        name={ItemIcon}
+                        size={30}
+                        weight="regular"
+                      />
                     </Button>
                     <Text className="text-center text-sm">{item.text}</Text>
                   </View>

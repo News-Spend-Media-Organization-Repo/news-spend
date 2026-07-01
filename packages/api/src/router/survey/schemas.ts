@@ -52,4 +52,4 @@ export const AwardGoogleFormInputSchema = z.object({
 export type CPXSurvey = z.infer<typeof CPXSurveySchema>;
 export type CPXPostBackInput = z.infer<typeof CPXPostBackInputSchema>;
 
-export { CPX_SECURE_HASH, CPX_APP_ID };
+export { CPX_APP_ID, CPX_SECURE_HASH };

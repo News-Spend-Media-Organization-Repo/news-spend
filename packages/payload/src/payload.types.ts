@@ -61,7 +61,7 @@ export type SupportedTimezones =
   | "Pacific/Auckland"
   | "Pacific/Fiji";
 
-export interface Config {
+export type Config = {
   auth: {
     users: UserAuthOperations;
   };
@@ -111,17 +111,17 @@ export interface Config {
     "navigation-menu": NavigationMenuSelect<false> | NavigationMenuSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
   };
-  locale: null;
-  widgets: {
-    collections: CollectionsWidget;
-  };
-  user: User;
   jobs: {
     tasks: unknown;
     workflows: unknown;
   };
-}
-export interface UserAuthOperations {
+  locale: null;
+  user: User;
+  widgets: {
+    collections: CollectionsWidget;
+  };
+};
+export type UserAuthOperations = {
   forgotPassword: {
     email: string;
     password: string;
@@ -138,64 +138,60 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TwitterPostBlock".
  */
-export interface TwitterPostBlock {
+export type TwitterPostBlock = {
+  blockName?: string | null;
+  blockType: "twitterEmbed";
+  id?: string | null;
   /**
    * 💡 Enter tweet ID (e.g., 1628832338187636740) or full URL (e.g., https://twitter.com/user/status/1628832338187636740)
    */
   tweetId: string;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: "twitterEmbed";
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "InstagramEmbedBlock".
  */
-export interface InstagramEmbedBlock {
-  /**
-   * 💡 Enter Instagram post URL (e.g., https://www.instagram.com/p/ABC123/ or https://www.instagram.com/reel/DEF456/)
-   */
-  postUrl: string;
+export type InstagramEmbedBlock = {
+  blockName?: string | null;
+  blockType: "instagramEmbed";
   /**
    * Optional caption for the post
    */
   caption?: string | null;
   id?: string | null;
-  blockName?: string | null;
-  blockType: "instagramEmbed";
-}
+  /**
+   * 💡 Enter Instagram post URL (e.g., https://www.instagram.com/p/ABC123/ or https://www.instagram.com/reel/DEF456/)
+   */
+  postUrl: string;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "YouTubeEmbedBlock".
  */
-export interface YouTubeEmbedBlock {
-  /**
-   * 💡 Enter YouTube URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/dQw4w9WgXcQ)
-   */
-  videoUrl: string;
+export type YouTubeEmbedBlock = {
+  blockName?: string | null;
+  blockType: "youtubeEmbed";
   /**
    * Optional caption for the video
    */
   caption?: string | null;
   id?: string | null;
-  blockName?: string | null;
-  blockType: "youtubeEmbed";
-}
+  /**
+   * 💡 Enter YouTube URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/dQw4w9WgXcQ)
+   */
+  videoUrl: string;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
  */
-export interface Page {
-  id: string;
-  title: string;
-  slug?: string | null;
-  slugLock?: boolean | null;
-  parent?: (string | null) | Page;
+export type Page = {
+  _status?: ("draft" | "published") | null;
   breadcrumbs?:
     | {
         doc?: (string | null) | Page;
@@ -204,6 +200,9 @@ export interface Page {
         id?: string | null;
       }[]
     | null;
+  createdAt: string;
+  hideFromIndexing?: boolean | null;
+  id: string;
   meta: {
     title: string;
     description?: string | null;
@@ -212,41 +211,42 @@ export interface Page {
      */
     image?: (string | null) | Media;
   };
-  publishedDate?: string | null;
-  hideFromIndexing?: boolean | null;
+  parent?: (string | null) | Page;
   pathname?: string | null;
+  publishedDate?: string | null;
+  slug?: string | null;
+  slugLock?: boolean | null;
+  title: string;
   updatedAt: string;
-  createdAt: string;
-  _status?: ("draft" | "published") | null;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
-export interface Media {
-  id: string;
+export type Media = {
   alt: string;
-  updatedAt: string;
   createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
   filename?: string | null;
-  mimeType?: string | null;
   filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
-}
+  height?: number | null;
+  id: string;
+  mimeType?: string | null;
+  thumbnailURL?: string | null;
+  updatedAt: string;
+  url?: string | null;
+  width?: number | null;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "articles".
  */
-export interface Article {
+export type Article = {
+  _status?: ("draft" | "published") | null;
+  createdAt: string;
+  hideFromIndexing?: boolean | null;
   id: string;
-  title: string;
-  slug?: string | null;
-  slugLock?: boolean | null;
   meta: {
     title: string;
     description?: string | null;
@@ -256,27 +256,28 @@ export interface Article {
     image?: (string | null) | Media;
   };
   publishedDate?: string | null;
-  hideFromIndexing?: boolean | null;
+  slug?: string | null;
+  slugLock?: boolean | null;
+  title: string;
   updatedAt: string;
-  createdAt: string;
-  _status?: ("draft" | "published") | null;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
-export interface User {
-  id: string;
-  role: "user" | "admin";
-  updatedAt: string;
+export type User = {
+  collection: "users";
   createdAt: string;
   email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
   hash?: string | null;
-  loginAttempts?: number | null;
+  id: string;
   lockUntil?: string | null;
+  loginAttempts?: number | null;
+  password?: string | null;
+  resetPasswordExpiration?: string | null;
+  resetPasswordToken?: string | null;
+  role: "user" | "admin";
+  salt?: string | null;
   sessions?:
     | {
         id: string;
@@ -284,16 +285,16 @@ export interface User {
         expiresAt: string;
       }[]
     | null;
-  password?: string | null;
-  collection: "users";
-}
+  updatedAt: string;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
-export interface Redirect {
-  id: string;
+export type Redirect = {
+  createdAt: string;
   from: string;
+  id: string;
   to?: {
     type?: ("reference" | "custom") | null;
     reference?:
@@ -309,15 +310,12 @@ export interface Redirect {
   };
   type: "301" | "302" | "307" | "308";
   updatedAt: string;
-  createdAt: string;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
-export interface PayloadKv {
-  id: string;
-  key: string;
+export type PayloadKv = {
   data:
     | {
         [k: string]: unknown;
@@ -327,13 +325,15 @@ export interface PayloadKv {
     | number
     | boolean
     | null;
-}
+  id: string;
+  key: string;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
-export interface PayloadLockedDocument {
-  id: string;
+export type PayloadLockedDocument = {
+  createdAt: string;
   document?:
     | ({
         relationTo: "pages";
@@ -356,24 +356,26 @@ export interface PayloadLockedDocument {
         value: string | Redirect;
       } | null);
   globalSlug?: string | null;
+  id: string;
+  updatedAt: string;
   user: {
     relationTo: "users";
     value: string | User;
   };
-  updatedAt: string;
-  createdAt: string;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences".
  */
-export interface PayloadPreference {
+export type PayloadPreference = {
+  createdAt: string;
   id: string;
+  key?: string | null;
+  updatedAt: string;
   user: {
     relationTo: "users";
     value: string | User;
   };
-  key?: string | null;
   value?:
     | {
         [k: string]: unknown;
@@ -383,29 +385,24 @@ export interface PayloadPreference {
     | number
     | boolean
     | null;
-  updatedAt: string;
-  createdAt: string;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations".
  */
-export interface PayloadMigration {
+export type PayloadMigration = {
+  batch?: number | null;
+  createdAt: string;
   id: string;
   name?: string | null;
-  batch?: number | null;
   updatedAt: string;
-  createdAt: string;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages_select".
  */
-export interface PagesSelect<T extends boolean = true> {
-  title?: T;
-  slug?: T;
-  slugLock?: T;
-  parent?: T;
+export type PagesSelect<T extends boolean = true> = {
+  _status?: T;
   breadcrumbs?:
     | T
     | {
@@ -414,6 +411,8 @@ export interface PagesSelect<T extends boolean = true> {
         label?: T;
         id?: T;
       };
+  createdAt?: T;
+  hideFromIndexing?: T;
   meta?:
     | T
     | {
@@ -421,21 +420,22 @@ export interface PagesSelect<T extends boolean = true> {
         description?: T;
         image?: T;
       };
-  publishedDate?: T;
-  hideFromIndexing?: T;
+  parent?: T;
   pathname?: T;
+  publishedDate?: T;
+  slug?: T;
+  slugLock?: T;
+  title?: T;
   updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "articles_select".
  */
-export interface ArticlesSelect<T extends boolean = true> {
-  title?: T;
-  slug?: T;
-  slugLock?: T;
+export type ArticlesSelect<T extends boolean = true> = {
+  _status?: T;
+  createdAt?: T;
+  hideFromIndexing?: T;
   meta?:
     | T
     | {
@@ -444,26 +444,25 @@ export interface ArticlesSelect<T extends boolean = true> {
         image?: T;
       };
   publishedDate?: T;
-  hideFromIndexing?: T;
+  slug?: T;
+  slugLock?: T;
+  title?: T;
   updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
-export interface UsersSelect<T extends boolean = true> {
-  role?: T;
-  updatedAt?: T;
+export type UsersSelect<T extends boolean = true> = {
   createdAt?: T;
   email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
   hash?: T;
-  loginAttempts?: T;
   lockUntil?: T;
+  loginAttempts?: T;
+  resetPasswordExpiration?: T;
+  resetPasswordToken?: T;
+  role?: T;
+  salt?: T;
   sessions?:
     | T
     | {
@@ -471,30 +470,32 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
-}
+  updatedAt?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
-export interface MediaSelect<T extends boolean = true> {
+export type MediaSelect<T extends boolean = true> = {
   alt?: T;
-  updatedAt?: T;
   createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
   filename?: T;
-  mimeType?: T;
   filesize?: T;
-  width?: T;
-  height?: T;
   focalX?: T;
   focalY?: T;
-}
+  height?: T;
+  mimeType?: T;
+  thumbnailURL?: T;
+  updatedAt?: T;
+  url?: T;
+  width?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects_select".
  */
-export interface RedirectsSelect<T extends boolean = true> {
+export type RedirectsSelect<T extends boolean = true> = {
+  createdAt?: T;
   from?: T;
   to?:
     | T
@@ -505,101 +506,100 @@ export interface RedirectsSelect<T extends boolean = true> {
       };
   type?: T;
   updatedAt?: T;
-  createdAt?: T;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
-export interface PayloadKvSelect<T extends boolean = true> {
-  key?: T;
+export type PayloadKvSelect<T extends boolean = true> = {
   data?: T;
-}
+  key?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
-export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
+export type PayloadLockedDocumentsSelect<T extends boolean = true> = {
+  createdAt?: T;
   document?: T;
   globalSlug?: T;
-  user?: T;
   updatedAt?: T;
-  createdAt?: T;
-}
+  user?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences_select".
  */
-export interface PayloadPreferencesSelect<T extends boolean = true> {
-  user?: T;
-  key?: T;
-  value?: T;
-  updatedAt?: T;
+export type PayloadPreferencesSelect<T extends boolean = true> = {
   createdAt?: T;
-}
+  key?: T;
+  updatedAt?: T;
+  user?: T;
+  value?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations_select".
  */
-export interface PayloadMigrationsSelect<T extends boolean = true> {
-  name?: T;
+export type PayloadMigrationsSelect<T extends boolean = true> = {
   batch?: T;
-  updatedAt?: T;
   createdAt?: T;
-}
+  name?: T;
+  updatedAt?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "navigation-menu".
  */
-export interface NavigationMenu {
+export type NavigationMenu = {
+  createdAt?: string | null;
   id: string;
   updatedAt?: string | null;
-  createdAt?: string | null;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "footer".
  */
-export interface Footer {
+export type Footer = {
+  createdAt?: string | null;
   id: string;
   updatedAt?: string | null;
-  createdAt?: string | null;
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "navigation-menu_select".
  */
-export interface NavigationMenuSelect<T extends boolean = true> {
-  updatedAt?: T;
+export type NavigationMenuSelect<T extends boolean = true> = {
   createdAt?: T;
   globalType?: T;
-}
+  updatedAt?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "footer_select".
  */
-export interface FooterSelect<T extends boolean = true> {
-  updatedAt?: T;
+export type FooterSelect<T extends boolean = true> = {
   createdAt?: T;
   globalType?: T;
-}
+  updatedAt?: T;
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
-export interface CollectionsWidget {
+export type CollectionsWidget = {
   data?: {
     [k: string]: unknown;
   };
   width: "full";
-}
+};
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "auth".
  */
-export interface Auth {
+export type Auth = {
   [k: string]: unknown;
-}
+};
 
 declare module "payload" {
   export interface GeneratedTypes extends Config {}

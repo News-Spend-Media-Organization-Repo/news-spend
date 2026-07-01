@@ -145,7 +145,7 @@ function SettingsHome() {
       }
       navigation.navigate(screen);
     },
-    [navigation],
+    [navigation]
   );
 
   const appVersion = Application.nativeApplicationVersion ?? "1.0.0";
@@ -197,7 +197,7 @@ function ListHeader({ onPress }: ListHeaderProps) {
     orpc.activity.totalPoints.queryOptions({
       enabled: Boolean(user) && !user?.isAnonymous,
       refetchInterval: 10 * 60 * 1000,
-    }),
+    })
   );
 
   const avatarBg = useMemo(() => randomColor(), []);
@@ -232,11 +232,17 @@ function ListHeader({ onPress }: ListHeaderProps) {
             <View className="flex-row items-center gap-1">
               {user ? (
                 <Button onPress={() => refetch()} variant="ghost">
-                  <Button.Label className="font-semibold text-lg">{totalPoints ?? 0}</Button.Label>
+                  <Button.Label className="font-semibold text-lg">
+                    {totalPoints ?? 0}
+                  </Button.Label>
                   {isLoading || isRefetching ? (
                     <Spinner color="default" size="sm" />
                   ) : (
-                    <Icon name={ArrowClockwiseIcon} size={16} weight="regular" />
+                    <Icon
+                      name={ArrowClockwiseIcon}
+                      size={16}
+                      weight="regular"
+                    />
                   )}
                 </Button>
               ) : null}
@@ -280,7 +286,9 @@ function ListHeader({ onPress }: ListHeaderProps) {
                     />
                   </ListGroup.ItemPrefix>
                   <ListGroup.ItemContent>
-                    <ListGroup.ItemTitle className={cn(item.danger ? "text-danger" : undefined)}>
+                    <ListGroup.ItemTitle
+                      className={cn(item.danger ? "text-danger" : undefined)}
+                    >
                       {item.title}
                     </ListGroup.ItemTitle>
                   </ListGroup.ItemContent>

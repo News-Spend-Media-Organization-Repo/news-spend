@@ -63,7 +63,7 @@ export const defaultRenderMark: RenderMark = (mark) => {
           markVariants({
             variant: "highlight",
             ...getWeightAndDecoration(mark),
-          }),
+          })
         )}
         selectable
       >
@@ -80,7 +80,7 @@ export const defaultRenderMark: RenderMark = (mark) => {
           markVariants({
             variant: "subscript",
             ...getWeightAndDecoration(mark),
-          }),
+          })
         )}
         selectable
       >
@@ -97,7 +97,7 @@ export const defaultRenderMark: RenderMark = (mark) => {
           markVariants({
             variant: "superscript",
             ...getWeightAndDecoration(mark),
-          }),
+          })
         )}
         selectable
       >

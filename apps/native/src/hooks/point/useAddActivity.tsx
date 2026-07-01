@@ -3,9 +3,9 @@ import { useMutation } from "@tanstack/react-query";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 
-interface UseAddActivityOptions {
+type UseAddActivityOptions = {
   onCapReached?: () => void;
-}
+};
 
 export default function useAddActivity(options?: UseAddActivityOptions) {
   return useMutation(

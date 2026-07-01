@@ -4,12 +4,20 @@ import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { CaretDownIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import Animated, { Easing, FadeInDown, FadeOutDown } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeOutDown,
+} from "react-native-reanimated";
 import { useSnapshot } from "valtio";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
-import { hideLiveBanner, liveBannerState, showLiveBanner } from "#/state/route-state";
+import {
+  hideLiveBanner,
+  liveBannerState,
+  showLiveBanner,
+} from "#/state/route-state";
 
 type LiveBannerProps = {
   currentTabName: string;
@@ -26,7 +34,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
       meta: { persist: false },
       select: (news) => news?.docs,
       enabled: !isHidden,
-    }),
+    })
   );
 
   const liveQuery = useQuery(
@@ -34,7 +42,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
       input: { channel: "live-news" },
       retry: true,
       enabled: !isHidden,
-    }),
+    })
   );
 
   useEffect(() => {
@@ -57,7 +65,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [data, index, isHidden]);
+  }, [data, isHidden]);
 
   useEffect(() => {
     if (data && index >= data.length) {
@@ -113,7 +121,11 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
         </PressableFeedback>
       </View>
       <PressableFeedback className="bg-p-400 p-4" onPress={onLivePress}>
-        <Text className="text-[16px] text-background" key={index} numberOfLines={2}>
+        <Text
+          className="text-[16px] text-background"
+          key={index}
+          numberOfLines={2}
+        >
           LIVE NOW: {data[index]?.title}
         </Text>
       </PressableFeedback>

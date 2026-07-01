@@ -23,9 +23,12 @@ const REGEX_FILENAME = /^(?<name>.+?)(?<ext>\.[^.]*?)?$/;
 
 const TMP_DIR = "/tmp/payload-video-thumbs";
 
-async function generateVideoThumbnail(inputPath: string, outputPath: string): Promise<void> {
+async function generateVideoThumbnail(
+  inputPath: string,
+  outputPath: string
+): Promise<void> {
   await execAsync(
-    `ffmpeg -ss 00:00:02 -i "${inputPath}" -vframes 1 -c:v mjpeg -q:v 2 "${outputPath}" -y`,
+    `ffmpeg -ss 00:00:02 -i "${inputPath}" -vframes 1 -c:v mjpeg -q:v 2 "${outputPath}" -y`
   );
 }
 
@@ -37,7 +40,9 @@ export const Media: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data }) => {
-        if (!data.filename) return data;
+        if (!data.filename) {
+          return data;
+        }
         const match = data.filename.match(REGEX_FILENAME);
         const { name = data.filename, ext = "" } = match?.groups || {};
         data.filename = `${slugify(name, { lower: true, strict: true })}${ext}`;
@@ -47,14 +52,21 @@ export const Media: CollectionConfig = {
     afterChange: [
       // Step 1: Extract frame from video, stash on req for afterOperation
       async ({ doc, req, operation }) => {
-        if (operation !== "create" || !req.file || !doc.mimeType?.startsWith("video/")) {
+        if (
+          operation !== "create" ||
+          !req.file ||
+          !doc.mimeType?.startsWith("video/")
+        ) {
           return doc;
         }
 
         fs.mkdirSync(TMP_DIR, { recursive: true });
 
         const inputExt = req.file.name.split(".").pop() || "mp4";
-        const inputPath = path.join(TMP_DIR, `${crypto.randomUUID()}.${inputExt}`);
+        const inputPath = path.join(
+          TMP_DIR,
+          `${crypto.randomUUID()}.${inputExt}`
+        );
         const outputPath = path.join(TMP_DIR, `${crypto.randomUUID()}.jpg`);
 
         try {
@@ -77,10 +89,15 @@ export const Media: CollectionConfig = {
           console.log(
             "🎬 [video-thumbnail] Extracted:",
             filesize,
-            "bytes, stashing for afterOperation",
+            "bytes, stashing for afterOperation"
           );
 
-          (req as any).__videoThumb = { fileData, filesize, thumbName, videoDocId: doc.id };
+          (req as any).__videoThumb = {
+            fileData,
+            filesize,
+            thumbName,
+            videoDocId: doc.id,
+          };
         } catch (err) {
           console.error("🎬 [video-thumbnail] Extraction failed:", err);
         } finally {
@@ -127,11 +144,11 @@ export const Media: CollectionConfig = {
           return doc;
         }
 
-        delete (req as any).__videoThumbSizes;
+        (req as any).__videoThumbSizes = undefined;
 
         console.log(
           "🎬 [video-thumbnail] Re-applying sizes after cloud storage update:",
-          pending.videoDocId,
+          pending.videoDocId
         );
 
         try {
@@ -166,9 +183,11 @@ export const Media: CollectionConfig = {
       // stash sizes data on req so afterChange step 2 can persist it after cloud storage update
       async ({ operation, result, req }) => {
         const stash = (req as any).__videoThumb;
-        if (operation !== "create" || !stash) return result;
+        if (operation !== "create" || !stash) {
+          return result;
+        }
 
-        delete (req as any).__videoThumb;
+        (req as any).__videoThumb = undefined;
 
         const { fileData, filesize, thumbName, videoDocId } = stash as {
           fileData: Buffer;
@@ -179,7 +198,7 @@ export const Media: CollectionConfig = {
 
         console.log(
           "🎬 [video-thumbnail] afterOperation: creating thumb doc for video:",
-          videoDocId,
+          videoDocId
         );
 
         try {
@@ -218,7 +237,9 @@ export const Media: CollectionConfig = {
                 filename: s.filename ?? null,
               },
             };
-            console.log("🎬 [video-thumbnail] Stashed sizes for post-cloud-storage write");
+            console.log(
+              "🎬 [video-thumbnail] Stashed sizes for post-cloud-storage write"
+            );
           }
         } catch (err) {
           console.error("🎬 [video-thumbnail] Failed in afterOperation:", err);
@@ -233,8 +254,8 @@ export const Media: CollectionConfig = {
     adminThumbnail: ({ doc }) => {
       const sizes = doc?.sizes as Record<string, { url?: string } | undefined>;
       return (
-        sizes?.["videoThumbnail"]?.url ??
-        sizes?.["thumbnail"]?.url ??
+        sizes?.videoThumbnail?.url ??
+        sizes?.thumbnail?.url ??
         `https://media.newsspend.com/assets${process.env.NODE_ENV === "production" ? "" : "/dev"}/media/${doc.filename}`
       );
     },

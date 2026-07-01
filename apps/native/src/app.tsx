@@ -18,7 +18,10 @@ import { queryClient } from "./lib/tanstackQuery";
 import { Navigation } from "./navigation";
 import { CONSTANTS } from "./navigation/constants";
 import { linking } from "./navigation/linking";
-import { navigationRef, useNavigationPersistence } from "./navigation/navigationUtils";
+import {
+  navigationRef,
+  useNavigationPersistence,
+} from "./navigation/navigationUtils";
 import { Provider } from "./provider";
 import { preloadAds } from "./state/adManager";
 import { authState, hydrateAuth } from "./state/auth";
@@ -55,7 +58,7 @@ export function App() {
   });
   const { onNavigationStateChange, onReady } = useNavigationPersistence(
     storage,
-    CONSTANTS.PERSISTENCE_KEY,
+    CONSTANTS.PERSISTENCE_KEY
   );
 
   const { loadingComplete } = useCachedResources();
@@ -77,7 +80,10 @@ export function App() {
   }
 
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister }}
+    >
       <Provider>
         <Navigation
           linking={linking}

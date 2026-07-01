@@ -33,8 +33,8 @@ describe("ForgotPassword screen", () => {
     expect(screen.getByText("Forgot Password")).toBeTruthy();
     expect(
       screen.getByText(
-        "Don't worry! It occurs. Please enter the email address linked with your account.",
-      ),
+        "Don't worry! It occurs. Please enter the email address linked with your account."
+      )
     ).toBeTruthy();
   });
 
@@ -51,6 +51,8 @@ describe("ForgotPassword screen", () => {
     const input = screen.getByPlaceholderText("example@email.com");
     fireEvent.changeText(input, "test@example.com");
 
-    expect(screen.getByPlaceholderText("example@email.com").props.value).toBe("test@example.com");
+    expect(screen.getByPlaceholderText("example@email.com").props.value).toBe(
+      "test@example.com"
+    );
   });
 });

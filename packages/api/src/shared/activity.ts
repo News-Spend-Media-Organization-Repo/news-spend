@@ -23,7 +23,10 @@ type ActivityCreateInputType = z.infer<typeof ActivityCreateInput>;
  * Adds an activity for a user, handling special logic for "read" and "musicListeningTime" actions.
  * This function is intended for cross-module use.
  */
-export async function addActivity(input: ActivityCreateInputType, ctx: Context) {
+export async function addActivity(
+  input: ActivityCreateInputType,
+  ctx: Context
+) {
   const { user, payload } = ctx;
   if (!user) {
     throw new ORPCError("UNAUTHORIZED");
@@ -61,7 +64,10 @@ export async function addActivity(input: ActivityCreateInputType, ctx: Context) 
     // @ts-expect-error
     const { count, updatedAt } = dailyRead;
 
-    const isToday = isSameDay(new Date(), new Date(updatedAt ?? new Date().toISOString()));
+    const isToday = isSameDay(
+      new Date(),
+      new Date(updatedAt ?? new Date().toISOString())
+    );
 
     if (isToday && count! < 5) {
       await payload.update({

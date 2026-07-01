@@ -17,7 +17,8 @@ import { queryClient } from "#/lib/tanstackQuery";
 // Types
 // ---------------------------------------------------------------------------
 
-type NotificationType = RouterInputs["notificationSettings"]["update"]["notification_type"];
+type NotificationType =
+  RouterInputs["notificationSettings"]["update"]["notification_type"];
 
 type NotificationConfig = {
   type: NotificationType;
@@ -67,12 +68,17 @@ type ItemProps = {
   onToggle: (type: NotificationType, enabled: boolean) => void;
 };
 
-const NotificationItem = ({ config, checked, isLoading, onToggle }: ItemProps) => {
+const NotificationItem = ({
+  config,
+  checked,
+  isLoading,
+  onToggle,
+}: ItemProps) => {
   const handleValueChange = useCallback(
     (enabled: boolean) => {
       onToggle(config.type, enabled);
     },
-    [config.type, onToggle],
+    [config.type, onToggle]
   );
 
   return (
@@ -84,7 +90,11 @@ const NotificationItem = ({ config, checked, isLoading, onToggle }: ItemProps) =
         </ListGroup.ItemDescription>
       </ListGroup.ItemContent>
       <ListGroup.ItemSuffix>
-        <Switch isDisabled={isLoading} isSelected={checked} onSelectedChange={handleValueChange}>
+        <Switch
+          isDisabled={isLoading}
+          isSelected={checked}
+          onSelectedChange={handleValueChange}
+        >
           <Switch.Thumb />
         </Switch>
       </ListGroup.ItemSuffix>
@@ -102,7 +112,9 @@ export default function Notifications() {
 
   // Track which notification types have an in-flight mutation so we can
   // disable only the toggled item rather than the whole list.
-  const [pendingTypes, setPendingTypes] = useState<Set<NotificationType>>(() => new Set());
+  const [pendingTypes, setPendingTypes] = useState<Set<NotificationType>>(
+    () => new Set()
+  );
 
   const notificationSettingsMutation = useMutation(
     orpc.notificationSettings.update.mutationOptions({
@@ -113,7 +125,9 @@ export default function Notifications() {
           queryKey: userQueryOptions.queryKey,
         });
 
-        const previousData = queryClient.getQueryData(userQueryOptions.queryKey);
+        const previousData = queryClient.getQueryData(
+          userQueryOptions.queryKey
+        );
 
         queryClient.setQueryData(userQueryOptions.queryKey, (old: any) => {
           if (!old) {
@@ -140,7 +154,10 @@ export default function Notifications() {
       onError: (_err, _variables, context) => {
         toast.error("Failed to update notification settings");
         if (context?.previousData) {
-          queryClient.setQueryData(userQueryOptions.queryKey, context.previousData);
+          queryClient.setQueryData(
+            userQueryOptions.queryKey,
+            context.previousData
+          );
         }
       },
 
@@ -153,7 +170,7 @@ export default function Notifications() {
           });
         }
       },
-    }),
+    })
   );
 
   const handleNotificationToggle = useCallback(
@@ -164,16 +181,17 @@ export default function Notifications() {
       }
       notificationSettingsMutation.mutate({ notification_type, enabled });
     },
-    [user?.id, notificationSettingsMutation],
+    [user?.id, notificationSettingsMutation]
   );
 
   // Extract the types object so the reference is stable across renders when
   // the data hasn't changed — keeps the useCallback memoisation effective.
-  const notifTypes = (user as UserWithNotifications | undefined)?.notificationPreferences?.types;
+  const notifTypes = (user as UserWithNotifications | undefined)
+    ?.notificationPreferences?.types;
 
   const getNotificationStatus = useCallback(
     (type: NotificationType): boolean => notifTypes?.[type] ?? false,
-    [notifTypes],
+    [notifTypes]
   );
 
   if (!user) {
@@ -197,7 +215,9 @@ export default function Notifications() {
               isLoading={pendingTypes.has(config.type)}
               onToggle={handleNotificationToggle}
             />
-            {index < NOTIFICATION_CONFIGS.length - 1 && <Separator className="mx-4" />}
+            {index < NOTIFICATION_CONFIGS.length - 1 && (
+              <Separator className="mx-4" />
+            )}
           </View>
         ))}
       </ListGroup>

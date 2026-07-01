@@ -15,24 +15,34 @@ type LexicalNode = {
 };
 
 function isStaleReadAlso(node: LexicalNode): boolean {
-  if (node.type !== "block") return false;
+  if (node.type !== "block") {
+    return false;
+  }
 
   const fields = node.fields;
-  if (!fields || fields.blockType !== "readAlso") return false;
+  if (fields?.blockType !== "readAlso") {
+    return false;
+  }
 
   const news = fields.news;
 
   // Deleted or unpopulated: value is null or a raw ID number
-  if (!news || typeof news !== "object") return true;
+  if (!news || typeof news !== "object") {
+    return true;
+  }
 
   // Unpublished: full object but not in published state
-  if ((news as Record<string, unknown>)._status !== "published") return true;
+  if ((news as Record<string, unknown>)._status !== "published") {
+    return true;
+  }
 
   return false;
 }
 
 function sanitizeNodes(nodes: LexicalNode[]): LexicalNode[] {
-  if (!Array.isArray(nodes)) return nodes;
+  if (!Array.isArray(nodes)) {
+    return nodes;
+  }
 
   return nodes
     .filter((node) => !isStaleReadAlso(node))
@@ -48,16 +58,22 @@ function sanitizeNodes(nodes: LexicalNode[]): LexicalNode[] {
  * Removes stale ReadAlso blocks from Lexical rich text content.
  * Returns the content unchanged if it's not a valid Lexical tree.
  */
-export function sanitizeContent<T extends Record<string, unknown> | null | undefined>(
-  content: T,
-): T {
-  if (!content || typeof content !== "object") return content;
+export function sanitizeContent<
+  T extends Record<string, unknown> | null | undefined,
+>(content: T): T {
+  if (!content || typeof content !== "object") {
+    return content;
+  }
 
   const root = content.root;
-  if (!root || typeof root !== "object") return content;
+  if (!root || typeof root !== "object") {
+    return content;
+  }
 
   const children = (root as Record<string, unknown>).children;
-  if (!Array.isArray(children)) return content;
+  if (!Array.isArray(children)) {
+    return content;
+  }
 
   return {
     ...content,

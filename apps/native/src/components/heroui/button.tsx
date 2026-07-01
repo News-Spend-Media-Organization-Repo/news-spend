@@ -23,7 +23,10 @@ export type AppButtonProps = ButtonRootProps & {
 };
 
 export function Button({ className, size, ref, ...props }: AppButtonProps) {
-  const resolvedClassName = useMemo(() => buttonVariants({ size, className }), [size, className]);
+  const resolvedClassName = useMemo(
+    () => buttonVariants({ size, className }),
+    [size, className]
+  );
 
   return <HeroUIButton className={resolvedClassName} ref={ref} {...props} />;
 }

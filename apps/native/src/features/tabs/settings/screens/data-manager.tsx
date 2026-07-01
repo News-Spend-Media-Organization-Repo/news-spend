@@ -60,7 +60,7 @@ const SettingsManager = {
     try {
       const value = storage.getNumber(LAST_CACHE_CLEAR_KEY);
       return value ?? 0;
-    } catch (e) {
+    } catch {
       return 0;
     }
   },
@@ -189,7 +189,11 @@ const Item = ({
       </ListGroup.ItemDescription>
     </ListGroup.ItemContent>
     <ListGroup.ItemSuffix>
-      <Switch isDisabled={false} isSelected={checked} onSelectedChange={onToggle}>
+      <Switch
+        isDisabled={false}
+        isSelected={checked}
+        onSelectedChange={onToggle}
+      >
         <Switch.Thumb />
       </Switch>
     </ListGroup.ItemSuffix>
@@ -212,7 +216,7 @@ export default function DataManager() {
     loadSettings();
     loadCacheInfo();
     checkAutoClear();
-  }, []);
+  }, [loadSettings, loadCacheInfo, checkAutoClear]);
 
   const loadSettings = () => {
     const savedSettings = SettingsManager.getSettings();
@@ -244,13 +248,16 @@ export default function DataManager() {
 
     // Show info for specific settings
     if (title === "Video play on WiFi only" && value) {
-      Alert.alert("WiFi Only Mode", "Videos will only play when connected to WiFi");
+      Alert.alert(
+        "WiFi Only Mode",
+        "Videos will only play when connected to WiFi"
+      );
     }
 
     if (title === "Auto clear cache" && value) {
       Alert.alert(
         "Auto Clear Cache",
-        `Cache will be automatically cleared every ${settings.autoClearDays} days or when it exceeds ${settings.autoClearThresholdMB}MB`,
+        `Cache will be automatically cleared every ${settings.autoClearDays} days or when it exceeds ${settings.autoClearThresholdMB}MB`
       );
     }
   };
@@ -277,7 +284,7 @@ export default function DataManager() {
             }
           },
         },
-      ],
+      ]
     );
   };
 
@@ -328,7 +335,9 @@ export default function DataManager() {
                 onToggle={(value) => handleToggle(option.title, value)}
                 title={option.title}
               />
-              {index < notificationOptions.length - 1 && <Separator className="mx-4" />}
+              {index < notificationOptions.length - 1 && (
+                <Separator className="mx-4" />
+              )}
             </View>
           ))}
         </ListGroup>
@@ -346,9 +355,14 @@ export default function DataManager() {
             <Text className="font-semibold">{formatDate(lastClearDate)}</Text>
           </View>
 
-          <Button isDisabled={isClearing || cacheSize === 0} onPress={handleClearCache}>
+          <Button
+            isDisabled={isClearing || cacheSize === 0}
+            onPress={handleClearCache}
+          >
             {isClearing ? <Spinner /> : null}
-            <Button.Label>{isClearing ? "Clearing..." : "Clear Cache Now"}</Button.Label>
+            <Button.Label>
+              {isClearing ? "Clearing..." : "Clear Cache Now"}
+            </Button.Label>
           </Button>
         </View>
       </View>

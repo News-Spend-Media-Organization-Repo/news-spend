@@ -56,7 +56,9 @@ const registerForPushNotificationsAsync = async () => {
     return null;
   }
 
-  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+  const projectId =
+    Constants?.expoConfig?.extra?.eas?.projectId ??
+    Constants?.easConfig?.projectId;
 
   if (!projectId) {
     console.warn("Failed to get project id for push notification!");
@@ -88,7 +90,9 @@ const registerWithRetry = async (retryCount = 0): Promise<string | null> => {
 const usePushNotification = () => {
   const authSnapshot = useSnapshot(authState);
   const { user } = authSnapshot;
-  const { mutate: saveToken } = useMutation(orpc.account.createPushToken.mutationOptions());
+  const { mutate: saveToken } = useMutation(
+    orpc.account.createPushToken.mutationOptions()
+  );
 
   const notificationListener = useRef<Notifications.EventSubscription>(null);
   const responseListener = useRef<Notifications.EventSubscription>(null);
@@ -127,19 +131,21 @@ const usePushNotification = () => {
       {
         onError: (error) => console.error("Error saving token:", error),
         onSuccess: () => console.log("Token saved successfully"),
-      },
+      }
     );
   }, [user, saveToken]);
 
   // Listeners don't depend on auth — set up once, unconditionally
   useEffect(() => {
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log("Notification received:", notification);
-    });
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        console.log("Notification received:", notification);
+      });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log("Notification response:", response);
-    });
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log("Notification response:", response);
+      });
 
     return () => {
       notificationListener.current?.remove();

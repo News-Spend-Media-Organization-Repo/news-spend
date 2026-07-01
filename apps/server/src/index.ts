@@ -124,7 +124,9 @@ async function handleRpc(req: Request) {
 }
 
 function isCorsOriginAllowed(origin: string | null): boolean {
-  if (!origin) return true;
+  if (!origin) {
+    return true;
+  }
   return CORS_ORIGINS.includes(origin);
 }
 
@@ -166,15 +168,12 @@ const staticRoutes = {
   "/": () => new Response("OK"),
 
   "/health": () =>
-    new Response(
-      JSON.stringify({
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || "development",
-      }),
-      { headers: { "Content-Type": "application/json" } }
-    ),
+    Response.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || "development",
+    }),
 
   "/account-deletion": () =>
     new Response(AccountDeletionPage(), {

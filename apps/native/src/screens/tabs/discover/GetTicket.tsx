@@ -19,12 +19,16 @@ const GetTicket = () => {
   const navigation = useNavigation("GetTicket");
   const [value, setValue] = useState(0);
   const [open, setOpen] = useState(false);
-  const [preloadedNativeAd, setPreloadedNativeAd] = useState<NativeAd | null>(null);
+  const [preloadedNativeAd, setPreloadedNativeAd] = useState<NativeAd | null>(
+    null
+  );
   const decrementIntervalRef = useRef<NodeJS.Timeout>();
   const incrementIntervalRef = useRef<NodeJS.Timeout>();
 
   const totalPoints = useQuery(orpc.activity.totalPoints.queryOptions());
-  const { data: currentLottery } = useQuery(orpc.lottery.current.queryOptions());
+  const { data: currentLottery } = useQuery(
+    orpc.lottery.current.queryOptions()
+  );
 
   // Preload native ad on mount
   useEffect(() => {
@@ -40,17 +44,20 @@ const GetTicket = () => {
       () => () => {
         setValue(0);
       },
-      [],
-    ),
+      []
+    )
   );
 
   const onTicketPress = () => {
-    if ((totalPoints?.data ?? 0) >= value * (currentLottery?.ticketPrice ?? 50)) {
+    if (
+      (totalPoints?.data ?? 0) >=
+      value * (currentLottery?.ticketPrice ?? 50)
+    ) {
       setOpen(true);
     } else {
       Alert.alert(
         "Not enough points",
-        `You don't have enough Dream Points to enter the Giveaway with ${value} ticket${value > 1 ? "s" : ""}. You currently have ${totalPoints.data} Dream Points.`,
+        `You don't have enough Dream Points to enter the Giveaway with ${value} ticket${value > 1 ? "s" : ""}. You currently have ${totalPoints.data} Dream Points.`
       );
     }
   };
@@ -67,7 +74,10 @@ const GetTicket = () => {
       <ScreenHeader
         className="bg-p-300"
         right={
-          <Text className="text-white" onPress={() => navigation.navigate("LotteryRules")}>
+          <Text
+            className="text-white"
+            onPress={() => navigation.navigate("LotteryRules")}
+          >
             Rules
           </Text>
         }
@@ -83,7 +93,9 @@ const GetTicket = () => {
           <Card className="mx-2 rounded-xl bg-s-300 px-6">
             <Card.Body className="p-0 pt-3">
               <Text className="text-center text-p-400">
-                The {currentLottery?.name ?? startOfLotteryPeriod.toLocaleDateString().split("/")}{" "}
+                The{" "}
+                {currentLottery?.name ??
+                  startOfLotteryPeriod.toLocaleDateString().split("/")}{" "}
                 game
               </Text>
             </Card.Body>
@@ -115,7 +127,9 @@ const GetTicket = () => {
                 </PressableFeedback>
 
                 <View className="flex-row items-center">
-                  <Text className="min-w-8.5 px-2 text-center font-medium text-xl">{value}</Text>
+                  <Text className="min-w-8.5 px-2 text-center font-medium text-xl">
+                    {value}
+                  </Text>
                   <Text className="text-gray-50 text-sm">Tickets</Text>
                 </View>
 
@@ -155,7 +169,8 @@ const GetTicket = () => {
             <Card.Footer className="p-0 pb-3">
               <View className="flex flex-1 flex-row justify-center gap-2">
                 <Text className="text-p-400">
-                  Required points: {value * (currentLottery?.ticketPrice ?? 50)} points
+                  Required points: {value * (currentLottery?.ticketPrice ?? 50)}{" "}
+                  points
                 </Text>
               </View>
             </Card.Footer>
@@ -163,8 +178,8 @@ const GetTicket = () => {
         </View>
 
         <Text className="mt-2 text-[15px] text-p-50">
-          Each Giveaway Ticket costs 50 Dream Points. The more tickets you hold, the greater your
-          chance of winning.
+          Each Giveaway Ticket costs 50 Dream Points. The more tickets you hold,
+          the greater your chance of winning.
         </Text>
       </View>
 

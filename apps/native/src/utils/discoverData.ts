@@ -1,41 +1,41 @@
 export const apps = [
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Deezer Music Player: Songs, Playlists",
     description: "Stream and play music",
     image: "https://picsum.photos/210",
     points: 290,
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Kuda MFB",
     description: "Register and earn N2500 as a new user",
     image: "https://picsum.photos/220",
     points: 190,
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Clone Evolution",
     description: "Earn Multiple Rewards for Playing. NEW USERS ONLY",
     image: "https://picsum.photos/230",
     points: 450,
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Follow News Spend Media on Instagram",
     description: "Complete an action",
     image: "https://picsum.photos/240",
     points: 200,
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Play Word Voyage",
     description: "Complete Level 50 & Earn More for Further Levels",
     image: "https://picsum.photos/250",
     points: 350,
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Netflix",
     description: "Download and Sign Up for a Free Trial",
     image: "https://picsum.photos/260",
@@ -229,7 +229,7 @@ export const music = [
 
 const games = [
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Naraka: Bladepoint",
     image: "https://www.freetogame.com/g/556/thumbnail.jpg",
     short_description: "A free-to-play melee focused battle royale.",
@@ -242,7 +242,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/naraka-bladepoint",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Hawked",
     image: "https://www.freetogame.com/g/558/thumbnail.jpg",
     short_description: "A free-to-play PvPvE treasure hunting shooter.",
@@ -255,7 +255,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/hawked",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Destiny 2",
     image: "https://www.freetogame.com/g/21/thumbnail.jpg",
     short_description: "A free-to-play multiplayer Sci-Fi MMOFPS from Bungie.",
@@ -268,7 +268,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/destiny-2",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Blood of Steel",
     image: "https://www.freetogame.com/g/479/thumbnail.jpg",
     short_description:
@@ -282,7 +282,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/blood-of-steel",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "CRSED: F.O.A.D.",
     image: "https://www.freetogame.com/g/4/thumbnail.jpg",
     short_description:
@@ -296,7 +296,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/crsed",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Line of Sight",
     image: "https://www.freetogame.com/g/82/thumbnail.jpg",
     short_description:
@@ -310,7 +310,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/line-of-sight",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Marvel Snap",
     image: "https://www.freetogame.com/g/541/thumbnail.jpg",
     short_description:
@@ -338,7 +338,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/apb",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Brawlhalla",
     image: "https://www.freetogame.com/g/212/thumbnail.jpg",
     short_description:
@@ -352,7 +352,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/brawlhalla",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Warface",
     image: "https://www.freetogame.com/g/207/thumbnail.jpg",
     short_description:
@@ -366,7 +366,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/warface",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Stay Out",
     image: "https://www.freetogame.com/g/437/thumbnail.jpg",
     short_description:
@@ -380,7 +380,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/stay-out",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Mad World",
     image: "https://www.freetogame.com/g/574/thumbnail.jpg",
     short_description:
@@ -394,7 +394,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/mad-world",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Destiny's Divide",
     image: "https://www.freetogame.com/g/569/thumbnail.jpg",
     short_description:
@@ -408,7 +408,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/destinys-divide",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Super Squad",
     image: "https://www.freetogame.com/g/513/thumbnail.jpg",
     short_description:
@@ -422,7 +422,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/super-squad",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Realm Royale Reforged",
     image: "https://www.freetogame.com/g/36/thumbnail.jpg",
     short_description:
@@ -436,7 +436,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/realm-royale",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Microvolts: Recharged",
     image: "https://www.freetogame.com/g/567/thumbnail.jpg",
     short_description: "A lobby-based third-person shooter with a toy-theme.",
@@ -449,7 +449,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/microvolts",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Digimon Masters Online",
     image: "https://www.freetogame.com/g/262/thumbnail.jpg",
     short_description:
@@ -463,7 +463,7 @@ const games = [
     freetogame_profile_url: "https://www.freetogame.com/digimon-masters-online",
   },
   {
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     title: "Aura Kingdom",
     image: "https://www.freetogame.com/g/206/thumbnail.jpg",
     short_description:
@@ -492,7 +492,7 @@ const discoverData = {
   apps: apps.map((item) => ({ ...item, type: "app" })),
   music: music.map((item) => ({
     ...item,
-    id: new Date().getTime().toString(),
+    id: Date.now().toString(),
     type: "music",
   })),
   games: games
@@ -506,7 +506,7 @@ const discoverData = {
 };
 
 export const allDiscoverData = Object.entries(discoverData).reduce(
-  (prev, [key, value]) => [...prev, ...value],
+  (prev, [_key, value]) => [...prev, ...value],
   [] as (typeof discoverData)[keyof typeof discoverData][]
 );
 

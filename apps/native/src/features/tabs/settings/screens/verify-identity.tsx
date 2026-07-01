@@ -36,7 +36,10 @@ const schema = z.object({
     .trim()
     .min(3, "Last name must be at least 3 characters"),
   email: z.email("Enter a valid email"),
-  phoneNumber: z.string("Phone number is required").trim().regex(/^\d+$/, "Invalid phone number"),
+  phoneNumber: z
+    .string("Phone number is required")
+    .trim()
+    .regex(/^\d+$/, "Invalid phone number"),
   shippingAddress: z
     .string("Shipping address is required")
     .trim()
@@ -66,14 +69,16 @@ const VerifyIdentity = () => {
   const insets = useSafeAreaInsets();
   const positionRef = useRef<"front" | "back">("back");
 
-  const mutation = useMutation(openapi.lottery.verifyIdentity.mutationOptions());
+  const mutation = useMutation(
+    openapi.lottery.verifyIdentity.mutationOptions()
+  );
 
   const navigation = useNavigation();
   const identityStatus = useQuery(
     orpc.lottery.identityStatus.queryOptions({
       meta: { persist: false },
       staleTime: 0,
-    }),
+    })
   );
 
   const formMethods = useForm<VerifyIdentityInput>({
@@ -121,7 +126,10 @@ const VerifyIdentity = () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
     if (status !== "granted") {
-      Alert.alert("Permission Denied", "Sorry, we need camera permissions to take a photo.");
+      Alert.alert(
+        "Permission Denied",
+        "Sorry, we need camera permissions to take a photo."
+      );
       return;
     }
 
@@ -195,7 +203,7 @@ const VerifyIdentity = () => {
         email: user.email,
       });
     }
-  }, [user]);
+  }, [user, formMethods.reset]);
 
   useEffect(() => {
     if (identityStatus.data && !identityStatus.isFetching) {
@@ -207,16 +215,25 @@ const VerifyIdentity = () => {
         shippingAddress: identityStatus.data.shippingAddress,
       });
 
-      Alert.alert("Identity verification submitted", "You have already submitted your identity.", [
-        {
-          text: "OK",
-          onPress: () => {
-            navigation.goBack();
+      Alert.alert(
+        "Identity verification submitted",
+        "You have already submitted your identity.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              navigation.goBack();
+            },
           },
-        },
-      ]);
+        ]
+      );
     }
-  }, [identityStatus.data, identityStatus.isFetching]);
+  }, [
+    identityStatus.data,
+    identityStatus.isFetching,
+    navigation.goBack,
+    formMethods.reset,
+  ]);
 
   if (identityStatus.isPending || identityStatus.isFetching) {
     return (
@@ -234,8 +251,8 @@ const VerifyIdentity = () => {
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-base text-muted-foreground">
-          To ensure a safe and compliant prize delivery from the Giveaway, we need to verify your
-          identity.
+          To ensure a safe and compliant prize delivery from the Giveaway, we
+          need to verify your identity.
         </Text>
 
         <FormProvider {...formMethods}>
@@ -272,7 +289,9 @@ const VerifyIdentity = () => {
             />
 
             <View className="gap-2">
-              <Text className="font-semibold">Government-issued ID (Front and Back)</Text>
+              <Text className="font-semibold">
+                Government-issued ID (Front and Back)
+              </Text>
               <View className="flex-row gap-2">
                 <Controller
                   name="governmentId.front"
@@ -281,7 +300,7 @@ const VerifyIdentity = () => {
                       <View
                         className={cn(
                           "h-40 flex-1 items-center justify-center overflow-hidden rounded-xl border-2",
-                          error ? "border-red-500" : "border-gray-200",
+                          error ? "border-red-500" : "border-gray-200"
                         )}
                         onTouchEnd={() => {
                           positionRef.current = "front";
@@ -313,7 +332,7 @@ const VerifyIdentity = () => {
                       <View
                         className={cn(
                           "h-40 flex-1 items-center justify-center overflow-hidden rounded-xl border-2",
-                          error ? "border-red-500" : "border-gray-200",
+                          error ? "border-red-500" : "border-gray-200"
                         )}
                         onTouchEnd={() => {
                           positionRef.current = "back";
@@ -341,7 +360,10 @@ const VerifyIdentity = () => {
               </View>
             </View>
 
-            <Button isDisabled={mutation.isPending} onPress={handleSubmit(onSubmit)}>
+            <Button
+              isDisabled={mutation.isPending}
+              onPress={handleSubmit(onSubmit)}
+            >
               {mutation.isPending ? <Spinner /> : null}
               <Button.Label>Submit</Button.Label>
             </Button>

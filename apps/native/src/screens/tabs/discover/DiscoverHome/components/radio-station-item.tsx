@@ -42,7 +42,10 @@ export const StationItem = memo(
       }
     }, [isActive, audioPlayer, stationList, item]);
 
-    const tagsString = useMemo(() => item.tags.join(", ") || "Unknown", [item.tags]);
+    const tagsString = useMemo(
+      () => item.tags.join(", ") || "Unknown",
+      [item.tags]
+    );
 
     return (
       <PressableFeedback onPress={handlePress}>
@@ -50,7 +53,7 @@ export const StationItem = memo(
           <Card
             className={cn(
               "w-35 flex-col gap-2 rounded-xl p-2.5",
-              isActive && "border-2 border-p-200",
+              isActive && "border-2 border-p-200"
             )}
             variant="secondary"
           >
@@ -60,24 +63,36 @@ export const StationItem = memo(
               source={{ uri: item.favicon || placeholderRef.current }}
             />
             <View className="gap-1">
-              <Text className="text-center font-semibold text-gray-800 text-sm" numberOfLines={1}>
+              <Text
+                className="text-center font-semibold text-gray-800 text-sm"
+                numberOfLines={1}
+              >
                 {item.name}
               </Text>
-              <Text className="text-center text-gray-500 text-xs" numberOfLines={1}>
+              <Text
+                className="text-center text-gray-500 text-xs"
+                numberOfLines={1}
+              >
                 {tagsString}
               </Text>
             </View>
-            {isActive && audioPlayer ? <ActiveStationIndicator audioPlayer={audioPlayer} /> : null}
+            {isActive && audioPlayer ? (
+              <ActiveStationIndicator audioPlayer={audioPlayer} />
+            ) : null}
           </Card>
         </PressableFeedback.Scale>
         <PressableFeedback.Ripple />
       </PressableFeedback>
     );
-  },
+  }
 );
 
 const ActiveStationIndicator = memo(
-  ({ audioPlayer }: { audioPlayer: NonNullable<ReturnType<typeof getAudioPlaylist>> }) => {
+  ({
+    audioPlayer,
+  }: {
+    audioPlayer: NonNullable<ReturnType<typeof getAudioPlaylist>>;
+  }) => {
     const playbackState = useAudioPlaylistStatus(audioPlayer);
 
     let icon: ReactNode = <Icon color="#fff" name={PlayIcon} size={12} />;
@@ -97,5 +112,5 @@ const ActiveStationIndicator = memo(
         {icon}
       </View>
     );
-  },
+  }
 );

@@ -1,7 +1,12 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { Admin } from "@news-spend-media/payload/types";
 import { isDefinedError } from "@orpc/client";
-import { CommonActions, useNavigation, usePreventRemove, useRoute } from "@react-navigation/native";
+import {
+  CommonActions,
+  useNavigation,
+  usePreventRemove,
+  useRoute,
+} from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Alert } from "heroui-native/alert";
@@ -25,7 +30,13 @@ import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
 
-type YTState = "unstarted" | "video cue" | "buffering" | "playing" | "paused" | "ended";
+type YTState =
+  | "unstarted"
+  | "video cue"
+  | "buffering"
+  | "playing"
+  | "paused"
+  | "ended";
 
 const POINTS_THRESHOLD = 20 * 60; // 20 minutes in seconds
 
@@ -35,17 +46,15 @@ function Live() {
   const { width } = useWindowDimensions();
 
   const [ytState, setYtState] = useState<YTState>("unstarted");
-  const [watchTime, setWatchTime] = useState(0);
+  const [_watchTime, setWatchTime] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const { slug, id } = route.params;
 
   const likeMutation = useLikeNews();
   const dislikeMutation = useDislikeNews();
-  const { data, isPending, error, isError, isLoading, isFetchedAfterMount } = useNews(
-    slug,
-    "video",
-  );
+  const { data, isPending, error, isError, isLoading, isFetchedAfterMount } =
+    useNews(slug, "video");
   const commentQuery = useGetComments(id ?? data?.id, false);
   const auth = useSnapshot(authState);
 
@@ -58,10 +67,12 @@ function Live() {
         action: "watchLive",
       },
       enabled: !!authState.user && !!data,
-    }),
+    })
   );
 
-  const hasEarnedPoints = Boolean(getUserPoint.data && getUserPoint.data.length > 0);
+  const hasEarnedPoints = Boolean(
+    getUserPoint.data && getUserPoint.data.length > 0
+  );
 
   // Stable callback wrapper to prevent stale state closures
   const awardPoints = useCallback(() => {
@@ -89,13 +100,14 @@ function Live() {
             }),
           });
         },
-      },
+      }
     );
   }, [data, hasEarnedPoints, addActivityMutation]);
 
   // Watch time ticker effect
   useEffect(() => {
-    const shouldTrack = ytState === "playing" && data?.isLive && !hasEarnedPoints;
+    const shouldTrack =
+      ytState === "playing" && data?.isLive && !hasEarnedPoints;
 
     if (shouldTrack) {
       intervalRef.current = setInterval(() => {
@@ -144,7 +156,7 @@ function Live() {
           style: "destructive",
           onPress: () => navigation.dispatch(actionData.action),
         },
-      ],
+      ]
     );
   });
 
@@ -190,7 +202,7 @@ function Live() {
             }),
           });
         },
-      },
+      }
     );
   };
 
@@ -203,10 +215,15 @@ function Live() {
 
   // Navigate to NotFound in an effect so it doesn't fire during render
   const isNotFoundError =
-    isFetchedAfterMount && isError && isDefinedError(error) && error.code === "NOT_FOUND";
+    isFetchedAfterMount &&
+    isError &&
+    isDefinedError(error) &&
+    error.code === "NOT_FOUND";
   useEffect(() => {
     if (isNotFoundError) {
-      navigation.dispatch(CommonActions.reset({ routes: [{ name: "NotFound" }] }));
+      navigation.dispatch(
+        CommonActions.reset({ routes: [{ name: "NotFound" }] })
+      );
     }
   }, [isNotFoundError, navigation]);
 
@@ -228,9 +245,15 @@ function Live() {
         <Alert className="items-center rounded-lg" status="warning">
           <Alert.Indicator className="pt-0" />
           <Alert.Content>
-            <Alert.Title>Sign in to earn points for joining Live stream</Alert.Title>
+            <Alert.Title>
+              Sign in to earn points for joining Live stream
+            </Alert.Title>
           </Alert.Content>
-          <Button onPress={() => navigation.navigate("SignIn")} size="sm" variant="primary">
+          <Button
+            onPress={() => navigation.navigate("SignIn")}
+            size="sm"
+            variant="primary"
+          >
             Login
           </Button>
         </Alert>
@@ -257,13 +280,16 @@ function Live() {
             <SkeletonGroup.Item>
               <View className="flex-row items-center gap-0.75">
                 <Icon name={UserIcon} size={15} />
-                <Text className="font-bold">{(data?.author as Admin)?.fullName ?? "N/A"}</Text>
+                <Text className="font-bold">
+                  {(data?.author as Admin)?.fullName ?? "N/A"}
+                </Text>
               </View>
             </SkeletonGroup.Item>
 
             <SkeletonGroup.Item>
               <Text className="text-[#737373] text-xs">
-                {data?.createdAt && format(new Date(data.createdAt), "do MMMM yyy | p")}
+                {data?.createdAt &&
+                  format(new Date(data.createdAt), "do MMMM yyy | p")}
               </Text>
             </SkeletonGroup.Item>
           </View>
@@ -272,9 +298,13 @@ function Live() {
         <View className="flex-1 gap-4 px-2">
           {!commentQuery.data || commentQuery.data?.pages[0]?.totalDocs < 1 ? (
             <View className="flex-1">
-              <Text className="bg-white py-2 pl-2 font-normal text-lg">Comments</Text>
+              <Text className="bg-white py-2 pl-2 font-normal text-lg">
+                Comments
+              </Text>
               <View className="flex-1 items-center justify-center">
-                <Text className="text-center text-[15px]">Be the first to comment</Text>
+                <Text className="text-center text-[15px]">
+                  Be the first to comment
+                </Text>
                 <Button
                   onPress={() =>
                     navigation.navigate("LiveComment", {
@@ -294,7 +324,9 @@ function Live() {
               keyExtractor={(item, index) =>
                 typeof item === "string" ? item : (item.id ?? index.toString())
               }
-              ListEmptyComponent={commentQuery.isPending ? <ActivityIndicator /> : null}
+              ListEmptyComponent={
+                commentQuery.isPending ? <ActivityIndicator /> : null
+              }
               ListFooterComponent={
                 commentQuery.data?.pages[0]?.totalDocs > 3 ? (
                   <Button

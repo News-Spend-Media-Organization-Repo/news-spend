@@ -42,7 +42,7 @@ const YoutubePromoPlayer = ({
       },
       isPlaying: () => playing,
     }),
-    [playing],
+    [playing]
   );
 
   const onStateChange = useCallback((state: PLAYER_STATES) => {

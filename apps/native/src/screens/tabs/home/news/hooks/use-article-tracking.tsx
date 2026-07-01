@@ -10,17 +10,25 @@ import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
 
 export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
-  const recordViewMutation = useMutation(orpc.news.recordView.mutationOptions());
+  const recordViewMutation = useMutation(
+    orpc.news.recordView.mutationOptions()
+  );
   const addActivityMutation = useMutation(orpc.activity.add.mutationOptions());
 
-  const { trackView, trackRead, trackLike, trackDislike, trackShare, trackComment } =
-    useNewsAnalytics(data ? { id: data.id, slug: data.slug } : undefined);
+  const {
+    trackView,
+    trackRead,
+    trackLike,
+    trackDislike,
+    trackShare,
+    trackComment,
+  } = useNewsAnalytics(data ? { id: data.id, slug: data.slug } : undefined);
 
   const getUserPoint = useQuery(
     orpc.activity.byNewsId.queryOptions({
       input: { newsId: data?.id ?? "", action: "read" },
       enabled: !!authState.user && !!data,
-    }),
+    })
   );
 
   const {
@@ -60,7 +68,7 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
         hasRecordedView.current = true;
         recordViewMutation.mutate({ newsId: data.id });
       }
-    }, [data, trackView]),
+    }, [data, trackView, recordViewMutation.mutate])
   );
 
   // Award points once reading conditions are met
@@ -103,7 +111,7 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
             });
             queryClient.invalidateQueries(userQueryOptions);
           },
-        },
+        }
       );
     }
   }, [
@@ -117,6 +125,8 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
     addActivityMutation.isSuccess,
     addActivityMutation.isError,
     trackRead,
+    stopTracking,
+    addActivityMutation.mutate,
   ]);
 
   return {

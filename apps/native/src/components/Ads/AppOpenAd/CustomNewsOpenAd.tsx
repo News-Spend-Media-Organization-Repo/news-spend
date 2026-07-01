@@ -1,7 +1,12 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { Image } from "expo-image";
 import { Spinner } from "heroui-native/spinner";
-import { PauseIcon, PlayIcon, SpeakerHighIcon, SpeakerSlashIcon } from "phosphor-react-native";
+import {
+  PauseIcon,
+  PlayIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
+} from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Platform, useWindowDimensions, View } from "react-native";
 import Video, { type VideoRef } from "react-native-video";
@@ -18,7 +23,8 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const { width } = useWindowDimensions();
 
   const isVideoAd =
-    ad.type === "video" && (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
+    ad.type === "video" &&
+    (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
   const isImageAd = !isVideoAd;
 
   const [paused, setPaused] = useState(false);
@@ -33,7 +39,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
       "logo" in ad.partner &&
       typeof ad.partner.logo !== "string"
       ? ad.partner.logo
-      : null,
+      : null
   );
 
   const videoRef = useRef<VideoRef>(null);
@@ -150,7 +156,9 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
         )}
       </View>
 
-      <Text className="mx-2 my-3 self-start border border-p-400 px-px font-medium">Ad</Text>
+      <Text className="mx-2 my-3 self-start border border-p-400 px-px font-medium">
+        Ad
+      </Text>
 
       <View className="flex-1 items-center justify-center gap-4">
         <Image
@@ -160,7 +168,9 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
         />
         <View className="items-center justify-center">
           <Text className="text-center font-bold text-xl">{ad?.title}</Text>
-          <Text className="max-w-87.5 text-center text-base">{ad?.condition}</Text>
+          <Text className="max-w-87.5 text-center text-base">
+            {ad?.condition}
+          </Text>
         </View>
         <Button className="mt-5 min-w-55" onPress={onPress}>
           {getCtaLabel(ad.cta)}

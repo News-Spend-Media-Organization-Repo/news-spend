@@ -10,7 +10,10 @@ export default function LegalAgreement() {
   return (
     <Screen systemBarStyle="light">
       <ListGroup variant="transparent">
-        <PressableFeedback animation={false} onPress={() => navigation.navigate("TermsOfUse")}>
+        <PressableFeedback
+          animation={false}
+          onPress={() => navigation.navigate("TermsOfUse")}
+        >
           <PressableFeedback.Scale>
             <ListGroup.Item disabled>
               <ListGroup.ItemContent>
@@ -24,7 +27,10 @@ export default function LegalAgreement() {
 
         <Separator className="mx-4" />
 
-        <PressableFeedback animation={false} onPress={() => navigation.navigate("PrivacyPolicy")}>
+        <PressableFeedback
+          animation={false}
+          onPress={() => navigation.navigate("PrivacyPolicy")}
+        >
           <PressableFeedback.Scale>
             <ListGroup.Item disabled>
               <ListGroup.ItemContent>
@@ -38,11 +44,16 @@ export default function LegalAgreement() {
 
         <Separator className="mx-4" />
 
-        <PressableFeedback animation={false} onPress={() => navigation.navigate("LotteryRules")}>
+        <PressableFeedback
+          animation={false}
+          onPress={() => navigation.navigate("LotteryRules")}
+        >
           <PressableFeedback.Scale>
             <ListGroup.Item disabled>
               <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>Giveaway Official Rules</ListGroup.ItemTitle>
+                <ListGroup.ItemTitle>
+                  Giveaway Official Rules
+                </ListGroup.ItemTitle>
               </ListGroup.ItemContent>
               <ListGroup.ItemSuffix />
             </ListGroup.Item>

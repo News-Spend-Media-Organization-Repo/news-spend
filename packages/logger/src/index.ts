@@ -7,7 +7,8 @@ import type * as pino from "pino";
 // Detect if we're in a React Native environment
 // React Native check must come first since it also has process global
 const isReactNative =
-  typeof navigator !== "undefined" && (navigator as { product?: string }).product === "ReactNative";
+  typeof navigator !== "undefined" &&
+  (navigator as { product?: string }).product === "ReactNative";
 
 // Detect if we're in a Node.js environment (only if not React Native)
 const isNode =
@@ -50,7 +51,10 @@ class ReactNativeLogger implements Logger {
   private readonly context: Record<string, unknown>;
   private readonly minLevel: number;
 
-  constructor(context: Record<string, unknown> = {}, minLevel: LogLevel = "debug") {
+  constructor(
+    context: Record<string, unknown> = {},
+    minLevel: LogLevel = "debug"
+  ) {
     this.context = context;
     this.minLevel = LOG_LEVELS[minLevel];
   }
@@ -62,7 +66,7 @@ class ReactNativeLogger implements Logger {
   private formatLog(
     level: LogLevel,
     obj: Record<string, unknown> | string,
-    message?: string,
+    message?: string
   ): void {
     if (!this.shouldLog(level)) {
       return;
@@ -123,7 +127,10 @@ class ReactNativeLogger implements Logger {
   }
 
   child(context: Record<string, unknown>): Logger {
-    return new ReactNativeLogger({ ...this.context, ...context }, this.getMinLevelName());
+    return new ReactNativeLogger(
+      { ...this.context, ...context },
+      this.getMinLevelName()
+    );
   }
 
   private getMinLevelName(): LogLevel {
@@ -143,7 +150,8 @@ async function createNodeLogger(): Promise<pino.Logger> {
   // Dynamic import of pino only in Node.js environment
   const pinoModule = await import("pino");
 
-  const isDevelopment = typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+  const isDevelopment =
+    typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 
   const loggerOptions: pino.LoggerOptions = {
     level:
@@ -154,7 +162,7 @@ async function createNodeLogger(): Promise<pino.Logger> {
     },
     timestamp: pinoModule.stdTimeFunctions.isoTime,
     base: {
-      env: typeof process !== "undefined" ? process.env.NODE_ENV : "unknown",
+      env: typeof process === "undefined" ? "unknown" : process.env.NODE_ENV,
     },
   };
 
@@ -182,7 +190,8 @@ function getMinLogLevel(): LogLevel {
   }
 
   // Default to debug in development, info in production
-  const isDevelopment = typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+  const isDevelopment =
+    typeof process !== "undefined" && process.env.NODE_ENV !== "production";
   return isDevelopment ? "debug" : "info";
 }
 
@@ -225,8 +234,7 @@ export function createLogger(context: Record<string, unknown>): Logger {
   return logger.child(context);
 }
 
-export { type pino } from "pino";
-export type { Logger as PinoLogger } from "pino";
+export type { Logger as PinoLogger, pino } from "pino";
 
 export async function getPinoLogger() {
   return initializeLogger();

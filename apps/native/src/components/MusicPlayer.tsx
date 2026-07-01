@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AudioPlaylist } from "expo-audio";
 import { useAudioPlaylistStatus } from "expo-audio";
-import { PlayIcon, SkipBackIcon, SkipForwardIcon, StopIcon } from "phosphor-react-native";
+import {
+  PlayIcon,
+  SkipBackIcon,
+  SkipForwardIcon,
+  StopIcon,
+} from "phosphor-react-native";
 import { useCallback } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
@@ -35,7 +40,10 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
     refetchInterval: 3 * 10_000,
     enabled: !!activeTrack?.url && playbackState.playing,
     select: useCallback(
-      (data: { metadata: Record<string, unknown> | null; success: boolean }) => {
+      (data: {
+        metadata: Record<string, unknown> | null;
+        success: boolean;
+      }) => {
         const rawTitle = data?.metadata?.title as string | undefined;
         const parts = rawTitle?.split(" - ") ?? [];
 
@@ -54,7 +62,7 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
           artist: artist || activeTrack?.genre || "Streaming",
         };
       },
-      [activeTrack?.name, activeTrack?.genre],
+      [activeTrack?.name, activeTrack?.genre]
     ),
   });
 
@@ -83,10 +91,17 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
           }}
         />
         <View className="flex-1">
-          <Text className="font-semibold text-base text-white" numberOfLines={1}>
+          <Text
+            className="font-semibold text-base text-white"
+            numberOfLines={1}
+          >
             {nowPlaying?.title || activeTrack.name || "Live Music"}
           </Text>
-          <Text className="text-sm" numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.8)" }}>
+          <Text
+            className="text-sm"
+            numberOfLines={1}
+            style={{ color: "rgba(255, 255, 255, 0.8)" }}
+          >
             {nowPlaying?.artist || activeTrack.genre || "Live Music"}
           </Text>
         </View>
@@ -116,9 +131,13 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
                 return <ActivityIndicator color="#fff" size="small" />;
               }
               if (playbackState.playing) {
-                return <Icon color="white" name={StopIcon} size={16} weight="fill" />;
+                return (
+                  <Icon color="white" name={StopIcon} size={16} weight="fill" />
+                );
               }
-              return <Icon color="#fff" name={PlayIcon} size={16} weight="fill" />;
+              return (
+                <Icon color="#fff" name={PlayIcon} size={16} weight="fill" />
+              );
             })()}
           </Button>
           <Button

@@ -8,7 +8,12 @@ import { resendAdapter } from "@payloadcms/email-resend";
 import { sentryPlugin } from "@payloadcms/plugin-sentry";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import * as Sentry from "@sentry/nextjs";
-import { buildConfig, type Config, deepMerge, type SanitizedConfig } from "payload";
+import {
+  buildConfig,
+  type Config,
+  deepMerge,
+  type SanitizedConfig,
+} from "payload";
 import computeBlurhash from "payload-blurhash-plugin";
 import sharp from "sharp";
 
@@ -201,7 +206,8 @@ const baseConfig: Config = {
     auditLogPlugin,
   ],
   email: resendAdapter({
-    defaultFromAddress: process.env.RESEND_DEFAULT_FROM_ADDRESS || "admin@mail.newsspend.com",
+    defaultFromAddress:
+      process.env.RESEND_DEFAULT_FROM_ADDRESS || "admin@mail.newsspend.com",
     defaultFromName: process.env.RESEND_DEFAULT_FROM_NAME || "News Spend Media",
     apiKey: process.env.RESEND_API_KEY || "",
   }),
@@ -232,7 +238,9 @@ const globalForPayload = global as typeof global & {
   __payloadConfig?: Promise<SanitizedConfig>;
 };
 
-export const configurePayload = (overrides?: Partial<Config>): Promise<SanitizedConfig> => {
+export const configurePayload = (
+  overrides?: Partial<Config>
+): Promise<SanitizedConfig> => {
   if (globalForPayload.__payloadConfig && !overrides) {
     return globalForPayload.__payloadConfig;
   }

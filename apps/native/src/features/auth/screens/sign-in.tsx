@@ -66,7 +66,9 @@ export default function SignIn() {
             />
 
             <View className="mt-2 flex-col gap-2">
-              {serverError ? <Text className="text-lg text-red-500">{serverError}</Text> : null}
+              {serverError ? (
+                <Text className="text-lg text-red-500">{serverError}</Text>
+              ) : null}
               <LinkButton
                 className="self-end"
                 onPress={() => navigation.navigate("ForgotPassword")}
@@ -78,7 +80,10 @@ export default function SignIn() {
             </View>
           </View>
         </FormProvider>
-        <Button isDisabled={loginMutation.isPending} onPress={handleSubmit(onSubmit)}>
+        <Button
+          isDisabled={loginMutation.isPending}
+          onPress={handleSubmit(onSubmit)}
+        >
           {loginMutation.isPending ? <Spinner /> : null}
           <Button.Label>Sign In</Button.Label>
         </Button>

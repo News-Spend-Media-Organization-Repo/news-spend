@@ -26,7 +26,7 @@ export default function useTimeout(callback: () => void, delay: number | null) {
           clearTimeout(timeoutRef.current);
         };
       }
-    }, [delay, authState.user])
+    }, [delay])
   );
 
   return timeoutRef;

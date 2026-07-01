@@ -2,7 +2,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { orpc } from "#/lib/orpc";
 
-export default function useGetComments(newsId: string, _isRepliesScreen: boolean) {
+export default function useGetComments(
+  newsId: string,
+  _isRepliesScreen: boolean
+) {
   return useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
       input: (pageParam: number | undefined) => ({
@@ -13,6 +16,6 @@ export default function useGetComments(newsId: string, _isRepliesScreen: boolean
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
       enabled: !!newsId,
-    }),
+    })
   );
 }

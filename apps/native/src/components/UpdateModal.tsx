@@ -37,7 +37,8 @@ export const useUpdateModal = () => {
           <View className="mb-4 items-center gap-3">
             <Text variant="HeadingMedium">Update Available</Text>
             <Text className="text-center text-subtle-text">
-              A new version of the app is available. Restart to apply the update.
+              A new version of the app is available. Restart to apply the
+              update.
             </Text>
           </View>
 

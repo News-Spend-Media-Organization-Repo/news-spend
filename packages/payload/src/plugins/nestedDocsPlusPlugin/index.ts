@@ -1,9 +1,18 @@
 import { isObject } from "@news-spend-media/utils/isObject";
 import { nestedDocsPlugin } from "@payloadcms/plugin-nested-docs";
-import type { CollectionBeforeChangeHook, CollectionSlug, Config, Plugin } from "payload";
+import type {
+  CollectionBeforeChangeHook,
+  CollectionSlug,
+  Config,
+  Plugin,
+} from "payload";
 
 const setPathnameHook: CollectionBeforeChangeHook = ({ data }) => {
-  if (isObject(data) && "breadcrumbs" in data && Array.isArray(data.breadcrumbs)) {
+  if (
+    isObject(data) &&
+    "breadcrumbs" in data &&
+    Array.isArray(data.breadcrumbs)
+  ) {
     const lastBreadcrumb: unknown = data.breadcrumbs.at(-1);
 
     if (
@@ -21,14 +30,17 @@ export const nestedDocsPlusPlugin =
   async (incomingConfig) => {
     const [pluginConfig] = params;
 
-    const nestedDocsConfig = await nestedDocsPlugin(pluginConfig)(incomingConfig);
+    const nestedDocsConfig =
+      await nestedDocsPlugin(pluginConfig)(incomingConfig);
 
     const config: Config = {
       ...nestedDocsConfig,
       collections: (nestedDocsConfig.collections ?? []).map((collection) => {
         const fields = [...(collection.fields ?? [])];
 
-        if (pluginConfig.collections.includes(collection.slug as CollectionSlug)) {
+        if (
+          pluginConfig.collections.includes(collection.slug as CollectionSlug)
+        ) {
           fields.push({
             admin: {
               position: "sidebar",
@@ -45,7 +57,10 @@ export const nestedDocsPlusPlugin =
           fields,
           hooks: {
             ...collection.hooks,
-            beforeChange: [...(collection.hooks?.beforeChange ?? []), setPathnameHook],
+            beforeChange: [
+              ...(collection.hooks?.beforeChange ?? []),
+              setPathnameHook,
+            ],
           },
         };
       }),

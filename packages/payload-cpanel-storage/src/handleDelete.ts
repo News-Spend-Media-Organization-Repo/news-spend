@@ -10,14 +10,14 @@ import type { SftpConnectionPool } from "./connection-pool";
 import { SftpDeleteError } from "./errors";
 import { withRetry } from "./utils/retry";
 import {
-  buildSafePath,
-  sanitizeFilename,
-  sanitizePrefix,
+	buildSafePath,
+	sanitizeFilename,
+	sanitizePrefix,
 } from "./utils/sanitize";
 
 type HandleDeleteOptions = {
-  uploadDir: string;
-  pool: SftpConnectionPool;
+	uploadDir: string;
+	pool: SftpConnectionPool;
 };
 
 /**
@@ -35,99 +35,99 @@ type HandleDeleteOptions = {
  * @returns HandleDelete function for the cloud storage adapter
  */
 export const handleDelete = (
-  options: HandleDeleteOptions,
-  collection: CollectionConfig
+	options: HandleDeleteOptions,
+	collection: CollectionConfig,
 ): HandleDelete => {
-  return async ({ doc: { prefix = "" }, filename }) => {
-    const startTime = Date.now();
-    const sanitizedFilename = sanitizeFilename(filename);
-    const sanitizedPrefix = sanitizePrefix(prefix);
+	return async ({ doc: { prefix = "" }, filename }) => {
+		const startTime = Date.now();
+		const sanitizedFilename = sanitizeFilename(filename);
+		const sanitizedPrefix = sanitizePrefix(prefix);
 
-    logger.info(
-      {
-        collection: collection.slug,
-        filename: sanitizedFilename,
-        prefix: sanitizedPrefix,
-      },
-      "Starting file deletion"
-    );
+		logger.info(
+			{
+				collection: collection.slug,
+				filename: sanitizedFilename,
+				prefix: sanitizedPrefix,
+			},
+			"Starting file deletion",
+		);
 
-    try {
-      // Build safe remote path
-      const remotePath = buildSafePath({
-        basePath: options.uploadDir,
-        collection: collection.slug,
-        prefix: sanitizedPrefix,
-        filename: sanitizedFilename,
-      });
+		try {
+			// Build safe remote path
+			const remotePath = buildSafePath({
+				basePath: options.uploadDir,
+				collection: collection.slug,
+				prefix: sanitizedPrefix,
+				filename: sanitizedFilename,
+			});
 
-      await withRetry(
-        async () => {
-          return await options.pool.withConnection(async (sftp) => {
-            // Check if file exists before attempting deletion
-            const fileExists = await sftp.exists(remotePath);
+			await withRetry(
+				async () => {
+					return await options.pool.withConnection(async (sftp) => {
+						// Check if file exists before attempting deletion
+						const fileExists = await sftp.exists(remotePath);
 
-            if (!fileExists) {
-              logger.warn(
-                {
-                  collection: collection.slug,
-                  filename: sanitizedFilename,
-                  path: remotePath,
-                },
-                "File does not exist, skipping deletion"
-              );
-              return;
-            }
+						if (!fileExists) {
+							logger.warn(
+								{
+									collection: collection.slug,
+									filename: sanitizedFilename,
+									path: remotePath,
+								},
+								"File does not exist, skipping deletion",
+							);
+							return;
+						}
 
-            // Delete the file
-            await sftp.delete(remotePath);
+						// Delete the file
+						await sftp.delete(remotePath);
 
-            logger.debug(
-              {
-                collection: collection.slug,
-                filename: sanitizedFilename,
-                path: remotePath,
-              },
-              "File deleted successfully"
-            );
-          });
-        },
-        {
-          maxAttempts: 3,
-          initialDelayMs: 1000,
-          operationName: `deleteFile-${sanitizedFilename}`,
-        }
-      );
+						logger.debug(
+							{
+								collection: collection.slug,
+								filename: sanitizedFilename,
+								path: remotePath,
+							},
+							"File deleted successfully",
+						);
+					});
+				},
+				{
+					maxAttempts: 3,
+					initialDelayMs: 1000,
+					operationName: `deleteFile-${sanitizedFilename}`,
+				},
+			);
 
-      const duration = Date.now() - startTime;
+			const duration = Date.now() - startTime;
 
-      logger.info(
-        {
-          collection: collection.slug,
-          filename: sanitizedFilename,
-          duration,
-        },
-        "File deletion completed"
-      );
-    } catch (error) {
-      const duration = Date.now() - startTime;
+			logger.info(
+				{
+					collection: collection.slug,
+					filename: sanitizedFilename,
+					duration,
+				},
+				"File deletion completed",
+			);
+		} catch (error) {
+			const duration = Date.now() - startTime;
 
-      logger.error(
-        {
-          collection: collection.slug,
-          filename: sanitizedFilename,
-          prefix: sanitizedPrefix,
-          duration,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        "File deletion failed"
-      );
+			logger.error(
+				{
+					collection: collection.slug,
+					filename: sanitizedFilename,
+					prefix: sanitizedPrefix,
+					duration,
+					error: error instanceof Error ? error.message : String(error),
+				},
+				"File deletion failed",
+			);
 
-      throw new SftpDeleteError(
-        `Failed to delete file "${sanitizedFilename}" from collection "${collection.slug}"`,
-        sanitizedFilename,
-        error
-      );
-    }
-  };
+			throw new SftpDeleteError(
+				`Failed to delete file "${sanitizedFilename}" from collection "${collection.slug}"`,
+				sanitizedFilename,
+				error,
+			);
+		}
+	};
 };

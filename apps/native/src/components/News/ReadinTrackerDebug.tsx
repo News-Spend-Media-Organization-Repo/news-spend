@@ -48,7 +48,7 @@ export function ReadingTrackerDebug({
       tension: 80,
       friction: 12,
     }).start();
-  }, [visible]);
+  }, [visible, slideAnim]);
 
   useEffect(() => {
     if (!isTracking) {
@@ -67,11 +67,11 @@ export function ReadingTrackerDebug({
           duration: 800,
           useNativeDriver: true,
         }),
-      ]),
+      ])
     );
     loop.start();
     return () => loop.stop();
-  }, [isTracking]);
+  }, [isTracking, pulseAnim.setValue, pulseAnim]);
 
   if (!__DEV_TRACKER__) {
     return null;
@@ -80,17 +80,29 @@ export function ReadingTrackerDebug({
   const progress = Math.min(elapsedSeconds / minReadingSeconds, 1);
   const progressPct = `${Math.round(progress * 100)}%`;
   const remaining = Math.max(minReadingSeconds - elapsedSeconds, 0);
-  const statusColor = inRapidScroll ? "#f87171" : isTracking ? "#4ade80" : "#facc15";
+  const statusColor = inRapidScroll
+    ? "#f87171"
+    : isTracking
+      ? "#4ade80"
+      : "#facc15";
 
-  const panelTranslateY = slideAnim.interpolate({
+  const _panelTranslateY = slideAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [200, 0],
   });
 
   return (
     <>
-      <Pressable onPress={() => setVisible((v) => !v)} style={styles.toggleButton}>
-        <Animated.View style={[styles.dot, { backgroundColor: statusColor, opacity: pulseAnim }]} />
+      <Pressable
+        onPress={() => setVisible((v) => !v)}
+        style={styles.toggleButton}
+      >
+        <Animated.View
+          style={[
+            styles.dot,
+            { backgroundColor: statusColor, opacity: pulseAnim },
+          ]}
+        />
         <Text className="ml-1.5 text-[10px]" style={{ color: "#e2e2e2" }}>
           {visible ? "HIDE" : "DBG"}
         </Text>
@@ -118,7 +130,9 @@ export function ReadingTrackerDebug({
             <Row label="required" value={`${minReadingSeconds}s`} />
             <Row label="remaining" value={`${remaining}s`} />
             <Row label="progress" value={progressPct} />
-            {wordCount !== undefined && <Row label="word count" value={String(wordCount)} />}
+            {wordCount !== undefined && (
+              <Row label="word count" value={String(wordCount)} />
+            )}
 
             <View
               className="my-1 h-px w-full flex-row"

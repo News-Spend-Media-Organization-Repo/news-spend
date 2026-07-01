@@ -1,4 +1,7 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import {
+  LegendList,
+  type LegendListRenderItemProps,
+} from "@legendapp/list/react-native";
 import type { Activity } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { addDays, subDays } from "date-fns";
@@ -22,15 +25,19 @@ import {
 } from "./constants";
 
 export default function Activities() {
-  const [activityOption, setActivityOption] = useState<SelectOption | undefined>(
-    activityOptions[0],
+  const [activityOption, setActivityOption] = useState<
+    SelectOption | undefined
+  >(activityOptions[0]);
+  const [dateRange, setDateRange] = useState<SelectOption | undefined>(
+    dateRangeOptions[0]
   );
-  const [dateRange, setDateRange] = useState<SelectOption | undefined>(dateRangeOptions[0]);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [toggle, setToggle] = useState<ActivityType>("posted");
   const [openDateDialog, setOpenDateDialog] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
+    null
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const activities = useInfiniteQuery(
@@ -46,7 +53,7 @@ export default function Activities() {
       initialPageParam: undefined,
       enabled: !!authState.user,
       getNextPageParam: (lastPage) => lastPage.nextPage,
-    }),
+    })
   );
 
   const allPages = activities.data?.pages.flatMap((page) => page?.docs) ?? [];
@@ -103,7 +110,7 @@ export default function Activities() {
     ({ item }: LegendListRenderItemProps<Activity>) => (
       <ActivityRow item={item} onPress={onSelectActivity} />
     ),
-    [onSelectActivity],
+    [onSelectActivity]
   );
 
   return (
@@ -140,7 +147,9 @@ export default function Activities() {
               <Spinner />
             </View>
           ) : (
-            <Text className="mt-3 text-center text-secondary">No activities for this period</Text>
+            <Text className="mt-3 text-center text-secondary">
+              No activities for this period
+            </Text>
           )
         }
         ListFooterComponent={
@@ -153,7 +162,11 @@ export default function Activities() {
         ListHeaderComponent={
           <View className="my-3 gap-4">
             <View className="flex-row gap-2.5">
-              <Select className="flex-1" onValueChange={setActivityOption} value={activityOption}>
+              <Select
+                className="flex-1"
+                onValueChange={setActivityOption}
+                value={activityOption}
+              >
                 <Select.Trigger>
                   <Select.Value numberOfLines={1} placeholder="Category" />
                   <Select.TriggerIndicator />
@@ -161,7 +174,9 @@ export default function Activities() {
                 <Select.Portal>
                   <Select.Overlay className="bg-backdrop" />
                   <Select.Content presentation="popover" width="full">
-                    <Select.ListLabel className="mb-2">Category</Select.ListLabel>
+                    <Select.ListLabel className="mb-2">
+                      Category
+                    </Select.ListLabel>
                     {activityOptions.map((opt, i) => (
                       <React.Fragment key={opt.value}>
                         <Select.Item label={opt.label} value={opt.value} />
@@ -172,7 +187,11 @@ export default function Activities() {
                 </Select.Portal>
               </Select>
 
-              <Select className="flex-1" onValueChange={onFilter} value={dateRange}>
+              <Select
+                className="flex-1"
+                onValueChange={onFilter}
+                value={dateRange}
+              >
                 <Select.Trigger>
                   <Select.Value numberOfLines={1} placeholder="Date range" />
                   <Select.TriggerIndicator />
@@ -180,7 +199,9 @@ export default function Activities() {
                 <Select.Portal>
                   <Select.Overlay className="bg-backdrop" />
                   <Select.Content presentation="popover" width="full">
-                    <Select.ListLabel className="mb-2">Date range</Select.ListLabel>
+                    <Select.ListLabel className="mb-2">
+                      Date range
+                    </Select.ListLabel>
                     {dateRangeOptions.map((opt, i) => (
                       <React.Fragment key={opt.value}>
                         <Select.Item label={opt.label} value={opt.value} />
@@ -216,7 +237,11 @@ export default function Activities() {
         renderItem={renderItem}
       />
 
-      <ActivitySheet activity={selectedActivity} isOpen={sheetOpen} onOpenChange={setSheetOpen} />
+      <ActivitySheet
+        activity={selectedActivity}
+        isOpen={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
     </Screen>
   );
 }

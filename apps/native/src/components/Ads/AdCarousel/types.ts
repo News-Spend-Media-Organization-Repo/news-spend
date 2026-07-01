@@ -1,4 +1,8 @@
-import type { PartnerContent, PromoImage, PromoVideoSource } from "@news-spend-media/payload/types";
+import type {
+  PartnerContent,
+  PromoImage,
+  PromoVideoSource,
+} from "@news-spend-media/payload/types";
 
 export type AdCarouselRef = {
   play: () => void;

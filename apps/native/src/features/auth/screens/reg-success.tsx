@@ -32,10 +32,15 @@ export default function RegSuccess() {
   return (
     <Screen className="px-6" safeAreaEdges={["bottom"]}>
       <View className="mb-6 flex-1 items-center justify-center">
-        <Image className="size-full object-contain" source={require("#/images/Group-5.jpg")} />
+        <Image
+          className="size-full object-contain"
+          source={require("#/images/Group-5.jpg")}
+        />
       </View>
       <View className="mb-8 items-center gap-3">
-        <Text className="font-bold text-gray-600 text-xl">Registration Successful</Text>
+        <Text className="font-bold text-gray-600 text-xl">
+          Registration Successful
+        </Text>
         <Text>You have been awarded with 500 points</Text>
       </View>
       <Button

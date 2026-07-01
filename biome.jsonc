@@ -9,14 +9,13 @@
     "ultracite/biome/next"
   ],
   "javascript": {
-    "globals": [
-      "Bun",
-      "__DEV__",
-      "jest"
-    ]
+    "globals": ["Bun", "__DEV__", "jest"]
   },
   "linter": {
     "rules": {
+      "a11y": {
+        "useMediaCaption": "info"
+      },
       "style": {
         "useConsistentTypeDefinitions": {
           "level": "info",
@@ -24,7 +23,48 @@
           "options": {
             "style": "type"
           }
-        }
+        },
+        "useFilenamingConvention": "off",
+        "noNonNullAssertion": "info",
+        "noNestedTernary": "off",
+        "noSubstr": "info",
+        "useConsistentMemberAccessibility": "info",
+        "noParameterProperties": "info",
+        "noParameterAssign": "info",
+        "noHeadElement": "info"
+      },
+      "suspicious": {
+        "noExplicitAny": "info",
+        "noBitwiseOperators": "off",
+        "noEmptyBlockStatements": "info",
+        "noArrayIndexKey": "info",
+        "useAwait": "info",
+        "noUnusedExpressions": "info",
+        "noNonNullAssertedOptionalChain": "info",
+        "noDuplicateCustomProperties": "info",
+        "noControlCharactersInRegex": "info",
+        "noUnknownAtRules": "info",
+        "noEvolvingTypes": "info",
+        "noEmptySource": "info",
+        "useIterableCallbackReturn": "info"
+      },
+      "performance": {
+        "noNamespaceImport": "off",
+        "noBarrelFile": "off",
+        "useTopLevelRegex": "info",
+        "noAccumulatingSpread": "info"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "info",
+        "noForEach": "info",
+        "noBannedTypes": "info"
+      },
+      "correctness": {
+        "noUnusedFunctionParameters": "info",
+        "noUnusedVariables": "info",
+        "useExhaustiveDependencies": "info",
+        "noInvalidUseBeforeDeclaration": "info",
+        "noUnsafeOptionalChaining": "info"
       }
     }
   }

@@ -2,10 +2,13 @@ import React, { Suspense } from "react";
 import { View } from "react-native";
 import { Text } from "../ui";
 import { defaultElementRenderers } from "./default-element-renderers";
-import type { AbstractElementNode, PayloadLexicalReactRendererContent } from "./types";
+import type {
+  AbstractElementNode,
+  PayloadLexicalReactRendererContent,
+} from "./types";
 
 function getTextAlign(
-  format: AbstractElementNode<string>["format"],
+  format: AbstractElementNode<string>["format"]
 ): "left" | "right" | "center" | "justify" | undefined {
   if (format === "right") {
     return "right";
@@ -26,10 +29,14 @@ function getIndentStyle(indent: number) {
 const LexicalRenderer = React.lazy(() =>
   import("./payload-lexical-react-renderer").then((m) => ({
     default: m.PayloadLexicalReactRenderer,
-  })),
+  }))
 );
 
-export function RichTextCaption({ content }: { content: PayloadLexicalReactRendererContent }) {
+export function RichTextCaption({
+  content,
+}: {
+  content: PayloadLexicalReactRendererContent;
+}) {
   return (
     <Suspense fallback={null}>
       <View className="mt-1">

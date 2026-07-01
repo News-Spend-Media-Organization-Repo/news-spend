@@ -1,5 +1,8 @@
 import { ActivityIndicator, Platform } from "react-native";
-import { useCurrentTabScrollY, useHeaderMeasurements } from "react-native-collapsible-tab";
+import {
+  useCurrentTabScrollY,
+  useHeaderMeasurements,
+} from "react-native-collapsible-tab";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -15,7 +18,9 @@ type PullToRefreshIndicatorProps = {
   refreshing: boolean;
 };
 
-export function PullToRefreshIndicator({ refreshing }: PullToRefreshIndicatorProps) {
+export function PullToRefreshIndicator({
+  refreshing,
+}: PullToRefreshIndicatorProps) {
   if (Platform.OS !== "ios") {
     return null;
   }
@@ -31,11 +36,12 @@ function IOSTabPullSpinner({ refreshing }: { refreshing: boolean }) {
     () => scrollY.value,
     (current, previous) => {
       const pull = Math.max(0, -current);
-      const wasAbove = previous !== null && Math.max(0, -previous) >= PULL_THRESHOLD;
+      const wasAbove =
+        previous !== null && Math.max(0, -previous) >= PULL_THRESHOLD;
       if (!wasAbove && pull >= PULL_THRESHOLD) {
         scheduleOnRN(triggerLightHaptic);
       }
-    },
+    }
   );
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -46,7 +52,12 @@ function IOSTabPullSpinner({ refreshing }: { refreshing: boolean }) {
       top: headerHeight + tabBarHeight + headerTop.value + 8,
       transform: [
         {
-          translateY: interpolate(progress, [0, 1], [-20, 16], Extrapolation.CLAMP),
+          translateY: interpolate(
+            progress,
+            [0, 1],
+            [-20, 16],
+            Extrapolation.CLAMP
+          ),
         },
         {
           scale: interpolate(progress, [0, 1], [0.6, 1], Extrapolation.CLAMP),
@@ -76,12 +87,16 @@ function IOSTabPullSpinner({ refreshing }: { refreshing: boolean }) {
 
 export function triggerRefreshHaptic() {
   import("expo-haptics")
-    .then(({ impactAsync, ImpactFeedbackStyle }) => impactAsync(ImpactFeedbackStyle.Medium))
+    .then(({ impactAsync, ImpactFeedbackStyle }) =>
+      impactAsync(ImpactFeedbackStyle.Medium)
+    )
     .catch(() => undefined);
 }
 
 function triggerLightHaptic() {
   import("expo-haptics")
-    .then(({ impactAsync, ImpactFeedbackStyle }) => impactAsync(ImpactFeedbackStyle.Light))
+    .then(({ impactAsync, ImpactFeedbackStyle }) =>
+      impactAsync(ImpactFeedbackStyle.Light)
+    )
     .catch(() => undefined);
 }

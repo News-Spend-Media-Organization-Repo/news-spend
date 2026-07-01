@@ -3,7 +3,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog } from "heroui-native";
 import { XIcon } from "phosphor-react-native";
 import { useEffect, useId, useRef, useState } from "react";
-import { ActivityIndicator, Linking, Platform, useWindowDimensions, View } from "react-native";
+import {
+  ActivityIndicator,
+  Linking,
+  Platform,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import {
   NativeAd,
   NativeAdEventType,
@@ -48,7 +54,9 @@ export function DialogWithAd({
     ...queryOptions,
     queryKey,
   });
-  const lotteryTicketMutation = useMutation(orpc.lotteryTicket.create.mutationOptions());
+  const lotteryTicketMutation = useMutation(
+    orpc.lotteryTicket.create.mutationOptions()
+  );
   const [serverError, setServerError] = useState<string | null>(null);
   const navigation = useNavigation("GetTicket");
   const [randomNumber, setRandomNumber] = useState(Math.random());
@@ -83,35 +91,42 @@ export function DialogWithAd({
             }`,
           });
 
-          queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
+          queryClient.invalidateQueries(
+            orpc.activity.totalPoints.queryOptions()
+          );
           queryClient.invalidateQueries({
             queryKey: orpc.lotteryTicket.getByUser.queryKey(),
           });
 
-          queryClient.setQueryData(orpc.lotteryTicket.getByUser.key(), (previousPoints) => {
-            if (previousPoints) {
+          queryClient.setQueryData(
+            orpc.lotteryTicket.getByUser.key(),
+            (previousPoints) => {
+              if (previousPoints) {
+                return {
+                  ...previousPoints,
+                  lottery_tickets: {
+                    ...previousPoints.lottery_tickets,
+                    count:
+                      Number(previousPoints.lottery_tickets.count) +
+                      purchasedTickets,
+                  },
+                };
+              }
+
               return {
-                ...previousPoints,
                 lottery_tickets: {
-                  ...previousPoints.lottery_tickets,
-                  count: Number(previousPoints.lottery_tickets.count) + purchasedTickets,
+                  count: purchasedTickets,
                 },
               };
             }
-
-            return {
-              lottery_tickets: {
-                count: purchasedTickets,
-              },
-            };
-          });
+          );
         },
         onError: ({ data, message }) => {
           setServerError("Sorry, something went wrong.");
         },
-      },
+      }
     );
-  }, [open]);
+  }, [open, purchasedTickets, lotteryTicketMutation.mutate]);
 
   const onOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -164,7 +179,9 @@ export function DialogWithAd({
                     placeholder={{ blurhash }}
                     source={url}
                   />
-                  <Text className="font-semibold text-base">{ad.data?.title}</Text>
+                  <Text className="font-semibold text-base">
+                    {ad.data?.title}
+                  </Text>
                 </View>
 
                 <View className="items-center">
@@ -177,11 +194,17 @@ export function DialogWithAd({
                 </View>
 
                 <View className="flex-row gap-4">
-                  <Text className="flex-2 text-base text-gray-50" numberOfLines={2}>
+                  <Text
+                    className="flex-2 text-base text-gray-50"
+                    numberOfLines={2}
+                  >
                     {ad.data?.condition}
                   </Text>
 
-                  <Button className="h-auto flex-1 rounded-lg" onPress={handlePress}>
+                  <Button
+                    className="h-auto flex-1 rounded-lg"
+                    onPress={handlePress}
+                  >
                     <Button.Label>Visit</Button.Label>
                   </Button>
                 </View>
@@ -194,7 +217,8 @@ export function DialogWithAd({
               {randomNumber < 0.4 ? (
                 <Text className="text-center text-sm">
                   {getCtaLabel(ad.data?.cta)} and Get{" "}
-                  <Text className="text-s-500">{ad.data?.points ?? 0}</Text> points
+                  <Text className="text-s-500">{ad.data?.points ?? 0}</Text>{" "}
+                  points
                 </Text>
               ) : null}
 
@@ -206,7 +230,8 @@ export function DialogWithAd({
                     serverError
                   ) : (
                     <>
-                      You entered the Giveaway with {purchasedTickets ?? 0} ticket
+                      You entered the Giveaway with {purchasedTickets ?? 0}{" "}
+                      ticket
                       {purchasedTickets === 1 ? "" : "s"}.{" "}
                       <Text className="text-s-500">
                         {(purchasedTickets ?? 0) * 50} Dream Points
@@ -243,7 +268,9 @@ export function DialogWithAd({
 
 const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
   const [error, setError] = useState(false);
-  const [nativeAd, setNativeAd] = useState<NativeAd | undefined>(preloadedAd ?? undefined);
+  const [nativeAd, setNativeAd] = useState<NativeAd | undefined>(
+    preloadedAd ?? undefined
+  );
 
   useEffect(() => {
     if (preloadedAd) {
@@ -264,16 +291,23 @@ const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
     if (!nativeAd || nativeAd === preloadedAd) {
       return;
     }
-    const listener = nativeAd.addAdEventListener(NativeAdEventType.CLICKED, () => {
-      console.log("Native ad clicked");
-    });
+    const _listener = nativeAd.addAdEventListener(
+      NativeAdEventType.CLICKED,
+      () => {
+        console.log("Native ad clicked");
+      }
+    );
     return () => {
       nativeAd.destroy();
     };
   }, [nativeAd, preloadedAd]);
 
   if (!nativeAd) {
-    return <View className="py-3">{error ? <Text>Failed to load ad</Text> : null}</View>;
+    return (
+      <View className="py-3">
+        {error ? <Text>Failed to load ad</Text> : null}
+      </View>
+    );
   }
 
   return (
@@ -288,7 +322,11 @@ const NativeAdMob = ({ preloadedAd }: { preloadedAd?: NativeAd | null }) => {
         <View className="flex-row items-center gap-2 pl-3">
           {nativeAd.icon ? (
             <NativeAsset assetType={NativeAssetType.ICON}>
-              <Image className="size-7.5" contentFit="cover" source={{ uri: nativeAd.icon?.url }} />
+              <Image
+                className="size-7.5"
+                contentFit="cover"
+                source={{ uri: nativeAd.icon?.url }}
+              />
             </NativeAsset>
           ) : null}
 

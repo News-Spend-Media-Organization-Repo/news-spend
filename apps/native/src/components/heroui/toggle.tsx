@@ -165,7 +165,11 @@ function Label({ children, className, style }: LabelProps) {
   const colorStyle = useToggleButtonColor();
   const { label } = toggleButtonStyles();
   return (
-    <Animated.Text className={label({ className })} numberOfLines={1} style={[colorStyle, style]}>
+    <Animated.Text
+      className={label({ className })}
+      numberOfLines={1}
+      style={[colorStyle, style]}
+    >
       {children}
     </Animated.Text>
   );
@@ -208,16 +212,16 @@ function ToggleButtonRoot({
   // ── Selection state ────────────────────────────────────────────────────────
   const [localSelected, setLocalSelected] = useState(defaultSelected);
   const isSelected = isInGroup
-    ? group!.selectedKeys.has(id!)
+    ? group?.selectedKeys.has(id!)
     : isSelectedProp === undefined
       ? localSelected
       : isSelectedProp;
 
-  const isDisabled = isDisabledProp ?? (isInGroup ? group!.isDisabled : false);
-  const size = sizeProp ?? (isInGroup ? group!.size : "md");
-  const orientation = isInGroup ? group!.orientation : "horizontal";
-  const variant = isInGroup ? group!.variant : "detached";
-  const fullWidth = isInGroup ? group!.fullWidth : false;
+  const isDisabled = isDisabledProp ?? (isInGroup ? group?.isDisabled : false);
+  const size = sizeProp ?? (isInGroup ? group?.size : "md");
+  const orientation = isInGroup ? group?.orientation : "horizontal";
+  const variant = isInGroup ? group?.variant : "detached";
+  const fullWidth = isInGroup ? group?.fullWidth : false;
   const position = _position ?? "detached";
 
   const handlePress = () => {
@@ -225,7 +229,7 @@ function ToggleButtonRoot({
       return;
     }
     if (isInGroup) {
-      group!.toggleKey(id!);
+      group?.toggleKey(id!);
     } else {
       const next = !isSelected;
       setLocalSelected(next);
@@ -246,18 +250,22 @@ function ToggleButtonRoot({
       duration: 180,
       easing: Easing.out(Easing.ease),
     });
-  }, [isSelected]);
+  }, [isSelected, progress]);
 
   const animatedBg = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
       progress.value,
       [0, 1],
-      [variant === "attached" ? "transparent" : defaultBgColor, accentColor],
+      [variant === "attached" ? "transparent" : defaultBgColor, accentColor]
     ),
   }));
 
   const animatedText = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [defaultFgColor, accentFgColor]),
+    color: interpolateColor(
+      progress.value,
+      [0, 1],
+      [defaultFgColor, accentFgColor]
+    ),
   }));
 
   // ── Styles from tv ─────────────────────────────────────────────────────────
@@ -336,7 +344,9 @@ function ToggleButtonGroupRoot({
   children,
 }: ToggleButtonGroupProps) {
   const isControlled = selectedKeysProp !== undefined;
-  const [localKeys, setLocalKeys] = useState<Set<string>>(new Set(defaultSelectedKeys));
+  const [localKeys, setLocalKeys] = useState<Set<string>>(
+    new Set(defaultSelectedKeys)
+  );
   const selectedKeys = isControlled ? new Set(selectedKeysProp) : localKeys;
 
   const toggleKey = (id: string) => {
@@ -389,7 +399,8 @@ function ToggleButtonGroupRoot({
         pos = "last";
       }
 
-      const effectivePosition: Position = variant === "detached" ? "detached" : pos;
+      const effectivePosition: Position =
+        variant === "detached" ? "detached" : pos;
 
       return cloneElement(child as React.ReactElement<ToggleButtonProps>, {
         _position: effectivePosition,
@@ -408,7 +419,9 @@ function ToggleButtonGroupRoot({
         ? (childArray[i + 1] as React.ReactElement).props.id
         : undefined;
 
-      const hide = (prevId && selectedKeys.has(prevId)) || (nextId && selectedKeys.has(nextId));
+      const hide =
+        (prevId && selectedKeys.has(prevId)) ||
+        (nextId && selectedKeys.has(nextId));
 
       return (
         <Separator

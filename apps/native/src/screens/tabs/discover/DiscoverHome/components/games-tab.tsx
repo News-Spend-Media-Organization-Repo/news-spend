@@ -8,7 +8,10 @@ import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { authState } from "#/state/auth";
 import { GameItem } from "./game-item";
-import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
+import {
+  PullToRefreshIndicator,
+  triggerRefreshHaptic,
+} from "./pull-to-refresh-indicator";
 
 export function GamesTab() {
   const { user } = useSnapshot(authState);
@@ -18,7 +21,7 @@ export function GamesTab() {
     queryFn: async () => {
       const page = Math.floor(Math.random() * 850) + 1;
       const res = await fetch(
-        `https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=${page}`,
+        `https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=${page}`
       );
       const res_1 = await res.json();
       return res_1?.items ?? [];
@@ -43,14 +46,14 @@ export function GamesTab() {
         });
       }
     },
-    [navigation, user],
+    [navigation, user]
   );
 
   const renderItem = useCallback(
     ({ item }: { item: any }) => (
       <GameItem item={item} onPress={() => onItemClick(item.url, item.title)} />
     ),
-    [onItemClick],
+    [onItemClick]
   );
 
   const refreshControl = useMemo(
@@ -62,7 +65,7 @@ export function GamesTab() {
           refreshing={isRefetchingByUser}
         />
       ) : undefined,
-    [refetchByUser, isRefetchingByUser],
+    [refetchByUser, isRefetchingByUser]
   );
 
   return (

@@ -12,8 +12,12 @@ export type CreateContextOptions = {
   request?: Request;
 };
 
-export async function createContext({ context, request }: CreateContextOptions) {
-  const headers = context?.req?.raw?.headers || request?.headers || new Headers();
+export async function createContext({
+  context,
+  request,
+}: CreateContextOptions) {
+  const headers =
+    context?.req?.raw?.headers || request?.headers || new Headers();
 
   const [session, payload] = await Promise.all([
     auth.api.getSession({

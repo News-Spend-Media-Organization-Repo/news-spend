@@ -1,7 +1,11 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNetInfo } from "@react-native-community/netinfo";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { type InfiniteData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useQuery,
+} from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
@@ -35,16 +39,20 @@ function CommentReplies() {
     orpc.comments.one.queryOptions({
       input: commentId,
       initialData: () => {
-        const comments = queryClient.getQueryData<InfiniteData<RouterOutputs["comments"]["all"]>>(
+        const comments = queryClient.getQueryData<
+          InfiniteData<RouterOutputs["comments"]["all"]>
+        >(
           orpc.comments.all.infiniteKey({
             input: (pageParam) => ({ newsId: rest.newsId, page: pageParam }),
             initialPageParam: undefined,
-          }),
+          })
         );
         const found = comments?.pages
           .flatMap((page) => page.docs)
           .find((comment) => comment.id === commentId);
-        if (!found) return undefined;
+        if (!found) {
+          return;
+        }
         return {
           ...found,
           user: found.user ?? { id: "", username: "" },
@@ -57,7 +65,7 @@ function CommentReplies() {
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    }),
+    })
   );
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
@@ -69,7 +77,7 @@ function CommentReplies() {
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
-    }),
+    })
   );
 
   const onEndReached = () => {
@@ -78,10 +86,12 @@ function CommentReplies() {
     }
   };
 
-  const navigation = useNavigation();
+  const _navigation = useNavigation();
 
   const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
-  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(replies.refetch);
+  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
+    replies.refetch
+  );
 
   if (isPending) {
     return (
@@ -102,7 +112,11 @@ function CommentReplies() {
   // }
 
   return (
-    <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView systemBarStyle="auto">
+    <Screen
+      contentContainerClassName="py-safe"
+      disableKeyboardAvoidingView
+      systemBarStyle="auto"
+    >
       <KeyboardAvoidingView
         behavior="padding"
         // keyboardVerticalOffset={50}
@@ -120,7 +134,9 @@ function CommentReplies() {
               </View>
             )
           }
-          ListFooterComponent={replies.isFetchingNextPage ? <ActivityIndicator /> : null}
+          ListFooterComponent={
+            replies.isFetchingNextPage ? <ActivityIndicator /> : null
+          }
           ListHeaderComponent={<CommentCard comment={data} ref={ref} />}
           ListHeaderComponentStyle={{ marginVertical: 15 }}
           // showsVerticalScrollIndicator={false}

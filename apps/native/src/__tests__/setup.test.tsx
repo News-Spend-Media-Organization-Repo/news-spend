@@ -6,7 +6,7 @@ describe("RN testing setup", () => {
     render(
       <View>
         <Text>Hello from RN</Text>
-      </View>,
+      </View>
     );
 
     expect(screen.getByText("Hello from RN")).toBeTruthy();

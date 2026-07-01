@@ -158,7 +158,10 @@ function DefaultDayCell({
           class: cn(
             classNames.dayCircle,
             (state.isSelected || state.isCap) && classNames.dayCircleSelected,
-            state.isToday && !state.isSelected && !state.isCap && classNames.dayCircleToday,
+            state.isToday &&
+              !state.isSelected &&
+              !state.isCap &&
+              classNames.dayCircleToday
           ),
         })}
       >
@@ -172,10 +175,13 @@ function DefaultDayCell({
             class: cn(
               classNames.dayText,
               (state.isSelected || state.isCap) && classNames.dayTextSelected,
-              state.isToday && !state.isSelected && !state.isCap && classNames.dayTextToday,
+              state.isToday &&
+                !state.isSelected &&
+                !state.isCap &&
+                classNames.dayTextToday,
               !state.isCurrentMonth && classNames.dayTextOutOfMonth,
               state.isDisabled && classNames.dayTextDisabled,
-              state.isMiddle && classNames.dayTextInRange,
+              state.isMiddle && classNames.dayTextInRange
             ),
           })}
         >
@@ -199,7 +205,9 @@ export function Calendar({
   classNames = {},
   renderDay,
 }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(rangeStart ?? selected ?? new Date());
+  const [currentMonth, setCurrentMonth] = useState(
+    rangeStart ?? selected ?? new Date()
+  );
 
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentMonth)),
@@ -230,25 +238,35 @@ export function Calendar({
   return (
     <View className={cn(classNames.container)}>
       {/* Month navigation */}
-      <View className={cn("mb-3 flex-row items-center justify-between px-1", classNames.header)}>
+      <View
+        className={cn(
+          "mb-3 flex-row items-center justify-between px-1",
+          classNames.header
+        )}
+      >
         <Pressable
           className={cn(
             "size-9 items-center justify-center rounded-full active:bg-muted",
-            classNames.navButton,
+            classNames.navButton
           )}
           onPress={() => setCurrentMonth(subMonths(currentMonth, 1))}
         >
           <Icon name={CaretLeftIcon} size={20} />
         </Pressable>
 
-        <Text className={cn("font-semibold text-foreground text-sm", classNames.monthLabel)}>
+        <Text
+          className={cn(
+            "font-semibold text-foreground text-sm",
+            classNames.monthLabel
+          )}
+        >
           {format(currentMonth, "MMMM yyyy")}
         </Text>
 
         <Pressable
           className={cn(
             "size-9 items-center justify-center rounded-full active:bg-muted",
-            classNames.navButton,
+            classNames.navButton
           )}
           onPress={() => setCurrentMonth(addMonths(currentMonth, 1))}
         >
@@ -261,7 +279,10 @@ export function Calendar({
         {WEEKDAYS.map((d) => (
           <View className="flex-1 items-center py-1" key={d}>
             <Text
-              className={cn("font-medium text-muted-foreground text-xs", classNames.weekdayLabel)}
+              className={cn(
+                "font-medium text-muted-foreground text-xs",
+                classNames.weekdayLabel
+              )}
             >
               {d}
             </Text>
@@ -272,7 +293,8 @@ export function Calendar({
       {/* Day grid */}
       <View className={cn("flex-row flex-wrap", classNames.dayGrid)}>
         {days.map((day) => {
-          const isDisabled = (!!min && isBefore(day, min)) || (!!max && isAfter(day, max));
+          const isDisabled =
+            (!!min && isBefore(day, min)) || (!!max && isAfter(day, max));
           const isCurrentMonth = isSameMonth(day, currentMonth);
           const isToday = isSameDay(day, new Date());
           const isSelected = !!selected && isSameDay(day, selected);
@@ -307,7 +329,11 @@ export function Calendar({
               {renderDay ? (
                 renderDay(day, state)
               ) : (
-                <DefaultDayCell classNames={classNames} day={day} state={state} />
+                <DefaultDayCell
+                  classNames={classNames}
+                  day={day}
+                  state={state}
+                />
               )}
             </Pressable>
           );

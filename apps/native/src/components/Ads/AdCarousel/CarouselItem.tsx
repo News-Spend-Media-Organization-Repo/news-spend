@@ -10,7 +10,9 @@ import { getImageData } from "#/utils/getImageData";
 import type { AdCarouselRef, CarouselItemData } from "./types";
 import VideoComponent from "./VideoComponent";
 
-export const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
+export const CustomScrollView = (props: ScrollViewProps) => (
+  <ScrollView {...props} />
+);
 
 const CarouselItem = ({
   item,
@@ -27,8 +29,9 @@ const CarouselItem = ({
   const isFirstItem = index === 0;
 
   const { url, blurhash } = useMemo(
-    () => getImageData(blk?.blockType === "promo-image" ? blk?.image : undefined),
-    [blk],
+    () =>
+      getImageData(blk?.blockType === "promo-image" ? blk?.image : undefined),
+    [blk]
   );
 
   const itemWidth = isFirstItem ? width * 0.85 : 120;

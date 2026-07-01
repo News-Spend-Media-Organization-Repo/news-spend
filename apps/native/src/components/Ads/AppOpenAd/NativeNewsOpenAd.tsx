@@ -26,25 +26,25 @@ const NativeNewsOpenAd = ({
       return;
     }
     nativeAd.addAdEventListener(NativeAdEventType.IMPRESSION, () =>
-      console.debug("Native ad impression"),
+      console.debug("Native ad impression")
     );
     nativeAd.addAdEventListener(NativeAdEventType.CLICKED, () =>
-      console.debug("Native ad clicked"),
+      console.debug("Native ad clicked")
     );
     nativeAd.addAdEventListener(NativeAdEventType.VIDEO_PLAYED, () =>
-      console.debug("Native ad video played"),
+      console.debug("Native ad video played")
     );
     nativeAd.addAdEventListener(NativeAdEventType.VIDEO_PAUSED, () =>
-      console.debug("Native ad video paused"),
+      console.debug("Native ad video paused")
     );
     nativeAd.addAdEventListener(NativeAdEventType.VIDEO_ENDED, () =>
-      console.debug("Native ad video ended"),
+      console.debug("Native ad video ended")
     );
     nativeAd.addAdEventListener(NativeAdEventType.VIDEO_MUTED, () =>
-      console.debug("Native ad video muted"),
+      console.debug("Native ad video muted")
     );
     nativeAd.addAdEventListener(NativeAdEventType.VIDEO_UNMUTED, () =>
-      console.debug("Native ad video unmuted"),
+      console.debug("Native ad video unmuted")
     );
     return () => nativeAd.destroy();
   }, [nativeAd]);
@@ -73,27 +73,39 @@ const NativeNewsOpenAd = ({
         height: "100%",
       }}
     >
-      <Text className="px-2 pt-2 pb-4 text-center font-medium">Advertisement</Text>
+      <Text className="px-2 pt-2 pb-4 text-center font-medium">
+        Advertisement
+      </Text>
 
       <View className="min-h-50 px-2">
         <NativeMediaView />
-        <Text className="my-3 self-start border border-p-400 px-px font-medium">Ad</Text>
+        <Text className="my-3 self-start border border-p-400 px-px font-medium">
+          Ad
+        </Text>
       </View>
 
       <View className="gap-2 p-4">
         <View className="items-center justify-center gap-2">
           {nativeAd.icon && (
             <NativeAsset assetType={NativeAssetType.ICON}>
-              <Image height={100} source={{ uri: nativeAd.icon.url }} width={100} />
+              <Image
+                height={100}
+                source={{ uri: nativeAd.icon.url }}
+                width={100}
+              />
             </NativeAsset>
           )}
           {nativeAd.advertiser && (
             <NativeAsset assetType={NativeAssetType.ADVERTISER}>
-              <Text className="text-center font-medium">{nativeAd.advertiser}</Text>
+              <Text className="text-center font-medium">
+                {nativeAd.advertiser}
+              </Text>
             </NativeAsset>
           )}
           <NativeAsset assetType={NativeAssetType.HEADLINE}>
-            <Text className="text-center font-bold text-lg">{nativeAd.headline}</Text>
+            <Text className="text-center font-bold text-lg">
+              {nativeAd.headline}
+            </Text>
           </NativeAsset>
         </View>
         <NativeAsset assetType={NativeAssetType.BODY}>

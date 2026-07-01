@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Dimensions,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import YoutubeIframe from "react-native-youtube-iframe";
 
 function extractVideoId(input: string): string | undefined {
@@ -29,7 +35,13 @@ function extractVideoId(input: string): string | undefined {
 const screenWidth = Dimensions.get("window").width;
 const videoHeight = Math.round(screenWidth * (9 / 16));
 
-export function YouTubeEmbed({ videoUrl, caption }: { videoUrl: string; caption?: string }) {
+export function YouTubeEmbed({
+  videoUrl,
+  caption,
+}: {
+  videoUrl: string;
+  caption?: string;
+}) {
   const [isReady, setIsReady] = useState(false);
   const videoId = extractVideoId(videoUrl);
 

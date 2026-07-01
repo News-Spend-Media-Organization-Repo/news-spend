@@ -110,9 +110,9 @@ const FacebookVideoPlayer = ({ videoUrl }) => {
     webViewRef.current.postMessage(JSON.stringify(message));
   };
 
-  const play = () => sendMessage({ action: "play" });
-  const pause = () => sendMessage({ action: "pause" });
-  const seek = (time) => sendMessage({ action: "seek", time });
+  const _play = () => sendMessage({ action: "play" });
+  const _pause = () => sendMessage({ action: "pause" });
+  const _seek = (time) => sendMessage({ action: "seek", time });
 
   return (
     <View style={styles.container}>

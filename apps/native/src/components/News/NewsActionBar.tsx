@@ -67,7 +67,9 @@ export function NewsActionBar(props: NewsActionBarProps) {
             <View className="relative">
               <Icon className="text-p-500" name={ChatIcon} size={30} />
               <View className="absolute bottom-4.5 left-7.25">
-                <Text className="font-semibold text-xs">{props.news?.totalComments ?? 0}</Text>
+                <Text className="font-semibold text-xs">
+                  {props.news?.totalComments ?? 0}
+                </Text>
               </View>
             </View>
           </Pressable>
@@ -85,7 +87,8 @@ export function NewsActionBar(props: NewsActionBarProps) {
               />
               <View className="absolute bottom-4.5 left-7">
                 <Text className="font-semibold text-xs">
-                  {(props.news?.likesCount ?? 0) + (props.news?.totalCommentLikes ?? 0)}
+                  {(props.news?.likesCount ?? 0) +
+                    (props.news?.totalCommentLikes ?? 0)}
                 </Text>
               </View>
             </View>
@@ -103,7 +106,9 @@ export function NewsActionBar(props: NewsActionBarProps) {
                 weight={isDisliked ? "fill" : "bold"}
               />
               <View className="absolute bottom-4.5 left-7.25">
-                <Text className="font-semibold text-xs">{props.news?.dislikesCount ?? 0}</Text>
+                <Text className="font-semibold text-xs">
+                  {props.news?.dislikesCount ?? 0}
+                </Text>
               </View>
             </View>
           </Pressable>

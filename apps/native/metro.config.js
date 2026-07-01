@@ -4,10 +4,10 @@ const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const { withUniwindConfig } = require("uniwind/metro");
 // const { withFacetpack } = require("@ecrindigital/facetpack");
 // const { FileStore } = require("@expo/metro/metro-cache");
-const path = require("node:path");
+const _path = require("node:path");
 const os = require("node:os");
 
-const config = getSentryExpoConfig(__dirname);
+const config = getSentryExpoConfig(import.meta.dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 config.maxWorkers = Math.max(1, Math.floor(os.cpus().length * 0.5));
@@ -24,5 +24,5 @@ module.exports = withRozenite(
     cssEntryFile: "./src/global.css",
     dtsFile: "./src/uniwind-types.d.ts",
   }),
-  { enabled: process.env.WITH_ROZENITE === "true" },
+  { enabled: process.env.WITH_ROZENITE === "true" }
 );

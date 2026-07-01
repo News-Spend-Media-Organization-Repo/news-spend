@@ -16,7 +16,7 @@ type CommentOne = RouterOutputs["comments"]["one"];
  * }
  */
 export function isRefObject<T>(
-  ref?: RefObject<T> | ((instance: T | null) => void),
+  ref?: RefObject<T> | ((instance: T | null) => void)
 ): ref is RefObject<T> {
   return !!ref && typeof ref !== "function" && "current" in ref;
 }
@@ -30,7 +30,9 @@ export function isRefObject<T>(
  * The field may be a populated object or a bare string ID depending on
  * whether the query depth included it.
  */
-export function getUsername(user: CommentOne["user"] | undefined): string | undefined {
+export function getUsername(
+  user: CommentOne["user"] | undefined
+): string | undefined {
   if (!user) {
     return;
   }

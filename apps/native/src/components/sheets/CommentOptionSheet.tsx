@@ -1,10 +1,7 @@
 import { BottomSheet } from "heroui-native/bottom-sheet";
-import React from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSnapshot } from "valtio";
-
-import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import useDeleteComment from "#/hooks/comments/useDeleteComment";
 import type { RouterOutputs } from "#/lib/orpc";
@@ -40,9 +37,11 @@ export function CommentOptionSheet({
     startEdit(comment);
   };
 
-  const isLessThan15Minutes = Date.now() - new Date(comment.createdAt).getTime() < 900_000;
+  const isLessThan15Minutes =
+    Date.now() - new Date(comment.createdAt).getTime() < 900_000;
 
-  const commentUserId = typeof comment.user === "object" ? comment.user.id : comment.user;
+  const commentUserId =
+    typeof comment.user === "object" ? comment.user.id : comment.user;
 
   const isOwner = auth.session?.user?.id === commentUserId;
 
@@ -54,7 +53,9 @@ export function CommentOptionSheet({
           <View className="gap-2 px-3 pt-3">
             {isOwner && (
               <>
-                {isLessThan15Minutes && <SheetRow label="Edit" onPress={onEdit} />}
+                {isLessThan15Minutes && (
+                  <SheetRow label="Edit" onPress={onEdit} />
+                )}
                 <SheetRow
                   danger
                   disabled={deleteMutation.isPending}
@@ -88,7 +89,9 @@ function SheetRow({
       disabled={disabled}
       onPress={onPress}
     >
-      <Text className={`text-base ${danger ? "font-semibold text-danger" : "text-foreground"}`}>
+      <Text
+        className={`text-base ${danger ? "font-semibold text-danger" : "text-foreground"}`}
+      >
         {label}
       </Text>
     </Pressable>

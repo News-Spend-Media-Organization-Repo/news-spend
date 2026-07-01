@@ -2,7 +2,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner-native";
 
-import { orpc, type RouterOutputs } from "#/lib/orpc";
+import { orpc } from "#/lib/orpc";
 import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
 
 export default function useDeleteComment() {
@@ -24,7 +24,9 @@ export default function useDeleteComment() {
   return useMutation(
     orpc.comments.delete.mutationOptions({
       onMutate(commentToDeleteId) {
-        toast.loading("Deleting comment...", { duration: Infinity });
+        toast.loading("Deleting comment...", {
+          duration: Number.POSITIVE_INFINITY,
+        });
 
         const prevNews = queryClient.getQueryData(
           orpc.news.one.queryKey({ input: { slug, type } })
@@ -53,7 +55,9 @@ export default function useDeleteComment() {
           queryClient.setQueryData(
             orpc.comments.one.queryKey({ input: commentId }),
             (data) => {
-              if (!data) return data;
+              if (!data) {
+                return data;
+              }
               return {
                 ...data,
                 totalReplies: Math.max((data.totalReplies ?? 0) - 1, 0),
@@ -72,7 +76,9 @@ export default function useDeleteComment() {
               initialPageParam: undefined,
             }),
             (data) => {
-              if (!data) return data;
+              if (!data) {
+                return data;
+              }
               return {
                 ...data,
                 pages: data.pages.map((page) => ({
@@ -89,7 +95,9 @@ export default function useDeleteComment() {
           queryClient.setQueryData(
             orpc.news.one.queryKey({ input: { slug, type } }),
             (data) => {
-              if (!data) return data;
+              if (!data) {
+                return data;
+              }
               return {
                 ...data,
                 totalComments: Math.max((data?.totalComments ?? 0) - 1, 0),
@@ -114,7 +122,7 @@ export default function useDeleteComment() {
             initialPageParam: undefined,
           })
         );
-        const previousComment = commentId
+        const _previousComment = commentId
           ? queryClient.getQueryData(
               orpc.comments.one.queryKey({ input: commentId })
             )
@@ -126,7 +134,9 @@ export default function useDeleteComment() {
             initialPageParam: undefined,
           }),
           (data) => {
-            if (!data) return data;
+            if (!data) {
+              return data;
+            }
             return {
               ...data,
               pages: data.pages.map((page) => ({
@@ -147,7 +157,9 @@ export default function useDeleteComment() {
           queryClient.setQueryData(
             orpc.news.one.queryKey({ input: { slug, type } }),
             (data) => {
-              if (!data) return data;
+              if (!data) {
+                return data;
+              }
               return {
                 ...data,
                 totalComments: Math.max((data.totalComments ?? 0) - 1, 0),

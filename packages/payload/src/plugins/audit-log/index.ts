@@ -45,7 +45,14 @@ const ADMIN_COLLECTION = "admins";
 const USER_COLLECTION = "users";
 
 // Fields to strip from logged data (sensitive / noisy)
-const OMIT_FIELDS = new Set(["password", "salt", "hash", "tokens", "updatedAt", "__v"]);
+const OMIT_FIELDS = new Set([
+  "password",
+  "salt",
+  "hash",
+  "tokens",
+  "updatedAt",
+  "__v",
+]);
 
 // -------------------------------------------------------------------
 // Helpers
@@ -56,7 +63,9 @@ function sanitize(data: unknown): Record<string, unknown> | unknown {
     return data;
   }
   return Object.fromEntries(
-    Object.entries(data as Record<string, unknown>).filter(([key]) => !OMIT_FIELDS.has(key)),
+    Object.entries(data as Record<string, unknown>).filter(
+      ([key]) => !OMIT_FIELDS.has(key)
+    )
   );
 }
 
@@ -67,7 +76,7 @@ function sanitize(data: unknown): Record<string, unknown> | unknown {
  */
 function diff(
   original: Record<string, unknown>,
-  updated: Record<string, unknown>,
+  updated: Record<string, unknown>
 ): Record<string, { from: unknown; to: unknown }> | null {
   const changes: Record<string, { from: unknown; to: unknown }> = {};
   const keys = new Set([...Object.keys(original), ...Object.keys(updated)]);
@@ -90,7 +99,9 @@ function extractIp(req: unknown): string | undefined {
   }
 
   const r = req as Record<string, unknown>;
-  const headers = r.headers as Record<string, string | string[] | undefined> | undefined;
+  const headers = r.headers as
+    | Record<string, string | string[] | undefined>
+    | undefined;
   const socket = r.socket as Record<string, unknown> | undefined;
 
   const forwardedFor = headers?.["x-forwarded-for"];
@@ -123,13 +134,17 @@ function resolveActor(req: unknown): {
     return { performedBy: null };
   }
 
-  const user = (req as Record<string, unknown>).user as Record<string, unknown> | null | undefined;
+  const user = (req as Record<string, unknown>).user as
+    | Record<string, unknown>
+    | null
+    | undefined;
   if (!user?.id) {
     return { performedBy: null };
   }
 
   const collection = (user.collection as string) ?? ADMIN_COLLECTION;
-  const relationTo = collection === USER_COLLECTION ? USER_COLLECTION : ADMIN_COLLECTION;
+  const relationTo =
+    collection === USER_COLLECTION ? USER_COLLECTION : ADMIN_COLLECTION;
 
   return { performedBy: { relationTo, value: user.id as string | number } };
 }
@@ -144,7 +159,13 @@ const auditLogsCollection: CollectionConfig = {
   admin: {
     hidden: false,
     useAsTitle: "operation",
-    defaultColumns: ["collection", "operation", "documentId", "performedBy", "createdAt"],
+    defaultColumns: [
+      "collection",
+      "operation",
+      "documentId",
+      "performedBy",
+      "createdAt",
+    ],
     group: "System",
   },
   access: {
@@ -232,7 +253,7 @@ async function writeLog(payload: BasePayload, entry: LogEntry): Promise<void> {
         documentId: entry.documentId,
         operation: entry.operation,
       },
-      "[audit-log] Failed to write log",
+      "[audit-log] Failed to write log"
     );
   }
 }
@@ -259,12 +280,21 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
       return collection;
     }
 
-    const hook: CollectionAfterOperationHook = async ({ operation, result, args, req }) => {
+    const hook: CollectionAfterOperationHook = async ({
+      operation,
+      result,
+      args,
+      req,
+    }) => {
       // Payload uses different operation names for single vs bulk operations
       // (updateByID vs update, deleteByID vs delete). Normalize to the names
       // used in AUDIT_TARGETS so the check works for both paths.
       const normalized =
-        operation === "updateByID" ? "update" : operation === "deleteByID" ? "delete" : operation;
+        operation === "updateByID"
+          ? "update"
+          : operation === "deleteByID"
+            ? "delete"
+            : operation;
       if (!ops.includes(normalized as CrudOperation)) {
         return result;
       }
@@ -297,7 +327,9 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
           (args as { id?: unknown } | null)?.id ??
           "unknown";
 
-        const originalDoc = (args as { originalDoc?: Record<string, unknown> } | null)?.originalDoc;
+        const originalDoc = (
+          args as { originalDoc?: Record<string, unknown> } | null
+        )?.originalDoc;
 
         const logEntry: LogEntry = {
           collection: collection.slug,
@@ -315,7 +347,10 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
             // Prefer diff when we have the before state
             logEntry.diff = diff(
               sanitize(originalDoc) as Record<string, unknown>,
-              sanitize(result as Record<string, unknown>) as Record<string, unknown>,
+              sanitize(result as Record<string, unknown>) as Record<
+                string,
+                unknown
+              >
             );
           } else {
             // originalDoc missing (e.g. called outside standard admin flow) —
@@ -343,9 +378,14 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
     // are recorded alongside CRUD operations.
     if (collection.slug === ADMIN_COLLECTION) {
       const existingAuth =
-        typeof collection.auth === "object" && collection.auth ? collection.auth : {};
+        typeof collection.auth === "object" && collection.auth
+          ? collection.auth
+          : {};
 
-      const afterLoginHook: CollectionAfterLoginHook = async ({ req, user }) => {
+      const afterLoginHook: CollectionAfterLoginHook = async ({
+        req,
+        user,
+      }) => {
         const ip = extractIp(req);
         await writeLog(req.payload, {
           collection: ADMIN_COLLECTION,
@@ -405,7 +445,7 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
         previousDoc && doc
           ? diff(
               sanitize(previousDoc) as Record<string, unknown>,
-              sanitize(doc) as Record<string, unknown>,
+              sanitize(doc) as Record<string, unknown>
             )
           : undefined;
 

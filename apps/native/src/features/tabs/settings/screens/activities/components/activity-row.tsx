@@ -35,7 +35,12 @@ export const ActivityRow = React.memo(({ item, onPress }: ActivityRowProps) => {
           </Text>
         </View>
 
-        <Text className={cn("font-semibold text-sm", isPositive ? "text-success" : "text-danger")}>
+        <Text
+          className={cn(
+            "font-semibold text-sm",
+            isPositive ? "text-success" : "text-danger"
+          )}
+        >
           {isPositive ? "+" : ""}
           {item.point} pts
         </Text>

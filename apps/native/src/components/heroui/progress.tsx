@@ -32,7 +32,13 @@
  */
 
 import { cn } from "heroui-native"; // re-exports clsx + twMerge
-import React, { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { Text, type TextStyle, View, type ViewStyle } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -104,7 +110,10 @@ type LabelProps = {
 
 function Label({ children, className, style }: LabelProps) {
   return (
-    <Text className={cn("mb-1.5 text-foreground text-sm", className)} style={style}>
+    <Text
+      className={cn("mb-1.5 text-foreground text-sm", className)}
+      style={style}
+    >
       {children}
     </Text>
   );
@@ -125,7 +134,7 @@ function Track({ children, className, style }: TrackProps) {
         "w-full overflow-hidden rounded-full",
         trackColorMap[color],
         sizeMap[size],
-        className,
+        className
       )}
       onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
       style={style}
@@ -153,7 +162,7 @@ function Fill({ className, style }: FillProps) {
         easing: Easing.out(Easing.cubic),
       });
     }
-  }, [value, indeterminate]);
+  }, [value, indeterminate, widthPct]);
 
   const determinateStyle = useAnimatedStyle(() => ({
     width: `${widthPct.value}%`,
@@ -185,11 +194,11 @@ function Fill({ className, style }: FillProps) {
         easing: Easing.inOut(Easing.ease),
       }),
       -1, // loop forever
-      false, // don't reverse — always sweeps left → right
+      false // don't reverse — always sweeps left → right
     );
 
     return () => cancelAnimation(translateX);
-  }, [indeterminate, trackWidth]);
+  }, [indeterminate, trackWidth, translateX]);
 
   const indeterminateStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -198,7 +207,11 @@ function Fill({ className, style }: FillProps) {
   if (indeterminate) {
     return (
       <Animated.View
-        className={cn("absolute top-0 bottom-0 rounded-full", fillColorMap[color], className)}
+        className={cn(
+          "absolute top-0 bottom-0 rounded-full",
+          fillColorMap[color],
+          className
+        )}
         style={[
           {
             width: trackWidth > 0 ? trackWidth * FILL_RATIO : "40%",
@@ -263,7 +276,9 @@ function Root({
     <ProgressBarContext.Provider value={context}>
       <View
         accessibilityRole="progressbar"
-        accessibilityValue={indeterminate ? undefined : { min: 0, max: 100, now: clampedValue }}
+        accessibilityValue={
+          indeterminate ? undefined : { min: 0, max: 100, now: clampedValue }
+        }
         accessible
         className={cn("w-full", className)}
         style={style}

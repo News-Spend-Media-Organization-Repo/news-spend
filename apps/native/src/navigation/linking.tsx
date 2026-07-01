@@ -81,10 +81,10 @@ export const linking: LinkingOptions<RootParamList> = {
     const eventListenerSub = Linking.addEventListener("url", onReceiveURL);
 
     // listen to expo push notifications
-    const notificationListenerSub = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
+    const notificationListenerSub =
+      Notifications.addNotificationResponseReceivedListener((response) => {
         let screenUrl = response.notification.request.content.data?.url;
-        const common = response.notification.request.content.data?.common;
+        const _common = response.notification.request.content.data?.common;
 
         if (screenUrl) {
           const currentTab = routeState.reactNavTabName ?? "NewsHome";
@@ -98,7 +98,7 @@ export const linking: LinkingOptions<RootParamList> = {
           const tabName = screenUrl?.split("/")[0] as keyof typeof routeMap;
           if (currentTab && currentTab !== routeMap[tabName]) {
             const invertedRouteMap = Object.fromEntries(
-              Object.entries(routeMap).map(([key, value]) => [value, key]),
+              Object.entries(routeMap).map(([key, value]) => [value, key])
             );
             screenUrl = `${invertedRouteMap[currentTab]}/${screenUrl?.split("/").slice(1).join("/")}`;
           }
@@ -107,8 +107,7 @@ export const linking: LinkingOptions<RootParamList> = {
             ...response.notification.request.content,
           });
         }
-      },
-    );
+      });
 
     return () => {
       _deeplinkListener = null;

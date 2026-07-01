@@ -1,4 +1,7 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import {
+  LegendList,
+  type LegendListRenderItemProps,
+} from "@legendapp/list/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { MusicNoteIcon } from "phosphor-react-native";
 import type { Station } from "radio-browser-api";
@@ -30,12 +33,15 @@ export function StationList({ stations }: { stations: Station[] }) {
     ({ item }: LegendListRenderItemProps<Station>) => (
       <StationItem item={item} stationList={stations} />
     ),
-    [stations],
+    [stations]
   );
 
   const ItemSeparator = useMemo(() => () => <View className="w-4" />, []);
   const keyExtractor = useCallback((item: Station) => item.id, []);
-  const CustomScrollView = useCallback((props: ScrollViewProps) => <ScrollView {...props} />, []);
+  const CustomScrollView = useCallback(
+    (props: ScrollViewProps) => <ScrollView {...props} />,
+    []
+  );
 
   return (
     <LegendList
@@ -60,7 +66,7 @@ export function useRadioStations() {
   const { data, isPending, isError, refetch } = useQuery(
     orpc.radioStation.byGenreGroup.queryOptions({
       staleTime: 5 * 60 * 1000,
-    }),
+    })
   );
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);

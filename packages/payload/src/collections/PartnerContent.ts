@@ -71,14 +71,16 @@ export const AD_SIZES = {
 
 type AdSizeKey = keyof typeof AD_SIZES;
 
-const AD_SIZE_OPTIONS = Object.entries(AD_SIZES).map(([value, { label, width, height }]) => ({
-  label: width > 0 ? `${label} (${width}x${height})` : label,
-  value,
-}));
+const AD_SIZE_OPTIONS = Object.entries(AD_SIZES).map(
+  ([value, { label, width, height }]) => ({
+    label: width > 0 ? `${label} (${width}x${height})` : label,
+    value,
+  })
+);
 
 const checkRatio = (
   media: { width?: number; height?: number } | null | undefined,
-  adSizeKey: AdSizeKey | undefined,
+  adSizeKey: AdSizeKey | undefined
 ): string | true => {
   if (!(adSizeKey && media?.width && media?.height)) {
     return true;
@@ -102,7 +104,7 @@ const checkRatio = (
 };
 
 // ─── Google Ads standard CTA labels ──────────────────────────────────────────
-const GOOGLE_CTA_OPTIONS = [
+const _GOOGLE_CTA_OPTIONS = [
   { label: "Apply now", value: "APPLY_NOW" },
   { label: "Book now", value: "BOOK_NOW" },
   { label: "Buy now", value: "BUY_NOW" },
@@ -138,8 +140,12 @@ const isBannerType = (data: any) => ["banner"].includes(data?.type);
 
 // ─── YouTube thumbnail helper ─────────────────────────────────────────────────
 export const getYoutubeThumbnailUrl = (url: string): string | null => {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return match ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg` : null;
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return match
+    ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`
+    : null;
 };
 
 export const PartnerContent: CollectionConfig = {
@@ -148,7 +154,8 @@ export const PartnerContent: CollectionConfig = {
     group: "Partners",
     defaultColumns: ["title", "type", "partner", "status", "points"],
     useAsTitle: "title",
-    description: "Manage promotions for books, banners, videos, shop items, etc.",
+    description:
+      "Manage promotions for books, banners, videos, shop items, etc.",
   },
   access: { read: () => true },
   hooks: {
@@ -196,7 +203,8 @@ export const PartnerContent: CollectionConfig = {
           }
 
           const isManualThumbnail = blk.thumbnail && !blk.thumbnailSource;
-          const isUnchanged = blk.thumbnail && (blk.thumbnailSource as string) === currentSource;
+          const isUnchanged =
+            blk.thumbnail && (blk.thumbnailSource as string) === currentSource;
 
           if (isManualThumbnail || isUnchanged) {
             continue;
@@ -226,7 +234,10 @@ export const PartnerContent: CollectionConfig = {
                 ? raw
                 : `${process.env.PAYLOAD_PUBLIC_SERVER_URL}${raw}`;
             } catch (err) {
-              req.payload.logger.error({ err }, `Could not resolve media for video id ${videoId}`);
+              req.payload.logger.error(
+                { err },
+                `Could not resolve media for video id ${videoId}`
+              );
               continue;
             }
           } else {
@@ -259,7 +270,7 @@ export const PartnerContent: CollectionConfig = {
           });
 
           req.payload.logger.info(
-            `Queued thumbnail generation for item ${i} on partner-content ${doc.id}`,
+            `Queued thumbnail generation for item ${i} on partner-content ${doc.id}`
           );
         }
 
@@ -290,7 +301,8 @@ export const PartnerContent: CollectionConfig = {
               required: true,
               defaultValue: "",
               admin: {
-                placeholder: "Enter a condition eg Visit website, earn 30 points",
+                placeholder:
+                  "Enter a condition eg Visit website, earn 30 points",
                 description: "Max 90 characters recommended",
               },
             },
@@ -339,7 +351,8 @@ export const PartnerContent: CollectionConfig = {
               name: `adSizeGuide_${sizeValue}` as any,
               type: "ui" as const,
               admin: {
-                condition: (data: any) => isBannerType(data) && data?.adSize === sizeValue,
+                condition: (data: any) =>
+                  isBannerType(data) && data?.adSize === sizeValue,
                 description: `Dimensions: ${hint}`,
               },
             })),
@@ -362,7 +375,10 @@ export const PartnerContent: CollectionConfig = {
                 if (!(isBannerType(data) && data?.adSize)) {
                   return true;
                 }
-                return checkRatio(typeof val === "object" ? val : null, data.adSize as AdSizeKey);
+                return checkRatio(
+                  typeof val === "object" ? val : null,
+                  data.adSize as AdSizeKey
+                );
               },
             },
 
@@ -374,13 +390,14 @@ export const PartnerContent: CollectionConfig = {
               minRows: 4,
               maxRows: 6,
               admin: {
-                description: "Promotion images and video — one video and at least three images",
+                description:
+                  "Promotion images and video — one video and at least three images",
                 condition: (data) => data?.type === "promo-media",
               },
               validate: (val) => {
                 const videoBlks = val?.filter(
                   // @ts-expect-error
-                  (item) => item.layout?.[0]?.blockType === "promo-video-source",
+                  (item) => item.layout?.[0]?.blockType === "promo-video-source"
                 );
                 if (videoBlks?.length === 0) {
                   return "Must have at least one video";
@@ -423,16 +440,19 @@ export const PartnerContent: CollectionConfig = {
               relationTo: "media",
               admin: {
                 description: "Upload MP4 (recommended 1280x720, max 50MB)",
-                condition: (data) => data?.type === "video" && data?.videoType === "UPLOAD",
+                condition: (data) =>
+                  data?.type === "video" && data?.videoType === "UPLOAD",
               },
             },
             {
               name: "videoUrl",
               type: "text",
               admin: {
-                description: "YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link",
+                description:
+                  "YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link",
                 condition: (data) =>
-                  data?.type === "video" && ["YOUTUBE", "EXTERNAL"].includes(data?.videoType),
+                  data?.type === "video" &&
+                  ["YOUTUBE", "EXTERNAL"].includes(data?.videoType),
               },
               // @ts-expect-error
               validate: (val: any, { data }) => {
@@ -445,7 +465,9 @@ export const PartnerContent: CollectionConfig = {
                     : "Must be a valid YouTube URL (e.g. https://youtube.com/watch?v=VIDEO_ID)";
                 }
                 if (data?.videoType === "EXTERNAL") {
-                  return z.url().safeParse(val).success ? true : "Must be a valid URL";
+                  return z.url().safeParse(val).success
+                    ? true
+                    : "Must be a valid URL";
                 }
                 return true;
               },
@@ -497,8 +519,13 @@ export const PartnerContent: CollectionConfig = {
                     placeholder: "https://apps.apple.com/...",
                     description: "iOS App Store link",
                   },
-                  validate: (val: unknown, { data }: { data: Record<string, unknown> }) => {
-                    const links = data?.links as Record<string, unknown> | undefined;
+                  validate: (
+                    val: unknown,
+                    { data }: { data: Record<string, unknown> }
+                  ) => {
+                    const links = data?.links as
+                      | Record<string, unknown>
+                      | undefined;
                     const hasAndroid = !!links?.androidPlayStore;
                     const hasWebsite = !!links?.website;
                     if (val && !hasAndroid && !hasWebsite) {
@@ -513,11 +540,16 @@ export const PartnerContent: CollectionConfig = {
                     placeholder: "https://play.google.com/...",
                     description: "Google Play Store link",
                   },
-                  validate: (val: unknown, { data }: { data: Record<string, unknown> }) => {
-                    const hasIos = !!(data?.links as Record<string, unknown> | undefined)
-                      ?.iosAppStore;
-                    const hasWebsite = !!(data?.links as Record<string, unknown> | undefined)
-                      ?.website;
+                  validate: (
+                    val: unknown,
+                    { data }: { data: Record<string, unknown> }
+                  ) => {
+                    const hasIos = !!(
+                      data?.links as Record<string, unknown> | undefined
+                    )?.iosAppStore;
+                    const hasWebsite = !!(
+                      data?.links as Record<string, unknown> | undefined
+                    )?.website;
                     if (val && !hasIos && !hasWebsite) {
                       return "Either add the iOS App Store link or a website fallback — otherwise iOS users will have no link.";
                     }
@@ -628,7 +660,8 @@ export const PartnerContent: CollectionConfig = {
               type: "textarea",
               admin: {
                 position: "sidebar",
-                description: "Internal notes (e.g. send push notification for new release)",
+                description:
+                  "Internal notes (e.g. send push notification for new release)",
               },
             },
           ],

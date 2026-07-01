@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { authClient } from "#/lib/authClient";
 
 export default function useChangePassword() {
-  const navigation = useNavigation();
+  const _navigation = useNavigation();
 
   const changePassword = async ({
     password,

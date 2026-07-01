@@ -13,7 +13,7 @@ import type {
 } from "./types";
 
 function getTextAlign(
-  format: AbstractElementNode<string>["format"],
+  format: AbstractElementNode<string>["format"]
 ): "left" | "right" | "center" | "justify" | undefined {
   if (format === "right") {
     return "right";
@@ -97,7 +97,9 @@ export const defaultElementRenderers: ElementRenderers = {
     if (element.checked != null) {
       return (
         <View className="my-0.5 flex-row items-center" style={indentStyle}>
-          <Text className="mr-2 text-base text-foreground">{element.checked ? "☑" : "☐"}</Text>
+          <Text className="mr-2 text-base text-foreground">
+            {element.checked ? "☑" : "☐"}
+          </Text>
           <View className="flex-1">{element.children}</View>
         </View>
       );
@@ -106,7 +108,9 @@ export const defaultElementRenderers: ElementRenderers = {
     if (element.listType === "number") {
       return (
         <View className="my-0.5 flex-row" style={indentStyle}>
-          <Text className="w-6 text-base text-foreground">{element.value}.</Text>
+          <Text className="w-6 text-base text-foreground">
+            {element.value}.
+          </Text>
           <View className="flex-1">{element.children}</View>
         </View>
       );
@@ -212,7 +216,9 @@ export const defaultElementRenderers: ElementRenderers = {
           </Galeria>
           {element.value.caption && (
             <RichTextCaption
-              content={element.value.caption as PayloadLexicalReactRendererContent}
+              content={
+                element.value.caption as PayloadLexicalReactRendererContent
+              }
             />
           )}
         </View>

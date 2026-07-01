@@ -1,6 +1,10 @@
 import type { PushToken } from "@news-spend-media/payload/types";
 import { subDays } from "date-fns";
-import { Expo, type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
+import {
+  Expo,
+  type ExpoPushMessage,
+  type ExpoPushTicket,
+} from "expo-server-sdk";
 import type { PayloadRequest, Where } from "payload";
 
 import type { Notification } from "../payload-types";
@@ -20,7 +24,7 @@ const NOTIFICATION_TYPE_TO_PREFERENCE: Record<string, string | undefined> = {
 
 async function resolveTokens(
   notification: Notification,
-  req: PayloadRequest,
+  req: PayloadRequest
 ): Promise<PushToken[]> {
   const payload = await getPayload();
 
@@ -31,7 +35,8 @@ async function resolveTokens(
       : undefined;
 
   if (notification.targetType === "all") {
-    const preferenceKey = NOTIFICATION_TYPE_TO_PREFERENCE[notification.type ?? "misc"];
+    const preferenceKey =
+      NOTIFICATION_TYPE_TO_PREFERENCE[notification.type ?? "misc"];
 
     if (preferenceKey) {
       const { docs: users } = await payload.find({
@@ -72,9 +77,12 @@ async function resolveTokens(
     return resolveSegmentTokens(notification.segment, deviceTypeWhere, req);
   }
 
-  if (notification.targetType === "specific" && notification.specificUsers?.length) {
+  if (
+    notification.targetType === "specific" &&
+    notification.specificUsers?.length
+  ) {
     const specificUserIds = notification.specificUsers.map((user) =>
-      typeof user === "string" ? user : user.id,
+      typeof user === "string" ? user : user.id
     );
 
     const result = await payload.find({
@@ -95,7 +103,7 @@ async function resolveTokens(
 async function resolveSegmentTokens(
   segment: string,
   deviceTypeWhere: Where | undefined,
-  req: PayloadRequest,
+  req: PayloadRequest
 ): Promise<PushToken[]> {
   const payload = await getPayload();
 
@@ -136,7 +144,7 @@ function extractUserId(token: PushToken): string | undefined {
 async function handleFailedTicket(
   ticket: ExpoPushTicket,
   token: PushToken,
-  req: PayloadRequest,
+  req: PayloadRequest
 ): Promise<void> {
   const payload = await getPayload();
   const errorCode = (ticket as { details?: { error?: string } }).details?.error;
@@ -228,7 +236,7 @@ async function sendChunks(
   expo: Expo,
   messages: ExpoPushMessage[],
   req: PayloadRequest,
-  notificationId: string,
+  notificationId: string
 ): Promise<ExpoPushTicket[]> {
   const chunks = expo.chunkPushNotifications(messages);
   const tickets: ExpoPushTicket[] = [];
@@ -275,7 +283,10 @@ async function processTickets(opts: {
   }
 }
 
-export async function sendNotification(notificationId: string, req: PayloadRequest): Promise<void> {
+export async function sendNotification(
+  notificationId: string,
+  req: PayloadRequest
+): Promise<void> {
   const payload = await getPayload();
 
   try {

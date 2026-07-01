@@ -67,7 +67,7 @@ const Feedback = () => {
         });
         console.log(err);
       },
-    }),
+    })
   );
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
@@ -86,24 +86,34 @@ const Feedback = () => {
         contentContainerClassName="gap-6 px-5 pt-5 pb-12"
         showsVerticalScrollIndicator={false}
       >
-        <Text className="font-semibold text-lg">We'd love to hear from you!</Text>
+        <Text className="font-semibold text-lg">
+          We'd love to hear from you!
+        </Text>
 
         <FormProvider {...formMethods}>
           <View className="gap-5">
             <FormTextInput label="Name" name="name" placeholder="Your name" />
 
-            <FormTextInput label="Email" name="email" placeholder="Your email" />
+            <FormTextInput
+              label="Email"
+              name="email"
+              placeholder="Your email"
+            />
 
             {/* Star rating */}
             <View className="gap-3">
-              <Text className="font-semibold">How would you rate your experience?</Text>
+              <Text className="font-semibold">
+                How would you rate your experience?
+              </Text>
               <View className="flex-row gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Icon
                     color={i < currentRating ? "#ffb300" : "#a1a1aa"}
                     key={i}
                     name={StarIcon}
-                    onPress={() => setValue("rating", i + 1, { shouldValidate: true })}
+                    onPress={() =>
+                      setValue("rating", i + 1, { shouldValidate: true })
+                    }
                     s
                     size={32}
                     weight={i < currentRating ? "fill" : "regular"}
@@ -111,7 +121,9 @@ const Feedback = () => {
                 ))}
               </View>
               {formState.errors.rating && (
-                <Text className="pl-2 text-red-500 text-sm">{formState.errors.rating.message}</Text>
+                <Text className="pl-2 text-red-500 text-sm">
+                  {formState.errors.rating.message}
+                </Text>
               )}
             </View>
 
@@ -124,7 +136,10 @@ const Feedback = () => {
           </View>
         </FormProvider>
 
-        <Button isDisabled={mutation.isPending} onPress={handleSubmit(onSubmit)}>
+        <Button
+          isDisabled={mutation.isPending}
+          onPress={handleSubmit(onSubmit)}
+        >
           {mutation.isPending ? <Spinner /> : null}
           <Button.Label>Submit</Button.Label>
         </Button>

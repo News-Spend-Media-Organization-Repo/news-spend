@@ -42,12 +42,13 @@ const ShareApp = () => {
         description: "Shared app",
       },
       {
-        onSuccess: (response) => {
+        onSuccess: (_response) => {
           toast.success("Points earned", {
-            description: "You earned 20 points for sharing News Spend Media App!",
+            description:
+              "You earned 20 points for sharing News Spend Media App!",
           });
         },
-      },
+      }
     );
   };
 
@@ -120,12 +121,14 @@ const ShareApp = () => {
       {
         text: "Invite Messenger Friends",
         Icon: MessengerLogoIcon,
-        onPress: async () => onShare(Share.Social.MESSENGER as Social, "com.facebook.orca"),
+        onPress: async () =>
+          onShare(Share.Social.MESSENGER as Social, "com.facebook.orca"),
       },
       {
         text: "Invite Whatsapp Friends",
         Icon: WhatsappLogoIcon,
-        onPress: async () => onShare(Share.Social.WHATSAPP as Social, "com.whatsapp"),
+        onPress: async () =>
+          onShare(Share.Social.WHATSAPP as Social, "com.whatsapp"),
       },
       {
         text: "Copy link",
@@ -156,22 +159,22 @@ const ShareApp = () => {
             } else {
               toast.error("Could not share. Please try again");
             }
-          } catch (error) {
+          } catch {
             // console.log(error);
             // toast.error("Could not share");
           }
         },
       },
     ],
-    [],
+    [onShare, awardPoint]
   );
 
   return (
     <Screen systemBarStyle="light">
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text className="px-4 py-2">
-          Earn <Text className="font-semibold text-accent">20</Text> credits for every friend you
-          invite
+          Earn <Text className="font-semibold text-accent">20</Text> credits for
+          every friend you invite
         </Text>
 
         <ListGroup variant="transparent">

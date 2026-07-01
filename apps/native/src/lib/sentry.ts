@@ -1,6 +1,8 @@
 import * as Sentry from "@sentry/react-native";
 
-export let navigationIntegration: ReturnType<typeof Sentry.reactNavigationIntegration>;
+export let navigationIntegration: ReturnType<
+  typeof Sentry.reactNavigationIntegration
+>;
 
 export const initSentry = () => {
   if (__DEV__) {

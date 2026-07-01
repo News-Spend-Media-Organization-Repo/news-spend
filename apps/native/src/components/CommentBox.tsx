@@ -2,7 +2,12 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { InputGroup, Separator } from "heroui-native";
 import { PaperPlaneTiltIcon, XIcon } from "phosphor-react-native";
 import { type RefObject, useCallback } from "react";
-import { ActivityIndicator, Pressable, type TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  type TextInput,
+  View,
+} from "react-native";
 import { toast } from "sonner-native";
 import { useSnapshot } from "valtio";
 
@@ -30,7 +35,9 @@ import { Button } from "./heroui/button";
 type CommentBoxProps = {
   newsId: string;
   newsSlug?: string;
-  inputRef?: RefObject<TextInput | null> | ((instance: TextInput | null) => void);
+  inputRef?:
+    | RefObject<TextInput | null>
+    | ((instance: TextInput | null) => void);
   onBlur?: () => void;
 };
 
@@ -38,11 +45,18 @@ type CommentBoxProps = {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ReplyChip({ username, onDismiss }: { username: string; onDismiss: () => void }) {
+function ReplyChip({
+  username,
+  onDismiss,
+}: {
+  username: string;
+  onDismiss: () => void;
+}) {
   return (
     <View className="flex-row items-center gap-1.5 px-2.5 pt-2">
       <Text className="flex-1 text-secondary text-sm" numberOfLines={1}>
-        Replying to <Text className="font-bold text-primary text-sm">@{username}</Text>
+        Replying to{" "}
+        <Text className="font-bold text-primary text-sm">@{username}</Text>
       </Text>
       <Pressable hitSlop={8} onPress={onDismiss}>
         <Icon className="text-tertiary" name={XIcon} size={16} />
@@ -63,7 +77,9 @@ function EditPreview({
   return (
     <View className="flex-row gap-2.5 px-2.5 pt-2">
       <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-600">
-        <Text className="text-base text-white">{username.charAt(0).toUpperCase()}</Text>
+        <Text className="text-base text-white">
+          {username.charAt(0).toUpperCase()}
+        </Text>
       </View>
       <View className="flex-1 gap-1">
         <View className="flex-row items-center justify-between">
@@ -84,12 +100,18 @@ function EditPreview({
 // Main component
 // ---------------------------------------------------------------------------
 
-export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxProps) => {
+export const CommentBox = ({
+  newsId,
+  newsSlug,
+  inputRef,
+  onBlur,
+}: CommentBoxProps) => {
   const { user } = authState;
   const { mode, target, draft } = useSnapshot(commentState);
   const navigation = useNavigation();
   const route = useRoute();
-  const routeCommentId = (route.params as { commentId?: string } | undefined)?.commentId;
+  const routeCommentId = (route.params as { commentId?: string } | undefined)
+    ?.commentId;
 
   const createMutation = useCreateComment(newsSlug as string);
   const updateMutation = useUpdateComment(newsSlug as string);
@@ -137,7 +159,7 @@ export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxPro
             inputRef.current?.blur();
           }
         },
-      },
+      }
     );
   };
 
@@ -166,7 +188,7 @@ export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxPro
             description: "Comment could not be updated",
           });
         },
-      },
+      }
     );
   };
 
@@ -185,7 +207,9 @@ export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxPro
   const isReply = mode === "reply";
   const targetUsername = getUsername(target?.user) ?? "someone";
   const originalText = target?.text ?? "";
-  const placeholder = isReply ? `Replying to @${targetUsername}…` : "Write a comment…";
+  const placeholder = isReply
+    ? `Replying to @${targetUsername}…`
+    : "Write a comment…";
 
   // ---------------------------------------------------------------------------
   // Render
@@ -193,11 +217,17 @@ export const CommentBox = ({ newsId, newsSlug, inputRef, onBlur }: CommentBoxPro
 
   const composerContent = (
     <View className="w-full bg-background">
-      {isReply && <ReplyChip onDismiss={handleCancel} username={targetUsername} />}
+      {isReply && (
+        <ReplyChip onDismiss={handleCancel} username={targetUsername} />
+      )}
 
       {isEdit && (
         <>
-          <EditPreview onDismiss={handleCancel} text={originalText} username={targetUsername} />
+          <EditPreview
+            onDismiss={handleCancel}
+            text={originalText}
+            username={targetUsername}
+          />
           <Separator className="mx-2.5 mt-2" />
         </>
       )}

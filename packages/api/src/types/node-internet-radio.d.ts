@@ -12,7 +12,7 @@ declare module "node-internet-radio" {
   const internetRadio: {
     getStationInfo(
       url: string,
-      callback: (error: Error | null, station: StationInfo) => void,
+      callback: (error: Error | null, station: StationInfo) => void
     ): void;
   };
 

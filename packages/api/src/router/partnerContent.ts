@@ -34,14 +34,16 @@ const GetOneInput = z.object({
 
 const byIdInput = z.object({ id: z.string() });
 
-export const allPartnerContent = publicProcedure.handler(async ({ context }) => {
-  const { payload } = context;
-  const result = await payload.find({
-    collection: "partner-content",
-    pagination: false,
-  });
-  return result.docs;
-});
+export const allPartnerContent = publicProcedure.handler(
+  async ({ context }) => {
+    const { payload } = context;
+    const result = await payload.find({
+      collection: "partner-content",
+      pagination: false,
+    });
+    return result.docs;
+  }
+);
 
 export const partnerContentById = publicProcedure
   .input(byIdInput)
@@ -110,7 +112,10 @@ export const getOnePartnerContent = publicProcedure
       pagination: false,
       depth: 2,
     });
-    let finalResult: TransformCollectionWithSelect<"partner-content", SelectType> | null = null;
+    let finalResult: TransformCollectionWithSelect<
+      "partner-content",
+      SelectType
+    > | null = null;
     if (result.docs.length > 0) {
       const randomIndex = Math.floor(Math.random() * result.docs.length);
       finalResult = result.docs[randomIndex] ?? null;

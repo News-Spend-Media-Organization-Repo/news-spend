@@ -15,7 +15,12 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
 
   return (
     <>
-      <Button className="p-1" hitSlop={8} onPress={() => setOpen(true)} variant="ghost">
+      <Button
+        className="p-1"
+        hitSlop={8}
+        onPress={() => setOpen(true)}
+        variant="ghost"
+      >
         <Icon name={DotsThreeVerticalIcon} size={24} />
       </Button>
 

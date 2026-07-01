@@ -12,10 +12,17 @@ import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 
 function LiveHome() {
   const tabBarHeight = useBottomTabBarHeight();
-  const { data, isPending, refetch, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useAllNews({
-      type: "video",
-    });
+  const {
+    data,
+    isPending,
+    refetch,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useAllNews({
+    type: "video",
+  });
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
   const renderItem = useCallback(({ item }: { item: FeedItem }) => {
@@ -25,9 +32,15 @@ function LiveHome() {
     return <VideoNewsItem videoNews={item} />;
   }, []);
 
-  const allPages = useMemo(() => data?.pages.flatMap((page) => page?.docs) ?? [], [data]);
+  const allPages = useMemo(
+    () => data?.pages.flatMap((page) => page?.docs) ?? [],
+    [data]
+  );
 
-  const _renderHeader = useCallback(() => <LiveListHeader news={allPages[0]} />, [allPages]);
+  const _renderHeader = useCallback(
+    () => <LiveListHeader news={allPages[0]} />,
+    [allPages]
+  );
 
   const keyExtractor = (item: FeedItem) => item.id;
 
@@ -67,7 +80,10 @@ function LiveHome() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl onRefresh={refetchByUser} refreshing={isRefetchingByUser} />
+          <RefreshControl
+            onRefresh={refetchByUser}
+            refreshing={isRefetchingByUser}
+          />
         }
         renderItem={renderItem}
       />

@@ -1,17 +1,17 @@
 @layer theme {
-    :root {
-        @variant light {
-            --font-normal: 'Inter-Regular';
-            --font-medium: 'Inter-Medium';
-            --font-semibold: 'Inter-SemiBold';
-            --font-bold: 'Inter-Bold';
-        }
-
-        @variant dark {
-            --font-normal: 'Inter-Regular';
-            --font-medium: 'Inter-Medium';
-            --font-semibold: 'Inter-SemiBold';
-            --font-bold: 'Inter-Bold';
-        }
+  :root {
+    @variant light {
+      --font-normal: "Inter-Regular";
+      --font-medium: "Inter-Medium";
+      --font-semibold: "Inter-SemiBold";
+      --font-bold: "Inter-Bold";
     }
+
+    @variant dark {
+      --font-normal: "Inter-Regular";
+      --font-medium: "Inter-Medium";
+      --font-semibold: "Inter-SemiBold";
+      --font-bold: "Inter-Bold";
+    }
+  }
 }

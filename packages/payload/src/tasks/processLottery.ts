@@ -1,8 +1,7 @@
 import { addWeeks, isAfter, isEqual, startOfWeek } from "date-fns";
 import type { TaskConfig } from "payload";
-
-import { sendLotteryNotification } from "../lib/lottery-notification";
 import { LotteryEngine } from "../lib/lottery/LotteryEngine";
+import { sendLotteryNotification } from "../lib/lottery-notification";
 
 /**
  * Payload job task: processLottery

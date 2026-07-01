@@ -21,25 +21,26 @@ const Comments: CollectionConfig = {
         }
 
         if (doc?.parent) {
-          const parentId = typeof doc.parent === "string" ? doc.parent : doc.parent.id;
+          const parentId =
+            typeof doc.parent === "string" ? doc.parent : doc.parent.id;
           try {
             req.payload.logger.info(
               { parentId, op: "increment" },
-              "Comments.afterChange: incrementing parent totalReplies",
+              "Comments.afterChange: incrementing parent totalReplies"
             );
             await req.payload.db.drizzle.execute(
               sql`UPDATE comments
                   SET total_replies = GREATEST(COALESCE(total_replies, 0) + 1, 0)
-                  WHERE id = ${parentId}`,
+                  WHERE id = ${parentId}`
             );
             req.payload.logger.info(
               { parentId },
-              "Comments.afterChange: parent totalReplies incremented",
+              "Comments.afterChange: parent totalReplies incremented"
             );
           } catch (err) {
             req.payload.logger.error(
               { err, parentId, op: "increment" },
-              "Comments.afterChange: parent totalReplies increment failed",
+              "Comments.afterChange: parent totalReplies increment failed"
             );
           }
         }
@@ -49,21 +50,21 @@ const Comments: CollectionConfig = {
           try {
             req.payload.logger.info(
               { newsId, op: "increment" },
-              "Comments.afterChange: incrementing news totalComments",
+              "Comments.afterChange: incrementing news totalComments"
             );
             await req.payload.db.drizzle.execute(
               sql`UPDATE "news"
                   SET "total_comments" = GREATEST(COALESCE("total_comments", 0) + 1, 0)
-                  WHERE id = ${newsId}`,
+                  WHERE id = ${newsId}`
             );
             req.payload.logger.info(
               { newsId },
-              "Comments.afterChange: news totalComments incremented",
+              "Comments.afterChange: news totalComments incremented"
             );
           } catch (err) {
             req.payload.logger.error(
               { err, newsId, op: "increment" },
-              "Comments.afterChange: news totalComments increment failed",
+              "Comments.afterChange: news totalComments increment failed"
             );
           }
         }
@@ -76,25 +77,26 @@ const Comments: CollectionConfig = {
         // totalReplies and the news article's totalComments.
 
         if (doc?.parent) {
-          const parentId = typeof doc.parent === "string" ? doc.parent : doc.parent.id;
+          const parentId =
+            typeof doc.parent === "string" ? doc.parent : doc.parent.id;
           try {
             req.payload.logger.info(
               { parentId, op: "decrement" },
-              "Comments.afterDelete: decrementing parent totalReplies",
+              "Comments.afterDelete: decrementing parent totalReplies"
             );
             await req.payload.db.drizzle.execute(
               sql`UPDATE comments
                   SET total_replies = GREATEST(COALESCE(total_replies, 0) - 1, 0)
-                  WHERE id = ${parentId}`,
+                  WHERE id = ${parentId}`
             );
             req.payload.logger.info(
               { parentId },
-              "Comments.afterDelete: parent totalReplies decremented",
+              "Comments.afterDelete: parent totalReplies decremented"
             );
           } catch (err) {
             req.payload.logger.error(
               { err, parentId, op: "decrement" },
-              "Comments.afterDelete: parent totalReplies decrement failed",
+              "Comments.afterDelete: parent totalReplies decrement failed"
             );
           }
         }
@@ -104,21 +106,21 @@ const Comments: CollectionConfig = {
           try {
             req.payload.logger.info(
               { newsId, op: "decrement" },
-              "Comments.afterDelete: decrementing news totalComments",
+              "Comments.afterDelete: decrementing news totalComments"
             );
             await req.payload.db.drizzle.execute(
               sql`UPDATE "news"
                   SET "total_comments" = GREATEST(COALESCE("total_comments", 0) - 1, 0)
-                  WHERE id = ${newsId}`,
+                  WHERE id = ${newsId}`
             );
             req.payload.logger.info(
               { newsId },
-              "Comments.afterDelete: news totalComments decremented",
+              "Comments.afterDelete: news totalComments decremented"
             );
           } catch (err) {
             req.payload.logger.error(
               { err, newsId, op: "decrement" },
-              "Comments.afterDelete: news totalComments decrement failed",
+              "Comments.afterDelete: news totalComments decrement failed"
             );
           }
         }

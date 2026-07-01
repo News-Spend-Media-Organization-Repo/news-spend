@@ -13,15 +13,18 @@ export { default as LotteryWinners } from "./LotteryWinners";
 export { Media } from "./Media";
 export { default as News } from "./News";
 export { default as NewsAnalytics } from "./NewsAnalytics";
-export { default as Reactions } from "./Reactions";
 export { default as NotificationDeliveries } from "./NotificationDeliveries";
-export { default as NotificationInbox, NOTIFICATION_TYPES } from "./NotificationInbox";
+export {
+  default as NotificationInbox,
+  NOTIFICATION_TYPES,
+} from "./NotificationInbox";
 export { default as Notifications } from "./Notifications";
 export { PartnerContent } from "./PartnerContent";
 export { PartnerConversions } from "./PartnerConversions";
 export { Partners } from "./Partners";
 export { default as PromotionMedia } from "./PromotionMedia";
 export { default as PushTokens } from "./PushTokens";
+export { default as Reactions } from "./Reactions";
 export { Session } from "./Session";
 export { default as ShopAnalytics } from "./ShopAnalytics";
 export { Stores } from "./Stores";

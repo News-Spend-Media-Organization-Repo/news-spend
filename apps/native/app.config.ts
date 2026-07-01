@@ -1,7 +1,11 @@
 import type { ConfigContext, ExpoConfig } from "@expo/config";
 
-const APP_VARIANT = process.env.APP_VARIANT as "development" | "beta" | "preview" | "production";
-const APP_ENV = process.env.APP_ENV as "local" | "preview" | "production";
+const APP_VARIANT = process.env.APP_VARIANT as
+  | "development"
+  | "beta"
+  | "preview"
+  | "production";
+const _APP_ENV = process.env.APP_ENV as "local" | "preview" | "production";
 
 const PACKAGE_NAME = "com.newsspend.app"; // Base package name
 const VERSION = "2.1.5";
@@ -67,7 +71,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...config.ios,
       bundleIdentifier: `${PACKAGE_NAME}${packageSuffix}`,
       // buildNumber: VERSION,
-      associatedDomains: ["applinks:link.newsspend.com", "applinks:newspend.godetour.link"],
+      associatedDomains: [
+        "applinks:link.newsspend.com",
+        "applinks:newspend.godetour.link",
+      ],
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },

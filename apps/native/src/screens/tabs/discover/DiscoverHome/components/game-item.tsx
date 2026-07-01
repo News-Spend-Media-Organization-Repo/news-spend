@@ -21,7 +21,12 @@ export function GameItem({ item, onPress }: GameItemProps) {
     <PressableFeedback onPress={onPress}>
       <PressableFeedback.Scale>
         <View className="flex-row items-start gap-2.5 px-3 py-2">
-          <Image className="rounded-lg" height={80} source={{ uri: item.image }} width={80} />
+          <Image
+            className="rounded-lg"
+            height={80}
+            source={{ uri: item.image }}
+            width={80}
+          />
           <View className="flex-1 gap-2">
             <Text className="font-semibold text-base" numberOfLines={2}>
               {item.title}

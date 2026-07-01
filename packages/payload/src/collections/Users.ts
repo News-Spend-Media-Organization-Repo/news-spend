@@ -41,7 +41,10 @@ export const Users: CollectionConfig = {
         try {
           await Promise.all(statements.map((stmt) => drizzle.execute(stmt)));
         } catch (err) {
-          logger.error({ err, userId: id }, "Error during user pre-delete cleanup");
+          logger.error(
+            { err, userId: id },
+            "Error during user pre-delete cleanup"
+          );
           throw err;
         }
       },

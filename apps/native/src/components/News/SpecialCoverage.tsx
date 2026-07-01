@@ -1,7 +1,12 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useCallback } from "react";
-import { Dimensions, Pressable, type ScrollViewProps, View } from "react-native";
+import {
+  Dimensions,
+  Pressable,
+  type ScrollViewProps,
+  View,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import type { RouterOutputs } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
@@ -14,7 +19,11 @@ const { width, height } = Dimensions.get("window");
 
 const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
-export default function SpecialCoverage({ specialCoverage = [] }: { specialCoverage: NewsType }) {
+export default function SpecialCoverage({
+  specialCoverage = [],
+}: {
+  specialCoverage: NewsType;
+}) {
   const navigation = useNavigation("NewsHome");
 
   const coveragesRenderItem = useCallback(
@@ -46,7 +55,7 @@ export default function SpecialCoverage({ specialCoverage = [] }: { specialCover
         </Pressable>
       );
     },
-    [navigation],
+    [navigation]
   );
 
   return (

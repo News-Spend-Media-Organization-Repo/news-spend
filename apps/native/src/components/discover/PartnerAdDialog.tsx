@@ -1,7 +1,13 @@
 import { Dialog, PressableFeedback } from "heroui-native";
 import { XIcon } from "phosphor-react-native";
 import { type ReactNode, useCallback, useState } from "react";
-import { Alert, Linking, Platform, useWindowDimensions, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  Platform,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
@@ -27,7 +33,7 @@ export type PartnerAdDialogProps = {
   asChild?: boolean;
   onAdClick?: (ad: unknown) => void;
   onClose?: () => void;
-  onOpen?: () => void | boolean;
+  onOpen?: () => undefined | boolean;
   /** When true, hides the trigger button (useful when controlled externally) */
   hideTrigger?: boolean;
   /** When false, doesn't navigate to LuckyAppWall when ads unavailable (default: true) */
@@ -103,7 +109,7 @@ export function PartnerAdDialog({
           { text: "Close Ad", style: "cancel", onPress: handleDidClose },
           { text: "RESUME", onPress: () => {} },
         ],
-        { cancelable: false },
+        { cancelable: false }
       );
       return;
     }
@@ -146,7 +152,7 @@ export function PartnerAdDialog({
 
       setIsOpen(true);
     },
-    [onOpen, adType, googleAd, ad, fallbackToAppWall, setIsOpen, handleClose],
+    [onOpen, adType, googleAd, ad, fallbackToAppWall, setIsOpen, handleClose]
   );
 
   const handleAdClick = useCallback(() => {
@@ -228,13 +234,19 @@ export function PartnerAdDialog({
 
       <Dialog.Portal className="justify-start p-0">
         <Dialog.Overlay className="bg-black/50" isCloseOnPress={false} />
-        <Dialog.Content isSwipeable={countdown <= 0} style={{ width: "100%", height: "100%" }}>
+        <Dialog.Content
+          isSwipeable={countdown <= 0}
+          style={{ width: "100%", height: "100%" }}
+        >
           {/* Close / countdown button */}
           <View className="z-10 mt-safe-offset-0 flex-row items-center self-end rounded-full bg-[#f5f5f5] px-2">
             {adType === "custom" && countdown > 0 ? (
               <Text className="mr-1 text-sm">{`Reward in ${countdown} seconds`}</Text>
             ) : null}
-            <PressableFeedback className="rounded-full bg-white p-2" onPress={handleClose}>
+            <PressableFeedback
+              className="rounded-full bg-white p-2"
+              onPress={handleClose}
+            >
               <XIcon color="black" size={16} />
             </PressableFeedback>
           </View>

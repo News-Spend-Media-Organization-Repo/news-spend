@@ -40,7 +40,12 @@ export default function ShopItem({ item }: { item: Partial<Partner> }) {
           </View>
 
           <View className="flex-row items-center gap-2">
-            <Button isIconOnly onPress={() => toggleFavoriteStore(item)} size="sm" variant="ghost">
+            <Button
+              isIconOnly
+              onPress={() => toggleFavoriteStore(item)}
+              size="sm"
+              variant="ghost"
+            >
               <Icon
                 color="red"
                 name={HeartIcon}

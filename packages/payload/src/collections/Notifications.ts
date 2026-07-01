@@ -173,7 +173,8 @@ const Notifications: CollectionConfig = {
       virtual: true,
       admin: {
         readOnly: true,
-        description: "Total number of recipients who received this notification",
+        description:
+          "Total number of recipients who received this notification",
       },
     },
     {
@@ -182,7 +183,8 @@ const Notifications: CollectionConfig = {
       virtual: true,
       admin: {
         readOnly: true,
-        description: "Total number of recipients who failed to receive this notification",
+        description:
+          "Total number of recipients who failed to receive this notification",
       },
     },
     {

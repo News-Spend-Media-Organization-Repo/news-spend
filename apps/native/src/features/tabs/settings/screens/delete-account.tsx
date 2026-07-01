@@ -19,7 +19,9 @@ import { useDeleteAccount } from "#/hooks/auth";
 import { logout } from "#/state/auth";
 
 const deleteAccountSchema = z.object({
-  password: z.string("Enter your password").min(8, "Password must be at least 8 characters"),
+  password: z
+    .string("Enter your password")
+    .min(8, "Password must be at least 8 characters"),
 });
 
 type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
@@ -48,14 +50,15 @@ function DeleteAccount() {
           onPress: () => handleDeleteAccount(data),
         },
       ],
-      { cancelable: true },
+      { cancelable: true }
     );
   };
 
   const handleSuccess = async () => {
     toast.dismiss();
     toast.success("Account Deleted", {
-      description: "Your account has been permanently deleted. We're sorry to see you go.",
+      description:
+        "Your account has been permanently deleted. We're sorry to see you go.",
     });
 
     await logout();
@@ -70,7 +73,10 @@ function DeleteAccount() {
       data?: { fieldErrors?: Record<string, string[]> };
     };
 
-    if (customError?.code === "UNAUTHORIZED" || customError?.message?.includes("password")) {
+    if (
+      customError?.code === "UNAUTHORIZED" ||
+      customError?.message?.includes("password")
+    ) {
       formMethods.setError("password", {
         type: "server",
         message: "Incorrect password",
@@ -95,7 +101,8 @@ function DeleteAccount() {
     }
 
     toast.error("Failed to Delete Account", {
-      description: customError?.message || "An error occurred. Please try again later.",
+      description:
+        customError?.message || "An error occurred. Please try again later.",
     });
   };
 
@@ -109,7 +116,7 @@ function DeleteAccount() {
       {
         onSuccess: handleSuccess,
         onError: handleError,
-      },
+      }
     );
 
     Keyboard.dismiss();
@@ -140,7 +147,8 @@ function DeleteAccount() {
             <Text className="font-bold text-lg text-red-600">Warning</Text>
           </View>
           <Text className="text-red-600">
-            Deleting your account is permanent and cannot be undone. This action will:
+            Deleting your account is permanent and cannot be undone. This action
+            will:
           </Text>
         </View>
 
@@ -156,7 +164,9 @@ function DeleteAccount() {
             </View>
             <View className="flex-row items-start gap-2">
               <Text>•</Text>
-              <Text className="flex-1">All your reward points and activities</Text>
+              <Text className="flex-1">
+                All your reward points and activities
+              </Text>
             </View>
             <View className="flex-row items-start gap-2">
               <Text>•</Text>
@@ -196,7 +206,8 @@ function DeleteAccount() {
                   <Checkbox className="mt-0.5 rounded-sm border border-field-border" />
                 </ControlField.Indicator>
                 <Text className="flex-1">
-                  I understand that this action is permanent and cannot be reversed
+                  I understand that this action is permanent and cannot be
+                  reversed
                 </Text>
               </View>
             </ControlField>

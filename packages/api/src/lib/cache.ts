@@ -38,7 +38,7 @@ export async function withCache<T>(
     if (cached !== null) {
       return JSON.parse(cached) as T;
     }
-  } catch (_e) {
+  } catch {
     // Redis unavailable or parse error — fall through to fn()
   }
 
@@ -50,7 +50,7 @@ export async function withCache<T>(
     const { getRedis } = await import("./redis");
     const redis = getRedis();
     await redis.set(key, JSON.stringify(result), "EX", options.ttl);
-  } catch (_e) {
+  } catch {
     // Ignore write errors — data is still returned from fn()
   }
 
@@ -86,7 +86,7 @@ export async function invalidateCache(keyOrPattern: string): Promise<void> {
     } else {
       await redis.del(keyOrPattern);
     }
-  } catch (_e) {
+  } catch {
     // Ignore — cache invalidation is best-effort
   }
 }

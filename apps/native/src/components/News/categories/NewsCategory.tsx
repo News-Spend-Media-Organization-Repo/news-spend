@@ -4,7 +4,9 @@ import { Separator, Spinner } from "heroui-native";
 import { memo, useCallback, useRef } from "react";
 import { View } from "react-native";
 import NewsItemAds from "#/components/Ads/NewsItemAd";
-import NewsItemGoogleAds, { type NewsItemGoogleAdRef } from "#/components/Ads/NewsItemGoogleAd";
+import NewsItemGoogleAds, {
+  type NewsItemGoogleAdRef,
+} from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { clearTabAdCache } from "#/utils/ad-cache";
@@ -18,10 +20,11 @@ type NewType = React.RefObject<LegendListRef>;
 const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
   const tabBarHeight = useBottomTabBarHeight();
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
-  const { data, isPending, refetch, fetchNextPage, isFetching, hasNextPage } = useAllNews({
-    category: route,
-    ad: true,
-  });
+  const { data, isPending, refetch, fetchNextPage, isFetching, hasNextPage } =
+    useAllNews({
+      category: route,
+      ad: true,
+    });
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(() => {
     refetch();
@@ -61,7 +64,7 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
       }
       return null;
     },
-    [route],
+    [route]
   );
 
   const FooterItem = useCallback(
@@ -71,7 +74,7 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
           <Spinner size="lg" />
         </View>
       ) : null,
-    [hasNextPage, isFetching],
+    [hasNextPage, isFetching]
   );
 
   const onEndReached = () => {

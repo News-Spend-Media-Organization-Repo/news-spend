@@ -14,7 +14,7 @@ import { useSendOtp, useVerifyOTP } from "../hooks/useOTP";
 export default function Verification() {
   const route = useRoute("Verification");
   const [value, setValue] = useState("");
-  const isOpen = useKeyboardState((v) => v.isVisible);
+  const _isOpen = useKeyboardState((v) => v.isVisible);
   const navigation = useNavigation("Verification");
   const sendOTPMutation = useSendOtp();
   const verifyOTPMutation = useVerifyOTP();
@@ -29,7 +29,7 @@ export default function Verification() {
       otpSentRef.current = true;
       sendOTPMutation.mutate({ email });
     }
-  }, [email, otpSent]);
+  }, [email, otpSent, sendOTPMutation.mutate]);
 
   const verifyOTP = () => {
     verifyOTPMutation.mutate(
@@ -65,10 +65,11 @@ export default function Verification() {
         },
         onError(_err) {
           toast.error("Verification failed", {
-            description: "We couldn't verify your code. Please check the code and try again.",
+            description:
+              "We couldn't verify your code. Please check the code and try again.",
           });
         },
-      },
+      }
     );
   };
 
@@ -93,7 +94,7 @@ export default function Verification() {
               "We couldn't send a new verification code. Please check your internet connection and try again.",
           });
         },
-      },
+      }
     );
   };
 
@@ -105,7 +106,9 @@ export default function Verification() {
 
       <View className="mt-8 flex-1 gap-11">
         <View className="gap-5">
-          <Text className="text-center font-bold text-2xl">Verification Code</Text>
+          <Text className="text-center font-bold text-2xl">
+            Verification Code
+          </Text>
           <Text className="text-center text-gray-500 text-lg">
             Please enter the verification code sent to{" "}
             <Text className="text-black">{email ?? ""}</Text>
@@ -130,19 +133,25 @@ export default function Verification() {
         <View className="items-center gap-1">
           <Text>Didn't receive the code? </Text>
           <Button
-            isDisabled={verifyOTPMutation.isPending || sendOTPMutation.isPending}
+            isDisabled={
+              verifyOTPMutation.isPending || sendOTPMutation.isPending
+            }
             onPress={sendOTP}
             variant="ghost"
           >
             {sendOTPMutation.isPending ? <Spinner /> : null}
-            <Button.Label className="font-bold text-primary">Resend OTP?</Button.Label>
+            <Button.Label className="font-bold text-primary">
+              Resend OTP?
+            </Button.Label>
           </Button>
         </View>
       </View>
       <Button
         className="mb-6"
         isDisabled={
-          sendOTPMutation.isPending || value.length !== CELL_COUNT || verifyOTPMutation.isPending
+          sendOTPMutation.isPending ||
+          value.length !== CELL_COUNT ||
+          verifyOTPMutation.isPending
         }
         onPress={verifyOTP}
       >

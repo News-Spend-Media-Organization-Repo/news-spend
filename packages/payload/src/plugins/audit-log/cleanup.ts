@@ -24,7 +24,9 @@ export const cleanupAuditLogsTask = {
 
     logger.info("Starting audit log cleanup");
 
-    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const cutoff = new Date(
+      Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString();
 
     let totalDeleted = 0;
 
@@ -54,7 +56,10 @@ export const cleanupAuditLogsTask = {
 
         totalDeleted += resultObj?.docs?.length ?? ids.length;
       } catch (err) {
-        logger.error({ err, batchSize: ids.length }, "Failed to delete batch of audit logs");
+        logger.error(
+          { err, batchSize: ids.length },
+          "Failed to delete batch of audit logs"
+        );
       }
     }
 

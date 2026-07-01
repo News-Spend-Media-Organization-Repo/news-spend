@@ -64,7 +64,8 @@ const NewsAnalytics: CollectionConfig = {
       name: "metadata",
       type: "json",
       admin: {
-        description: "Event-specific data: position, screen, timeSpent, scrollDepth, shareMethod",
+        description:
+          "Event-specific data: position, screen, timeSpent, scrollDepth, shareMethod",
       },
     },
     {

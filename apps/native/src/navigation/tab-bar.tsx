@@ -14,7 +14,12 @@ import { Text } from "#/components/heroui/text";
 import MusicPlayer from "#/components/MusicPlayer";
 import LiveBanner from "./live-banner";
 
-const VISIBLE_SCREENS = new Set(["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"]);
+const VISIBLE_SCREENS = new Set([
+  "NewsHome",
+  "LiveHome",
+  "ShopHome",
+  "DiscoverHome",
+]);
 const VISIBLE_TABS = new Set(["Home", "Live", "Shop", "Discover"]); // not Settings
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -32,7 +37,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   const currentTabName = state.routes[state.index].name;
 
-  const tabBarStyle = useAnimatedStyle(() => ({
+  const _tabBarStyle = useAnimatedStyle(() => ({
     // height: withTiming(isTabBarVisible ? TAB_BAR_HEIGHT : 0, { duration: 250, easing: Easing.ease }),
     opacity: withTiming(isTabBarVisible ? 1 : 0, { duration: 200 }),
     // backgroundColor: "#YOUR_P_500_HEX", // explicit, always set
@@ -117,7 +122,9 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 <Text
                   className={cn(
                     "text-center text-xs",
-                    isFocused ? "font-semibold text-background" : "text-gray-500",
+                    isFocused
+                      ? "font-semibold text-background"
+                      : "text-gray-500"
                   )}
                 >
                   {typeof label === "string" ? label : route.name}

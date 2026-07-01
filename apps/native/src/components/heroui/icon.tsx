@@ -8,7 +8,12 @@ export type IconProps = {
   className?: string;
 } & Omit<PIconProps, "name">;
 
-function BaseIcon({ name: IconComponent, color, size = 24, ...rest }: IconProps) {
+function BaseIcon({
+  name: IconComponent,
+  color,
+  size = 24,
+  ...rest
+}: IconProps) {
   const defaultColor = useCSSVariable("--color-foreground");
   const iconColor = color ?? defaultColor;
   const UniWindIcon = withUniwind(IconComponent);
