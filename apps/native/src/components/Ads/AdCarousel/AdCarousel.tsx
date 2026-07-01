@@ -40,11 +40,14 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
       },
       {
         onSuccess: (_response) => {
-          setTimeout(() => {
-            toast.success("Points earned", {
-              description: `You earned ${item?.points} points for sharing promo video!`,
-            });
-          }, 2000);
+          setTimeout(
+            () => {
+              toast.success("Points earned", {
+                description: `You earned ${item?.points} points for sharing promo video!`,
+              });
+            },
+            1 * 60 * 1000,
+          ); // 1 minute
         },
       },
     );
