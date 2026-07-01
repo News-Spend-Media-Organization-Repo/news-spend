@@ -1604,7 +1604,7 @@ export interface AuditLog {
   id: string;
   collection: string;
   documentId: string;
-  operation: "create" | "read" | "update" | "delete";
+  operation: "create" | "read" | "update" | "delete" | "login" | "logout";
   performedBy?:
     | ({
         relationTo: "admins";

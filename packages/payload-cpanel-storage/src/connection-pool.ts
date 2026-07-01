@@ -384,62 +384,6 @@ export class SftpConnectionPool {
   }
 
   /**
-   * Acquires a connection from the pool
-   *
-   * @returns A healthy SFTP client
-   * @throws {SftpConnectionError} If unable to acquire a connection
-   */
-  async acquire(): Promise<SftpClientInstance> {
-    if (this.isShuttingDown) {
-      throw new SftpConnectionError("Pool is shutting down");
-    }
-
-    // Try to find an available healthy connection
-    let connection = this.pool.find((conn) => !conn.inUse && conn.isHealthy);
-
-    // If no available connection and under max limit, create a new one
-    if (!connection && this.pool.length < this.options.maxConnections) {
-      connection = await this.createConnection();
-    }
-
-    // Wait briefly for a connection to become available
-    if (!connection) {
-      this.log("Waiting for available connection");
-
-      const maxWaitTime = 10_000; // 10 seconds
-      const checkInterval = 100; // Check every 100ms
-      let waited = 0;
-
-      while (waited < maxWaitTime) {
-        connection = this.pool.find((conn) => !conn.inUse && conn.isHealthy);
-
-        if (connection) {
-          break;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, checkInterval));
-        waited += checkInterval;
-      }
-    }
-
-    if (!connection) {
-      throw new SftpConnectionError(
-        `Unable to acquire connection. Pool size: ${this.pool.length}, Max: ${this.options.maxConnections}`,
-      );
-    }
-
-    // Mark as in use
-    connection.inUse = true;
-    connection.lastUsedAt = Date.now();
-
-    this.log(`Connection ${connection.id} acquired`, {
-      activeConnections: this.pool.filter((c) => c.inUse).length,
-    });
-
-    return connection.client;
-  }
-
-  /**
    * Releases a connection back to the pool
    *
    * @param client - The SFTP client to release
@@ -532,5 +476,82 @@ export class SftpConnectionPool {
     await Promise.all(closePromises);
 
     logger.info("SFTP connection pool shutdown complete");
+  }
+
+  private growthLock: Promise<void> = Promise.resolve();
+
+  /**
+   * Acquires a connection from the pool
+   *
+   * @returns A healthy SFTP client
+   * @throws {SftpConnectionError} If unable to acquire a connection
+   */
+  async acquire(this: any): Promise<any> {
+    if (this.isShuttingDown) {
+      throw new this.SftpConnectionError("Pool is shutting down");
+    }
+
+    // Try to find an available healthy connection first - no locking needed
+    // for reads.
+    let connection = this.pool.find((conn: any) => !conn.inUse && conn.isHealthy);
+
+    if (!connection) {
+      // Chain onto growthLock so concurrent callers each wait their turn
+      // to check-and-possibly-create, rather than all racing at once.
+      const myTurn = this.growthLock.then(() => {
+        // Re-check after acquiring our turn - an earlier caller in the
+        // queue may have already created a connection we can reuse.
+        const existing = this.pool.find((conn: any) => !conn.inUse && conn.isHealthy);
+        if (existing) {
+          return existing;
+        }
+
+        if (this.pool.length < this.options.maxConnections) {
+          return this.createConnection();
+        }
+
+        return null;
+      });
+
+      // Keep the lock chain alive past success or failure so the next
+      // caller in line proceeds regardless of this attempt's outcome.
+      this.growthLock = myTurn.then(
+        () => undefined,
+        () => undefined,
+      );
+
+      connection = (await myTurn) ?? undefined;
+    }
+
+    // --- Everything below this line is unchanged from the original ---
+
+    // Wait briefly for a connection to become available (covers the case
+    // where maxConnections was already reached and we're waiting on a
+    // release rather than a new connection).
+    if (!connection) {
+      const maxWaitTime = 10_000;
+      const checkInterval = 100;
+      let waited = 0;
+
+      while (waited < maxWaitTime) {
+        connection = this.pool.find((conn: any) => !conn.inUse && conn.isHealthy);
+        if (connection) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
+        waited += checkInterval;
+      }
+    }
+
+    if (!connection) {
+      throw new this.SftpConnectionError(
+        `Unable to acquire connection. Pool size: ${this.pool.length}, Max: ${this.options.maxConnections}`,
+      );
+    }
+
+    connection.inUse = true;
+    connection.lastUsedAt = Date.now();
+
+    return connection.client;
   }
 }
