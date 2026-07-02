@@ -7,7 +7,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
-import { DetourDeepLinkHandler } from "#/components/DetourDeepLinkHandler";
 import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
@@ -71,7 +70,6 @@ export const Provider = ({ children }: Props) => {
               },
             }}
           />
-          <DetourDeepLinkHandler />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </DetourProvider>

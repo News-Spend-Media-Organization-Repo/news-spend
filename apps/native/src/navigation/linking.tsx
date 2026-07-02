@@ -1,4 +1,5 @@
 import type { LinkingOptions, RootParamList } from "@react-navigation/native";
+import { DETOUR_LINKING_PREFIX, Detour } from "@swmansion/react-native-detour";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 
@@ -6,26 +7,11 @@ import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 import { routeState } from "#/state/route-state";
 
 const prefixes = [
+  DETOUR_LINKING_PREFIX,
   Linking.createURL(""),
   "https://link.newsspend.com/",
   "https://newspend.godetour.link/",
 ];
-
-// ---------------------------------------------------------------------------
-// Detour bridge — lets the DetourDeepLinkHandler feed deferred-install URLs
-// into React Navigation's subscriber without coupling the two modules.
-// ---------------------------------------------------------------------------
-let _deeplinkListener: ((url: string) => void) | null = null;
-let _pendingDeeplinkUrl: string | null = null;
-
-export function notifyDeepLink(url: string) {
-  if (_deeplinkListener) {
-    _deeplinkListener(url);
-  } else {
-    // NavigationContainer hasn't subscribed yet — stash and flush on subscribe.
-    _pendingDeeplinkUrl = url;
-  }
-}
 
 function ensureScheme(url: string) {
   // Check if the URL already starts with any of the valid schemes
@@ -41,6 +27,12 @@ export const linking: LinkingOptions<RootParamList> = {
   enabled: true,
   prefixes,
   async getInitialURL() {
+    // check if app was opened from a Detour deferred link
+    const detourUrl = await Detour.getInitialURL();
+    if (detourUrl !== undefined) {
+      return detourUrl;
+    }
+
     // check if app was opened from a deep link
     const url = await Linking.getInitialURL();
 
@@ -65,13 +57,9 @@ export const linking: LinkingOptions<RootParamList> = {
     }
   },
   subscribe(listener) {
-    _deeplinkListener = listener;
-
-    // Flush any deferred link that arrived before navigation was ready.
-    if (_pendingDeeplinkUrl) {
-      listener(ensureScheme(_pendingDeeplinkUrl));
-      _pendingDeeplinkUrl = null;
-    }
+    const detourSub = Detour.addEventListener("url", ({ url }) => {
+      listener(url);
+    });
 
     const onReceiveURL = ({ url }: { url: string }) => {
       listener(ensureScheme(url));
@@ -110,7 +98,7 @@ export const linking: LinkingOptions<RootParamList> = {
       });
 
     return () => {
-      _deeplinkListener = null;
+      detourSub.remove();
       eventListenerSub.remove();
       notificationListenerSub.remove();
     };
