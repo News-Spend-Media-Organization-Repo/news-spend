@@ -8,6 +8,7 @@ import type {
   GlobalConfig,
   Plugin,
 } from "payload";
+import { deepMerge } from "payload";
 
 import { cleanupAuditLogsTask } from "./cleanup";
 
@@ -46,12 +47,6 @@ const AUDIT_TARGETS: Record<string, AuditTarget> = {
   lottery: { operations: ["create", "update", "delete"] },
   "lottery-winners": { operations: ["create", "update", "delete"] },
   "ticket-purchase-log": { operations: ["create"] },
-
-  // User account lifecycle
-  users: {
-    operations: ["create", "update", "delete"],
-    ignoreFields: ["dailyRead"],
-  },
 };
 
 // Globals are singletons — only "update" is meaningful
@@ -174,7 +169,7 @@ function resolveActor(req: unknown): {
     return { performedBy: null };
   }
 
-  const collection = (user.collection as string) ?? ADMIN_COLLECTION;
+  const collection = (user.collection as string) ?? USER_COLLECTION;
   const relationTo =
     collection === USER_COLLECTION ? USER_COLLECTION : ADMIN_COLLECTION;
 
@@ -452,8 +447,7 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
 
       patchedCollection = {
         ...patchedCollection,
-        auth: {
-          ...existingAuth,
+        auth: deepMerge(existingAuth, {
           afterLogin: [
             ...(((existingAuth as Record<string, unknown>)
               .afterLogin as CollectionAfterLoginHook[]) ?? []),
@@ -464,7 +458,7 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
               .afterLogout as CollectionAfterLogoutHook[]) ?? []),
             afterLogoutHook,
           ],
-        },
+        }),
       } as CollectionConfig;
     }
 
