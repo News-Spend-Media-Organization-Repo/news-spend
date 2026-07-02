@@ -67,5 +67,16 @@
         "noUnsafeOptionalChaining": "info"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/uniwind-types.d.ts"],
+      "linter": {
+        "enabled": false
+      },
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
 }
