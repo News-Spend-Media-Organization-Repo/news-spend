@@ -1,5 +1,6 @@
 import "./global.css";
 import "react-native-url-polyfill/auto";
+import { DefaultTheme, type Theme } from "@react-navigation/native";
 import { useMMKVDevTools } from "@rozenite/mmkv-plugin";
 import { useReactNavigationDevTools } from "@rozenite/react-navigation-plugin";
 import { useTanStackQueryDevTools } from "@rozenite/tanstack-query-plugin";
@@ -48,6 +49,15 @@ hydrateAuth();
 preloadAds(["news-click-ads", "discover-tab"]);
 
 const persister = createMMKVPersister();
+
+const myCustomTheme: Theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: "#00223D",
+    card: "#fff",
+  },
+};
 export function App() {
   useTanStackQueryDevTools(queryClient);
   useReactNavigationDevTools({ ref: navigationRef });
@@ -89,20 +99,21 @@ export function App() {
           linking={linking}
           onReady={onReady}
           onStateChange={onNavigationStateChange}
-          persistor={{
-            persist(state) {
-              const isDev = __DEV__;
-              if (isDev) {
-                storage.set(CONSTANTS.PERSISTENCE_KEY, JSON.stringify(state));
-              }
-            },
-            restore() {
-              const state = storage.getString(CONSTANTS.PERSISTENCE_KEY);
+          // persistor={{
+          //   persist(state) {
+          //     const isDev = __DEV__;
+          //     if (isDev) {
+          //       storage.set(CONSTANTS.PERSISTENCE_KEY, JSON.stringify(state));
+          //     }
+          //   },
+          //   restore() {
+          //     const state = storage.getString(CONSTANTS.PERSISTENCE_KEY);
 
-              return state ? JSON.parse(state) : undefined;
-            },
-          }}
+          //     return state ? JSON.parse(state) : undefined;
+          //   },
+          // }}
           ref={navigationRef}
+          theme={myCustomTheme}
         />
         <LotteryReward />
 

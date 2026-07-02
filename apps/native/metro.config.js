@@ -7,7 +7,8 @@ const { withUniwindConfig } = require("uniwind/metro");
 const _path = require("node:path");
 const os = require("node:os");
 
-const config = getSentryExpoConfig(import.meta.dirname);
+// biome-ignore lint/correctness/noGlobalDirnameFilename: we can't use import.meta.dirname
+const config = getSentryExpoConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 config.maxWorkers = Math.max(1, Math.floor(os.cpus().length * 0.5));

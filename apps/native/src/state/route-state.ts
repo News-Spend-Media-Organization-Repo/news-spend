@@ -40,3 +40,15 @@ export const hideLiveBanner = () => {
 export const showLiveBanner = () => {
   liveBannerState.isHidden = false;
 };
+
+export const tabBarState = proxy<{
+  height: number;
+}>({
+  height: 0,
+});
+
+export const setTabBarHeight = (height: number) => {
+  if (tabBarState.height !== height) {
+    tabBarState.height = height;
+  }
+};

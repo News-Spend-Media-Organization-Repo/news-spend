@@ -16,6 +16,7 @@ import TabBar from "./tab-bar";
 
 export default createBottomTabNavigator({
   tabBar: (props) => <TabBar {...props} />,
+  implementation: "custom",
   backBehavior: "history",
   screens: {
     Home: {
