@@ -26,6 +26,7 @@ import * as migration_20260622_120000_comments_cascade_delete from "./20260622_1
 import * as migration_20260627_122202 from "./20260627_122202";
 import * as migration_20260627_131103 from "./20260627_131103";
 import * as migration_20260627_132437 from "./20260627_132437";
+import * as migration_20260702_095305 from "./20260702_095305";
 
 export const migrations = [
   {
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20260627_132437.up,
     down: migration_20260627_132437.down,
     name: "20260627_132437",
+  },
+  {
+    up: migration_20260702_095305.up,
+    down: migration_20260702_095305.down,
+    name: "20260702_095305",
   },
 ];
