@@ -1,5 +1,14 @@
-import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
-import { type InfiniteData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+import {
+  type InfiniteData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import { ArrowLeftIcon, HeartIcon } from "phosphor-react-native";
@@ -36,8 +45,12 @@ const ShopDetails = () => {
           initialPageParam: undefined,
         });
         const cacheData =
-          queryClient.getQueryData<InfiniteData<RouterOutputs["store"]["all"]>>(qKey);
-        return cacheData?.pages.flatMap((page) => page.docs)?.find((s) => s.slug === slug);
+          queryClient.getQueryData<InfiniteData<RouterOutputs["store"]["all"]>>(
+            qKey
+          );
+        return cacheData?.pages
+          .flatMap((page) => page.docs)
+          ?.find((s) => s.slug === slug);
       },
       initialDataUpdatedAt: () => {
         const qKey = orpc.store.all.infiniteKey({
@@ -50,11 +63,13 @@ const ShopDetails = () => {
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    }),
+    })
   );
 
   const trackViewMutation = useMutation(orpc.store.trackView.mutationOptions());
-  const trackClickMutation = useMutation(orpc.store.trackClick.mutationOptions());
+  const trackClickMutation = useMutation(
+    orpc.store.trackClick.mutationOptions()
+  );
 
   useEffect(() => {
     if (storeId || store?.id) {
@@ -64,7 +79,7 @@ const ShopDetails = () => {
         device: "mobile",
       });
     }
-  }, [storeId, store?.id]);
+  }, [storeId, store?.id, trackViewMutation.mutate]);
 
   const isStoreFavorite = isFavorite(store?.id ?? "");
 
@@ -83,7 +98,10 @@ const ShopDetails = () => {
       let subscription: ReturnType<typeof BackHandler.addEventListener>;
 
       if (Platform.OS === "android") {
-        subscription = BackHandler.addEventListener("hardwareBackPress", onAndroidBackPress);
+        subscription = BackHandler.addEventListener(
+          "hardwareBackPress",
+          onAndroidBackPress
+        );
       }
 
       return () => {
@@ -91,7 +109,7 @@ const ShopDetails = () => {
           subscription.remove();
         }
       };
-    }, [onAndroidBackPress]),
+    }, [onAndroidBackPress])
   );
 
   const handleShopNow = useCallback(() => {
@@ -110,15 +128,27 @@ const ShopDetails = () => {
   );
 
   const headerRight = (
-    <Button isIconOnly onPress={() => toggleFavoriteStore(store!)} variant="ghost">
-      <HeartIcon color="red" size={24} weight={isStoreFavorite ? "fill" : "regular"} />
+    <Button
+      isIconOnly
+      onPress={() => toggleFavoriteStore(store!)}
+      variant="ghost"
+    >
+      <HeartIcon
+        color="red"
+        size={24}
+        weight={isStoreFavorite ? "fill" : "regular"}
+      />
     </Button>
   );
 
   if (openShop) {
     return (
       <Screen preset="fixed" safeAreaEdges={["bottom"]} systemBarStyle="light">
-        <ScreenHeader left={headerLeft} right={headerRight} title={store?.companyName || ""} />
+        <ScreenHeader
+          left={headerLeft}
+          right={headerRight}
+          title={store?.companyName || ""}
+        />
         <WebView
           allowsBackForwardNavigationGestures
           allowsInlineMediaPlayback
@@ -154,7 +184,11 @@ const ShopDetails = () => {
 
   return (
     <Screen preset="scroll" systemBarStyle="light">
-      <ScreenHeader left={headerLeft} right={headerRight} title={store?.companyName || ""} />
+      <ScreenHeader
+        left={headerLeft}
+        right={headerRight}
+        title={store?.companyName || ""}
+      />
 
       <View className="gap-2 p-2">
         <View className="self-start rounded bg-green-500 px-4 py-0.5">
@@ -165,7 +199,9 @@ const ShopDetails = () => {
 
         <View className="flex-row items-center justify-between">
           <Text className="font-bold text-2xl">
-            <Text className="font-bold text-4xl text-green-500">{store?.cashBack}%</Text>
+            <Text className="font-bold text-4xl text-green-500">
+              {store?.cashBack}%
+            </Text>
             {" Cash Back"}
           </Text>
 
@@ -178,7 +214,9 @@ const ShopDetails = () => {
       <Separator className="my-1" />
 
       <View className="gap-1 px-2">
-        <Text variant="subtitle">Get {store?.cashBack} pt/₦ on every purchase</Text>
+        <Text variant="subtitle">
+          Get {store?.cashBack} pt/₦ on every purchase
+        </Text>
         <Text variant="body">{store?.description}</Text>
       </View>
     </Screen>

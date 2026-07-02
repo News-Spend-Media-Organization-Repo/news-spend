@@ -4,9 +4,10 @@ const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const { withUniwindConfig } = require("uniwind/metro");
 // const { withFacetpack } = require("@ecrindigital/facetpack");
 // const { FileStore } = require("@expo/metro/metro-cache");
-const path = require("node:path");
+const _path = require("node:path");
 const os = require("node:os");
 
+// biome-ignore lint/correctness/noGlobalDirnameFilename: we can't use import.meta.dirname
 const config = getSentryExpoConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
@@ -24,5 +25,5 @@ module.exports = withRozenite(
     cssEntryFile: "./src/global.css",
     dtsFile: "./src/uniwind-types.d.ts",
   }),
-  { enabled: process.env.WITH_ROZENITE === "true" },
+  { enabled: process.env.WITH_ROZENITE === "true" }
 );

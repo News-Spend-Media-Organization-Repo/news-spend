@@ -1,7 +1,11 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { formatDistance } from "date-fns";
 import { Separator } from "heroui-native";
-import { ArrowBendUpLeftIcon, ClockIcon, HeartStraightIcon } from "phosphor-react-native";
+import {
+  ArrowBendUpLeftIcon,
+  ClockIcon,
+  HeartStraightIcon,
+} from "phosphor-react-native";
 import { memo, type RefObject, useMemo } from "react";
 import { type TextInput, View } from "react-native";
 import { useSnapshot } from "valtio";
@@ -10,7 +14,7 @@ import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import useLikeComment from "#/hooks/comments/useLikeComment";
-import { type RouterOutputs, orpc } from "#/lib/orpc";
+import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
 import { startReply } from "#/state/commentState";
@@ -68,7 +72,8 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
     mutate(comment.id);
   };
 
-  const username = typeof comment.user === "object" ? comment.user.username : "Unknown";
+  const username =
+    typeof comment.user === "object" ? comment.user.username : "Unknown";
 
   return (
     <View className="ml-8 px-2.5">
@@ -78,7 +83,9 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
             className="h-8 w-8 items-center justify-center rounded-full"
             style={{ backgroundColor: avatarBg }}
           >
-            <Text className="text-base text-white">{username.charAt(0).toUpperCase()}</Text>
+            <Text className="text-base text-white">
+              {username.charAt(0).toUpperCase()}
+            </Text>
           </View>
 
           <View className="flex-1 gap-2">
@@ -86,8 +93,8 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
               <View className="gap-0">
                 <Text className="font-bold text-[#0A0909]" variant="caption">
                   {username.charAt(0).toUpperCase() + username.slice(1)}{" "}
-                  {(typeof comment.user !== "string" && comment.user?.id) === auth.user?.id &&
-                    "(You)"}
+                  {(typeof comment.user !== "string" && comment.user?.id) ===
+                    auth.user?.id && "(You)"}
                 </Text>
 
                 <View className="flex-row items-center gap-1">
@@ -101,10 +108,16 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
               </View>
             </View>
 
-            <Text className="text-[#0A0909] text-[15px] leading-[18px]">{comment.text}</Text>
+            <Text className="text-[#0A0909] text-[15px] leading-[18px]">
+              {comment.text}
+            </Text>
 
             <View className="flex-row items-center gap-5">
-              <Button className="flex-row items-center gap-1 p-0" onPress={onLike} variant="ghost">
+              <Button
+                className="flex-row items-center gap-1 p-0"
+                onPress={onLike}
+                variant="ghost"
+              >
                 <Icon
                   color={isLiked ? "#fb2d2d" : "#737373"}
                   name={HeartStraightIcon}
@@ -112,7 +125,11 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
                   weight={isLiked ? "fill" : "bold"}
                 />
                 <Button.Label
-                  className={isLiked ? "text-[#fb2d2d] text-sm" : "text-[#737373] text-sm"}
+                  className={
+                    isLiked
+                      ? "text-[#fb2d2d] text-sm"
+                      : "text-[#737373] text-sm"
+                  }
                 >
                   {isLiked ? "Liked" : "Like"}
                 </Button.Label>
@@ -120,7 +137,9 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
 
               <Button className="p-0" onPress={onReply} variant="ghost">
                 <Icon color="#737373" name={ArrowBendUpLeftIcon} size={16} />
-                <Button.Label className="text-[#737373] text-[15px]">Reply</Button.Label>
+                <Button.Label className="text-[#737373] text-[15px]">
+                  Reply
+                </Button.Label>
               </Button>
             </View>
           </View>

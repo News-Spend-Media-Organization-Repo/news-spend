@@ -38,11 +38,13 @@ function LiveCommentReply({ route }) {
     orpc.comments.one.queryOptions({
       input: commentId,
       initialData: () => {
-        const comments = queryClient.getQueryData<InfiniteData<RouterOutputs["comments"]["all"]>>(
+        const comments = queryClient.getQueryData<
+          InfiniteData<RouterOutputs["comments"]["all"]>
+        >(
           orpc.comments.all.infiniteKey({
             input: (pageParam) => ({ newsId, page: pageParam }),
             initialPageParam: undefined,
-          }),
+          })
         );
         const found = comments?.pages
           .flatMap((page) => page.docs)
@@ -62,7 +64,7 @@ function LiveCommentReply({ route }) {
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    }),
+    })
   );
 
   const replies = useInfiniteQuery(
@@ -75,10 +77,12 @@ function LiveCommentReply({ route }) {
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
-    }),
+    })
   );
 
-  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(replies.refetch);
+  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
+    replies.refetch
+  );
 
   const onEndReached = useCallback(() => {
     if (replies.hasNextPage && !replies.isFetchingNextPage) {
@@ -88,7 +92,7 @@ function LiveCommentReply({ route }) {
 
   const renderItem = useCallback(
     ({ item }) => <Reply comment={item} inputRef={ref} />,
-    [], // ref is stable, no deps needed
+    [] // ref is stable, no deps needed
   );
 
   if (isError) {
@@ -106,7 +110,8 @@ function LiveCommentReply({ route }) {
   }
 
   const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
-  const newsIdForComposer = typeof data?.news === "string" ? data?.news : data?.news?.id;
+  const newsIdForComposer =
+    typeof data?.news === "string" ? data?.news : data?.news?.id;
 
   return (
     <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView>
@@ -119,7 +124,8 @@ function LiveCommentReply({ route }) {
         >
           <Icon name={ArrowLeftIcon} size={20} />
           <Button.Label className="text-[15px]">
-            {data?.totalReplies ?? 0} {(data?.totalReplies ?? 0) === 1 ? "Reply" : "Replies"}
+            {data?.totalReplies ?? 0}{" "}
+            {(data?.totalReplies ?? 0) === 1 ? "Reply" : "Replies"}
           </Button.Label>
         </Button>
 
@@ -132,7 +138,9 @@ function LiveCommentReply({ route }) {
               <Text>No replies yet</Text>
             </View>
           }
-          ListFooterComponent={replies.isFetchingNextPage ? <ActivityIndicator /> : null}
+          ListFooterComponent={
+            replies.isFetchingNextPage ? <ActivityIndicator /> : null
+          }
           ListHeaderComponent={<CommentCard comment={data} screenType="live" />}
           ListHeaderComponentStyle={{ marginVertical: 15 }}
           onEndReached={onEndReached}
@@ -146,7 +154,11 @@ function LiveCommentReply({ route }) {
 
       <KeyboardStickyView offset={{ closed: 0, opened: 20 }}>
         <View className="pb-safe">
-          <CommentBox inputRef={ref} newsId={newsIdForComposer} newsSlug={newsSlug} />
+          <CommentBox
+            inputRef={ref}
+            newsId={newsIdForComposer}
+            newsSlug={newsSlug}
+          />
         </View>
       </KeyboardStickyView>
     </Screen>

@@ -8,7 +8,9 @@ import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
 type UserReaction = "like" | "dislike" | "none";
 
 export default function useLikeNews() {
-  const route = useRoute<HomeTabRouteProps<"News"> | LiveTabRouteProps<"LiveHome">>();
+  const route = useRoute<
+    HomeTabRouteProps<"News"> | LiveTabRouteProps<"LiveHome">
+  >();
   const type = route.name === "News" ? "article" : "video";
 
   return useMutation(
@@ -22,7 +24,7 @@ export default function useLikeNews() {
 
         // Snapshot the previous value
         const prevNews = queryClient.getQueryData(
-          orpc.news.one.queryKey({ input: { slug: data.slug, type } }),
+          orpc.news.one.queryKey({ input: { slug: data.slug, type } })
         );
 
         const hasLiked = prevNews?.userReaction === "like";
@@ -53,7 +55,7 @@ export default function useLikeNews() {
 
         queryClient.setQueryData(
           orpc.news.one.queryKey({ input: { slug: data.slug, type } }),
-          optimisticNews,
+          optimisticNews
         );
 
         return { prevNews, optimisticNews };
@@ -61,7 +63,7 @@ export default function useLikeNews() {
       onError: (_err, variables, context) => {
         queryClient.setQueryData(
           orpc.news.one.queryKey({ input: { slug: variables?.slug, type } }),
-          context?.prevNews,
+          context?.prevNews
         );
       },
       // Reconcile cache with server truth instead of refetching. A refetch
@@ -83,6 +85,6 @@ export default function useLikeNews() {
           dislikesCount: serverReaction.dislikesCount,
         });
       },
-    }),
+    })
   );
 }

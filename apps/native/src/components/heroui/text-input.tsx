@@ -7,7 +7,11 @@ import { TextArea } from "heroui-native/text-area";
 import { TextField } from "heroui-native/text-field";
 import { EyeIcon, EyeSlashIcon } from "phosphor-react-native";
 import { useState } from "react";
-import { Controller, type RegisterOptions, useFormContext } from "react-hook-form";
+import {
+  Controller,
+  type RegisterOptions,
+  useFormContext,
+} from "react-hook-form";
 import { Pressable, View } from "react-native";
 import { Icon } from "./icon";
 
@@ -55,7 +59,10 @@ export function FormTextInput({
             <View className="w-full flex-row items-center">
               <Input
                 autoCapitalize="none"
-                className={cn("flex-1 rounded-lg px-4 android:shadow-none", isPassword && "pr-10")}
+                className={cn(
+                  "flex-1 rounded-lg px-4 android:shadow-none",
+                  isPassword && "pr-10"
+                )}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 placeholder={placeholder}
@@ -70,7 +77,11 @@ export function FormTextInput({
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <Icon className="text-muted" name={EyeSlashIcon} size={20} />
+                    <Icon
+                      className="text-muted"
+                      name={EyeSlashIcon}
+                      size={20}
+                    />
                   ) : (
                     <Icon className="text-muted" name={EyeIcon} size={20} />
                   )}
@@ -79,8 +90,12 @@ export function FormTextInput({
             </View>
           )}
 
-          {description && fieldState.invalid && <Description>{description}</Description>}
-          {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+          {description && fieldState.invalid && (
+            <Description>{description}</Description>
+          )}
+          {fieldState.error && (
+            <FieldError>{fieldState.error.message}</FieldError>
+          )}
         </TextField>
       )}
     />

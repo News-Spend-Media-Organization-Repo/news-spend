@@ -14,7 +14,7 @@ type ReactionRow = {
 export async function getUserReactionForNews(
   payload: Payload,
   userId: string | null | undefined,
-  newsId: string,
+  newsId: string
 ): Promise<UserReaction> {
   if (!userId) {
     return "none";
@@ -45,7 +45,7 @@ export async function getUserReactionForNews(
 export async function getUserReactionsForNews(
   payload: Payload,
   userId: string | null | undefined,
-  newsIds: string[],
+  newsIds: string[]
 ): Promise<Map<string, UserReaction>> {
   const out = new Map<string, UserReaction>();
   if (!userId || newsIds.length === 0) {
@@ -79,7 +79,7 @@ export async function getUserReactionsForNews(
  */
 export async function getNewsReactionCounts(
   payload: Payload,
-  newsId: string,
+  newsId: string
 ): Promise<{ likesCount: number; dislikesCount: number }> {
   const doc = await payload.findByID({
     collection: "news",

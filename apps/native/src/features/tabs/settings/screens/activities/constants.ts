@@ -30,7 +30,10 @@ export type ActionMeta = {
 };
 
 // Map action values to icons and colors
-export const ACTION_META: Record<NonNullable<Activity["action"]>, ActionMeta> = {
+export const ACTION_META: Record<
+  NonNullable<Activity["action"]>,
+  ActionMeta
+> = {
   signUp: { icon: ConfettiIcon, bg: "#EDE9FE", label: "Sign up" },
   watchLive: { icon: MonitorIcon, bg: "#DBEAFE", label: "Watch live" },
   read: { icon: NewspaperIcon, bg: "#DBEAFE", label: "Read news" },

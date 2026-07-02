@@ -9,7 +9,11 @@ import { ORPCError } from "@orpc/client";
 import { and, desc, eq, sql } from "@payloadcms/db-postgres/drizzle";
 import z from "zod";
 
-import { protectedNoGuestProcedure, protectedProcedure, publicProcedure } from "../index";
+import {
+  protectedNoGuestProcedure,
+  protectedProcedure,
+  publicProcedure,
+} from "../index";
 import { addActivity } from "../shared/activity";
 
 // Input schema for creating lottery tickets
@@ -102,7 +106,7 @@ const create = protectedNoGuestProcedure
         description: "Lottery ticket purchase",
         action: "ticketPurchase",
       },
-      context,
+      context
     );
 
     return result;
@@ -111,7 +115,7 @@ const create = protectedNoGuestProcedure
 const getByUser = protectedProcedure.handler(async ({ context }) => {
   const { user, payload } = context;
   const drizzle = payload.db.drizzle;
-  const db = payload.db;
+  const _db = payload.db;
   const result = await drizzle
     .select()
     .from(lottery_tickets)
@@ -163,12 +167,12 @@ const boostLuck = protectedNoGuestProcedure.handler(async ({ context }) => {
     .where(
       and(
         eq(lottery_tickets.user, user.id),
-        eq(lottery_tickets.lottery, activeLottery.docs[0]?.id ?? "0"),
-      ),
+        eq(lottery_tickets.lottery, activeLottery.docs[0]?.id ?? "0")
+      )
     )
     .returning();
 
-  if (!result) {
+  if (!result.length) {
     throw new ORPCError("NOT_FOUND", {
       message: "No lottery ticket found",
     });

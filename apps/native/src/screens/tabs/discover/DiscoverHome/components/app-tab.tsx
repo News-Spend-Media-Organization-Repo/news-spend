@@ -9,7 +9,10 @@ import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { AppItem } from "./app-item";
-import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
+import {
+  PullToRefreshIndicator,
+  triggerRefreshHaptic,
+} from "./pull-to-refresh-indicator";
 
 export const AppTab = () => {
   const { handleClick, isLoading } = usePartnerClick();
@@ -25,19 +28,34 @@ export const AppTab = () => {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  const { data, isPending, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
-    useInfiniteQuery(queryOptions);
+  const {
+    data,
+    isPending,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery(queryOptions);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-  const appsData = useMemo(() => data?.pages.flatMap((page) => page.docs) || [], [data]);
+  const appsData = useMemo(
+    () => data?.pages.flatMap((page) => page.docs) || [],
+    [data]
+  );
 
   const renderItem = useCallback(
     (props: LegendListRenderItemProps<PartnerContent>) => {
       const { item } = props;
 
-      return <AppItem item={item} loading={isLoading(item.id)} onPress={() => console.log(item)} />;
+      return (
+        <AppItem
+          item={item}
+          loading={isLoading(item.id)}
+          onPress={() => console.log(item)}
+        />
+      );
     },
-    [handleClick, isLoading],
+    [isLoading]
   );
 
   const keyExtractor = useCallback((item: PartnerContent) => item.id, []);
@@ -48,14 +66,14 @@ export const AppTab = () => {
         <Text className="text-base">No apps found</Text>
       </View>
     ),
-    [],
+    []
   );
 
   const onEndReached = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage) {
       fetchNextPage();
     }
-  }, [isFetchingNextPage, hasNextPage]);
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   const footer = useCallback(
     () => (
@@ -63,7 +81,7 @@ export const AppTab = () => {
         {isFetchingNextPage ? <ActivityIndicator /> : null}
       </View>
     ),
-    [isFetchingNextPage],
+    [isFetchingNextPage]
   );
 
   const onRefresh = useCallback(() => {

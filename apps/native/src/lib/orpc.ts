@@ -6,7 +6,11 @@ import { BatchLinkPlugin } from "@orpc/client/plugins";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { JsonifiedClient } from "@orpc/openapi-client";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
-import type { InferRouterInputs, InferRouterOutputs, RouterClient } from "@orpc/server";
+import type {
+  InferRouterInputs,
+  InferRouterOutputs,
+  RouterClient,
+} from "@orpc/server";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 
 import { getBaseUrl } from "#/utils/getBaseUrl";

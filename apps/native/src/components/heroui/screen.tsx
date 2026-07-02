@@ -10,7 +10,11 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { type SystemBarStyle, SystemBars, type SystemBarsProps } from "react-native-edge-to-edge";
+import {
+  type SystemBarStyle,
+  SystemBars,
+  type SystemBarsProps,
+} from "react-native-edge-to-edge";
 import {
   KeyboardAvoidingView,
   type KeyboardAvoidingViewProps,
@@ -18,7 +22,10 @@ import {
   type KeyboardAwareScrollViewRef,
 } from "react-native-keyboard-controller";
 import { useUniwind } from "uniwind";
-import { type ExtendedEdge, useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
+import {
+  type ExtendedEdge,
+  useSafeAreaInsetsStyle,
+} from "#/utils/useSafeAreaInsetsStyle";
 
 export const DEFAULT_BOTTOM_OFFSET = 50;
 
@@ -107,7 +114,10 @@ interface AutoScreenProps extends Omit<ScrollScreenProps, "preset"> {
   scrollEnabledToggleThreshold?: { percent?: number; point?: number };
 }
 
-export type ScreenProps = ScrollScreenProps | FixedScreenProps | AutoScreenProps;
+export type ScreenProps =
+  | ScrollScreenProps
+  | FixedScreenProps
+  | AutoScreenProps;
 
 const isIos = Platform.OS === "ios";
 
@@ -160,7 +170,7 @@ function useAutoPreset(props: AutoScreenProps): {
       scrollViewContentHeight.current = h;
       updateScrollState();
     },
-    [updateScrollState],
+    [updateScrollState]
   );
 
   const onLayout = useCallback(
@@ -168,7 +178,7 @@ function useAutoPreset(props: AutoScreenProps): {
       scrollViewHeight.current = e.nativeEvent.layout.height;
       updateScrollState();
     },
-    [updateScrollState],
+    [updateScrollState]
   );
 
   return {
@@ -180,8 +190,14 @@ function useAutoPreset(props: AutoScreenProps): {
 }
 
 function ScreenWithoutScrolling(props: ScreenProps) {
-  const { style, contentContainerStyle, contentContainerClassName, children, preset, className } =
-    props;
+  const {
+    style,
+    contentContainerStyle,
+    contentContainerClassName,
+    children,
+    preset,
+    className,
+  } = props;
 
   return (
     <View className={cn("h-full w-full flex-1", className)} style={style}>
@@ -189,7 +205,7 @@ function ScreenWithoutScrolling(props: ScreenProps) {
         className={cn(
           "flex-1 items-stretch justify-start",
           preset === "fixed" && "justify-end",
-          contentContainerClassName,
+          contentContainerClassName
         )}
         style={contentContainerStyle}
       >
@@ -214,14 +230,22 @@ function ScreenWithScrolling(props: ScreenProps) {
 
   const ref = useRef<KeyboardAwareScrollViewRef>(null);
 
-  const { scrollEnabled, onContentSizeChange, onLayout } = useAutoPreset(props as AutoScreenProps);
+  const { scrollEnabled, onContentSizeChange, onLayout } = useAutoPreset(
+    props as AutoScreenProps
+  );
 
   // Scroll to top when the active tab is tapped again (React Navigation behavior)
   useScrollToTop(ref);
 
   const scrollViewClassName = cn("h-full w-full flex-1", className);
-  const scrollViewContentClassName = cn("items-stretch justify-start", contentContainerClassName);
-  const scrollViewContentStyle = [ScrollViewProps?.contentContainerStyle, contentContainerStyle];
+  const scrollViewContentClassName = cn(
+    "items-stretch justify-start",
+    contentContainerClassName
+  );
+  const scrollViewContentStyle = [
+    ScrollViewProps?.contentContainerStyle,
+    contentContainerStyle,
+  ];
   const scrollViewStyle = [ScrollViewProps?.style, style];
 
   const handleContentSizeChange = useCallback(
@@ -229,7 +253,7 @@ function ScreenWithScrolling(props: ScreenProps) {
       onContentSizeChange(w, h);
       ScrollViewProps?.onContentSizeChange?.(w, h);
     },
-    [onContentSizeChange, ScrollViewProps],
+    [onContentSizeChange, ScrollViewProps]
   );
 
   const handleLayout = useCallback(
@@ -237,7 +261,7 @@ function ScreenWithScrolling(props: ScreenProps) {
       onLayout(e);
       ScrollViewProps?.onLayout?.(e);
     },
-    [onLayout, ScrollViewProps],
+    [onLayout, ScrollViewProps]
   );
 
   // When keyboard-aware behavior is disabled, fall back to a plain ScrollView

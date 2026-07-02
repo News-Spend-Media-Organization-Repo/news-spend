@@ -27,9 +27,9 @@ export async function sendNotification({
         .map((t) =>
           typeof t.user === "object" && t.user !== null
             ? (t.user as { id: string }).id
-            : (t.user as string | null | undefined),
+            : (t.user as string | null | undefined)
         )
-        .filter((id): id is string => !!id),
+        .filter((id): id is string => !!id)
     ),
   ];
 
@@ -68,7 +68,7 @@ export async function sendLotteryNotification({
     where: {
       user: {
         in: lotteryParticipants.map((lottery) =>
-          typeof lottery.user === "string" ? lottery.user : lottery.user.id,
+          typeof lottery.user === "string" ? lottery.user : lottery.user.id
         ),
       },
     },

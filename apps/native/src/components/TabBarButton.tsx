@@ -6,7 +6,11 @@ type Props = BottomTabBarButtonProps & {
   label?: string;
   Icon?:
     | React.NamedExoticComponent<any>
-    | ((props: { focused: boolean; color: string; size: number }) => React.ReactNode)
+    | ((props: {
+        focused: boolean;
+        color: string;
+        size: number;
+      }) => React.ReactNode)
     | undefined;
 };
 

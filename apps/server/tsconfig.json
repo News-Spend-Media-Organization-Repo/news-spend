@@ -6,18 +6,12 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "~/*": [
-        "./src/*"
-      ],
-      "@/*": [
-        "./src/*"
-      ]
+      "~/*": ["./src/*"],
+      "@/*": ["./src/*"]
     },
     "jsx": "react-jsx",
     "strictNullChecks": true,
     "skipLibCheck": true,
-    "types": [
-      "bun"
-    ]
+    "types": ["bun"]
   }
 }

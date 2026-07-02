@@ -7,7 +7,11 @@ import { NativeAd } from "react-native-google-mobile-ads";
 import { useSnapshot } from "valtio";
 import { adUnits } from "#/lib/adUnits";
 import { type AdPlacement, consumeAd } from "#/state/adManager";
-import { appOpenAdSheetState, setAdType, setNativeAdReady } from "#/state/appOpenAdState";
+import {
+  appOpenAdSheetState,
+  setAdType,
+  setNativeAdReady,
+} from "#/state/appOpenAdState";
 import { Button } from "../../heroui/button";
 import { Icon } from "../../heroui/icon";
 import CustomNewsOpenAd from "./CustomNewsOpenAd";
@@ -80,11 +84,23 @@ const AppOpenAd = () => {
         return <CustomNewsOpenAd ad={customAd} />;
       }
       if (nativeAd) {
-        return <NativeNewsOpenAd error={error} loading={loading} nativeAd={nativeAd} />;
+        return (
+          <NativeNewsOpenAd
+            error={error}
+            loading={loading}
+            nativeAd={nativeAd}
+          />
+        );
       }
     } else if (adType === "native") {
       if (nativeAd) {
-        return <NativeNewsOpenAd error={error} loading={loading} nativeAd={nativeAd} />;
+        return (
+          <NativeNewsOpenAd
+            error={error}
+            loading={loading}
+            nativeAd={nativeAd}
+          />
+        );
       }
       if (customAd) {
         return <CustomNewsOpenAd ad={customAd} />;

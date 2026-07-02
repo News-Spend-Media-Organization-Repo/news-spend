@@ -32,7 +32,7 @@ function ShopHome() {
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
-    }),
+    })
   );
 
   const {
@@ -59,7 +59,7 @@ function ShopHome() {
   const allStores = allStoresData?.pages.flatMap((page) => page.docs) ?? [];
 
   return (
-    <Screen preset="fixed" systemBarStyle="light">
+    <Screen className="bg-white" preset="fixed" systemBarStyle="light">
       <Tabs
         className="mx-2 flex-1 pt-4"
         onValueChange={setActiveTab}
@@ -70,7 +70,11 @@ function ShopHome() {
           <Tabs.Indicator className="rounded-lg bg-p-400" />
           <Tabs.Trigger className="flex-1" value="allStores">
             {({ isSelected }) => (
-              <Tabs.Label className={isSelected ? "text-accent-foreground" : "text-foreground"}>
+              <Tabs.Label
+                className={
+                  isSelected ? "text-accent-foreground" : "text-foreground"
+                }
+              >
                 All Stores
               </Tabs.Label>
             )}
@@ -78,7 +82,11 @@ function ShopHome() {
           <Tabs.Separator betweenValues={["allStores", "popular"]} />
           <Tabs.Trigger className="flex-1" value="popular">
             {({ isSelected }) => (
-              <Tabs.Label className={isSelected ? "text-accent-foreground" : "text-foreground"}>
+              <Tabs.Label
+                className={
+                  isSelected ? "text-accent-foreground" : "text-foreground"
+                }
+              >
                 Popular
               </Tabs.Label>
             )}
@@ -86,7 +94,11 @@ function ShopHome() {
           <Tabs.Separator betweenValues={["popular", "favorites"]} />
           <Tabs.Trigger className="flex-1" value="favorites">
             {({ isSelected }) => (
-              <Tabs.Label className={isSelected ? "text-accent-foreground" : "text-foreground"}>
+              <Tabs.Label
+                className={
+                  isSelected ? "text-accent-foreground" : "text-foreground"
+                }
+              >
                 Favorites
               </Tabs.Label>
             )}
@@ -107,7 +119,11 @@ function ShopHome() {
             data={allStores}
             ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id}
-            ListEmptyComponent={allStoresPending || allStoresLoading ? <ActivityIndicator /> : null}
+            ListEmptyComponent={
+              allStoresPending || allStoresLoading ? (
+                <ActivityIndicator />
+              ) : null
+            }
             onEndReached={() => {
               if (hasNextAllStores) {
                 fetchNextAllStores();

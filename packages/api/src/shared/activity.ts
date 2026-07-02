@@ -118,9 +118,11 @@ export async function addActivity(
     }
   }
 
-  if (rest.action === "connectBrandAd") {
+  if (rest.action === "connectBrandAd" || rest.action === "share") {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const cap = rest.action === "connectBrandAd" ? 8 : 5;
 
     const activities = await payload.find({
       collection: "activities",
@@ -129,7 +131,7 @@ export async function addActivity(
           equals: user.id,
         },
         action: {
-          equals: "connectBrandAd",
+          equals: rest.action,
         },
         createdAt: {
           greater_than_equal: today.toISOString(),
@@ -137,7 +139,7 @@ export async function addActivity(
       },
     });
 
-    if (activities.totalDocs >= 8) {
+    if (activities.totalDocs >= cap) {
       return {
         message: "CAP_REACHED",
       };

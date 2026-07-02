@@ -17,7 +17,9 @@ import useChangePassword from "../hooks/useChangePassword";
 
 const schema = z
   .object({
-    password: z.string("Password is required").min(8, "Password must be at least 8 characters"),
+    password: z
+      .string("Password is required")
+      .min(8, "Password must be at least 8 characters"),
     confirmPassword: z
       .string("Confirm password is required")
       .min(8, "Password must be at least 8 characters"),
@@ -53,7 +55,8 @@ const ResetPassword = () => {
             });
           }
           toast.success("Password Updated", {
-            description: "Your password has been changed. Please sign in with your new password.",
+            description:
+              "Your password has been changed. Please sign in with your new password.",
           });
           const session = await authClient.getSession();
           if (session.data) {
@@ -66,7 +69,7 @@ const ResetPassword = () => {
             description: "Something went wrong while resetting your password.",
           });
         },
-      },
+      }
     );
   };
 
@@ -78,7 +81,9 @@ const ResetPassword = () => {
 
       <View className="mt-8 flex-1 gap-11">
         <View className="gap-5">
-          <Text className="text-center font-bold text-3xl">Change Password</Text>
+          <Text className="text-center font-bold text-3xl">
+            Change Password
+          </Text>
           <FormProvider {...formMethods}>
             <View className="gap-5">
               <FormInput

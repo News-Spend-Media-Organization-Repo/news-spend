@@ -1,4 +1,8 @@
-import { type MigrateDownArgs, type MigrateUpArgs, sql } from "@payloadcms/db-postgres";
+import {
+  type MigrateDownArgs,
+  type MigrateUpArgs,
+  sql,
+} from "@payloadcms/db-postgres";
 
 /**
  * Data migration for the reactions consolidation.
@@ -80,14 +84,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     }
 
     for (const comment of comments.docs) {
-      const commentId = typeof comment.id === "string" ? comment.id : String(comment.id);
+      const commentId =
+        typeof comment.id === "string" ? comment.id : String(comment.id);
 
       // Normalize likes/dislikes to string[] of user IDs
       const likeUserIds = (comment.likes ?? []).map((u: unknown) =>
-        typeof u === "string" ? u : (u as { id: string }).id,
+        typeof u === "string" ? u : (u as { id: string }).id
       );
       const dislikeUserIds = (comment.dislikes ?? []).map((u: unknown) =>
-        typeof u === "string" ? u : (u as { id: string }).id,
+        typeof u === "string" ? u : (u as { id: string }).id
       );
 
       for (const userId of likeUserIds) {
@@ -158,7 +163,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     }
 
     payload.logger.info(
-      `Processed ${processed} comments (page ${page}, ${comments.docs.length} docs)`,
+      `Processed ${processed} comments (page ${page}, ${comments.docs.length} docs)`
     );
 
     if (comments.docs.length < limit) {
@@ -167,7 +172,9 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     page++;
   }
 
-  payload.logger.info(`Created reaction rows for ${processed} comments' inline likes/dislikes`);
+  payload.logger.info(
+    `Created reaction rows for ${processed} comments' inline likes/dislikes`
+  );
 
   // 4. Recalculate news.likes_count / news.dislikes_count.
   // We can't rely on the afterChange hook here because step 1 was an INSERT
@@ -253,14 +260,20 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     WHERE "parent_id" IS NULL;
   `);
 
-  payload.logger.info("Recalculated news.total_comments and comments.total_replies");
+  payload.logger.info(
+    "Recalculated news.total_comments and comments.total_replies"
+  );
 
   payload.logger.info("Migration complete");
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({
+  db,
+  payload,
+  req,
+}: MigrateDownArgs): Promise<void> {
   payload.logger.warn(
     "down() does not restore inline comment.likes/dislikes arrays. " +
-      "Re-run the forward migration or restore from backup if you need to roll back.",
+      "Re-run the forward migration or restore from backup if you need to roll back."
   );
 }

@@ -20,7 +20,7 @@ const ScreenHeader = ({ title, left, right, className }: ScreenHeaderProps) => {
     <View
       className={cn(
         "relative w-full flex-row items-center justify-center bg-p-500 px-3 py-2 pt-safe-offset-1",
-        className,
+        className
       )}
     >
       {/* Left Item */}
@@ -29,11 +29,17 @@ const ScreenHeader = ({ title, left, right, className }: ScreenHeaderProps) => {
         hitSlop={20}
         onPress={() => navigation.goBack()}
       >
-        {left === undefined ? <Icon color="white" name={ArrowLeftIcon} size={24} /> : left}
+        {left === undefined ? (
+          <Icon color="white" name={ArrowLeftIcon} size={24} />
+        ) : (
+          left
+        )}
       </PressableFeedback>
       {/* Title */}
       <View className="flex-1 items-center justify-center">
-        <Text className="font-medium text-lg text-white capitalize">{title}</Text>
+        <Text className="font-medium text-base text-white capitalize">
+          {title}
+        </Text>
       </View>
       {/* Right Item */}
       <View className="min-w-10 items-center justify-center px-2">{right}</View>

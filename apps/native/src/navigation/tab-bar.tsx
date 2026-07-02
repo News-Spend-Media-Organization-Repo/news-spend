@@ -2,19 +2,23 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
 import { useLinkBuilder } from "@react-navigation/native";
 import { cn } from "heroui-native";
-import { memo } from "react";
+import { memo, useCallback } from "react";
+import type { LayoutChangeEvent } from "react-native";
 import Animated, {
   Easing,
   FadeInDown,
   FadeOutDown,
-  useAnimatedStyle,
-  withTiming,
 } from "react-native-reanimated";
 import { Text } from "#/components/heroui/text";
-import MusicPlayer from "#/components/MusicPlayer";
-import LiveBanner from "./live-banner";
+import { setTabBarHeight } from "#/state/route-state";
+import { FloatingOverlays } from "./floating-overlays";
 
-const VISIBLE_SCREENS = new Set(["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"]);
+const VISIBLE_SCREENS = new Set([
+  "NewsHome",
+  "LiveHome",
+  "ShopHome",
+  "DiscoverHome",
+]);
 const VISIBLE_TABS = new Set(["Home", "Live", "Shop", "Discover"]); // not Settings
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -30,14 +34,9 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     ? VISIBLE_SCREENS.has(activeRouteName)
     : VISIBLE_TABS.has(currentRoute.name);
 
-  const currentTabName = state.routes[state.index].name;
-
-  const tabBarStyle = useAnimatedStyle(() => ({
-    // height: withTiming(isTabBarVisible ? TAB_BAR_HEIGHT : 0, { duration: 250, easing: Easing.ease }),
-    opacity: withTiming(isTabBarVisible ? 1 : 0, { duration: 200 }),
-    // backgroundColor: "#YOUR_P_500_HEX", // explicit, always set
-    overflow: "hidden",
-  }));
+  const onTabBarLayout = useCallback((event: LayoutChangeEvent) => {
+    setTabBarHeight(event.nativeEvent.layout.height);
+  }, []);
 
   if (!isTabBarVisible) {
     return null;
@@ -45,26 +44,13 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <>
-      <Animated.View
-        entering={FadeInDown.duration(300).easing(Easing.ease)}
-        exiting={FadeOutDown.easing(Easing.ease).duration(300)}
-        style={{ backgroundColor: "transparent" }}
-      >
-        <MusicPlayer />
-      </Animated.View>
+      <FloatingOverlays />
 
       <Animated.View
+        className="flex-row bg-p-500 pt-2 pb-2"
         entering={FadeInDown.duration(300).easing(Easing.ease)}
         exiting={FadeOutDown.easing(Easing.ease).duration(300)}
-        style={{ backgroundColor: "transparent" }}
-      >
-        <LiveBanner currentTabName={currentTabName} navigation={navigation} />
-      </Animated.View>
-
-      <Animated.View
-        className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
-        entering={FadeInDown.duration(300).easing(Easing.ease)}
-        exiting={FadeOutDown.easing(Easing.ease).duration(300)}
+        onLayout={onTabBarLayout}
       >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
@@ -117,7 +103,9 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 <Text
                   className={cn(
                     "text-center text-xs",
-                    isFocused ? "font-semibold text-background" : "text-gray-500",
+                    isFocused
+                      ? "font-semibold text-background"
+                      : "text-gray-500"
                   )}
                 >
                   {typeof label === "string" ? label : route.name}

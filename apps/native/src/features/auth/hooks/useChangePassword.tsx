@@ -5,7 +5,7 @@ import { authClient } from "#/lib/authClient";
 import type { RootStackNavigationProps } from "#/types";
 
 export default function useChangePassword() {
-  const navigation =
+  const _navigation =
     useNavigation<RootStackNavigationProps<"ChangePassword">>();
 
   const changePassword = async ({

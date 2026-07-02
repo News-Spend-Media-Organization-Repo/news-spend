@@ -1,9 +1,17 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import {
+  LegendList,
+  type LegendListRenderItemProps,
+} from "@legendapp/list/react-native";
 import type { News, PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { Chip } from "heroui-native";
 import { memo, useCallback } from "react";
-import { Pressable, type ScrollViewProps, useWindowDimensions, View } from "react-native";
+import {
+  Pressable,
+  type ScrollViewProps,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
@@ -12,7 +20,11 @@ import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
 import { RelatedItemTask } from "./RelatedItemTask";
 
-type RelatedNewsData = (News | PartnerContent | (PartnerContent & { _type: string }))[];
+type RelatedNewsData = (
+  | News
+  | PartnerContent
+  | (PartnerContent & { _type: string })
+)[];
 
 const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
@@ -20,7 +32,9 @@ function isNews(item: unknown): item is News {
   return typeof item === "object" && item !== null && "type" in item;
 }
 
-function isRewardTask(item: unknown): item is PartnerContent & { _type: string } {
+function isRewardTask(
+  item: unknown
+): item is PartnerContent & { _type: string } {
   return (
     typeof item === "object" &&
     item !== null &&
@@ -29,25 +43,27 @@ function isRewardTask(item: unknown): item is PartnerContent & { _type: string }
   );
 }
 
-const RelatedImage = memo(({ item, width }: { item: News | PartnerContent; width: number }) => {
-  const mediaSource = isNews(item) ? item.image : item.media;
-  const { url, blurhash } = getImageData(mediaSource);
-  return (
-    <Image
-      className="w-full rounded-[5px]"
-      contentFit="cover"
-      placeholder={{
-        blurhash,
-      }}
-      placeholderContentFit="cover"
-      recyclingKey={item.id}
-      source={url}
-      style={{
-        height: width * 0.35,
-      }}
-    />
-  );
-});
+const RelatedImage = memo(
+  ({ item, width }: { item: News | PartnerContent; width: number }) => {
+    const mediaSource = isNews(item) ? item.image : item.media;
+    const { url, blurhash } = getImageData(mediaSource);
+    return (
+      <Image
+        className="w-full rounded-[5px]"
+        contentFit="cover"
+        placeholder={{
+          blurhash,
+        }}
+        placeholderContentFit="cover"
+        recyclingKey={item.id}
+        source={url}
+        style={{
+          height: width * 0.35,
+        }}
+      />
+    );
+  }
+);
 
 const PointsButton = memo(({ points }: { points: number }) => (
   <Chip className="bg-s-300" size="sm">
@@ -73,7 +89,11 @@ const RelatedItem = memo(
     const points = isNewsItem ? (item.points ?? 0) : 0;
 
     return (
-      <Pressable className="mr-2.5 gap-2" onPress={onPress} style={{ width: width * 0.42 }}>
+      <Pressable
+        className="mr-2.5 gap-2"
+        onPress={onPress}
+        style={{ width: width * 0.42 }}
+      >
         <View className="items-center justify-center">
           <RelatedImage item={item} width={width} />
         </View>
@@ -89,7 +109,7 @@ const RelatedItem = memo(
         </View>
       </Pressable>
     );
-  },
+  }
 );
 
 function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
@@ -99,7 +119,10 @@ function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
   const handlePress = useCallback(
     (item: News | PartnerContent) => {
       const navigateToItem = () => {
-        if (isNews(item) && (item.type === "article" || item.type === "video")) {
+        if (
+          isNews(item) &&
+          (item.type === "article" || item.type === "video")
+        ) {
           navigation.navigate(item.type === "article" ? "News" : "SingleLive", {
             id: item.id,
             slug: item.slug,
@@ -116,7 +139,7 @@ function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
         navigateToItem();
       }
     },
-    [navigation],
+    [navigation]
   );
 
   const renderNewsItem = useCallback(
@@ -124,12 +147,19 @@ function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
       isRewardTask(item) ? (
         <RelatedItemTask item={item} />
       ) : (
-        <RelatedItem item={item} onPress={() => handlePress(item)} width={width} />
+        <RelatedItem
+          item={item}
+          onPress={() => handlePress(item)}
+          width={width}
+        />
       ),
-    [width, handlePress],
+    [width, handlePress]
   );
 
-  const keyExtractor = useCallback((item: RelatedNewsData[number]) => item.id, []);
+  const keyExtractor = useCallback(
+    (item: RelatedNewsData[number]) => item.id,
+    []
+  );
 
   if (!news?.length) {
     return null;

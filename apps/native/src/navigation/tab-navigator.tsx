@@ -16,6 +16,7 @@ import TabBar from "./tab-bar";
 
 export default createBottomTabNavigator({
   tabBar: (props) => <TabBar {...props} />,
+  implementation: "custom",
   backBehavior: "history",
   screens: {
     Home: {
@@ -26,7 +27,13 @@ export default createBottomTabNavigator({
       screen: NewsStack,
       options: {
         tabBarIcon(props) {
-          return <HouseIcon color={props.color.toString()} size={props.size} weight="regular" />;
+          return (
+            <HouseIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
+          );
         },
       },
     },
@@ -39,7 +46,11 @@ export default createBottomTabNavigator({
       options: {
         tabBarIcon(props) {
           return (
-            <VideoCameraIcon color={props.color.toString()} size={props.size} weight="regular" />
+            <VideoCameraIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
           );
         },
       },
@@ -55,7 +66,11 @@ export default createBottomTabNavigator({
         title: "Settings",
         tabBarIcon(props) {
           return (
-            <PlusCircleIcon color={props.color.toString()} size={props.size} weight="regular" />
+            <PlusCircleIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
           );
         },
       },
@@ -68,7 +83,9 @@ export default createBottomTabNavigator({
       screen: DiscoverStack,
       options: {
         tabBarIcon(props) {
-          return <TagIcon color={props.color} size={props.size} weight="regular" />;
+          return (
+            <TagIcon color={props.color} size={props.size} weight="regular" />
+          );
         },
       },
     },
@@ -81,7 +98,11 @@ export default createBottomTabNavigator({
       options: {
         tabBarIcon(props) {
           return (
-            <ShoppingCartIcon color={props.color.toString()} size={props.size} weight="regular" />
+            <ShoppingCartIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
           );
         },
       },

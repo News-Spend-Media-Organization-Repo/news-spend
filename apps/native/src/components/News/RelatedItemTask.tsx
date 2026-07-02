@@ -1,6 +1,13 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { Chip } from "heroui-native";
-import { Linking, Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
+import {
+  Linking,
+  Platform,
+  Pressable,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Image } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
 
@@ -25,7 +32,11 @@ const RelatedItemTask = ({ item }: { item: PartnerContent }) => {
   }
 
   return (
-    <Pressable className="mr-2.5 gap-2" onPress={onPress} style={{ width: width * 0.42 }}>
+    <Pressable
+      className="mr-2.5 gap-2"
+      onPress={onPress}
+      style={{ width: width * 0.42 }}
+    >
       <View className="items-center justify-center">
         <Image
           contentFit="cover"
@@ -39,7 +50,11 @@ const RelatedItemTask = ({ item }: { item: PartnerContent }) => {
         />
       </View>
       <View className="gap-2">
-        <Text className="text-foreground" ellipsizeMode="tail" numberOfLines={3}>
+        <Text
+          className="text-foreground"
+          ellipsizeMode="tail"
+          numberOfLines={3}
+        >
           {item.condition}
         </Text>
         <View className="flex-row items-center justify-between">

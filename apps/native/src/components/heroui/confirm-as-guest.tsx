@@ -46,10 +46,13 @@ export function ConfirmAsGuest({ trigger }: ConfirmAsGuestProps) {
       <Dialog.Portal>
         <Dialog.Overlay />
         <Dialog.Content className="rounded-lg">
-          <Dialog.Close className="absolute top-3 right-2.5 z-50" variant="ghost" />
+          <Dialog.Close
+            className="absolute top-3 right-2.5 z-50"
+            variant="ghost"
+          />
           <Dialog.Description className="my-6 leading-relaxed">
-            Are you sure you want to skip registration? You can still complete registration later,
-            but you will not get the welcome points
+            Are you sure you want to skip registration? You can still complete
+            registration later, but you will not get the welcome points
           </Dialog.Description>
           <View className="flex-row justify-end gap-3">
             <Button

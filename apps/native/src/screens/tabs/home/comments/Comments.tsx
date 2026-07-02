@@ -1,4 +1,7 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import {
+  LegendList,
+  type LegendListRenderItemProps,
+} from "@legendapp/list/react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretDownIcon } from "phosphor-react-native";
@@ -34,7 +37,7 @@ const Comments = () => {
         queryClient.getQueryData(
           orpc.news.one.queryKey({
             input: { slug: newsSlug ?? "", type: "article" },
-          }),
+          })
         ),
       initialDataUpdatedAt: () => {
         const qKey = orpc.news.one.queryKey({
@@ -46,12 +49,10 @@ const Comments = () => {
 
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    }),
+    })
   );
-  const { data, fetchNextPage, isFetchingNextPage, hasNextPage, refetch } = useGetComments(
-    newsId ?? "",
-    false,
-  );
+  const { data, fetchNextPage, isFetchingNextPage, hasNextPage, refetch } =
+    useGetComments(newsId ?? "", false);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
@@ -72,8 +73,10 @@ const Comments = () => {
   }, [params?.focus]);
 
   const renderItem = useCallback(
-    ({ item }: LegendListRenderItemProps<Comment>) => <CommentCard comment={item} />,
-    [],
+    ({ item }: LegendListRenderItemProps<Comment>) => (
+      <CommentCard comment={item} />
+    ),
+    []
   );
 
   const onEndReached = useCallback(() => {
@@ -105,7 +108,11 @@ const Comments = () => {
   const { url, blurhash } = getImageData(news.data?.image);
 
   return (
-    <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView systemBarStyle="auto">
+    <Screen
+      contentContainerClassName="py-safe"
+      disableKeyboardAvoidingView
+      systemBarStyle="auto"
+    >
       <KeyboardAvoidingView
         behavior="padding"
         // keyboardVerticalOffset={10}
@@ -119,11 +126,18 @@ const Comments = () => {
               <Text>No comments yet</Text>
             </View>
           }
-          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
+          ListFooterComponent={
+            isFetchingNextPage ? <ActivityIndicator /> : null
+          }
           ListHeaderComponent={
             <View className="mb-6 gap-3">
               <View className="flex-row items-center px-2">
-                <Button hitSlop={14} onPress={() => navigation.goBack()} size="sm" variant="ghost">
+                <Button
+                  hitSlop={14}
+                  onPress={() => navigation.goBack()}
+                  size="sm"
+                  variant="ghost"
+                >
                   <CaretDownIcon size={20} />
                 </Button>
                 <Image

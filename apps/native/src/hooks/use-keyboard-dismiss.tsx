@@ -9,8 +9,11 @@ import { isRefObject } from "#/utils/comment-utils";
  * Also blurs the provided inputRef so the cursor disappears cleanly.
  */
 export function useKeyboardDismiss(
-  inputRef: RefObject<TextInput | null> | ((instance: TextInput | null) => void) | undefined,
-  onDismiss: () => void,
+  inputRef:
+    | RefObject<TextInput | null>
+    | ((instance: TextInput | null) => void)
+    | undefined,
+  onDismiss: () => void
 ) {
   useEffect(() => {
     const sub = KeyboardEvents.addListener("keyboardDidHide", () => {
@@ -20,5 +23,5 @@ export function useKeyboardDismiss(
       onDismiss();
     });
     return () => sub.remove();
-  }, []);
+  }, [onDismiss, inputRef]);
 }

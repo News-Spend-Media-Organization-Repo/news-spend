@@ -4,8 +4,20 @@ import { useEvent } from "expo";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, type VideoThumbnail, VideoView } from "expo-video";
-import { PauseIcon, PlayIcon, SpeakerHighIcon, SpeakerXIcon } from "phosphor-react-native";
-import { type Ref, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  PauseIcon,
+  PlayIcon,
+  SpeakerHighIcon,
+  SpeakerXIcon,
+} from "phosphor-react-native";
+import {
+  type Ref,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import type { ViewStyle } from "react-native";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import {
@@ -136,7 +148,10 @@ const ReanimatedProgress = ({
       }
     })
     .onChange((event) => {
-      translateX.value = Math.max(0, Math.min(barWidth, translateX.value + event.changeX));
+      translateX.value = Math.max(
+        0,
+        Math.min(barWidth, translateX.value + event.changeX)
+      );
     })
     .onEnd(() => {
       const finalProgress = translateX.value / barWidth;
@@ -182,8 +197,12 @@ const ReanimatedProgress = ({
         style={progressStyles.container}
       >
         <View style={progressStyles.track} />
-        <Animated.View style={[progressStyles.progress, animatedProgressStyle]} />
-        <Animated.View style={[progressStyles.thumbContainer, animatedThumbStyle]}>
+        <Animated.View
+          style={[progressStyles.progress, animatedProgressStyle]}
+        />
+        <Animated.View
+          style={[progressStyles.thumbContainer, animatedThumbStyle]}
+        >
           <View style={progressStyles.thumb} />
         </Animated.View>
       </Animated.View>
@@ -247,7 +266,9 @@ const usePlaybackSync = ({
         } else {
           setIsVideoEnded(false);
         }
-        const activeSub = subtitles.find((s) => time >= s.start && time <= s.end);
+        const activeSub = subtitles.find(
+          (s) => time >= s.start && time <= s.end
+        );
         setCurrentSubtitle(activeSub?.text ?? "");
         onPlaybackStatusUpdate?.({
           currentTime: time,
@@ -278,7 +299,9 @@ type UseControlVisibilityOptions = {
 
 const useControlVisibility = ({ isPlaying }: UseControlVisibilityOptions) => {
   const [showCustomControls, setShowCustomControls] = useState(true);
-  const hideControlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideControlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   const controlsOpacity = useSharedValue(1);
   // Play icon starts fully visible (paused on mount)
   const playIconOpacity = useSharedValue(1);
@@ -342,7 +365,7 @@ const useControlVisibility = ({ isPlaying }: UseControlVisibilityOptions) => {
         clearTimeout(hideControlsTimeout.current);
       }
     },
-    [],
+    []
   );
 
   return {
@@ -430,14 +453,20 @@ export const Video = ({
       .catch(() => {});
   }, [status, player]);
 
-  const { currentTime, setCurrentTime, duration, currentSubtitle, isVideoEnded, setIsVideoEnded } =
-    usePlaybackSync({
-      player,
-      isSeeking,
-      loop,
-      subtitles,
-      onPlaybackStatusUpdate,
-    });
+  const {
+    currentTime,
+    setCurrentTime,
+    duration,
+    currentSubtitle,
+    isVideoEnded,
+    setIsVideoEnded,
+  } = usePlaybackSync({
+    player,
+    isSeeking,
+    loop,
+    subtitles,
+    onPlaybackStatusUpdate,
+  });
 
   const {
     showCustomControls,
@@ -468,7 +497,13 @@ export const Video = ({
     }
     showPlayIconAnimation();
     showControls();
-  }, [player, isVideoEnded, setIsVideoEnded, showControls, showPlayIconAnimation]);
+  }, [
+    player,
+    isVideoEnded,
+    setIsVideoEnded,
+    showControls,
+    showPlayIconAnimation,
+  ]);
 
   const handleLeftDoubleTap = useCallback(() => {
     if (player) {
@@ -514,7 +549,7 @@ export const Video = ({
       setIsVideoEnded,
       hideControls,
       hideControlsTimeout,
-    ],
+    ]
   );
 
   const handleSeekStart = useCallback(() => {
@@ -596,7 +631,7 @@ export const Video = ({
         await videoViewRef.current?.stopPictureInPicture();
       },
     }),
-    [player, isMuted],
+    [player, isMuted]
   );
 
   // -------------------------------------------------------------------------
@@ -604,7 +639,9 @@ export const Video = ({
   // -------------------------------------------------------------------------
 
   return (
-    <GestureHandlerRootView style={[styles.container, { backgroundColor: cardColor }, style]}>
+    <GestureHandlerRootView
+      style={[styles.container, { backgroundColor: cardColor }, style]}
+    >
       <VideoView
         allowsPictureInPicture={allowsPictureInPicture}
         contentFit={contentFit}
@@ -624,7 +661,11 @@ export const Video = ({
       {/* Poster thumbnail — shown until the user plays for the first time */}
       {Boolean(thumbnail && !hasPlayedOnce.current) && (
         <View pointerEvents="none" style={styles.thumbnailOverlay}>
-          <ExpoImage contentFit={contentFit} source={thumbnail} style={styles.fill} />
+          <ExpoImage
+            contentFit={contentFit}
+            source={thumbnail}
+            style={styles.fill}
+          />
         </View>
       )}
 
@@ -639,13 +680,18 @@ export const Video = ({
           style={styles.gestureAreaCenter}
         />
         <TapArea
-          gesture={Gesture.Tap().onEnd(() => scheduleOnRN(handleRightDoubleTap))}
+          gesture={Gesture.Tap().onEnd(() =>
+            scheduleOnRN(handleRightDoubleTap)
+          )}
           style={styles.gestureArea}
         />
       </View>
 
       {/* Centered play/pause icon — always mounted, opacity driven by isPlaying */}
-      <Animated.View pointerEvents="none" style={[styles.centerPlayIcon, playIconAnimatedStyle]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.centerPlayIcon, playIconAnimatedStyle]}
+      >
         <View style={styles.centerPlayIconBackground}>
           {isPlaying ? (
             <PauseIcon color="#ffffff" size={36} weight="fill" />
@@ -658,7 +704,9 @@ export const Video = ({
       {/* Subtitles */}
       {Boolean(currentSubtitle) && (
         <View pointerEvents="none" style={styles.subtitleContainer}>
-          <Text style={[styles.subtitleText, { color: textColor }]}>{currentSubtitle}</Text>
+          <Text style={[styles.subtitleText, { color: textColor }]}>
+            {currentSubtitle}
+          </Text>
         </View>
       )}
 
@@ -668,8 +716,15 @@ export const Video = ({
           pointerEvents="box-none"
           style={[styles.controlsContainer, controlsAnimatedStyle]}
         >
-          <LinearGradient colors={["rgba(0,0,0,0.5)", "transparent"]} style={styles.topControls}>
-            <TouchableOpacity activeOpacity={0.7} onPress={toggleMute} style={styles.controlButton}>
+          <LinearGradient
+            colors={["rgba(0,0,0,0.5)", "transparent"]}
+            style={styles.topControls}
+          >
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={toggleMute}
+              style={styles.controlButton}
+            >
               {isMuted ? (
                 <SpeakerXIcon color={textColor} size={24} weight="bold" />
               ) : (
@@ -678,12 +733,17 @@ export const Video = ({
             </TouchableOpacity>
           </LinearGradient>
 
-          <LinearGradient colors={["transparent", "rgba(0,0,0,0.5)"]} style={styles.bottomControls}>
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.5)"]}
+            style={styles.bottomControls}
+          >
             <View style={styles.timeContainer}>
               <Text style={[styles.timeText, { color: mutedColor }]}>
                 {formatTime(currentTime)}
               </Text>
-              <Text style={[styles.timeText, { color: mutedColor }]}>{formatTime(duration)}</Text>
+              <Text style={[styles.timeText, { color: mutedColor }]}>
+                {formatTime(duration)}
+              </Text>
             </View>
 
             <ReanimatedProgress

@@ -10,7 +10,14 @@ const MAX_BATCH_SIZE = 50;
 
 export type AnalyticsEvent = {
   articleId: string;
-  event: "impression" | "view" | "read" | "like" | "dislike" | "share" | "comment";
+  event:
+    | "impression"
+    | "view"
+    | "read"
+    | "like"
+    | "dislike"
+    | "share"
+    | "comment";
   sessionId: string;
   deviceId: string;
   platform: "android" | "ios" | "web";
@@ -26,10 +33,16 @@ export type AnalyticsEvent = {
 
 class NewsAnalyticsClient {
   private flushTimer: ReturnType<typeof setInterval> | null = null;
-  private appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
+  private appStateSubscription: ReturnType<
+    typeof AppState.addEventListener
+  > | null = null;
 
   readonly platform: "android" | "ios" | "web" =
-    Platform.OS === "android" ? "android" : Platform.OS === "ios" ? "ios" : "web";
+    Platform.OS === "android"
+      ? "android"
+      : Platform.OS === "ios"
+        ? "ios"
+        : "web";
 
   // --- Queue persistence via MMKV ---
 
@@ -46,12 +59,6 @@ class NewsAnalyticsClient {
   private saveQueue(queue: AnalyticsEvent[]): void {
     try {
       storage.set(QUEUE_KEY, JSON.stringify(queue));
-    } catch {}
-  }
-
-  private clearQueue(): void {
-    try {
-      storage.remove(QUEUE_KEY);
     } catch {}
   }
 
@@ -99,11 +106,14 @@ class NewsAnalyticsClient {
     }, FLUSH_INTERVAL_MS);
 
     // Flush on app background
-    this.appStateSubscription = AppState.addEventListener("change", (state: AppStateStatus) => {
-      if (state === "background" || state === "inactive") {
-        this.flush(getUserId());
+    this.appStateSubscription = AppState.addEventListener(
+      "change",
+      (state: AppStateStatus) => {
+        if (state === "background" || state === "inactive") {
+          this.flush(getUserId());
+        }
       }
-    });
+    );
   }
 
   stop(): void {

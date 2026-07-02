@@ -1,12 +1,19 @@
-import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
 import { useQueries } from "@tanstack/react-query";
-import { differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
-import { Image } from "#/components/heroui/image";
+import {
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+} from "date-fns";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
-
 import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
+import { Image } from "#/components/heroui/image";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
@@ -34,22 +41,23 @@ const prizes = [
 const PlayLottery = () => {
   const navigation = useNavigation("PlayLottery");
   const isFocused = useIsFocused();
-  const [lotteryTicketQuery, purchaseLogQuery, currentLotteryQuery] = useQueries({
-    queries: [
-      orpc.lotteryTicket.get.queryOptions({
-        refetchInterval: 50_000,
-        enabled: isFocused,
-      }),
-      orpc.lotteryTicket.purchaseLog.queryOptions({
-        refetchInterval: 50_000,
-        enabled: isFocused,
-      }),
-      orpc.lottery.current.queryOptions({
-        refetchInterval: 60_000,
-        enabled: isFocused,
-      }),
-    ],
-  });
+  const [lotteryTicketQuery, purchaseLogQuery, currentLotteryQuery] =
+    useQueries({
+      queries: [
+        orpc.lotteryTicket.get.queryOptions({
+          refetchInterval: 50_000,
+          enabled: isFocused,
+        }),
+        orpc.lotteryTicket.purchaseLog.queryOptions({
+          refetchInterval: 50_000,
+          enabled: isFocused,
+        }),
+        orpc.lottery.current.queryOptions({
+          refetchInterval: 60_000,
+          enabled: isFocused,
+        }),
+      ],
+    });
 
   const [now, setNow] = useState(() => new Date());
 
@@ -59,12 +67,14 @@ const PlayLottery = () => {
         setNow(new Date());
       }, 1000);
       return () => clearInterval(interval);
-    }, []),
+    }, [])
   );
 
   const currentLottery = currentLotteryQuery.data;
   const isLoading = currentLotteryQuery.isLoading;
-  const endDate = currentLottery?.endDate ? new Date(currentLottery.endDate) : null;
+  const endDate = currentLottery?.endDate
+    ? new Date(currentLottery.endDate)
+    : null;
   const hasEnded = endDate ? now >= endDate : false;
 
   const daysLeft = endDate ? differenceInDays(endDate, now) : 0;
@@ -102,7 +112,10 @@ const PlayLottery = () => {
     <Screen className="" systemBarStyle="light">
       <ScreenHeader
         right={
-          <Text className="text-white" onPress={() => navigation.navigate("LotteryRules")}>
+          <Text
+            className="text-white"
+            onPress={() => navigation.navigate("LotteryRules")}
+          >
             Rules
           </Text>
         }
@@ -112,7 +125,8 @@ const PlayLottery = () => {
       <View className="mb-4 gap-4">
         <View className="gap-2 bg-p-500 px-2 py-2">
           <Text className="text-center text-lg text-p-50">
-            Win Dream Points, airtime, data bundles, electronics, and other prizes
+            Win Dream Points, airtime, data bundles, electronics, and other
+            prizes
           </Text>
           <View className="flex-row gap-2">
             {prizes.map((prize, index) => (
@@ -139,13 +153,18 @@ const PlayLottery = () => {
           </Text>
           <Text className="text-xl">
             Total Participants:{" "}
-            <Text className="font-bold text-s-500">{lotteryTicketQuery.data?.length ?? 0}</Text>
+            <Text className="font-bold text-s-500">
+              {lotteryTicketQuery.data?.length ?? 0}
+            </Text>
           </Text>
         </View>
       </View>
 
       {purchaseLogQuery.data?.map((item: any) => (
-        <View className="border-gray-100 border-b" key={item.lottery_tickets?.id}>
+        <View
+          className="border-gray-100 border-b"
+          key={item.lottery_tickets?.id}
+        >
           <View className="flex-row justify-between gap-1 p-2">
             <Text className="text-p-400">User: {item.users?.username}</Text>
             <Text className="text-s-400">
@@ -156,7 +175,10 @@ const PlayLottery = () => {
         </View>
       ))}
 
-      <Button className="absolute right-5 bottom-safe-offset-2 left-5" onPress={onTestLuckPress}>
+      <Button
+        className="absolute right-5 bottom-safe-offset-2 left-5"
+        onPress={onTestLuckPress}
+      >
         <Button.Label>Enter Giveaway</Button.Label>
       </Button>
     </Screen>

@@ -8,7 +8,10 @@ import { ProgressBar } from "#/components/heroui/progress";
 import { Text } from "#/components/heroui/text";
 import { usePlayerState } from "#/state/audioPlayerState";
 
-import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
+import {
+  PullToRefreshIndicator,
+  triggerRefreshHaptic,
+} from "./pull-to-refresh-indicator";
 import {
   type RadioSectionItem,
   SectionHeader,
@@ -32,10 +35,20 @@ const keyExtractor = (item: RadioSectionItem): string => {
 export const MusicTab = () => {
   const { listeningTime, pointEarnedToday } = usePlayerState();
 
-  const timeInPercentage = useMemo(() => Math.round((listeningTime / 1800) * 100), [listeningTime]);
+  const timeInPercentage = useMemo(
+    () => Math.round((listeningTime / 1800) * 100),
+    [listeningTime]
+  );
 
-  const { data, isPending, isError, refetch, isRefetchingByUser, refetchByUser, sections } =
-    useRadioStations();
+  const {
+    data,
+    isPending,
+    isError,
+    refetch,
+    isRefetchingByUser,
+    refetchByUser,
+    sections,
+  } = useRadioStations();
 
   const renderItem = useCallback(({ item }: { item: RadioSectionItem }) => {
     switch (item.type) {
@@ -86,7 +99,9 @@ export const MusicTab = () => {
               <MusicNoteIcon color="white" size={24} weight="fill" />
             )}
             <View className="flex-1 gap-2">
-              <Text className="text-white">Play 30 mins of music today and earn 40 points</Text>
+              <Text className="text-white">
+                Play 30 mins of music today and earn 40 points
+              </Text>
               <ProgressBar value={timeInPercentage}>
                 <ProgressBar.Track className="h-2 rounded-full bg-default">
                   <ProgressBar.Fill className="rounded-full bg-s-200" />

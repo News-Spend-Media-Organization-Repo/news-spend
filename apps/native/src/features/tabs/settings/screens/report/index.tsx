@@ -2,7 +2,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
 import { File as ExpoFile } from "expo-file-system";
-import { Checkbox, ControlField, FieldError, Label, LinkButton, Spinner } from "heroui-native";
+import {
+  Checkbox,
+  ControlField,
+  FieldError,
+  Label,
+  LinkButton,
+  Spinner,
+} from "heroui-native";
 import { useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { View } from "react-native";
@@ -24,13 +31,19 @@ const schema = z.object({
       label: z.string(),
       value: z.enum(["shortMessage", "video", "picture"]),
     },
-    "Choose a report type",
+    "Choose a report type"
   ),
-  title: z.string("Title is required").trim().min(12, "Title must be at least 10 characters"),
+  title: z
+    .string("Title is required")
+    .trim()
+    .min(12, "Title must be at least 10 characters"),
   description: z
     .string("Description is required")
     .min(20, "Description must be at least 20 characters"),
-  name: z.string("Your name is required").trim().min(4, "Your name must be at least 6 characters"),
+  name: z
+    .string("Your name is required")
+    .trim()
+    .min(4, "Your name must be at least 6 characters"),
   files: z
     .array(
       z.object({
@@ -38,11 +51,14 @@ const schema = z.object({
         name: z.string().optional(),
         type: z.string().optional(),
         size: z.number().optional(),
-      }),
+      })
     )
     .refine((files) => files.length > 0, "You must upload at least one file")
     .refine((files) => {
-      const totalSize = files.reduce((prev, curr) => prev + (curr.size ?? 0), 0);
+      const totalSize = files.reduce(
+        (prev, curr) => prev + (curr.size ?? 0),
+        0
+      );
       return totalSize < 30_000_000;
     }, "Total size of files must be less than 30MB"),
   agree: z
@@ -53,7 +69,9 @@ const schema = z.object({
 export type ReportInput = z.infer<typeof schema>;
 
 function Report() {
-  const createReportMutation = useMutation(openapi.report.create.mutationOptions());
+  const createReportMutation = useMutation(
+    openapi.report.create.mutationOptions()
+  );
   const [open, setOpen] = useState(false);
   const navigation = useNavigation();
 
@@ -78,7 +96,8 @@ function Report() {
       createReportMutation.mutate(fd, {
         onSuccess: () => {
           toast("Thank you for your report!", {
-            description: "Your news report has been submitted and will be reviewed shortly.",
+            description:
+              "Your news report has been submitted and will be reviewed shortly.",
           });
           formMethods.reset();
         },
@@ -102,8 +121,16 @@ function Report() {
       <KeyboardAwareScrollView contentContainerClassName="gap-4 px-2.5 pb-safe-2 pt-2">
         <FormProvider {...formMethods}>
           <View className="gap-4">
-            <FormTextInput label="Your name" name="name" placeholder="Enter your name" />
-            <FormTextInput label="News Title" name="title" placeholder="Enter title" />
+            <FormTextInput
+              label="Your name"
+              name="name"
+              placeholder="Enter your name"
+            />
+            <FormTextInput
+              label="News Title"
+              name="title"
+              placeholder="Enter title"
+            />
             <FormTextInput
               label="News Description"
               multiline
@@ -137,7 +164,9 @@ function Report() {
                 )}
               />
               {formMethods.formState.errors.files ? (
-                <FieldError isInvalid>{formMethods.formState.errors.files?.message}</FieldError>
+                <FieldError isInvalid>
+                  {formMethods.formState.errors.files?.message}
+                </FieldError>
               ) : null}
             </View>
 
@@ -145,7 +174,10 @@ function Report() {
             <Controller
               control={formMethods.control}
               name="agree"
-              render={({ field: { onChange, value, name }, fieldState: { error, invalid } }) => (
+              render={({
+                field: { onChange, value, name },
+                fieldState: { error, invalid },
+              }) => (
                 <ControlField
                   className="flex-col items-start"
                   isInvalid={invalid}
@@ -158,7 +190,10 @@ function Report() {
                     </ControlField.Indicator>
                     <View className="flex-1 flex-row flex-wrap">
                       <Text className="">I agree to the </Text>
-                      <LinkButton onPress={() => navigation.navigate("TermsOfUse")} size="sm">
+                      <LinkButton
+                        onPress={() => navigation.navigate("TermsOfUse")}
+                        size="sm"
+                      >
                         <LinkButton.Label className="text-accent underline">
                           Terms of Use
                         </LinkButton.Label>

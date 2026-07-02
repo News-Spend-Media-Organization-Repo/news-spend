@@ -5,7 +5,11 @@ export default function HomeListSkeleton() {
   const { height, width } = useWindowDimensions();
 
   return (
-    <ScrollView className="bg-white pt-2.5" contentContainerClassName="pb-4" scrollEnabled={false}>
+    <ScrollView
+      className="bg-white pt-2.5"
+      contentContainerClassName="pb-4"
+      scrollEnabled={false}
+    >
       <SkeletonGroup isLoading>
         {/* Hero carousel */}
         <View className="flex-row gap-3.5 px-3.75">
@@ -59,7 +63,11 @@ export default function HomeListSkeleton() {
           <SkeletonGroup.Item className="h-5 w-42.5 rounded-md" />
           <View className="gap-2.5">
             {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonGroup.Item className="w-full rounded-md" key={i} style={{ height: 120 }} />
+              <SkeletonGroup.Item
+                className="w-full rounded-md"
+                key={i}
+                style={{ height: 120 }}
+              />
             ))}
           </View>
         </View>

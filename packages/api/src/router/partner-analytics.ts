@@ -130,9 +130,9 @@ const byStore = publicProcedure
       .slice(0, limit)
       .map((store) => ({
         store: {
-          id: store!.id,
-          name: store!.companyName,
-          slug: store!.slug,
+          id: store?.id,
+          name: store?.companyName,
+          slug: store?.slug,
         },
         score: 0,
       }));

@@ -3,7 +3,11 @@ import * as Sentry from "@sentry/node";
 
 import type { Context } from "./context";
 import { rateLimitMiddleware } from "./lib/ratelimit";
-import { optionalAuth, requireAuth, requireAuthNoGuest } from "./middlewares/auth.middleware";
+import {
+  optionalAuth,
+  requireAuth,
+  requireAuthNoGuest,
+} from "./middlewares/auth.middleware";
 
 export const sentryMiddleware = os.middleware(async ({ next }) => {
   try {
@@ -23,9 +27,13 @@ const commonErrors = {
   INTERNAL_SERVER_ERROR: { message: "Internal server error" },
 };
 
-export const basicProcedure = os.$context<Context>().errors(commonErrors).use(sentryMiddleware);
+export const basicProcedure = os
+  .$context<Context>()
+  .errors(commonErrors)
+  .use(sentryMiddleware);
 export const publicProcedure = basicProcedure.use(optionalAuth);
 export const protectedProcedure = basicProcedure.use(requireAuth);
 export const protectedNoGuestProcedure = basicProcedure.use(requireAuthNoGuest);
 
-export const rateLimitedPublicProcedure = publicProcedure.use(rateLimitMiddleware);
+export const rateLimitedPublicProcedure =
+  publicProcedure.use(rateLimitMiddleware);

@@ -65,7 +65,13 @@ function buildHtml(postId: string) {
 </html>`;
 }
 
-export function InstagramEmbed({ postUrl, caption }: { postUrl: string; caption?: string }) {
+export function InstagramEmbed({
+  postUrl,
+  caption,
+}: {
+  postUrl: string;
+  caption?: string;
+}) {
   const [webViewHeight, setWebViewHeight] = useState(480);
   const [isLoaded, setIsLoaded] = useState(false);
   const postId = extractPostId(postUrl);
@@ -76,7 +82,10 @@ export function InstagramEmbed({ postUrl, caption }: { postUrl: string; caption?
 
   return (
     <View className="my-3 w-full">
-      <View className="w-full overflow-hidden" style={{ height: webViewHeight }}>
+      <View
+        className="w-full overflow-hidden"
+        style={{ height: webViewHeight }}
+      >
         {isLoaded ? null : (
           <View className="absolute inset-0 h-120 items-center justify-center">
             <ActivityIndicator size="small" />
@@ -100,7 +109,9 @@ export function InstagramEmbed({ postUrl, caption }: { postUrl: string; caption?
           style={[styles.webview, !isLoaded && styles.hidden]}
         />
       </View>
-      {caption && <Text className="px-4 pt-2 text-center text-gray-50">{caption}</Text>}
+      {caption && (
+        <Text className="px-4 pt-2 text-center text-gray-50">{caption}</Text>
+      )}
     </View>
   );
 }

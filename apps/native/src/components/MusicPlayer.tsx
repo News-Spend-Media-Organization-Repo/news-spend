@@ -1,32 +1,87 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AudioPlaylist } from "expo-audio";
 import { useAudioPlaylistStatus } from "expo-audio";
-import { PlayIcon, SkipBackIcon, SkipForwardIcon, StopIcon } from "phosphor-react-native";
+import {
+  PlayIcon,
+  SkipBackIcon,
+  SkipForwardIcon,
+  StopIcon,
+  XIcon,
+} from "phosphor-react-native";
 import { useCallback } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { Button } from "#/components/heroui/button";
-import { Image } from "#/components/heroui/image";
+import { ActivityIndicator, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { orpc } from "#/lib/orpc";
 import {
   getAudioPlaylist,
   playNext,
   playPrevious,
+  releaseAudioPlaylist,
   togglePlayback,
   usePlayerState,
 } from "#/state/audioPlayerState";
 import { Icon } from "./heroui/icon";
+import { Button, Image, Text } from "./ui";
+
+const DISMISS_THRESHOLD = 80;
+const DISMISS_OFFSET = 220;
 
 type MusicPlayerContentProps = {
   audioPlayer: AudioPlaylist;
+  onClose: () => void;
 };
 
-const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
-  const playerState = usePlayerState();
-  const activeTrack = playerState.currentTrack;
+const MusicPlayerContent = ({
+  audioPlayer,
+  onClose,
+}: MusicPlayerContentProps) => {
+  const playerStateSnapshot = usePlayerState();
+  const activeTrack = playerStateSnapshot.currentTrack;
   const playbackState = useAudioPlaylistStatus(audioPlayer);
-  const hasNext = playerState.hasNext;
-  const hasPrevious = playerState.hasPrevious;
+  const hasNext = playerStateSnapshot.hasNext;
+  const hasPrevious = playerStateSnapshot.hasPrevious;
+
+  const translateY = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetY([-10, 10])
+    .failOffsetY([-20, 20])
+    .onUpdate((event) => {
+      if (event.translationY < 0) {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+        return;
+      }
+      translateY.value = event.translationY;
+      opacity.value = Math.max(0, 1 - event.translationY / DISMISS_OFFSET);
+    })
+    .onEnd((event) => {
+      if (event.translationY > DISMISS_THRESHOLD) {
+        translateY.value = withTiming(DISMISS_OFFSET, { duration: 220 });
+        opacity.value = withTiming(0, { duration: 220 }, (finished) => {
+          if (finished) {
+            scheduleOnRN(onClose);
+          }
+        });
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+        opacity.value = withSpring(1, { damping: 20, stiffness: 200 });
+      }
+    });
 
   const queryOptions = orpc.radioStation.getStreamMetadata.queryOptions({
     input: {
@@ -35,7 +90,10 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
     refetchInterval: 3 * 10_000,
     enabled: !!activeTrack?.url && playbackState.playing,
     select: useCallback(
-      (data: { metadata: Record<string, unknown> | null; success: boolean }) => {
+      (data: {
+        metadata: Record<string, unknown> | null;
+        success: boolean;
+      }) => {
         const rawTitle = data?.metadata?.title as string | undefined;
         const parts = rawTitle?.split(" - ") ?? [];
 
@@ -54,7 +112,7 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
           artist: artist || activeTrack?.genre || "Streaming",
         };
       },
-      [activeTrack?.name, activeTrack?.genre],
+      [activeTrack?.name, activeTrack?.genre]
     ),
   });
 
@@ -65,78 +123,111 @@ const MusicPlayerContent = ({ audioPlayer }: MusicPlayerContentProps) => {
   }
 
   return (
-    <Animated.View entering={FadeIn} exiting={FadeOut}>
-      <View
-        className="flex-row items-center gap-3 rounded-t-xl p-4"
-        style={{ backgroundColor: "#002846" }}
-      >
-        <Image
-          source={{
-            uri:
-              activeTrack.artwork.toString() ||
-              `https://placehold.co/100/5D3FD3/fff?text=${activeTrack.name || "Live Radio"}`,
-          }}
-          style={{
-            borderRadius: 8,
-            height: 40,
-            width: 40,
-          }}
-        />
-        <View className="flex-1">
-          <Text className="font-semibold text-base text-white" numberOfLines={1}>
-            {nowPlaying?.title || activeTrack.name || "Live Music"}
-          </Text>
-          <Text className="text-sm" numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.8)" }}>
-            {nowPlaying?.artist || activeTrack.genre || "Live Music"}
-          </Text>
-        </View>
-        <View className="flex-row gap-2">
-          <Button
-            className="rounded-[20px]"
-            isDisabled={!hasPrevious}
-            onPress={playPrevious}
-            size="sm"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-          >
-            <Icon
-              color={hasPrevious ? "#fff" : "rgba(255,255,255,0.3)"}
-              name={SkipBackIcon}
-              size={16}
-              weight="fill"
+    <Animated.View entering={FadeIn} exiting={FadeOut} style={animatedStyle}>
+      <GestureDetector gesture={panGesture}>
+        <View>
+          <View className="flex-row items-center gap-3 rounded-t-xl bg-p-500 p-4">
+            <Image
+              source={{
+                uri:
+                  activeTrack.artwork.toString() ||
+                  `https://placehold.co/100/5D3FD3/fff?text=${activeTrack.name || "Live Radio"}`,
+              }}
+              style={{
+                borderRadius: 8,
+                height: 40,
+                width: 40,
+              }}
             />
-          </Button>
-          <Button
-            className="rounded-[20px]"
-            onPress={togglePlayback}
-            size="sm"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-          >
-            {(() => {
-              if (playbackState.isBuffering) {
-                return <ActivityIndicator color="#fff" size="small" />;
-              }
-              if (playbackState.playing) {
-                return <Icon color="white" name={StopIcon} size={16} weight="fill" />;
-              }
-              return <Icon color="#fff" name={PlayIcon} size={16} weight="fill" />;
-            })()}
-          </Button>
-          <Button
-            className="rounded-[20px]"
-            isDisabled={!hasNext}
-            onPress={playNext}
-            size="sm"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-          >
-            <Icon
-              color={hasNext ? "#fff" : "rgba(255,255,255,0.3)"}
-              name={SkipForwardIcon}
-              size={16}
-              weight="fill"
-            />
-          </Button>
+            <View className="flex-1">
+              <Text
+                className="font-semibold text-base text-white"
+                numberOfLines={1}
+              >
+                {nowPlaying?.title || activeTrack.name || "Live Music"}
+              </Text>
+              <Text
+                className="text-sm"
+                numberOfLines={1}
+                style={{ color: "rgba(255, 255, 255, 0.8)" }}
+              >
+                {nowPlaying?.artist || activeTrack.genre || "Live Music"}
+              </Text>
+            </View>
+            <View className="flex-row gap-2">
+              <Button
+                className="rounded-[20px]"
+                isDisabled={!hasPrevious}
+                onPress={playPrevious}
+                size="sm"
+                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+              >
+                <Icon
+                  color={hasPrevious ? "#fff" : "rgba(255,255,255,0.3)"}
+                  name={SkipBackIcon}
+                  size={16}
+                  weight="fill"
+                />
+              </Button>
+              <Button
+                className="rounded-[20px]"
+                onPress={togglePlayback}
+                size="sm"
+                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+              >
+                {(() => {
+                  if (playbackState.isBuffering) {
+                    return <ActivityIndicator color="#fff" size="small" />;
+                  }
+                  if (playbackState.playing) {
+                    return (
+                      <Icon
+                        color="white"
+                        name={StopIcon}
+                        size={16}
+                        weight="fill"
+                      />
+                    );
+                  }
+                  return (
+                    <Icon
+                      color="#fff"
+                      name={PlayIcon}
+                      size={16}
+                      weight="fill"
+                    />
+                  );
+                })()}
+              </Button>
+              <Button
+                className="rounded-[20px]"
+                isDisabled={!hasNext}
+                isIconOnly
+                onPress={playNext}
+                size="sm"
+                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+              >
+                <Icon
+                  color={hasNext ? "#fff" : "rgba(255,255,255,0.3)"}
+                  name={SkipForwardIcon}
+                  size={16}
+                  weight="fill"
+                />
+              </Button>
+              <Button
+                accessibilityLabel="Close player"
+                className="rounded-[20px]"
+                isIconOnly
+                onPress={onClose}
+                size="sm"
+                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+              >
+                <Icon color="#fff" name={XIcon} size={16} weight="bold" />
+              </Button>
+            </View>
+          </View>
         </View>
-      </View>
+      </GestureDetector>
     </Animated.View>
   );
 };
@@ -149,7 +240,12 @@ const MusicPlayer = () => {
     return null;
   }
 
-  return <MusicPlayerContent audioPlayer={audioPlayer} />;
+  return (
+    <MusicPlayerContent
+      audioPlayer={audioPlayer}
+      onClose={releaseAudioPlaylist}
+    />
+  );
 };
 
 export default MusicPlayer;

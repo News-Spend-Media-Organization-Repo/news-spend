@@ -5,7 +5,7 @@ import { authState } from "#/state/auth";
 export function useArticleActions(
   data: { id: string; slug: string } | undefined,
   onLike?: () => void,
-  onDislike?: () => void,
+  onDislike?: () => void
 ) {
   const navigation = useNavigation("News");
   const likeMutation = useLikeNews();
@@ -26,7 +26,7 @@ export function useArticleActions(
     onLike?.();
     likeMutation.mutate({
       newsId: data.id,
-      userId: authState.user!.id,
+      userId: authState.user?.id,
       slug: data.slug,
     });
   };
@@ -38,7 +38,7 @@ export function useArticleActions(
     onDislike?.();
     dislikeMutation.mutate({
       newsId: data.id,
-      userId: authState.user!.id,
+      userId: authState.user?.id,
       slug: data.slug,
     });
   };

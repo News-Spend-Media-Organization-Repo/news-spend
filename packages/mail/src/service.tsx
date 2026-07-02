@@ -4,7 +4,6 @@ import NewsSpendVerificationEmail from "@news-spend-media/transactional/emails/a
 import { ForgotPasswordEmail } from "@news-spend-media/transactional/emails/forgot-password";
 import { WelcomeEmail } from "@news-spend-media/transactional/emails/welcome";
 import { render } from "@react-email/render";
-import React from "react";
 
 import { DEFAULT_FROM_EMAIL, resend } from "./client";
 

@@ -19,7 +19,10 @@ export type AbstractTextNode<Type extends string> = {
   text: string;
 } & AbstractNode<Type>;
 
-export type BlockNode<BlockData extends Record<string, unknown>, BlockType extends string> = {
+export type BlockNode<
+  BlockData extends Record<string, unknown>,
+  BlockType extends string,
+> = {
   fields: {
     id: string;
     blockName: string;
@@ -166,19 +169,25 @@ export type Node =
 
 export type ElementRenderers = {
   heading: (
-    props: { children: React.ReactNode } & Omit<HeadingNode, "children">,
+    props: { children: React.ReactNode } & Omit<HeadingNode, "children">
   ) => React.ReactNode;
-  list: (props: { children: React.ReactNode } & Omit<ListNode, "children">) => React.ReactNode;
+  list: (
+    props: { children: React.ReactNode } & Omit<ListNode, "children">
+  ) => React.ReactNode;
   listItem: (
-    props: { children: React.ReactNode } & Omit<ListItemNode, "children">,
+    props: { children: React.ReactNode } & Omit<ListItemNode, "children">
   ) => React.ReactNode;
   paragraph: (
-    props: { children: React.ReactNode } & Omit<ParagraphNode, "children">,
+    props: { children: React.ReactNode } & Omit<ParagraphNode, "children">
   ) => React.ReactNode;
-  quote: (props: { children: React.ReactNode } & Omit<QuoteNode, "children">) => React.ReactNode;
-  link: (props: { children: React.ReactNode } & Omit<LinkNode, "children">) => React.ReactNode;
+  quote: (
+    props: { children: React.ReactNode } & Omit<QuoteNode, "children">
+  ) => React.ReactNode;
+  link: (
+    props: { children: React.ReactNode } & Omit<LinkNode, "children">
+  ) => React.ReactNode;
   autolink: (
-    props: { children: React.ReactNode } & Omit<AutoLinkNode, "children">,
+    props: { children: React.ReactNode } & Omit<AutoLinkNode, "children">
   ) => React.ReactNode;
   linebreak: () => React.ReactNode;
   tab: () => React.ReactNode;
@@ -190,7 +199,7 @@ export type RenderMark = (mark: Mark) => React.ReactNode;
 
 export type BlockRenderers<Blocks extends { [key: string]: any }> = {
   [BlockName in Extract<keyof Blocks, string>]?: (
-    props: BlockNode<Blocks[BlockName], BlockName>,
+    props: BlockNode<Blocks[BlockName], BlockName>
   ) => React.ReactNode;
 };
 
@@ -198,7 +207,9 @@ export type PayloadLexicalReactRendererContent = {
   root: Root;
 };
 
-export type PayloadLexicalReactRendererProps<Blocks extends { [key: string]: any }> = {
+export type PayloadLexicalReactRendererProps<
+  Blocks extends { [key: string]: any },
+> = {
   content: PayloadLexicalReactRendererContent;
   elementRenderers?: ElementRenderers;
   renderMark?: RenderMark;

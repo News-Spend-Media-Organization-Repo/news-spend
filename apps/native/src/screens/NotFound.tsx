@@ -21,7 +21,9 @@ const NotFound = () => {
     <View className="flex-1 items-center justify-center">
       <Text variant="HeadingLarge">Page not found</Text>
       <Button className="mt-4" onPress={onGoBack}>
-        <Button.Label>{navigation.canGoBack() ? "Go back" : "Go home"}</Button.Label>
+        <Button.Label>
+          {navigation.canGoBack() ? "Go back" : "Go home"}
+        </Button.Label>
       </Button>
     </View>
   );

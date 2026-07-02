@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,7 +24,7 @@ function createFakePayload(participants: any[] = []) {
   // update used for lock acquisition (where) and id-based updates
   payload.update = vi.fn(async (args: any) => {
     // Lock acquisition (where-based update) should return a non-empty result
-    if (args && args.where) {
+    if (args?.where) {
       return {
         totalDocs: 1,
         docs: [{ id: args.where?.and?.[0]?.id ?? "lock" }],
@@ -32,7 +32,7 @@ function createFakePayload(participants: any[] = []) {
     }
 
     // id-based update (marking lottery inactive etc.)
-    if (args && args.id) {
+    if (args?.id) {
       return { id: args.id, ...args.data };
     }
 

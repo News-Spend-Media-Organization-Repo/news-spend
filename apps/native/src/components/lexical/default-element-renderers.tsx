@@ -1,9 +1,10 @@
 import { Galeria } from "@nandorojo/galeria";
 import { Separator } from "heroui-native";
 import { Linking, View } from "react-native";
+import { tv } from "tailwind-variants";
 import { Image } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
-import { Text } from "../heroui/text";
+import { Text } from "../ui";
 import { RichTextCaption } from "./RichTextCaption";
 import type {
   AbstractElementNode,
@@ -12,7 +13,7 @@ import type {
 } from "./types";
 
 function getTextAlign(
-  format: AbstractElementNode<string>["format"],
+  format: AbstractElementNode<string>["format"]
 ): "left" | "right" | "center" | "justify" | undefined {
   if (format === "right") {
     return "right";
@@ -30,25 +31,34 @@ function getIndentStyle(indent: number): { marginLeft?: number } {
   return indent > 0 ? { marginLeft: indent * 20 } : {};
 }
 
+// ── Tailwind Variants for headings ───────────────────────────────────────
+const headingVariants = tv({
+  base: "font-bold text-foreground",
+  variants: {
+    level: {
+      h1: "mt-4 mb-2 text-3xl",
+      h2: "mt-3 mb-2 text-2xl",
+      h3: "mt-3 mb-1 font-semibold text-xl",
+      h4: "mt-2 mb-1 font-semibold text-lg",
+      h5: "mt-2 mb-1 font-semibold text-base",
+      h6: "mt-2 mb-1 font-semibold text-sm",
+    },
+  },
+  defaultVariants: {
+    level: "h2",
+  },
+});
+
 export const defaultElementRenderers: ElementRenderers = {
   heading: (element) => {
     const textAlign = getTextAlign(element.format);
     const indentStyle = getIndentStyle(element.indent);
 
-    const classMap: Record<string, string> = {
-      h1: "text-3xl font-bold text-foreground mt-4 mb-2",
-      h2: "text-2xl font-bold text-foreground mt-3 mb-2",
-      h3: "text-xl font-semibold text-foreground mt-3 mb-1",
-      h4: "text-lg font-semibold text-foreground mt-2 mb-1",
-      h5: "text-base font-semibold text-foreground mt-2 mb-1",
-      h6: "text-sm font-semibold text-foreground mt-2 mb-1",
-    };
-
-    const className = classMap[element.tag] ?? "text-2xl font-bold text-foreground mt-3 mb-2";
-
     return (
       <Text
-        className={className}
+        className={headingVariants({
+          level: element.tag as "h1" | "h2" | "h3" | "h4" | "h5" | "h6",
+        })}
         selectable
         style={[indentStyle, textAlign ? { textAlign } : undefined]}
       >
@@ -84,27 +94,28 @@ export const defaultElementRenderers: ElementRenderers = {
   listItem: (element) => {
     const indentStyle = getIndentStyle(element.indent);
 
-    // Checklist item
     if (element.checked != null) {
       return (
         <View className="my-0.5 flex-row items-center" style={indentStyle}>
-          <Text className="mr-2 text-base text-foreground">{element.checked ? "☑" : "☐"}</Text>
+          <Text className="mr-2 text-base text-foreground">
+            {element.checked ? "☑" : "☐"}
+          </Text>
           <View className="flex-1">{element.children}</View>
         </View>
       );
     }
 
-    // Ordered list
     if (element.listType === "number") {
       return (
         <View className="my-0.5 flex-row" style={indentStyle}>
-          <Text className="w-6 text-base text-foreground">{element.value}.</Text>
+          <Text className="w-6 text-base text-foreground">
+            {element.value}.
+          </Text>
           <View className="flex-1">{element.children}</View>
         </View>
       );
     }
 
-    // Bullet list
     return (
       <View className="my-0.5 flex-row" style={indentStyle}>
         <Text className="mr-2 text-base text-foreground">•</Text>
@@ -173,7 +184,6 @@ export const defaultElementRenderers: ElementRenderers = {
   horizontalrule: () => <Separator className="my-4" />,
 
   upload: (element) => {
-    // Guard: value may be an unpopulated ID (number) if depth was too low
     if (typeof element.value === "number") {
       return null;
     }
@@ -206,7 +216,9 @@ export const defaultElementRenderers: ElementRenderers = {
           </Galeria>
           {element.value.caption && (
             <RichTextCaption
-              content={element.value.caption as PayloadLexicalReactRendererContent}
+              content={
+                element.value.caption as PayloadLexicalReactRendererContent
+              }
             />
           )}
         </View>

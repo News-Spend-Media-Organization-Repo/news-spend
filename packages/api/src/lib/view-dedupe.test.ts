@@ -14,7 +14,9 @@ class FakeRedis {
   ) {
     const exists = this.store[key] && this.store[key] > Date.now();
     if (nx === "NX") {
-      if (exists) return null;
+      if (exists) {
+        return null;
+      }
       this.store[key] = Date.now() + ttlSeconds * 1000;
       return "OK";
     }

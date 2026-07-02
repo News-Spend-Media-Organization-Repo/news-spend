@@ -1,4 +1,4 @@
-import { cn } from "heroui-native";
+import { cn, useTextComponent } from "heroui-native";
 import type React from "react";
 import { type Ref, useContext, useMemo } from "react";
 import {
@@ -32,19 +32,27 @@ export type AppTextProps = RNTextProps & {
   ref?: Ref<RNText>;
 };
 
-export const Text = ({ variant = "body", className, style, ref, ...props }: AppTextProps) => {
+export const Text = ({
+  variant = "body",
+  className,
+  style,
+  ref,
+  ...props
+}: AppTextProps) => {
   const isNested = useContext(TextAncestorContext);
+  const { textProps } = useTextComponent();
 
   const resolvedClassName = useMemo(
     () =>
       isNested
         ? cn(className) // nested: skip variant, just inherit + apply any extra classes
         : cn(textVariants({ variant }), className), // top-level: apply full variant
-    [variant, className, isNested],
+    [variant, className, isNested]
   );
 
   return (
     <RNText
+      {...textProps}
       accessibilityRole="text"
       accessible
       className={resolvedClassName}

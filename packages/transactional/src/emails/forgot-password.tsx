@@ -1,10 +1,22 @@
-import { Body, Button, Container, Head, Html, Img, Preview, Section, Text } from "react-email";
+import {
+  Body,
+  Button,
+  Container,
+  Head,
+  Html,
+  Img,
+  Preview,
+  Section,
+  Text,
+} from "react-email";
 
 type ForgotPasswordEmailProps = {
   resetLink: string;
 };
 
-export const ForgotPasswordEmail = ({ resetLink }: ForgotPasswordEmailProps) => (
+export const ForgotPasswordEmail = ({
+  resetLink,
+}: ForgotPasswordEmailProps) => (
   <Html>
     <Head />
     <Preview>Reset Your Password</Preview>
@@ -21,8 +33,8 @@ export const ForgotPasswordEmail = ({ resetLink }: ForgotPasswordEmailProps) => 
         <Section style={contentSection}>
           <Text style={heading}>Reset Your Password</Text>
           <Text style={paragraph}>
-            You have requested to reset your password. Click the button below to create a new
-            password.
+            You have requested to reset your password. Click the button below to
+            create a new password.
           </Text>
 
           <Button href={resetLink} style={button}>
@@ -30,13 +42,15 @@ export const ForgotPasswordEmail = ({ resetLink }: ForgotPasswordEmailProps) => 
           </Button>
 
           <Text style={helpText}>
-            If you didn't request a password reset, please ignore this email or contact support.
+            If you didn't request a password reset, please ignore this email or
+            contact support.
           </Text>
         </Section>
 
         <Section style={footerSection}>
           <Text style={footer}>
-            &copy; {new Date().getFullYear()} News Spend Media. All rights reserved.
+            &copy; {new Date().getFullYear()} News Spend Media. All rights
+            reserved.
           </Text>
         </Section>
       </Container>
@@ -46,7 +60,8 @@ export const ForgotPasswordEmail = ({ resetLink }: ForgotPasswordEmailProps) => 
 
 const body = {
   backgroundColor: "#f4f4f4",
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  fontFamily:
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
 };
 
 const container = {

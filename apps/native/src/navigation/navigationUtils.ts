@@ -6,7 +6,11 @@ import {
 } from "@react-navigation/native";
 
 import { navigationIntegration } from "#/lib/sentry";
-import { routeState, setReactNavTabName, setRouteName } from "#/state/route-state";
+import {
+  routeState,
+  setReactNavTabName,
+  setRouteName,
+} from "#/state/route-state";
 import { getActiveRouteName } from "#/utils/getActiveRouteName";
 import type { storage } from "#/utils/storage";
 
@@ -59,7 +63,9 @@ export function getCurrentTabName() {
  * @param PersistNavigationConfig persistNavigation - The config setting for navigation persistence.
  * @returns boolean - Whether to restore navigation state by default.
  */
-function navigationRestoredDefaultState(persistNavigation: "dev" | "prod" | "always") {
+function _navigationRestoredDefaultState(
+  persistNavigation: "dev" | "prod" | "always"
+) {
   if (persistNavigation === "always") {
     return false;
   }
@@ -81,7 +87,10 @@ function navigationRestoredDefaultState(persistNavigation: "dev" | "prod" | "alw
  * @param string persistenceKey - The key to use for storing the navigation state.
  * @returns object - The navigation state and persistence functions.
  */
-export function useNavigationPersistence(storage: MMKVStorage, persistenceKey: string) {
+export function useNavigationPersistence(
+  _storage: MMKVStorage,
+  _persistenceKey: string
+) {
   const onNavigationStateChange = (state: NavigationState | undefined) => {
     if (!state) {
       return;
@@ -90,7 +99,9 @@ export function useNavigationPersistence(storage: MMKVStorage, persistenceKey: s
     try {
       const { routeName } = routeState;
 
-      const newRouteName = getActiveRouteName(state) as (typeof CONSTANTS.TAB_SCREENS)[number];
+      const newRouteName = getActiveRouteName(
+        state
+      ) as (typeof CONSTANTS.TAB_SCREENS)[number];
 
       if (routeName !== newRouteName) {
         setRouteName(newRouteName);
@@ -117,10 +128,14 @@ export function useNavigationPersistence(storage: MMKVStorage, persistenceKey: s
     // Set initial tab name if it's a tab screen
     const isTabScreen =
       currentRouteName &&
-      CONSTANTS.TAB_SCREENS.includes(currentRouteName as (typeof CONSTANTS.TAB_SCREENS)[number]);
+      CONSTANTS.TAB_SCREENS.includes(
+        currentRouteName as (typeof CONSTANTS.TAB_SCREENS)[number]
+      );
 
     setReactNavTabName(
-      isTabScreen ? (currentRouteName as (typeof CONSTANTS.TAB_SCREENS)[number]) : "NewsHome",
+      isTabScreen
+        ? (currentRouteName as (typeof CONSTANTS.TAB_SCREENS)[number])
+        : "NewsHome"
     );
 
     // Register Sentry navigation integration in production

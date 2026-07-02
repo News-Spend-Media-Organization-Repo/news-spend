@@ -228,7 +228,8 @@ function updatePlaylistState() {
   if (!audioPlaylist) {
     return;
   }
-  playerState.hasNext = audioPlaylist.currentIndex < audioPlaylist.trackCount - 1;
+  playerState.hasNext =
+    audioPlaylist.currentIndex < audioPlaylist.trackCount - 1;
   playerState.hasPrevious = audioPlaylist.currentIndex > 0;
 }
 
@@ -317,12 +318,14 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
   const stations = stationList?.length ? stationList : [item];
   const startIndex = Math.max(
     0,
-    stations.findIndex((s) => s?.id === item?.id),
+    stations.findIndex((s) => s?.id === item?.id)
   );
   const tracks = stations.map(stationToTrack).filter((t) => t.url);
 
   if (!tracks.length) {
-    toast.info("There was an error loading the station. Please try another station.");
+    toast.info(
+      "There was an error loading the station. Please try another station."
+    );
     return;
   }
 
@@ -363,7 +366,8 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
     playerState.hasPrevious = false;
     playerState.isReady = false;
     toast.info("Playback Error", {
-      description: "There was an error playing this station. Please try another station.",
+      description:
+        "There was an error playing this station. Please try another station.",
     });
   }
 };

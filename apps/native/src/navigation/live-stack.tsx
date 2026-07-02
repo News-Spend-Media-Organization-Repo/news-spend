@@ -7,7 +7,9 @@ import LiveHome from "#/screens/tabs/live/LiveHome";
 import { sharedScreens } from "./shared-screens";
 
 export default createNativeStackNavigator({
-  layout: ({ children }) => <NavigatorErrorBoundary>{children}</NavigatorErrorBoundary>,
+  layout: ({ children }) => (
+    <NavigatorErrorBoundary>{children}</NavigatorErrorBoundary>
+  ),
   screens: {
     LiveHome: {
       screen: LiveHome,
@@ -20,7 +22,9 @@ export default createNativeStackNavigator({
         header() {
           return (
             <View className="flex-row items-center justify-between bg-p-500 px-2 pt-safe pb-2">
-              <Text className="font-bold text-2xl text-background uppercase">News Spend Media</Text>
+              <Text className="font-bold text-background text-base uppercase">
+                News Spend Media
+              </Text>
             </View>
           );
         },

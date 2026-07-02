@@ -16,7 +16,12 @@ export function AppItem({ item, onPress, loading }: AppItemProps) {
 
   return (
     <PressableFeedback onPress={onPress}>
-      <View className={cn("flex-row items-start gap-2.5 px-3 py-2", loading && "opacity-70")}>
+      <View
+        className={cn(
+          "flex-row items-start gap-2.5 px-3 py-2",
+          loading && "opacity-70"
+        )}
+      >
         <Image
           className="size-20 rounded-lg"
           placeholder={{ blurhash }}

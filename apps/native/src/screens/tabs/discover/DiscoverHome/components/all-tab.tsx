@@ -32,7 +32,10 @@ import { authState } from "#/state/auth";
 import { getImageData } from "#/utils/getImageData";
 import { AppItem } from "./app-item";
 import { GameItem } from "./game-item";
-import { PullToRefreshIndicator, triggerRefreshHaptic } from "./pull-to-refresh-indicator";
+import {
+  PullToRefreshIndicator,
+  triggerRefreshHaptic,
+} from "./pull-to-refresh-indicator";
 import { StationItem } from "./radio-station-item";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -74,7 +77,9 @@ type SectionItem =
 const gamesQuery = {
   queryKey: ["games", "all-tab"],
   queryFn: async (): Promise<GameItemData[]> => {
-    const res = await fetch("https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=1");
+    const res = await fetch(
+      "https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=1"
+    );
     const data = await res.json();
     return (data?.items ?? []).slice(0, 6);
   },
@@ -96,17 +101,21 @@ const musicQuery = orpc.radioStation.top.queryOptions({
 
 const surveysSelect = (data: unknown) =>
   Array.isArray(data)
-    ? [...data].sort((a: any, b: any) => Number(b.payout ?? 0) - Number(a.payout ?? 0))
+    ? [...data].sort(
+        (a: any, b: any) => Number(b.payout ?? 0) - Number(a.payout ?? 0)
+      )
     : data;
 
 // ─── Combine helper ──────────────────────────────────────────────────────────
 
 const combineAllTabResults = (results: QueryObserverResult[]) => ({
-  appsData: (results[0].data as { docs: PartnerContent[] } | undefined)?.docs ?? [],
+  appsData:
+    (results[0].data as { docs: PartnerContent[] } | undefined)?.docs ?? [],
   appsPending: results[0].isPending,
   appsError: results[0].error,
 
-  booksData: (results[1].data as { docs: PartnerContent[] } | undefined)?.docs ?? [],
+  booksData:
+    (results[1].data as { docs: PartnerContent[] } | undefined)?.docs ?? [],
   booksPending: results[1].isPending,
   booksError: results[1].error,
 
@@ -135,7 +144,7 @@ function buildSection(
   title: string,
   state: SectionState,
   onRetry: () => void,
-  renderData: () => SectionItem | SectionItem[],
+  renderData: () => SectionItem | SectionItem[]
 ): void {
   items.push({ type: "header", title });
 
@@ -255,15 +264,26 @@ const BookItem = ({
   return (
     <PressableFeedback onPress={onPress}>
       <PressableFeedback.Scale>
-        <View className={cn("mr-4 mb-2 w-32.5 overflow-hidden", loading && "opacity-70")}>
+        <View
+          className={cn(
+            "mr-4 mb-2 w-32.5 overflow-hidden",
+            loading && "opacity-70"
+          )}
+        >
           <Image
             className="rounded-lg"
             contentFit="cover"
+            placeholder={{
+              blurhash: item.media?.blurhash,
+            }}
             source={{ uri: url || "" }}
-            style={{ minHeight: 180, width: "100%" }}
+            style={{ aspectRatio: 0.7, width: "100%" }}
           />
           <View className="mt-2 flex-row items-center gap-2">
-            <Text className="flex-1 font-semibold text-gray-50 text-sm italic" numberOfLines={2}>
+            <Text
+              className="flex-1 font-semibold text-gray-50 text-sm italic"
+              numberOfLines={2}
+            >
               {item.condition}
             </Text>
             {loading ? <ActivityIndicator color="#666" size="small" /> : null}
@@ -292,7 +312,11 @@ const BooksSection = ({
       estimatedItemSize={200}
       horizontal
       renderItem={({ item }) => (
-        <BookItem item={item} loading={loading(item.id)} onPress={() => onPress(item)} />
+        <BookItem
+          item={item}
+          loading={loading(item.id)}
+          onPress={() => onPress(item)}
+        />
       )}
       renderScrollComponent={CustomScrollView}
       showsHorizontalScrollIndicator={false}
@@ -307,7 +331,7 @@ const MusicSection = ({ itemList }: { itemList: Station[] }) => {
     ({ item }: LegendListRenderItemProps<Station>) => (
       <StationItem item={item} stationList={itemList} />
     ),
-    [itemList],
+    [itemList]
   );
 
   return (
@@ -334,7 +358,9 @@ const SurveysSection = ({ data }: { data: SurveyItem[] }) => (
     {data.map((item, index) => (
       <Card className="w-[48%] gap-4 rounded-lg p-3" key={`survey-${index}`}>
         <View className="gap-1">
-          <Text className="font-bold text-xl">{Math.floor(item.payout ?? 0)} Points</Text>
+          <Text className="font-bold text-xl">
+            {Math.floor(item.payout ?? 0)} Points
+          </Text>
           <Text className="text-xs">{item.loi ?? "?"} min</Text>
         </View>
         <Button onPress={() => handleStartSurvey(item.href)} size="sm">
@@ -350,7 +376,13 @@ const SurveysSection = ({ data }: { data: SurveyItem[] }) => (
 function renderSectionContent(item: SectionItem) {
   switch (item.type) {
     case "app":
-      return <AppItem item={item.data} loading={item.loading} onPress={() => item.onPress()} />;
+      return (
+        <AppItem
+          item={item.data}
+          loading={item.loading}
+          onPress={() => item.onPress()}
+        />
+      );
     case "game":
       return <GameItem item={item.data} onPress={() => item.onPress()} />;
     case "music":
@@ -427,7 +459,7 @@ export const AllTab = () => {
           data: app,
           onPress: () => handleClick(app),
           loading: isPartnerLoading(app.id),
-        })),
+        }))
     );
 
     buildSection(
@@ -439,7 +471,7 @@ export const AllTab = () => {
         dataLength: musicData.length,
       },
       refetchAll,
-      () => ({ type: "music" as const, data: musicData }),
+      () => ({ type: "music" as const, data: musicData })
     );
 
     buildSection(
@@ -456,7 +488,7 @@ export const AllTab = () => {
           type: "game" as const,
           data: game,
           onPress: () => onItemClick(game.url, game.title),
-        })),
+        }))
     );
 
     buildSection(
@@ -473,7 +505,7 @@ export const AllTab = () => {
         data: booksData,
         onPress: handleClick,
         loading: isPartnerLoading,
-      }),
+      })
     );
 
     buildSection(
@@ -485,7 +517,7 @@ export const AllTab = () => {
         dataLength: surveysData.length,
       },
       refetchAll,
-      () => ({ type: "survey" as const, data: surveysData }),
+      () => ({ type: "survey" as const, data: surveysData })
     );
 
     return items;
@@ -515,23 +547,26 @@ export const AllTab = () => {
       sections
         .map((item, index) => (item.type === "header" ? index : null))
         .filter((i): i is number => i !== null),
-    [sections],
+    [sections]
   );
 
-  const renderItem = useCallback(({ item }: LegendListRenderItemProps<SectionItem>) => {
-    switch (item.type) {
-      case "header":
-        return <SectionHeader title={item.title} />;
-      case "section-loading":
-        return <LoadingSkeleton />;
-      case "section-error":
-        return <ErrorState onRetry={item.onRetry} />;
-      case "empty":
-        return <EmptyState message={item.message} />;
-      default:
-        return renderSectionContent(item);
-    }
-  }, []);
+  const renderItem = useCallback(
+    ({ item }: LegendListRenderItemProps<SectionItem>) => {
+      switch (item.type) {
+        case "header":
+          return <SectionHeader title={item.title} />;
+        case "section-loading":
+          return <LoadingSkeleton />;
+        case "section-error":
+          return <ErrorState onRetry={item.onRetry} />;
+        case "empty":
+          return <EmptyState message={item.message} />;
+        default:
+          return renderSectionContent(item);
+      }
+    },
+    []
+  );
 
   const keyExtractor = useCallback((item: SectionItem, index: number) => {
     switch (item.type) {
@@ -556,9 +591,13 @@ export const AllTab = () => {
   const refreshControl = useMemo(
     () =>
       Platform.OS === "android" ? (
-        <RefreshControl onRefresh={refetchAll} progressViewOffset={0} refreshing={isRefetching} />
+        <RefreshControl
+          onRefresh={refetchAll}
+          progressViewOffset={0}
+          refreshing={isRefetching}
+        />
       ) : undefined,
-    [isRefetching, refetchAll],
+    [isRefetching, refetchAll]
   );
 
   return (

@@ -5,7 +5,15 @@ import { protectedProcedure, publicProcedure } from "../../index";
 
 const eventSchema = z.object({
   articleId: z.string(),
-  event: z.enum(["impression", "view", "read", "like", "dislike", "share", "comment"]),
+  event: z.enum([
+    "impression",
+    "view",
+    "read",
+    "like",
+    "dislike",
+    "share",
+    "comment",
+  ]),
   sessionId: z.string(),
   deviceId: z.string(),
   platform: z.enum(["android", "ios", "web"]).optional(),
@@ -27,7 +35,7 @@ const track = publicProcedure
     z.object({
       events: z.array(eventSchema).min(1).max(100),
       userId: z.string().optional(),
-    }),
+    })
   )
   .handler(async ({ input, context }) => {
     const { payload } = context;
@@ -61,8 +69,8 @@ const track = publicProcedure
               metadata: e.metadata ?? {},
               timestamp: e.timestamp ?? new Date().toISOString(),
             },
-          }),
-        ),
+          })
+        )
     );
 
     const inserted = results.filter((r) => r.status === "fulfilled").length;
@@ -77,7 +85,7 @@ const articleStats = protectedProcedure
     z.object({
       articleId: z.string(),
       days: z.number().min(1).max(90).nullish().default(30),
-    }),
+    })
   )
   .handler(async ({ input, context }) => {
     const { payload } = context;
@@ -147,7 +155,9 @@ const articleStats = protectedProcedure
     }
 
     const ctr =
-      counts.impressions > 0 ? Math.round((counts.views / counts.impressions) * 10_000) / 100 : 0;
+      counts.impressions > 0
+        ? Math.round((counts.views / counts.impressions) * 10_000) / 100
+        : 0;
 
     // Build daily trend array
     const trend = [];
@@ -172,10 +182,12 @@ const articleStats = protectedProcedure
 const topArticles = protectedProcedure
   .input(
     z.object({
-      event: z.enum(["impression", "view", "read", "like", "share"]).default("view"),
+      event: z
+        .enum(["impression", "view", "read", "like", "share"])
+        .default("view"),
       days: z.number().min(1).max(90).nullish().default(7),
       limit: z.number().min(1).max(50).nullish().default(10),
-    }),
+    })
   )
   .handler(async ({ input, context }) => {
     const { payload } = context;
@@ -195,7 +207,8 @@ const topArticles = protectedProcedure
     // Count per article
     const counts = new Map<string, { count: number; article: unknown }>();
     for (const doc of result.docs) {
-      const articleId = typeof doc.article === "object" ? doc.article.id : doc.article;
+      const articleId =
+        typeof doc.article === "object" ? doc.article.id : doc.article;
       const existing = counts.get(articleId);
       if (existing) {
         existing.count++;

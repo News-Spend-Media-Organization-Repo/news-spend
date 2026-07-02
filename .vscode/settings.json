@@ -62,26 +62,12 @@
     "**/node_modules": true
   },
   "files.insertFinalNewline": true,
-  "prettier.documentSelectors": [
-    "**/*.astro"
-  ],
+  "prettier.documentSelectors": ["**/*.astro"],
   "tailwindCSS.experimental.classRegex": [
-    [
-      "cva\\(([^)]*)\\)",
-      "[\"'`]([^\"'`]*).*?[\"'`]"
-    ],
-    [
-      "cx\\(([^)]*)\\)",
-      "(?:'|\"|`)([^']*)(?:'|\"|`)"
-    ],
-    [
-      "(?:twMerge|twJoin|cn)\\(([^\\);]*)[\\);]",
-      "[`'\"`]([^'\"`,;]*)[`'\"`]"
-    ],
-    [
-      "className[=:]\\s*",
-      "[\"'`]([^\"'`]*)[\"'`]"
-    ]
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["(?:twMerge|twJoin|cn)\\(([^\\);]*)[\\);]", "[`'\"`]([^'\"`,;]*)[`'\"`]"],
+    ["className[=:]\\s*", "[\"'`]([^\"'`]*)[\"'`]"]
   ],
   "tailwindCSS.experimental.configFile": "./tooling/tailwind/src/tailwind.ts",
   "typescript.enablePromptUseWorkspaceTsdk": true,

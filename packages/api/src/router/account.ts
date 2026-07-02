@@ -9,7 +9,7 @@ const changePassword = protectedNoGuestProcedure
     z.object({
       oldPassword: z.string().min(6).max(100),
       newPassword: z.string().min(6).max(100),
-    }),
+    })
   )
   .handler(async ({ input, context }) => {
     const { user, payload } = context;
@@ -40,7 +40,7 @@ const updateProfile = protectedNoGuestProcedure
         name: z.string().optional(),
         phone: z.string().optional(),
       })
-      .catchall(z.any()),
+      .catchall(z.any())
   )
   .handler(async ({ input, context }) => {
     const {
@@ -105,7 +105,8 @@ const updateProfile = protectedNoGuestProcedure
       body: {
         ...rest,
         name: input.name,
-        ...(user?.username?.toLowerCase().trim() === username?.toLowerCase().trim()
+        ...(user?.username?.toLowerCase().trim() ===
+        username?.toLowerCase().trim()
           ? {}
           : { username }),
       },
@@ -121,7 +122,7 @@ const createPushToken = protectedProcedure
       deviceType: z.enum(["ios", "android", "web"]),
       deviceModel: z.string().optional(),
       deviceName: z.string().optional(),
-    }),
+    })
   )
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
@@ -179,7 +180,7 @@ const deletePushToken = protectedProcedure
   .input(
     z.object({
       token: z.string().optional(),
-    }),
+    })
   )
   .handler(async ({ input, context }) => {
     const { payload } = context;

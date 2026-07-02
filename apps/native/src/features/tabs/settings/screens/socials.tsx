@@ -31,7 +31,10 @@ export default function Socials() {
 
         <View className="flex-row justify-around">
           {socials.map((social) => (
-            <Pressable key={social.title} onPress={() => Linking.openURL(social.url)}>
+            <Pressable
+              key={social.title}
+              onPress={() => Linking.openURL(social.url)}
+            >
               <Image source={social.image} style={{ height: 50, width: 50 }} />
             </Pressable>
           ))}

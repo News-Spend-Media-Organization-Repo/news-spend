@@ -10,5 +10,6 @@ export const CustomError: React.FC<Props> = (props) => {
 
   if (showError) {
     return <p style={{ color: "red" }}>{message}</p>;
-  } else return null;
+  }
+  return null;
 };

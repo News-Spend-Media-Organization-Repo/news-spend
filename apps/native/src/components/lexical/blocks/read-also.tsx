@@ -22,8 +22,12 @@ const ReadAlso = memo(function ReadAlso({ news }: { news: News }) {
       className="my-3 rounded-r-md border-primary border-l-2 bg-foreground/5 px-3 py-2 active:opacity-70"
       onPress={onPress}
     >
-      <Text className="mb-0.5 font-bold text-gray-50 text-sm uppercase tracking-wide">{label}</Text>
-      <Text className="font-semibold text-base text-foreground">{news.title}</Text>
+      <Text className="mb-0.5 font-bold text-gray-50 text-sm uppercase tracking-wide">
+        {label}
+      </Text>
+      <Text className="font-semibold text-base text-foreground">
+        {news.title}
+      </Text>
     </Pressable>
   );
 });

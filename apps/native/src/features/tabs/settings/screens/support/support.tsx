@@ -36,10 +36,12 @@ const Support = () => {
   const navigation = useNavigation();
 
   return (
-    <Screen className="bg-background" systemBarStyle="light">
+    <Screen systemBarStyle="light">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="items-center px-4 py-4">
-          <Text className="font-semibold text-lg">Tell us how we can help you</Text>
+          <Text className="font-semibold text-lg">
+            Tell us how we can help you
+          </Text>
           <Text className="mt-1 text-center text-muted-foreground">
             Our team is always on hand to help you with any questions or queries
           </Text>

@@ -2,7 +2,14 @@
 import type { PromoVideoSource } from "@news-spend-media/payload/types";
 import { useIsFocused } from "@react-navigation/native";
 import type { VideoSource } from "expo-video";
-import { type Ref, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import {
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { View } from "react-native";
 
 import { Image, Video, type VideoRef } from "#/components/ui";
@@ -30,7 +37,13 @@ type PromoVideoProps = {
 // Component
 // ---------------------------------------------------------------------------
 
-const PromoVideo = ({ item, onLoad, autoPlay = false, posterSource, ref }: PromoVideoProps) => {
+const PromoVideo = ({
+  item,
+  onLoad,
+  autoPlay = false,
+  posterSource,
+  ref,
+}: PromoVideoProps) => {
   const videoRef = useRef<VideoRef>(null);
   const focused = useIsFocused();
   const [videoKey, setVideoKey] = useState(0);
@@ -38,7 +51,10 @@ const PromoVideo = ({ item, onLoad, autoPlay = false, posterSource, ref }: Promo
   const wasPlaying = useRef(false);
   const [effectiveAutoPlay, setEffectiveAutoPlay] = useState(autoPlay);
 
-  const videoSource = useMemo<VideoSource>(() => ({ uri: item.url ?? undefined }), [item.url]);
+  const videoSource = useMemo<VideoSource>(
+    () => ({ uri: item.url ?? undefined }),
+    [item.url]
+  );
 
   useEffect(() => {
     if (focused) {
@@ -72,7 +88,7 @@ const PromoVideo = ({ item, onLoad, autoPlay = false, posterSource, ref }: Promo
         videoRef.current?.play();
       },
     }),
-    [],
+    []
   );
 
   return (

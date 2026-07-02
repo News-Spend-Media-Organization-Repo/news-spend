@@ -1,4 +1,8 @@
-import { type MigrateDownArgs, type MigrateUpArgs, sql } from "@payloadcms/db-postgres";
+import {
+  type MigrateDownArgs,
+  type MigrateUpArgs,
+  sql,
+} from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -28,7 +32,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "audit_logs" DROP COLUMN "new_data";`);
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({
+  db,
+  payload,
+  req,
+}: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "audit_logs_rels" DISABLE ROW LEVEL SECURITY;
   DROP TABLE "audit_logs_rels" CASCADE;

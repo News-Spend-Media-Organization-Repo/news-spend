@@ -6,7 +6,11 @@ import { protectedProcedure, publicProcedure } from "../..";
 import { withCache } from "../../lib/cache";
 import { createAdManager, DEFAULT_AD_CONFIG } from "./ad-manager";
 import { newsAnalyticsRouter } from "./analytics";
-import { fetchMainNews, fetchPromoMedia, fetchRelatedNews } from "./content-fetchers";
+import {
+  fetchMainNews,
+  fetchPromoMedia,
+  fetchRelatedNews,
+} from "./content-fetchers";
 import {
   composeFeed,
   composeSimpleFeed,
@@ -14,7 +18,11 @@ import {
   type FeedComposerData,
 } from "./feed-composer";
 import { sanitizeContent } from "./sanitize-content";
-import { getNewsReactionCounts, getUserReactionForNews, type UserReaction } from "./user-reaction";
+import {
+  getNewsReactionCounts,
+  getUserReactionForNews,
+  type UserReaction,
+} from "./user-reaction";
 
 // Input schemas
 const HomeInputSchema = z.object({
@@ -45,35 +53,41 @@ function buildWhere(input: AllNewsInput) {
   return where;
 }
 
-const all = publicProcedure.input(AllInputSchema).handler(async ({ input, context }) => {
-  const { payload } = context;
-  const where = buildWhere(input);
+const all = publicProcedure
+  .input(AllInputSchema)
+  .handler(async ({ input, context }) => {
+    const { payload } = context;
+    const where = buildWhere(input);
 
-  // Fetch news items (depth 1, exclude heavy fields for list views)
-  const data = await payload.find({
-    collection: "news",
-    where,
-    limit: input.limit || 10,
-    page: input.page || 1,
-    depth: 1,
-    select: { content: false, keyPoints: false },
+    // Fetch news items (depth 1, exclude heavy fields for list views)
+    const data = await payload.find({
+      collection: "news",
+      where,
+      limit: input.limit || 10,
+      page: input.page || 1,
+      depth: 1,
+      select: { content: false, keyPoints: false },
+    });
+
+    // Only inject ads if input.includeAds is true (default: true)
+    if (input.includeAds !== false) {
+      // Create ad manager and compose simple feed with ads
+      const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
+      const docsWithAds = composeSimpleFeed(data.docs, adManager, 4);
+
+      return { ...data, docs: docsWithAds };
+    }
+
+    // If ads are not included, return plain news
+    return data;
   });
 
-  // Only inject ads if input.includeAds is true (default: true)
-  if (input.includeAds !== false) {
-    // Create ad manager and compose simple feed with ads
-    const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
-    const docsWithAds = composeSimpleFeed(data.docs, adManager, 4);
-
-    return { ...data, docs: docsWithAds };
-  }
-
-  // If ads are not included, return plain news
-  return data;
-});
-
 const trending = publicProcedure
-  .input(z.object({ limit: z.number().min(1).max(50).nullish().default(3) }).nullish())
+  .input(
+    z
+      .object({ limit: z.number().min(1).max(50).nullish().default(3) })
+      .nullish()
+  )
   .handler(async ({ input, context }) => {
     const { payload } = context;
     const limit = input?.limit ?? 3;
@@ -103,11 +117,13 @@ const trending = publicProcedure
           });
           // preserve score order from cache
           const docsById = new Map(res.docs.map((d) => [d.id, d]));
-          const ordered = candidateIds.map((id) => docsById.get(id)).filter(Boolean);
+          const ordered = candidateIds
+            .map((id) => docsById.get(id))
+            .filter(Boolean);
           cachedResult = ordered.slice(0, limit);
         }
       }
-    } catch (e) {
+    } catch {
       // ignore redis errors
     }
 
@@ -145,7 +161,9 @@ const trending = publicProcedure
   });
 
 const recordView = publicProcedure
-  .input(z.object({ newsId: z.string().optional(), slug: z.string().optional() }))
+  .input(
+    z.object({ newsId: z.string().optional(), slug: z.string().optional() })
+  )
   .handler(async ({ input, context }) => {
     const { payload, user, request } = context;
     if (!(input.newsId || input.slug)) {
@@ -179,15 +197,16 @@ const recordView = publicProcedure
     // determine dedupe key: prefer user id, fallback to IP header
     let dedupeKey = "";
     try {
-      if (user && user.id) {
+      if (user?.id) {
         dedupeKey = `news:view:${doc?.id}:user:${user.id}`;
       } else {
         const hdr =
-          request?.headers?.get?.("x-forwarded-for") || request?.headers?.get?.("x-real-ip");
+          request?.headers?.get?.("x-forwarded-for") ||
+          request?.headers?.get?.("x-real-ip");
         const ip = hdr ? String(hdr).split(",")[0]?.trim() : "anonymous";
         dedupeKey = `news:view:${doc?.id}:ip:${ip}`;
       }
-    } catch (err) {
+    } catch {
       // If header parsing fails, fallback to anonymous dedupe key
       dedupeKey = `news:view:${doc?.id}:anon`;
     }
@@ -207,7 +226,7 @@ const recordView = publicProcedure
         // already viewed recently — do not increment
         incremented = false;
       }
-    } catch (e) {
+    } catch {
       // if redis not available, fall back to incrementing always
       incremented = true;
     }
@@ -222,7 +241,7 @@ const recordView = publicProcedure
         const { getRedis } = await import("../../lib/redis");
         const r = getRedis();
         await r.incr(`news:views:${doc.id}`);
-      } catch (e) {
+      } catch {
         // ignore
       }
       return { ok: true, views: updated.views, incremented: true };
@@ -232,41 +251,46 @@ const recordView = publicProcedure
     return { ok: true, views: doc.views ?? 0, incremented: false };
   });
 
-const home = publicProcedure.input(HomeInputSchema).handler(async ({ input, context }) => {
-  const { payload } = context;
-  const limit = input?.limit || 12;
-  const page = input?.page || 1;
+const home = publicProcedure
+  .input(HomeInputSchema)
+  .handler(async ({ input, context }) => {
+    const { payload } = context;
+    const limit = input?.limit || 12;
+    const page = input?.page || 1;
 
-  // 1. Fetch main news with cache (90s TTL) — this is the heaviest query
-  const news = await withCache(`news:home:${page}:${limit}`, { ttl: 90 }, () =>
-    fetchMainNews({
-      payload,
-      type: "article",
-      limit,
-      page,
-    }),
-  );
+    // 1. Fetch main news with cache (90s TTL) — this is the heaviest query
+    const news = await withCache(
+      `news:home:${page}:${limit}`,
+      { ttl: 90 },
+      () =>
+        fetchMainNews({
+          payload,
+          type: "article",
+          limit,
+          page,
+        })
+    );
 
-  // 2. Fetch supporting data in parallel (lightweight, randomized per request)
-  const [related, promotionMedia] = await Promise.all([
-    fetchRelatedNews({ payload, limit: 3 }),
-    fetchPromoMedia({ payload, limit: 1 }),
-  ]);
+    // 2. Fetch supporting data in parallel (lightweight, randomized per request)
+    const [related, promotionMedia] = await Promise.all([
+      fetchRelatedNews({ payload, limit: 3 }),
+      fetchPromoMedia({ payload, limit: 1 }),
+    ]);
 
-  // 3. Initialize ad manager (pool is cached in Redis for 5 min)
-  const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
+    // 3. Initialize ad manager (pool is cached in Redis for 5 min)
+    const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
 
-  // 4. Compose the feed using the feed composer (synchronous)
-  const feedData: FeedComposerData = {
-    mainNews: news.docs,
-    relatedNews: related.docs,
-    promotionMedia: promotionMedia.docs,
-  };
+    // 4. Compose the feed using the feed composer (synchronous)
+    const feedData: FeedComposerData = {
+      mainNews: news.docs,
+      relatedNews: related.docs,
+      promotionMedia: promotionMedia.docs,
+    };
 
-  const composedFeed = composeFeed(adManager, feedData, DEFAULT_FEED_CONFIG);
+    const composedFeed = composeFeed(adManager, feedData, DEFAULT_FEED_CONFIG);
 
-  return { ...news, docs: composedFeed };
-});
+    return { ...news, docs: composedFeed };
+  });
 
 const liveVideos = publicProcedure.handler(async ({ context }) => {
   const { payload } = context;
@@ -288,7 +312,7 @@ const one = publicProcedure
     z.object({
       slug: z.string(),
       type: z.string().optional().default("article"),
-    }),
+    })
   )
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
@@ -313,46 +337,55 @@ const one = publicProcedure
       });
     }
     const doc = news.docs[0]!;
-    const userReaction = await getUserReactionForNews(payload, user?.id, doc.id);
+    const userReaction = await getUserReactionForNews(
+      payload,
+      user?.id,
+      doc.id
+    );
     return { ...doc, content: sanitizeContent(doc.content), userReaction };
   });
 
-const relatedNews = publicProcedure.input(z.number().optional()).handler(async ({ context }) => {
-  const { payload } = context;
-  const queryCount = await payload.find({
-    collection: "news",
-    pagination: false,
-    where: { _status: { equals: "published" } },
-    draft: false,
-  });
-  const randomPage = Math.floor(Math.random() * (queryCount.totalPages || 1)) + 1;
-  const items = await payload.find({
-    collection: "news",
-    depth: 1,
-    limit: 3,
-    page: randomPage,
-    sort: "-createdAt",
-    where: { _status: { equals: "published" } },
-    draft: false,
-    select: { content: false, keyPoints: false },
-  });
-  let relatedDocs = items.docs;
-  if (relatedDocs.length < 3 && queryCount.totalDocs > 3) {
-    const remainingItems = await payload.find({
+const relatedNews = publicProcedure
+  .input(z.number().optional())
+  .handler(async ({ context }) => {
+    const { payload } = context;
+    const queryCount = await payload.find({
+      collection: "news",
+      pagination: false,
+      where: { _status: { equals: "published" } },
+      draft: false,
+    });
+    const randomPage =
+      Math.floor(Math.random() * (queryCount.totalPages || 1)) + 1;
+    const items = await payload.find({
       collection: "news",
       depth: 1,
-      limit: 3 - relatedDocs.length,
+      limit: 3,
+      page: randomPage,
       sort: "-createdAt",
-      page: 1,
       where: { _status: { equals: "published" } },
       draft: false,
       select: { content: false, keyPoints: false },
     });
-    relatedDocs = [...relatedDocs, ...remainingItems.docs];
-  }
-  const shuffledItems = relatedDocs.sort(() => Math.random() - 0.5).slice(0, 3);
-  return shuffledItems;
-});
+    let relatedDocs = items.docs;
+    if (relatedDocs.length < 3 && queryCount.totalDocs > 3) {
+      const remainingItems = await payload.find({
+        collection: "news",
+        depth: 1,
+        limit: 3 - relatedDocs.length,
+        sort: "-createdAt",
+        page: 1,
+        where: { _status: { equals: "published" } },
+        draft: false,
+        select: { content: false, keyPoints: false },
+      });
+      relatedDocs = [...relatedDocs, ...remainingItems.docs];
+    }
+    const shuffledItems = relatedDocs
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    return shuffledItems;
+  });
 
 const likeDislikeInput = z.object({
   newsId: z.string(),

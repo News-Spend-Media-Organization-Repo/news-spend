@@ -1,4 +1,8 @@
-import { type MigrateDownArgs, type MigrateUpArgs, sql } from "@payloadcms/db-postgres";
+import {
+  type MigrateDownArgs,
+  type MigrateUpArgs,
+  sql,
+} from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -16,7 +20,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "reactions_rels_comments_id_idx" ON "reactions_rels" USING btree ("comments_id");`);
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({
+  db,
+  payload,
+  req,
+}: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "reactions_rels" DROP CONSTRAINT "reactions_rels_news_fk";
 

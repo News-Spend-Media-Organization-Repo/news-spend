@@ -14,7 +14,10 @@ export function StandardItem({
 }) {
   return (
     <View
-      className={cn("flex-row items-center gap-3 p-3", isSelected && "rounded-[10px] bg-gray-200")}
+      className={cn(
+        "flex-row items-center gap-3 p-3",
+        isSelected && "rounded-[10px] bg-gray-200"
+      )}
     >
       {IconComponent && (
         <Icon
@@ -23,7 +26,12 @@ export function StandardItem({
           size={20}
         />
       )}
-      <Text className={cn("flex-1", isSelected ? "font-medium text-accent" : "text-subtlest")}>
+      <Text
+        className={cn(
+          "flex-1",
+          isSelected ? "font-medium text-accent" : "text-subtlest"
+        )}
+      >
         {label}
       </Text>
       {isSelected && <Select.ItemIndicator />}
@@ -45,10 +53,22 @@ export function CheckboxItem({
 }) {
   return (
     <View
-      className={cn("flex-row items-center gap-3 p-3", isSelected && "rounded-[10px] bg-[#101928]")}
+      className={cn(
+        "flex-row items-center gap-3 p-3",
+        isSelected && "rounded-[10px] bg-[#101928]"
+      )}
     >
-      {IconComponent && <IconComponent className={isSelected ? "text-accent" : "text-gray-500"} />}
-      <Text className={cn("flex-1", isSelected ? "font-medium text-accent" : "text-gray-500")}>
+      {IconComponent && (
+        <IconComponent
+          className={isSelected ? "text-accent" : "text-gray-500"}
+        />
+      )}
+      <Text
+        className={cn(
+          "flex-1",
+          isSelected ? "font-medium text-accent" : "text-gray-500"
+        )}
+      >
         {label}
       </Text>
       <Checkbox isSelected={isSelected} onSelectedChange={onToggle} />

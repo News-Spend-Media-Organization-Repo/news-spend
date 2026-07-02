@@ -41,7 +41,13 @@ const MemoizedListHeader = memo(
     news: RouterOutputs["news"]["home"]["docs"];
     specialCoverage: RouterOutputs["news"]["home"]["docs"];
     books: PartnerContent[];
-  }) => <HomeListHeader books={books} news={news} specialCoverage={specialCoverage} />,
+  }) => (
+    <HomeListHeader
+      books={books}
+      news={news}
+      specialCoverage={specialCoverage}
+    />
+  )
 );
 
 const MemoizedSeparator = memo(() => <Separator className="m-3" />);
@@ -59,16 +65,23 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
   // Stable ref to feed data for use inside onViewableItemsChanged without
   // needing to re-create the callback on every render.
-  const flattenedNewsRef = useRef<RouterOutputs["news"]["home"]["docs"] | undefined>(undefined);
+  const flattenedNewsRef = useRef<
+    RouterOutputs["news"]["home"]["docs"] | undefined
+  >(undefined);
   const videoNews = useAllNews({
     type: "video",
   });
-  const flattenedVideoNews = videoNews?.data?.pages.flatMap((page) => page?.docs);
+  const flattenedVideoNews = videoNews?.data?.pages.flatMap(
+    (page) => page?.docs
+  );
 
   const previousTabName = useRef(routeState.tabName);
   useEffect(() => {
     const unsubscribe = subscribeKey(routeState, "tabName", (v) => {
-      if (v !== previousTabName.current && previousTabName.current === "latest") {
+      if (
+        v !== previousTabName.current &&
+        previousTabName.current === "latest"
+      ) {
         for (const mediaRef of mediaRefs.current) {
           try {
             mediaRef?.pause();
@@ -97,7 +110,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       initialPageParam: undefined,
       staleTime: 5 * 60 * 1000, // 5 min — prevents refetch on tab switch
       gcTime: 10 * 60 * 1000, // 10 min — keep cached data in memory
-    }),
+    })
   );
 
   const partnerContent = useQuery(
@@ -108,12 +121,14 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         limit: 12,
         page: 1,
       },
-    }),
+    })
   );
 
   const flattenedPartnerContent = partnerContent?.data?.docs;
 
-  const trendingNews = useQuery(orpc.news.trending.queryOptions({ input: { limit: 3 } }));
+  const trendingNews = useQuery(
+    orpc.news.trending.queryOptions({ input: { limit: 3 } })
+  );
 
   const flattenedNews = news?.pages.flatMap((page) => page.docs);
   flattenedNewsRef.current = flattenedNews;
@@ -145,7 +160,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
   const keyExtractor = useCallback(
     (item: RouterOutputs["news"]["home"]["docs"][0]) => item?.id ?? "",
-    [],
+    []
   );
 
   const handleRefresh = useCallback(() => {
@@ -154,7 +169,11 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
     trendingRefetch.refetchByUser();
     clearTabAdCache("latest");
     gBannerRefs.current.clear();
-  }, [resetInfiniteQueryPagination, refetchByUser, trendingRefetch.refetchByUser]);
+  }, [
+    resetInfiniteQueryPagination,
+    refetchByUser,
+    trendingRefetch.refetchByUser,
+  ]);
 
   const onEndReached = useCallback(() => {
     if (hasNextPage && !isFetching) {
@@ -167,14 +186,23 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       item?._type === "ad" && item?.type === "adCarousel"
         ? `adCarousel-${item?.videoSource}`
         : (item?.type ?? item?._type),
-    [],
+    []
   );
 
   const renderItem = useCallback(
-    ({ item, index }: LegendListRenderItemProps<RouterOutputs["news"]["home"]["docs"][number]>) => {
+    ({
+      item,
+      index,
+    }: LegendListRenderItemProps<
+      RouterOutputs["news"]["home"]["docs"][number]
+    >) => {
       let content: JSX.Element | null = null;
 
-      if (item && "type" in item && (item.type === "article" || item.type === "video")) {
+      if (
+        item &&
+        "type" in item &&
+        (item.type === "article" || item.type === "video")
+      ) {
         content = <NewsItem latest news={item} />;
       } else if (item && "_type" in item && item._type === "relatedNews") {
         content = <RelatedNews news={"data" in item ? item.data : undefined} />;
@@ -214,7 +242,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
       return <View className="px-3">{content}</View>;
     },
-    [],
+    []
   );
 
   const FooterItem = useCallback(
@@ -224,7 +252,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
           <Spinner size="lg" />
         </View>
       ) : null,
-    [hasNextPage, isFetching],
+    [hasNextPage, isFetching]
   );
 
   const onViewableItemsChanged = useRef(({ changed }) => {
@@ -246,7 +274,9 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       ) {
         const feed = flattenedNewsRef.current;
         if (feed) {
-          const startIdx = feed.findIndex((i) => i && "id" in i && i.id === item.item.id);
+          const startIdx = feed.findIndex(
+            (i) => i && "id" in i && i.id === item.item.id
+          );
           let preloaded = 0;
           for (let i = startIdx + 1; i < feed.length && preloaded < 2; i++) {
             const next = feed[i];
@@ -280,7 +310,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         trackImpressionRef.current(
           { id: item.item.id, slug: item.item.slug },
           item.index,
-          "HomeFeed",
+          "HomeFeed"
         );
       }
     }

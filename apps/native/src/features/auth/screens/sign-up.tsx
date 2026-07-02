@@ -3,7 +3,10 @@ import { useNavigation } from "@react-navigation/native";
 import { Spinner } from "heroui-native";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
 import { View } from "react-native";
-import { KeyboardAwareScrollView, KeyboardController } from "react-native-keyboard-controller";
+import {
+  KeyboardAwareScrollView,
+  KeyboardController,
+} from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
 import * as z from "zod";
 import { Button } from "#/components/heroui/button";
@@ -25,13 +28,18 @@ const schema = z.object({
     .trim()
     .toLowerCase()
     .check(z.email("Invalid email address")),
-  password: z.string("Please enter a password").min(8, "Password must be at least 8 characters"),
+  password: z
+    .string("Please enter a password")
+    .min(8, "Password must be at least 8 characters"),
   username: z
     .string("Please enter a username")
     .min(3, "Username must be at least 3 characters")
     .max(30, "Username must not exceed 30 characters")
     .trim()
-    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
+    .regex(
+      /^[a-zA-Z0-9_]+$/,
+      "Username can only contain letters, numbers and underscores"
+    ),
   phone: z
     .string("Please enter your phone number")
     .trim()
@@ -43,7 +51,7 @@ const schema = z.object({
       label: z.string(),
       value: z.string("Select your wish"),
     },
-    "Select your wish",
+    "Select your wish"
   ),
 });
 
@@ -115,12 +123,13 @@ export default function SignUp() {
             });
           }
         },
-        onError(error) {
+        onError(_error) {
           toast.error("Sign Up Failed", {
-            description: "Something went wrong. Please check your connection and try again.",
+            description:
+              "Something went wrong. Please check your connection and try again.",
           });
         },
-      },
+      }
     );
   };
 
@@ -131,13 +140,27 @@ export default function SignUp() {
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-        <Text className="mt-5 mb-8 text-center font-bold text-2xl">Create Account</Text>
+        <Text className="mt-5 mb-8 text-center font-bold text-2xl">
+          Create Account
+        </Text>
         <View className="flex-col gap-9">
           <FormProvider {...formMethods}>
             <View className="flex-col gap-4">
-              <FormInput name="name" placeholder="First Name" textContentType="name" />
-              <FormInput name="username" placeholder="Username" textContentType="username" />
-              <FormInput name="phone" placeholder="Phone" textContentType="telephoneNumber" />
+              <FormInput
+                name="name"
+                placeholder="First Name"
+                textContentType="name"
+              />
+              <FormInput
+                name="username"
+                placeholder="Username"
+                textContentType="username"
+              />
+              <FormInput
+                name="phone"
+                placeholder="Phone"
+                textContentType="telephoneNumber"
+              />
               <FormInput
                 autoCapitalize="none"
                 keyboardType="email-address"

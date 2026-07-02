@@ -11,7 +11,8 @@ export const generateVideoThumbnailTask = {
   slug: "generateVideoThumbnail",
   retries: 2,
   handler: async ({ input, req }) => {
-    const { docId, itemIndex, videoUrl, isHLS, oldThumbnailId, currentSource } = input;
+    const { docId, itemIndex, videoUrl, isHLS, oldThumbnailId, currentSource } =
+      input;
 
     const TMP = "/tmp/payload-video-thumbs";
     fs.mkdirSync(TMP, { recursive: true });
@@ -58,10 +59,12 @@ export const generateVideoThumbnailTask = {
       });
 
       const items: any = latestDoc.items ?? [];
-      const item = items[itemIndex] as { layout?: Array<{ blockType?: string }> } | undefined;
+      const item = items[itemIndex] as
+        | { layout?: Array<{ blockType?: string }> }
+        | undefined;
       const blk = item?.layout?.[0];
 
-      if (!blk || blk.blockType !== "promo-video-source") {
+      if (blk?.blockType !== "promo-video-source") {
         return { output: { success: false, reason: "Block no longer exists" } };
       }
 

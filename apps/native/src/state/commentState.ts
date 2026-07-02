@@ -36,7 +36,10 @@ export const commentState = proxy<CommentState>({
  *                            Falls back to `replyingToComment` if omitted.
  *
  */
-export function startReply(replyingToComment: CommentOne, parentComment?: CommentOne) {
+export function startReply(
+  replyingToComment: CommentOne,
+  parentComment?: CommentOne
+) {
   commentState.mode = "reply";
   commentState.target = replyingToComment;
   commentState.parent = parentComment ?? replyingToComment;
@@ -95,7 +98,7 @@ if (__DEV__) {
         target: commentState.target?.id,
         parent: commentState.parent?.id,
         draftLength: commentState.draft.length,
-      }),
+      })
     );
   });
 }

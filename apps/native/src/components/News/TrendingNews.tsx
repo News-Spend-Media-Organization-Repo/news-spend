@@ -1,4 +1,7 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import {
+  LegendList,
+  type LegendListRenderItemProps,
+} from "@legendapp/list/react-native";
 import type { News } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { Card } from "heroui-native";
@@ -21,8 +24,10 @@ const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
 export default function TrendingNews({ news }: { news: News[] }) {
   const renderItem = useCallback(
-    ({ item }: LegendListRenderItemProps<News>) => <TrendingNewsItem item={item} />,
-    [],
+    ({ item }: LegendListRenderItemProps<News>) => (
+      <TrendingNewsItem item={item} />
+    ),
+    []
   );
 
   return (

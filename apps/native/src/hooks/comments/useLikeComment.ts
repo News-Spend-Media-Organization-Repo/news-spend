@@ -3,7 +3,6 @@ import { useRoute } from "@react-navigation/native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { orpc, type RouterOutputs } from "#/lib/orpc";
-import { authState } from "#/state/auth";
 import type { HomeTabRouteProps } from "#/types";
 
 type Comment = RouterOutputs["comments"]["one"];
@@ -17,22 +16,23 @@ type ReactionResponse = {
 function useLikeComment(newsId: string, parentId?: string) {
   const queryClient = useQueryClient();
   const route = useRoute<HomeTabRouteProps<"Comment" | "CommentReply">>();
-  const type = route.name.startsWith("Live") ? "video" : "article";
-  const commentId = route.params?.commentId;
+  const _type = route.name.startsWith("Live") ? "video" : "article";
+  const _commentId = route.params?.commentId;
 
   return useMutation(
     orpc.comments.like.mutationOptions({
       // Optimistic update: toggle userReaction and adjust counts.
       onMutate: async (targetCommentId: string) => {
         await queryClient.cancelQueries({
-          queryKey: orpc.comments.one.queryOptions({ input: targetCommentId }).queryKey,
+          queryKey: orpc.comments.one.queryOptions({ input: targetCommentId })
+            .queryKey,
         });
         await queryClient.cancelQueries({
           queryKey: orpc.comments.all.key(),
         });
 
         const previousComment = queryClient.getQueryData<Comment>(
-          orpc.comments.one.queryOptions({ input: targetCommentId }).queryKey,
+          orpc.comments.one.queryOptions({ input: targetCommentId }).queryKey
         );
 
         const previousComments = queryClient.getQueryData(
@@ -43,12 +43,13 @@ function useLikeComment(newsId: string, parentId?: string) {
               page: pageParam,
             }),
             initialPageParam: undefined,
-          }),
+          })
         );
 
         const applyOptimistic = (comment: Comment): Comment => {
           const current = comment.userReaction ?? "none";
-          const next: ReactionResponse["userReaction"] = current === "like" ? "none" : "like";
+          const next: ReactionResponse["userReaction"] =
+            current === "like" ? "none" : "like";
           const likesDelta = current === "like" ? -1 : 1;
           return {
             ...comment,
@@ -61,17 +62,21 @@ function useLikeComment(newsId: string, parentId?: string) {
         if (previousComment) {
           queryClient.setQueryData(
             orpc.comments.one.queryKey({ input: targetCommentId }),
-            applyOptimistic(previousComment),
+            applyOptimistic(previousComment)
           );
         }
 
         if (previousComments?.pages) {
-          const newPages = previousComments.pages.map((page: { docs: Comment[] }) => ({
-            ...page,
-            docs: page.docs.map((comment) =>
-              comment.id === targetCommentId ? applyOptimistic(comment) : comment,
-            ),
-          }));
+          const newPages = previousComments.pages.map(
+            (page: { docs: Comment[] }) => ({
+              ...page,
+              docs: page.docs.map((comment) =>
+                comment.id === targetCommentId
+                  ? applyOptimistic(comment)
+                  : comment
+              ),
+            })
+          );
           queryClient.setQueryData(
             orpc.comments.all.infiniteKey({
               input: (pageParam: number | undefined) => ({
@@ -81,7 +86,7 @@ function useLikeComment(newsId: string, parentId?: string) {
               }),
               initialPageParam: undefined,
             }),
-            { ...previousComments, pages: newPages },
+            { ...previousComments, pages: newPages }
           );
         }
 
@@ -94,7 +99,7 @@ function useLikeComment(newsId: string, parentId?: string) {
           if (context?.previousComment) {
             queryClient.setQueryData(
               orpc.comments.one.queryKey({ input: variable }),
-              context.previousComment,
+              context.previousComment
             );
           }
           if (context?.previousComments) {
@@ -103,7 +108,7 @@ function useLikeComment(newsId: string, parentId?: string) {
                 input: (pageParam) => ({ newsId, parentId, page: pageParam }),
                 initialPageParam: undefined,
               }),
-              context.previousComments,
+              context.previousComments
             );
           }
         }
@@ -137,19 +142,21 @@ function useLikeComment(newsId: string, parentId?: string) {
         });
         const currentInfinite = queryClient.getQueryData(infiniteKey);
         if (currentInfinite?.pages) {
-          const newPages = currentInfinite.pages.map((page: { docs: Comment[] }) => ({
-            ...page,
-            docs: page.docs.map((comment) =>
-              comment.id === targetCommentId ? applyServer(comment) : comment,
-            ),
-          }));
+          const newPages = currentInfinite.pages.map(
+            (page: { docs: Comment[] }) => ({
+              ...page,
+              docs: page.docs.map((comment) =>
+                comment.id === targetCommentId ? applyServer(comment) : comment
+              ),
+            })
+          );
           queryClient.setQueryData(infiniteKey, {
             ...currentInfinite,
             pages: newPages,
           });
         }
       },
-    }),
+    })
   );
 }
 

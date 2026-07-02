@@ -12,11 +12,14 @@ import { useForgotPassword, useUpdateProfile, useUser } from "#/hooks/auth";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { queryClient } from "#/lib/tanstackQuery";
 
-const capitalize = (str: string) => str.replace(/\b\w/g, (char) => char.toUpperCase());
+const capitalize = (str: string) =>
+  str.replace(/\b\w/g, (char) => char.toUpperCase());
 
 const passwordSchema = z
   .object({
-    oldPassword: z.string("Password is required").min(8, "Password must be at least 8 characters"),
+    oldPassword: z
+      .string("Password is required")
+      .min(8, "Password must be at least 8 characters"),
     newPassword: z
       .string("New password is required")
       .min(8, "Password must be at least 8 characters"),
@@ -37,7 +40,10 @@ const profileSchema = z.object({
     .trim()
     .min(3, "Username must be at least 3 characters")
     .toLowerCase(),
-  phone: z.string("Phone number is required").regex(/^\d+$/, "Invalid phone number").trim(),
+  phone: z
+    .string("Phone number is required")
+    .regex(/^\d+$/, "Invalid phone number")
+    .trim(),
   email: z.email("Invalid email").trim(),
   wish: z.string("Wish is required").trim(),
 });
@@ -90,7 +96,7 @@ function Profile() {
               description: "An error occurred. Please try again later",
             });
           },
-        },
+        }
       );
     }
   };
@@ -128,7 +134,7 @@ function Profile() {
                 },
                 {
                   shouldFocus: true,
-                },
+                }
               );
             }
           }
@@ -143,7 +149,10 @@ function Profile() {
 
   return (
     <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
-      <KeyboardAwareScrollView bottomOffset={40} contentContainerClassName="px-6 pt-5">
+      <KeyboardAwareScrollView
+        bottomOffset={40}
+        contentContainerClassName="px-6 pt-5"
+      >
         <View className="gap-10">
           <FormProvider {...profileFormMethods}>
             <View className="gap-5">
@@ -153,8 +162,16 @@ function Profile() {
                 name="name"
                 placeholder={user?.name ?? ""}
               />
-              <FormTextInput label="Username" name="username" placeholder={user?.username ?? ""} />
-              <FormTextInput label="Phone" name="phone" placeholder={user?.phone ?? ""} />
+              <FormTextInput
+                label="Username"
+                name="username"
+                placeholder={user?.username ?? ""}
+              />
+              <FormTextInput
+                label="Phone"
+                name="phone"
+                placeholder={user?.phone ?? ""}
+              />
               <FormTextInput
                 isDisabled
                 label="Email Address"
@@ -183,7 +200,10 @@ function Profile() {
             </View>
           </FormProvider>
 
-          <Button isDisabled={resetPasswordMutation.isPending} onPress={onUpdateReset}>
+          <Button
+            isDisabled={resetPasswordMutation.isPending}
+            onPress={onUpdateReset}
+          >
             {resetPasswordMutation.isPending ? (
               <Spinner />
             ) : (

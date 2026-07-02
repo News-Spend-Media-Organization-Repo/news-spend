@@ -1,17 +1,14 @@
 {
   "devDependencies": {
-    "@biomejs/biome": "2.4.12",
-    "lefthook": "^2.1.4",
-    "lint-staged": "^16.4.0",
-    "oxfmt": "^0.45.0",
-    "oxlint": "^1.60.0",
+    "@biomejs/biome": "2.4.16",
+    "lefthook": "^2.1.9",
+    "lint-staged": "^17.0.8",
     "turbo": "^2.4.4",
-    "ultracite": "7.6.0"
+    "ultracite": "7.8.3"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
-      "bun x ultracite fix",
-      "bun x ultracite fix"
+      "bun x biome check --write"
     ]
   },
   "name": "turbo-payload",
@@ -19,13 +16,14 @@
     "build": "bun --filter @news-spend-media/cms build",
     "clean": "git clean -xdf node_modules",
     "dev": "bun --filter @news-spend-media/cms dev",
-    "format": "oxfmt .",
-    "format:fix": "oxfmt --fix .",
-    "lint": "oxlint .",
-    "lint:fix": "oxlint --fix .",
+    "format": "bun x biome format .",
+    "format:fix": "bun x biome format --write .",
+    "lint": "bun x biome lint .",
+    "lint:fix": "bun x biome check --write .",
     "typecheck": "bun --filter @news-spend-media/cms typecheck",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "prepare": "test -z \"$EAS_BUILD\" && lefthook install || echo 'Skipping lefthook'"
   },
   "type": "module",
   "workspaces": {
@@ -49,7 +47,6 @@
       "@payloadcms/graphql": "3.85.1",
       "@payloadcms/live-preview-react": "3.85.1",
       "@payloadcms/next": "3.85.1",
-      "@payloadcms/plugin-nested-docs": "3.85.1",
       "@payloadcms/plugin-redirects": "3.85.1",
       "@payloadcms/plugin-seo": "3.85.1",
       "@payloadcms/plugin-cloud-storage": "3.85.1",

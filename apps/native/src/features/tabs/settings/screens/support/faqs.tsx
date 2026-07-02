@@ -43,13 +43,17 @@ const questions = [
 ];
 
 const FAQs = () => (
-  <Screen className="bg-background" systemBarStyle="light">
+  <Screen systemBarStyle="light">
     <ScrollView
       contentContainerClassName="p-4"
       layout={AccordionLayoutTransition}
       showsVerticalScrollIndicator={false}
     >
-      <Accordion defaultValue={["0"]} selectionMode="multiple" variant="surface">
+      <Accordion
+        defaultValue={["0"]}
+        selectionMode="multiple"
+        variant="surface"
+      >
         {questions.map((item, index) => (
           <Accordion.Item key={index} value={index.toString()}>
             <Accordion.Trigger>
@@ -59,7 +63,9 @@ const FAQs = () => (
               <Accordion.Indicator />
             </Accordion.Trigger>
             <Accordion.Content>
-              <Text className="text-muted-foreground text-sm leading-relaxed">{item.answer}</Text>
+              <Text className="text-muted-foreground text-sm leading-relaxed">
+                {item.answer}
+              </Text>
             </Accordion.Content>
           </Accordion.Item>
         ))}

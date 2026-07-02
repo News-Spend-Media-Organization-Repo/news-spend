@@ -6,9 +6,9 @@
   input[type="number"].arrow-hide::-webkit-outer-spin-button,
   input[type="number"].arrow-hide::-webkit-inner-spin-button,
   input[type="number"].arrow-hide {
-    -webkit-appearance: none;
     margin: 0;
     -moz-appearance: textfield !important;
+    -webkit-appearance: none;
   }
 }
 

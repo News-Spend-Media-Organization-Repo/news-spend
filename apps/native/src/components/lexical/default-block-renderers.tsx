@@ -27,11 +27,17 @@ export const defaultBlockRenders: BlockRenderers<{
     </View>
   ),
   instagramEmbed: (props) => (
-    <InstagramEmbed caption={props.fields.caption ?? ""} postUrl={props.fields.postUrl} />
+    <InstagramEmbed
+      caption={props.fields.caption ?? ""}
+      postUrl={props.fields.postUrl}
+    />
   ),
   readAlso: (props) => <ReadAlso news={props.fields.news as News} />,
   twitterEmbed: (props) => <TwitterEmbed tweetId={props.fields.tweetId} />,
   youtubeEmbed: (props) => (
-    <YouTubeEmbed caption={props.fields.caption ?? ""} videoUrl={props.fields.videoUrl} />
+    <YouTubeEmbed
+      caption={props.fields.caption ?? ""}
+      videoUrl={props.fields.videoUrl}
+    />
   ),
 };

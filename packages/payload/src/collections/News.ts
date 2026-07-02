@@ -117,9 +117,9 @@ const News: CollectionConfig = {
         },
       ],
       admin: {
-        condition: (data, siblingData, { user }) => data.type === "article",
+        condition: (data, _siblingData, { user }) => data.type === "article",
       },
-      validate: (val) => {
+      validate: (_val) => {
         // if (!val || (val && (val?.length < 1 || val?.length > 3))) {
         //   return 'Articles must have between 1 and 3 key points'
         // }
@@ -134,7 +134,13 @@ const News: CollectionConfig = {
           return [
             ...defaultFeatures,
             BlocksFeature({
-              blocks: [AdsBlock, ReadAlsoBlock, "twitterEmbed", "youtubeEmbed", "instagramEmbed"],
+              blocks: [
+                AdsBlock,
+                ReadAlsoBlock,
+                "twitterEmbed",
+                "youtubeEmbed",
+                "instagramEmbed",
+              ],
             }),
           ];
         },
@@ -154,7 +160,7 @@ const News: CollectionConfig = {
         try {
           new URL(val);
           return true;
-        } catch (error) {
+        } catch {
           return "Please enter a valid URL";
         }
       },

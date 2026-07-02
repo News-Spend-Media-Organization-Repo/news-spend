@@ -1,4 +1,7 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import {
+  LegendList,
+  type LegendListRenderItemProps,
+} from "@legendapp/list/react-native";
 import type { Comment } from "@news-spend-media/payload";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,8 +26,15 @@ const LiveComments = ({ route }) => {
   const { newsId, newsSlug } = route.params;
   const navigation = useNavigation();
 
-  const { data, isError, refetch, hasNextPage, isFetchingNextPage, fetchNextPage, isPending } =
-    useGetComments(newsId, false);
+  const {
+    data,
+    isError,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    isPending,
+  } = useGetComments(newsId, false);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
   const inputRef = useRef<TextInput>(null);
@@ -40,7 +50,7 @@ const LiveComments = ({ route }) => {
   // Pressing back while the input is focused dismisses it first.
   useFocusBackHandler(() => {
     if (inputRef.current?.isFocused()) {
-      inputRef.current.blur();
+      inputRef.current?.blur();
       return true;
     }
     return false;
@@ -51,7 +61,7 @@ const LiveComments = ({ route }) => {
       input: { slug: newsSlug, type: "video" },
       initialData: () =>
         queryClient.getQueryData(
-          orpc.news.one.queryKey({ input: { slug: newsSlug, type: "video" } }),
+          orpc.news.one.queryKey({ input: { slug: newsSlug, type: "video" } })
         ),
       initialDataUpdatedAt: () => {
         const qKey = orpc.news.one.queryKey({
@@ -59,7 +69,7 @@ const LiveComments = ({ route }) => {
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
-    }),
+    })
   );
 
   const onEndReached = useCallback(() => {
@@ -74,7 +84,12 @@ const LiveComments = ({ route }) => {
         return (
           <View className="mb-6 gap-5 bg-white">
             <View className="flex-row items-center px-2">
-              <Button hitSlop={14} onPress={() => navigation.goBack()} size="sm" variant="ghost">
+              <Button
+                hitSlop={14}
+                onPress={() => navigation.goBack()}
+                size="sm"
+                variant="ghost"
+              >
                 <CaretDownIcon size={20} />
               </Button>
               <Image
@@ -84,18 +99,24 @@ const LiveComments = ({ route }) => {
                 source={item.url}
               />
               <View className="flex-1 px-2.5">
-                <Text className="text-base" numberOfLines={3} variant="subtitle">
+                <Text
+                  className="text-base"
+                  numberOfLines={3}
+                  variant="subtitle"
+                >
                   {item.title}
                 </Text>
               </View>
             </View>
-            <Text className="pl-4 font-normal text-lg">Comments ({item.totalComments})</Text>
+            <Text className="pl-4 font-normal text-lg">
+              Comments ({item.totalComments})
+            </Text>
           </View>
         );
       }
       return <CommentCard comment={item} screenType="live" />;
     },
-    [navigation],
+    [navigation]
   );
 
   if (isError) {
@@ -133,7 +154,11 @@ const LiveComments = ({ route }) => {
   const listData = [headerItem, ...allPages];
 
   return (
-    <Screen contentContainerClassName="py-safe" disableKeyboardAvoidingView preset="fixed">
+    <Screen
+      contentContainerClassName="py-safe"
+      disableKeyboardAvoidingView
+      preset="fixed"
+    >
       <LegendList
         contentContainerStyle={{ paddingBottom: 60 }}
         data={listData}
@@ -141,11 +166,15 @@ const LiveComments = ({ route }) => {
         keyExtractor={(item) => ("__type" in item ? item.id : item.id)}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-12">
-            <Text className="text-secondary">No comments yet. Be the first!</Text>
+            <Text className="text-secondary">
+              No comments yet. Be the first!
+            </Text>
           </View>
         }
         ListFooterComponent={
-          isFetchingNextPage ? <ActivityIndicator className="text-p-300" /> : null
+          isFetchingNextPage ? (
+            <ActivityIndicator className="text-p-300" />
+          ) : null
         }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}

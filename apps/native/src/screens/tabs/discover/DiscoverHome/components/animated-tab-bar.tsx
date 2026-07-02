@@ -104,7 +104,9 @@ export function AnimatedTabBar({
   const scrollRef = useRef<Animated.ScrollView>(null);
   const scrollXSV = useSharedValue(0);
 
-  const [layoutsByName, setLayoutsByName] = useState<Record<string, TabLayout>>({});
+  const [layoutsByName, setLayoutsByName] = useState<Record<string, TabLayout>>(
+    {}
+  );
 
   const onItemLayout = useCallback((name: string, e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;
@@ -119,10 +121,11 @@ export function AnimatedTabBar({
 
   const layouts = useMemo(
     () => tabNames.map((name) => layoutsByName[name]),
-    [tabNames, layoutsByName],
+    [tabNames, layoutsByName]
   );
 
-  const allLayoutsReady = tabNames.length > 0 && layouts.every((l): l is TabLayout => Boolean(l));
+  const allLayoutsReady =
+    tabNames.length > 0 && layouts.every((l): l is TabLayout => Boolean(l));
 
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollXSV.value = e.contentOffset.x;
@@ -155,7 +158,8 @@ export function AnimatedTabBar({
     const l0 = layouts[i0] as TabLayout;
     const l1 = layouts[i1] as TabLayout;
     const xInViewport = l0.x + (l1.x - l0.x) * fraction - scrollXSV.value;
-    const width = l0.width + (l1.width - l0.width) * fraction - indicatorInset * 2;
+    const width =
+      l0.width + (l1.width - l0.width) * fraction - indicatorInset * 2;
     return {
       opacity: 1,
       transform: [{ translateX: xInViewport + indicatorInset }],
@@ -171,7 +175,10 @@ export function AnimatedTabBar({
       style={[{ backgroundColor }, containerStyle]}
     >
       <Animated.ScrollView
-        contentContainerClassName={cn("flex-row items-end px-3", contentClassName)}
+        contentContainerClassName={cn(
+          "flex-row items-end px-3",
+          contentClassName
+        )}
         contentContainerStyle={contentStyle}
         horizontal
         onScroll={onScroll}
@@ -199,12 +206,18 @@ export function AnimatedTabBar({
                 <Text
                   className={cn(
                     focused ? ACTIVE_LABEL_CLASS : INACTIVE_LABEL_CLASS,
-                    focused ? activeLabelClassName : inactiveLabelClassName,
+                    focused ? activeLabelClassName : inactiveLabelClassName
                   )}
                   style={
                     focused
-                      ? [activeColor ? { color: activeColor } : null, activeLabelStyle]
-                      : [inactiveColor ? { color: inactiveColor } : null, inactiveLabelStyle]
+                      ? [
+                          activeColor ? { color: activeColor } : null,
+                          activeLabelStyle,
+                        ]
+                      : [
+                          inactiveColor ? { color: inactiveColor } : null,
+                          inactiveLabelStyle,
+                        ]
                   }
                 >
                   {label}

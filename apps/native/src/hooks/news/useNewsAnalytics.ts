@@ -43,7 +43,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
       sessionId,
       deviceId,
     }),
-    [],
+    []
   );
 
   const trackImpression = useCallback(
@@ -61,7 +61,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
         metadata: { position, screen },
       });
     },
-    [buildBase],
+    [buildBase]
   );
 
   const trackView = useCallback(() => {
@@ -89,7 +89,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
       });
       newsAnalyticsClient.flush(user?.id);
     },
-    [article, buildBase, user?.id],
+    [article, buildBase, user?.id]
   );
 
   const trackLike = useCallback(() => {
@@ -125,7 +125,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
         metadata: { shareMethod, screen: "Article" },
       });
     },
-    [article, buildBase],
+    [article, buildBase]
   );
 
   const trackComment = useCallback(() => {

@@ -24,9 +24,7 @@ export default function HomeListHeader({
       <TrendingBooks books={books} />
 
       <SpecialCoverage specialCoverage={specialCoverage} />
-      <Text className="px-4" variant="subtitle">
-        Latest News
-      </Text>
+      <Text className="px-4 font-semibold text-base">Latest News</Text>
     </View>
   );
 }

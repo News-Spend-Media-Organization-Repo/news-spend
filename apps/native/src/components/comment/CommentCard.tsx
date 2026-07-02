@@ -1,7 +1,12 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { formatDistance } from "date-fns";
 import { Separator } from "heroui-native";
-import { ArrowBendUpLeftIcon, ChatIcon, ClockIcon, HeartStraightIcon } from "phosphor-react-native";
+import {
+  ArrowBendUpLeftIcon,
+  ChatIcon,
+  ClockIcon,
+  HeartStraightIcon,
+} from "phosphor-react-native";
 import { memo, useMemo } from "react";
 import { View } from "react-native";
 import { useSnapshot } from "valtio";
@@ -31,8 +36,15 @@ type CommentCardProps = {
 };
 
 const CommentCard = memo(
-  ({ comment, isLast, parentId, replyingTo, screenType = "article" }: CommentCardProps) => {
-    const newsId = typeof comment?.news === "string" ? comment?.news : comment?.news?.id;
+  ({
+    comment,
+    isLast,
+    parentId,
+    replyingTo,
+    screenType = "article",
+  }: CommentCardProps) => {
+    const newsId =
+      typeof comment?.news === "string" ? comment?.news : comment?.news?.id;
     const { mutate } = useLikeComment(newsId, parentId);
     const auth = useSnapshot(authState);
     const route = useRoute();
@@ -46,7 +58,8 @@ const CommentCard = memo(
     }
 
     const navigateToReplies = () => {
-      const target = screenType === "live" ? "LiveCommentReply" : "CommentReply";
+      const target =
+        screenType === "live" ? "LiveCommentReply" : "CommentReply";
       navigation.navigate(target, {
         commentId: comment.id,
         newsId,
@@ -55,7 +68,8 @@ const CommentCard = memo(
     };
 
     const isRepliesScreen =
-      route.name === (screenType === "live" ? "LiveCommentReply" : "CommentReply");
+      route.name ===
+      (screenType === "live" ? "LiveCommentReply" : "CommentReply");
 
     const isLiked = comment.userReaction === "like";
 
@@ -69,7 +83,8 @@ const CommentCard = memo(
     };
 
     const onReply = () => {
-      const target = screenType === "live" ? "LiveCommentReply" : "CommentReply";
+      const target =
+        screenType === "live" ? "LiveCommentReply" : "CommentReply";
       navigation.navigate(target, {
         commentId: comment.id,
         newsId,
@@ -88,7 +103,8 @@ const CommentCard = memo(
             style={{ backgroundColor: avatarBg }}
           >
             <Text className="text-base text-white">
-              {(typeof comment.user === "object" && comment.user.username?.[0].toUpperCase()) ??
+              {(typeof comment.user === "object" &&
+                comment.user.username?.[0].toUpperCase()) ??
                 "U"}
             </Text>
           </View>
@@ -98,7 +114,8 @@ const CommentCard = memo(
               <View className="gap-0">
                 <Text className="font-bold text-[#0A0909]" variant="caption">
                   {commentUser?.username
-                    ? commentUser.username.charAt(0).toUpperCase() + commentUser.username.slice(1)
+                    ? commentUser.username.charAt(0).toUpperCase() +
+                      commentUser.username.slice(1)
                     : "U"}{" "}
                   {commentUser?.id === auth.session?.user?.id && "(You)"}
                 </Text>
@@ -114,7 +131,9 @@ const CommentCard = memo(
               </View>
             </View>
 
-            <Text className="text-[#0A0909] text-[15px] leading-4.5">{comment.text}</Text>
+            <Text className="text-[#0A0909] text-[15px] leading-4.5">
+              {comment.text}
+            </Text>
 
             <View className="flex-row items-center gap-5">
               <Button
@@ -131,15 +150,26 @@ const CommentCard = memo(
                   weight={isLiked ? "fill" : "regular"}
                 />
                 <Button.Label
-                  className={isLiked ? "text-[#fb2d2d] text-sm" : "text-[#737373] text-sm"}
+                  className={
+                    isLiked
+                      ? "text-[#fb2d2d] text-sm"
+                      : "text-[#737373] text-sm"
+                  }
                 >
                   {isLiked ? "Liked" : "Like"}
                 </Button.Label>
               </Button>
 
-              <Button className="p-0" feedbackVariant="none" onPress={onReply} variant="ghost">
+              <Button
+                className="p-0"
+                feedbackVariant="none"
+                onPress={onReply}
+                variant="ghost"
+              >
                 <Icon color="#737373" name={ArrowBendUpLeftIcon} size={16} />
-                <Button.Label className="text-[#737373] text-sm">Reply</Button.Label>
+                <Button.Label className="text-[#737373] text-sm">
+                  Reply
+                </Button.Label>
               </Button>
 
               <Button
@@ -165,7 +195,7 @@ const CommentCard = memo(
         <Separator className="my-3.5" />
       </View>
     );
-  },
+  }
 );
 
 export default CommentCard;

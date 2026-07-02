@@ -5,7 +5,8 @@ import { Text } from "#/components/heroui/text";
 const privacyPolicyContent = [
   {
     title: "1. Information We Collect",
-    description: "We collect the following information from you when you use the App:",
+    description:
+      "We collect the following information from you when you use the App:",
     bullets: [
       "Personal information: This includes your name, email address, and any other information you voluntarily provide to us, such as your profile picture and interests.",
       "Device information: This includes your device type, operating system, and IP address.",
@@ -25,7 +26,8 @@ const privacyPolicyContent = [
   },
   {
     title: "3. How We Share Your Information",
-    description: "We may share your information with the following third parties:",
+    description:
+      "We may share your information with the following third parties:",
     bullets: [
       "Service providers who help us operate the App and provide our services.",
       "Advertisers who display ads in the App.",

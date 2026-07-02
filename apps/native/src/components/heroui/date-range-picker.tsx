@@ -78,7 +78,11 @@ function CalendarShell({
         <Button className="flex-1" onPress={onCancel} variant="secondary">
           <Button.Label>Cancel</Button.Label>
         </Button>
-        <Button className="flex-1" isDisabled={!(rangeStart && rangeEnd)} onPress={onConfirm}>
+        <Button
+          className="flex-1"
+          isDisabled={!(rangeStart && rangeEnd)}
+          onPress={onConfirm}
+        >
           <Button.Label>Apply</Button.Label>
         </Button>
       </View>
@@ -137,7 +141,10 @@ export function DateRangePicker({
       <BottomSheet isOpen={open} onOpenChange={onOpenChange}>
         <BottomSheet.Portal>
           <BottomSheet.Overlay />
-          <BottomSheet.Content contentContainerClassName="pb-safe" enableDynamicSizing>
+          <BottomSheet.Content
+            contentContainerClassName="pb-safe"
+            enableDynamicSizing
+          >
             <BottomSheetView>
               <BottomSheet.Title className="px-4 pt-4 font-semibold text-base">
                 {label}

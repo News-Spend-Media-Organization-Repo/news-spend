@@ -8,7 +8,9 @@ import { sharedScreens } from "./shared-screens";
 function ShopHeader() {
   return (
     <View className="bg-p-500 px-2 pt-safe-offset-1 pb-2">
-      <Text className="font-bold text-2xl text-background uppercase">News Spend Media</Text>
+      <Text className="font-bold text-background text-base uppercase">
+        News Spend Media
+      </Text>
     </View>
   );
 }

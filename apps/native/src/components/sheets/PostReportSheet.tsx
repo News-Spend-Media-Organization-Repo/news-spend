@@ -51,7 +51,7 @@ function PostReportSheet(props) {
             description: "Something went wrong",
           });
         },
-      },
+      }
     );
   };
 
@@ -64,7 +64,9 @@ function PostReportSheet(props) {
             <View className="flex-row justify-between">
               <View className="gap-1">
                 <Text className="font-bold text-lg">Report this comment</Text>
-                <Text className="text-gray-500 text-sm">Why are you reporting this comment?</Text>
+                <Text className="text-gray-500 text-sm">
+                  Why are you reporting this comment?
+                </Text>
               </View>
               <Button
                 className="size-8 rounded-full bg-[#d9d9d9]"
@@ -90,7 +92,11 @@ function PostReportSheet(props) {
               </View>
             </RadioGroup>
 
-            <Button className="w-full" disabled={mutation.isPending || !reason} onPress={onSubmit}>
+            <Button
+              className="w-full"
+              disabled={mutation.isPending || !reason}
+              onPress={onSubmit}
+            >
               Submit
             </Button>
           </View>

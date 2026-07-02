@@ -50,7 +50,7 @@ export const useVideoSettings = () => {
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [loadSettings, checkNetworkState]);
 
   const checkNetworkState = async () => {
     try {

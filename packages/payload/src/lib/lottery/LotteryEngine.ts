@@ -61,7 +61,7 @@ export class LotteryEngineError extends Error {
 }
 
 export class LotteryEngine {
-  private payload: import("payload").BasePayload;
+  private readonly payload: import("payload").BasePayload;
   private static readonly CONSECUTIVE_ROUNDS_THRESHOLD = 4;
   private static readonly HIGH_TIER_PROBABILITY = 0.0001; // 1 in 10,000
   private static readonly MID_TIER_PROBABILITY = 0.0002; // 1 in 5,000
@@ -232,7 +232,7 @@ export class LotteryEngine {
    */
   private selectPrize(
     tier: "HIGH" | "MID" | "LOW" | null,
-    ticket: LotteryTicket
+    _ticket: LotteryTicket
   ) {
     // Default to LOW tier if null
     if (!tier) {

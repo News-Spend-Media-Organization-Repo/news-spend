@@ -5,8 +5,11 @@ import {
   type LegendListRef,
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
-import type { PartnerContent, PromoVideoSource } from "@news-spend-media/payload/types";
-import { ShareIcon } from "phosphor-react-native";
+import type {
+  PartnerContent,
+  PromoVideoSource,
+} from "@news-spend-media/payload/types";
+import { ShareNetworkIcon } from "phosphor-react-native";
 import type React from "react";
 import { useCallback, useImperativeHandle, useMemo, useRef } from "react";
 import { useWindowDimensions, View } from "react-native";
@@ -20,10 +23,9 @@ import { authState } from "#/state/auth";
 import CarouselItem, { CustomScrollView } from "./CarouselItem";
 import type { AdCarouselProps, AdCarouselRef, CarouselItemData } from "./types";
 
-const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef> }> = ({
-  item,
-  listRef,
-}) => {
+const AdCarousel: React.FC<
+  AdCarouselProps & { listRef?: React.Ref<AdCarouselRef> }
+> = ({ item, listRef }) => {
   const { width } = useWindowDimensions();
   const addActivityMutation = useAddActivity();
 
@@ -40,11 +42,16 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
       },
       {
         onSuccess: (_response) => {
-          toast.success("Points earned", {
-            description: `You earned ${item?.points} points for sharing promo video!`,
-          });
+          setTimeout(
+            () => {
+              toast.success("Points earned", {
+                description: `You earned ${item?.points} points for sharing promo video!`,
+              });
+            },
+            1 * 60 * 1000
+          ); // 1 minute
         },
-      },
+      }
     );
   }, [item?.points, item?.title, addActivityMutation]);
 
@@ -68,16 +75,27 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
       },
       isPlaying: () => adCarouselRef.current?.isPlaying() ?? false,
     }),
-    [],
+    []
   );
 
-  const keyExtractor = useCallback((listItem: CarouselItemData) => listItem?.id ?? "", []);
+  const keyExtractor = useCallback(
+    (listItem: CarouselItemData) => listItem?.id ?? "",
+    []
+  );
 
   const renderItem = useCallback(
-    ({ index, item: listItem }: LegendListRenderItemProps<CarouselItemData>) => (
-      <CarouselItem adCarouselRef={adCarouselRef} index={index} item={listItem} width={width} />
+    ({
+      index,
+      item: listItem,
+    }: LegendListRenderItemProps<CarouselItemData>) => (
+      <CarouselItem
+        adCarouselRef={adCarouselRef}
+        index={index}
+        item={listItem}
+        width={width}
+      />
     ),
-    [width],
+    [width]
   );
 
   const onShare = useCallback(async () => {
@@ -92,13 +110,15 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
         title: `Share promo video of ${item.title}`,
       });
 
-      console.log(shareResponse);
-
-      if (shareResponse.dismissedAction) {
+      if (shareResponse.success) {
         awardPoint();
+      } else {
+        toast.error("Share cancelled", {
+          description: "You need to complete the share to earn points.",
+        });
       }
-    } catch (error) {
-      // console.error("Error sharing promo video:", error);
+    } catch {
+      // console.error(error);
       // toast.error("Share failed", {
       //   description: "There was an issue sharing the promo video.",
       // });
@@ -115,7 +135,10 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
   >(({ changed }) => {
     for (const change of changed) {
       const { item: listItem, isViewable } = change;
-      if (listItem?.layout?.[0]?.blockType === "promo-video-source" && !isViewable) {
+      if (
+        listItem?.layout?.[0]?.blockType === "promo-video-source" &&
+        !isViewable
+      ) {
         adCarouselRef?.current?.pause();
       }
     }
@@ -153,7 +176,7 @@ const AdCarousel: React.FC<AdCarouselProps & { listRef?: React.Ref<AdCarouselRef
           {item.title}: {item.condition}
         </Text>
         <Button className="h-auto" onPress={onShare} variant="ghost">
-          <Icon name={ShareIcon} />
+          <Icon name={ShareNetworkIcon} />
         </Button>
       </View>
     </View>

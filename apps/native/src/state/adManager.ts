@@ -5,7 +5,8 @@ import { proxy } from "valtio";
 import { client } from "#/lib/orpc";
 import { storage } from "#/utils/storage";
 
-export type AdPlacement = (typeof enum_partner_content_placements.enumValues)[number];
+export type AdPlacement =
+  (typeof enum_partner_content_placements.enumValues)[number];
 
 type AdSlotStatus = "idle" | "loading" | "ready" | "error";
 

@@ -23,7 +23,10 @@ type ActivitySheetContentProps = {
   onClose: () => void;
 };
 
-function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) {
+function ActivitySheetContent({
+  activity,
+  onClose,
+}: ActivitySheetContentProps) {
   const [activeTab, setActiveTab] = useState("details");
 
   const meta = getActionMeta(activity.action);
@@ -44,7 +47,9 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
   };
 
   return (
-    <BottomSheetScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+    <BottomSheetScrollView
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+    >
       <View className="mb-4 flex-row items-center justify-between">
         <View className="flex-row items-center gap-3">
           <View
@@ -54,9 +59,12 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
             <Icon color="#000" name={meta.icon} size={24} />
           </View>
           <View>
-            <BottomSheet.Title className="font-semibold text-base">{meta.label}</BottomSheet.Title>
+            <BottomSheet.Title className="font-semibold text-base">
+              {meta.label}
+            </BottomSheet.Title>
             <Text className="text-secondary text-xs capitalize">
-              {activity.type ?? "point"} · {format(new Date(activity.createdAt), "hh:mm a")}
+              {activity.type ?? "point"} ·{" "}
+              {format(new Date(activity.createdAt), "hh:mm a")}
             </Text>
           </View>
         </View>
@@ -65,20 +73,23 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
       <View
         className={cn(
           "mb-4 flex-row items-center gap-3 rounded-2xl px-4 py-3",
-          isPositive ? "bg-success-50" : "bg-danger-50",
+          isPositive ? "bg-success-50" : "bg-danger-50"
         )}
       >
         <Text
           className={cn(
             "font-bold text-3xl tracking-tight",
-            isPositive ? "text-success-800" : "text-danger-800",
+            isPositive ? "text-success-800" : "text-danger-800"
           )}
         >
           {isPositive ? "+" : ""}
           {activity.point}
         </Text>
         <Text
-          className={cn("font-medium text-sm", isPositive ? "text-success-600" : "text-danger-600")}
+          className={cn(
+            "font-medium text-sm",
+            isPositive ? "text-success-600" : "text-danger-600"
+          )}
         >
           points {isPositive ? "earned" : "spent"}
         </Text>
@@ -108,24 +119,34 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
           <View className="gap-3 pt-3">
             <View className="flex-row gap-2">
               <View className="flex-1 rounded-xl bg-surface p-3">
-                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">Action</Text>
+                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
+                  Action
+                </Text>
                 <Text className="font-medium text-sm">{meta.label}</Text>
               </View>
               <View className="flex-1 rounded-xl bg-surface p-3">
-                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">Type</Text>
-                <Text className="font-medium text-sm capitalize">{activity.type ?? "point"}</Text>
+                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
+                  Type
+                </Text>
+                <Text className="font-medium text-sm capitalize">
+                  {activity.type ?? "point"}
+                </Text>
               </View>
             </View>
 
             <View className="flex-row gap-2">
               <View className="flex-1 rounded-xl bg-surface p-3">
-                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">Date</Text>
+                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
+                  Date
+                </Text>
                 <Text className="font-medium text-sm">
                   {format(new Date(activity.createdAt), "dd/MM/yyyy")}
                 </Text>
               </View>
               <View className="flex-1 rounded-xl bg-surface p-3">
-                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">Time</Text>
+                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
+                  Time
+                </Text>
                 <Text className="font-medium text-sm">
                   {format(new Date(activity.createdAt), "hh:mm a")}
                 </Text>
@@ -136,7 +157,10 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
               <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
                 Activity ID
               </Text>
-              <Text className="font-mono text-secondary text-xs" numberOfLines={1}>
+              <Text
+                className="font-mono text-secondary text-xs"
+                numberOfLines={1}
+              >
                 {activity.id}
               </Text>
             </View>
@@ -146,13 +170,17 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
                 <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
                   Description
                 </Text>
-                <Text className="text-secondary text-sm leading-5">{activity.description}</Text>
+                <Text className="text-secondary text-sm leading-5">
+                  {activity.description}
+                </Text>
               </View>
             )}
 
             {activity.reward && (
               <View className="rounded-xl bg-surface p-3">
-                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">Reward</Text>
+                <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
+                  Reward
+                </Text>
                 <Text className="font-medium text-sm">{activity.reward}</Text>
               </View>
             )}
@@ -177,10 +205,15 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
                   )}
                 </View>
                 <PressableFeedback className="flex-1" onPress={onNewsPress}>
-                  <Text className="font-medium text-sm leading-5" numberOfLines={3}>
+                  <Text
+                    className="font-medium text-sm leading-5"
+                    numberOfLines={3}
+                  >
                     {news.title ?? "News article"}
                   </Text>
-                  <Text className="mt-1 text-secondary text-xs">Tap to open article</Text>
+                  <Text className="mt-1 text-secondary text-xs">
+                    Tap to open article
+                  </Text>
                 </PressableFeedback>
               </View>
             </View>
@@ -190,12 +223,18 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
         {activity.metadata && (
           <Tabs.Content value="meta">
             <View className="gap-2 pt-3">
-              {Object.entries(activity.metadata as Record<string, unknown>).map(([key, value]) => (
-                <View className="rounded-xl bg-surface p-3" key={key}>
-                  <Text className="mb-1 font-semibold text-secondary text-xs uppercase">{key}</Text>
-                  <Text className="font-mono text-secondary text-xs">{String(value)}</Text>
-                </View>
-              ))}
+              {Object.entries(activity.metadata as Record<string, unknown>).map(
+                ([key, value]) => (
+                  <View className="rounded-xl bg-surface p-3" key={key}>
+                    <Text className="mb-1 font-semibold text-secondary text-xs uppercase">
+                      {key}
+                    </Text>
+                    <Text className="font-mono text-secondary text-xs">
+                      {String(value)}
+                    </Text>
+                  </View>
+                )
+              )}
             </View>
           </Tabs.Content>
         )}
@@ -204,7 +243,11 @@ function ActivitySheetContent({ activity, onClose }: ActivitySheetContentProps) 
   );
 }
 
-export function ActivitySheet({ activity, isOpen, onOpenChange }: ActivitySheetProps) {
+export function ActivitySheet({
+  activity,
+  isOpen,
+  onOpenChange,
+}: ActivitySheetProps) {
   return (
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
@@ -216,7 +259,10 @@ export function ActivitySheet({ activity, isOpen, onOpenChange }: ActivitySheetP
           snapPoints={["55%", "85%"]}
         >
           {activity ? (
-            <ActivitySheetContent activity={activity} onClose={() => onOpenChange(false)} />
+            <ActivitySheetContent
+              activity={activity}
+              onClose={() => onOpenChange(false)}
+            />
           ) : null}
         </BottomSheet.Content>
       </BottomSheet.Portal>

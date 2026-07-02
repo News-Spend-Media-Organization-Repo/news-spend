@@ -72,7 +72,7 @@ export function FormSelectField({
           className={cn(
             "h-12.5 w-full flex-row items-center gap-2 rounded-lg border-[1.5px] px-3.5",
             invalid ? "border-danger" : "border-field-border",
-            triggerClassName,
+            triggerClassName
           )}
           onPress={() => KeyboardController.dismiss()}
           variant="unstyled"
@@ -81,7 +81,8 @@ export function FormSelectField({
           <Select.Value
             className={cn(
               "text-sm",
-              (!field.value || field.value?.length === 0) && "text-field-placeholder",
+              (!field.value || field.value?.length === 0) &&
+                "text-field-placeholder"
             )}
             numberOfLines={1}
             placeholder={placeholder}
@@ -96,7 +97,7 @@ export function FormSelectField({
             className={cn(
               "rounded-xl px-0 py-2",
               scrollable && "aspect-[1.2] overflow-hidden p-0 py-2",
-              contentClassName,
+              contentClassName
             )}
             placement="bottom"
             presentation="popover"
@@ -123,7 +124,13 @@ export function FormSelectField({
   );
 }
 
-function MaybeScrollable({ scrollable, children }: { scrollable: boolean; children: ReactNode }) {
+function MaybeScrollable({
+  scrollable,
+  children,
+}: {
+  scrollable: boolean;
+  children: ReactNode;
+}) {
   const themeColorOverlay = useThemeColor("overlay");
 
   if (!scrollable) {
@@ -131,7 +138,11 @@ function MaybeScrollable({ scrollable, children }: { scrollable: boolean; childr
   }
 
   return (
-    <ScrollShadow color={themeColorOverlay} LinearGradientComponent={LinearGradient} size={60}>
+    <ScrollShadow
+      color={themeColorOverlay}
+      LinearGradientComponent={LinearGradient}
+      size={60}
+    >
       <ScrollView contentContainerStyle={{ rowGap: 8 }}>{children}</ScrollView>
     </ScrollShadow>
   );

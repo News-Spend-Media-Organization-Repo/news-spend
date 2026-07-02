@@ -26,10 +26,12 @@ export default memo(function LotteryReward() {
   const { data, isPending } = useQuery(
     orpc.lottery.getReward.queryOptions({
       enabled: Boolean(user),
-    }),
+    })
   );
 
-  const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(adUnits.rewarded);
+  const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(
+    adUnits.rewarded
+  );
 
   const claimRewardMutation = useMutation(
     orpc.lottery.claimReward.mutationOptions({
@@ -42,22 +44,27 @@ export default memo(function LotteryReward() {
           toast.success("Reward claimed!", {
             description: `${data.prize} Dream Points added!`,
           });
-          queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
+          queryClient.invalidateQueries(
+            orpc.activity.totalPoints.queryOptions()
+          );
         } else {
           toast.success("Reward claimed!", {
             description: `You claimed ${data.prize}! Please verify your identity to finish up.`,
           });
         }
-        queryClient.setQueryData(orpc.lottery.getReward.queryKey(undefined), (oldData) => ({
-          ...oldData,
-          claimed: true,
-        }));
+        queryClient.setQueryData(
+          orpc.lottery.getReward.queryKey(undefined),
+          (oldData) => ({
+            ...oldData,
+            claimed: true,
+          })
+        );
       },
       onError: () => {
         toast.error("Failed to claim reward!");
         setShowPrize(false);
       },
-    }),
+    })
   );
 
   useEffect(() => {
@@ -80,7 +87,7 @@ export default memo(function LotteryReward() {
       setShowPrize(true);
       handleClaim();
     }
-  }, [isClosed, isEarnedReward, load]);
+  }, [isClosed, isEarnedReward, handleClaim]);
 
   const handleClaim = useCallback(() => {
     if (!data || claimRewardMutation.isPending) {
@@ -137,21 +144,29 @@ export default memo(function LotteryReward() {
             {data?.prize && showPrize && (
               <View className="items-center gap-2">
                 <Icon color="#00223d" name={StarIcon} size={48} weight="fill" />
-                <View className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: "#F7E0C0" }}>
+                <View
+                  className="rounded-full px-2.5 py-0.5"
+                  style={{ backgroundColor: "#F7E0C0" }}
+                >
                   <Text className="text-center font-extrabold text-[#A57D47]">
                     {`${data.prize} ${data.prizeTier === "LOW" ? "Dream Points" : ""}`}
                   </Text>
                 </View>
-                <Text className="text-center font-semibold text-lg">Congratulations!</Text>
+                <Text className="text-center font-semibold text-lg">
+                  Congratulations!
+                </Text>
                 <Text className="text-center text-subtle-text">
-                  You won {data.prize} {data.prizeTier === "LOW" ? "Dream Points" : ""} in the
+                  You won {data.prize}{" "}
+                  {data.prizeTier === "LOW" ? "Dream Points" : ""} in the
                   Giveaway.
                 </Text>
               </View>
             )}
             {data?.prize && !showPrize && (
               <View className="items-center gap-2">
-                <Text className="text-center font-semibold text-lg">Congratulations!</Text>
+                <Text className="text-center font-semibold text-lg">
+                  Congratulations!
+                </Text>
                 <Text className="text-center text-subtle-text">
                   You have won a prize from the Giveaway.
                 </Text>
@@ -159,10 +174,12 @@ export default memo(function LotteryReward() {
             )}
             {!data?.prize && (
               <View className="items-center gap-2">
-                <Text className="text-center font-semibold text-lg">Better luck next time!</Text>
+                <Text className="text-center font-semibold text-lg">
+                  Better luck next time!
+                </Text>
                 <Text className="text-center text-subtle-text">
-                  Unfortunately, you didn't win any prizes this time. Keep participating for more
-                  chances to win!
+                  Unfortunately, you didn't win any prizes this time. Keep
+                  participating for more chances to win!
                 </Text>
               </View>
             )}
@@ -174,10 +191,16 @@ export default memo(function LotteryReward() {
                 onPress={handleClaimReward}
               >
                 <Button.Label>
-                  {claimRewardMutation.isPending ? "Claiming Reward..." : "Claim your prize"}
+                  {claimRewardMutation.isPending
+                    ? "Claiming Reward..."
+                    : "Claim your prize"}
                 </Button.Label>
                 {claimRewardMutation.isPending && (
-                  <ActivityIndicator className="ml-2" color="#fff" size="small" />
+                  <ActivityIndicator
+                    className="ml-2"
+                    color="#fff"
+                    size="small"
+                  />
                 )}
               </Button>
             )}

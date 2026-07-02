@@ -19,10 +19,12 @@ type UseGoogleAdReturn = {
  * Automatically reloads after the ad closes.
  * Fires `onRewarded` if the user earned a reward, `onClosed` in either case.
  */
-export function useGoogleAd({ onRewarded, onClosed }: UseGoogleAdOptions = {}): UseGoogleAdReturn {
-  const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedInterstitialAd(
-    adUnits.rewardedInterstitial,
-  );
+export function useGoogleAd({
+  onRewarded,
+  onClosed,
+}: UseGoogleAdOptions = {}): UseGoogleAdReturn {
+  const { isLoaded, isClosed, load, show, isEarnedReward } =
+    useRewardedInterstitialAd(adUnits.rewardedInterstitial);
 
   useEffect(() => {
     load();

@@ -12,11 +12,14 @@ type NavigatorFallbackProps = {
   resetError?: () => void;
 };
 
-const NavigatorFallbackComponent: React.FC<NavigatorFallbackProps> = ({ resetError }) => (
+const NavigatorFallbackComponent: React.FC<NavigatorFallbackProps> = ({
+  resetError,
+}) => (
   <View className="flex-1 items-center justify-center p-4">
     <Text className="mb-2 font-semibold text-lg">Oops!</Text>
     <Text className="mb-4 text-center">
-      Something unexpected happened. We've been notified and are working on a fix.
+      Something unexpected happened. We've been notified and are working on a
+      fix.
     </Text>
     <View className="flex-row gap-2">
       <Button
@@ -30,7 +33,11 @@ const NavigatorFallbackComponent: React.FC<NavigatorFallbackProps> = ({ resetErr
   </View>
 );
 
-export const NavigatorErrorBoundary = ({ children }: { children: React.ReactNode }) => (
+export const NavigatorErrorBoundary = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => (
   <ErrorBoundary
     beforeCapture={(scope) => {
       scope.setTag("boundary", "navigator");

@@ -46,19 +46,29 @@ export default function TOS() {
     <Screen className="px-6" safeAreaEdges={["bottom"]}>
       <View className="flex-1 items-center justify-center gap-3">
         <View className="w-full max-w-xs gap-6">
-          <ControlField className="items-start" isSelected={checked} onSelectedChange={setChecked}>
+          <ControlField
+            className="items-start"
+            isSelected={checked}
+            onSelectedChange={setChecked}
+          >
             <ControlField.Indicator className="">
               <Checkbox className="mt-0.5 rounded-sm border border-field-border" />
             </ControlField.Indicator>
             <View className="max-w-60 flex-1 flex-row flex-wrap">
               <Text className="text-[1rem] text-muted">I agree to the </Text>
-              <LinkButton onPress={() => navigation.navigate("TermsOfUse")} size="sm">
+              <LinkButton
+                onPress={() => navigation.navigate("TermsOfUse")}
+                size="sm"
+              >
                 <LinkButton.Label className="text-blue-600 underline">
                   Terms of Service
                 </LinkButton.Label>
               </LinkButton>
               <Text className="text-[16px] text-muted"> and </Text>
-              <LinkButton onPress={() => navigation.navigate("PrivacyPolicy")} size="sm">
+              <LinkButton
+                onPress={() => navigation.navigate("PrivacyPolicy")}
+                size="sm"
+              >
                 <LinkButton.Label className="text-blue-600 underline">
                   Privacy Policy
                 </LinkButton.Label>
@@ -73,7 +83,9 @@ export default function TOS() {
         isDisabled={!checked || anonymousSignInMutation.isPending}
         onPress={onConfirm}
       >
-        <Button.Label>{anonymousSignInMutation.isPending ? "Loading..." : "Proceed"}</Button.Label>
+        <Button.Label>
+          {anonymousSignInMutation.isPending ? "Loading..." : "Proceed"}
+        </Button.Label>
       </Button>
     </Screen>
   );

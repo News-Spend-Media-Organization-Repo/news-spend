@@ -5,7 +5,10 @@ const VideoNewsItemPlaceholder = () => {
   const { height } = useWindowDimensions();
 
   return (
-    <Skeleton className="w-full overflow-hidden rounded-lg" style={{ height: height * 0.3 }} />
+    <Skeleton
+      className="w-full overflow-hidden rounded-lg"
+      style={{ height: height * 0.3 }}
+    />
   );
 };
 export default VideoNewsItemPlaceholder;

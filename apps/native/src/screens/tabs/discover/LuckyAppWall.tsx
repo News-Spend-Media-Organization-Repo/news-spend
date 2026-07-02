@@ -1,4 +1,7 @@
-import { LegendList, type LegendListRenderItemProps } from "@legendapp/list/react-native";
+import {
+  LegendList,
+  type LegendListRenderItemProps,
+} from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +17,7 @@ import { orpc } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
 
 function LuckyAppWall() {
-  const navigation = useNavigation();
+  const _navigation = useNavigation();
 
   const queryOptions = orpc.partnerContent.random.queryOptions({
     input: {
@@ -36,12 +39,12 @@ function LuckyAppWall() {
         <Text className="text-base">No offers available</Text>
       </View>
     ),
-    [],
+    []
   );
 
   const onRefresh = useCallback(() => {
     refetchByUser();
-  }, []);
+  }, [refetchByUser]);
 
   const handleClick = useCallback((item: PartnerContent) => {
     let url = Platform.select({
@@ -59,11 +62,16 @@ function LuckyAppWall() {
     Linking.openURL(url);
   }, []);
 
-  const renderAppItem = ({ item }: LegendListRenderItemProps<PartnerContent>) => {
+  const renderAppItem = ({
+    item,
+  }: LegendListRenderItemProps<PartnerContent>) => {
     const { blurhash, url } = getImageData(item.media);
 
     return (
-      <View className="flex-row items-start gap-2 p-3" onTouchEnd={() => handleClick(item)}>
+      <View
+        className="flex-row items-start gap-2 p-3"
+        onTouchEnd={() => handleClick(item)}
+      >
         <Image
           className="h-20 w-20 rounded-lg"
           contentFit="contain"
@@ -76,7 +84,10 @@ function LuckyAppWall() {
               {item.title}
             </Text>
           </View>
-          <Text className="font-semibold text-gray-50 text-sm italic" numberOfLines={2}>
+          <Text
+            className="font-semibold text-gray-50 text-sm italic"
+            numberOfLines={2}
+          >
             {item.description}
           </Text>
         </View>

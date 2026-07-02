@@ -4,7 +4,12 @@ import type { FlashListRef } from "@shopify/flash-list";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
-import { type Route, TabBar, TabBarIndicator, TabView } from "react-native-tab-view";
+import {
+  type Route,
+  TabBar,
+  TabBarIndicator,
+  TabView,
+} from "react-native-tab-view";
 
 import Latest from "#/components/News/categories/Latest";
 import NewsCategoryComponent from "#/components/News/categories/NewsCategory";
@@ -24,12 +29,17 @@ export default function NewsHome() {
           key:
             typeof item.category === "string"
               ? item.category
-              : (item.category?.id ?? item.category?.title ?? `category-${key}`),
-          title: typeof item.category === "string" ? item.category : item.category?.title,
-        }),
+              : (item.category?.id ??
+                item.category?.title ??
+                `category-${key}`),
+          title:
+            typeof item.category === "string"
+              ? item.category
+              : item.category?.title,
+        })
       ),
     ],
-    [categories],
+    [categories]
   );
 
   // Create refs object for all lists
@@ -54,7 +64,7 @@ export default function NewsHome() {
         }
       }
     },
-    [index, routes],
+    [index, routes]
   );
 
   const renderScene = useCallback(
@@ -63,10 +73,15 @@ export default function NewsHome() {
         case "latest":
           return <Latest ref={createSetRef("latest")} />;
         default:
-          return <NewsCategoryComponent ref={createSetRef(route.key)} route={route.key} />;
+          return (
+            <NewsCategoryComponent
+              ref={createSetRef(route.key)}
+              route={route.key}
+            />
+          );
       }
     },
-    [routes, createSetRef],
+    [createSetRef]
   );
 
   const onIndexChange = useCallback(
@@ -74,7 +89,7 @@ export default function NewsHome() {
       setIndex(newIndex);
       setTabName(routes[newIndex].key);
     },
-    [routes],
+    [routes]
   );
 
   const renderTabBar = useCallback(
@@ -102,7 +117,7 @@ export default function NewsHome() {
         }}
       />
     ),
-    [index],
+    [index]
   );
 
   return (
@@ -124,7 +139,7 @@ export default function NewsHome() {
       onIndexChange={onIndexChange}
       pagerStyle={{ zIndex: -3 }}
       renderLazyPlaceholder={() => (
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="flex-1 items-center justify-center bg-white">
           <ActivityIndicator />
         </View>
       )}

@@ -41,7 +41,8 @@ export default function ReportFileSheet({
   setFiles,
 }: ReportFileSheetProps) {
   const insets = useSafeAreaInsets();
-  const reportTypeValue = typeof reportType === "string" ? reportType : reportType.value;
+  const reportTypeValue =
+    typeof reportType === "string" ? reportType : reportType.value;
 
   const accept = (() => {
     switch (reportTypeValue) {
@@ -64,12 +65,15 @@ export default function ReportFileSheet({
         multiple: true,
       });
 
-      const totalSize = result?.assets?.reduce((prev, curr) => prev + (curr.size ?? 0), 0);
+      const totalSize = result?.assets?.reduce(
+        (prev, curr) => prev + (curr.size ?? 0),
+        0
+      );
       if (totalSize && totalSize > 30_000_000) {
         Alert.alert(
           "File size limit exceeded",
           "Please select files with a total size of less than 30MB.",
-          [{ text: "OK" }],
+          [{ text: "OK" }]
         );
         return;
       }
@@ -102,7 +106,9 @@ export default function ReportFileSheet({
     });
 
     if (result.canceled) {
-      Alert.alert(`You did not select any ${reportTypeValue === "picture" ? "image" : "video"}.`);
+      Alert.alert(
+        `You did not select any ${reportTypeValue === "picture" ? "image" : "video"}.`
+      );
     } else {
       setFiles([
         ...files,
@@ -184,8 +190,7 @@ export default function ReportFileSheet({
               default:
                 return "";
             }
-          })()}{" "}
-          format up to 30MB
+          })()} format up to 30MB
         </Text>
 
         {files.length > 0 && (
@@ -212,10 +217,14 @@ export default function ReportFileSheet({
                     >
                       {fileName}
                     </Text>
-                    <Text className="w-16 text-right text-gray-500 text-sm">{displaySize}</Text>
+                    <Text className="w-16 text-right text-gray-500 text-sm">
+                      {displaySize}
+                    </Text>
                     <Pressable
                       hitSlop={8}
-                      onPress={() => setFiles(files.filter((_, index) => index !== i))}
+                      onPress={() =>
+                        setFiles(files.filter((_, index) => index !== i))
+                      }
                     >
                       <XIcon size={18} />
                     </Pressable>
@@ -237,10 +246,16 @@ export default function ReportFileSheet({
               </Text>
               <Separator />
               <ListGroup.Item
-                onPress={reportTypeValue === "shortMessage" ? pickDocument : pickImageOrVideoAsync}
+                onPress={
+                  reportTypeValue === "shortMessage"
+                    ? pickDocument
+                    : pickImageOrVideoAsync
+                }
               >
                 <ListGroup.ItemContent>
-                  <ListGroup.ItemTitle>Select file from your device</ListGroup.ItemTitle>
+                  <ListGroup.ItemTitle>
+                    Select file from your device
+                  </ListGroup.ItemTitle>
                 </ListGroup.ItemContent>
               </ListGroup.Item>
               {reportTypeValue === "video" ? (
@@ -248,7 +263,9 @@ export default function ReportFileSheet({
                   <Separator className="mx-4" />
                   <ListGroup.Item onPress={pickVideo}>
                     <ListGroup.ItemContent>
-                      <ListGroup.ItemTitle>Record video from camera</ListGroup.ItemTitle>
+                      <ListGroup.ItemTitle>
+                        Record video from camera
+                      </ListGroup.ItemTitle>
                     </ListGroup.ItemContent>
                   </ListGroup.Item>
                 </>
@@ -258,7 +275,9 @@ export default function ReportFileSheet({
                   <Separator className="mx-4" />
                   <ListGroup.Item onPress={pickImage}>
                     <ListGroup.ItemContent>
-                      <ListGroup.ItemTitle>Take a picture from the app</ListGroup.ItemTitle>
+                      <ListGroup.ItemTitle>
+                        Take a picture from the app
+                      </ListGroup.ItemTitle>
                     </ListGroup.ItemContent>
                   </ListGroup.Item>
                 </>

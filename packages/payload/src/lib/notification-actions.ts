@@ -44,9 +44,9 @@ export async function processNotification(data: NotificationData) {
     targetType: data.targetType,
     deviceTypes: data.deviceTypes,
     priority: data.priority ?? ("default" as const),
-    ...(data.data !== undefined ? { data: data.data } : {}),
-    ...(data.sound !== undefined ? { sound: data.sound } : {}),
-    ...(data.badge !== undefined ? { badge: data.badge } : {}),
+    ...(data.data === undefined ? {} : { data: data.data }),
+    ...(data.sound === undefined ? {} : { sound: data.sound }),
+    ...(data.badge === undefined ? {} : { badge: data.badge }),
     ...(data.specificUsers ? { specificUsers: [data.specificUsers] } : {}),
     ...(auth.user
       ? { createdBy: { value: auth.user.id, relationTo: "admins" as const } }

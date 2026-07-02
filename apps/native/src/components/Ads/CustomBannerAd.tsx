@@ -2,7 +2,13 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useQuery } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import { memo, useMemo } from "react";
-import { Dimensions, Platform, Pressable, StyleSheet, View } from "react-native";
+import {
+  Dimensions,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { BannerAd as GoogleBannerAd } from "react-native-google-mobile-ads";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
@@ -82,7 +88,12 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
   }
 
   if (!data) {
-    return <GoogleBannerAd size={getGoogleBannerSize(size)} unitId={adUnits.banner} />;
+    return (
+      <GoogleBannerAd
+        size={getGoogleBannerSize(size)}
+        unitId={adUnits.banner}
+      />
+    );
   }
 
   // ← prefer bannerMedia, fall back to media for backwards compat

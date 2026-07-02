@@ -15,7 +15,10 @@ type ReactionDoc = {
   [key: string]: unknown;
 };
 
-async function recalculateCounts(doc: ReactionDoc, req: PayloadRequest): Promise<unknown> {
+async function recalculateCounts(
+  doc: ReactionDoc,
+  req: PayloadRequest
+): Promise<unknown> {
   try {
     const { payload } = req;
 
@@ -26,7 +29,10 @@ async function recalculateCounts(doc: ReactionDoc, req: PayloadRequest): Promise
         typeof doc.target.value === "object"
           ? doc.target.value?.id
           : (doc.target.value ?? undefined);
-      targetCollection = doc.target.relationTo as "news" | "comments" | undefined;
+      targetCollection = doc.target.relationTo as
+        | "news"
+        | "comments"
+        | undefined;
     }
 
     if (!targetId && doc.news) {
@@ -70,15 +76,24 @@ async function recalculateCounts(doc: ReactionDoc, req: PayloadRequest): Promise
     });
     return doc;
   } catch (error) {
-    req.payload.logger.error({ error }, "Failed to recalculate reaction counts");
+    req.payload.logger.error(
+      { error },
+      "Failed to recalculate reaction counts"
+    );
   }
 }
 
 const afterChange: CollectionAfterChangeHook = ({ doc, req }) =>
-  recalculateCounts(doc as ReactionDoc, req) as ReturnType<CollectionAfterChangeHook>;
+  recalculateCounts(
+    doc as ReactionDoc,
+    req
+  ) as ReturnType<CollectionAfterChangeHook>;
 
 const afterDelete: CollectionAfterDeleteHook = ({ doc, req }) =>
-  recalculateCounts(doc as ReactionDoc, req) as ReturnType<CollectionAfterDeleteHook>;
+  recalculateCounts(
+    doc as ReactionDoc,
+    req
+  ) as ReturnType<CollectionAfterDeleteHook>;
 
 const Reactions: CollectionConfig = {
   slug: "reactions",

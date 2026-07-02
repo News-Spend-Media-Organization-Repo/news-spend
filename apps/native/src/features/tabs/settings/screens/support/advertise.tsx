@@ -50,7 +50,7 @@ const Advertise = () => {
         });
         console.log(err);
       },
-    }),
+    })
   );
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
@@ -61,28 +61,41 @@ const Advertise = () => {
   };
 
   return (
-    <Screen className="bg-background" safeAreaEdges={["bottom"]} systemBarStyle="light">
+    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={100}
         contentContainerClassName="gap-6 px-5 pt-5 pb-12"
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-base leading-relaxed">
-          We're always looking for great partners to advertise with. Please provide us with the
-          following information and we'll get back to you shortly.
+          We're always looking for great partners to advertise with. Please
+          provide us with the following information and we'll get back to you
+          shortly.
         </Text>
 
         <FormProvider {...formMethods}>
           <View className="gap-5">
             <FormTextInput label="Name" name="name" placeholder="Your name" />
 
-            <FormTextInput label="Email" name="email" placeholder="Your email" />
+            <FormTextInput
+              label="Email"
+              name="email"
+              placeholder="Your email"
+            />
 
-            <FormTextInput label="Message" multiline name="message" placeholder="Type here..." />
+            <FormTextInput
+              label="Message"
+              multiline
+              name="message"
+              placeholder="Type here..."
+            />
           </View>
         </FormProvider>
 
-        <Button isDisabled={mutation.isPending} onPress={formMethods.handleSubmit(onSubmit)}>
+        <Button
+          isDisabled={mutation.isPending}
+          onPress={formMethods.handleSubmit(onSubmit)}
+        >
           {mutation.isPending ? <Spinner /> : null}
           <Button.Label>Send</Button.Label>
         </Button>

@@ -8,7 +8,14 @@ export function Spinner() {
   return <ActivityIndicator />;
 }
 
-export function Button({ children, className, isDisabled, onPress, testID, ...props }: any) {
+export function Button({
+  children,
+  className,
+  isDisabled,
+  onPress,
+  testID,
+  ...props
+}: any) {
   return (
     <Pressable
       className={className}

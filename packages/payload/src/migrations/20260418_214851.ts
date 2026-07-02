@@ -1,4 +1,8 @@
-import { type MigrateUpArgs, type MigrateDownArgs, sql } from "@payloadcms/db-postgres";
+import {
+  type MigrateDownArgs,
+  type MigrateUpArgs,
+  sql,
+} from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -16,7 +20,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "partner_content_items" DROP COLUMN "thumbnail_id";`);
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({
+  db,
+  payload,
+  req,
+}: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "partner_content_blocks_promo_video_source" DROP CONSTRAINT "partner_content_blocks_promo_video_source_thumbnail_id_media_id_fk";
 

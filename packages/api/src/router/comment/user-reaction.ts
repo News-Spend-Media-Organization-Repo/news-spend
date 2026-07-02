@@ -3,7 +3,10 @@ import type { Payload } from "payload";
 export type UserReaction = "like" | "dislike" | "none";
 
 type ReactionRow = {
-  target?: { relationTo?: string; value?: string | { id?: string } | null } | null;
+  target?: {
+    relationTo?: string;
+    value?: string | { id?: string } | null;
+  } | null;
   type: "like" | "dislike" | "none";
 };
 
@@ -14,7 +17,7 @@ type ReactionRow = {
 export async function getUserReactionForComment(
   payload: Payload,
   userId: string | null | undefined,
-  commentId: string,
+  commentId: string
 ): Promise<UserReaction> {
   if (!userId) {
     return "none";
@@ -48,7 +51,7 @@ export async function getUserReactionForComment(
 export async function getUserReactionsForComments(
   payload: Payload,
   userId: string | null | undefined,
-  commentIds: string[],
+  commentIds: string[]
 ): Promise<Map<string, UserReaction>> {
   const out = new Map<string, UserReaction>();
   if (!userId || commentIds.length === 0) {
@@ -86,7 +89,7 @@ export async function getUserReactionsForComments(
  */
 export async function getCommentReactionCounts(
   payload: Payload,
-  commentId: string,
+  commentId: string
 ): Promise<{ likesCount: number; dislikesCount: number }> {
   const doc = await payload.findByID({
     collection: "comments",
@@ -107,7 +110,7 @@ export type MinimalUser = { id: string; username: string };
  */
 export async function getUsersMinimal(
   payload: Payload,
-  userIds: string[],
+  userIds: string[]
 ): Promise<Map<string, MinimalUser>> {
   const out = new Map<string, MinimalUser>();
   if (userIds.length === 0) {

@@ -5,7 +5,7 @@ import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
 
-function useUpdateComment(slug: string) {
+function useUpdateComment(_slug: string) {
   const route = useRoute<
     | HomeTabRouteProps<"Comment">
     | HomeTabRouteProps<"CommentReply">
@@ -13,7 +13,7 @@ function useUpdateComment(slug: string) {
     | LiveTabRouteProps<"LiveCommentReply">
   >();
 
-  const type =
+  const _type =
     route.name === "Comment" || route.name === "CommentReply"
       ? "article"
       : "video";
@@ -95,7 +95,7 @@ function useUpdateComment(slug: string) {
       //     };
       //   }
       // },
-      onError(error, variables, context) {
+      onError(error, _variables, _context) {
         console.error(error);
 
         // if (params?.commentId) {

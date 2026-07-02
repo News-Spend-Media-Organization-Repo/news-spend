@@ -35,7 +35,7 @@ export const Stores: CollectionConfig = {
         try {
           new URL(val);
           return true;
-        } catch (error) {
+        } catch {
           return "Please enter a valid URL";
         }
       },

@@ -8,7 +8,9 @@ import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
 type UserReaction = "like" | "dislike" | "none";
 
 export default function useDislikeNews() {
-  const route = useRoute<HomeTabRouteProps<"News"> | LiveTabRouteProps<"LiveHome">>();
+  const route = useRoute<
+    HomeTabRouteProps<"News"> | LiveTabRouteProps<"LiveHome">
+  >();
   const type = route.name === "News" ? "article" : "video";
 
   return useMutation(
@@ -24,7 +26,7 @@ export default function useDislikeNews() {
 
         // Snapshot the previous value
         const prevNews = queryClient.getQueryData(
-          orpc.news.one.queryKey({ input: { slug: data.slug, type } }),
+          orpc.news.one.queryKey({ input: { slug: data.slug, type } })
         );
 
         let newLikesCount = prevNews?.likesCount ?? 0;
@@ -38,13 +40,13 @@ export default function useDislikeNews() {
         } else if (newUserReaction === "like") {
           // User previously liked, now disliking
           newUserReaction = "dislike";
-          newDislikesCount = newDislikesCount + 1;
+          newDislikesCount += 1;
           newLikesCount = Math.max(0, newLikesCount - 1);
         } else {
           // newUserReaction === "none"
           // User had no reaction, now disliking
           newUserReaction = "dislike";
-          newDislikesCount = newDislikesCount + 1;
+          newDislikesCount += 1;
         }
 
         const optimisticNews = {
@@ -56,7 +58,7 @@ export default function useDislikeNews() {
 
         queryClient.setQueryData(
           orpc.news.one.queryKey({ input: { slug: data.slug, type } }),
-          optimisticNews,
+          optimisticNews
         );
 
         return { prevNews, optimisticNews };
@@ -65,14 +67,14 @@ export default function useDislikeNews() {
       onError: (_err, news, context) => {
         queryClient.setQueryData(
           orpc.news.one.queryKey({ input: { slug: news.slug, type } }),
-          context?.prevNews,
+          context?.prevNews
         );
       },
       // Reconcile cache with server truth instead of refetching. A refetch
       // re-reads the news doc and clobbers our optimistic userReaction.
       onSettled: (serverReaction, _error, variables) => {
         const slug = variables?.slug;
-        if (!slug || !serverReaction) {
+        if (!(slug && serverReaction)) {
           return;
         }
         const queryKey = orpc.news.one.queryKey({
@@ -89,6 +91,6 @@ export default function useDislikeNews() {
           dislikesCount: serverReaction.dislikesCount,
         });
       },
-    }),
+    })
   );
 }

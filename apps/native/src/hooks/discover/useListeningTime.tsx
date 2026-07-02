@@ -40,7 +40,7 @@ export const useListeningTimeSync = () => {
     return () => {
       hasMutatedRef.current = false;
     };
-  }, [listeningTime]);
+  }, [listeningTime, pointEarnedToday, addActivityMutation.mutate]);
 
   return addActivityMutation;
 };

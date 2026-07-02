@@ -34,7 +34,9 @@ type PartnerAdContentProps = {
 // ─── YouTube ID helper ────────────────────────────────────────────────────────
 
 function extractYouTubeId(url: string): string {
-  const match = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+  const match = url.match(
+    /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  );
   return match && match[2]?.length === 11 ? match[2] : "";
 }
 
@@ -52,7 +54,8 @@ export function PartnerAdContent({
 
   const isYouTubeAd = ad.type === "video" && ad.videoType === "YOUTUBE";
   const isUploadedVideoAd =
-    ad.type === "video" && (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
+    ad.type === "video" &&
+    (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
   // Only fall back to image if it's genuinely not a video of any kind
   const isImageAd = !(isUploadedVideoAd || isYouTubeAd);
 
@@ -98,17 +101,20 @@ export function PartnerAdContent({
   // ── YouTube ──────────────────────────────────────────────────────────────────
   const videoId = useMemo(
     () => (isYouTubeAd && ad.videoUrl ? extractYouTubeId(ad.videoUrl) : null),
-    [isYouTubeAd, ad.videoUrl],
+    [isYouTubeAd, ad.videoUrl]
   );
 
   // ── Image ────────────────────────────────────────────────────────────────────
   const { url: imageUrl, blurhash } = useMemo(
     () => getImageData(isImageAd ? ad.media : null),
-    [isImageAd, ad.media],
+    [isImageAd, ad.media]
   );
 
   const partner = typeof ad.partner === "string" ? null : ad.partner;
-  const partnerLogo = useMemo(() => getImageData(partner?.logo), [partner?.logo]);
+  const partnerLogo = useMemo(
+    () => getImageData(partner?.logo),
+    [partner?.logo]
+  );
 
   return (
     <View
@@ -121,7 +127,10 @@ export function PartnerAdContent({
         <Text>Advertisement</Text>
 
         {isUploadedVideoAd ? (
-          <View className="relative mx-2 w-full" style={{ height: (width / 16) * 9 }}>
+          <View
+            className="relative mx-2 w-full"
+            style={{ height: (width / 16) * 9 }}
+          >
             <VideoView
               aria-label="Video advertisement"
               nativeControls={false}
@@ -176,7 +185,9 @@ export function PartnerAdContent({
           />
         )}
 
-        {showAdLabel ? <Text className="self-start border border-black px-1">Ad</Text> : null}
+        {showAdLabel ? (
+          <Text className="self-start border border-black px-1">Ad</Text>
+        ) : null}
       </View>
 
       {/* ── CTA ───────────────────────────────────────────────────────────── */}
@@ -190,7 +201,10 @@ export function PartnerAdContent({
         />
         <Text className="text-center font-bold text-lg">{ad.title}</Text>
         <Text className="max-w-87.5 text-center text-base">{ad.condition}</Text>
-        <Button className="mt-5 min-w-30 gap-2 rounded-full" onPress={onAdClick}>
+        <Button
+          className="mt-5 min-w-30 gap-2 rounded-full"
+          onPress={onAdClick}
+        >
           <Button.Label>{getCtaLabel(ad.cta)}</Button.Label>
           <CaretRightIcon color="white" size={18} weight="bold" />
         </Button>
