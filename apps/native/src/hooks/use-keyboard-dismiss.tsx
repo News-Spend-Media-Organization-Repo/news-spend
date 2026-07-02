@@ -23,5 +23,5 @@ export function useKeyboardDismiss(
       onDismiss();
     });
     return () => sub.remove();
-  }, [onDismiss, inputRef.current.blur, inputRef.current, inputRef]);
+  }, [onDismiss, inputRef]);
 }

@@ -50,7 +50,7 @@ const LiveComments = ({ route }) => {
   // Pressing back while the input is focused dismisses it first.
   useFocusBackHandler(() => {
     if (inputRef.current?.isFocused()) {
-      inputRef.current.blur();
+      inputRef.current?.blur();
       return true;
     }
     return false;
