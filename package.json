@@ -23,7 +23,7 @@
     "typecheck": "bun --filter @news-spend-media/cms typecheck",
     "check": "ultracite check",
     "fix": "ultracite fix",
-    "prepare": "lefthook install"
+    "prepare": "test -z \"$EAS_BUILD\" && lefthook install || echo 'Skipping lefthook'"
   },
   "type": "module",
   "workspaces": {
