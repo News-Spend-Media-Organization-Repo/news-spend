@@ -47,7 +47,6 @@
       "@payloadcms/graphql": "3.85.1",
       "@payloadcms/live-preview-react": "3.85.1",
       "@payloadcms/next": "3.85.1",
-      "@payloadcms/plugin-nested-docs": "3.85.1",
       "@payloadcms/plugin-redirects": "3.85.1",
       "@payloadcms/plugin-seo": "3.85.1",
       "@payloadcms/plugin-cloud-storage": "3.85.1",

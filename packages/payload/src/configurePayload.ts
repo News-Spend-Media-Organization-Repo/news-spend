@@ -55,7 +55,6 @@ import Admins from "./collections/Admins";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
-import { nestedDocsPlusPlugin } from "./plugins/nestedDocsPlusPlugin";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
@@ -200,9 +199,6 @@ const baseConfig: Config = {
     computeBlurhash({ showBlurhashField: false }),
     sentryPlugin({ Sentry }),
     auditFieldsPlugin(),
-    nestedDocsPlusPlugin({
-      collections: ["categories"],
-    }),
     auditLogPlugin,
   ],
   email: resendAdapter({

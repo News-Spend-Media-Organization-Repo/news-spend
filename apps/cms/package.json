@@ -31,7 +31,6 @@
     "@payloadcms/graphql": "catalog:",
     "@payloadcms/live-preview-react": "catalog:",
     "@payloadcms/next": "catalog:",
-    "@payloadcms/plugin-nested-docs": "catalog:",
     "@payloadcms/plugin-redirects": "catalog:",
     "@payloadcms/plugin-sentry": "catalog:",
     "@payloadcms/plugin-seo": "catalog:",
