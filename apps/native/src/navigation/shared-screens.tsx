@@ -41,6 +41,9 @@ export const sharedScreens = {
     linking: {
       path: "/article/:slug/:id?",
     },
+    options: {
+      headerShown: false,
+    },
   }),
   Comment: createNativeStackScreen({
     screen: Comments,
@@ -49,6 +52,7 @@ export const sharedScreens = {
       path: "/article/:newsSlug/comment",
     },
     options: {
+      headerShown: false,
       // slide up from bottom
       animation: "slide_from_bottom",
     },
@@ -78,6 +82,7 @@ export const sharedScreens = {
       path: "/video/:slug/comment",
     },
     options: {
+      headerShown: false,
       // slide up from bottom
       animation: "slide_from_bottom",
     },
@@ -89,6 +94,7 @@ export const sharedScreens = {
       path: "/video/:slug/comment/:commentId",
     },
     options: {
+      headerShown: false,
       // presentation: "modal",
       animation: "slide_from_bottom",
     },
@@ -98,6 +104,9 @@ export const sharedScreens = {
     getId: ({ params }) => params?.slug,
     linking: {
       path: "/detail/:slug",
+    },
+    options: {
+      headerShown: false,
     },
   }),
   Profile: createNativeStackScreen({
@@ -220,11 +229,17 @@ export const sharedScreens = {
     linking: {
       path: "play-lottery",
     },
+    options: {
+      headerShown: false,
+    },
   }),
   GetTicket: createNativeStackScreen({
     screen: GetTicket,
     linking: {
       path: "buy-ticket",
+    },
+    options: {
+      headerShown: false,
     },
   }),
   BoostLuck: createNativeStackScreen({
@@ -232,11 +247,17 @@ export const sharedScreens = {
     linking: {
       path: "boost-luck",
     },
+    options: {
+      headerShown: false,
+    },
   }),
   LuckyAppWall: createNativeStackScreen({
     screen: LuckyAppWall,
     linking: {
       path: "lucky-app-wall",
+    },
+    options: {
+      headerShown: false,
     },
   }),
   LotteryRules: createNativeStackScreen({
@@ -244,11 +265,17 @@ export const sharedScreens = {
     linking: {
       path: "lottery-rules",
     },
+    options: {
+      headerShown: false,
+    },
   }),
   SurveyWebView: createNativeStackScreen({
     screen: SurveyWebView,
     linking: {
       path: "survey",
+    },
+    options: {
+      headerShown: false,
     },
   }),
   NotFound: createNativeStackScreen({

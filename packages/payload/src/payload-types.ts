@@ -667,14 +667,6 @@ export type News = {
  * via the `definition` "categories".
  */
 export type Category = {
-  breadcrumbs?:
-    | {
-        doc?: (string | null) | Category;
-        url?: string | null;
-        label?: string | null;
-        id?: string | null;
-      }[]
-    | null;
   createdAt: string;
   createdBy?: {
     relationTo: "admins";
@@ -691,8 +683,6 @@ export type Category = {
     relationTo: "admins";
     value: string | Admin;
   } | null;
-  parent?: (string | null) | Category;
-  pathname?: string | null;
   slug: string;
   title: string;
   updatedAt: string;
@@ -2054,22 +2044,12 @@ export type AdminsSelect<T extends boolean = true> = {
  * via the `definition` "categories_select".
  */
 export type CategoriesSelect<T extends boolean = true> = {
-  breadcrumbs?:
-    | T
-    | {
-        doc?: T;
-        url?: T;
-        label?: T;
-        id?: T;
-      };
   createdAt?: T;
   createdBy?: T;
   description?: T;
   generateSlug?: T;
   image?: T;
   lastModifiedBy?: T;
-  parent?: T;
-  pathname?: T;
   slug?: T;
   title?: T;
   updatedAt?: T;
