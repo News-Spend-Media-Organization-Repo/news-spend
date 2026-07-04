@@ -12,19 +12,19 @@ export const adUnits = isTest
     }
   : {
       banner: Platform.select({
-        ios: "ca-app-pub-6856140527698362/9712790368",
-        android: "ca-app-pub-6856140527698362/9157799743",
+        ios: "ca-app-pub-3654282727219827/3674960628",
+        android: "ca-app-pub-3654282727219827/4234197972",
       }) as string,
       native: Platform.select({
-        ios: "ca-app-pub-6856140527698362/1053598928",
-        android: "ca-app-pub-6856140527698362/4167760156",
+        ios: "ca-app-pub-3654282727219827/2361878957",
+        android: "ca-app-pub-3654282727219827/1388578173",
       }) as string,
       rewarded: Platform.select({
-        ios: "ca-app-pub-6856140527698362/6364115446",
-        android: "ca-app-pub-6856140527698362/7844718073",
+        ios: "ca-app-pub-3654282727219827/1197006480",
+        android: "ca-app-pub-3654282727219827/2729544619",
       }) as string,
       rewardedInterstitial: Platform.select({
-        ios: "ca-app-pub-6856140527698362/3031375099",
-        android: "ca-app-pub-6856140527698362/1111788762",
+        ios: "ca-app-pub-3654282727219827/6477217937",
+        android: "ca-app-pub-3654282727219827/4988042293",
       }) as string,
     };
