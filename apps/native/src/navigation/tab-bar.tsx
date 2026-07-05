@@ -44,7 +44,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <>
-      <FloatingOverlays />
+      <FloatingOverlays navigation={navigation} />
 
       <Animated.View
         className="flex-row bg-p-500 pt-2 pb-2"

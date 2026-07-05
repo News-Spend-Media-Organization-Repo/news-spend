@@ -3,11 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { CaretDownIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, {
   Easing,
   FadeInDown,
   FadeOutDown,
+  FadeOutUp,
+  LayoutAnimationConfig,
 } from "react-native-reanimated";
 import { useSnapshot } from "valtio";
 import { Icon } from "#/components/heroui/icon";
@@ -65,7 +67,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [data, isHidden]);
+  }, [data, isHidden, index]);
 
   useEffect(() => {
     if (data && index >= data.length) {
@@ -105,13 +107,13 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
       exiting={FadeOutDown.easing(Easing.ease).duration(300)}
     >
       <View className="flex-row justify-between bg-red-500 px-3">
-        <PressableFeedback
+        <Pressable
           className="flex-1 flex-row items-center gap-2 py-3"
           onPress={onLivePress}
         >
           <View className="size-2 rounded-full bg-white" />
           <Text className="text-background">LIVE</Text>
-        </PressableFeedback>
+        </Pressable>
         <PressableFeedback
           className="flex-row items-center justify-center gap-2 py-3"
           onPress={hideLiveBanner}
@@ -120,15 +122,21 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
           <Icon color="#fff" name={CaretDownIcon} size={18} />
         </PressableFeedback>
       </View>
-      <PressableFeedback className="bg-p-400 p-4" onPress={onLivePress}>
-        <Text
-          className="text-[16px] text-background"
-          key={index}
-          numberOfLines={2}
-        >
-          LIVE NOW: {data[index]?.title}
-        </Text>
-      </PressableFeedback>
+      <Pressable className="bg-p-400 px-4 py-2" onPress={onLivePress}>
+        <View className="h-10 justify-center overflow-hidden">
+          <LayoutAnimationConfig skipEntering>
+            <Animated.Text
+              className="text-[16px] text-background"
+              entering={FadeInDown.duration(300).easing(Easing.ease)}
+              exiting={FadeOutUp.duration(200).easing(Easing.ease)}
+              key={data[index]?.slug}
+              numberOfLines={2}
+            >
+              LIVE NOW: {data[index]?.title}
+            </Animated.Text>
+          </LayoutAnimationConfig>
+        </View>
+      </Pressable>
     </Animated.View>
   );
 }
