@@ -6,6 +6,8 @@ import { useReactNavigationDevTools } from "@rozenite/react-navigation-plugin";
 import { useTanStackQueryDevTools } from "@rozenite/tanstack-query-plugin";
 import * as Sentry from "@sentry/react-native";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { AppMetrics, Observe, ObserveRoot } from "expo-observe";
+import { ObserveNavigationProvider } from "expo-observe/integrations/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect } from "react";
 import mobileAds from "react-native-google-mobile-ads";
@@ -50,12 +52,18 @@ preloadAds(["news-click-ads", "discover-tab"]);
 
 const persister = createMMKVPersister();
 
+Observe.configure({
+  integrations: {
+    "react-navigation": true,
+  },
+});
+
 const myCustomTheme: Theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: "#00223D",
-    card: "#fff",
+    background: "#fff",
+    card: "#00223D",
   },
 };
 export function App() {
@@ -82,6 +90,7 @@ export function App() {
   useEffect(() => {
     if (authStatus !== "idle" && loadingComplete) {
       hideSplash();
+      AppMetrics.markInteractive();
     }
   }, [hideSplash, authStatus, loadingComplete]);
 
@@ -95,26 +104,28 @@ export function App() {
       persistOptions={{ persister }}
     >
       <Provider>
-        <Navigation
-          linking={linking}
-          onReady={onReady}
-          onStateChange={onNavigationStateChange}
-          // persistor={{
-          //   persist(state) {
-          //     const isDev = __DEV__;
-          //     if (isDev) {
-          //       storage.set(CONSTANTS.PERSISTENCE_KEY, JSON.stringify(state));
-          //     }
-          //   },
-          //   restore() {
-          //     const state = storage.getString(CONSTANTS.PERSISTENCE_KEY);
+        <ObserveNavigationProvider navigationRef={navigationRef}>
+          <Navigation
+            linking={linking}
+            onReady={onReady}
+            onStateChange={onNavigationStateChange}
+            persistor={{
+              persist(state) {
+                const isDev = __DEV__;
+                if (isDev) {
+                  storage.set(CONSTANTS.PERSISTENCE_KEY, JSON.stringify(state));
+                }
+              },
+              restore() {
+                const state = storage.getString(CONSTANTS.PERSISTENCE_KEY);
 
-          //     return state ? JSON.parse(state) : undefined;
-          //   },
-          // }}
-          ref={navigationRef}
-          theme={myCustomTheme}
-        />
+                return state ? JSON.parse(state) : undefined;
+              },
+            }}
+            ref={navigationRef}
+            theme={myCustomTheme}
+          />
+        </ObserveNavigationProvider>
         <LotteryReward />
 
         <AppOpenAd />
@@ -122,6 +133,8 @@ export function App() {
     </PersistQueryClientProvider>
   );
 }
-const RootComponent = __DEV__ ? App : Sentry.wrap(App);
+
+const ObservedApp = ObserveRoot.wrap(App);
+const RootComponent = __DEV__ ? ObservedApp : Sentry.wrap(ObservedApp);
 
 export default RootComponent;

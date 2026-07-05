@@ -30,7 +30,7 @@
 		"payload": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"ssh2": "1.16.0",
+		"ssh2": "1.17.0",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
