@@ -23,19 +23,25 @@ import {
 
 type LiveBannerProps = {
   currentTabName: string;
+  isTabBarVisible: boolean;
   navigation: BottomTabBarProps["navigation"];
 };
 
-function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
+function LiveBanner({
+  currentTabName,
+  isTabBarVisible,
+  navigation,
+}: LiveBannerProps) {
   const { isHidden } = useSnapshot(liveBannerState);
   const [index, setIndex] = useState(0);
   const prevIdRef = useRef<string>(null);
+  const isEnabled = !isHidden && isTabBarVisible;
 
   const { data, isLoading, refetch } = useQuery(
     orpc.news.liveVideos.queryOptions({
       meta: { persist: false },
       select: (news) => news?.docs,
-      enabled: !isHidden,
+      enabled: isEnabled,
     })
   );
 
@@ -43,19 +49,19 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     orpc.publisher.onMessage.experimental_liveOptions({
       input: { channel: "live-news" },
       retry: true,
-      enabled: !isHidden,
+      enabled: isEnabled,
     })
   );
 
   useEffect(() => {
-    if (liveQuery.data?.id !== prevIdRef.current && !isHidden) {
+    if (liveQuery.data?.id !== prevIdRef.current && isEnabled) {
       refetch();
       prevIdRef.current = liveQuery.data?.id ?? null;
     }
-  }, [liveQuery.data, isHidden, refetch]);
+  }, [liveQuery.data, isEnabled, refetch]);
 
   useEffect(() => {
-    if (isHidden || (data?.length ?? 0) <= 1) {
+    if (!isEnabled || (data?.length ?? 0) <= 1) {
       return;
     }
 
@@ -67,7 +73,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [data, isHidden, index]);
+  }, [data, isEnabled, index]);
 
   useEffect(() => {
     if (data && index >= data.length) {
@@ -123,7 +129,7 @@ function LiveBanner({ currentTabName, navigation }: LiveBannerProps) {
         </PressableFeedback>
       </View>
       <Pressable className="bg-p-400 px-4 py-2" onPress={onLivePress}>
-        <View className="h-10 justify-center overflow-hidden">
+        <View className="h-14 justify-center overflow-hidden">
           <LayoutAnimationConfig skipEntering>
             <Animated.Text
               className="text-[16px] text-background"

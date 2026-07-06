@@ -2,12 +2,13 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
 import { useLinkBuilder } from "@react-navigation/native";
 import { cn } from "heroui-native";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect } from "react";
 import type { LayoutChangeEvent } from "react-native";
+import { View } from "react-native";
 import Animated, {
-  Easing,
-  FadeInDown,
-  FadeOutDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { Text } from "#/components/heroui/text";
 import { setTabBarHeight } from "#/state/route-state";
@@ -34,22 +35,41 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     ? VISIBLE_SCREENS.has(activeRouteName)
     : VISIBLE_TABS.has(currentRoute.name);
 
+  const wrapperHeight = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  useEffect(() => {
+    translateY.value = withTiming(isTabBarVisible ? 0 : wrapperHeight.value, {
+      duration: 300,
+    });
+  }, [isTabBarVisible, translateY, wrapperHeight]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   const onTabBarLayout = useCallback((event: LayoutChangeEvent) => {
     setTabBarHeight(event.nativeEvent.layout.height);
   }, []);
 
-  if (!isTabBarVisible) {
-    return null;
-  }
+  const onWrapperLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      wrapperHeight.value = event.nativeEvent.layout.height;
+    },
+    [wrapperHeight]
+  );
 
   return (
-    <>
-      <FloatingOverlays navigation={navigation} />
+    <Animated.View
+      onLayout={onWrapperLayout}
+      pointerEvents={isTabBarVisible ? "auto" : "none"}
+      style={animatedStyle}
+    >
+      <FloatingOverlays
+        isTabBarVisible={isTabBarVisible}
+        navigation={navigation}
+      />
 
-      <Animated.View
-        className="flex-row bg-p-500 pt-2 pb-2"
-        entering={FadeInDown.duration(300).easing(Easing.ease)}
-        exiting={FadeOutDown.easing(Easing.ease).duration(300)}
+      <View
+        className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
         onLayout={onTabBarLayout}
       >
         {state.routes.map((route, index) => {
@@ -114,8 +134,8 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             </PlatformPressable>
           );
         })}
-      </Animated.View>
-    </>
+      </View>
+    </Animated.View>
   );
 }
 
