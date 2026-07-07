@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from "@expo/config";
+import pkg from "./package.json";
 
 const APP_VARIANT = process.env.APP_VARIANT as
   | "development"
@@ -8,7 +9,7 @@ const APP_VARIANT = process.env.APP_VARIANT as
 const _APP_ENV = process.env.APP_ENV as "local" | "preview" | "production";
 
 const PACKAGE_NAME = "com.newsspend.app"; // Base package name
-const VERSION = "2.2.0";
+const VERSION = pkg.version;
 // const VERSION_CODE = 28;
 
 // Package name suffix based on environment

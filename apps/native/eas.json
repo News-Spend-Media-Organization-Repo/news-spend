@@ -1,12 +1,13 @@
 {
   "cli": {
     "version": ">= 0.52.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "betaAPK": {
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "autoIncrement": true
       },
       "channel": "beta",
       "developmentClient": false,
@@ -16,7 +17,8 @@
     },
     "betaAAB": {
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "autoIncrement": true
       },
       "channel": "beta",
       "developmentClient": false,
@@ -47,6 +49,9 @@
       "android": {
         "buildType": "app-bundle",
         "autoIncrement": true
+      },
+      "ios": {
+        "autoIncrement": "buildNumber"
       },
       "channel": "production",
       "env": {
