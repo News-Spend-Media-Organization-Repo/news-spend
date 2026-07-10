@@ -326,30 +326,18 @@ const BooksSection = ({
 
 // ─── MusicSection ─────────────────────────────────────────────────────────────
 
-const MusicSection = ({ itemList }: { itemList: Station[] }) => {
-  const renderStationItem = useCallback(
-    ({ item }: LegendListRenderItemProps<Station>) => (
-      <StationItem item={item} stationList={itemList} />
-    ),
-    [itemList]
-  );
-
-  return (
-    <LegendList
-      contentContainerStyle={{ paddingLeft: 16, paddingRight: 8 }}
-      data={itemList}
-      estimatedItemSize={200}
-      horizontal
-      ItemSeparatorComponent={() => <View className="w-4" />}
-      keyExtractor={(item) => item.id}
-      recycleItems
-      renderItem={renderStationItem}
-      renderScrollComponent={CustomScrollView}
-      showsHorizontalScrollIndicator={false}
-      style={{ height: "100%" }}
-    />
-  );
-};
+const MusicSection = ({ itemList }: { itemList: Station[] }) => (
+  <ScrollView
+    contentContainerStyle={{ paddingLeft: 16, paddingRight: 8, gap: 16 }}
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    style={{ height: "100%" }}
+  >
+    {itemList.map((station) => (
+      <StationItem item={station} key={station.id} stationList={itemList} />
+    ))}
+  </ScrollView>
+);
 
 // ─── SurveysSection ───────────────────────────────────────────────────────────
 

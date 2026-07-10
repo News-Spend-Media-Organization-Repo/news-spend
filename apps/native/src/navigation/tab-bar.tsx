@@ -4,11 +4,7 @@ import { useLinkBuilder } from "@react-navigation/native";
 import { cn } from "heroui-native";
 import { memo, useCallback } from "react";
 import type { LayoutChangeEvent } from "react-native";
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeOutDown,
-} from "react-native-reanimated";
+import { View } from "react-native";
 import { Text } from "#/components/heroui/text";
 import { setTabBarHeight } from "#/state/route-state";
 import { FloatingOverlays } from "./floating-overlays";
@@ -38,83 +34,84 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     setTabBarHeight(event.nativeEvent.layout.height);
   }, []);
 
-  if (!isTabBarVisible) {
-    return null;
-  }
-
   return (
     <>
-      <FloatingOverlays />
+      {isTabBarVisible && (
+        <>
+          <FloatingOverlays
+            isTabBarVisible={isTabBarVisible}
+            navigation={navigation}
+          />
 
-      <Animated.View
-        className="flex-row bg-p-500 pt-2 pb-2"
-        entering={FadeInDown.duration(300).easing(Easing.ease)}
-        exiting={FadeOutDown.easing(Easing.ease).duration(300)}
-        onLayout={onTabBarLayout}
-      >
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const label = options.tabBarLabel ?? options.title ?? route.name;
-          const isFocused = state.index === index;
-          const isSettings = route.name === "Settings";
+          <View
+            className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
+            onLayout={onTabBarLayout}
+          >
+            {state.routes.map((route, index) => {
+              const { options } = descriptors[route.key];
+              const label = options.tabBarLabel ?? options.title ?? route.name;
+              const isFocused = state.index === index;
+              const isSettings = route.name === "Settings";
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!(isFocused || event.defaultPrevented)) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
+              const onPress = () => {
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (!(isFocused || event.defaultPrevented)) {
+                  navigation.navigate(route.name, route.params);
+                }
+              };
 
-          const onLongPress = () => {
-            navigation.emit({
-              type: "tabLongPress",
-              target: route.key,
-            });
-          };
+              const onLongPress = () => {
+                navigation.emit({
+                  type: "tabLongPress",
+                  target: route.key,
+                });
+              };
 
-          return (
-            <PlatformPressable
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              href={buildHref(route.name, route.params)}
-              key={route.key}
-              onLongPress={onLongPress}
-              onPress={onPress}
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              {options.tabBarIcon && (
-                <options.tabBarIcon
-                  color={isFocused ? "#fff" : "gray"}
-                  focused={isFocused}
-                  size={isSettings ? 56 : 25}
-                  style={{ alignSelf: "center" }}
-                />
-              )}
-              {isSettings ? null : (
-                <Text
-                  className={cn(
-                    "text-center text-xs",
-                    isFocused
-                      ? "font-semibold text-background"
-                      : "text-gray-500"
-                  )}
+              return (
+                <PlatformPressable
+                  accessibilityLabel={options.tabBarAccessibilityLabel}
+                  accessibilityRole="button"
+                  accessibilityState={isFocused ? { selected: true } : {}}
+                  href={buildHref(route.name, route.params)}
+                  key={route.key}
+                  onLongPress={onLongPress}
+                  onPress={onPress}
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
                 >
-                  {typeof label === "string" ? label : route.name}
-                </Text>
-              )}
-            </PlatformPressable>
-          );
-        })}
-      </Animated.View>
+                  {options.tabBarIcon && (
+                    <options.tabBarIcon
+                      color={isFocused ? "#fff" : "gray"}
+                      focused={isFocused}
+                      size={isSettings ? 56 : 25}
+                      style={{ alignSelf: "center" }}
+                    />
+                  )}
+                  {isSettings ? null : (
+                    <Text
+                      className={cn(
+                        "text-center text-xs",
+                        isFocused
+                          ? "font-semibold text-background"
+                          : "text-gray-500"
+                      )}
+                    >
+                      {typeof label === "string" ? label : route.name}
+                    </Text>
+                  )}
+                </PlatformPressable>
+              );
+            })}
+          </View>
+        </>
+      )}
     </>
   );
 }

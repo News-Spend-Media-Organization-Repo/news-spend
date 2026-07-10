@@ -260,10 +260,20 @@ function reloadCurrentStream() {
 
   const track = stationToTrack(station);
 
+  playerState.currentTrack = null; // unmount old indicator before mutating playlist
+
   audioPlaylist.pause();
   audioPlaylist.clear();
-  audioPlaylist.add({ uri: track.url });
-  audioPlaylist.skipTo(0);
+
+  // Re-add ALL tracks from the station list to preserve navigation
+  for (const s of currentStationList) {
+    const t = stationToTrack(s);
+    if (t.url) {
+      audioPlaylist.add({ uri: t.url });
+    }
+  }
+
+  audioPlaylist.skipTo(currentIndex);
   audioPlaylist.play();
   updatePlaylistState();
 
@@ -315,6 +325,11 @@ export const togglePlayback = () => {
 };
 
 export const loadTrack = (item: Station, stationList?: Station[]) => {
+  if (!playerState.isReady && audioPlaylist) {
+    disposeAudioPlaylist();
+  }
+  currentStationList = [];
+
   const stations = stationList?.length ? stationList : [item];
   const startIndex = Math.max(
     0,
@@ -329,13 +344,17 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
     return;
   }
 
-  // Always cancel any pending failure timeout before loading a new track
   clearStreamTimeout();
   stopTimer();
 
+  // Unset the old active track FIRST so the previously-active card
+  // unmounts its ActiveStationIndicator before we mutate the shared playlist.
+  playerState.currentTrack = null;
+  playerState.hasNext = false;
+  playerState.hasPrevious = false;
+
   try {
     if (audioPlaylist) {
-      // Fully reset the existing playlist to a clean state before reuse
       audioPlaylist.pause();
       audioPlaylist.clear();
     } else {
@@ -358,7 +377,6 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
     setStreamTimeout(item.name ?? "Unknown Station");
   } catch (error) {
     console.error(error);
-    // On error, fully tear down so the next loadTrack starts fresh
     disposeAudioPlaylist();
     currentStationList = [];
     playerState.currentTrack = null;

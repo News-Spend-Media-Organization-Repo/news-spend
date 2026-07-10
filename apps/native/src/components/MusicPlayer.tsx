@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import type { AudioPlaylist } from "expo-audio";
 import { useAudioPlaylistStatus } from "expo-audio";
 import {
+  PauseIcon,
   PlayIcon,
   SkipBackIcon,
   SkipForwardIcon,
-  StopIcon,
   XIcon,
 } from "phosphor-react-native";
 import { useCallback } from "react";
@@ -183,7 +183,7 @@ const MusicPlayerContent = ({
                     return (
                       <Icon
                         color="white"
-                        name={StopIcon}
+                        name={PauseIcon}
                         size={16}
                         weight="fill"
                       />

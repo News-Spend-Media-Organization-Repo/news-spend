@@ -108,6 +108,7 @@ const settingsItems: SettingsItem[] = [
 function SettingsHome() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const isGuest = isAnonymous();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = useCallback(async () => {
@@ -120,6 +121,10 @@ function SettingsHome() {
       setIsLoggingOut(false);
     }
   }, []);
+
+  const handleSignIn = useCallback(() => {
+    navigation.navigate("SignIn");
+  }, [navigation]);
 
   const handlePress = useCallback(
     async (screen: any, authRequired = false) => {
@@ -167,10 +172,10 @@ function SettingsHome() {
       <Button
         className="absolute right-0 bottom-safe-offset-4 left-0 mx-4"
         isDisabled={isLoggingOut}
-        onPress={handleLogout}
+        onPress={isGuest ? handleSignIn : handleLogout}
       >
         {isLoggingOut ? <Spinner /> : null}
-        <Button.Label>Log Out</Button.Label>
+        <Button.Label>{isGuest ? "Sign In" : "Log Out"}</Button.Label>
       </Button>
     </Screen>
   );

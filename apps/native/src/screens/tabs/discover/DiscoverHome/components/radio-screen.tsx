@@ -51,11 +51,10 @@ export function StationList({ stations }: { stations: Station[] }) {
       horizontal
       ItemSeparatorComponent={ItemSeparator}
       keyExtractor={keyExtractor}
-      recycleItems
       renderItem={renderStationItem}
       renderScrollComponent={CustomScrollView}
       showsHorizontalScrollIndicator={false}
-      style={{ height: 200 }}
+      style={{ height: 150 }}
     />
   );
 }

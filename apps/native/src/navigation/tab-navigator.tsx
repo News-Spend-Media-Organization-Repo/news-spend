@@ -16,7 +16,7 @@ import TabBar from "./tab-bar";
 
 export default createBottomTabNavigator({
   tabBar: (props) => <TabBar {...props} />,
-  implementation: "custom",
+  implementation: "native",
   backBehavior: "history",
   screens: {
     Home: {
@@ -112,6 +112,12 @@ export default createBottomTabNavigator({
     headerShown: false,
     tabBarHideOnKeyboard: true,
     animation: "none",
+    tabBarStyle: {
+      backgroundColor: "red",
+      borderTopWidth: 0,
+      elevation: 0, // Android
+      shadowOpacity: 0, // iOS
+    },
   },
   initialRouteName: "Home",
 });
