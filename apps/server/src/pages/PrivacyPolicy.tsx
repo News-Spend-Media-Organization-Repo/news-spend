@@ -124,10 +124,10 @@ export function PrivacyPolicy() {
       <div class="content">
         <p>
           Newsspend Media ("we", "our", "us") operates the Newsspend Media
-          mobile application distributed via the Google Play Store (the
-          "App"). This Privacy Policy explains how we collect, use, share,
-          and protect user information in compliance with Google Play Store
-          privacy and Data Safety requirements.
+          mobile application distributed via the Apple App Store and Google
+          Play Store (the "App"). This Privacy Policy explains how we
+          collect, use, share, and protect user information in compliance
+          with applicable app store privacy requirements.
         </p>
 
         <p>
@@ -163,7 +163,7 @@ export function PrivacyPolicy() {
         </ul>
         <p>
           You may enable or disable location permissions at any time through
-          your Android device settings.
+          your device settings (iOS or Android).
         </p>
 
         <h3>c. App Usage and Activity Data</h3>
@@ -309,7 +309,8 @@ export function PrivacyPolicy() {
         <h2>12. Changes to This Policy</h2>
         <p>
           We may update this Privacy Policy from time to time. Updates will
-          be posted on the Google Play Store listing and within the App.
+          be posted on the App Store and Google Play Store listings, and
+          within the App.
           Continued use of the App indicates acceptance of the revised
           policy.
         </p>
@@ -325,9 +326,9 @@ export function PrivacyPolicy() {
 
         <p>
           <em>
-            This Privacy Policy applies specifically to the Google Play
-            Store version of the Newsspend Media application and aligns with
-            Google Play Data Safety requirements.
+            This Privacy Policy applies to all versions of the Newsspend
+            Media application distributed via the Apple App Store and
+            Google Play Store.
           </em>
         </p>
       </div>
