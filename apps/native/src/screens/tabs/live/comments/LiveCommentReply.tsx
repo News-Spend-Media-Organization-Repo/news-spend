@@ -12,6 +12,7 @@ import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
+import { HighlightedReply } from "#/components/comment/HighlightedReply";
 import Reply from "#/components/comment/Reply";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
@@ -22,7 +23,7 @@ import { orpc, type RouterOutputs } from "#/lib/orpc";
 
 function LiveCommentReply({ route }) {
   const navigation = useNavigation();
-  const { commentId, newsId, newsSlug } = route.params;
+  const { commentId, newsId, newsSlug, highlightCommentId } = route.params;
   const queryClient = useQueryClient();
 
   const ref = useRef<TextInput>(null);
@@ -67,16 +68,22 @@ function LiveCommentReply({ route }) {
     })
   );
 
+  // Deep links from push notifications only carry the slug — fall back to
+  // the fetched root comment's news relation so the reply list still loads.
+  const effectiveNewsId =
+    newsId ?? (typeof data?.news === "string" ? data?.news : data?.news?.id);
+
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
       input: (pageParam: number | undefined) => ({
-        newsId,
+        newsId: effectiveNewsId,
         parentId: commentId,
         page: pageParam,
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
+      enabled: Boolean(effectiveNewsId),
     })
   );
 
@@ -109,7 +116,13 @@ function LiveCommentReply({ route }) {
     return <ActivityIndicator className="text-p-300" />;
   }
 
-  const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
+  // The notification's target comment is pinned under the root header, so
+  // drop it from the regular list to avoid rendering it twice.
+  const showHighlight =
+    Boolean(highlightCommentId) && highlightCommentId !== commentId;
+  const allPages = (
+    replies.data?.pages.flatMap((page) => page.docs) ?? []
+  ).filter((item) => !showHighlight || item.id !== highlightCommentId);
   const newsIdForComposer =
     typeof data?.news === "string" ? data?.news : data?.news?.id;
 
@@ -141,7 +154,17 @@ function LiveCommentReply({ route }) {
           ListFooterComponent={
             replies.isFetchingNextPage ? <ActivityIndicator /> : null
           }
-          ListHeaderComponent={<CommentCard comment={data} screenType="live" />}
+          ListHeaderComponent={
+            <>
+              <CommentCard comment={data} screenType="live" />
+              {showHighlight && highlightCommentId ? (
+                <HighlightedReply
+                  commentId={highlightCommentId}
+                  inputRef={ref}
+                />
+              ) : null}
+            </>
+          }
           ListHeaderComponentStyle={{ marginVertical: 15 }}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}

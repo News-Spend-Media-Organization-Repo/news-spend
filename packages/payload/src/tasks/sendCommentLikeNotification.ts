@@ -1,5 +1,6 @@
 import type { TaskConfig } from "payload";
 
+import { getCommentThreadUrl } from "../lib/comment-notification-links";
 import { getPayload } from "../lib/getPayload";
 
 /**
@@ -88,6 +89,22 @@ export const sendCommentLikeNotificationTask = {
       return { output: { sent: false } };
     }
 
+    // Deep link opens the thread rooted at the liked comment's parent (or
+    // itself when top-level), with the liked comment pinned/highlighted.
+    const newsId =
+      typeof comment.news === "string" ? comment.news : comment.news?.id;
+    const parentId =
+      typeof comment.parent === "string" ? comment.parent : comment.parent?.id;
+    const url = newsId
+      ? await getCommentThreadUrl({
+          payload,
+          req,
+          newsId,
+          rootCommentId: parentId ?? input.commentId,
+          highlightCommentId: input.commentId,
+        })
+      : null;
+
     await payload.create({
       collection: "notifications",
       data: {
@@ -101,7 +118,7 @@ export const sendCommentLikeNotificationTask = {
         priority: "default",
         sound: true,
         _status: "published",
-        data: { commentId: input.commentId, kind: "like" },
+        data: { commentId: input.commentId, kind: "like", url },
       },
       req,
     });

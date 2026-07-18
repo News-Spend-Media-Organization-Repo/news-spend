@@ -11,6 +11,7 @@ import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
+import { HighlightedReply } from "#/components/comment/HighlightedReply";
 import Reply from "#/components/comment/Reply";
 
 import { Screen } from "#/components/heroui/screen";
@@ -20,7 +21,14 @@ import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 
 function CommentReplies() {
-  const { commentId, ...rest } = useRoute("CommentReply").params;
+  const { commentId, highlightCommentId, ...rest } = useRoute("CommentReply")
+    .params as {
+    commentId: string;
+    highlightCommentId?: string;
+    newsId?: string;
+    newsSlug?: string;
+    focus?: boolean;
+  };
   const ref = useRef<TextInput>(null);
   const { isConnected } = useNetInfo();
 
@@ -43,7 +51,10 @@ function CommentReplies() {
           InfiniteData<RouterOutputs["comments"]["all"]>
         >(
           orpc.comments.all.infiniteKey({
-            input: (pageParam) => ({ newsId: rest.newsId, page: pageParam }),
+            input: (pageParam) => ({
+              newsId: rest.newsId ?? "",
+              page: pageParam,
+            }),
             initialPageParam: undefined,
           })
         );
@@ -60,23 +71,34 @@ function CommentReplies() {
       },
       initialDataUpdatedAt: () => {
         const qKey = orpc.comments.all.infiniteKey({
-          input: (pageParam) => ({ newsId: rest.newsId, page: pageParam }),
+          input: (pageParam) => ({
+            newsId: rest.newsId ?? "",
+            page: pageParam,
+          }),
           initialPageParam: undefined,
         });
         return queryClient.getQueryState(qKey)?.dataUpdatedAt;
       },
     })
   );
+  // Deep links from push notifications only carry the slug — fall back to
+  // the fetched root comment's news relation so the reply list still loads.
+  const effectiveNewsId =
+    rest.newsId ??
+    (typeof data?.news === "string" ? data?.news : data?.news?.id);
+
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
       input: (pageParam: number | undefined) => ({
-        newsId: rest.newsId,
+        // Guarded by `enabled` below — never actually fetches with "".
+        newsId: effectiveNewsId ?? "",
         parentId: commentId,
         page: pageParam,
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
+      enabled: Boolean(effectiveNewsId),
     })
   );
 
@@ -88,7 +110,13 @@ function CommentReplies() {
 
   const _navigation = useNavigation();
 
-  const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
+  // The notification's target comment is pinned under the root header, so
+  // drop it from the regular list to avoid rendering it twice.
+  const showHighlight =
+    Boolean(highlightCommentId) && highlightCommentId !== commentId;
+  const allPages = (
+    replies.data?.pages.flatMap((page) => page.docs) ?? []
+  ).filter((item) => !showHighlight || item.id !== highlightCommentId);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
     replies.refetch
   );
@@ -137,7 +165,17 @@ function CommentReplies() {
           ListFooterComponent={
             replies.isFetchingNextPage ? <ActivityIndicator /> : null
           }
-          ListHeaderComponent={<CommentCard comment={data} ref={ref} />}
+          ListHeaderComponent={
+            <>
+              <CommentCard comment={data} ref={ref} />
+              {showHighlight && highlightCommentId ? (
+                <HighlightedReply
+                  commentId={highlightCommentId}
+                  inputRef={ref}
+                />
+              ) : null}
+            </>
+          }
           ListHeaderComponentStyle={{ marginVertical: 15 }}
           // showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}

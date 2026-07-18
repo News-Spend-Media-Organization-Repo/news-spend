@@ -61,7 +61,7 @@ export const sharedScreens = {
     screen: CommentReplies,
     getId: ({ params }) => params?.newsSlug,
     linking: {
-      path: "/article/:newsSlug/comment/:commentId",
+      path: "/article/:newsSlug/comment/:commentId/:highlightCommentId?",
     },
     options: {
       // presentation: "modal",
@@ -91,7 +91,7 @@ export const sharedScreens = {
     screen: LiveCommentReply,
     getId: ({ params }) => params?.slug,
     linking: {
-      path: "/video/:slug/comment/:commentId",
+      path: "/video/:slug/comment/:commentId/:highlightCommentId?",
     },
     options: {
       headerShown: false,

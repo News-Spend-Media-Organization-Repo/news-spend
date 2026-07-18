@@ -1,5 +1,7 @@
 import type { CollectionAfterChangeHook } from "payload";
 
+import { getCommentThreadUrl } from "../../lib/comment-notification-links";
+
 /**
  * Sends an immediate push notification to the author of the comment being
  * replied to, when a new reply is created. No-ops for top-level comments
@@ -69,6 +71,19 @@ const notifyOnReply: CollectionAfterChangeHook = async ({
     const preview = text.length > 140 ? `${text.slice(0, 140)}...` : text;
     const newsId = typeof doc.news === "string" ? doc.news : doc.news?.id;
 
+    // Deep link opens the thread rooted at the parent, with the new reply
+    // itself pinned/highlighted. `parent` is always the thread root here.
+    const rootCommentId = parent ?? doc.id;
+    const url = newsId
+      ? await getCommentThreadUrl({
+          payload: req.payload,
+          req,
+          newsId,
+          rootCommentId,
+          highlightCommentId: doc.id,
+        })
+      : null;
+
     await req.payload.create({
       collection: "notifications",
       data: {
@@ -82,7 +97,7 @@ const notifyOnReply: CollectionAfterChangeHook = async ({
         priority: "high",
         sound: true,
         _status: "published",
-        data: { commentId: doc.id, newsId, kind: "reply" },
+        data: { commentId: doc.id, newsId, kind: "reply", url },
       },
       req,
     });
