@@ -60,6 +60,7 @@ import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processLotteryTask } from "./tasks/processLottery";
+import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
 
 const filename = fileURLToPath(import.meta.url);
@@ -144,6 +145,7 @@ const baseConfig: Config = {
   jobs: {
     tasks: [
       sendScheduledNotificationTask,
+      sendCommentLikeNotificationTask,
       checkPushReceiptsTask,
       processLotteryTask,
       cleanupAnonymousUsersTask,

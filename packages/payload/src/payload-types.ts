@@ -180,6 +180,7 @@ export type Config = {
   jobs: {
     tasks: {
       sendScheduledNotification: TaskSendScheduledNotification;
+      sendCommentLikeNotification: TaskSendCommentLikeNotification;
       checkPushReceipts: TaskCheckPushReceipts;
       processLottery: TaskProcessLottery;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
@@ -1074,7 +1075,7 @@ export type Notification = {
   /**
    * Notification category
    */
-  type?: ("breaking_news" | "news" | "promo" | "misc") | null;
+  type?: ("breaking_news" | "news" | "comment" | "promo" | "misc") | null;
   updatedAt: string;
 };
 /**
@@ -1176,7 +1177,7 @@ export type NotificationInbox = {
   /**
    * Notification category
    */
-  type?: ("breaking_news" | "news" | "promo" | "misc") | null;
+  type?: ("breaking_news" | "news" | "comment" | "promo" | "misc") | null;
   updatedAt: string;
   /**
    * The user this inbox item belongs to
@@ -1726,6 +1727,7 @@ export type PayloadJob = {
         taskSlug:
           | "inline"
           | "sendScheduledNotification"
+          | "sendCommentLikeNotification"
           | "checkPushReceipts"
           | "processLottery"
           | "cleanupAnonymousUsers"
@@ -1779,6 +1781,7 @@ export type PayloadJob = {
     | (
         | "inline"
         | "sendScheduledNotification"
+        | "sendCommentLikeNotification"
         | "checkPushReceipts"
         | "processLottery"
         | "cleanupAnonymousUsers"
@@ -2835,6 +2838,18 @@ export type CollectionsWidget = {
 export type TaskSendScheduledNotification = {
   input: {
     notificationId: string;
+  };
+  output: {
+    sent: boolean;
+  };
+};
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendCommentLikeNotification".
+ */
+export type TaskSendCommentLikeNotification = {
+  input: {
+    commentId: string;
   };
   output: {
     sent: boolean;

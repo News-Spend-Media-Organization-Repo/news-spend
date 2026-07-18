@@ -18,6 +18,7 @@ import { getPayload } from "./getPayload";
 const NOTIFICATION_TYPE_TO_PREFERENCE: Record<string, string | undefined> = {
   breaking_news: "BREAKING_NEWS",
   news: "NEWS",
+  comment: "COMMENT",
   misc: "MISC",
   promo: undefined,
 };
