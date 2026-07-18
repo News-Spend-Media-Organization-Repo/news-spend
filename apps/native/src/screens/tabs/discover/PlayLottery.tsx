@@ -114,7 +114,7 @@ const PlayLottery = () => {
   const showLeftSuffix = !(isLoading || !currentLottery || hasEnded);
   const hasActiveLottery = !isLoading && Boolean(currentLottery) && !hasEnded;
   const enterButtonLabel = isLoading
-    ? "Enter Giveaway"
+    ? "Loading..."
     : currentLottery
       ? hasEnded
         ? "Giveaway Ended"
