@@ -267,14 +267,19 @@ export const CommentBox = ({
 
   if (isEdit) {
     return (
-      <View className="absolute inset-0 flex-1 justify-end">
+      <>
+        {/* Absolutely positioned so it dims the screen without pulling
+            composerContent out of the KeyboardAvoidingView's flex flow —
+            composerContent must stay a normal flex child (like the
+            new-comment case) so it still gets pushed up above the
+            keyboard. */}
         <Pressable
           className="absolute inset-0"
           onPress={handleCancel}
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
         />
         {composerContent}
-      </View>
+      </>
     );
   }
 
