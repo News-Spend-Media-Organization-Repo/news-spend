@@ -10,7 +10,8 @@ import {
   differenceInMinutes,
 } from "date-fns";
 import { useCallback, useState } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { useSnapshot } from "valtio";
 import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
 import { Image } from "#/components/heroui/image";
@@ -18,6 +19,8 @@ import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
 import { authState } from "#/state/auth";
+
+const MAX_PARTICIPANTS_SHOWN = 20;
 
 const prizes = [
   {
@@ -41,23 +44,34 @@ const prizes = [
 const PlayLottery = () => {
   const navigation = useNavigation("PlayLottery");
   const isFocused = useIsFocused();
-  const [lotteryTicketQuery, purchaseLogQuery, currentLotteryQuery] =
-    useQueries({
-      queries: [
-        orpc.lotteryTicket.get.queryOptions({
-          refetchInterval: 50_000,
-          enabled: isFocused,
-        }),
-        orpc.lotteryTicket.purchaseLog.queryOptions({
-          refetchInterval: 50_000,
-          enabled: isFocused,
-        }),
-        orpc.lottery.current.queryOptions({
-          refetchInterval: 60_000,
-          enabled: isFocused,
-        }),
-      ],
-    });
+  const { user } = useSnapshot(authState);
+  const isLoggedInNonGuest = !!user && !user.isAnonymous;
+
+  const [
+    lotteryTicketQuery,
+    purchaseLogQuery,
+    currentLotteryQuery,
+    myTicketQuery,
+  ] = useQueries({
+    queries: [
+      orpc.lotteryTicket.get.queryOptions({
+        refetchInterval: 50_000,
+        enabled: isFocused,
+      }),
+      orpc.lotteryTicket.purchaseLog.queryOptions({
+        refetchInterval: 50_000,
+        enabled: isFocused,
+      }),
+      orpc.lottery.current.queryOptions({
+        refetchInterval: 60_000,
+        enabled: isFocused,
+      }),
+      orpc.lotteryTicket.getByUser.queryOptions({
+        refetchInterval: 50_000,
+        enabled: isFocused && isLoggedInNonGuest,
+      }),
+    ],
+  });
 
   const [now, setNow] = useState(() => new Date());
 
@@ -85,7 +99,7 @@ const PlayLottery = () => {
   if (isLoading) {
     timeLeft = "Loading...";
   } else if (!currentLottery) {
-    timeLeft = "No active lottery";
+    timeLeft = "No active giveaway";
   } else if (hasEnded) {
     timeLeft = "Ended";
   } else if (daysLeft > 0) {
@@ -97,6 +111,25 @@ const PlayLottery = () => {
   }
 
   const showLeftSuffix = !(isLoading || !currentLottery || hasEnded);
+
+  const participants =
+    purchaseLogQuery.data?.slice(0, MAX_PARTICIPANTS_SHOWN) ?? [];
+  const myTicket = myTicketQuery.data;
+  const isCurrentUserListed = participants.some(
+    (item: any) => item.users?.id === user?.id
+  );
+
+  if (user?.id && myTicket && !isCurrentUserListed) {
+    const selfEntry = {
+      lottery_tickets: myTicket.lottery_tickets,
+      users: { id: user.id, username: user.username ?? user.name },
+    };
+    participants.splice(
+      Math.min(participants.length, MAX_PARTICIPANTS_SHOWN - 1),
+      1,
+      selfEntry
+    );
+  }
 
   const onTestLuckPress = () => {
     if (authState.user && !authState.user.isAnonymous) {
@@ -168,20 +201,26 @@ const PlayLottery = () => {
         </View>
       </View>
 
-      {purchaseLogQuery.data?.map((item: any) => (
-        <View
-          className="border-gray-100 border-b"
-          key={item.lottery_tickets?.id}
-        >
-          <View className="flex-row justify-between gap-1 p-2">
-            <Text className="text-p-400">User: {item.users?.username}</Text>
-            <Text className="text-s-400">
-              entered {item.lottery_tickets?.count} ticket
-              {+(item.lottery_tickets?.count ?? 0) > 1 ? "s" : ""}
-            </Text>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="pb-24"
+        showsVerticalScrollIndicator={false}
+      >
+        {participants.map((item: any) => (
+          <View
+            className="border-gray-100 border-b"
+            key={item.lottery_tickets?.id}
+          >
+            <View className="flex-row justify-between gap-1 p-2">
+              <Text className="text-p-400">User: {item.users?.username}</Text>
+              <Text className="text-s-400">
+                entered {item.lottery_tickets?.count} ticket
+                {+(item.lottery_tickets?.count ?? 0) > 1 ? "s" : ""}
+              </Text>
+            </View>
           </View>
-        </View>
-      ))}
+        ))}
+      </ScrollView>
 
       <Button
         className="absolute right-5 bottom-safe-offset-2 left-5"

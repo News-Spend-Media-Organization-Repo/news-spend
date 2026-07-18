@@ -123,7 +123,7 @@ const getByUser = protectedProcedure.handler(async ({ context }) => {
     .where(and(eq(lottery.isActive, true), eq(lottery_tickets.user, user.id)))
     .limit(1);
 
-  return result[0];
+  return result[0] ?? null;
 });
 
 const get = publicProcedure.handler(async ({ context }) => {
