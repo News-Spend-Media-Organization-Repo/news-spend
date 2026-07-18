@@ -23,7 +23,8 @@ import { orpc, type RouterOutputs } from "#/lib/orpc";
 
 function LiveCommentReply({ route }) {
   const navigation = useNavigation();
-  const { commentId, newsId, newsSlug, highlightCommentId } = route.params;
+  const { commentId, newsId, newsSlug, slug, highlightCommentId } =
+    route.params;
   const queryClient = useQueryClient();
 
   const ref = useRef<TextInput>(null);
@@ -72,11 +73,18 @@ function LiveCommentReply({ route }) {
   // the fetched root comment's news relation so the reply list still loads.
   const effectiveNewsId =
     newsId ?? (typeof data?.news === "string" ? data?.news : data?.news?.id);
+  const effectiveNewsSlug = newsSlug ?? slug;
+
+  useEffect(() => {
+    if (effectiveNewsId && route.params.newsId !== effectiveNewsId) {
+      navigation.setParams({ newsId: effectiveNewsId });
+    }
+  }, [navigation, route.params.newsId, effectiveNewsId]);
 
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
       input: (pageParam: number | undefined) => ({
-        newsId: effectiveNewsId,
+        newsId: effectiveNewsId ?? "",
         parentId: commentId,
         page: pageParam,
       }),
@@ -180,7 +188,7 @@ function LiveCommentReply({ route }) {
           <CommentBox
             inputRef={ref}
             newsId={newsIdForComposer}
-            newsSlug={newsSlug}
+            newsSlug={effectiveNewsSlug}
           />
         </View>
       </KeyboardStickyView>

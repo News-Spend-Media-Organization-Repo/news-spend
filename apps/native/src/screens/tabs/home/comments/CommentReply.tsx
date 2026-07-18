@@ -86,6 +86,13 @@ function CommentReplies() {
   const effectiveNewsId =
     rest.newsId ??
     (typeof data?.news === "string" ? data?.news : data?.news?.id);
+  const _navigation = useNavigation();
+
+  useEffect(() => {
+    if (effectiveNewsId && rest.newsId !== effectiveNewsId) {
+      _navigation.setParams({ newsId: effectiveNewsId });
+    }
+  }, [_navigation, effectiveNewsId, rest.newsId]);
 
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
@@ -107,8 +114,6 @@ function CommentReplies() {
       replies.fetchNextPage();
     }
   };
-
-  const _navigation = useNavigation();
 
   // The notification's target comment is pinned under the root header, so
   // drop it from the regular list to avoid rendering it twice.
