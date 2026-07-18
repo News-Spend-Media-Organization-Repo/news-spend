@@ -3,7 +3,7 @@ import type { Payload } from "payload";
 export type UserReaction = "like" | "dislike" | "none";
 
 type ReactionRow = {
-  news?: { id: string } | string | null;
+  target?: { relationTo?: string; value: { id: string } | string } | null;
   type: "like" | "dislike" | "none";
 };
 
@@ -22,7 +22,8 @@ export async function getUserReactionForNews(
   const result = await payload.find({
     collection: "reactions",
     where: {
-      news: { equals: newsId },
+      "target.relationTo": { equals: "news" },
+      "target.value": { equals: newsId },
       user: { equals: userId },
     },
     limit: 1,
@@ -54,14 +55,18 @@ export async function getUserReactionsForNews(
   const result = await payload.find({
     collection: "reactions",
     where: {
-      news: { in: newsIds },
+      "target.relationTo": { equals: "news" },
+      "target.value": { in: newsIds },
       user: { equals: userId },
     },
     limit: newsIds.length,
     depth: 0,
   });
   for (const doc of result.docs as ReactionRow[]) {
-    const newsId = typeof doc.news === "string" ? doc.news : doc.news?.id;
+    const newsId =
+      typeof doc.target?.value === "string"
+        ? doc.target.value
+        : doc.target?.value?.id;
     if (!newsId) {
       continue;
     }
