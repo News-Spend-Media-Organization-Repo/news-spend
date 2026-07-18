@@ -40,7 +40,7 @@ const create = protectedNoGuestProcedure
 
     if (currentLottery.totalDocs < 1) {
       throw new ORPCError("NOT_FOUND", {
-        message: "No active lottery",
+        message: "No active giveaway",
       });
     }
 
@@ -103,7 +103,7 @@ const create = protectedNoGuestProcedure
       {
         type: "point",
         point: -(num_of_tickets * (currentLottery.docs[0]?.ticketPrice ?? 1)),
-        description: "Lottery ticket purchase",
+        description: "Giveaway ticket purchase",
         action: "ticketPurchase",
       },
       context
@@ -174,7 +174,7 @@ const boostLuck = protectedNoGuestProcedure.handler(async ({ context }) => {
 
   if (!result.length) {
     throw new ORPCError("NOT_FOUND", {
-      message: "No lottery ticket found",
+      message: "No giveaway ticket found",
     });
   }
 

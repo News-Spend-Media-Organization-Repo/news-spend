@@ -153,7 +153,7 @@ const claimReward = protectedProcedure
             type: "point",
             point: points,
             action: "lottery",
-            description: "Lottery reward claimed",
+            description: "Giveaway reward claimed",
           },
           context
         );

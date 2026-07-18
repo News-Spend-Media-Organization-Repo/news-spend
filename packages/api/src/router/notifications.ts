@@ -109,7 +109,7 @@ const sendLotteryNotification = publicProcedure
 
     await sendNotification({
       pushTokens,
-      title: "Lottery has ended",
+      title: "Giveaway has ended",
       body: "Check to see if you won",
       data: {
         lotteryId,
