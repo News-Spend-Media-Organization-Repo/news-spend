@@ -4,7 +4,7 @@ import { useRoute } from "@react-navigation/native";
 import {
   type InfiniteData,
   useInfiniteQuery,
-  useQuery,
+  useQueries,
 } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, type TextInput, View } from "react-native";
@@ -43,44 +43,68 @@ function CommentReplies() {
       };
     }
   }, [rest?.focus]);
-  const { data, isPending, isError } = useQuery(
-    orpc.comments.one.queryOptions({
-      input: commentId,
-      initialData: () => {
-        const comments = queryClient.getQueryData<
-          InfiniteData<RouterOutputs["comments"]["all"]>
-        >(
-          orpc.comments.all.infiniteKey({
+  const showHighlight =
+    Boolean(highlightCommentId) && highlightCommentId !== commentId;
+
+  // Shared helper to seed a single-comment query from the paginated all-comments
+  // cache — avoids a network round-trip when the comment was already loaded.
+  const getCommentFromCache = (
+    targetId: string
+  ): RouterOutputs["comments"]["one"] | undefined => {
+    if (!rest.newsId) {
+      return;
+    }
+    const comments = queryClient.getQueryData<
+      InfiniteData<RouterOutputs["comments"]["all"]>
+    >(
+      orpc.comments.all.infiniteKey({
+        input: (pageParam) => ({
+          newsId: rest.newsId,
+          page: pageParam,
+        }),
+        initialPageParam: undefined,
+      })
+    );
+    const found = comments?.pages
+      .flatMap((page) => page.docs)
+      .find((comment) => comment.id === targetId);
+    if (!found) {
+      return;
+    }
+    return {
+      ...found,
+      user: found.user ?? { id: "", username: "" },
+    } as RouterOutputs["comments"]["one"];
+  };
+
+  const [rootCommentQuery, highlightedCommentQuery] = useQueries({
+    queries: [
+      orpc.comments.one.queryOptions({
+        input: commentId,
+        initialData: () => getCommentFromCache(commentId),
+        initialDataUpdatedAt: () => {
+          const qKey = orpc.comments.all.infiniteKey({
             input: (pageParam) => ({
               newsId: rest.newsId ?? "",
               page: pageParam,
             }),
             initialPageParam: undefined,
-          })
-        );
-        const found = comments?.pages
-          .flatMap((page) => page.docs)
-          .find((comment) => comment.id === commentId);
-        if (!found) {
-          return;
-        }
-        return {
-          ...found,
-          user: found.user ?? { id: "", username: "" },
-        } as RouterOutputs["comments"]["one"];
-      },
-      initialDataUpdatedAt: () => {
-        const qKey = orpc.comments.all.infiniteKey({
-          input: (pageParam) => ({
-            newsId: rest.newsId ?? "",
-            page: pageParam,
-          }),
-          initialPageParam: undefined,
-        });
-        return queryClient.getQueryState(qKey)?.dataUpdatedAt;
-      },
-    })
-  );
+          });
+          return queryClient.getQueryState(qKey)?.dataUpdatedAt;
+        },
+      }),
+      orpc.comments.one.queryOptions({
+        input: highlightCommentId ?? "",
+        enabled: showHighlight,
+        initialData: () =>
+          highlightCommentId
+            ? getCommentFromCache(highlightCommentId)
+            : undefined,
+      }),
+    ],
+  });
+
+  const { data, isPending, isError } = rootCommentQuery;
   const effectiveNewsId =
     rest.newsId ??
     (typeof data?.news === "string" ? data?.news : data?.news?.id);
@@ -108,8 +132,6 @@ function CommentReplies() {
 
   // The notification's target comment is pinned under the root header, so
   // drop it from the regular list to avoid rendering it twice.
-  const showHighlight =
-    Boolean(highlightCommentId) && highlightCommentId !== commentId;
   const allPages = (
     replies.data?.pages.flatMap((page) => page.docs) ?? []
   ).filter((item) => !showHighlight || item.id !== highlightCommentId);
@@ -166,9 +188,9 @@ function CommentReplies() {
           ListHeaderComponent={
             <>
               <CommentCard comment={data} ref={ref} />
-              {showHighlight && highlightCommentId ? (
+              {showHighlight && highlightedCommentQuery.data ? (
                 <HighlightedReply
-                  commentId={highlightCommentId}
+                  comment={highlightedCommentQuery.data}
                   inputRef={ref}
                 />
               ) : null}
