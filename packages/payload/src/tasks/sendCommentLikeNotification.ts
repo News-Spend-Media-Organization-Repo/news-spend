@@ -5,8 +5,8 @@ import { getPayload } from "../lib/getPayload";
 /**
  * Payload job task: sendCommentLikeNotification
  *
- * Debounced like-notification sender. Queued by
- * scheduleCommentLikeNotification (packages/api/src/shared/commentNotifications.ts)
+ * Debounced like-notification sender. Queued by the notifyOnCommentLike hook
+ * (packages/payload/src/hooks/reactions/notifyOnCommentLike.ts) on Reactions.afterChange,
  * with a delay, so multiple likes on the same comment within the debounce
  * window collapse into a single push instead of one per like.
  *

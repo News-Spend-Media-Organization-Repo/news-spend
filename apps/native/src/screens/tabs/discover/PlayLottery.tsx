@@ -112,6 +112,14 @@ const PlayLottery = () => {
   }
 
   const showLeftSuffix = !(isLoading || !currentLottery || hasEnded);
+  const hasActiveLottery = !isLoading && Boolean(currentLottery) && !hasEnded;
+  const enterButtonLabel = isLoading
+    ? "Loading..."
+    : currentLottery
+      ? hasEnded
+        ? "Giveaway Ended"
+        : "Enter Giveaway"
+      : "No Active Giveaway";
 
   const participants =
     purchaseLogQuery.data?.slice(0, MAX_PARTICIPANTS_SHOWN) ?? [];
@@ -133,6 +141,9 @@ const PlayLottery = () => {
   }
 
   const onTestLuckPress = () => {
+    if (!hasActiveLottery) {
+      return;
+    }
     if (authState.user && !authState.user.isAnonymous) {
       navigation.navigate("GetTicket");
     } else {
@@ -240,9 +251,10 @@ const PlayLottery = () => {
 
       <Button
         className="absolute right-5 bottom-safe-offset-2 left-5"
+        isDisabled={!hasActiveLottery}
         onPress={onTestLuckPress}
       >
-        <Button.Label>Enter Giveaway</Button.Label>
+        <Button.Label>{enterButtonLabel}</Button.Label>
       </Button>
     </Screen>
   );
