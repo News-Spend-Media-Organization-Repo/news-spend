@@ -118,7 +118,7 @@ export const sendCommentLikeNotificationTask = {
         priority: "default",
         sound: true,
         _status: "published",
-        data: { commentId: input.commentId, kind: "like", url },
+        data: { commentId: input.commentId, newsId, kind: "like", url },
       },
       req,
     });

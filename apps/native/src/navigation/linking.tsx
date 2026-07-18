@@ -23,6 +23,15 @@ function ensureScheme(url: string) {
   return Linking.createURL(url);
 }
 
+function withNewsId(url: string, newsId: unknown) {
+  if (typeof newsId !== "string" || !newsId.length) {
+    return url;
+  }
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}newsId=${encodeURIComponent(newsId)}`;
+}
+
 export const linking: LinkingOptions<RootParamList> = {
   enabled: true,
   prefixes,
@@ -44,6 +53,7 @@ export const linking: LinkingOptions<RootParamList> = {
     const response = Notifications.getLastNotificationResponse();
     if (response?.notification.request.content.body) {
       const screenUrl = response?.notification.request.content.data?.url;
+      const newsId = response?.notification.request.content.data?.newsId;
 
       console.log(response.notification.request.content);
 
@@ -52,7 +62,7 @@ export const linking: LinkingOptions<RootParamList> = {
       });
 
       if (screenUrl) {
-        return ensureScheme(screenUrl);
+        return ensureScheme(withNewsId(screenUrl, newsId));
       }
     }
   },
@@ -72,6 +82,7 @@ export const linking: LinkingOptions<RootParamList> = {
     const notificationListenerSub =
       Notifications.addNotificationResponseReceivedListener((response) => {
         let screenUrl = response.notification.request.content.data?.url;
+        const newsId = response.notification.request.content.data?.newsId;
         const _common = response.notification.request.content.data?.common;
 
         if (screenUrl) {
@@ -90,7 +101,7 @@ export const linking: LinkingOptions<RootParamList> = {
             );
             screenUrl = `${invertedRouteMap[currentTab]}/${screenUrl?.split("/").slice(1).join("/")}`;
           }
-          listener(ensureScheme(screenUrl));
+          listener(ensureScheme(withNewsId(screenUrl, newsId)));
           trackNotificationOpen({
             ...response.notification.request.content,
           });
