@@ -1,6 +1,8 @@
 import { sql } from "@payloadcms/db-postgres";
 import type { CollectionConfig } from "payload";
 
+import notifyOnReply from "../hooks/comments/notifyOnReply";
+
 const Comments: CollectionConfig = {
   slug: "comments",
   admin: {
@@ -69,6 +71,7 @@ const Comments: CollectionConfig = {
           }
         }
       },
+      notifyOnReply,
     ],
     afterDelete: [
       async ({ doc, req }) => {

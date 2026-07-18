@@ -5,6 +5,8 @@ import type {
   PayloadRequest,
 } from "payload";
 
+import notifyOnCommentLike from "../hooks/reactions/notifyOnCommentLike";
+
 type ReactionDoc = {
   id: string | number;
   target?: {
@@ -98,7 +100,7 @@ const afterDelete: CollectionAfterDeleteHook = ({ doc, req }) =>
 const Reactions: CollectionConfig = {
   slug: "reactions",
   hooks: {
-    afterChange: [afterChange],
+    afterChange: [afterChange, notifyOnCommentLike],
     afterDelete: [afterDelete],
   },
   fields: [
