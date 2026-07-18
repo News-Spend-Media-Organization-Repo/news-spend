@@ -1,6 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNetInfo } from "@react-native-community/netinfo";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 import {
   type InfiniteData,
   useInfiniteQuery,
@@ -81,18 +81,9 @@ function CommentReplies() {
       },
     })
   );
-  // Deep links from push notifications only carry the slug — fall back to
-  // the fetched root comment's news relation so the reply list still loads.
   const effectiveNewsId =
     rest.newsId ??
     (typeof data?.news === "string" ? data?.news : data?.news?.id);
-  const _navigation = useNavigation();
-
-  useEffect(() => {
-    if (effectiveNewsId && rest.newsId !== effectiveNewsId) {
-      _navigation.setParams({ newsId: effectiveNewsId });
-    }
-  }, [_navigation, effectiveNewsId, rest.newsId]);
 
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
