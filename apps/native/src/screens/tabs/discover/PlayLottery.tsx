@@ -9,6 +9,7 @@ import {
   differenceInHours,
   differenceInMinutes,
 } from "date-fns";
+import { LinkButton } from "heroui-native";
 import { useCallback, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { useSnapshot } from "valtio";
@@ -198,6 +199,21 @@ const PlayLottery = () => {
               {lotteryTicketQuery.data?.length ?? 0}
             </Text>
           </Text>
+        </View>
+
+        <View className="flex-row flex-wrap justify-center px-4">
+          <Text className="text-gray-400 text-xs">
+            Not sponsored, endorsed, or administered by Apple Inc.{" "}
+          </Text>
+          <LinkButton
+            onPress={() => navigation.navigate("LotteryRules")}
+            size="sm"
+          >
+            <LinkButton.Label className="text-p-400 text-xs underline">
+              See Official Rules
+            </LinkButton.Label>
+          </LinkButton>
+          <Text className="text-gray-400 text-xs">.</Text>
         </View>
       </View>
 
