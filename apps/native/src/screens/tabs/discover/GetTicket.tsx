@@ -26,9 +26,10 @@ const GetTicket = () => {
   const incrementIntervalRef = useRef<NodeJS.Timeout>();
 
   const totalPoints = useQuery(orpc.activity.totalPoints.queryOptions());
-  const { data: currentLottery } = useQuery(
+  const { data: currentLottery, isPending: isLotteryPending } = useQuery(
     orpc.lottery.current.queryOptions()
   );
+  const hasActiveLottery = !isLotteryPending && Boolean(currentLottery);
 
   // Preload native ad on mount
   useEffect(() => {
@@ -49,6 +50,13 @@ const GetTicket = () => {
   );
 
   const onTicketPress = () => {
+    if (!hasActiveLottery) {
+      Alert.alert(
+        "No Active Giveaway",
+        "There's no giveaway running right now. Check back soon!"
+      );
+      return;
+    }
     if (
       (totalPoints?.data ?? 0) >=
       value * (currentLottery?.ticketPrice ?? 50)
@@ -159,7 +167,9 @@ const GetTicket = () => {
 
               <Button
                 className="h-12.5 w-22 rounded-r-full rounded-l-none border border-p-400 border-l-0"
-                isDisabled={value <= 0 || totalPoints.isPending}
+                isDisabled={
+                  value <= 0 || totalPoints.isPending || !hasActiveLottery
+                }
                 onPress={onTicketPress}
               >
                 <Button.Label>Go</Button.Label>
@@ -168,10 +178,16 @@ const GetTicket = () => {
 
             <Card.Footer className="p-0 pb-3">
               <View className="flex flex-1 flex-row justify-center gap-2">
-                <Text className="text-p-400">
-                  Required points: {value * (currentLottery?.ticketPrice ?? 50)}{" "}
-                  points
-                </Text>
+                {isLotteryPending || hasActiveLottery ? (
+                  <Text className="text-p-400">
+                    Required points:{" "}
+                    {value * (currentLottery?.ticketPrice ?? 50)} points
+                  </Text>
+                ) : (
+                  <Text className="text-danger">
+                    There's no giveaway running right now.
+                  </Text>
+                )}
               </View>
             </Card.Footer>
           </Card>
