@@ -1,3 +1,4 @@
+import { isDefinedError } from "@orpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog } from "heroui-native";
 import { StarIcon } from "phosphor-react-native";
@@ -11,9 +12,23 @@ import { Button } from "#/components/heroui/button";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+import { navigate } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
 import { Icon } from "../heroui/icon";
 import { Text } from "../ui";
+
+// DEV-ONLY manual test harness. Stripped from release builds by __DEV__.
+// Lets you seed fake reward data (no real winner row / winnerId needed) and
+// simulate a successful claim locally, so the dialog states below can be
+// tapped through on a real device. Remove once done testing.
+type DevMockTier = "HIGH" | "LOW" | "NONE";
+const DEV_MOCK_REWARDS: Record<
+  Exclude<DevMockTier, "NONE">,
+  { id: string; prize: string; prizeTier: "LOW" | "HIGH" }
+> = {
+  LOW: { id: "dev-mock-low", prize: "50", prizeTier: "LOW" },
+  HIGH: { id: "dev-mock-high", prize: "iPhone 16 Pro", prizeTier: "HIGH" },
+};
 
 export default memo(function LotteryReward() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -23,50 +38,103 @@ export default memo(function LotteryReward() {
   const { session } = useSnapshot(authState);
   const user = session?.user;
 
-  const { data, isPending } = useQuery(
+  const [devMockTier, setDevMockTier] = useState<DevMockTier | null>(null);
+  const [devClaimPending, setDevClaimPending] = useState(false);
+  const isMocking = __DEV__ && devMockTier !== null;
+
+  const realQuery = useQuery(
     orpc.lottery.getReward.queryOptions({
-      enabled: Boolean(user),
+      enabled: Boolean(user) && !isMocking,
     })
   );
+
+  const mockData =
+    isMocking && devMockTier !== "NONE"
+      ? { ...DEV_MOCK_REWARDS[devMockTier], claimed: false }
+      : isMocking
+        ? { id: "dev-mock-none", prize: null, prizeTier: null, claimed: false }
+        : null;
+
+  const data = isMocking ? mockData : realQuery.data;
+  const isPending = isMocking ? false : realQuery.isPending;
 
   const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(
     adUnits.rewarded
   );
 
+  const applyClaimSuccessSideEffects = useCallback(() => {
+    queryClient.setQueryData(
+      orpc.lottery.getReward.queryKey(undefined),
+      (oldData) => ({
+        ...oldData,
+        claimed: true,
+      })
+    );
+
+    if (!data?.prize) {
+      return;
+    }
+
+    if (data.prizeTier === "LOW") {
+      toast.success("Reward claimed!", {
+        description: `${data.prize} Dream Points added!`,
+      });
+      queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
+    } else {
+      toast.success("Reward claimed!", {
+        description: `You claimed ${data.prize}! Please verify your identity to finish up.`,
+      });
+    }
+  }, [data]);
+
   const claimRewardMutation = useMutation(
     orpc.lottery.claimReward.mutationOptions({
-      onSuccess: () => {
-        if (!data?.prize) {
+      onSuccess: applyClaimSuccessSideEffects,
+      onError: (error) => {
+        // CONFLICT means the backend's atomic claim check found this
+        // reward already marked claimed — most likely this exact request
+        // already succeeded once (e.g. a retry after a lost response) and
+        // this is a duplicate, not a genuine failure. Treat it the same
+        // as a success instead of surfacing an error toast.
+        if (isDefinedError(error) && error.code === "CONFLICT") {
+          applyClaimSuccessSideEffects();
           return;
         }
-
-        if (data.prizeTier === "LOW") {
-          toast.success("Reward claimed!", {
-            description: `${data.prize} Dream Points added!`,
-          });
-          queryClient.invalidateQueries(
-            orpc.activity.totalPoints.queryOptions()
-          );
-        } else {
-          toast.success("Reward claimed!", {
-            description: `You claimed ${data.prize}! Please verify your identity to finish up.`,
-          });
-        }
-        queryClient.setQueryData(
-          orpc.lottery.getReward.queryKey(undefined),
-          (oldData) => ({
-            ...oldData,
-            claimed: true,
-          })
-        );
-      },
-      onError: () => {
         toast.error("Failed to claim reward!");
         setShowPrize(false);
       },
     })
   );
 
+  const isClaimPending = isMocking
+    ? devClaimPending
+    : claimRewardMutation.isPending;
+
+  const handleClaim = useCallback(() => {
+    if (!data || isClaimPending) {
+      return;
+    }
+    if (isMocking) {
+      setDevClaimPending(true);
+      setTimeout(() => {
+        setDevClaimPending(false);
+        applyClaimSuccessSideEffects();
+      }, 800);
+      return;
+    }
+    claimRewardMutation.mutate({ winnerId: data.id });
+  }, [
+    data,
+    isClaimPending,
+    isMocking,
+    claimRewardMutation,
+    applyClaimSuccessSideEffects,
+  ]);
+
+  // Keyed on data?.id (not `data`) so marking the reward `claimed` in the
+  // cache after a claim doesn't produce a new object reference and
+  // re-trigger this effect, which would reopen the dialog.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally keyed on data?.id, see comment above
   useEffect(() => {
     if (data && !isPending && user) {
       timeoutRef.current = setTimeout(() => {
@@ -80,21 +148,23 @@ export default memo(function LotteryReward() {
         }
       };
     }
-  }, [data, isPending, user, load]);
+  }, [data?.id, isPending, user, load]);
+
+  // `handleClaim` is read through a ref instead of a dependency: it's
+  // re-created whenever `isClaimPending` changes, and `isClosed`/
+  // `isEarnedReward` from the ad SDK stay `true` once set (they don't
+  // reset on their own) — depending on `handleClaim` directly would
+  // re-fire this effect on every claim-pending toggle, re-claiming in
+  // an infinite loop.
+  const handleClaimRef = useRef(handleClaim);
+  handleClaimRef.current = handleClaim;
 
   useEffect(() => {
     if (isClosed && isEarnedReward) {
       setShowPrize(true);
-      handleClaim();
+      handleClaimRef.current();
     }
-  }, [isClosed, isEarnedReward, handleClaim]);
-
-  const handleClaim = useCallback(() => {
-    if (!data || claimRewardMutation.isPending) {
-      return;
-    }
-    claimRewardMutation.mutate({ winnerId: data.id });
-  }, [data, claimRewardMutation]);
+  }, [isClosed, isEarnedReward]);
 
   const handleClose = () => {
     setDialogOpen(false);
@@ -110,7 +180,7 @@ export default memo(function LotteryReward() {
   };
 
   const handleClaimReward = () => {
-    if (claimRewardMutation.isPending) {
+    if (isClaimPending) {
       return;
     }
     if (isLoaded) {
@@ -121,8 +191,8 @@ export default memo(function LotteryReward() {
   };
 
   const handleVerifyIdentity = () => {
-    setDialogOpen(false);
     handleClose();
+    navigate("VerifyIdentity");
   };
 
   return (
@@ -187,15 +257,13 @@ export default memo(function LotteryReward() {
             {data?.prize && !showPrize && (
               <Button
                 className="mt-4"
-                isDisabled={claimRewardMutation.isPending}
+                isDisabled={isClaimPending}
                 onPress={handleClaimReward}
               >
                 <Button.Label>
-                  {claimRewardMutation.isPending
-                    ? "Claiming Reward..."
-                    : "Claim your prize"}
+                  {isClaimPending ? "Claiming Reward..." : "Claim your prize"}
                 </Button.Label>
-                {claimRewardMutation.isPending && (
+                {isClaimPending && (
                   <ActivityIndicator
                     className="ml-2"
                     color="#fff"
@@ -224,6 +292,41 @@ export default memo(function LotteryReward() {
         open={connectBrandOpen}
         setOpen={setConnectBrandOpen}
       />
+
+      {/*{__DEV__ && (
+        <View
+          className="absolute right-2 bottom-24 gap-1 rounded-lg bg-black/80 p-2"
+          pointerEvents="box-none"
+        >
+          {(["LOW", "HIGH", "NONE"] as const).map((tier) => (
+            <Pressable
+              key={tier}
+              onPress={() => {
+                setShowPrize(false);
+                setDevClaimPending(false);
+                setDevMockTier(tier);
+                setDialogOpen(true);
+              }}
+              style={{ paddingVertical: 4, paddingHorizontal: 8 }}
+            >
+              <Text className="text-white text-xs">
+                Mock: {tier === "NONE" ? "No prize" : `${tier} win`}
+              </Text>
+            </Pressable>
+          ))}
+          <Pressable
+            onPress={() => {
+              setDialogOpen(false);
+              setShowPrize(false);
+              setDevMockTier(null);
+              setDevClaimPending(false);
+            }}
+            style={{ paddingVertical: 4, paddingHorizontal: 8 }}
+          >
+            <Text className="text-white text-xs">Clear mock</Text>
+          </Pressable>
+        </View>
+      )}*/}
     </>
   );
 });

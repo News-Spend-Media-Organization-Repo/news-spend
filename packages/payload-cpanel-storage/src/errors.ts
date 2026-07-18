@@ -73,14 +73,24 @@ export class SftpPathError extends SftpStorageError {
 export function isRetryableError(error: unknown): boolean {
 	if (error instanceof Error) {
 		const message = error.message.toLowerCase();
+
+		// Authentication failures are never transient — retrying with the same
+		// credentials will only produce more failed logins, which risks tripping
+		// the server's brute-force protection (e.g. cPHulk).
+		if (
+			message.includes("authentication") ||
+			message.includes("all configured authentication methods failed")
+		) {
+			return false;
+		}
+
 		return (
 			message.includes("timeout") ||
 			message.includes("econnrefused") ||
 			message.includes("econnreset") ||
 			message.includes("enotfound") ||
 			message.includes("etimedout") ||
-			message.includes("network") ||
-			message.includes("connection")
+			message.includes("network")
 		);
 	}
 	return false;

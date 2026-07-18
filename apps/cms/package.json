@@ -7,7 +7,7 @@
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation\" next build",
     "ci": "bun run payload migrate && bun run build",
     "clean": "git clean -xdf .next .turbo node_modules",
-    "dev": "dotenvx run --convention=nextjs -- cross-env NODE_OPTIONS=--no-deprecation portless cms.newsspend next dev --turbopack",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation portless cms.newsspend next dev --turbopack",
     "dev:clean": "rm -rf .next && cross-env NODE_OPTIONS=\"--no-deprecation\" next dev",
     "dev:clean:turbo": "rm -rf .next && cross-env NODE_OPTIONS=\"--no-deprecation\" next dev --turbo",
     "dev:turbo": "cross-env NODE_OPTIONS=\"--no-deprecation\" next dev --turbo",
@@ -45,13 +45,13 @@
     "postcss": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-tweet": "^3.3.0",
     "require-in-the-middle": "^7.5.0",
     "sharp": "catalog:",
     "ssh2": "^1.17.0",
     "ssh2-sftp-client": "^12.1.0"
   },
   "devDependencies": {
-    "@dotenvx/dotenvx": "^1.38.4",
     "@news-spend-media/config": "workspace:*",
     "@news-spend-media/tailwind-config": "workspace:*",
     "@types/node": "catalog:",

@@ -175,9 +175,16 @@ describe("isRetryableError", () => {
 		expect(isRetryableError(error)).toBe(true);
 	});
 
-	test("should identify connection errors as retryable", () => {
+	test("should not identify generic connection-labeled errors as retryable", () => {
 		const error = new Error("Connection failed");
-		expect(isRetryableError(error)).toBe(true);
+		expect(isRetryableError(error)).toBe(false);
+	});
+
+	test("should not identify authentication failures as retryable", () => {
+		const error = new Error(
+			"getConnection: All configured authentication methods failed",
+		);
+		expect(isRetryableError(error)).toBe(false);
 	});
 
 	test("should not identify other errors as retryable", () => {
@@ -202,7 +209,7 @@ describe("isRetryableError", () => {
 		expect(isRetryableError(new Error("TIMEOUT"))).toBe(true);
 		expect(isRetryableError(new Error("TimeOut"))).toBe(true);
 		expect(isRetryableError(new Error("Network"))).toBe(true);
-		expect(isRetryableError(new Error("CONNECTION"))).toBe(true);
+		expect(isRetryableError(new Error("AUTHENTICATION failed"))).toBe(false);
 	});
 });
 

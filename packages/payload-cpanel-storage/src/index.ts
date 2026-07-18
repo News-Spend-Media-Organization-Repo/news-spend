@@ -328,16 +328,18 @@ export const cpanelSftpStorage = (
 		} as Required<CpanelStoragePluginOptions>;
 
 		if (!globalThis.__sftpConnectionPool) {
-			logger.info(
-				{
-					collections: Object.keys(options.collections),
-					poolConfig: {
-						min: options.pool.minConnections,
-						max: options.pool.maxConnections,
+			if (options.pool.debug) {
+				logger.info(
+					{
+						collections: Object.keys(options.collections),
+						poolConfig: {
+							min: options.pool.minConnections,
+							max: options.pool.maxConnections,
+						},
 					},
-				},
-				"Initializing cPanel SFTP storage plugin",
-			);
+					"Initializing cPanel SFTP storage plugin",
+				);
+			}
 
 			const poolOptions: ConnectionPoolOptions = {
 				connection: options.connection,
@@ -351,13 +353,15 @@ export const cpanelSftpStorage = (
 
 			globalThis.__sftpConnectionPool = new SftpConnectionPool(poolOptions);
 
-			logger.info(
-				{
-					min: options.pool.minConnections,
-					max: options.pool.maxConnections,
-				},
-				"SFTP connection pool initialized",
-			);
+			if (options.pool.debug) {
+				logger.info(
+					{
+						min: options.pool.minConnections,
+						max: options.pool.maxConnections,
+					},
+					"SFTP connection pool initialized",
+				);
+			}
 		}
 
 		// Create adapter

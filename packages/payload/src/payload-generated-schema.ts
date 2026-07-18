@@ -118,11 +118,11 @@ export const enum_news_analytics_platform = pgEnum(
 );
 export const enum_notification_deliveries_status = pgEnum(
   "enum_notification_deliveries_status",
-  ["pending", "delivered", "failed"]
+  ["pending", "delivered", "opened", "failed"]
 );
 export const enum_notification_inbox_type = pgEnum(
   "enum_notification_inbox_type",
-  ["breaking_news", "news", "promo", "misc"]
+  ["breaking_news", "news", "comment", "promo", "misc"]
 );
 export const enum_notifications_device_types = pgEnum(
   "enum_notifications_device_types",
@@ -131,6 +131,7 @@ export const enum_notifications_device_types = pgEnum(
 export const enum_notifications_type = pgEnum("enum_notifications_type", [
   "breaking_news",
   "news",
+  "comment",
   "promo",
   "misc",
 ]);
@@ -161,7 +162,7 @@ export const enum__notifications_v_version_device_types = pgEnum(
 );
 export const enum__notifications_v_version_type = pgEnum(
   "enum__notifications_v_version_type",
-  ["breaking_news", "news", "promo", "misc"]
+  ["breaking_news", "news", "comment", "promo", "misc"]
 );
 export const enum__notifications_v_version_delivery_action = pgEnum(
   "enum__notifications_v_version_delivery_action",
@@ -305,15 +306,26 @@ export const enum_witness_reports_report_type = pgEnum(
   "enum_witness_reports_report_type",
   ["shortMessage", "video", "picture"]
 );
+export const enum_audit_logs_operation = pgEnum("enum_audit_logs_operation", [
+  "create",
+  "read",
+  "update",
+  "delete",
+  "login",
+  "logout",
+]);
 export const enum_payload_jobs_log_task_slug = pgEnum(
   "enum_payload_jobs_log_task_slug",
   [
     "inline",
     "sendScheduledNotification",
+    "sendCommentLikeNotification",
     "checkPushReceipts",
     "processLottery",
     "cleanupAnonymousUsers",
     "generateVideoThumbnail",
+    "deleteVideoThumbTemp",
+    "cleanupAuditLogs",
   ]
 );
 export const enum_payload_jobs_log_state = pgEnum(
@@ -325,10 +337,13 @@ export const enum_payload_jobs_task_slug = pgEnum(
   [
     "inline",
     "sendScheduledNotification",
+    "sendCommentLikeNotification",
     "checkPushReceipts",
     "processLottery",
     "cleanupAnonymousUsers",
     "generateVideoThumbnail",
+    "deleteVideoThumbTemp",
+    "cleanupAuditLogs",
   ]
 );
 
@@ -390,12 +405,12 @@ export const accounts_rels = pgTable(
     index("accounts_rels_path_idx").on(columns.path),
     index("accounts_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [accounts.id],
       name: "accounts_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "accounts_rels_admins_fk",
     }).onDelete("cascade"),
@@ -459,12 +474,12 @@ export const activities_rels = pgTable(
     index("activities_rels_path_idx").on(columns.path),
     index("activities_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [activities.id],
       name: "activities_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "activities_rels_admins_fk",
     }).onDelete("cascade"),
@@ -492,7 +507,7 @@ export const admins_sessions = pgTable(
     index("admins_sessions_order_idx").on(columns._order),
     index("admins_sessions_parent_id_idx").on(columns._parentID),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [admins.id],
       name: "admins_sessions_parent_id_fk",
     }).onDelete("cascade"),
@@ -565,38 +580,14 @@ export const admins_rels = pgTable(
     index("admins_rels_path_idx").on(columns.path),
     index("admins_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [admins.id],
       name: "admins_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "admins_rels_admins_fk",
-    }).onDelete("cascade"),
-  ]
-);
-
-export const categories_breadcrumbs = pgTable(
-  "categories_breadcrumbs",
-  {
-    _order: integer("_order").notNull(),
-    _parentID: uuid("_parent_id").notNull(),
-    id: varchar("id").primaryKey(),
-    doc: uuid("doc_id").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    url: varchar("url"),
-    label: varchar("label"),
-  },
-  (columns) => [
-    index("categories_breadcrumbs_order_idx").on(columns._order),
-    index("categories_breadcrumbs_parent_id_idx").on(columns._parentID),
-    index("categories_breadcrumbs_doc_idx").on(columns.doc),
-    foreignKey({
-      columns: [columns._parentID],
-      foreignColumns: [categories.id],
-      name: "categories_breadcrumbs_parent_id_fk",
     }).onDelete("cascade"),
   ]
 );
@@ -612,10 +603,6 @@ export const categories = pgTable(
     image: uuid("image_id").references(() => media.id, {
       onDelete: "set null",
     }),
-    parent: uuid("parent_id").references((): AnyPgColumn => categories.id, {
-      onDelete: "set null",
-    }),
-    pathname: varchar("pathname"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -634,7 +621,6 @@ export const categories = pgTable(
   (columns) => [
     uniqueIndex("categories_slug_idx").on(columns.slug),
     index("categories_image_idx").on(columns.image),
-    index("categories_parent_idx").on(columns.parent),
     index("categories_updated_at_idx").on(columns.updatedAt),
     index("categories_created_at_idx").on(columns.createdAt),
   ]
@@ -655,12 +641,12 @@ export const categories_rels = pgTable(
     index("categories_rels_path_idx").on(columns.path),
     index("categories_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [categories.id],
       name: "categories_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "categories_rels_admins_fk",
     }).onDelete("cascade"),
@@ -691,6 +677,9 @@ export const comments = pgTable(
         onDelete: "set null",
       }
     ),
+    likesCount: numeric("likes_count", { mode: "number" }).default(0),
+    dislikesCount: numeric("dislikes_count", { mode: "number" }).default(0),
+    totalReplies: numeric("total_replies", { mode: "number" }).default(0),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -733,17 +722,17 @@ export const comments_rels = pgTable(
     index("comments_rels_users_id_idx").on(columns.usersID),
     index("comments_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [comments.id],
       name: "comments_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.usersID],
+      columns: [columns["usersID"]],
       foreignColumns: [users.id],
       name: "comments_rels_users_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "comments_rels_admins_fk",
     }).onDelete("cascade"),
@@ -815,22 +804,22 @@ export const content_reports_rels = pgTable(
     index("content_reports_rels_news_id_idx").on(columns.newsID),
     index("content_reports_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [content_reports.id],
       name: "content_reports_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.commentsID],
+      columns: [columns["commentsID"]],
       foreignColumns: [comments.id],
       name: "content_reports_rels_comments_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.newsID],
+      columns: [columns["newsID"]],
       foreignColumns: [news.id],
       name: "content_reports_rels_news_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "content_reports_rels_admins_fk",
     }).onDelete("cascade"),
@@ -882,12 +871,12 @@ export const feedback_rels = pgTable(
     index("feedback_rels_path_idx").on(columns.path),
     index("feedback_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [feedback.id],
       name: "feedback_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "feedback_rels_admins_fk",
     }).onDelete("cascade"),
@@ -961,12 +950,12 @@ export const identity_verification_rels = pgTable(
     index("identity_verification_rels_path_idx").on(columns.path),
     index("identity_verification_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [identity_verification.id],
       name: "identity_verification_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "identity_verification_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1039,17 +1028,17 @@ export const lottery_rels = pgTable(
     index("lottery_rels_users_id_idx").on(columns.usersID),
     index("lottery_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [lottery.id],
       name: "lottery_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.usersID],
+      columns: [columns["usersID"]],
       foreignColumns: [users.id],
       name: "lottery_rels_users_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "lottery_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1110,12 +1099,12 @@ export const lottery_tickets_rels = pgTable(
     index("lottery_tickets_rels_path_idx").on(columns.path),
     index("lottery_tickets_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [lottery_tickets.id],
       name: "lottery_tickets_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "lottery_tickets_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1182,12 +1171,12 @@ export const lottery_winners_rels = pgTable(
     index("lottery_winners_rels_path_idx").on(columns.path),
     index("lottery_winners_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [lottery_winners.id],
       name: "lottery_winners_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "lottery_winners_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1293,12 +1282,12 @@ export const media_rels = pgTable(
     index("media_rels_path_idx").on(columns.path),
     index("media_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [media.id],
       name: "media_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "media_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1317,7 +1306,7 @@ export const news_key_points = pgTable(
     index("news_key_points_order_idx").on(columns._order),
     index("news_key_points_parent_id_idx").on(columns._parentID),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [news.id],
       name: "news_key_points_parent_id_fk",
     }).onDelete("cascade"),
@@ -1364,6 +1353,7 @@ export const news = pgTable(
       onDelete: "set null",
     }),
     hasBeenPublished: boolean("has_been_published").default(false),
+    totalComments: numeric("total_comments", { mode: "number" }).default(0),
     likesCount: numeric("likes_count", { mode: "number" }).default(0),
     dislikesCount: numeric("dislikes_count", { mode: "number" }).default(0),
     createdAt: timestamp("created_at", {
@@ -1400,12 +1390,12 @@ export const news_rels = pgTable(
     index("news_rels_path_idx").on(columns.path),
     index("news_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [news.id],
       name: "news_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "news_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1425,7 +1415,7 @@ export const _news_v_version_key_points = pgTable(
     index("_news_v_version_key_points_order_idx").on(columns._order),
     index("_news_v_version_key_points_parent_id_idx").on(columns._parentID),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [_news_v.id],
       name: "_news_v_version_key_points_parent_id_fk",
     }).onDelete("cascade"),
@@ -1480,6 +1470,9 @@ export const _news_v = pgTable(
     version_hasBeenPublished: boolean("version_has_been_published").default(
       false
     ),
+    version_totalComments: numeric("version_total_comments", {
+      mode: "number",
+    }).default(0),
     version_likesCount: numeric("version_likes_count", {
       mode: "number",
     }).default(0),
@@ -1540,12 +1533,12 @@ export const _news_v_rels = pgTable(
     index("_news_v_rels_path_idx").on(columns.path),
     index("_news_v_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [_news_v.id],
       name: "_news_v_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "_news_v_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1612,12 +1605,12 @@ export const news_analytics_rels = pgTable(
     index("news_analytics_rels_path_idx").on(columns.path),
     index("news_analytics_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [news_analytics.id],
       name: "news_analytics_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "news_analytics_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1637,6 +1630,14 @@ export const notification_deliveries = pgTable(
       onDelete: "set null",
     }),
     pushToken: varchar("push_token").notNull(),
+    deviceToken: uuid("device_token_id").references(() => push_tokens.id, {
+      onDelete: "set null",
+    }),
+    openedAt: timestamp("opened_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     status: enum_notification_deliveries_status("status")
       .notNull()
       .default("pending"),
@@ -1665,6 +1666,7 @@ export const notification_deliveries = pgTable(
   (columns) => [
     index("notification_deliveries_notification_idx").on(columns.notification),
     index("notification_deliveries_user_idx").on(columns.user),
+    index("notification_deliveries_device_token_idx").on(columns.deviceToken),
     index("notification_deliveries_status_idx").on(columns.status),
     index("notification_deliveries_updated_at_idx").on(columns.updatedAt),
     index("notification_deliveries_created_at_idx").on(columns.createdAt),
@@ -1689,12 +1691,12 @@ export const notification_deliveries_rels = pgTable(
     index("notification_deliveries_rels_path_idx").on(columns.path),
     index("notification_deliveries_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [notification_deliveries.id],
       name: "notification_deliveries_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "notification_deliveries_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1762,12 +1764,12 @@ export const notification_inbox_rels = pgTable(
     index("notification_inbox_rels_path_idx").on(columns.path),
     index("notification_inbox_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [notification_inbox.id],
       name: "notification_inbox_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "notification_inbox_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1786,7 +1788,7 @@ export const notifications_device_types = pgTable(
     index("notifications_device_types_order_idx").on(columns.order),
     index("notifications_device_types_parent_idx").on(columns.parent),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [notifications.id],
       name: "notifications_device_types_parent_fk",
     }).onDelete("cascade"),
@@ -1854,17 +1856,17 @@ export const notifications_rels = pgTable(
     index("notifications_rels_users_id_idx").on(columns.usersID),
     index("notifications_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [notifications.id],
       name: "notifications_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.usersID],
+      columns: [columns["usersID"]],
       foreignColumns: [users.id],
       name: "notifications_rels_users_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "notifications_rels_admins_fk",
     }).onDelete("cascade"),
@@ -1885,7 +1887,7 @@ export const _notifications_v_version_device_types = pgTable(
       columns.parent
     ),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [_notifications_v.id],
       name: "_notifications_v_version_device_types_parent_fk",
     }).onDelete("cascade"),
@@ -1983,17 +1985,17 @@ export const _notifications_v_rels = pgTable(
     index("_notifications_v_rels_users_id_idx").on(columns.usersID),
     index("_notifications_v_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [_notifications_v.id],
       name: "_notifications_v_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.usersID],
+      columns: [columns["usersID"]],
       foreignColumns: [users.id],
       name: "_notifications_v_rels_users_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "_notifications_v_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2038,7 +2040,7 @@ export const partner_content_blocks_promo_video_source = pgTable(
       columns.thumbnail
     ),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [partner_content.id],
       name: "partner_content_blocks_promo_video_source_parent_id_fk",
     }).onDelete("cascade"),
@@ -2065,7 +2067,7 @@ export const partner_content_blocks_promo_image = pgTable(
     index("partner_content_blocks_promo_image_path_idx").on(columns._path),
     index("partner_content_blocks_promo_image_image_idx").on(columns.image),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [partner_content.id],
       name: "partner_content_blocks_promo_image_parent_id_fk",
     }).onDelete("cascade"),
@@ -2083,7 +2085,7 @@ export const partner_content_items = pgTable(
     index("partner_content_items_order_idx").on(columns._order),
     index("partner_content_items_parent_id_idx").on(columns._parentID),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [partner_content.id],
       name: "partner_content_items_parent_id_fk",
     }).onDelete("cascade"),
@@ -2102,7 +2104,7 @@ export const partner_content_placements = pgTable(
     index("partner_content_placements_order_idx").on(columns.order),
     index("partner_content_placements_parent_idx").on(columns.parent),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [partner_content.id],
       name: "partner_content_placements_parent_fk",
     }).onDelete("cascade"),
@@ -2189,12 +2191,12 @@ export const partner_content_rels = pgTable(
     index("partner_content_rels_path_idx").on(columns.path),
     index("partner_content_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [partner_content.id],
       name: "partner_content_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "partner_content_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2283,12 +2285,12 @@ export const partner_conversions_rels = pgTable(
     index("partner_conversions_rels_path_idx").on(columns.path),
     index("partner_conversions_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [partner_conversions.id],
       name: "partner_conversions_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "partner_conversions_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2361,12 +2363,12 @@ export const partners_rels = pgTable(
     index("partners_rels_path_idx").on(columns.path),
     index("partners_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [partners.id],
       name: "partners_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "partners_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2412,7 +2414,7 @@ export const promotion_media_blocks_promo_video_source = pgTable(
       columns.thumbnail
     ),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [promotion_media.id],
       name: "promotion_media_blocks_promo_video_source_parent_id_fk",
     }).onDelete("cascade"),
@@ -2441,7 +2443,7 @@ export const promotion_media_blocks_promo_image = pgTable(
     index("promotion_media_blocks_promo_image_path_idx").on(columns._path),
     index("promotion_media_blocks_promo_image_image_idx").on(columns.image),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [promotion_media.id],
       name: "promotion_media_blocks_promo_image_parent_id_fk",
     }).onDelete("cascade"),
@@ -2459,7 +2461,7 @@ export const promotion_media_items = pgTable(
     index("promotion_media_items_order_idx").on(columns._order),
     index("promotion_media_items_parent_id_idx").on(columns._parentID),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [promotion_media.id],
       name: "promotion_media_items_parent_id_fk",
     }).onDelete("cascade"),
@@ -2509,12 +2511,12 @@ export const promotion_media_rels = pgTable(
     index("promotion_media_rels_path_idx").on(columns.path),
     index("promotion_media_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [promotion_media.id],
       name: "promotion_media_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "promotion_media_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2580,12 +2582,12 @@ export const push_tokens_rels = pgTable(
     index("push_tokens_rels_path_idx").on(columns.path),
     index("push_tokens_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [push_tokens.id],
       name: "push_tokens_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "push_tokens_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2601,11 +2603,9 @@ export const reactions = pgTable(
       .references(() => users.id, {
         onDelete: "set null",
       }),
-    news: uuid("news_id")
-      .notNull()
-      .references(() => news.id, {
-        onDelete: "set null",
-      }),
+    news: uuid("news_id").references(() => news.id, {
+      onDelete: "set null",
+    }),
     type: enum_reactions_type("type").notNull(),
     updatedAt: timestamp("updated_at", {
       mode: "string",
@@ -2637,20 +2637,34 @@ export const reactions_rels = pgTable(
     order: integer("order"),
     parent: uuid("parent_id").notNull(),
     path: varchar("path").notNull(),
+    newsID: uuid("news_id"),
+    commentsID: uuid("comments_id"),
     adminsID: uuid("admins_id"),
   },
   (columns) => [
     index("reactions_rels_order_idx").on(columns.order),
     index("reactions_rels_parent_idx").on(columns.parent),
     index("reactions_rels_path_idx").on(columns.path),
+    index("reactions_rels_news_id_idx").on(columns.newsID),
+    index("reactions_rels_comments_id_idx").on(columns.commentsID),
     index("reactions_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [reactions.id],
       name: "reactions_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["newsID"]],
+      foreignColumns: [news.id],
+      name: "reactions_rels_news_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["commentsID"]],
+      foreignColumns: [comments.id],
+      name: "reactions_rels_comments_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "reactions_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2706,12 +2720,12 @@ export const sessions_rels = pgTable(
     index("sessions_rels_path_idx").on(columns.path),
     index("sessions_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [sessions.id],
       name: "sessions_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "sessions_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2775,12 +2789,12 @@ export const shop_analytics_rels = pgTable(
     index("shop_analytics_rels_path_idx").on(columns.path),
     index("shop_analytics_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [shop_analytics.id],
       name: "shop_analytics_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "shop_analytics_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2833,17 +2847,17 @@ export const survey_rels = pgTable(
     index("survey_rels_users_id_idx").on(columns.usersID),
     index("survey_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [survey.id],
       name: "survey_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.usersID],
+      columns: [columns["usersID"]],
       foreignColumns: [users.id],
       name: "survey_rels_users_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "survey_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2903,12 +2917,12 @@ export const ticket_purchase_log_rels = pgTable(
     index("ticket_purchase_log_rels_path_idx").on(columns.path),
     index("ticket_purchase_log_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [ticket_purchase_log.id],
       name: "ticket_purchase_log_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "ticket_purchase_log_rels_admins_fk",
     }).onDelete("cascade"),
@@ -2982,12 +2996,12 @@ export const users_rels = pgTable(
     index("users_rels_path_idx").on(columns.path),
     index("users_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [users.id],
       name: "users_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "users_rels_admins_fk",
     }).onDelete("cascade"),
@@ -3041,12 +3055,12 @@ export const verifications_rels = pgTable(
     index("verifications_rels_path_idx").on(columns.path),
     index("verifications_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [verifications.id],
       name: "verifications_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "verifications_rels_admins_fk",
     }).onDelete("cascade"),
@@ -3100,19 +3114,87 @@ export const witness_reports_rels = pgTable(
     index("witness_reports_rels_media_id_idx").on(columns.mediaID),
     index("witness_reports_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [witness_reports.id],
       name: "witness_reports_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.mediaID],
+      columns: [columns["mediaID"]],
       foreignColumns: [media.id],
       name: "witness_reports_rels_media_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "witness_reports_rels_admins_fk",
+    }).onDelete("cascade"),
+  ]
+);
+
+export const audit_logs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collection: varchar("collection").notNull(),
+    documentId: varchar("document_id").notNull(),
+    operation: enum_audit_logs_operation("operation").notNull(),
+    diff: jsonb("diff"),
+    snapshot: jsonb("snapshot"),
+    ip: varchar("ip"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("audit_logs_collection_idx").on(columns.collection),
+    index("audit_logs_document_id_idx").on(columns.documentId),
+    index("audit_logs_operation_idx").on(columns.operation),
+    index("audit_logs_updated_at_idx").on(columns.updatedAt),
+    index("audit_logs_created_at_idx").on(columns.createdAt),
+  ]
+);
+
+export const audit_logs_rels = pgTable(
+  "audit_logs_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+    usersID: uuid("users_id"),
+  },
+  (columns) => [
+    index("audit_logs_rels_order_idx").on(columns.order),
+    index("audit_logs_rels_parent_idx").on(columns.parent),
+    index("audit_logs_rels_path_idx").on(columns.path),
+    index("audit_logs_rels_admins_id_idx").on(columns.adminsID),
+    index("audit_logs_rels_users_id_idx").on(columns.usersID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [audit_logs.id],
+      name: "audit_logs_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "audit_logs_rels_admins_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["usersID"]],
+      foreignColumns: [users.id],
+      name: "audit_logs_rels_users_fk",
     }).onDelete("cascade"),
   ]
 );
@@ -3154,7 +3236,7 @@ export const payload_jobs_log = pgTable(
     index("payload_jobs_log_order_idx").on(columns._order),
     index("payload_jobs_log_parent_id_idx").on(columns._parentID),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [payload_jobs.id],
       name: "payload_jobs_log_parent_id_fk",
     }).onDelete("cascade"),
@@ -3275,6 +3357,7 @@ export const payload_locked_documents_rels = pgTable(
     usersID: uuid("users_id"),
     verificationsID: uuid("verifications_id"),
     "witness-reportsID": uuid("witness_reports_id"),
+    "audit-logsID": uuid("audit_logs_id"),
   },
   (columns) => [
     index("payload_locked_documents_rels_order_idx").on(columns.order),
@@ -3358,43 +3441,46 @@ export const payload_locked_documents_rels = pgTable(
     index("payload_locked_documents_rels_witness_reports_id_idx").on(
       columns["witness-reportsID"]
     ),
+    index("payload_locked_documents_rels_audit_logs_id_idx").on(
+      columns["audit-logsID"]
+    ),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [payload_locked_documents.id],
       name: "payload_locked_documents_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.accountsID],
+      columns: [columns["accountsID"]],
       foreignColumns: [accounts.id],
       name: "payload_locked_documents_rels_accounts_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.activitiesID],
+      columns: [columns["activitiesID"]],
       foreignColumns: [activities.id],
       name: "payload_locked_documents_rels_activities_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "payload_locked_documents_rels_admins_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.categoriesID],
+      columns: [columns["categoriesID"]],
       foreignColumns: [categories.id],
       name: "payload_locked_documents_rels_categories_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.commentsID],
+      columns: [columns["commentsID"]],
       foreignColumns: [comments.id],
       name: "payload_locked_documents_rels_comments_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.contentReportsID],
+      columns: [columns["contentReportsID"]],
       foreignColumns: [content_reports.id],
       name: "payload_locked_documents_rels_content_reports_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.feedbackID],
+      columns: [columns["feedbackID"]],
       foreignColumns: [feedback.id],
       name: "payload_locked_documents_rels_feedback_fk",
     }).onDelete("cascade"),
@@ -3404,7 +3490,7 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_identity_verification_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.lotteryID],
+      columns: [columns["lotteryID"]],
       foreignColumns: [lottery.id],
       name: "payload_locked_documents_rels_lottery_fk",
     }).onDelete("cascade"),
@@ -3419,12 +3505,12 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_lottery_winners_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.mediaID],
+      columns: [columns["mediaID"]],
       foreignColumns: [media.id],
       name: "payload_locked_documents_rels_media_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.newsID],
+      columns: [columns["newsID"]],
       foreignColumns: [news.id],
       name: "payload_locked_documents_rels_news_fk",
     }).onDelete("cascade"),
@@ -3444,7 +3530,7 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_notification_inbox_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.notificationsID],
+      columns: [columns["notificationsID"]],
       foreignColumns: [notifications.id],
       name: "payload_locked_documents_rels_notifications_fk",
     }).onDelete("cascade"),
@@ -3459,7 +3545,7 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_partner_conversions_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.partnersID],
+      columns: [columns["partnersID"]],
       foreignColumns: [partners.id],
       name: "payload_locked_documents_rels_partners_fk",
     }).onDelete("cascade"),
@@ -3474,12 +3560,12 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_push_tokens_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.reactionsID],
+      columns: [columns["reactionsID"]],
       foreignColumns: [reactions.id],
       name: "payload_locked_documents_rels_reactions_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.sessionsID],
+      columns: [columns["sessionsID"]],
       foreignColumns: [sessions.id],
       name: "payload_locked_documents_rels_sessions_fk",
     }).onDelete("cascade"),
@@ -3489,7 +3575,7 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_shop_analytics_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.surveyID],
+      columns: [columns["surveyID"]],
       foreignColumns: [survey.id],
       name: "payload_locked_documents_rels_survey_fk",
     }).onDelete("cascade"),
@@ -3499,12 +3585,12 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_ticket_purchase_log_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.usersID],
+      columns: [columns["usersID"]],
       foreignColumns: [users.id],
       name: "payload_locked_documents_rels_users_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.verificationsID],
+      columns: [columns["verificationsID"]],
       foreignColumns: [verifications.id],
       name: "payload_locked_documents_rels_verifications_fk",
     }).onDelete("cascade"),
@@ -3512,6 +3598,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["witness-reportsID"]],
       foreignColumns: [witness_reports.id],
       name: "payload_locked_documents_rels_witness_reports_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["audit-logsID"]],
+      foreignColumns: [audit_logs.id],
+      name: "payload_locked_documents_rels_audit_logs_fk",
     }).onDelete("cascade"),
   ]
 );
@@ -3559,12 +3650,12 @@ export const payload_preferences_rels = pgTable(
     index("payload_preferences_rels_path_idx").on(columns.path),
     index("payload_preferences_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [payload_preferences.id],
       name: "payload_preferences_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "payload_preferences_rels_admins_fk",
     }).onDelete("cascade"),
@@ -3613,7 +3704,7 @@ export const news_category_items = pgTable(
     index("news_category_items_parent_id_idx").on(columns._parentID),
     uniqueIndex("news_category_items_category_idx").on(columns.category),
     foreignKey({
-      columns: [columns._parentID],
+      columns: [columns["_parentID"]],
       foreignColumns: [news_category.id],
       name: "news_category_items_parent_id_fk",
     }).onDelete("cascade"),
@@ -3649,12 +3740,12 @@ export const news_category_rels = pgTable(
     index("news_category_rels_path_idx").on(columns.path),
     index("news_category_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
-      columns: [columns.parent],
+      columns: [columns["parent"]],
       foreignColumns: [news_category.id],
       name: "news_category_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [columns.adminsID],
+      columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "news_category_rels_admins_fk",
     }).onDelete("cascade"),
@@ -3763,21 +3854,6 @@ export const relations_admins = relations(admins, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
-export const relations_categories_breadcrumbs = relations(
-  categories_breadcrumbs,
-  ({ one }) => ({
-    _parentID: one(categories, {
-      fields: [categories_breadcrumbs._parentID],
-      references: [categories.id],
-      relationName: "breadcrumbs",
-    }),
-    doc: one(categories, {
-      fields: [categories_breadcrumbs.doc],
-      references: [categories.id],
-      relationName: "doc",
-    }),
-  })
-);
 export const relations_categories_rels = relations(
   categories_rels,
   ({ one }) => ({
@@ -3798,14 +3874,6 @@ export const relations_categories = relations(categories, ({ one, many }) => ({
     fields: [categories.image],
     references: [media.id],
     relationName: "image",
-  }),
-  parent: one(categories, {
-    fields: [categories.parent],
-    references: [categories.id],
-    relationName: "parent",
-  }),
-  breadcrumbs: many(categories_breadcrumbs, {
-    relationName: "breadcrumbs",
   }),
   _rels: many(categories_rels, {
     relationName: "_rels",
@@ -4206,6 +4274,11 @@ export const relations_notification_deliveries = relations(
       fields: [notification_deliveries.user],
       references: [users.id],
       relationName: "user",
+    }),
+    deviceToken: one(push_tokens, {
+      fields: [notification_deliveries.deviceToken],
+      references: [push_tokens.id],
+      relationName: "deviceToken",
     }),
     _rels: many(notification_deliveries_rels, {
       relationName: "_rels",
@@ -4613,6 +4686,16 @@ export const relations_reactions_rels = relations(
       references: [reactions.id],
       relationName: "_rels",
     }),
+    newsID: one(news, {
+      fields: [reactions_rels.newsID],
+      references: [news.id],
+      relationName: "news",
+    }),
+    commentsID: one(comments, {
+      fields: [reactions_rels.commentsID],
+      references: [comments.id],
+      relationName: "comments",
+    }),
     adminsID: one(admins, {
       fields: [reactions_rels.adminsID],
       references: [admins.id],
@@ -4800,6 +4883,31 @@ export const relations_witness_reports = relations(
     }),
   })
 );
+export const relations_audit_logs_rels = relations(
+  audit_logs_rels,
+  ({ one }) => ({
+    parent: one(audit_logs, {
+      fields: [audit_logs_rels.parent],
+      references: [audit_logs.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [audit_logs_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+    usersID: one(users, {
+      fields: [audit_logs_rels.usersID],
+      references: [users.id],
+      relationName: "users",
+    }),
+  })
+);
+export const relations_audit_logs = relations(audit_logs, ({ many }) => ({
+  _rels: many(audit_logs_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_payload_kv = relations(payload_kv, () => ({}));
 export const relations_payload_jobs_log = relations(
   payload_jobs_log,
@@ -4974,6 +5082,11 @@ export const relations_payload_locked_documents_rels = relations(
       references: [witness_reports.id],
       relationName: "witness-reports",
     }),
+    "audit-logsID": one(audit_logs, {
+      fields: [payload_locked_documents_rels["audit-logsID"]],
+      references: [audit_logs.id],
+      relationName: "audit-logs",
+    }),
   })
 );
 export const relations_payload_locked_documents = relations(
@@ -5104,6 +5217,7 @@ type DatabaseSchema = {
   enum_shop_analytics_device: typeof enum_shop_analytics_device;
   enum_shop_analytics_platform: typeof enum_shop_analytics_platform;
   enum_witness_reports_report_type: typeof enum_witness_reports_report_type;
+  enum_audit_logs_operation: typeof enum_audit_logs_operation;
   enum_payload_jobs_log_task_slug: typeof enum_payload_jobs_log_task_slug;
   enum_payload_jobs_log_state: typeof enum_payload_jobs_log_state;
   enum_payload_jobs_task_slug: typeof enum_payload_jobs_task_slug;
@@ -5114,7 +5228,6 @@ type DatabaseSchema = {
   admins_sessions: typeof admins_sessions;
   admins: typeof admins;
   admins_rels: typeof admins_rels;
-  categories_breadcrumbs: typeof categories_breadcrumbs;
   categories: typeof categories;
   categories_rels: typeof categories_rels;
   comments: typeof comments;
@@ -5184,6 +5297,8 @@ type DatabaseSchema = {
   verifications_rels: typeof verifications_rels;
   witness_reports: typeof witness_reports;
   witness_reports_rels: typeof witness_reports_rels;
+  audit_logs: typeof audit_logs;
+  audit_logs_rels: typeof audit_logs_rels;
   payload_kv: typeof payload_kv;
   payload_jobs_log: typeof payload_jobs_log;
   payload_jobs: typeof payload_jobs;
@@ -5203,7 +5318,6 @@ type DatabaseSchema = {
   relations_admins_sessions: typeof relations_admins_sessions;
   relations_admins_rels: typeof relations_admins_rels;
   relations_admins: typeof relations_admins;
-  relations_categories_breadcrumbs: typeof relations_categories_breadcrumbs;
   relations_categories_rels: typeof relations_categories_rels;
   relations_categories: typeof relations_categories;
   relations_comments_rels: typeof relations_comments_rels;
@@ -5273,6 +5387,8 @@ type DatabaseSchema = {
   relations_verifications: typeof relations_verifications;
   relations_witness_reports_rels: typeof relations_witness_reports_rels;
   relations_witness_reports: typeof relations_witness_reports;
+  relations_audit_logs_rels: typeof relations_audit_logs_rels;
+  relations_audit_logs: typeof relations_audit_logs;
   relations_payload_kv: typeof relations_payload_kv;
   relations_payload_jobs_log: typeof relations_payload_jobs_log;
   relations_payload_jobs: typeof relations_payload_jobs;

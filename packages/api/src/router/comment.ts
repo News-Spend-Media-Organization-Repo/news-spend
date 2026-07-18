@@ -3,6 +3,10 @@ import z from "zod";
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { createRateLimitMiddleware } from "../lib/ratelimit";
 import {
+  notifyCommentReply,
+  scheduleCommentLikeNotification,
+} from "../shared/commentNotifications";
+import {
   getCommentReactionCounts,
   getUserReactionForComment,
   getUserReactionsForComments,
@@ -141,6 +145,30 @@ const addComment = protectedNoGuestProcedure
       },
     });
 
+    const replyTargetId = comment.replyingTo ?? comment.parentId;
+    if (replyTargetId) {
+      const targetComment = await payload.findByID({
+        collection: "comments",
+        id: replyTargetId,
+        depth: 0,
+      });
+      const recipientId =
+        typeof targetComment?.user === "string"
+          ? targetComment.user
+          : targetComment?.user?.id;
+
+      if (recipientId) {
+        await notifyCommentReply(context, {
+          recipientId,
+          actorId: user.id,
+          actorUsername: user.username || "Someone",
+          commentId: newComment.id,
+          newsId: comment.newsId,
+          text: comment.text,
+        });
+      }
+    }
+
     return newComment;
   });
 
@@ -252,6 +280,8 @@ const likeComment = protectedNoGuestProcedure
       depth: 0,
     });
 
+    let becameLiked = false;
+
     if (existing.docs.length > 0 && existing.docs[0]) {
       const row = existing.docs[0];
       if (row.type === "like") {
@@ -267,6 +297,7 @@ const likeComment = protectedNoGuestProcedure
           id: row.id,
           data: { type: "like" },
         });
+        becameLiked = true;
       }
     } else {
       // No existing reaction: create a new "like" row
@@ -278,12 +309,32 @@ const likeComment = protectedNoGuestProcedure
           type: "like",
         },
       });
+      becameLiked = true;
     }
 
     const [counts, userReaction] = await Promise.all([
       getCommentReactionCounts(payload, commentId),
       getUserReactionForComment(payload, userId, commentId),
     ]);
+
+    if (becameLiked) {
+      const comment = await payload.findByID({
+        collection: "comments",
+        id: commentId,
+        depth: 0,
+      });
+      const authorId =
+        typeof comment?.user === "string" ? comment.user : comment?.user?.id;
+
+      if (authorId) {
+        await scheduleCommentLikeNotification(context, {
+          commentId,
+          authorId,
+          actorId: userId,
+        });
+      }
+    }
+
     return { userReaction, ...counts };
   });
 
