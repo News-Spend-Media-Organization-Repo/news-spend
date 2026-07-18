@@ -1,6 +1,8 @@
 import logger from "@news-spend-media/logger";
+import { lottery_winners } from "@news-spend-media/payload/payload-generated-schema";
 import type { Media } from "@news-spend-media/payload/types";
 import { ORPCError } from "@orpc/client";
+import { and, eq, ne } from "@payloadcms/db-postgres/drizzle";
 import { subWeeks } from "date-fns";
 import z from "zod";
 import { zfd } from "zod-form-data";
@@ -134,15 +136,31 @@ const claimReward = protectedProcedure
       });
     }
 
-    // Mark as claimed
-    const result = await payload.update({
-      collection: "lottery-winners",
-      id: input.winnerId,
-      data: {
+    // Atomically mark as claimed only if it isn't already, so two
+    // concurrent/duplicate claim calls for the same winnerId can't both
+    // pass the check and double-award points (a plain read-then-write
+    // has a race window this closes at the DB level).
+    const claimedRows = await payload.db.drizzle
+      .update(lottery_winners)
+      .set({
         claimed: true,
         claimedAt: new Date().toISOString(),
-      },
-    });
+      })
+      .where(
+        and(
+          eq(lottery_winners.id, input.winnerId),
+          ne(lottery_winners.claimed, true)
+        )
+      )
+      .returning();
+
+    if (claimedRows.length === 0) {
+      throw new ORPCError("CONFLICT", {
+        message: "Reward already claimed",
+      });
+    }
+
+    const result = claimedRows[0];
 
     // Add points for LOW tier
     if (winner.prizeTier === "LOW" && winner.prize) {
