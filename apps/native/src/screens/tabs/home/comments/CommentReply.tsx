@@ -125,15 +125,17 @@ function CommentReplies() {
     );
   }
 
-  // if ((isError || replies.isError) && isConnected) {
-  //   return (
-  //     <Screen>
-  //       <Stack flex={1} px={10} mt={10}>
-  //         <Paragraph textAlign="center">Something went wrong</Paragraph>
-  //       </Stack>
-  //     </Screen>
-  //   );
-  // }
+  if (isError || !data) {
+    return (
+      <Screen>
+        <View className="flex-1 items-center justify-center px-2.5">
+          <Text className="text-center">
+            {isError ? "Something went wrong" : "This comment has been deleted"}
+          </Text>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen

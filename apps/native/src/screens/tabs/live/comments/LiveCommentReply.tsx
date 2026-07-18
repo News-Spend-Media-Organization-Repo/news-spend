@@ -105,8 +105,18 @@ function LiveCommentReply({ route }) {
   if (isError) {
     return (
       <Screen>
-        <View className="mt-2.5 flex-1 px-2.5">
+        <View className="mt-2.5 flex-1 items-center justify-center px-2.5">
           <Text className="text-center">Something went wrong</Text>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Screen>
+        <View className="mt-2.5 flex-1 items-center justify-center px-2.5">
+          <Text className="text-center">This comment has been deleted</Text>
         </View>
       </Screen>
     );
