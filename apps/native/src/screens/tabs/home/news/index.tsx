@@ -16,6 +16,7 @@ import { PayloadLexicalReactRenderer } from "#/components/lexical/payload-lexica
 import type { PayloadLexicalReactRendererContent } from "#/components/lexical/types";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
+import usePrefetchComments from "#/hooks/comments/usePrefetchComments";
 import { useNews } from "#/hooks/news";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -58,6 +59,9 @@ const SingleNews = () => {
 
   // Emits nav_tti for /Tab/Home/News once the article content has rendered.
   useMarkInteractive(Boolean(data));
+
+  // Warm the comments cache so the comments screen opens instantly.
+  usePrefetchComments(data?.id);
 
   // Redirect on NOT_FOUND
   useEffect(() => {
