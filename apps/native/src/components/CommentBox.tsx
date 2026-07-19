@@ -106,7 +106,6 @@ export const CommentBox = ({
   inputRef,
   onBlur,
 }: CommentBoxProps) => {
-  const { user } = authState;
   const { mode, target, draft } = useSnapshot(commentState);
   const navigation = useNavigation();
   const route = useRoute();
@@ -141,6 +140,9 @@ export const CommentBox = ({
   // ---------------------------------------------------------------------------
 
   const handlePost = () => {
+    // Read auth at call time (not render time) — a destructured copy would go
+    // stale when the user signs in while this screen stays mounted.
+    const { user } = authState;
     if (!user || user.isAnonymous) {
       navigation.navigate("SignIn", { redirect: route.name });
       return;
