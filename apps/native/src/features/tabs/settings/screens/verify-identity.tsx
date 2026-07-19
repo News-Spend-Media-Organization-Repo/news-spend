@@ -372,7 +372,11 @@ const VerifyIdentity = () => {
       </KeyboardAwareScrollView>
 
       <BottomSheet isOpen={open} onOpenChange={setOpen}>
-        <BottomSheet.Portal>
+        {/* FullWindowOverlay (default) renders in a separate native iOS
+        window so the sheet appears above modals/keyboard, but that also
+        blocks the RN element inspector, which attaches to the main window
+        only. Disabled in dev so the inspector keeps working. */}
+        <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
           <BottomSheet.Overlay />
           <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
             <ListGroup variant="transparent">
