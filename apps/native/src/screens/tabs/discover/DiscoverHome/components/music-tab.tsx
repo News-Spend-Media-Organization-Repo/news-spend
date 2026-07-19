@@ -119,6 +119,7 @@ export const MusicTab = () => {
             }
           }
         }}
+        recycleItems={false}
         renderItem={renderItem}
         {...(Platform.OS === "android"
           ? {

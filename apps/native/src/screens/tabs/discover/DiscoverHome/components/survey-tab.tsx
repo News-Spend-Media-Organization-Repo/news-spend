@@ -270,6 +270,7 @@ export function SurveyTab() {
             }
           }
         }}
+        recycleItems={false}
         renderItem={renderSurveyCard}
         {...(Platform.OS === "android"
           ? {

@@ -8,6 +8,7 @@ import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { useConnectBrand } from "#/hooks/discover/useConnectBrand";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 
 import {
   AllTab,
@@ -53,6 +54,10 @@ function DiscoverHome() {
   const handleTabBarLayout = useCallback((height: number) => {
     setTabBarHeight(height);
   }, []);
+
+  // The tab shell (header buttons, tab bar) is interactive on first render;
+  // individual tabs manage their own loading states.
+  useMarkInteractive(true);
 
   return (
     <Screen systemBarStyle="light">

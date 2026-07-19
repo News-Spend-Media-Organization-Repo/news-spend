@@ -17,6 +17,7 @@ import type { PayloadLexicalReactRendererContent } from "#/components/lexical/ty
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
 import { useNews } from "#/hooks/news";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { getImageData } from "#/utils/getImageData";
 import { useArticleActions } from "./hooks/use-article-actions";
@@ -54,6 +55,9 @@ const SingleNews = () => {
     // if you want to keep trackLike/trackDislike wired in,
     // expose them from useArticleTracking instead
   );
+
+  // Emits nav_tti for /Tab/Home/News once the article content has rendered.
+  useMarkInteractive(Boolean(data));
 
   // Redirect on NOT_FOUND
   useEffect(() => {

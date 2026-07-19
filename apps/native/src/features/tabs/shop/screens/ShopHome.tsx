@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { useFavoriteStores } from "#/state/favoriteStoreState";
@@ -57,6 +58,9 @@ function ShopHome() {
   });
 
   const allStores = allStoresData?.pages.flatMap((page) => page.docs) ?? [];
+
+  // Emits nav_tti for /Tab/Shop/ShopHome once the default tab's stores load.
+  useMarkInteractive(!allStoresPending);
 
   return (
     <Screen className="bg-white" preset="fixed" systemBarStyle="light">
@@ -130,6 +134,7 @@ function ShopHome() {
               }
             }}
             onRefresh={refetchByUser}
+            recycleItems={false}
             refreshing={isRefetchingByUser}
             renderItem={({ item }) => <ShopItem item={item} />}
             showsVerticalScrollIndicator={false}
@@ -149,6 +154,7 @@ function ShopHome() {
             keyExtractor={(item) => item?.id}
             ListEmptyComponent={popularPending ? <ActivityIndicator /> : null}
             onRefresh={refetchByUser}
+            recycleItems={false}
             refreshing={isRefetchingByUser}
             renderItem={({ item }) => <ShopItem item={item} />}
             showsVerticalScrollIndicator={false}
@@ -166,6 +172,7 @@ function ShopHome() {
             data={favorites}
             ItemSeparatorComponent={() => <View style={{ height: 40 }} />}
             keyExtractor={(item) => item?.id!}
+            recycleItems={false}
             renderItem={({ item }) => <ShopItem item={item} />}
             showsVerticalScrollIndicator={false}
             style={{ flex: 1 }}

@@ -341,6 +341,7 @@ function Live() {
                   </Button>
                 ) : null
               }
+              recycleItems={false}
               renderItem={({ item }) =>
                 typeof item === "string" ? (
                   <View className="bg-white py-2 pl-2">

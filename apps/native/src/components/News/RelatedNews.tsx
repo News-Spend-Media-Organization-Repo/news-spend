@@ -172,6 +172,7 @@ function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
         data={news}
         horizontal
         keyExtractor={keyExtractor}
+        recycleItems
         renderItem={renderNewsItem}
         renderScrollComponent={CustomScrollView}
         showsHorizontalScrollIndicator={false}

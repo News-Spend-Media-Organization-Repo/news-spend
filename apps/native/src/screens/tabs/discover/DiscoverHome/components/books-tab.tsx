@@ -146,6 +146,7 @@ function BooksTabComponent() {
             }
           }
         }}
+        recycleItems={false}
         renderItem={renderItem}
         style={{
           paddingHorizontal: 12,

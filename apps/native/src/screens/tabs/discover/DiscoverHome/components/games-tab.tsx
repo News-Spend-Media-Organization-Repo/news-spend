@@ -93,6 +93,7 @@ export function GamesTab() {
             }
           }
         }}
+        recycleItems={false}
         refreshControl={Platform.OS === "android" ? refreshControl : undefined}
         renderItem={renderItem}
       />

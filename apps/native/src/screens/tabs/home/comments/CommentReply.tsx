@@ -201,6 +201,7 @@ function CommentReplies() {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           onRefresh={refetchByUser}
+          recycleItems={false}
           refreshing={isRefetchingByUser && !replies.isFetchingNextPage}
           renderItem={({ item }) => <Reply comment={item} ref={ref} />}
           // ItemSeparatorComponent={() => <Stack h={15} />}

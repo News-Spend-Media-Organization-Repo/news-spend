@@ -35,6 +35,7 @@ import { Icon } from "#/components/heroui/icon";
 import { ProgressBar } from "#/components/heroui/progress";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { orpc } from "#/lib/orpc";
 import { authState, logout } from "#/state/auth";
 import { randomColor } from "#/utils/index";
@@ -111,6 +112,9 @@ function SettingsHome() {
   const { user } = useSnapshot(authState);
   const isGuest = user?.isAnonymous === true;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Static menu screen — interactive as soon as it renders.
+  useMarkInteractive(true);
 
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);

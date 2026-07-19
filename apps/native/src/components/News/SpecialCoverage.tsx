@@ -58,6 +58,10 @@ export default function SpecialCoverage({
     [navigation]
   );
 
+  if (specialCoverage.length === 0) {
+    return null;
+  }
+
   return (
     <View className="gap-1">
       <Text className="px-4 font-semibold text-base">Special Coverage</Text>
@@ -72,6 +76,7 @@ export default function SpecialCoverage({
         horizontal
         // ItemSeparatorComponent={() => <Square w={15} />}
         // nestedScrollEnabled
+        recycleItems
         renderItem={coveragesRenderItem}
         renderScrollComponent={CustomScrollView}
         showsHorizontalScrollIndicator={false}

@@ -4,9 +4,13 @@ import { View } from "react-native";
 import { Button } from "#/components/heroui/button";
 import ConfirmAsGuest from "#/components/heroui/confirm-as-guest";
 import { Screen } from "#/components/heroui/screen";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 
 const Welcome = () => {
   const navigation = useNavigation("Welcome");
+
+  // Static screen — interactive as soon as it renders.
+  useMarkInteractive(true);
 
   return (
     <Screen className="bg-p-500 px-6" preset="fixed" systemBarStyle="light">

@@ -111,6 +111,7 @@ export const AppTab = () => {
             }
           }
         }}
+        recycleItems={false}
         renderItem={renderItem}
         {...(Platform.OS === "android"
           ? {

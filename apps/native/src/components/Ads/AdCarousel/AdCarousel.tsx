@@ -160,6 +160,7 @@ const AdCarousel: React.FC<
         horizontal
         keyExtractor={keyExtractor}
         onViewableItemsChanged={onViewableItemsChanged.current}
+        recycleItems={false}
         ref={promoListRef}
         renderItem={renderItem}
         renderScrollComponent={CustomScrollView}

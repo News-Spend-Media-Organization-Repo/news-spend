@@ -114,6 +114,7 @@ function LuckyAppWall() {
           keyExtractor={keyExtractor}
           ListEmptyComponent={emptyList}
           onRefresh={onRefresh}
+          recycleItems={false}
           refreshing={isRefetchingByUser}
           renderItem={renderAppItem}
         />

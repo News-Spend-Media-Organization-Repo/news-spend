@@ -8,6 +8,7 @@ import LiveListHeader from "#/components/News/LiveListHeader";
 import LiveListSkeleton from "#/components/News/LiveListSkeleton";
 import VideoNewsItem from "#/components/videoNews/VideoNewsItem";
 import { useAllNews } from "#/hooks/news";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 
 function LiveHome() {
@@ -60,6 +61,9 @@ function LiveHome() {
     fetchNextPage();
   }, [isFetchingNextPage, fetchNextPage, hasNextPage]);
 
+  // Emits nav_tti for /Tab/Live/LiveHome once the feed has rendered.
+  useMarkInteractive(!isPending);
+
   if (isPending) {
     return <LiveListSkeleton />;
   }
@@ -79,6 +83,7 @@ function LiveHome() {
         // ListHeaderComponent={renderHeader}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
+        recycleItems={false}
         refreshControl={
           <RefreshControl
             onRefresh={refetchByUser}

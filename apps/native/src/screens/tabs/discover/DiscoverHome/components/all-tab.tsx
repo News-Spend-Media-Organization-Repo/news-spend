@@ -311,6 +311,7 @@ const BooksSection = ({
       data={data}
       estimatedItemSize={200}
       horizontal
+      recycleItems={false}
       renderItem={({ item }) => (
         <BookItem
           item={item}
@@ -603,6 +604,7 @@ export const AllTab = () => {
             }
           }
         }}
+        recycleItems={false}
         ref={listRef}
         refreshControl={Platform.OS === "android" ? refreshControl : undefined}
         renderItem={renderItem}

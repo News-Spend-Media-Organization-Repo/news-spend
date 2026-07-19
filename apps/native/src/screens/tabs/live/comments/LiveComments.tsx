@@ -179,6 +179,7 @@ const LiveComments = ({ route }) => {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         onRefresh={refetchByUser}
+        recycleItems={false}
         refreshing={isRefetchingByUser}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
