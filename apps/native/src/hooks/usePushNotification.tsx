@@ -32,6 +32,27 @@ const setupAndroidChannel = async () => {
       showBadge: true,
       lightColor: "#FF231F7C",
     });
+
+    // Split from "default" so a user can turn down low-signal like
+    // notifications independently of replies, at the Android OS level —
+    // see resolveChannelId in packages/payload/src/lib/expo-push-service.ts.
+    // Channel settings only take effect on first creation; once a channel
+    // exists, the user's own choice in system settings always wins.
+    await Notifications.setNotificationChannelAsync("comments", {
+      name: "Comments & Replies",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
+      showBadge: true,
+      lightColor: "#FF231F7C",
+    });
+
+    await Notifications.setNotificationChannelAsync("likes", {
+      name: "Likes",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      showBadge: true,
+      lightColor: "#FF231F7C",
+    });
   }
 };
 

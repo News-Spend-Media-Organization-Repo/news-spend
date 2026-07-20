@@ -1,6 +1,6 @@
 import type { CollectionAfterChangeHook } from "payload";
 
-const LIKE_NOTIFICATION_DEBOUNCE_MS = 30 * 60 * 1000; // 30 minutes
+import { LIKE_NOTIFICATION_DEBOUNCE_MS } from "./commentLikeNotificationConfig";
 
 type ReactionDoc = {
   id: string | number;
@@ -19,10 +19,12 @@ type ReactionDoc = {
  * on unlike (that's a delete, handled by afterDelete, which this hook
  * doesn't run for).
  *
- * Debounced via the job queue: if a "sendCommentLikeNotification" job is
- * already pending for this comment, this no-ops — the pending job will pick
- * up the latest liker when it fires. Otherwise schedules one, so a burst of
- * likes on a popular comment collapses into a single push.
+ * Debounced per-author (not per-comment) via the job queue: if a
+ * "sendCommentLikeNotification" job is already pending for this comment's
+ * author, this no-ops — the pending job re-queries all of that author's
+ * recently-liked comments when it fires, so likes on *different* comments by
+ * the same author within the window collapse into one grouped push instead
+ * of one push per comment.
  */
 const notifyOnCommentLike: CollectionAfterChangeHook = async ({
   doc,
@@ -70,7 +72,7 @@ const notifyOnCommentLike: CollectionAfterChangeHook = async ({
       collection: "payload-jobs",
       where: {
         taskSlug: { equals: "sendCommentLikeNotification" },
-        "input.commentId": { equals: commentId },
+        "input.authorId": { equals: authorId },
         completedAt: { exists: false },
         hasError: { not_equals: true },
       },
@@ -96,7 +98,7 @@ const notifyOnCommentLike: CollectionAfterChangeHook = async ({
 
     await req.payload.jobs.queue({
       task: "sendCommentLikeNotification",
-      input: { commentId },
+      input: { authorId },
       waitUntil: new Date(Date.now() + LIKE_NOTIFICATION_DEBOUNCE_MS),
     });
   } catch (error) {

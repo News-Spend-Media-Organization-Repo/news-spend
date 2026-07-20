@@ -23,6 +23,38 @@ const NOTIFICATION_TYPE_TO_PREFERENCE: Record<string, string | undefined> = {
   promo: undefined,
 };
 
+/**
+ * Android notification channel to deliver on (registered client-side in
+ * usePushNotification.tsx). "comment" notifications cover two different
+ * kinds of activity — a reply (data.kind: "reply") and a like
+ * (data.kind: "like") — which get their own channels so a user can turn
+ * down low-signal like notifications on Android without also muting
+ * replies, while still sharing the same COMMENT preference toggle that
+ * gates whether either is sent at all. Everything else falls back to the
+ * pre-existing "default" channel.
+ */
+function resolveChannelId(notification: Notification): string {
+  if (notification.type !== "comment") {
+    return "default";
+  }
+  const data =
+    notification.data &&
+    typeof notification.data === "object" &&
+    !Array.isArray(notification.data)
+      ? (notification.data as Record<string, unknown>)
+      : undefined;
+  return data?.kind === "like" ? "likes" : "comments";
+}
+
+/**
+ * All push-tokens queries here sort by id. The job queue runs multiple
+ * notification jobs concurrently (Promise.all), and processTickets() later
+ * updates each returned token's row sequentially within its own job. Without
+ * a deterministic order, two concurrent jobs whose token sets overlap could
+ * acquire those row locks in different relative orders and deadlock in
+ * Postgres — sorting guarantees every job walks overlapping rows in the same
+ * order, so a circular wait can't form.
+ */
 async function resolveTokens(
   notification: Notification,
   req: PayloadRequest
@@ -55,6 +87,7 @@ async function resolveTokens(
 
       const result = await payload.find({
         collection: "push-tokens",
+        sort: "id",
         where: {
           user: { in: users.map((user) => user.id) },
           ...deviceTypeWhere,
@@ -67,6 +100,7 @@ async function resolveTokens(
 
     const result = await payload.find({
       collection: "push-tokens",
+      sort: "id",
       where: deviceTypeWhere,
       pagination: false,
       req,
@@ -88,6 +122,7 @@ async function resolveTokens(
 
     const result = await payload.find({
       collection: "push-tokens",
+      sort: "id",
       where: {
         user: { in: specificUserIds },
         ...deviceTypeWhere,
@@ -128,6 +163,7 @@ async function resolveSegmentTokens(
 
   const result = await payload.find({
     collection: "push-tokens",
+    sort: "id",
     where: segmentWhere,
     pagination: false,
     req,
@@ -306,10 +342,13 @@ export async function sendNotification(
     const expo = new Expo();
     const deviceTokens = await resolveTokens(notification, req);
 
+    const channelId = resolveChannelId(notification);
+
     const messages: ExpoPushMessage[] = deviceTokens.map((token) => ({
       to: token.token,
       title: notification.title,
       body: notification.body,
+      channelId,
       data: {
         ...(notification.data &&
         typeof notification.data === "object" &&

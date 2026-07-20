@@ -3,9 +3,9 @@ import { getTweet } from "react-tweet/api";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const tweet = await getTweet(id);
