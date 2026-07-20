@@ -1,6 +1,9 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
-import { useLinkBuilder } from "@react-navigation/native";
+import {
+  getFocusedRouteNameFromRoute,
+  useLinkBuilder,
+} from "@react-navigation/native";
 import { cn } from "heroui-native";
 import { memo, useCallback } from "react";
 import type { LayoutChangeEvent } from "react-native";
@@ -9,26 +12,34 @@ import { Text } from "#/components/heroui/text";
 import { setTabBarHeight } from "#/state/route-state";
 import { FloatingOverlays } from "./floating-overlays";
 
-const VISIBLE_SCREENS = new Set([
+// Root screen of each tab where the tab bar should show, plus the tab's own
+// route name (Home/Live/Shop/Discover). Both are needed: tabs are lazy by
+// default, so on a tab's first focus its nested stack hasn't mounted/reported
+// state back yet, and getFocusedRouteNameFromRoute briefly returns undefined
+// for that one render — falling back to the tab's own name. Without the tab
+// names here too, that render would incorrectly hide the tab bar for a frame
+// before the nested stack resolves and it pops back — a visible flicker.
+// Deliberately excludes Settings/SettingsHome — the tab bar is never shown
+// anywhere in the Settings tab, including its own root.
+const TAB_ROOT_ROUTES = new Set([
   "NewsHome",
   "LiveHome",
   "ShopHome",
   "DiscoverHome",
+  "Home",
+  "Live",
+  "Shop",
+  "Discover",
 ]);
-const VISIBLE_TABS = new Set(["Home", "Live", "Shop", "Discover"]); // not Settings
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const currentRoute = state.routes[state.index];
-  const nestedState = currentRoute.state;
-  const activeRouteName = nestedState
-    ? nestedState.routes[nestedState.index ?? 0].name
-    : currentRoute.name;
+  const focusedRouteName = getFocusedRouteNameFromRoute(currentRoute);
+  const isTabBarVisible = TAB_ROOT_ROUTES.has(
+    focusedRouteName ?? currentRoute.name
+  );
 
   const { buildHref } = useLinkBuilder();
-
-  const isTabBarVisible = nestedState
-    ? VISIBLE_SCREENS.has(activeRouteName)
-    : VISIBLE_TABS.has(currentRoute.name);
 
   const onTabBarLayout = useCallback((event: LayoutChangeEvent) => {
     setTabBarHeight(event.nativeEvent.layout.height);
