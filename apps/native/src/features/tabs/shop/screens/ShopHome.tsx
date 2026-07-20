@@ -1,5 +1,4 @@
 import { LegendList } from "@legendapp/list/react-native";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Tabs } from "heroui-native/tabs";
 import { useState } from "react";
@@ -10,12 +9,13 @@ import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { useFavoriteStores } from "#/state/favoriteStoreState";
+import { useTabBarHeight } from "#/state/route-state";
 import ShopItem from "../components/ShopItem";
 
 function ShopHome() {
   const [activeTab, setActiveTab] = useState("allStores");
   const { stores: favorites } = useFavoriteStores();
-  const bottomTabBarHeight = useBottomTabBarHeight();
+  const bottomTabBarHeight = useTabBarHeight();
 
   const {
     data: allStoresData,

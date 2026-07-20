@@ -1,5 +1,4 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Separator, Spinner } from "heroui-native";
 import { memo, useCallback, useRef } from "react";
 import { View } from "react-native";
@@ -9,6 +8,7 @@ import NewsItemGoogleAds, {
 } from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { useTabBarHeight } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
@@ -18,7 +18,7 @@ const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 type NewType = React.RefObject<LegendListRef>;
 
 const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useTabBarHeight();
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
   const { data, isPending, refetch, fetchNextPage, isFetching, hasNextPage } =
     useAllNews({
@@ -94,7 +94,7 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
   return (
     <LegendList
       contentContainerStyle={{
-        paddingBottom: tabBarHeight / 2,
+        paddingBottom: tabBarHeight + 20,
         paddingTop: 15,
         paddingHorizontal: 10,
       }}

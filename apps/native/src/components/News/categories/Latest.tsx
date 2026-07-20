@@ -4,7 +4,6 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Separator, Spinner } from "heroui-native";
@@ -23,7 +22,7 @@ import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
-import { routeState } from "#/state/route-state";
+import { routeState, useTabBarHeight } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
 import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
@@ -66,7 +65,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
   // Keyed by ad item id — stable across recycles, unlike positional arrays
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useTabBarHeight();
   const { trackImpression } = useNewsAnalytics();
   const trackImpressionRef = useRef(trackImpression);
   useEffect(() => {
@@ -141,10 +140,28 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
     orpc.news.trending.queryOptions({ input: { limit: 3 } })
   );
 
-  const flattenedNews = useMemo(
-    () => news?.pages.flatMap((page) => page.docs),
-    [news]
+  // Articles already shown in the trending carousel shouldn't also appear
+  // further down in the Latest list.
+  const trendingIds = useMemo(
+    () => new Set(trendingNews.data?.map((item) => item.id)),
+    [trendingNews.data]
   );
+
+  const flattenedNews = useMemo(() => {
+    const docs = news?.pages.flatMap((page) => page.docs);
+    if (!docs || trendingIds.size === 0) {
+      return docs;
+    }
+    return docs.filter(
+      (item) =>
+        !(
+          item &&
+          "type" in item &&
+          (item.type === "article" || item.type === "video") &&
+          trendingIds.has(item.id)
+        )
+    );
+  }, [news, trendingIds]);
   flattenedNewsRef.current = flattenedNews;
 
   // id → index lookup so the gAd-preload walk in onViewableItemsChanged
@@ -358,7 +375,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   return (
     <LegendList
       contentContainerStyle={{
-        paddingBottom: tabBarHeight / 2,
+        paddingBottom: tabBarHeight + 20,
         paddingTop: 15,
       }}
       data={flattenedNews}

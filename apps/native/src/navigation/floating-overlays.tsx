@@ -40,15 +40,15 @@ export function FloatingOverlays({
   return (
     <Animated.View
       pointerEvents={isTabBarVisible ? "box-none" : "none"}
-      // style={[
-      //   {
-      //     position: "absolute",
-      //     bottom: tabBarHeight,
-      //     left: 0,
-      //     right: 0,
-      //   },
-      //   animatedStyle,
-      // ]}
+      style={[
+        {
+          position: "absolute",
+          bottom: tabBarHeight,
+          left: 0,
+          right: 0,
+        },
+        animatedStyle,
+      ]}
     >
       <MusicPlayer />
       <LiveBanner

@@ -29,6 +29,7 @@ import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { orpc } from "#/lib/orpc";
 import { navigationRef } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
+import { useTabBarHeight } from "#/state/route-state";
 import { getImageData } from "#/utils/getImageData";
 import { AppItem } from "./app-item";
 import { GameItem } from "./game-item";
@@ -398,6 +399,7 @@ export const AllTab = () => {
   const isFocused = useIsFocused();
   const { handleClick, isLoading: isPartnerLoading } = usePartnerClick();
   const listRef = useRef<LegendListRef>(null);
+  const tabBarHeight = useTabBarHeight();
 
   const {
     appsData,
@@ -592,7 +594,10 @@ export const AllTab = () => {
   return (
     <View className="flex-1">
       <TabLegendList
-        contentContainerStyle={{ paddingVertical: 12 }}
+        contentContainerStyle={{
+          paddingTop: 12,
+          paddingBottom: 12 + tabBarHeight,
+        }}
         data={sections}
         keyExtractor={keyExtractor}
         onScrollEndDrag={(e) => {

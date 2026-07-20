@@ -1,6 +1,5 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { FeedItem } from "@news-spend-media/api/router/news/content-builders";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { memo, useCallback, useMemo } from "react";
 import { ActivityIndicator, RefreshControl } from "react-native";
 import { Screen } from "#/components/heroui/screen";
@@ -10,9 +9,10 @@ import VideoNewsItem from "#/components/videoNews/VideoNewsItem";
 import { useAllNews } from "#/hooks/news";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { useTabBarHeight } from "#/state/route-state";
 
 function LiveHome() {
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useTabBarHeight();
   const {
     data,
     isPending,

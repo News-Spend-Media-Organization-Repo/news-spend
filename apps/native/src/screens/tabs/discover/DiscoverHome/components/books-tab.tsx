@@ -11,6 +11,7 @@ import { Image } from "#/components/ui";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
+import { useTabBarHeight } from "#/state/route-state";
 import { getImageData } from "#/utils/getImageData";
 import {
   PullToRefreshIndicator,
@@ -21,6 +22,7 @@ const ITEM_HEIGHT = 280;
 
 function BooksTabComponent() {
   const { handleClick, isLoading } = usePartnerClick();
+  const tabBarHeight = useTabBarHeight();
 
   const queryOptions = orpc.partnerContent.filtered.infiniteOptions({
     input: (pageParam: number | undefined) => ({
@@ -124,7 +126,8 @@ function BooksTabComponent() {
     <View className="flex-1">
       <TabLegendList
         contentContainerStyle={{
-          paddingVertical: 10,
+          paddingTop: 10,
+          paddingBottom: 10 + tabBarHeight,
           gap: 25,
           paddingHorizontal: 12,
         }}
