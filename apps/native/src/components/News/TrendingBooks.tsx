@@ -51,6 +51,10 @@ export default function TrendingBooks({
     );
   }, []);
 
+  if (books.length === 0) {
+    return null;
+  }
+
   return (
     <View className="gap-1.5">
       <Text className="px-4 font-semibold text-base">Trending Books</Text>
@@ -63,6 +67,7 @@ export default function TrendingBooks({
         data={books}
         estimatedItemSize={136}
         horizontal
+        recycleItems
         renderItem={booksRenderItem}
         renderScrollComponent={CustomScrollView}
         showsHorizontalScrollIndicator={false}

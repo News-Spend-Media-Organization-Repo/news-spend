@@ -16,6 +16,18 @@ const Comments: CollectionConfig = {
     // Admins should have full control
   },
   hooks: {
+    beforeChange: [
+      // totalReplies is maintained by raw SQL in the afterChange/afterDelete
+      // hooks below. Strip it from incoming Payload writes (e.g. admin edits)
+      // so a stale form value can't overwrite the counter.
+      ({ data, operation }) => {
+        if (operation === "update" && data && "totalReplies" in data) {
+          const { totalReplies, ...rest } = data;
+          return rest;
+        }
+        return data;
+      },
+    ],
     afterChange: [
       async ({ doc, operation, req }) => {
         if (operation !== "create") {

@@ -12,7 +12,7 @@ import { userQueryOptions } from "../hooks/useUser";
 export default function RegSuccess() {
   const { data, isPending, error } = authClient.useSession();
   const queryClient = useQueryClient();
-  const navigation = useNavigation();
+  const navigation = useNavigation("RegSuccess");
   const { status } = useSnapshot(authState);
 
   const onContinue = () => {
@@ -21,11 +21,13 @@ export default function RegSuccess() {
     }
     queryClient.setQueryData(userQueryOptions.queryKey, data);
     setAuthSession(data, "signIn");
-    // When the session already exists (status is already "signIn"), the auth
-    // state doesn't change so React Navigation won't auto-reset to Tab.
-    // Navigate explicitly in that case.
+    // When the session already exists (status is already "signIn"), this is
+    // an anonymous guest upgrading to a real account, so Tab is already in
+    // the stack below the auth screens and React Navigation won't auto-swap
+    // to it. Pop back to that existing Tab instance (preserving whatever
+    // screen the guest was on) instead of resetting to a fresh one.
     if (status === "signIn") {
-      navigation.reset({ index: 0, routes: [{ name: "Tab" }] });
+      navigation.popToTop();
     }
   };
 

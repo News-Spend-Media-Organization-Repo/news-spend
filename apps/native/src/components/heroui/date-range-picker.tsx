@@ -139,7 +139,9 @@ export function DateRangePicker({
   if (presentation === "bottom-sheet") {
     return (
       <BottomSheet isOpen={open} onOpenChange={onOpenChange}>
-        <BottomSheet.Portal>
+        {/* disableFullWindowOverlay in dev: default FullWindowOverlay renders
+        in a separate native window and blocks the RN element inspector. */}
+        <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
           <BottomSheet.Overlay />
           <BottomSheet.Content
             contentContainerClassName="pb-safe"

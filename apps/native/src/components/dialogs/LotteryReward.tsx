@@ -134,7 +134,10 @@ export default memo(function LotteryReward() {
   // Keyed on data?.id (not `data`) so marking the reward `claimed` in the
   // cache after a claim doesn't produce a new object reference and
   // re-trigger this effect, which would reopen the dialog.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally keyed on data?.id, see comment above
+  // `user` is intentionally omitted from deps — including it would re-open
+  // the dialog every time the auth session reference changes (e.g. after
+  // useUser() re-fetches on Profile visit), even for the same reward.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (data && !isPending && user) {
       timeoutRef.current = setTimeout(() => {
@@ -148,7 +151,7 @@ export default memo(function LotteryReward() {
         }
       };
     }
-  }, [data?.id, isPending, user, load]);
+  }, [data?.id, isPending, load]);
 
   // `handleClaim` is read through a ref instead of a dependency: it's
   // re-created whenever `isClaimPending` changes, and `isClosed`/

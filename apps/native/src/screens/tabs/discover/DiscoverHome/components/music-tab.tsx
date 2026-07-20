@@ -7,6 +7,7 @@ import { Button } from "#/components/heroui/button";
 import { ProgressBar } from "#/components/heroui/progress";
 import { Text } from "#/components/heroui/text";
 import { usePlayerState } from "#/state/audioPlayerState";
+import { useTabBarHeight } from "#/state/route-state";
 
 import {
   PullToRefreshIndicator,
@@ -34,6 +35,7 @@ const keyExtractor = (item: RadioSectionItem): string => {
 
 export const MusicTab = () => {
   const { listeningTime, pointEarnedToday } = usePlayerState();
+  const tabBarHeight = useTabBarHeight();
 
   const timeInPercentage = useMemo(
     () => Math.round((listeningTime / 1800) * 100),
@@ -87,7 +89,7 @@ export const MusicTab = () => {
   return (
     <View className="flex-1">
       <TabLegendList
-        contentContainerClassName="pb-4"
+        contentContainerStyle={{ paddingBottom: 16 + tabBarHeight }}
         data={sections}
         estimatedItemSize={200}
         keyExtractor={keyExtractor}
@@ -119,6 +121,7 @@ export const MusicTab = () => {
             }
           }
         }}
+        recycleItems={false}
         renderItem={renderItem}
         {...(Platform.OS === "android"
           ? {

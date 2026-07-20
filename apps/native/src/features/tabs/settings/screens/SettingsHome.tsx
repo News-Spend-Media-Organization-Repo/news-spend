@@ -35,8 +35,9 @@ import { Icon } from "#/components/heroui/icon";
 import { ProgressBar } from "#/components/heroui/progress";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { orpc } from "#/lib/orpc";
-import { authState, isAnonymous, logout } from "#/state/auth";
+import { authState, logout } from "#/state/auth";
 import { randomColor } from "#/utils/index";
 
 type SettingsItem = {
@@ -108,8 +109,12 @@ const settingsItems: SettingsItem[] = [
 function SettingsHome() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const isGuest = isAnonymous();
+  const { user } = useSnapshot(authState);
+  const isGuest = user?.isAnonymous === true;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Static menu screen — interactive as soon as it renders.
+  useMarkInteractive(true);
 
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
@@ -123,13 +128,13 @@ function SettingsHome() {
   }, []);
 
   const handleSignIn = useCallback(() => {
-    navigation.navigate("SignIn");
+    navigation.navigate("SignIn", { redirect: true });
   }, [navigation]);
 
   const handlePress = useCallback(
     async (screen: any, authRequired = false) => {
-      if (authRequired && (!authState.user || authState.user?.isAnonymous)) {
-        return navigation.navigate("SignIn");
+      if (authRequired && (!user || user?.isAnonymous)) {
+        return navigation.navigate("SignIn", { redirect: true });
       }
       if (screen === "RateApp") {
         const storeUrl = Platform.select({
@@ -150,7 +155,7 @@ function SettingsHome() {
       }
       navigation.navigate(screen);
     },
-    [navigation]
+    [navigation, user]
   );
 
   const appVersion = Application.nativeApplicationVersion ?? "1.0.0";
@@ -171,7 +176,7 @@ function SettingsHome() {
       </ScrollView>
       <Button
         className="absolute right-0 bottom-safe-offset-4 left-0 mx-4"
-        isDisabled={isLoggingOut}
+        // isDisabled={isLoggingOut}
         onPress={isGuest ? handleSignIn : handleLogout}
       >
         {isLoggingOut ? <Spinner /> : null}
@@ -190,7 +195,7 @@ type ListHeaderProps = {
 function ListHeader({ onPress }: ListHeaderProps) {
   const navigation = useNavigation();
   const { user } = useSnapshot(authState);
-  const isGuest = isAnonymous();
+  const isGuest = user?.isAnonymous === true;
   const dangerColor = useThemeColor("danger");
 
   const {

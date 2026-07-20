@@ -257,5 +257,12 @@ export function PayloadLexicalReactRenderer<
     [renderElement, renderText, renderBlock]
   );
 
-  return <>{serialize(content?.root?.children)}</>;
+  // Serializing walks the whole document tree recursively — memoize so
+  // unrelated re-renders of the screen don't rebuild the article JSX.
+  const rendered = React.useMemo(
+    () => serialize(content?.root?.children),
+    [serialize, content]
+  );
+
+  return <>{rendered}</>;
 }

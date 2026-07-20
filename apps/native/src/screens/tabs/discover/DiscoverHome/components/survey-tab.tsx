@@ -11,6 +11,7 @@ import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { authState } from "#/state/auth";
+import { useTabBarHeight } from "#/state/route-state";
 import {
   PullToRefreshIndicator,
   triggerRefreshHaptic,
@@ -33,6 +34,7 @@ const PROVIDER_NAMES: Record<string, string> = {
 export function SurveyTab() {
   const navigation = useNavigation("DiscoverHome");
   const { user } = useSnapshot(authState);
+  const tabBarHeight = useTabBarHeight();
 
   const surveyQuery = useQuery(
     orpc.survey.offers.getOffers.queryOptions({
@@ -255,7 +257,10 @@ export function SurveyTab() {
     <View className="flex-1">
       <PullToRefreshIndicator refreshing={isRefetchingByUser} />
       <TabLegendList
-        contentContainerStyle={{ padding: 15 }}
+        contentContainerStyle={{
+          padding: 15,
+          paddingBottom: 15 + tabBarHeight,
+        }}
         data={otherSurveys}
         keyExtractor={(item: Offer) => item?.id ?? ""}
         ListEmptyComponent={renderListEmptyComponent}
@@ -270,6 +275,7 @@ export function SurveyTab() {
             }
           }
         }}
+        recycleItems={false}
         renderItem={renderSurveyCard}
         {...(Platform.OS === "android"
           ? {

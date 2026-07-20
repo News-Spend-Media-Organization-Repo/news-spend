@@ -1,16 +1,17 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNetInfo } from "@react-native-community/netinfo";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 import {
   type InfiniteData,
   useInfiniteQuery,
-  useQuery,
+  useQueries,
 } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
+import { HighlightedReply } from "#/components/comment/HighlightedReply";
 import Reply from "#/components/comment/Reply";
 
 import { Screen } from "#/components/heroui/screen";
@@ -20,7 +21,14 @@ import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 
 function CommentReplies() {
-  const { commentId, ...rest } = useRoute("CommentReply").params;
+  const { commentId, highlightCommentId, ...rest } = useRoute("CommentReply")
+    .params as {
+    commentId: string;
+    highlightCommentId?: string;
+    newsId?: string;
+    newsSlug?: string;
+    focus?: boolean;
+  };
   const ref = useRef<TextInput>(null);
   const { isConnected } = useNetInfo();
 
@@ -35,48 +43,84 @@ function CommentReplies() {
       };
     }
   }, [rest?.focus]);
-  const { data, isPending, isError } = useQuery(
-    orpc.comments.one.queryOptions({
-      input: commentId,
-      initialData: () => {
-        const comments = queryClient.getQueryData<
-          InfiniteData<RouterOutputs["comments"]["all"]>
-        >(
-          orpc.comments.all.infiniteKey({
-            input: (pageParam) => ({ newsId: rest.newsId, page: pageParam }),
+  const showHighlight =
+    Boolean(highlightCommentId) && highlightCommentId !== commentId;
+
+  // Shared helper to seed a single-comment query from the paginated all-comments
+  // cache — avoids a network round-trip when the comment was already loaded.
+  const getCommentFromCache = (
+    targetId: string
+  ): RouterOutputs["comments"]["one"] | undefined => {
+    if (!rest.newsId) {
+      return;
+    }
+    const comments = queryClient.getQueryData<
+      InfiniteData<RouterOutputs["comments"]["all"]>
+    >(
+      orpc.comments.all.infiniteKey({
+        input: (pageParam) => ({
+          newsId: rest.newsId,
+          page: pageParam,
+        }),
+        initialPageParam: undefined,
+      })
+    );
+    const found = comments?.pages
+      .flatMap((page) => page.docs)
+      .find((comment) => comment.id === targetId);
+    if (!found) {
+      return;
+    }
+    return {
+      ...found,
+      user: found.user ?? { id: "", username: "" },
+    } as RouterOutputs["comments"]["one"];
+  };
+
+  const [rootCommentQuery, highlightedCommentQuery] = useQueries({
+    queries: [
+      orpc.comments.one.queryOptions({
+        input: commentId,
+        initialData: () => getCommentFromCache(commentId),
+        initialDataUpdatedAt: () => {
+          const qKey = orpc.comments.all.infiniteKey({
+            input: (pageParam) => ({
+              newsId: rest.newsId ?? "",
+              page: pageParam,
+            }),
             initialPageParam: undefined,
-          })
-        );
-        const found = comments?.pages
-          .flatMap((page) => page.docs)
-          .find((comment) => comment.id === commentId);
-        if (!found) {
-          return;
-        }
-        return {
-          ...found,
-          user: found.user ?? { id: "", username: "" },
-        } as RouterOutputs["comments"]["one"];
-      },
-      initialDataUpdatedAt: () => {
-        const qKey = orpc.comments.all.infiniteKey({
-          input: (pageParam) => ({ newsId: rest.newsId, page: pageParam }),
-          initialPageParam: undefined,
-        });
-        return queryClient.getQueryState(qKey)?.dataUpdatedAt;
-      },
-    })
-  );
+          });
+          return queryClient.getQueryState(qKey)?.dataUpdatedAt;
+        },
+      }),
+      orpc.comments.one.queryOptions({
+        input: highlightCommentId ?? "",
+        enabled: showHighlight,
+        initialData: () =>
+          highlightCommentId
+            ? getCommentFromCache(highlightCommentId)
+            : undefined,
+      }),
+    ],
+  });
+
+  const { data, isPending, isError } = rootCommentQuery;
+  const effectiveNewsId =
+    rest.newsId ??
+    (typeof data?.news === "string" ? data?.news : data?.news?.id);
+
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
       input: (pageParam: number | undefined) => ({
-        newsId: rest.newsId,
+        // Guarded by `enabled` below — never actually fetches with "".
+        newsId: effectiveNewsId ?? "",
         parentId: commentId,
         page: pageParam,
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
+      enabled: Boolean(effectiveNewsId),
     })
   );
 
@@ -86,9 +130,11 @@ function CommentReplies() {
     }
   };
 
-  const _navigation = useNavigation();
-
-  const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
+  // The notification's target comment is pinned under the root header, so
+  // drop it from the regular list to avoid rendering it twice.
+  const allPages = (
+    replies.data?.pages.flatMap((page) => page.docs) ?? []
+  ).filter((item) => !showHighlight || item.id !== highlightCommentId);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
     replies.refetch
   );
@@ -101,15 +147,17 @@ function CommentReplies() {
     );
   }
 
-  // if ((isError || replies.isError) && isConnected) {
-  //   return (
-  //     <Screen>
-  //       <Stack flex={1} px={10} mt={10}>
-  //         <Paragraph textAlign="center">Something went wrong</Paragraph>
-  //       </Stack>
-  //     </Screen>
-  //   );
-  // }
+  if (isError || !data) {
+    return (
+      <Screen>
+        <View className="flex-1 items-center justify-center px-2.5">
+          <Text className="text-center">
+            {isError ? "Something went wrong" : "This comment has been deleted"}
+          </Text>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen
@@ -137,12 +185,23 @@ function CommentReplies() {
           ListFooterComponent={
             replies.isFetchingNextPage ? <ActivityIndicator /> : null
           }
-          ListHeaderComponent={<CommentCard comment={data} ref={ref} />}
+          ListHeaderComponent={
+            <>
+              <CommentCard comment={data} ref={ref} />
+              {showHighlight && highlightedCommentQuery.data ? (
+                <HighlightedReply
+                  comment={highlightedCommentQuery.data}
+                  inputRef={ref}
+                />
+              ) : null}
+            </>
+          }
           ListHeaderComponentStyle={{ marginVertical: 15 }}
           // showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           onRefresh={refetchByUser}
+          recycleItems={false}
           refreshing={isRefetchingByUser && !replies.isFetchingNextPage}
           renderItem={({ item }) => <Reply comment={item} ref={ref} />}
           // ItemSeparatorComponent={() => <Stack h={15} />}

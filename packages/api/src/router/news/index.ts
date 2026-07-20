@@ -6,6 +6,7 @@ import { protectedProcedure, publicProcedure } from "../..";
 import { withCache } from "../../lib/cache";
 import { createAdManager, DEFAULT_AD_CONFIG } from "./ad-manager";
 import { newsAnalyticsRouter } from "./analytics";
+import { getCommentCountForNews } from "./comment-counts";
 import {
   fetchMainNews,
   fetchPromoMedia,
@@ -232,19 +233,24 @@ const recordView = publicProcedure
     }
 
     if (incremented) {
-      const updated = await payload.update({
-        collection: "news",
-        id: doc.id,
-        data: { views: (doc.views ?? 0) + 1 },
-      });
-      try {
-        const { getRedis } = await import("../../lib/redis");
-        const r = getRedis();
-        await r.incr(`news:views:${doc.id}`);
-      } catch {
-        // ignore
-      }
-      return { ok: true, views: updated.views, incremented: true };
+      // Raw SQL (not payload.update) on purpose: news is a drafts/versions
+      // collection, and a normal update writes a new _news_v snapshot on
+      // every call — meaning every article view was generating a junk
+      // editorial-history entry. It was also a non-atomic read-then-write
+      // (data: { views: (doc.views ?? 0) + 1 }), so concurrent viewers could
+      // race and lose an increment. Raw SQL is a single atomic UPDATE and
+      // bypasses Payload's hooks/versioning entirely — the one afterChange
+      // hook on News (sendNotificationOnCreate) already no-ops on repeat
+      // updates via doc.hasBeenPublished, so skipping it here changes nothing.
+      const { sql } = await import("@payloadcms/db-postgres");
+      const result = await payload.db.drizzle.execute(sql`
+        UPDATE news SET views = COALESCE(views, 0) + 1
+        WHERE id = ${doc.id}
+        RETURNING views
+      `);
+      const updatedViews = (result.rows[0] as { views: number } | undefined)
+        ?.views;
+      return { ok: true, views: updatedViews ?? doc.views, incremented: true };
     }
 
     // not incremented due to dedupe
@@ -337,12 +343,16 @@ const one = publicProcedure
       });
     }
     const doc = news.docs[0]!;
-    const userReaction = await getUserReactionForNews(
-      payload,
-      user?.id,
-      doc.id
-    );
-    return { ...doc, content: sanitizeContent(doc.content), userReaction };
+    const [userReaction, totalComments] = await Promise.all([
+      getUserReactionForNews(payload, user?.id, doc.id),
+      getCommentCountForNews(payload, doc.id),
+    ]);
+    return {
+      ...doc,
+      content: sanitizeContent(doc.content),
+      userReaction,
+      totalComments,
+    };
   });
 
 const relatedNews = publicProcedure

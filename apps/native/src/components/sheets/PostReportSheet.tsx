@@ -57,7 +57,9 @@ function PostReportSheet(props) {
 
   return (
     <BottomSheet isOpen={props.open} onOpenChange={props.onOpenChange}>
-      <BottomSheet.Portal>
+      {/* disableFullWindowOverlay in dev: default FullWindowOverlay renders in
+      a separate native window and blocks the RN element inspector. */}
+      <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
         <BottomSheet.Overlay />
         <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
           <View className="gap-3.5 px-3 pt-3">

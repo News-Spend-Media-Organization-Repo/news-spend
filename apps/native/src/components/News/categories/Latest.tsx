@@ -4,12 +4,11 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Separator, Spinner } from "heroui-native";
 import type { ComponentRef, JSX, RefObject } from "react";
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { View } from "react-native";
 import { subscribeKey } from "valtio/utils";
 import type { AdCarouselRef } from "#/components/Ads/AdCarousel";
@@ -19,10 +18,11 @@ import type { NewsItemGoogleAdRef } from "#/components/Ads/NewsItemGoogleAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
-import { routeState } from "#/state/route-state";
+import { routeState, useTabBarHeight } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
 import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
@@ -31,6 +31,15 @@ import RelatedNews from "../RelatedNews";
 import RewardTaskItemCard from "../RewardTaskItem";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
+
+// Stable empty fallbacks — inline `?? []` would mint a new identity every
+// render and defeat MemoizedListHeader's memo.
+const EMPTY_DOCS: RouterOutputs["news"]["home"]["docs"] = [];
+const EMPTY_BOOKS: PartnerContent[] = [];
+
+const VIEWABILITY_CONFIG = {
+  itemVisiblePercentThreshold: 40,
+};
 
 const MemoizedListHeader = memo(
   ({
@@ -56,7 +65,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
   // Keyed by ad item id — stable across recycles, unlike positional arrays
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useTabBarHeight();
   const { trackImpression } = useNewsAnalytics();
   const trackImpressionRef = useRef(trackImpression);
   useEffect(() => {
@@ -71,8 +80,9 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const videoNews = useAllNews({
     type: "video",
   });
-  const flattenedVideoNews = videoNews?.data?.pages.flatMap(
-    (page) => page?.docs
+  const flattenedVideoNews = useMemo(
+    () => videoNews?.data?.pages.flatMap((page) => page?.docs),
+    [videoNews?.data]
   );
 
   const previousTabName = useRef(routeState.tabName);
@@ -130,8 +140,42 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
     orpc.news.trending.queryOptions({ input: { limit: 3 } })
   );
 
-  const flattenedNews = news?.pages.flatMap((page) => page.docs);
+  // Articles already shown in the trending carousel shouldn't also appear
+  // further down in the Latest list.
+  const trendingIds = useMemo(
+    () => new Set(trendingNews.data?.map((item) => item.id)),
+    [trendingNews.data]
+  );
+
+  const flattenedNews = useMemo(() => {
+    const docs = news?.pages.flatMap((page) => page.docs);
+    if (!docs || trendingIds.size === 0) {
+      return docs;
+    }
+    return docs.filter(
+      (item) =>
+        !(
+          item &&
+          "type" in item &&
+          (item.type === "article" || item.type === "video") &&
+          trendingIds.has(item.id)
+        )
+    );
+  }, [news, trendingIds]);
   flattenedNewsRef.current = flattenedNews;
+
+  // id → index lookup so the gAd-preload walk in onViewableItemsChanged
+  // doesn't do an O(n) findIndex per viewability change.
+  const newsIndexByIdRef = useRef<Map<string, number>>(new Map());
+  useMemo(() => {
+    const map = newsIndexByIdRef.current;
+    map.clear();
+    flattenedNews?.forEach((item, index) => {
+      if (item && "id" in item && item.id) {
+        map.set(item.id, index);
+      }
+    });
+  }, [flattenedNews]);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
   const trendingRefetch = useRefreshByUser(trendingNews.refetch);
@@ -159,7 +203,10 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   }, []);
 
   const keyExtractor = useCallback(
-    (item: RouterOutputs["news"]["home"]["docs"][0]) => item?.id ?? "",
+    (item: RouterOutputs["news"]["home"]["docs"][0], index: number) =>
+      // Never fall back to a shared constant key — with recycleItems, duplicate
+      // keys make recycled cells bleed state between items.
+      item?.id ?? `${item && "_type" in item ? item._type : "item"}-${index}`,
     []
   );
 
@@ -274,9 +321,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       ) {
         const feed = flattenedNewsRef.current;
         if (feed) {
-          const startIdx = feed.findIndex(
-            (i) => i && "id" in i && i.id === item.item.id
-          );
+          const startIdx = newsIndexByIdRef.current.get(item.item.id) ?? -1;
           let preloaded = 0;
           for (let i = startIdx + 1; i < feed.length && preloaded < 2; i++) {
             const next = feed[i];
@@ -318,14 +363,19 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   // #endregion
   useScrollToTop(ref);
 
-  if (isPending || videoNews.isPending || partnerContent.isPending) {
+  // Emits nav_tti for /Tab/Home/NewsHome once the feed has rendered.
+  useMarkInteractive(!isPending);
+
+  // Only the main feed gates first paint. The header-only queries (video
+  // news, partner books, trending) stream into their sections when ready.
+  if (isPending) {
     return <HomeListSkeleton />;
   }
 
   return (
     <LegendList
       contentContainerStyle={{
-        paddingBottom: tabBarHeight / 2,
+        paddingBottom: tabBarHeight + 20,
         paddingTop: 15,
       }}
       data={flattenedNews}
@@ -336,9 +386,9 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       ListFooterComponent={FooterItem}
       ListHeaderComponent={
         <MemoizedListHeader
-          books={flattenedPartnerContent ?? []}
-          news={trendingNews.data ?? []}
-          specialCoverage={flattenedVideoNews ?? []}
+          books={flattenedPartnerContent ?? EMPTY_BOOKS}
+          news={trendingNews.data ?? EMPTY_DOCS}
+          specialCoverage={flattenedVideoNews ?? EMPTY_DOCS}
         />
       }
       onEndReached={onEndReached}
@@ -351,9 +401,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
       // suggestEstimatedItemSize
-      viewabilityConfig={{
-        itemVisiblePercentThreshold: 40,
-      }}
+      viewabilityConfig={VIEWABILITY_CONFIG}
     />
   );
 });

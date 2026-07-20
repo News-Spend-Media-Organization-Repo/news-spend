@@ -9,7 +9,11 @@
     "ultracite/biome/next"
   ],
   "javascript": {
-    "globals": ["Bun", "__DEV__", "jest"]
+    "globals": [
+      "Bun",
+      "__DEV__",
+      "jest"
+    ]
   },
   "linter": {
     "rules": {
@@ -73,6 +77,7 @@
       "includes": [
         "**/uniwind-types.d.ts",
         "**/migrations/**",
+        "**/payload-types.d.ts",
         "**/payload-generated-schema.ts"
       ],
       "linter": {

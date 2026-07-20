@@ -7,6 +7,7 @@ import { useSnapshot } from "valtio";
 import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { authState } from "#/state/auth";
+import { useTabBarHeight } from "#/state/route-state";
 import { GameItem } from "./game-item";
 import {
   PullToRefreshIndicator,
@@ -16,6 +17,7 @@ import {
 export function GamesTab() {
   const { user } = useSnapshot(authState);
   const navigation = useNavigation();
+  const tabBarHeight = useTabBarHeight();
   const { data, isPending, refetch } = useQuery({
     queryKey: ["games"],
     queryFn: async () => {
@@ -72,7 +74,7 @@ export function GamesTab() {
     <View className="flex-1">
       <TabLegendList
         contentContainerStyle={{
-          paddingBottom: 25,
+          paddingBottom: 25 + tabBarHeight,
         }}
         data={data}
         estimatedItemSize={120}
@@ -93,6 +95,7 @@ export function GamesTab() {
             }
           }
         }}
+        recycleItems={false}
         refreshControl={Platform.OS === "android" ? refreshControl : undefined}
         renderItem={renderItem}
       />

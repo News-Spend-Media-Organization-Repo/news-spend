@@ -26,7 +26,27 @@ const News: CollectionConfig = {
     //     return args
     //   },
     // ],
-    beforeChange: [calculateNewsMetrics],
+    beforeChange: [
+      calculateNewsMetrics,
+      // totalComments, likesCount, and dislikesCount are all maintained by raw
+      // SQL in the Comments/NewsReactions hooks. Strip them from incoming
+      // Payload writes (admin edits, republishes, version restores) so a
+      // stale form/version value can't overwrite the counters.
+      ({ data, operation }) => {
+        if (operation === "update" && data) {
+          for (const field of [
+            "totalComments",
+            "likesCount",
+            "dislikesCount",
+          ]) {
+            if (field in data) {
+              delete data[field];
+            }
+          }
+        }
+        return data;
+      },
+    ],
     afterChange: [sendNotificationOnCreate],
   },
   versions: {
@@ -117,7 +137,7 @@ const News: CollectionConfig = {
         },
       ],
       admin: {
-        condition: (data, _siblingData, { user }) => data.type === "article",
+        condition: (data, _siblingData) => data.type === "article",
       },
       validate: (_val) => {
         // if (!val || (val && (val?.length < 1 || val?.length > 3))) {

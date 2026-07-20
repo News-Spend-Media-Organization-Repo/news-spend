@@ -1,3 +1,4 @@
+import { sql } from "@payloadcms/db-postgres";
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
@@ -67,15 +68,28 @@ async function recalculateCounts(
       }),
     ]);
 
-    await payload.update({
-      collection: targetCollection,
-      id: targetId,
-      data: {
-        likesCount: likesCount.totalDocs,
-        dislikesCount: dislikesCount.totalDocs,
-      },
-      req,
-    });
+    // Raw SQL (not payload.update) on purpose: news is a drafts/versions
+    // collection, and a normal update writes a new _news_v snapshot on every
+    // call — every like/dislike was generating a junk editorial-history
+    // entry (the same bug as the news.views counter, fixed separately). Raw
+    // SQL is also atomic and bypasses hooks entirely; targetCollection is a
+    // closed set ("news" | "comments"), never user input, so the literal
+    // table name below isn't an injection risk.
+    if (targetCollection === "news") {
+      await payload.db.drizzle.execute(sql`
+        UPDATE news
+        SET likes_count = ${likesCount.totalDocs},
+            dislikes_count = ${dislikesCount.totalDocs}
+        WHERE id = ${targetId}
+      `);
+    } else {
+      await payload.db.drizzle.execute(sql`
+        UPDATE comments
+        SET likes_count = ${likesCount.totalDocs},
+            dislikes_count = ${dislikesCount.totalDocs}
+        WHERE id = ${targetId}
+      `);
+    }
     return doc;
   } catch (error) {
     req.payload.logger.error(

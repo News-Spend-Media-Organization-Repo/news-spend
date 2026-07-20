@@ -237,7 +237,9 @@ export default function ReportFileSheet({
       </Pressable>
 
       <BottomSheet isOpen={open} onOpenChange={setOpen}>
-        <BottomSheet.Portal>
+        {/* disableFullWindowOverlay in dev: default FullWindowOverlay renders
+        in a separate native window and blocks the RN element inspector. */}
+        <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
           <BottomSheet.Overlay />
           <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
             <ListGroup variant="transparent">

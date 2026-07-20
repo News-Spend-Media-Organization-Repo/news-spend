@@ -158,7 +158,16 @@ export const ShareNews = ({
       </Button>
 
       <BottomSheet isOpen={visible} onOpenChange={setVisible}>
-        <BottomSheet.Portal>
+        {/* This sheet has no text input and nothing else is ever open when
+        it's shown, so it never needs to render above other native surfaces
+        (keyboard, other modals) — the one thing FullWindowOverlay is for.
+        Disabling it unconditionally (not just in dev) also fixes the
+        "Others" share option: that button hands off to the native OS share
+        chooser, a separate native window, which previously had to compete
+        with this sheet's own FullWindowOverlay window for top position and
+        sometimes lost. With this sheet in the main window instead, the OS
+        chooser always composites above it — no timing/ordering hack needed. */}
+        <BottomSheet.Portal disableFullWindowOverlay>
           <BottomSheet.Overlay />
           <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
             <View className="gap-5">

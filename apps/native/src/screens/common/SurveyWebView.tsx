@@ -5,10 +5,15 @@ import {
 } from "@react-navigation/native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
 import WebView from "react-native-webview";
 import type { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
-
 import { ScreenHeader } from "#/components";
 import { Screen } from "#/components/heroui/screen";
 
@@ -22,7 +27,21 @@ export default function SurveyWebView() {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.ALL);
+    const lockOrientation = async () => {
+      if (Platform.OS === "android") {
+        // Android supports ALL
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.ALL
+        );
+      } else {
+        // iOS: use DEFAULT (respects Info.plist settings)
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.DEFAULT
+        );
+      }
+    };
+
+    lockOrientation();
 
     return () => {
       ScreenOrientation.unlockAsync();

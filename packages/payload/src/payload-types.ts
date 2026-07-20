@@ -2849,7 +2849,7 @@ export type TaskSendScheduledNotification = {
  */
 export type TaskSendCommentLikeNotification = {
   input: {
-    commentId: string;
+    authorId: string;
   };
   output: {
     sent: boolean;

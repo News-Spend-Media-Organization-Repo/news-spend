@@ -8,6 +8,7 @@ import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
+import { useTabBarHeight } from "#/state/route-state";
 import { AppItem } from "./app-item";
 import {
   PullToRefreshIndicator,
@@ -16,6 +17,7 @@ import {
 
 export const AppTab = () => {
   const { handleClick, isLoading } = usePartnerClick();
+  const tabBarHeight = useTabBarHeight();
 
   const queryOptions = orpc.partnerContent.filtered.infiniteOptions({
     input: (pageParam: number | undefined) => ({
@@ -95,6 +97,7 @@ export const AppTab = () => {
   return (
     <View className="flex-1">
       <TabLegendList
+        contentContainerStyle={{ paddingBottom: tabBarHeight }}
         data={appsData}
         estimatedItemSize={90}
         keyExtractor={keyExtractor}
@@ -111,6 +114,7 @@ export const AppTab = () => {
             }
           }
         }}
+        recycleItems={false}
         renderItem={renderItem}
         {...(Platform.OS === "android"
           ? {

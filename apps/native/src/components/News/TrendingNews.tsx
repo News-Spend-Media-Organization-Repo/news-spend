@@ -38,6 +38,7 @@ export default function TrendingNews({ news }: { news: News[] }) {
       horizontal
       keyExtractor={(item, index) => `${item.id}-${index}`}
       pagingEnabled
+      recycleItems
       renderItem={renderItem}
       renderScrollComponent={CustomScrollView}
       showsHorizontalScrollIndicator={false}

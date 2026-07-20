@@ -11,7 +11,7 @@ import {
 } from "date-fns";
 import { LinkButton } from "heroui-native";
 import { useCallback, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import { useSnapshot } from "valtio";
 import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
@@ -214,7 +214,8 @@ const PlayLottery = () => {
 
         <View className="flex-row flex-wrap justify-center px-4">
           <Text className="text-gray-400 text-xs">
-            Not sponsored, endorsed, or administered by Apple Inc.{" "}
+            Not sponsored, endorsed, or administered by{" "}
+            {Platform.OS === "ios" ? "Apple Inc." : "Google LLC."}{" "}
           </Text>
           <LinkButton
             onPress={() => navigation.navigate("LotteryRules")}
