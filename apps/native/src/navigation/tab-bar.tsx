@@ -48,23 +48,29 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // React Navigation renders whatever this component returns as a normal
   // flex sibling of the "screens" container — so animating THIS component's
-  // own height (the previous approach) made that sibling container resize
+  // own height (an earlier approach) made that sibling container resize
   // too, and every screen (via StyleSheet.absoluteFill inside it) visibly
   // resized along with it, even screens like PlayLottery that have nothing
   // to do with the tab bar. Making our root position: absolute removes us
   // from that flex column entirely, so the screens container — and every
   // screen inside it — is always full height, completely unaffected by our
   // own show/hide animation. We just slide and fade over top of it instead.
+  //
+  // FloatingOverlays (MusicPlayer/LiveBanner) renders as a sibling of the tab
+  // row inside this SAME wrapper, not its own separately-animated element —
+  // otherwise its height is never reflected in useTabBarHeight() (screens
+  // padding for the tab bar alone would sit partly behind it when a track is
+  // playing or a live banner shows), and its opacity fade only stays in sync
+  // with the tab row's by coincidence of matching durations, not by
+  // construction. One wrapper, one measurement, one animation for both.
   const measuredHeight = useSharedValue(0);
   const progress = useSharedValue(isTabBarVisible ? 1 : 0);
 
   useEffect(() => {
-    // Matches FloatingOverlays' own 300ms fade, tied to the same flag, so
-    // both move in sync instead of visibly drifting apart.
     progress.value = withTiming(isTabBarVisible ? 1 : 0, { duration: 300 });
   }, [isTabBarVisible, progress]);
 
-  const onTabBarLayout = useCallback(
+  const onWrapperLayout = useCallback(
     (event: LayoutChangeEvent) => {
       const height = event.nativeEvent.layout.height;
       setTabBarHeight(height);
@@ -79,88 +85,88 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   }));
 
   return (
-    <>
-      <FloatingOverlays
-        isTabBarVisible={isTabBarVisible}
-        navigation={navigation}
-      />
+    <Animated.View
+      onLayout={onWrapperLayout}
+      style={[
+        { position: "absolute", bottom: 0, left: 0, right: 0 },
+        animatedWrapperStyle,
+      ]}
+    >
+      <View pointerEvents={isTabBarVisible ? "box-none" : "none"}>
+        <FloatingOverlays
+          isTabBarVisible={isTabBarVisible}
+          navigation={navigation}
+        />
+      </View>
 
-      <Animated.View
+      <View
+        className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
         pointerEvents={isTabBarVisible ? "auto" : "none"}
-        style={[
-          { position: "absolute", bottom: 0, left: 0, right: 0 },
-          animatedWrapperStyle,
-        ]}
       >
-        <View
-          className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
-          onLayout={onTabBarLayout}
-        >
-          {state.routes.map((route, index) => {
-            const { options } = descriptors[route.key];
-            const label = options.tabBarLabel ?? options.title ?? route.name;
-            const isFocused = state.index === index;
-            const isSettings = route.name === "Settings";
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const label = options.tabBarLabel ?? options.title ?? route.name;
+          const isFocused = state.index === index;
+          const isSettings = route.name === "Settings";
 
-            const onPress = () => {
-              const event = navigation.emit({
-                type: "tabPress",
-                target: route.key,
-                canPreventDefault: true,
-              });
-              if (!(isFocused || event.defaultPrevented)) {
-                navigation.navigate(route.name, route.params);
-              }
-            };
+          const onPress = () => {
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!(isFocused || event.defaultPrevented)) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
 
-            const onLongPress = () => {
-              navigation.emit({
-                type: "tabLongPress",
-                target: route.key,
-              });
-            };
+          const onLongPress = () => {
+            navigation.emit({
+              type: "tabLongPress",
+              target: route.key,
+            });
+          };
 
-            return (
-              <PlatformPressable
-                accessibilityLabel={options.tabBarAccessibilityLabel}
-                accessibilityRole="button"
-                accessibilityState={isFocused ? { selected: true } : {}}
-                href={buildHref(route.name, route.params)}
-                key={route.key}
-                onLongPress={onLongPress}
-                onPress={onPress}
-                style={{
-                  flex: 1,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                {options.tabBarIcon && (
-                  <options.tabBarIcon
-                    color={isFocused ? "#fff" : "gray"}
-                    focused={isFocused}
-                    size={isSettings ? 56 : 25}
-                    style={{ alignSelf: "center" }}
-                  />
-                )}
-                {isSettings ? null : (
-                  <Text
-                    className={cn(
-                      "text-center text-xs",
-                      isFocused
-                        ? "font-semibold text-background"
-                        : "text-gray-500"
-                    )}
-                  >
-                    {typeof label === "string" ? label : route.name}
-                  </Text>
-                )}
-              </PlatformPressable>
-            );
-          })}
-        </View>
-      </Animated.View>
-    </>
+          return (
+            <PlatformPressable
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              href={buildHref(route.name, route.params)}
+              key={route.key}
+              onLongPress={onLongPress}
+              onPress={onPress}
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              {options.tabBarIcon && (
+                <options.tabBarIcon
+                  color={isFocused ? "#fff" : "gray"}
+                  focused={isFocused}
+                  size={isSettings ? 56 : 25}
+                  style={{ alignSelf: "center" }}
+                />
+              )}
+              {isSettings ? null : (
+                <Text
+                  className={cn(
+                    "text-center text-xs",
+                    isFocused
+                      ? "font-semibold text-background"
+                      : "text-gray-500"
+                  )}
+                >
+                  {typeof label === "string" ? label : route.name}
+                </Text>
+              )}
+            </PlatformPressable>
+          );
+        })}
+      </View>
+    </Animated.View>
   );
 }
 
