@@ -572,6 +572,7 @@ export type User = {
     [k: string]: unknown;
   };
   phone: string;
+  reportedComments?: (string | null)[] | null;
   updatedAt: string;
   userId?: string | null;
   username: string;
@@ -2639,6 +2640,7 @@ export type UsersSelect<T extends boolean = true> = {
   name?: T;
   notificationPreferences?: T;
   phone?: T;
+  reportedComments?: T;
   updatedAt?: T;
   userId?: T;
   username?: T;

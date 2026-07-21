@@ -31,17 +31,27 @@ export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
       return;
     }
 
-    // Schedule for the next occurrence of 23:00 Africa/Lagos
+    // Schedule for the next occurrence of 23:00 Africa/Lagos.
+    // Africa/Lagos is UTC+1 (no DST), so 23:00 Lagos equals 22:00 UTC.
     const now = new Date();
-    const target = new Date(
-      now.toLocaleString("en-US", { timeZone: "Africa/Lagos" })
-    );
-    target.setHours(23, 0, 0, 0);
+    const lagosParts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Africa/Lagos",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(now);
+    const getPart = (type: "year" | "month" | "day") =>
+      Number(lagosParts.find((part) => part.type === type)?.value ?? "0");
+    const year = getPart("year");
+    const month = getPart("month");
+    const day = getPart("day");
+    let targetTimestamp = Date.UTC(year, month - 1, day, 22, 0, 0, 0);
 
-    // If we're past 23:00 today, schedule for tomorrow
-    if (target <= now) {
-      target.setDate(target.getDate() + 1);
+    if (targetTimestamp <= now.getTime()) {
+      targetTimestamp += 24 * 60 * 60 * 1000;
     }
+
+    const target = new Date(targetTimestamp);
 
     await req.payload.jobs.queue({
       task: "sendModerationDigest",

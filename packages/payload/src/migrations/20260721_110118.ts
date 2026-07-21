@@ -26,7 +26,23 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   CREATE TYPE "public"."enum_payload_jobs_task_slug" AS ENUM('inline', 'sendScheduledNotification', 'sendCommentLikeNotification', 'checkPushReceipts', 'processLottery', 'cleanupAnonymousUsers', 'generateVideoThumbnail', 'deleteVideoThumbTemp', 'cleanupAuditLogs');
   ALTER TABLE "payload_jobs" ALTER COLUMN "task_slug" SET DATA TYPE "public"."enum_payload_jobs_task_slug" USING "task_slug"::"public"."enum_payload_jobs_task_slug";
   DROP INDEX "users_rels_users_id_idx";
-  ALTER TABLE "content_reports" ADD COLUMN "report_type" "enum_content_reports_report_type" NOT NULL;
+  ALTER TABLE "content_reports" ADD COLUMN "report_type" "enum_content_reports_report_type";
+  UPDATE "content_reports" AS cr
+  SET "report_type" = COALESCE(
+    (
+      SELECT CASE
+        WHEN crr."comments_id" IS NOT NULL THEN 'comment'::"enum_content_reports_report_type"
+        WHEN crr."news_id" IS NOT NULL THEN 'news'::"enum_content_reports_report_type"
+        ELSE NULL
+      END
+      FROM "content_reports_rels" AS crr
+      WHERE crr."parent_id" = cr."id" AND crr."path" = 'reportedItem'
+      ORDER BY crr."id" DESC
+      LIMIT 1
+    ),
+    'news'::"enum_content_reports_report_type"
+  );
+  ALTER TABLE "content_reports" ALTER COLUMN "report_type" SET NOT NULL;
   ALTER TABLE "users" DROP COLUMN "reported_comments";
   ALTER TABLE "users_rels" DROP COLUMN "users_id";`)
 }

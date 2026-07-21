@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/client";
 import z from "zod";
 
 import { protectedNoGuestProcedure } from "../index";
@@ -6,6 +7,12 @@ const blockUser = protectedNoGuestProcedure
   .input(z.object({ userId: z.string() }))
   .handler(async ({ input, context }) => {
     const { user, payload } = context;
+
+    if (input.userId === user.id) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "You cannot block yourself",
+      });
+    }
 
     const userDoc = await payload.findByID({
       collection: "users",

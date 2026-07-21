@@ -176,7 +176,7 @@ function setStreamTimeout(stationName: string) {
   }, STREAM_TIMEOUT_MS);
 }
 
-export async function setupAudio() {
+async function configureAudioSession() {
   // Configure the audio session for background playback and lock screen
   // controls. This must happen before creating any audio player/playlist.
   try {
@@ -189,6 +189,10 @@ export async function setupAudio() {
     // Non-critical — audio session may already be configured from a
     // previous session or the platform may not support this API.
   }
+}
+
+export function setupAudio() {
+  void configureAudioSession();
 
   // Re-evaluate module after Fast Refresh: the local `audioPlaylist` `let`
   // was just rebound from globalThis, so this is the same instance. If a

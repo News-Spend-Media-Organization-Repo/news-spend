@@ -29,7 +29,7 @@ type PostReportSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   postId: string;
-  relationTo: string;
+  relationTo: "comments" | "news";
   additionalDetails?: string;
   commentUserId?: string;
   commentUsername?: string;
