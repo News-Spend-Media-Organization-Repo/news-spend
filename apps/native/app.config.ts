@@ -56,7 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
     updates: {
       checkAutomatically: "ON_LOAD",
-      fallbackToCacheTimeout: 0,
+      fallbackToCacheTimeout: 3000,
       url: "https://u.expo.dev/f652bbae-90d7-4074-b356-70438f948249",
     },
 

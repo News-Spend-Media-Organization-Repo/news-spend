@@ -11,6 +11,7 @@ import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
+import { useUpdates } from "#/lib/UpdatesProvider";
 import { authState } from "#/state/auth";
 
 type Props = {
@@ -31,6 +32,7 @@ const config: HeroUINativeConfig = {
 export const Provider = ({ children }: Props) => {
   useListeningTimeSync();
   usePushNotification();
+  const { UpdateModalComponent } = useUpdates();
 
   useEffect(() => {
     newsAnalyticsClient.start(() => authState.user?.id);
@@ -51,6 +53,7 @@ export const Provider = ({ children }: Props) => {
                   }}
                 >
                   {children}
+                  <UpdateModalComponent />
                 </IconContext.Provider>
               </ErrorBoundary>
             </HeroUINativeProvider>
