@@ -189,7 +189,9 @@ const CommentCard = memo(
             </View>
           </View>
 
-          <CommentOptionPopover comment={comment} />
+          {auth.user && !auth.user.isAnonymous && (
+            <CommentOptionPopover comment={comment} />
+          )}
         </View>
 
         <Separator className="my-3.5" />
