@@ -200,5 +200,18 @@ export const Users: CollectionConfig = {
         description: "Custom user attributes for advanced segmentation",
       },
     },
+    {
+      name: "blockedUsers",
+      type: "relationship",
+      relationTo: "users",
+      hasMany: true,
+      admin: { hidden: true },
+    },
+    {
+      name: "reportedComments",
+      type: "json",
+      admin: { hidden: true },
+      defaultValue: [],
+    },
   ],
 };

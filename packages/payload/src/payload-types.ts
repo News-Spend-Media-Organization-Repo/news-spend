@@ -181,6 +181,7 @@ export type Config = {
     tasks: {
       sendScheduledNotification: TaskSendScheduledNotification;
       sendCommentLikeNotification: TaskSendCommentLikeNotification;
+      sendModerationDigest: TaskSendModerationDigest;
       checkPushReceipts: TaskCheckPushReceipts;
       processLottery: TaskProcessLottery;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
@@ -527,6 +528,7 @@ export type Activity = {
  */
 export type User = {
   _verified: boolean;
+  blockedUsers?: (string | User)[] | null;
   createdAt: string;
   createdBy?: {
     relationTo: "admins";
@@ -570,6 +572,7 @@ export type User = {
     [k: string]: unknown;
   };
   phone: string;
+  reportedComments?: (string | null)[] | null;
   updatedAt: string;
   userId?: string | null;
   username: string;
@@ -751,16 +754,18 @@ export type ContentReport = {
     | "illegal"
     | "other";
   reportedBy: string | User;
-  reportedItem:
-    | {
+  /**
+   * The reported content. Optional — not set for user-level actions (e.g. blocking).
+   */
+  reportedItem?:
+    | ({
         relationTo: "comments";
         value: string | Comment;
-      }
-    | {
+      } | null)
+    | ({
         relationTo: "news";
         value: string | News;
-      };
-  reportType: "comment" | "news";
+      } | null);
   resolution?:
     | ("noAction" | "warning" | "removed" | "suspended" | "banned")
     | null;
@@ -1728,6 +1733,7 @@ export type PayloadJob = {
           | "inline"
           | "sendScheduledNotification"
           | "sendCommentLikeNotification"
+          | "sendModerationDigest"
           | "checkPushReceipts"
           | "processLottery"
           | "cleanupAnonymousUsers"
@@ -1782,6 +1788,7 @@ export type PayloadJob = {
         | "inline"
         | "sendScheduledNotification"
         | "sendCommentLikeNotification"
+        | "sendModerationDigest"
         | "checkPushReceipts"
         | "processLottery"
         | "cleanupAnonymousUsers"
@@ -2091,7 +2098,6 @@ export type ContentReportsSelect<T extends boolean = true> = {
   reason?: T;
   reportedBy?: T;
   reportedItem?: T;
-  reportType?: T;
   resolution?: T;
   resolvedAt?: T;
   resolvedBy?: T;
@@ -2621,6 +2627,7 @@ export type TicketPurchaseLogSelect<T extends boolean = true> = {
  */
 export type UsersSelect<T extends boolean = true> = {
   _verified?: T;
+  blockedUsers?: T;
   createdAt?: T;
   createdBy?: T;
   customAttributes?: T;
@@ -2633,6 +2640,7 @@ export type UsersSelect<T extends boolean = true> = {
   name?: T;
   notificationPreferences?: T;
   phone?: T;
+  reportedComments?: T;
   updatedAt?: T;
   userId?: T;
   username?: T;
@@ -2854,6 +2862,14 @@ export type TaskSendCommentLikeNotification = {
   output: {
     sent: boolean;
   };
+};
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendModerationDigest".
+ */
+export type TaskSendModerationDigest = {
+  input?: unknown;
+  output?: unknown;
 };
 /**
  * This interface was referenced by `Config`'s JSON-Schema

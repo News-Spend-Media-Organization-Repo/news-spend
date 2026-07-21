@@ -176,7 +176,7 @@ function CommentReplies() {
           ListEmptyComponent={
             replies.isLoading ? (
               <ActivityIndicator />
-            ) : (
+            ) : showHighlight ? null : (
               <View className="flex-1 items-center justify-center">
                 <Text>No replies yet</Text>
               </View>

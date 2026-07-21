@@ -61,6 +61,7 @@ import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processLotteryTask } from "./tasks/processLottery";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
+import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
 
 const filename = fileURLToPath(import.meta.url);
@@ -146,6 +147,7 @@ const baseConfig: Config = {
     tasks: [
       sendScheduledNotificationTask,
       sendCommentLikeNotificationTask,
+      sendModerationDigestTask,
       checkPushReceiptsTask,
       processLotteryTask,
       cleanupAnonymousUsersTask,

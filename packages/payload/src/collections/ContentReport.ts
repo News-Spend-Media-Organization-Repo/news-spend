@@ -1,27 +1,14 @@
 import type { CollectionConfig } from "payload";
 
+import { notifyAdminsOnReport } from "../hooks/contentReport/notifyAdmins";
+
 export const ContentReport: CollectionConfig = {
   slug: "contentReports",
   admin: {
     useAsTitle: "reason",
-    defaultColumns: [
-      "reportedItem",
-      "reason",
-      "status",
-      "reportType",
-      "reportedBy",
-    ],
+    defaultColumns: ["reportedItem", "reason", "status", "reportedBy"],
   },
   fields: [
-    {
-      name: "reportType",
-      type: "select",
-      required: true,
-      options: [
-        { label: "Comment", value: "comment" },
-        { label: "News", value: "news" },
-      ],
-    },
     {
       name: "reason",
       type: "select",
@@ -47,7 +34,10 @@ export const ContentReport: CollectionConfig = {
       name: "reportedItem",
       type: "relationship",
       relationTo: ["comments", "news"],
-      required: true,
+      admin: {
+        description:
+          "The reported content. Optional — not set for user-level actions (e.g. blocking).",
+      },
     },
     {
       name: "reportedBy",
@@ -101,6 +91,7 @@ export const ContentReport: CollectionConfig = {
     },
   ],
   hooks: {
+    afterChange: [notifyAdminsOnReport],
     beforeChange: [
       ({ data, req }) => {
         if (data.status === "resolved" && !data.resolvedAt) {

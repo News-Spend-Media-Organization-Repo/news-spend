@@ -10,10 +10,11 @@ import { startEdit } from "#/state/commentState";
 
 type Comment = RouterOutputs["comments"]["one"];
 
-type CommentOptionSheetProps = {
+export type CommentOptionSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   comment: Comment;
+  onBlock?: () => void;
   onReport: () => void;
 };
 
@@ -21,6 +22,7 @@ export function CommentOptionSheet({
   open,
   onOpenChange,
   comment,
+  onBlock,
   onReport,
 }: CommentOptionSheetProps) {
   const insets = useSafeAreaInsets();
@@ -42,6 +44,9 @@ export function CommentOptionSheet({
 
   const commentUserId =
     typeof comment.user === "object" ? comment.user.id : comment.user;
+
+  const commentUsername =
+    typeof comment.user === "object" ? comment.user.username : "";
 
   const isOwner = auth.session?.user?.id === commentUserId;
 
@@ -66,7 +71,17 @@ export function CommentOptionSheet({
                 />
               </>
             )}
-            {!isOwner && <SheetRow label="Report" onPress={onReport} />}
+            {!isOwner && (
+              <>
+                {onBlock && (
+                  <SheetRow
+                    label={`Block @${commentUsername}`}
+                    onPress={onBlock}
+                  />
+                )}
+                <SheetRow label="Report" onPress={onReport} />
+              </>
+            )}
           </View>
         </BottomSheet.Content>
       </BottomSheet.Portal>

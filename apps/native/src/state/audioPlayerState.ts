@@ -1,4 +1,8 @@
-import { type AudioPlaylist, createAudioPlaylist } from "expo-audio";
+import {
+  type AudioPlaylist,
+  createAudioPlaylist,
+  setAudioModeAsync,
+} from "expo-audio";
 import type { Station } from "radio-browser-api";
 import { toast } from "sonner-native";
 import { proxy, subscribe, useSnapshot } from "valtio";
@@ -101,6 +105,7 @@ function disposeAudioPlaylist(): void {
   if (!playlist) {
     return;
   }
+  setLockScreenActive(false);
   try {
     playlist.pause();
   } catch {
@@ -115,6 +120,32 @@ function disposeAudioPlaylist(): void {
     playlist.destroy();
   } catch {
     // ignore
+  }
+}
+
+/**
+ * Safe wrapper around AudioPlaylist.setActiveForLockScreen.
+ * The method exists at runtime on the underlying native player but is not
+ * exposed in the AudioPlaylist type definitions (it lives on AudioPlayer).
+ * Uses a narrow type assertion to call it gracefully when available.
+ */
+function setLockScreenActive(
+  active: boolean,
+  metadata?: { title: string; artist: string }
+): void {
+  if (!audioPlaylist) {
+    return;
+  }
+  try {
+    const playlistWithLockScreen = audioPlaylist as {
+      setActiveForLockScreen?(
+        active: boolean,
+        metadata?: { title: string; artist: string }
+      ): void;
+    };
+    playlistWithLockScreen.setActiveForLockScreen?.(active, metadata);
+  } catch {
+    // Lock screen control not available on this platform or audio session
   }
 }
 
@@ -145,7 +176,24 @@ function setStreamTimeout(stationName: string) {
   }, STREAM_TIMEOUT_MS);
 }
 
+async function configureAudioSession() {
+  // Configure the audio session for background playback and lock screen
+  // controls. This must happen before creating any audio player/playlist.
+  try {
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+    });
+  } catch {
+    // Non-critical — audio session may already be configured from a
+    // previous session or the platform may not support this API.
+  }
+}
+
 export function setupAudio() {
+  void configureAudioSession();
+
   // Re-evaluate module after Fast Refresh: the local `audioPlaylist` `let`
   // was just rebound from globalThis, so this is the same instance. If a
   // previous native instance exists (e.g. setupAudio was never re-called
@@ -175,8 +223,13 @@ export function setupAudio() {
     if (playing) {
       clearStreamTimeout();
       startTimer();
+      setLockScreenActive(true, {
+        title: playerState.currentTrack?.name || "Live Radio",
+        artist: playerState.currentTrack?.genre || "News Spend Radio",
+      });
     } else {
       stopTimer();
+      setLockScreenActive(false);
     }
   });
 
@@ -241,8 +294,13 @@ function attachPlaylistListeners() {
     if (playing) {
       clearStreamTimeout();
       startTimer();
+      setLockScreenActive(true, {
+        title: playerState.currentTrack?.name || "Live Radio",
+        artist: playerState.currentTrack?.genre || "News Spend Radio",
+      });
     } else {
       stopTimer();
+      setLockScreenActive(false);
     }
   });
 }

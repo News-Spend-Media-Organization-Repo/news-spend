@@ -25,6 +25,7 @@ import {
   StarIcon,
   TrashIcon,
   UserIcon,
+  UserMinusIcon,
 } from "phosphor-react-native";
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, View } from "react-native";
@@ -55,6 +56,16 @@ const settingsItems: SettingsItem[] = [
     screen: "Profile",
     authRequired: true,
   },
+  ...(__DEV__
+    ? [
+        {
+          title: "Blocked Users",
+          icon: UserMinusIcon,
+          screen: "BlockedUsers",
+          authRequired: true,
+        },
+      ]
+    : []),
   {
     title: "Activities",
     icon: ChartLineIcon,
