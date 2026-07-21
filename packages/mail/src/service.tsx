@@ -118,7 +118,7 @@ export async function sendWitnessReportEmail(
     });
     logger.info({ to, title, name }, "Witness report email sent successfully");
   } catch (error) {
-    logger.error({ error, to, title }, "Failed to send witness report email");
+    logger.error({ error, to, title: params.title }, "Failed to send witness report email");
   }
 }
 
