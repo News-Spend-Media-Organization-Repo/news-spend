@@ -52,16 +52,46 @@ const allComments = publicProcedure
   .input(allCommentsInput)
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
+
+    let blockedUserIds: string[] = [];
+    let reportedCommentIds: string[] = [];
+    if (user) {
+      const currentUser = await payload.findByID({
+        collection: "users",
+        id: user.id,
+        depth: 0,
+      });
+      blockedUserIds = Array.isArray(currentUser.blockedUsers)
+        ? (currentUser.blockedUsers as string[])
+        : [];
+      reportedCommentIds = Array.isArray(currentUser.reportedComments)
+        ? (currentUser.reportedComments as string[])
+        : [];
+    }
+
+    const baseWhere = {
+      ...(input.parentId
+        ? { parent: { equals: input.parentId } }
+        : { parent: { exists: false } }),
+      "news.id": {
+        equals: input.newsId,
+      },
+    };
+
+    const filters: Record<string, unknown>[] = [];
+    if (blockedUserIds.length > 0) {
+      filters.push({ "user.id": { not_in: blockedUserIds } });
+    }
+    if (reportedCommentIds.length > 0) {
+      filters.push({ id: { not_in: reportedCommentIds } });
+    }
+
+    const where =
+      filters.length > 0 ? { and: [baseWhere, ...filters] } : baseWhere;
+
     const comments = await payload.find({
       collection: "comments",
-      where: {
-        ...(input.parentId
-          ? { parent: { equals: input.parentId } }
-          : { parent: { exists: false } }),
-        "news.id": {
-          equals: input.newsId,
-        },
-      },
+      where,
       sort: "-createdAt",
       limit: input.limit || 10,
       page: input.page || 1,
@@ -105,6 +135,35 @@ const getComment = publicProcedure
       id: commentId,
       depth: 0,
     });
+
+    if (user && doc) {
+      const commentUserId =
+        typeof doc.user === "string" ? doc.user : doc.user?.id;
+      if (commentUserId) {
+        const currentUser = await payload.findByID({
+          collection: "users",
+          id: user.id,
+          depth: 0,
+        });
+        const blockedUserIds: string[] = Array.isArray(currentUser.blockedUsers)
+          ? (currentUser.blockedUsers as string[])
+          : [];
+        const reportedCommentIds: string[] = Array.isArray(
+          currentUser.reportedComments
+        )
+          ? (currentUser.reportedComments as string[])
+          : [];
+
+        if (
+          blockedUserIds.includes(commentUserId) ||
+          reportedCommentIds.includes(commentId)
+        ) {
+          throw new ORPCError("NOT_FOUND", {
+            message: "Comment not found",
+          });
+        }
+      }
+    }
     const [userReaction, users] = await Promise.all([
       getUserReactionForComment(payload, user?.id, commentId),
       getUsersMinimal(

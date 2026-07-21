@@ -1,6 +1,7 @@
 import { accountRouter } from "./account";
 import { activityRouter } from "./activity";
 import { adsRouter } from "./ads";
+import { blockRouter } from "./block";
 import { commentRouter } from "./comment";
 import { feedbackRouter } from "./feedback";
 import { lotteryRouter } from "./lottery";
@@ -22,6 +23,7 @@ import { tweetRouter } from "./tweet";
 export const router = {
   account: accountRouter,
   activity: activityRouter,
+  block: blockRouter,
   ads: adsRouter,
   comments: commentRouter,
   feedback: feedbackRouter,
