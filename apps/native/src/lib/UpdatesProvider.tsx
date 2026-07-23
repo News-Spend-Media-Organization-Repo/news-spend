@@ -26,10 +26,10 @@ export const useUpdates = () => {
   const initialCheckDone = useRef(false);
 
   useEffect(() => {
-    if (isUpdatePending && downloadedUpdate) {
+    if (isUpdatePending && downloadedUpdate && !isUpdateAvailable) {
       reloadAsync();
     }
-  }, [isUpdatePending, downloadedUpdate]);
+  }, [isUpdatePending, downloadedUpdate, isUpdateAvailable]);
 
   useEffect(() => {
     if (isUpdateAvailable && availableUpdate && !isDevelopmentBuild) {
