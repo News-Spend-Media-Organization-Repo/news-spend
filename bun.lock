@@ -331,6 +331,7 @@
       "dependencies": {
         "@hookform/resolvers": "^5.2.2",
         "@news-spend-media/env": "workspace:*",
+        "@news-spend-media/mail": "workspace:*",
         "@news-spend-media/payload-cpanel-storage": "workspace:*",
         "@news-spend-media/utils": "workspace:*",
         "@payload-bites/audit-fields": "^1.6.0",

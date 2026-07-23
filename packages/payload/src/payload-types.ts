@@ -13,55 +13,55 @@
  * via the `definition` "supportedTimezones".
  */
 export type SupportedTimezones =
-  | "Pacific/Midway"
-  | "Pacific/Niue"
-  | "Pacific/Honolulu"
-  | "Pacific/Rarotonga"
-  | "America/Anchorage"
-  | "Pacific/Gambier"
-  | "America/Los_Angeles"
-  | "America/Tijuana"
-  | "America/Denver"
-  | "America/Phoenix"
-  | "America/Chicago"
-  | "America/Guatemala"
-  | "America/New_York"
-  | "America/Bogota"
-  | "America/Caracas"
-  | "America/Santiago"
-  | "America/Buenos_Aires"
-  | "America/Sao_Paulo"
-  | "Atlantic/South_Georgia"
-  | "Atlantic/Azores"
-  | "Atlantic/Cape_Verde"
-  | "Europe/London"
-  | "Europe/Berlin"
-  | "Africa/Lagos"
-  | "Europe/Athens"
-  | "Africa/Cairo"
-  | "Europe/Moscow"
-  | "Asia/Riyadh"
-  | "Asia/Dubai"
-  | "Asia/Baku"
-  | "Asia/Karachi"
-  | "Asia/Tashkent"
-  | "Asia/Calcutta"
-  | "Asia/Dhaka"
-  | "Asia/Almaty"
-  | "Asia/Jakarta"
-  | "Asia/Bangkok"
-  | "Asia/Shanghai"
-  | "Asia/Singapore"
-  | "Asia/Tokyo"
-  | "Asia/Seoul"
-  | "Australia/Brisbane"
-  | "Australia/Sydney"
-  | "Pacific/Guam"
-  | "Pacific/Noumea"
-  | "Pacific/Auckland"
-  | "Pacific/Fiji";
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
 
-export type Config = {
+export interface Config {
   auth: {
     admins: AdminAuthOperations;
   };
@@ -78,35 +78,35 @@ export type Config = {
     comments: Comment;
     contentReports: ContentReport;
     feedback: Feedback;
-    "identity-verification": IdentityVerification;
+    'identity-verification': IdentityVerification;
     lottery: Lottery;
-    "lottery-tickets": LotteryTicket;
-    "lottery-winners": LotteryWinner;
+    'lottery-tickets': LotteryTicket;
+    'lottery-winners': LotteryWinner;
     media: Media;
     news: News;
-    "news-analytics": NewsAnalytic;
-    "notification-deliveries": NotificationDelivery;
-    "notification-inbox": NotificationInbox;
+    'news-analytics': NewsAnalytic;
+    'notification-deliveries': NotificationDelivery;
+    'notification-inbox': NotificationInbox;
     notifications: Notification;
-    "partner-content": PartnerContent;
-    "partner-conversions": PartnerConversion;
+    'partner-content': PartnerContent;
+    'partner-conversions': PartnerConversion;
     partners: Partner;
-    "promotion-media": PromotionMedia;
-    "push-tokens": PushToken;
+    'promotion-media': PromotionMedia;
+    'push-tokens': PushToken;
     reactions: Reaction;
     sessions: Session;
-    "shop-analytics": ShopAnalytic;
+    'shop-analytics': ShopAnalytic;
     survey: Survey;
-    "ticket-purchase-log": TicketPurchaseLog;
+    'ticket-purchase-log': TicketPurchaseLog;
     users: User;
     verifications: Verification;
-    "witness-reports": WitnessReport;
-    "audit-logs": AuditLog;
-    "payload-kv": PayloadKv;
-    "payload-jobs": PayloadJob;
-    "payload-locked-documents": PayloadLockedDocument;
-    "payload-preferences": PayloadPreference;
-    "payload-migrations": PayloadMigration;
+    'witness-reports': WitnessReport;
+    'audit-logs': AuditLog;
+    'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
+    'payload-locked-documents': PayloadLockedDocument;
+    'payload-preferences': PayloadPreference;
+    'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {};
   collectionsSelect: {
@@ -117,66 +117,53 @@ export type Config = {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     contentReports: ContentReportsSelect<false> | ContentReportsSelect<true>;
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
-    "identity-verification":
-      | IdentityVerificationSelect<false>
-      | IdentityVerificationSelect<true>;
+    'identity-verification': IdentityVerificationSelect<false> | IdentityVerificationSelect<true>;
     lottery: LotterySelect<false> | LotterySelect<true>;
-    "lottery-tickets": LotteryTicketsSelect<false> | LotteryTicketsSelect<true>;
-    "lottery-winners": LotteryWinnersSelect<false> | LotteryWinnersSelect<true>;
+    'lottery-tickets': LotteryTicketsSelect<false> | LotteryTicketsSelect<true>;
+    'lottery-winners': LotteryWinnersSelect<false> | LotteryWinnersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
-    "news-analytics": NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
-    "notification-deliveries":
-      | NotificationDeliveriesSelect<false>
-      | NotificationDeliveriesSelect<true>;
-    "notification-inbox":
-      | NotificationInboxSelect<false>
-      | NotificationInboxSelect<true>;
+    'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
+    'notification-deliveries': NotificationDeliveriesSelect<false> | NotificationDeliveriesSelect<true>;
+    'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
-    "partner-content": PartnerContentSelect<false> | PartnerContentSelect<true>;
-    "partner-conversions":
-      | PartnerConversionsSelect<false>
-      | PartnerConversionsSelect<true>;
+    'partner-content': PartnerContentSelect<false> | PartnerContentSelect<true>;
+    'partner-conversions': PartnerConversionsSelect<false> | PartnerConversionsSelect<true>;
     partners: PartnersSelect<false> | PartnersSelect<true>;
-    "promotion-media": PromotionMediaSelect<false> | PromotionMediaSelect<true>;
-    "push-tokens": PushTokensSelect<false> | PushTokensSelect<true>;
+    'promotion-media': PromotionMediaSelect<false> | PromotionMediaSelect<true>;
+    'push-tokens': PushTokensSelect<false> | PushTokensSelect<true>;
     reactions: ReactionsSelect<false> | ReactionsSelect<true>;
     sessions: SessionsSelect<false> | SessionsSelect<true>;
-    "shop-analytics": ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
+    'shop-analytics': ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
-    "ticket-purchase-log":
-      | TicketPurchaseLogSelect<false>
-      | TicketPurchaseLogSelect<true>;
+    'ticket-purchase-log': TicketPurchaseLogSelect<false> | TicketPurchaseLogSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
-    "witness-reports": WitnessReportsSelect<false> | WitnessReportsSelect<true>;
-    "audit-logs": AuditLogsSelect<false> | AuditLogsSelect<true>;
-    "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>;
-    "payload-jobs": PayloadJobsSelect<false> | PayloadJobsSelect<true>;
-    "payload-locked-documents":
-      | PayloadLockedDocumentsSelect<false>
-      | PayloadLockedDocumentsSelect<true>;
-    "payload-preferences":
-      | PayloadPreferencesSelect<false>
-      | PayloadPreferencesSelect<true>;
-    "payload-migrations":
-      | PayloadMigrationsSelect<false>
-      | PayloadMigrationsSelect<true>;
+    'witness-reports': WitnessReportsSelect<false> | WitnessReportsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
+    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
+    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: string;
   };
   fallbackLocale: null;
   globals: {
-    "news-category": NewsCategory;
-    "payload-jobs-stats": PayloadJobsStat;
+    'news-category': NewsCategory;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
-    "news-category": NewsCategorySelect<false> | NewsCategorySelect<true>;
-    "payload-jobs-stats":
-      | PayloadJobsStatsSelect<false>
-      | PayloadJobsStatsSelect<true>;
+    'news-category': NewsCategorySelect<false> | NewsCategorySelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
+  locale: null;
+  widgets: {
+    collections: CollectionsWidget;
+  };
+  user: Admin;
   jobs: {
     tasks: {
       sendScheduledNotification: TaskSendScheduledNotification;
@@ -195,13 +182,8 @@ export type Config = {
     };
     workflows: unknown;
   };
-  locale: null;
-  user: Admin;
-  widgets: {
-    collections: CollectionsWidget;
-  };
-};
-export type AdminAuthOperations = {
+}
+export interface AdminAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -218,109 +200,108 @@ export type AdminAuthOperations = {
     email: string;
     password: string;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "InstagramEmbedBlock".
  */
-export type InstagramEmbedBlock = {
-  blockName?: string | null;
-  blockType: "instagramEmbed";
+export interface InstagramEmbedBlock {
+  /**
+   * 💡 Enter Instagram post URL (e.g., https://www.instagram.com/p/ABC123/ or https://www.instagram.com/reel/DEF456/)
+   */
+  postUrl: string;
   /**
    * Optional caption for the post
    */
   caption?: string | null;
   id?: string | null;
-  /**
-   * 💡 Enter Instagram post URL (e.g., https://www.instagram.com/p/ABC123/ or https://www.instagram.com/reel/DEF456/)
-   */
-  postUrl: string;
-};
+  blockName?: string | null;
+  blockType: 'instagramEmbed';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "YouTubeEmbedBlock".
  */
-export type YouTubeEmbedBlock = {
-  blockName?: string | null;
-  blockType: "youtubeEmbed";
+export interface YouTubeEmbedBlock {
+  /**
+   * 💡 Enter YouTube URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/dQw4w9WgXcQ)
+   */
+  videoUrl: string;
   /**
    * Optional caption for the video
    */
   caption?: string | null;
   id?: string | null;
-  /**
-   * 💡 Enter YouTube URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/dQw4w9WgXcQ)
-   */
-  videoUrl: string;
-};
+  blockName?: string | null;
+  blockType: 'youtubeEmbed';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TwitterPostBlock".
  */
-export type TwitterPostBlock = {
-  blockName?: string | null;
-  blockType: "twitterEmbed";
-  id?: string | null;
+export interface TwitterPostBlock {
   /**
    * 💡 Enter tweet ID (e.g., 1628832338187636740) or full URL (e.g., https://twitter.com/user/status/1628832338187636740)
    */
   tweetId: string;
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'twitterEmbed';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts".
  */
-export type Account = {
-  accessToken?: string | null;
-  accessTokenExpiresAt?: string | null;
-  accountId: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  expiresAt?: string | null;
+export interface Account {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  password?: string | null;
+  userId: string;
+  accountId: string;
   providerId: string;
+  password?: string | null;
+  accessToken?: string | null;
   refreshToken?: string | null;
+  accessTokenExpiresAt?: string | null;
   refreshTokenExpiresAt?: string | null;
   scope?: string | null;
+  expiresAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "admins".
  */
-export type Admin = {
-  collection: "admins";
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  email: string;
-  fullName: string;
-  hash?: string | null;
+export interface Admin {
   id: string;
+  role: 'super-admin' | 'content-manager' | 'editor' | 'viewer' | 'partner';
+  partner?: (string | null) | Partner;
+  fullName: string;
   image?: (string | null) | Media;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  lockUntil?: string | null;
-  loginAttempts?: number | null;
-  partner?: (string | null) | Partner;
-  password?: string | null;
-  resetPasswordExpiration?: string | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
   resetPasswordToken?: string | null;
-  role: "super-admin" | "content-manager" | "editor" | "viewer" | "partner";
+  resetPasswordExpiration?: string | null;
   salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
   sessions?:
     | {
         id: string;
@@ -328,84 +309,75 @@ export type Admin = {
         expiresAt: string;
       }[]
     | null;
-  updatedAt: string;
-};
+  password?: string | null;
+  collection: 'admins';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partners".
  */
-export type Partner = {
+export interface Partner {
+  id: string;
+  companyName: string;
   /**
-   * API key for partner authentication
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
-  apiKey?: string | null;
+  generateSlug?: boolean | null;
+  slug: string;
+  description?: string | null;
+  websiteUrl: string;
+  status?: ('prospective' | 'active' | 'inactive') | null;
+  contractSigned?: boolean | null;
+  inShopTab?: boolean | null;
   /**
    * 💡 Cashback is in percentage. For example, if the cashback is 5%, enter 5.
    */
   cashBack?: number | null;
-  category?:
-    | (
-        | "books"
-        | "ecommerce"
-        | "education"
-        | "food"
-        | "digital"
-        | "business"
-        | "other"
-      )
-    | null;
-  companyName: string;
+  /**
+   * Auto-calculated popularity score based on views and clicks for the shop tab.
+   */
+  popularityScore?: number | null;
+  category?: ('books' | 'ecommerce' | 'education' | 'food' | 'digital' | 'business' | 'other') | null;
+  logo?: (string | null) | Media;
   contactInfo?: {
     contactPerson?: string | null;
     email?: string | null;
     phone?: string | null;
   };
-  contractSigned?: boolean | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  id: string;
-  inShopTab?: boolean | null;
   /**
    * How will this partner send conversion data?
    */
-  integrationMethod: "manual" | "webhook" | "postback" | "csv";
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  logo?: (string | null) | Media;
+  integrationMethod: 'manual' | 'webhook' | 'postback' | 'csv';
   /**
-   * Auto-calculated popularity score based on views and clicks for the shop tab.
+   * Share this URL with technical partners
    */
-  popularityScore?: number | null;
-  slug: string;
-  status?: ("prospective" | "active" | "inactive") | null;
-  updatedAt: string;
+  webhookUrl?: string | null;
   /**
    * Secret key for webhook verification
    */
   webhookSecret?: string | null;
   /**
-   * Share this URL with technical partners
+   * API key for partner authentication
    */
-  webhookUrl?: string | null;
-  websiteUrl: string;
-};
+  apiKey?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
-export type Media = {
+export interface Media {
+  id: string;
   alt?: string | null;
-  blurhash?: string | null;
   caption?: {
     root: {
       type: string;
@@ -414,29 +386,33 @@ export type Media = {
         version: number;
         [k: string]: unknown;
       }[];
-      direction: ("ltr" | "rtl") | null;
-      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
       indent: number;
       version: number;
     };
     [k: string]: unknown;
   } | null;
-  createdAt: string;
+  blurhash?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
   filename?: string | null;
+  mimeType?: string | null;
   filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
-  height?: number | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  mimeType?: string | null;
   sizes?: {
     thumbnail?: {
       url?: string | null;
@@ -471,41 +447,33 @@ export type Media = {
       filename?: string | null;
     };
   };
-  thumbnailURL?: string | null;
-  updatedAt: string;
-  url?: string | null;
-  width?: number | null;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "activities".
  */
-export type Activity = {
-  action:
-    | "signUp"
-    | "watchLive"
-    | "read"
-    | "dailyLogin"
-    | "share"
-    | "connectBrandAd"
-    | "referral"
-    | "ticketPurchase"
-    | "lottery"
-    | "surveyTask"
-    | "musicListeningTime"
-    | "partnerContentTask"
-    | "pointReversal";
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
+export interface Activity {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  type?: ('point' | 'badge' | 'reward') | null;
+  point: number;
+  reward?: string | null;
+  action:
+    | 'signUp'
+    | 'watchLive'
+    | 'read'
+    | 'dailyLogin'
+    | 'share'
+    | 'connectBrandAd'
+    | 'referral'
+    | 'ticketPurchase'
+    | 'lottery'
+    | 'surveyTask'
+    | 'musicListeningTime'
+    | 'partnerContentTask'
+    | 'pointReversal';
+  description?: string | null;
+  user: string | User;
+  news?: (string | null) | News;
   metadata?:
     | {
         [k: string]: unknown;
@@ -515,25 +483,48 @@ export type Activity = {
     | number
     | boolean
     | null;
-  news?: (string | null) | News;
-  point: number;
-  reward?: string | null;
-  type?: ("point" | "badge" | "reward") | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
-export type User = {
+export interface User {
+  id: string;
+  userId?: string | null;
+  email?: string | null;
+  name: string;
+  image?: string | null;
+  username: string;
+  wish: string;
+  phone: string;
   _verified: boolean;
-  blockedUsers?: (string | User)[] | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  isAnonymous?: boolean | null;
+  dailyRead: DailyRead;
+  notificationPreferences?: {
+    types?: {
+      BREAKING_NEWS?: boolean;
+      NEWS?: boolean;
+      COMMENT?: boolean;
+      EARNING_OPPORTUNITY?: boolean;
+      MISC?: boolean;
+      [k: string]: unknown;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Last time the user was active in the app
+   */
+  lastActive?: string | null;
   /**
    * Custom user attributes for advanced segmentation
    */
@@ -546,51 +537,62 @@ export type User = {
     | number
     | boolean
     | null;
-  dailyRead: DailyRead;
-  email?: string | null;
-  id: string;
-  image?: string | null;
-  isAnonymous?: boolean | null;
-  /**
-   * Last time the user was active in the app
-   */
-  lastActive?: string | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  blockedUsers?: (string | User)[] | null;
+  reportedComments?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  name: string;
-  notificationPreferences?: {
-    types?: {
-      BREAKING_NEWS?: boolean;
-      NEWS?: boolean;
-      COMMENT?: boolean;
-      EARNING_OPPORTUNITY?: boolean;
-      MISC?: boolean;
-      [k: string]: unknown;
-    };
-    [k: string]: unknown;
-  };
-  phone: string;
-  reportedComments?: (string | null)[] | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId?: string | null;
-  username: string;
-  wish: string;
-};
-export type DailyRead = {
+  createdAt: string;
+}
+export interface DailyRead {
   count?: number;
   updatedAt?: string;
   [k: string]: unknown;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news".
  */
-export type News = {
-  _status?: ("draft" | "published") | null;
-  author: string | Admin;
-  category: string | Category;
+export interface News {
+  id: string;
+  /**
+   * 💡 Article or Video
+   */
+  type?: ('article' | 'video') | null;
+  /**
+   * 💡 Check if video is live
+   */
+  isLive?: boolean | null;
+  /**
+   * 💡 Title of the news article
+   */
+  title: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  image: string | Media;
+  keyPoints?:
+    | {
+        point?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   content?: {
     root: {
       type: string;
@@ -599,326 +601,289 @@ export type News = {
         version: number;
         [k: string]: unknown;
       }[];
-      direction: ("ltr" | "rtl") | null;
-      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
       indent: number;
       version: number;
     };
     [k: string]: unknown;
   } | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  dislikesCount?: number | null;
-  /**
-   * 💡 Summary of the article
-   */
-  excerpt?: string | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  hasBeenPublished?: boolean | null;
-  id: string;
-  image: string | Media;
-  /**
-   * 💡 Check if video is live
-   */
-  isLive?: boolean | null;
-  keyPoints?:
-    | {
-        point?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  likesCount?: number | null;
-  /**
-   * 💡 Amount of points to be awarded for this news
-   */
-  points?: number | null;
-  publishedAt: string;
-  readTimeMinutes?: number | null;
-  slug: string;
-  /**
-   * 💡 Title of the news article
-   */
-  title: string;
-  totalCommentLikes?: number | null;
-  totalComments?: number | null;
-  /**
-   * 💡 Article or Video
-   */
-  type?: ("article" | "video") | null;
-  updatedAt: string;
   /**
    * 💡 https://www.youtube.com/embed/video-id
    */
   url?: string | null;
+  wordCount?: number | null;
+  readTimeMinutes?: number | null;
   /**
    * 💡 Number of views
    */
   views?: number | null;
-  wordCount?: number | null;
-};
+  /**
+   * 💡 Summary of the article
+   */
+  excerpt?: string | null;
+  publishedAt: string;
+  updatedAt: string;
+  /**
+   * 💡 Amount of points to be awarded for this news
+   */
+  points?: number | null;
+  author: string | Admin;
+  category: string | Category;
+  hasBeenPublished?: boolean | null;
+  totalComments?: number | null;
+  totalCommentLikes?: number | null;
+  likesCount?: number | null;
+  dislikesCount?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories".
  */
-export type Category = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
+export interface Category {
+  id: string;
+  title: string;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
-  id: string;
+  slug: string;
+  description?: string | null;
   image?: (string | null) | Media;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  slug: string;
-  title: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments".
  */
-export type Comment = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
-   */
-  dislikes?: (string | User)[] | null;
-  dislikesCount?: number | null;
+export interface Comment {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  text: string;
+  user: string | User;
+  news: string | News;
+  parent?: (string | null) | Comment;
+  replyingTo?: (string | null) | Comment;
   /**
    * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
    */
   likes?: (string | User)[] | null;
+  /**
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
+   */
+  dislikes?: (string | User)[] | null;
   likesCount?: number | null;
-  news: string | News;
-  parent?: (string | null) | Comment;
+  dislikesCount?: number | null;
   replies?: (string | Comment)[] | null;
-  replyingTo?: (string | null) | Comment;
-  text: string;
   totalReplies?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contentReports".
  */
-export type ContentReport = {
-  additionalDetails?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface ContentReport {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  moderatorNotes?: string | null;
   reason:
-    | "spam"
-    | "harassment"
-    | "hate-speech"
-    | "misinformation"
-    | "personal-info"
-    | "inappropriate"
-    | "off-topic"
-    | "trolling"
-    | "illegal"
-    | "other";
-  reportedBy: string | User;
+    | 'spam'
+    | 'harassment'
+    | 'hate-speech'
+    | 'misinformation'
+    | 'personal-info'
+    | 'inappropriate'
+    | 'off-topic'
+    | 'trolling'
+    | 'illegal'
+    | 'other';
+  additionalDetails?: string | null;
   /**
    * The reported content. Optional — not set for user-level actions (e.g. blocking).
    */
   reportedItem?:
     | ({
-        relationTo: "comments";
+        relationTo: 'comments';
         value: string | Comment;
       } | null)
     | ({
-        relationTo: "news";
+        relationTo: 'news';
         value: string | News;
       } | null);
-  resolution?:
-    | ("noAction" | "warning" | "removed" | "suspended" | "banned")
-    | null;
-  resolvedAt?: string | null;
+  reportedBy: string | User;
+  status?: ('pending' | 'reviewing' | 'resolved' | 'dismissed') | null;
+  moderatorNotes?: string | null;
+  resolution?: ('noAction' | 'warning' | 'removed' | 'suspended' | 'banned') | null;
   resolvedBy?: (string | null) | Admin;
-  status?: ("pending" | "reviewing" | "resolved" | "dismissed") | null;
+  resolvedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "feedback".
  */
-export type Feedback = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  email: string;
+export interface Feedback {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  name: string;
+  email: string;
+  type: 'general' | 'bug' | 'feature' | 'advertisement' | 'other';
+  message: string;
+  rating: number;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  message: string;
-  name: string;
-  rating: number;
-  type: "general" | "bug" | "feature" | "advertisement" | "other";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "identity-verification".
  */
-export type IdentityVerification = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  email: string;
+export interface IdentityVerification {
+  id: string;
+  user: string | User;
   firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  email: string;
+  shippingAddress: string;
   governmentId: {
     front: string | Media;
     back: string | Media;
   };
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  lastName: string;
-  phoneNumber: string;
-  shippingAddress: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "lottery".
  */
-export type Lottery = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
-  drawSeed?: string | null;
-  endDate: string;
+export interface Lottery {
   id: string;
+  name: string;
+  description?: string | null;
+  startDate: string;
+  endDate: string;
   isActive?: boolean | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  processing?: boolean | null;
+  processedAt?: string | null;
+  drawSeed?: string | null;
+  ticketPrice: number;
+  winners?: (string | User)[] | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  name: string;
-  processedAt?: string | null;
-  processing?: boolean | null;
-  startDate: string;
-  ticketPrice: number;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  winners?: (string | User)[] | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "lottery-tickets".
  */
-export type LotteryTicket = {
-  boostLuck: number;
-  count: number;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface LotteryTicket {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  user: string | User;
+  lottery: string | Lottery;
+  count: number;
+  boostLuck: number;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  lottery: string | Lottery;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "lottery-winners".
  */
-export type LotteryWinner = {
+export interface LotteryWinner {
+  id: string;
+  lottery: string | Lottery;
+  user: string | User;
+  prizeTier: 'HIGH' | 'MID' | 'LOW' | 'NONE';
+  prize?: string | null;
   claimed?: boolean | null;
   claimedAt?: string | null;
-  createdAt: string;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  id: string;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  lottery: string | Lottery;
-  prize?: string | null;
-  prizeTier: "HIGH" | "MID" | "LOW" | "NONE";
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics".
  */
-export type NewsAnalytic = {
-  article: string | News;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  deviceId: string;
-  event:
-    | "impression"
-    | "view"
-    | "read"
-    | "like"
-    | "dislike"
-    | "share"
-    | "comment";
+export interface NewsAnalytic {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  article: string | News;
+  event: 'impression' | 'view' | 'read' | 'like' | 'dislike' | 'share' | 'comment';
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
   /**
    * Event-specific data: position, screen, timeSpent, scrollDepth, shareMethod
    */
@@ -931,32 +896,47 @@ export type NewsAnalytic = {
     | number
     | boolean
     | null;
-  platform?: ("android" | "ios" | "web") | null;
-  sessionId: string;
   timestamp: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * Per-device delivery receipts for push notification campaigns. Operational use only — used for Expo receipt polling and dead token cleanup.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-deliveries".
  */
-export type NotificationDelivery = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface NotificationDelivery {
+  id: string;
   /**
-   * When this notification was confirmed delivered
+   * The campaign this delivery belongs to
    */
-  deliveredAt?: string | null;
+  notification: string | Notification;
+  /**
+   * User this notification was sent to
+   */
+  user?: (string | null) | User;
+  /**
+   * The Expo push token used for this delivery
+   */
+  pushToken: string;
   /**
    * The push-token record for matching open events
    */
   deviceToken?: (string | null) | PushToken;
+  /**
+   * When the user opened this notification
+   */
+  openedAt?: string | null;
+  status: 'pending' | 'delivered' | 'opened' | 'failed';
   /**
    * Error message if delivery failed
    */
@@ -965,49 +945,39 @@ export type NotificationDelivery = {
    * Expo delivery ticket ID — used for receipt polling
    */
   expoTicketId?: string | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  /**
+   * When this notification was confirmed delivered
+   */
+  deliveredAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  /**
-   * The campaign this delivery belongs to
-   */
-  notification: string | Notification;
-  /**
-   * When the user opened this notification
-   */
-  openedAt?: string | null;
-  /**
-   * The Expo push token used for this delivery
-   */
-  pushToken: string;
-  status: "pending" | "delivered" | "opened" | "failed";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * User this notification was sent to
-   */
-  user?: (string | null) | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notifications".
  */
-export type Notification = {
-  _status?: ("draft" | "published") | null;
+export interface Notification {
+  id: string;
   /**
-   * Number to display on app icon badge (iOS only)
+   * Notification title
    */
-  badge?: number | null;
+  title: string;
   /**
    * Notification message body
    */
   body: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  /**
+   * Notification category
+   */
+  type?: ('breaking_news' | 'news' | 'comment' | 'promo' | 'misc') | null;
   /**
    * Additional data to send with the notification
    */
@@ -1023,48 +993,43 @@ export type Notification = {
   /**
    * Choose when to deliver this notification
    */
-  deliveryAction?: ("send-now" | "schedule") | null;
-  /**
-   * Device types to target
-   */
-  deviceTypes?: ("all" | "ios" | "android")[] | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Notification priority
-   */
-  priority?: ("default" | "high" | "normal") | null;
+  deliveryAction?: ('send-now' | 'schedule') | null;
   /**
    * When to send this notification (your local time)
    */
   scheduledFor?: string | null;
   /**
+   * Target audience type
+   */
+  targetType?: ('all' | 'segment' | 'specific') | null;
+  /**
    * User segment to target
    */
-  segment?: ("active-users" | "inactive-users" | "new-users") | null;
-  /**
-   * When this notification was sent
-   */
-  sentAt?: string | null;
-  /**
-   * Play sound when notification is received
-   */
-  sound?: boolean | null;
+  segment?: ('active-users' | 'inactive-users' | 'new-users') | null;
   /**
    * Specific users to target
    */
   specificUsers?: (string | User)[] | null;
   /**
-   * Target audience type
+   * Device types to target
    */
-  targetType?: ("all" | "segment" | "specific") | null;
+  deviceTypes?: ('all' | 'ios' | 'android')[] | null;
   /**
-   * Notification title
+   * Notification priority
    */
-  title: string;
+  priority?: ('default' | 'high' | 'normal') | null;
+  /**
+   * Play sound when notification is received
+   */
+  sound?: boolean | null;
+  /**
+   * Number to display on app icon badge (iOS only)
+   */
+  badge?: number | null;
+  /**
+   * When this notification was sent
+   */
+  sentAt?: string | null;
   /**
    * Total number of recipients who received this notification
    */
@@ -1077,79 +1042,93 @@ export type Notification = {
    * Total number of recipients who opened this notification
    */
   totalOpened?: number | null;
-  /**
-   * Notification category
-   */
-  type?: ("breaking_news" | "news" | "comment" | "promo" | "misc") | null;
+  createdAt: string;
   updatedAt: string;
-};
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  _status?: ('draft' | 'published') | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-tokens".
  */
-export type PushToken = {
+export interface PushToken {
+  id: string;
   /**
-   * Version of the app when token was registered
+   * The unique token for the push notification service.
    */
-  appVersion?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  token: string;
+  /**
+   * The user associated with the push token.
+   */
+  user: string | User;
+  deviceType?: ('ios' | 'android' | 'web') | null;
+  /**
+   * Name of the device (e.g., iPhone 13, Pixel 6)
+   */
+  deviceName?: string | null;
   /**
    * Model of the device
    */
   deviceModel?: string | null;
   /**
-   * Name of the device (e.g., iPhone 13, Pixel 6)
+   * Version of the operating system
    */
-  deviceName?: string | null;
-  deviceType?: ("ios" | "android" | "web") | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  osVersion?: string | null;
+  /**
+   * Version of the app when token was registered
+   */
+  appVersion?: string | null;
+  status: 'active' | 'inactive';
   /**
    * Last time a notification was successfully sent to this token
    */
   lastUsed?: string | null;
-  /**
-   * Version of the operating system
-   */
-  osVersion?: string | null;
-  status: "active" | "inactive";
-  /**
-   * The unique token for the push notification service.
-   */
-  token: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * The user associated with the push token.
-   */
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * Per-user notification inbox. One record per user per campaign. Read by the mobile app to display notification history.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-inbox".
  */
-export type NotificationInbox = {
+export interface NotificationInbox {
+  id: string;
+  /**
+   * The user this inbox item belongs to
+   */
+  user: string | User;
+  /**
+   * The source campaign
+   */
+  notification: string | Notification;
+  /**
+   * Denormalized from campaign — avoids joins on inbox fetch
+   */
+  title: string;
   /**
    * Denormalized from campaign
    */
   body: string;
   /**
-   * Number of times the user tapped this notification
+   * Denormalized image URL from campaign
    */
-  clickCount?: number | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  imageUrl?: string | null;
   /**
    * Deeplink payload — e.g. { screen, id, url }
    */
@@ -1162,77 +1141,68 @@ export type NotificationInbox = {
     | number
     | boolean
     | null;
-  id: string;
-  /**
-   * Denormalized image URL from campaign
-   */
-  imageUrl?: string | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * The source campaign
-   */
-  notification: string | Notification;
-  /**
-   * Denormalized from campaign — avoids joins on inbox fetch
-   */
-  title: string;
   /**
    * Notification category
    */
-  type?: ("breaking_news" | "news" | "comment" | "promo" | "misc") | null;
-  updatedAt: string;
+  type?: ('breaking_news' | 'news' | 'comment' | 'promo' | 'misc') | null;
   /**
-   * The user this inbox item belongs to
+   * Number of times the user tapped this notification
    */
-  user: string | User;
-};
+  clickCount?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * Manage promotions for books, banners, videos, shop items, etc.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-content".
  */
-export type PartnerContent = {
+export interface PartnerContent {
+  id: string;
+  /**
+   * Main heading — 30 characters recommended
+   */
+  title: string;
+  /**
+   * Max 90 characters recommended
+   */
+  condition: string;
+  description?: string | null;
+  /**
+   * Content category. Banner Ad Size options in the Display Settings tab.
+   */
+  type: 'book' | 'app' | 'game' | 'survey' | 'video' | 'banner' | 'promo-media' | 'product' | 'custom' | '';
   /**
    * Select the Google Ads standard size for this placement. Then upload your image at exactly those dimensions in the Content tab.
    */
   adSize?:
     | (
-        | "BANNER"
-        | "LARGE_BANNER"
-        | "FULL_BANNER"
-        | "LEADERBOARD"
-        | "INLINE_RECTANGLE"
-        | "MEDIUM_RECTANGLE"
-        | "LARGE_RECTANGLE"
-        | "HALF_PAGE"
-        | "WIDE_SKYSCRAPER"
-        | "BILLBOARD"
-        | "ANCHORED_ADAPTIVE"
+        | 'BANNER'
+        | 'LARGE_BANNER'
+        | 'FULL_BANNER'
+        | 'LEADERBOARD'
+        | 'INLINE_RECTANGLE'
+        | 'MEDIUM_RECTANGLE'
+        | 'LARGE_RECTANGLE'
+        | 'HALF_PAGE'
+        | 'WIDE_SKYSCRAPER'
+        | 'BILLBOARD'
+        | 'ANCHORED_ADAPTIVE'
       )
     | null;
   /**
-   * Max 90 characters recommended
+   * Main image or thumbnail. For Banner / Video / Custom types, dimensions should match the Ad Size selected in Display Settings.
    */
-  condition: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Button text (e.g., Buy now, Learn more)
-   */
-  cta?: string | null;
-  description?: string | null;
-  /**
-   * Notes for the design team (safe zones, background color, text placement, etc.)
-   */
-  displayNotes?: string | null;
-  id: string;
+  media?: (string | null) | Media;
   /**
    * Promotion images and video — one video and at least three images
    */
@@ -1242,10 +1212,26 @@ export type PartnerContent = {
         id?: string | null;
       }[]
     | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  /**
+   * Video source type
+   */
+  videoType?: ('UPLOAD' | 'YOUTUBE' | 'EXTERNAL') | null;
+  /**
+   * Upload MP4 (recommended 1280x720, max 50MB)
+   */
+  video?: (string | null) | Media;
+  /**
+   * YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link
+   */
+  videoUrl?: string | null;
+  /**
+   * Button text (e.g., Buy now, Learn more)
+   */
+  cta?: string | null;
+  /**
+   * Associate with an existing partner
+   */
+  partner: string | Partner;
   links?: {
     /**
      * General landing page URL
@@ -1261,41 +1247,6 @@ export type PartnerContent = {
     androidPlayStore?: string | null;
   };
   /**
-   * Main image or thumbnail. For Banner / Video / Custom types, dimensions should match the Ad Size selected in Display Settings.
-   */
-  media?: (string | null) | Media;
-  /**
-   * Internal notes (e.g. send push notification for new release)
-   */
-  notes?: string | null;
-  /**
-   * Associate with an existing partner
-   */
-  partner: string | Partner;
-  /**
-   * Where this content should appear in the app
-   */
-  placements?:
-    | (
-        | "homepage-trending-books"
-        | "homepage-ads-banner"
-        | "discover-tab"
-        | "points-mall-books"
-        | "points-mall-apps"
-        | "connect-brand-video"
-        | "connect-brands-tab"
-        | "lucky-app-wall"
-        | "shop-tab"
-        | "news-click-ads"
-        | "banner-news-post"
-        | "news-post"
-        | "product-display"
-        | "push-notification"
-        | "email-campaign"
-        | "video-section"
-      )[]
-    | null;
-  /**
    * Points awarded for completing this action
    */
   points: number;
@@ -1303,6 +1254,30 @@ export type PartnerContent = {
    * Higher = shown first in its placement slot
    */
   priority?: number | null;
+  /**
+   * Where this content should appear in the app
+   */
+  placements?:
+    | (
+        | 'homepage-trending-books'
+        | 'homepage-ads-banner'
+        | 'discover-tab'
+        | 'points-mall-books'
+        | 'points-mall-apps'
+        | 'connect-brand-video'
+        | 'connect-brands-tab'
+        | 'lucky-app-wall'
+        | 'shop-tab'
+        | 'news-click-ads'
+        | 'banner-news-post'
+        | 'news-post'
+        | 'product-display'
+        | 'push-notification'
+        | 'email-campaign'
+        | 'video-section'
+      )[]
+    | null;
+  status: 'draft' | 'active' | 'paused' | 'archived';
   schedule?: {
     /**
      * When to start displaying this content
@@ -1313,101 +1288,80 @@ export type PartnerContent = {
      */
     endDate?: string | null;
   };
-  status: "draft" | "active" | "paused" | "archived";
   /**
-   * Main heading — 30 characters recommended
+   * Internal notes (e.g. send push notification for new release)
    */
-  title: string;
+  notes?: string | null;
   /**
-   * Content category. Banner Ad Size options in the Display Settings tab.
+   * Notes for the design team (safe zones, background color, text placement, etc.)
    */
-  type:
-    | "book"
-    | "app"
-    | "game"
-    | "survey"
-    | "video"
-    | "banner"
-    | "promo-media"
-    | "product"
-    | "custom"
-    | "";
+  displayNotes?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * Upload MP4 (recommended 1280x720, max 50MB)
-   */
-  video?: (string | null) | Media;
-  /**
-   * Video source type
-   */
-  videoType?: ("UPLOAD" | "YOUTUBE" | "EXTERNAL") | null;
-  /**
-   * YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link
-   */
-  videoUrl?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoVideoSource".
  */
-export type PromoVideoSource = {
-  blockName?: string | null;
-  blockType: "promo-video-source";
-  id?: string | null;
+export interface PromoVideoSource {
+  /**
+   * Specify the video source
+   */
+  videoSource: 'upload' | 'normal' | 'youtube';
+  /**
+   * Upload an MP4 video file
+   */
+  video?: (string | null) | Media;
+  url?: string | null;
   /**
    * Upload a custom thumbnail, or leave empty to auto-generate from video on save
    */
   thumbnail?: (string | null) | Media;
   thumbnailSource?: string | null;
-  url?: string | null;
-  /**
-   * Upload an MP4 video file
-   */
-  video?: (string | null) | Media;
-  /**
-   * Specify the video source
-   */
-  videoSource: "upload" | "normal" | "youtube";
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'promo-video-source';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoImage".
  */
-export type PromoImage = {
-  blockName?: string | null;
-  blockType: "promo-image";
-  id?: string | null;
+export interface PromoImage {
   image: string | Media;
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'promo-image';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-conversions".
  */
-export type PartnerConversion = {
-  /**
-   * When points were awarded to user
-   */
-  awardedAt?: string | null;
-  clickedAt: string;
+export interface PartnerConversion {
+  id: string;
+  user: string | User;
+  partner: string | Partner;
+  content: string | PartnerContent;
   /**
    * Unique tracking ID for this click/conversion
    */
   clickId: string;
-  content: string | PartnerContent;
+  status: 'clicked' | 'converted' | 'awarded' | 'failed';
   /**
-   * When partner confirmed conversion
+   * Points awarded to user upon conversion
    */
-  convertedAt?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  pointsAwarded?: number | null;
+  /**
+   * Order/transaction ID from partner
+   */
+  partnerOrderId?: string | null;
   /**
    * Additional data from partner (IP, device info, etc.)
    */
@@ -1420,31 +1374,35 @@ export type PartnerConversion = {
     | number
     | boolean
     | null;
-  partner: string | Partner;
+  clickedAt: string;
   /**
-   * Order/transaction ID from partner
+   * When partner confirmed conversion
    */
-  partnerOrderId?: string | null;
+  convertedAt?: string | null;
   /**
-   * Points awarded to user upon conversion
+   * When points were awarded to user
    */
-  pointsAwarded?: number | null;
-  status: "clicked" | "converted" | "awarded" | "failed";
+  awardedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "promotion-media".
  */
-export type PromotionMedia = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description: string;
+export interface PromotionMedia {
   id: string;
+  title: string;
+  description: string;
+  points: number;
   /**
    * 💡Promotion images and video url, one video url and at least three images
    */
@@ -1454,182 +1412,196 @@ export type PromotionMedia = {
         id?: string | null;
       }[]
     | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  points: number;
-  title: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "reactions".
  */
-export type Reaction = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface Reaction {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  user: string | User;
   /**
    * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all rows have `target` set.
    */
   news?: (string | null) | News;
   target:
     | {
-        relationTo: "news";
+        relationTo: 'news';
         value: string | News;
       }
     | {
-        relationTo: "comments";
+        relationTo: 'comments';
         value: string | Comment;
       };
-  type: "like" | "dislike" | "none";
+  type: 'like' | 'dislike' | 'none';
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sessions".
  */
-export type Session = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  expiresAt?: string | null;
+export interface Session {
   id: string;
+  userId?: string | null;
+  expiresAt?: string | null;
   ipAddress?: string | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  token?: string | null;
+  userAgent?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  token?: string | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userAgent?: string | null;
-  userId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shop-analytics".
  */
-export type ShopAnalytic = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  device?: ("mobile" | "tablet" | "desktop" | "unknown") | null;
+export interface ShopAnalytic {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  store: string | Partner;
+  type: 'view' | 'click';
+  userId?: string | null;
+  device?: ('mobile' | 'tablet' | 'desktop' | 'unknown') | null;
+  platform?: ('android' | 'ios' | 'web') | null;
+  timestamp: string;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  platform?: ("android" | "ios" | "web") | null;
-  store: string | Partner;
-  timestamp: string;
-  type: "view" | "click";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey".
  */
-export type Survey = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  googleFormId: string;
+export interface Survey {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  name?: string | null;
+  googleFormId: string;
+  surveyLink: string;
+  users?: (string | User)[] | null;
+  points?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  name?: string | null;
-  points?: number | null;
-  surveyLink: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  users?: (string | User)[] | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ticket-purchase-log".
  */
-export type TicketPurchaseLog = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface TicketPurchaseLog {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  user: string | User;
   lottery: string | Lottery;
   ticketQuantity: number;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "verifications".
  */
-export type Verification = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  expiresAt?: string | null;
+export interface Verification {
   id: string;
   identifier?: string | null;
+  value?: string | null;
+  expiresAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
-  value?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "witness-reports".
  */
-export type WitnessReport = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
-  files: (string | Media)[];
+export interface WitnessReport {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  name: string;
+  title: string;
+  description?: string | null;
+  reportType?: ('shortMessage' | 'video' | 'picture') | null;
+  files: (string | Media)[];
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  name: string;
-  reportType?: ("shortMessage" | "video" | "picture") | null;
-  title: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "audit-logs".
  */
-export type AuditLog = {
+export interface AuditLog {
+  id: string;
   collection: string;
-  createdAt: string;
+  documentId: string;
+  operation: 'create' | 'read' | 'update' | 'delete' | 'login' | 'logout';
+  performedBy?:
+    | ({
+        relationTo: 'admins';
+        value: string | Admin;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: string | User;
+      } | null);
   /**
    * Changed fields only — { field: { from, to } }. Present on updates when originalDoc is available.
    */
@@ -1642,19 +1614,6 @@ export type AuditLog = {
     | number
     | boolean
     | null;
-  documentId: string;
-  id: string;
-  ip?: string | null;
-  operation: "create" | "read" | "update" | "delete" | "login" | "logout";
-  performedBy?:
-    | ({
-        relationTo: "admins";
-        value: string | Admin;
-      } | null)
-    | ({
-        relationTo: "users";
-        value: string | User;
-      } | null);
   /**
    * Full sanitized document. Present on create, and on update when originalDoc is unavailable (e.g. bulk ops).
    */
@@ -1667,13 +1626,17 @@ export type AuditLog = {
     | number
     | boolean
     | null;
+  ip?: string | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
-export type PayloadKv = {
+export interface PayloadKv {
+  id: string;
+  key: string;
   data:
     | {
         [k: string]: unknown;
@@ -1683,20 +1646,17 @@ export type PayloadKv = {
     | number
     | boolean
     | null;
-  id: string;
-  key: string;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs".
  */
-export type PayloadJob = {
-  completedAt?: string | null;
-  createdAt: string;
+export interface PayloadJob {
+  id: string;
   /**
-   * If hasError is true, this is the error that caused it
+   * Input data provided to the job
    */
-  error?:
+  input?:
     | {
         [k: string]: unknown;
       }
@@ -1705,15 +1665,25 @@ export type PayloadJob = {
     | number
     | boolean
     | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
   /**
    * If hasError is true this job will not be retried
    */
   hasError?: boolean | null;
-  id: string;
   /**
-   * Input data provided to the job
+   * If hasError is true, this is the error that caused it
    */
-  input?:
+  error?:
     | {
         [k: string]: unknown;
       }
@@ -1730,16 +1700,16 @@ export type PayloadJob = {
         executedAt: string;
         completedAt: string;
         taskSlug:
-          | "inline"
-          | "sendScheduledNotification"
-          | "sendCommentLikeNotification"
-          | "sendModerationDigest"
-          | "checkPushReceipts"
-          | "processLottery"
-          | "cleanupAnonymousUsers"
-          | "generateVideoThumbnail"
-          | "deleteVideoThumbTemp"
-          | "cleanupAuditLogs";
+          | 'inline'
+          | 'sendScheduledNotification'
+          | 'sendCommentLikeNotification'
+          | 'sendModerationDigest'
+          | 'checkPushReceipts'
+          | 'processLottery'
+          | 'cleanupAnonymousUsers'
+          | 'generateVideoThumbnail'
+          | 'deleteVideoThumbTemp'
+          | 'cleanupAuditLogs';
         taskID: string;
         input?:
           | {
@@ -1759,7 +1729,7 @@ export type PayloadJob = {
           | number
           | boolean
           | null;
-        state: "failed" | "succeeded";
+        state: 'failed' | 'succeeded';
         error?:
           | {
               [k: string]: unknown;
@@ -1772,6 +1742,23 @@ export type PayloadJob = {
         id?: string | null;
       }[]
     | null;
+  taskSlug?:
+    | (
+        | 'inline'
+        | 'sendScheduledNotification'
+        | 'sendCommentLikeNotification'
+        | 'sendModerationDigest'
+        | 'checkPushReceipts'
+        | 'processLottery'
+        | 'cleanupAnonymousUsers'
+        | 'generateVideoThumbnail'
+        | 'deleteVideoThumbTemp'
+        | 'cleanupAuditLogs'
+      )
+    | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
   meta?:
     | {
         [k: string]: unknown;
@@ -1781,187 +1768,159 @@ export type PayloadJob = {
     | number
     | boolean
     | null;
-  processing?: boolean | null;
-  queue?: string | null;
-  taskSlug?:
-    | (
-        | "inline"
-        | "sendScheduledNotification"
-        | "sendCommentLikeNotification"
-        | "sendModerationDigest"
-        | "checkPushReceipts"
-        | "processLottery"
-        | "cleanupAnonymousUsers"
-        | "generateVideoThumbnail"
-        | "deleteVideoThumbTemp"
-        | "cleanupAuditLogs"
-      )
-    | null;
-  taskStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  totalTried?: number | null;
   updatedAt: string;
-  waitUntil?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
-export type PayloadLockedDocument = {
-  createdAt: string;
+export interface PayloadLockedDocument {
+  id: string;
   document?:
     | ({
-        relationTo: "accounts";
+        relationTo: 'accounts';
         value: string | Account;
       } | null)
     | ({
-        relationTo: "activities";
+        relationTo: 'activities';
         value: string | Activity;
       } | null)
     | ({
-        relationTo: "admins";
+        relationTo: 'admins';
         value: string | Admin;
       } | null)
     | ({
-        relationTo: "categories";
+        relationTo: 'categories';
         value: string | Category;
       } | null)
     | ({
-        relationTo: "comments";
+        relationTo: 'comments';
         value: string | Comment;
       } | null)
     | ({
-        relationTo: "contentReports";
+        relationTo: 'contentReports';
         value: string | ContentReport;
       } | null)
     | ({
-        relationTo: "feedback";
+        relationTo: 'feedback';
         value: string | Feedback;
       } | null)
     | ({
-        relationTo: "identity-verification";
+        relationTo: 'identity-verification';
         value: string | IdentityVerification;
       } | null)
     | ({
-        relationTo: "lottery";
+        relationTo: 'lottery';
         value: string | Lottery;
       } | null)
     | ({
-        relationTo: "lottery-tickets";
+        relationTo: 'lottery-tickets';
         value: string | LotteryTicket;
       } | null)
     | ({
-        relationTo: "lottery-winners";
+        relationTo: 'lottery-winners';
         value: string | LotteryWinner;
       } | null)
     | ({
-        relationTo: "media";
+        relationTo: 'media';
         value: string | Media;
       } | null)
     | ({
-        relationTo: "news";
+        relationTo: 'news';
         value: string | News;
       } | null)
     | ({
-        relationTo: "news-analytics";
+        relationTo: 'news-analytics';
         value: string | NewsAnalytic;
       } | null)
     | ({
-        relationTo: "notification-deliveries";
+        relationTo: 'notification-deliveries';
         value: string | NotificationDelivery;
       } | null)
     | ({
-        relationTo: "notification-inbox";
+        relationTo: 'notification-inbox';
         value: string | NotificationInbox;
       } | null)
     | ({
-        relationTo: "notifications";
+        relationTo: 'notifications';
         value: string | Notification;
       } | null)
     | ({
-        relationTo: "partner-content";
+        relationTo: 'partner-content';
         value: string | PartnerContent;
       } | null)
     | ({
-        relationTo: "partner-conversions";
+        relationTo: 'partner-conversions';
         value: string | PartnerConversion;
       } | null)
     | ({
-        relationTo: "partners";
+        relationTo: 'partners';
         value: string | Partner;
       } | null)
     | ({
-        relationTo: "promotion-media";
+        relationTo: 'promotion-media';
         value: string | PromotionMedia;
       } | null)
     | ({
-        relationTo: "push-tokens";
+        relationTo: 'push-tokens';
         value: string | PushToken;
       } | null)
     | ({
-        relationTo: "reactions";
+        relationTo: 'reactions';
         value: string | Reaction;
       } | null)
     | ({
-        relationTo: "sessions";
+        relationTo: 'sessions';
         value: string | Session;
       } | null)
     | ({
-        relationTo: "shop-analytics";
+        relationTo: 'shop-analytics';
         value: string | ShopAnalytic;
       } | null)
     | ({
-        relationTo: "survey";
+        relationTo: 'survey';
         value: string | Survey;
       } | null)
     | ({
-        relationTo: "ticket-purchase-log";
+        relationTo: 'ticket-purchase-log';
         value: string | TicketPurchaseLog;
       } | null)
     | ({
-        relationTo: "users";
+        relationTo: 'users';
         value: string | User;
       } | null)
     | ({
-        relationTo: "verifications";
+        relationTo: 'verifications';
         value: string | Verification;
       } | null)
     | ({
-        relationTo: "witness-reports";
+        relationTo: 'witness-reports';
         value: string | WitnessReport;
       } | null)
     | ({
-        relationTo: "audit-logs";
+        relationTo: 'audit-logs';
         value: string | AuditLog;
       } | null);
   globalSlug?: string | null;
-  id: string;
-  updatedAt: string;
   user: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   };
-};
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences".
  */
-export type PayloadPreference = {
-  createdAt: string;
+export interface PayloadPreference {
   id: string;
-  key?: string | null;
-  updatedAt: string;
   user: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   };
+  key?: string | null;
   value?:
     | {
         [k: string]: unknown;
@@ -1971,75 +1930,78 @@ export type PayloadPreference = {
     | number
     | boolean
     | null;
-};
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations".
  */
-export type PayloadMigration = {
-  batch?: number | null;
-  createdAt: string;
+export interface PayloadMigration {
   id: string;
   name?: string | null;
+  batch?: number | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts_select".
  */
-export type AccountsSelect<T extends boolean = true> = {
-  accessToken?: T;
-  accessTokenExpiresAt?: T;
+export interface AccountsSelect<T extends boolean = true> {
+  userId?: T;
   accountId?: T;
-  createdAt?: T;
-  createdBy?: T;
-  expiresAt?: T;
-  lastModifiedBy?: T;
-  password?: T;
   providerId?: T;
+  password?: T;
+  accessToken?: T;
   refreshToken?: T;
+  accessTokenExpiresAt?: T;
   refreshTokenExpiresAt?: T;
   scope?: T;
+  expiresAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  userId?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "activities_select".
  */
-export type ActivitiesSelect<T extends boolean = true> = {
-  action?: T;
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  lastModifiedBy?: T;
-  metadata?: T;
-  news?: T;
+export interface ActivitiesSelect<T extends boolean = true> {
+  type?: T;
   point?: T;
   reward?: T;
-  type?: T;
-  updatedAt?: T;
+  action?: T;
+  description?: T;
   user?: T;
-};
+  news?: T;
+  metadata?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "admins_select".
  */
-export type AdminsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  email?: T;
-  fullName?: T;
-  hash?: T;
-  image?: T;
-  lastModifiedBy?: T;
-  lockUntil?: T;
-  loginAttempts?: T;
-  partner?: T;
-  resetPasswordExpiration?: T;
-  resetPasswordToken?: T;
+export interface AdminsSelect<T extends boolean = true> {
   role?: T;
+  partner?: T;
+  fullName?: T;
+  image?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
   salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
   sessions?:
     | T
     | {
@@ -2047,167 +2009,170 @@ export type AdminsSelect<T extends boolean = true> = {
         createdAt?: T;
         expiresAt?: T;
       };
-  updatedAt?: T;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories_select".
  */
-export type CategoriesSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  generateSlug?: T;
-  image?: T;
-  lastModifiedBy?: T;
-  slug?: T;
+export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  image?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments_select".
  */
-export type CommentsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  dislikes?: T;
-  dislikesCount?: T;
-  lastModifiedBy?: T;
-  likes?: T;
-  likesCount?: T;
+export interface CommentsSelect<T extends boolean = true> {
+  text?: T;
+  user?: T;
   news?: T;
   parent?: T;
-  replies?: T;
   replyingTo?: T;
-  text?: T;
+  likes?: T;
+  dislikes?: T;
+  likesCount?: T;
+  dislikesCount?: T;
+  replies?: T;
   totalReplies?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contentReports_select".
  */
-export type ContentReportsSelect<T extends boolean = true> = {
+export interface ContentReportsSelect<T extends boolean = true> {
+  reason?: T;
   additionalDetails?: T;
-  createdAt?: T;
+  reportedItem?: T;
+  reportedBy?: T;
+  status?: T;
+  moderatorNotes?: T;
+  resolution?: T;
+  resolvedBy?: T;
+  resolvedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  moderatorNotes?: T;
-  reason?: T;
-  reportedBy?: T;
-  reportedItem?: T;
-  resolution?: T;
-  resolvedAt?: T;
-  resolvedBy?: T;
-  status?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "feedback_select".
  */
-export type FeedbackSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  email?: T;
-  lastModifiedBy?: T;
-  message?: T;
+export interface FeedbackSelect<T extends boolean = true> {
   name?: T;
-  rating?: T;
+  email?: T;
   type?: T;
+  message?: T;
+  rating?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "identity-verification_select".
  */
-export type IdentityVerificationSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  email?: T;
+export interface IdentityVerificationSelect<T extends boolean = true> {
+  user?: T;
   firstName?: T;
+  lastName?: T;
+  phoneNumber?: T;
+  email?: T;
+  shippingAddress?: T;
   governmentId?:
     | T
     | {
         front?: T;
         back?: T;
       };
+  createdBy?: T;
   lastModifiedBy?: T;
-  lastName?: T;
-  phoneNumber?: T;
-  shippingAddress?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "lottery_select".
  */
-export type LotterySelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
+export interface LotterySelect<T extends boolean = true> {
+  name?: T;
   description?: T;
-  drawSeed?: T;
+  startDate?: T;
   endDate?: T;
   isActive?: T;
-  lastModifiedBy?: T;
-  name?: T;
-  processedAt?: T;
   processing?: T;
-  startDate?: T;
+  processedAt?: T;
+  drawSeed?: T;
   ticketPrice?: T;
-  updatedAt?: T;
   winners?: T;
-};
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "lottery-tickets_select".
  */
-export type LotteryTicketsSelect<T extends boolean = true> = {
-  boostLuck?: T;
+export interface LotteryTicketsSelect<T extends boolean = true> {
+  user?: T;
+  lottery?: T;
   count?: T;
-  createdAt?: T;
+  boostLuck?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  lottery?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "lottery-winners_select".
  */
-export type LotteryWinnersSelect<T extends boolean = true> = {
+export interface LotteryWinnersSelect<T extends boolean = true> {
+  lottery?: T;
+  user?: T;
+  prizeTier?: T;
+  prize?: T;
   claimed?: T;
   claimedAt?: T;
-  createdAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  lottery?: T;
-  prize?: T;
-  prizeTier?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
-export type MediaSelect<T extends boolean = true> = {
+export interface MediaSelect<T extends boolean = true> {
   alt?: T;
-  blurhash?: T;
   caption?: T;
-  createdAt?: T;
+  blurhash?: T;
   createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
   filename?: T;
+  mimeType?: T;
   filesize?: T;
+  width?: T;
+  height?: T;
   focalX?: T;
   focalY?: T;
-  height?: T;
-  lastModifiedBy?: T;
-  mimeType?: T;
   sizes?:
     | T
     | {
@@ -2252,156 +2217,155 @@ export type MediaSelect<T extends boolean = true> = {
               filename?: T;
             };
       };
-  thumbnailURL?: T;
-  updatedAt?: T;
-  url?: T;
-  width?: T;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news_select".
  */
-export type NewsSelect<T extends boolean = true> = {
-  _status?: T;
-  author?: T;
-  category?: T;
-  content?: T;
-  createdAt?: T;
-  createdBy?: T;
-  dislikesCount?: T;
-  excerpt?: T;
-  generateSlug?: T;
-  hasBeenPublished?: T;
-  image?: T;
+export interface NewsSelect<T extends boolean = true> {
+  type?: T;
   isLive?: T;
+  title?: T;
+  generateSlug?: T;
+  slug?: T;
+  image?: T;
   keyPoints?:
     | T
     | {
         point?: T;
         id?: T;
       };
-  lastModifiedBy?: T;
-  likesCount?: T;
-  points?: T;
-  publishedAt?: T;
-  readTimeMinutes?: T;
-  slug?: T;
-  title?: T;
-  totalCommentLikes?: T;
-  totalComments?: T;
-  type?: T;
-  updatedAt?: T;
+  content?: T;
   url?: T;
-  views?: T;
   wordCount?: T;
-};
+  readTimeMinutes?: T;
+  views?: T;
+  excerpt?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  points?: T;
+  author?: T;
+  category?: T;
+  hasBeenPublished?: T;
+  totalComments?: T;
+  totalCommentLikes?: T;
+  likesCount?: T;
+  dislikesCount?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  createdAt?: T;
+  _status?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics_select".
  */
-export type NewsAnalyticsSelect<T extends boolean = true> = {
+export interface NewsAnalyticsSelect<T extends boolean = true> {
   article?: T;
-  createdAt?: T;
-  createdBy?: T;
-  deviceId?: T;
   event?: T;
-  lastModifiedBy?: T;
-  metadata?: T;
-  platform?: T;
-  sessionId?: T;
-  timestamp?: T;
-  updatedAt?: T;
   userId?: T;
-};
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  metadata?: T;
+  timestamp?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-deliveries_select".
  */
-export type NotificationDeliveriesSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  deliveredAt?: T;
+export interface NotificationDeliveriesSelect<T extends boolean = true> {
+  notification?: T;
+  user?: T;
+  pushToken?: T;
   deviceToken?: T;
+  openedAt?: T;
+  status?: T;
   errorMessage?: T;
   expoTicketId?: T;
+  deliveredAt?: T;
+  createdBy?: T;
   lastModifiedBy?: T;
-  notification?: T;
-  openedAt?: T;
-  pushToken?: T;
-  status?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-inbox_select".
  */
-export type NotificationInboxSelect<T extends boolean = true> = {
-  body?: T;
-  clickCount?: T;
-  createdAt?: T;
-  createdBy?: T;
-  data?: T;
-  imageUrl?: T;
-  lastModifiedBy?: T;
+export interface NotificationInboxSelect<T extends boolean = true> {
+  user?: T;
   notification?: T;
   title?: T;
+  body?: T;
+  imageUrl?: T;
+  data?: T;
   type?: T;
+  clickCount?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notifications_select".
  */
-export type NotificationsSelect<T extends boolean = true> = {
-  _status?: T;
-  badge?: T;
+export interface NotificationsSelect<T extends boolean = true> {
+  title?: T;
   body?: T;
-  createdAt?: T;
-  createdBy?: T;
+  type?: T;
   data?: T;
   deliveryAction?: T;
-  deviceTypes?: T;
-  lastModifiedBy?: T;
-  priority?: T;
   scheduledFor?: T;
-  segment?: T;
-  sentAt?: T;
-  sound?: T;
-  specificUsers?: T;
   targetType?: T;
-  title?: T;
+  segment?: T;
+  specificUsers?: T;
+  deviceTypes?: T;
+  priority?: T;
+  sound?: T;
+  badge?: T;
+  sentAt?: T;
   totalDelivered?: T;
   totalFailed?: T;
   totalOpened?: T;
-  type?: T;
+  createdAt?: T;
   updatedAt?: T;
-};
+  createdBy?: T;
+  lastModifiedBy?: T;
+  _status?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-content_select".
  */
-export type PartnerContentSelect<T extends boolean = true> = {
-  adSize?: T;
+export interface PartnerContentSelect<T extends boolean = true> {
+  title?: T;
   condition?: T;
-  createdAt?: T;
-  createdBy?: T;
-  cta?: T;
   description?: T;
-  displayNotes?: T;
+  type?: T;
+  adSize?: T;
+  media?: T;
   items?:
     | T
     | {
         layout?:
           | T
           | {
-              "promo-video-source"?: T | PromoVideoSourceSelect<T>;
-              "promo-image"?: T | PromoImageSelect<T>;
+              'promo-video-source'?: T | PromoVideoSourceSelect<T>;
+              'promo-image'?: T | PromoImageSelect<T>;
             };
         id?: T;
       };
-  lastModifiedBy?: T;
+  videoType?: T;
+  video?: T;
+  videoUrl?: T;
+  cta?: T;
+  partner?: T;
   links?:
     | T
     | {
@@ -2409,78 +2373,83 @@ export type PartnerContentSelect<T extends boolean = true> = {
         iosAppStore?: T;
         androidPlayStore?: T;
       };
-  media?: T;
-  notes?: T;
-  partner?: T;
-  placements?: T;
   points?: T;
   priority?: T;
+  placements?: T;
+  status?: T;
   schedule?:
     | T
     | {
         startDate?: T;
         endDate?: T;
       };
-  status?: T;
-  title?: T;
-  type?: T;
+  notes?: T;
+  displayNotes?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  video?: T;
-  videoType?: T;
-  videoUrl?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoVideoSource_select".
  */
-export type PromoVideoSourceSelect<T extends boolean = true> = {
-  blockName?: T;
-  id?: T;
+export interface PromoVideoSourceSelect<T extends boolean = true> {
+  videoSource?: T;
+  video?: T;
+  url?: T;
   thumbnail?: T;
   thumbnailSource?: T;
-  url?: T;
-  video?: T;
-  videoSource?: T;
-};
+  id?: T;
+  blockName?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoImage_select".
  */
-export type PromoImageSelect<T extends boolean = true> = {
-  blockName?: T;
-  id?: T;
+export interface PromoImageSelect<T extends boolean = true> {
   image?: T;
-};
+  id?: T;
+  blockName?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-conversions_select".
  */
-export type PartnerConversionsSelect<T extends boolean = true> = {
-  awardedAt?: T;
-  clickedAt?: T;
-  clickId?: T;
+export interface PartnerConversionsSelect<T extends boolean = true> {
+  user?: T;
+  partner?: T;
   content?: T;
+  clickId?: T;
+  status?: T;
+  pointsAwarded?: T;
+  partnerOrderId?: T;
+  metadata?: T;
+  clickedAt?: T;
   convertedAt?: T;
-  createdAt?: T;
+  awardedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  metadata?: T;
-  partner?: T;
-  partnerOrderId?: T;
-  pointsAwarded?: T;
-  status?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partners_select".
  */
-export type PartnersSelect<T extends boolean = true> = {
-  apiKey?: T;
-  cashBack?: T;
-  category?: T;
+export interface PartnersSelect<T extends boolean = true> {
   companyName?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  websiteUrl?: T;
+  status?: T;
+  contractSigned?: T;
+  inShopTab?: T;
+  cashBack?: T;
+  popularityScore?: T;
+  category?: T;
+  logo?: T;
   contactInfo?:
     | T
     | {
@@ -2488,225 +2457,218 @@ export type PartnersSelect<T extends boolean = true> = {
         email?: T;
         phone?: T;
       };
-  contractSigned?: T;
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  generateSlug?: T;
-  inShopTab?: T;
   integrationMethod?: T;
-  lastModifiedBy?: T;
-  logo?: T;
-  popularityScore?: T;
-  slug?: T;
-  status?: T;
-  updatedAt?: T;
-  webhookSecret?: T;
   webhookUrl?: T;
-  websiteUrl?: T;
-};
+  webhookSecret?: T;
+  apiKey?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "promotion-media_select".
  */
-export type PromotionMediaSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
+export interface PromotionMediaSelect<T extends boolean = true> {
+  title?: T;
   description?: T;
+  points?: T;
   items?:
     | T
     | {
         layout?:
           | T
           | {
-              "promo-video-source"?: T | PromoVideoSourceSelect<T>;
-              "promo-image"?: T | PromoImageSelect<T>;
+              'promo-video-source'?: T | PromoVideoSourceSelect<T>;
+              'promo-image'?: T | PromoImageSelect<T>;
             };
         id?: T;
       };
+  createdBy?: T;
   lastModifiedBy?: T;
-  points?: T;
-  title?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-tokens_select".
  */
-export type PushTokensSelect<T extends boolean = true> = {
-  appVersion?: T;
-  createdAt?: T;
-  createdBy?: T;
-  deviceModel?: T;
-  deviceName?: T;
-  deviceType?: T;
-  lastModifiedBy?: T;
-  lastUsed?: T;
-  osVersion?: T;
-  status?: T;
+export interface PushTokensSelect<T extends boolean = true> {
   token?: T;
-  updatedAt?: T;
   user?: T;
-};
+  deviceType?: T;
+  deviceName?: T;
+  deviceModel?: T;
+  osVersion?: T;
+  appVersion?: T;
+  status?: T;
+  lastUsed?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "reactions_select".
  */
-export type ReactionsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
+export interface ReactionsSelect<T extends boolean = true> {
+  user?: T;
   news?: T;
   target?: T;
   type?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sessions_select".
  */
-export type SessionsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
+export interface SessionsSelect<T extends boolean = true> {
+  userId?: T;
   expiresAt?: T;
   ipAddress?: T;
-  lastModifiedBy?: T;
   token?: T;
-  updatedAt?: T;
   userAgent?: T;
-  userId?: T;
-};
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shop-analytics_select".
  */
-export type ShopAnalyticsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  device?: T;
-  lastModifiedBy?: T;
-  platform?: T;
+export interface ShopAnalyticsSelect<T extends boolean = true> {
   store?: T;
-  timestamp?: T;
   type?: T;
-  updatedAt?: T;
   userId?: T;
-};
+  device?: T;
+  platform?: T;
+  timestamp?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey_select".
  */
-export type SurveySelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  googleFormId?: T;
-  lastModifiedBy?: T;
+export interface SurveySelect<T extends boolean = true> {
   name?: T;
-  points?: T;
+  googleFormId?: T;
   surveyLink?: T;
-  updatedAt?: T;
   users?: T;
-};
+  points?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ticket-purchase-log_select".
  */
-export type TicketPurchaseLogSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
+export interface TicketPurchaseLogSelect<T extends boolean = true> {
+  user?: T;
   lottery?: T;
   ticketQuantity?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
-export type UsersSelect<T extends boolean = true> = {
-  _verified?: T;
-  blockedUsers?: T;
-  createdAt?: T;
-  createdBy?: T;
-  customAttributes?: T;
-  dailyRead?: T;
-  email?: T;
-  image?: T;
-  isAnonymous?: T;
-  lastActive?: T;
-  lastModifiedBy?: T;
-  name?: T;
-  notificationPreferences?: T;
-  phone?: T;
-  reportedComments?: T;
-  updatedAt?: T;
+export interface UsersSelect<T extends boolean = true> {
   userId?: T;
+  email?: T;
+  name?: T;
+  image?: T;
   username?: T;
   wish?: T;
-};
+  phone?: T;
+  _verified?: T;
+  isAnonymous?: T;
+  dailyRead?: T;
+  notificationPreferences?: T;
+  lastActive?: T;
+  customAttributes?: T;
+  blockedUsers?: T;
+  reportedComments?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "verifications_select".
  */
-export type VerificationsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  expiresAt?: T;
+export interface VerificationsSelect<T extends boolean = true> {
   identifier?: T;
+  value?: T;
+  expiresAt?: T;
+  createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
-  value?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "witness-reports_select".
  */
-export type WitnessReportsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  files?: T;
-  lastModifiedBy?: T;
+export interface WitnessReportsSelect<T extends boolean = true> {
   name?: T;
-  reportType?: T;
   title?: T;
+  description?: T;
+  reportType?: T;
+  files?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "audit-logs_select".
  */
-export type AuditLogsSelect<T extends boolean = true> = {
+export interface AuditLogsSelect<T extends boolean = true> {
   collection?: T;
-  createdAt?: T;
-  diff?: T;
   documentId?: T;
-  ip?: T;
   operation?: T;
   performedBy?: T;
+  diff?: T;
   snapshot?: T;
+  ip?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
-export type PayloadKvSelect<T extends boolean = true> = {
-  data?: T;
+export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
-};
+  data?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs_select".
  */
-export type PayloadJobsSelect<T extends boolean = true> = {
-  completedAt?: T;
-  createdAt?: T;
-  error?: T;
-  hasError?: T;
+export interface PayloadJobsSelect<T extends boolean = true> {
   input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
   log?:
     | T
     | {
@@ -2720,57 +2682,51 @@ export type PayloadJobsSelect<T extends boolean = true> = {
         error?: T;
         id?: T;
       };
-  meta?: T;
-  processing?: T;
-  queue?: T;
   taskSlug?: T;
-  taskStatus?: T;
-  totalTried?: T;
-  updatedAt?: T;
+  queue?: T;
   waitUntil?: T;
-};
+  processing?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
-export type PayloadLockedDocumentsSelect<T extends boolean = true> = {
-  createdAt?: T;
+export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
   document?: T;
   globalSlug?: T;
-  updatedAt?: T;
   user?: T;
-};
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences_select".
  */
-export type PayloadPreferencesSelect<T extends boolean = true> = {
-  createdAt?: T;
-  key?: T;
-  updatedAt?: T;
+export interface PayloadPreferencesSelect<T extends boolean = true> {
   user?: T;
+  key?: T;
   value?: T;
-};
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations_select".
  */
-export type PayloadMigrationsSelect<T extends boolean = true> = {
-  batch?: T;
-  createdAt?: T;
+export interface PayloadMigrationsSelect<T extends boolean = true> {
   name?: T;
+  batch?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-category".
  */
-export type NewsCategory = {
-  createdAt?: string | null;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface NewsCategory {
   id: string;
   items?:
     | {
@@ -2778,18 +2734,22 @@ export type NewsCategory = {
         id?: string | null;
       }[]
     | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt?: string | null;
-};
+  createdAt?: string | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
-export type PayloadJobsStat = {
-  createdAt?: string | null;
+export interface PayloadJobsStat {
   id: string;
   stats?:
     | {
@@ -2801,114 +2761,115 @@ export type PayloadJobsStat = {
     | boolean
     | null;
   updatedAt?: string | null;
-};
+  createdAt?: string | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-category_select".
  */
-export type NewsCategorySelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  globalType?: T;
+export interface NewsCategorySelect<T extends boolean = true> {
   items?:
     | T
     | {
         category?: T;
         id?: T;
       };
+  createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  globalType?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats_select".
  */
-export type PayloadJobsStatsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  globalType?: T;
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
   stats?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  globalType?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
-export type CollectionsWidget = {
+export interface CollectionsWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "full";
-};
+  width: 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendScheduledNotification".
  */
-export type TaskSendScheduledNotification = {
+export interface TaskSendScheduledNotification {
   input: {
     notificationId: string;
   };
   output: {
     sent: boolean;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendCommentLikeNotification".
  */
-export type TaskSendCommentLikeNotification = {
+export interface TaskSendCommentLikeNotification {
   input: {
     authorId: string;
   };
   output: {
     sent: boolean;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendModerationDigest".
  */
-export type TaskSendModerationDigest = {
+export interface TaskSendModerationDigest {
   input?: unknown;
   output?: unknown;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCheckPushReceipts".
  */
-export type TaskCheckPushReceipts = {
+export interface TaskCheckPushReceipts {
   input: {
     notificationId: string;
   };
   output: {
     processed: number;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskProcessLottery".
  */
-export type TaskProcessLottery = {
+export interface TaskProcessLottery {
   input?: unknown;
   output: {
     processedExpired?: number | null;
     createdNew?: boolean | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCleanupAnonymousUsers".
  */
-export type TaskCleanupAnonymousUsers = {
+export interface TaskCleanupAnonymousUsers {
   input?: unknown;
   output: {
     deletedCount?: number | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskGenerateVideoThumbnail".
  */
-export type TaskGenerateVideoThumbnail = {
+export interface TaskGenerateVideoThumbnail {
   input: {
     docId: string;
     itemIndex: number;
@@ -2922,60 +2883,61 @@ export type TaskGenerateVideoThumbnail = {
     thumbnailId?: string | null;
     reason?: string | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskDeleteVideoThumbTemp".
  */
-export type TaskDeleteVideoThumbTemp = {
+export interface TaskDeleteVideoThumbTemp {
   input: {
     mediaId: string;
   };
   output: {
     deleted?: boolean | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCleanupAuditLogs".
  */
-export type TaskCleanupAuditLogs = {
+export interface TaskCleanupAuditLogs {
   input?: unknown;
   output: {
     deletedCount?: number | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "AdsBlock".
  */
-export type AdsBlock = {
-  blockName?: string | null;
-  blockType: "ads";
+export interface AdsBlock {
+  type: 'BANNER' | 'FULL_BANNER' | 'LARGE_BANNER' | 'MEDIUM_RECTANGLE';
   id?: string | null;
-  type: "BANNER" | "FULL_BANNER" | "LARGE_BANNER" | "MEDIUM_RECTANGLE";
-};
+  blockName?: string | null;
+  blockType: 'ads';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ReadAlsoBlock".
  */
-export type ReadAlsoBlock = {
-  blockName?: string | null;
-  blockType: "readAlso";
-  id?: string | null;
+export interface ReadAlsoBlock {
   /**
    * 💡This will be inserted in between the news content
    */
   news: string | News;
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'readAlso';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "auth".
  */
-export type Auth = {
+export interface Auth {
   [k: string]: unknown;
-};
+}
 
-declare module "payload" {
+
+declare module 'payload' {
   export interface GeneratedTypes extends Config {}
 }
