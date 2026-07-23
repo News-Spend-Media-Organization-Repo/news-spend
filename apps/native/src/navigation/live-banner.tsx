@@ -108,7 +108,7 @@ function LiveBanner({
 
   return (
     <Animated.View
-      className="bg-background"
+      className="bg-white"
       entering={FadeInDown.duration(300).easing(Easing.ease)}
       exiting={FadeOutDown.easing(Easing.ease).duration(300)}
     >

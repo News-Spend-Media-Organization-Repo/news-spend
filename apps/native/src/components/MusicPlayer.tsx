@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import type { AudioPlaylist } from "expo-audio";
-import { useAudioPlaylistStatus } from "expo-audio";
+import type { AudioPlayer } from "expo-audio";
+import { useAudioPlayerStatus } from "expo-audio";
 import {
   PauseIcon,
   PlayIcon,
@@ -10,7 +10,7 @@ import {
 } from "phosphor-react-native";
 import { useCallback } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -36,7 +36,7 @@ const DISMISS_THRESHOLD = 80;
 const DISMISS_OFFSET = 220;
 
 type MusicPlayerContentProps = {
-  audioPlayer: AudioPlaylist;
+  audioPlayer: AudioPlayer;
   onClose: () => void;
 };
 
@@ -46,7 +46,7 @@ const MusicPlayerContent = ({
 }: MusicPlayerContentProps) => {
   const playerStateSnapshot = usePlayerState();
   const activeTrack = playerStateSnapshot.currentTrack;
-  const playbackState = useAudioPlaylistStatus(audioPlayer);
+  const playbackState = useAudioPlayerStatus(audioPlayer);
   const hasNext = playerStateSnapshot.hasNext;
   const hasPrevious = playerStateSnapshot.hasPrevious;
 
@@ -123,111 +123,110 @@ const MusicPlayerContent = ({
   }
 
   return (
-    <Animated.View entering={FadeIn} exiting={FadeOut} style={animatedStyle}>
-      <GestureDetector gesture={panGesture}>
-        <View>
-          <View className="flex-row items-center gap-3 rounded-t-xl bg-p-500 p-4">
-            <Image
-              source={{
-                uri:
-                  activeTrack.artwork.toString() ||
-                  `https://placehold.co/100/5D3FD3/fff?text=${activeTrack.name || "Live Radio"}`,
-              }}
-              style={{
-                borderRadius: 8,
-                height: 40,
-                width: 40,
-              }}
-            />
-            <View className="flex-1">
-              <Text
-                className="font-semibold text-base text-white"
-                numberOfLines={1}
-              >
-                {nowPlaying?.title || activeTrack.name || "Live Music"}
-              </Text>
-              <Text
-                className="text-sm"
-                numberOfLines={1}
-                style={{ color: "rgba(255, 255, 255, 0.8)" }}
-              >
-                {nowPlaying?.artist || activeTrack.genre || "Live Music"}
-              </Text>
-            </View>
-            <View className="flex-row gap-2">
-              <Button
-                className="rounded-[20px]"
-                isDisabled={!hasPrevious}
-                onPress={playPrevious}
-                size="sm"
-                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-              >
-                <Icon
-                  color={hasPrevious ? "#fff" : "rgba(255,255,255,0.3)"}
-                  name={SkipBackIcon}
-                  size={16}
-                  weight="fill"
-                />
-              </Button>
-              <Button
-                className="rounded-[20px]"
-                onPress={togglePlayback}
-                size="sm"
-                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-              >
-                {(() => {
-                  if (playbackState.isBuffering) {
-                    return <ActivityIndicator color="#fff" size="small" />;
-                  }
-                  if (playbackState.playing) {
-                    return (
-                      <Icon
-                        color="white"
-                        name={PauseIcon}
-                        size={16}
-                        weight="fill"
-                      />
-                    );
-                  }
-                  return (
-                    <Icon
-                      color="#fff"
-                      name={PlayIcon}
-                      size={16}
-                      weight="fill"
-                    />
-                  );
-                })()}
-              </Button>
-              <Button
-                className="rounded-[20px]"
-                isDisabled={!hasNext}
-                isIconOnly
-                onPress={playNext}
-                size="sm"
-                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-              >
-                <Icon
-                  color={hasNext ? "#fff" : "rgba(255,255,255,0.3)"}
-                  name={SkipForwardIcon}
-                  size={16}
-                  weight="fill"
-                />
-              </Button>
-              <Button
-                accessibilityLabel="Close player"
-                className="rounded-[20px]"
-                isIconOnly
-                onPress={onClose}
-                size="sm"
-                style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-              >
-                <Icon color="#fff" name={XIcon} size={16} weight="bold" />
-              </Button>
-            </View>
-          </View>
+    <Animated.View
+      entering={FadeIn}
+      exiting={FadeOut}
+      // style={animatedStyle}
+    >
+      {/*<GestureDetector gesture={panGesture}>
+        <View>*/}
+      <View className="flex-row items-center gap-3 rounded-t-xl bg-p-500 p-4">
+        <Image
+          source={{
+            uri:
+              activeTrack.artwork.toString() ||
+              `https://placehold.co/100/5D3FD3/fff?text=${activeTrack.name || "Live Radio"}`,
+          }}
+          style={{
+            borderRadius: 8,
+            height: 40,
+            width: 40,
+          }}
+        />
+        <View className="flex-1">
+          <Text
+            className="font-semibold text-base text-white"
+            numberOfLines={1}
+          >
+            {nowPlaying?.title || activeTrack.name || "Live Music"}
+          </Text>
+          <Text
+            className="text-sm"
+            numberOfLines={1}
+            style={{ color: "rgba(255, 255, 255, 0.8)" }}
+          >
+            {nowPlaying?.artist || activeTrack.genre || "Live Music"}
+          </Text>
         </View>
-      </GestureDetector>
+        <View className="flex-row gap-2">
+          <Button
+            className="rounded-[20px]"
+            isDisabled={!hasPrevious}
+            onPress={playPrevious}
+            size="sm"
+            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+          >
+            <Icon
+              color={hasPrevious ? "#fff" : "rgba(255,255,255,0.3)"}
+              name={SkipBackIcon}
+              size={16}
+              weight="fill"
+            />
+          </Button>
+          <Button
+            className="rounded-[20px]"
+            onPress={togglePlayback}
+            size="sm"
+            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+          >
+            {(() => {
+              if (playbackState.isBuffering) {
+                return <ActivityIndicator color="#fff" size="small" />;
+              }
+              if (playbackState.playing) {
+                return (
+                  <Icon
+                    color="white"
+                    name={PauseIcon}
+                    size={16}
+                    weight="fill"
+                  />
+                );
+              }
+              return (
+                <Icon color="#fff" name={PlayIcon} size={16} weight="fill" />
+              );
+            })()}
+          </Button>
+          <Button
+            className="rounded-[20px]"
+            isDisabled={!hasNext}
+            isIconOnly
+            onPress={playNext}
+            size="sm"
+            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+          >
+            <Icon
+              color={hasNext ? "#fff" : "rgba(255,255,255,0.3)"}
+              name={SkipForwardIcon}
+              size={16}
+              weight="fill"
+            />
+          </Button>
+          <Button
+            accessibilityLabel="Close player"
+            className="rounded-[20px]"
+            isIconOnly
+            onPress={onClose}
+            size="sm"
+            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+          >
+            <Icon color="#fff" name={XIcon} size={16} weight="bold" />
+          </Button>
+        </View>
+      </View>
+      {/*</View>
+      </GestureDetector>*/}
     </Animated.View>
   );
 };

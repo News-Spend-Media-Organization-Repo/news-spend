@@ -1,5 +1,6 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useNavigationState } from "@react-navigation/native";
+import { View } from "react-native";
 import MusicPlayer from "#/components/MusicPlayer";
 import LiveBanner from "./live-banner";
 
@@ -25,13 +26,13 @@ export function FloatingOverlays({
   );
 
   return (
-    <>
+    <View className="">
       <MusicPlayer />
       <LiveBanner
         currentTabName={currentTabName}
         isTabBarVisible={isTabBarVisible}
         navigation={navigation}
       />
-    </>
+    </View>
   );
 }

@@ -1,4 +1,4 @@
-import { useAudioPlaylistStatus } from "expo-audio";
+import { useAudioPlayerStatus } from "expo-audio";
 import { cn } from "heroui-native";
 import { PauseIcon, PlayIcon } from "phosphor-react-native";
 import type { Station } from "radio-browser-api";
@@ -84,7 +84,7 @@ const ActiveStationIndicator = ({
 }: {
   audioPlayer: NonNullable<ReturnType<typeof getAudioPlaylist>>;
 }) => {
-  const playbackState = useAudioPlaylistStatus(audioPlayer);
+  const playbackState = useAudioPlayerStatus(audioPlayer);
 
   let icon: ReactNode = <Icon color="#fff" name={PlayIcon} size={12} />;
   if (playbackState.isBuffering) {

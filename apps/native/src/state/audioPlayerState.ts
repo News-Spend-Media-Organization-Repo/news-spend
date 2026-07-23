@@ -1,6 +1,6 @@
 import {
-  type AudioPlaylist,
-  createAudioPlaylist,
+  type AudioPlayer,
+  createAudioPlayer,
   setAudioModeAsync,
 } from "expo-audio";
 import type { Station } from "radio-browser-api";
@@ -60,33 +60,29 @@ function loadPersistedState(): PlayerState {
 
 export const playerState = proxy<PlayerState>(loadPersistedState());
 
-// Persist state, explicitly excluding timerRef and runtime-only fields
 subscribe(playerState, () => {
   const { timerRef, currentTrack, isReady, ...persistable } = playerState;
   storage.set("playerState", JSON.stringify(persistable));
 });
 
-// --- Playlist singleton ---
+// --- Player singleton ---
 
-// On Fast Refresh the JS module re-evaluates and a module-scope `let` would
-// reset to `null`, leaving the *previous* native AVPlayer/HTMLAudioElement
-// orphaned and still playing. Stash the active instance on globalThis so the
-// freshly re-evaluated module can find and destroy it before building a new one.
-const GLOBAL_AUDIO_KEY = "__newsSpendAudioPlaylist" as const;
+const GLOBAL_AUDIO_KEY = "__newsSpendAudioPlayer" as const;
 const globalForAudio = globalThis as typeof globalThis & {
-  [GLOBAL_AUDIO_KEY]?: AudioPlaylist | null;
+  [GLOBAL_AUDIO_KEY]?: AudioPlayer | null;
 };
 
-function getStoredAudioPlaylist(): AudioPlaylist | null {
+function getStoredPlayer(): AudioPlayer | null {
   return globalForAudio[GLOBAL_AUDIO_KEY] ?? null;
 }
 
-function setStoredAudioPlaylist(playlist: AudioPlaylist | null): void {
-  globalForAudio[GLOBAL_AUDIO_KEY] = playlist;
+function setStoredPlayer(player: AudioPlayer | null): void {
+  globalForAudio[GLOBAL_AUDIO_KEY] = player;
 }
 
-let audioPlaylist: AudioPlaylist | null = getStoredAudioPlaylist();
+let audioPlayer: AudioPlayer | null = getStoredPlayer();
 let currentStationList: Station[] = [];
+let currentStationIndex = -1;
 let streamFailureTimeout: NodeJS.Timeout | null = null;
 
 const STREAM_TIMEOUT_MS = 15_000;
@@ -98,60 +94,35 @@ function clearStreamTimeout() {
   }
 }
 
-function disposeAudioPlaylist(): void {
-  const playlist = audioPlaylist;
-  audioPlaylist = null;
-  setStoredAudioPlaylist(null);
-  if (!playlist) {
+function disposePlayer(): void {
+  const player = audioPlayer;
+  audioPlayer = null;
+  setStoredPlayer(null);
+  lastRegisteredTrackId = null;
+  if (!player) {
     return;
   }
-  setLockScreenActive(false);
   try {
-    playlist.pause();
+    player.setActiveForLockScreen(false);
   } catch {
     // ignore
   }
   try {
-    playlist.clear();
+    player.pause();
   } catch {
     // ignore
   }
   try {
-    playlist.destroy();
+    player.destroy();
   } catch {
     // ignore
   }
 }
 
-/**
- * Safe wrapper around AudioPlaylist.setActiveForLockScreen.
- * The method exists at runtime on the underlying native player but is not
- * exposed in the AudioPlaylist type definitions (it lives on AudioPlayer).
- * Uses a narrow type assertion to call it gracefully when available.
- */
-function setLockScreenActive(
-  active: boolean,
-  metadata?: { title: string; artist: string }
-): void {
-  if (!audioPlaylist) {
-    return;
-  }
-  try {
-    const playlistWithLockScreen = audioPlaylist as {
-      setActiveForLockScreen?(
-        active: boolean,
-        metadata?: { title: string; artist: string }
-      ): void;
-    };
-    playlistWithLockScreen.setActiveForLockScreen?.(active, metadata);
-  } catch {
-    // Lock screen control not available on this platform or audio session
-  }
-}
-
-function resetPlaylistState() {
-  disposeAudioPlaylist();
+function resetPlayerState() {
+  disposePlayer();
   currentStationList = [];
+  currentStationIndex = -1;
   playerState.currentTrack = null;
   playerState.hasNext = false;
   playerState.hasPrevious = false;
@@ -162,12 +133,12 @@ function setStreamTimeout(stationName: string) {
   clearStreamTimeout();
   streamFailureTimeout = setTimeout(() => {
     if (
-      audioPlaylist &&
-      !audioPlaylist.playing &&
-      !audioPlaylist.isBuffering &&
-      !audioPlaylist.isLoaded
+      audioPlayer &&
+      !audioPlayer.playing &&
+      !audioPlayer.isBuffering &&
+      !audioPlayer.isLoaded
     ) {
-      resetPlaylistState();
+      resetPlayerState();
       toast.info("Unable to connect to station", {
         description: `${stationName} is not responding. Please try another station.`,
       });
@@ -176,9 +147,47 @@ function setStreamTimeout(stationName: string) {
   }, STREAM_TIMEOUT_MS);
 }
 
+let lastRegisteredTrackId: string | null = null;
+
+function registerLockScreen() {
+  const player = audioPlayer;
+  if (!player) {
+    return;
+  }
+  const trackId = playerState.currentTrack?.id ?? null;
+  if (trackId === lastRegisteredTrackId) {
+    return;
+  }
+  lastRegisteredTrackId = trackId;
+  try {
+    player.setActiveForLockScreen(
+      true,
+      {
+        title: playerState.currentTrack?.name || "Live Radio",
+        artist: playerState.currentTrack?.genre || "News Spend Radio",
+      },
+      {
+        isLiveStream: true,
+      }
+    );
+  } catch {
+    // Lock screen control not available on this platform
+  }
+}
+
+function unregisterLockScreen() {
+  const player = audioPlayer;
+  if (!player) {
+    return;
+  }
+  try {
+    player.setActiveForLockScreen(false);
+  } catch {
+    // ignore
+  }
+}
+
 async function configureAudioSession() {
-  // Configure the audio session for background playback and lock screen
-  // controls. This must happen before creating any audio player/playlist.
   try {
     await setAudioModeAsync({
       playsInSilentMode: true,
@@ -186,21 +195,15 @@ async function configureAudioSession() {
       interruptionMode: "doNotMix",
     });
   } catch {
-    // Non-critical — audio session may already be configured from a
-    // previous session or the platform may not support this API.
+    // Non-critical — may already be configured
   }
 }
 
 export function setupAudio() {
   void configureAudioSession();
 
-  // Re-evaluate module after Fast Refresh: the local `audioPlaylist` `let`
-  // was just rebound from globalThis, so this is the same instance. If a
-  // previous native instance exists (e.g. setupAudio was never re-called
-  // after a hot reload that dropped the `let`), tear it down to avoid the
-  // dual-player orphan.
-  const existing = audioPlaylist ?? getStoredAudioPlaylist();
-  if (existing && existing !== audioPlaylist) {
+  const existing = audioPlayer ?? getStoredPlayer();
+  if (existing && existing !== audioPlayer) {
     try {
       existing.pause();
     } catch {
@@ -212,32 +215,33 @@ export function setupAudio() {
       // ignore
     }
   }
-  if (audioPlaylist) {
+  if (audioPlayer) {
     return;
   }
 
-  audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
-  setStoredAudioPlaylist(audioPlaylist);
+  audioPlayer = createAudioPlayer({ uri: "" });
+  setStoredPlayer(audioPlayer);
 
-  audioPlaylist.addListener("playlistStatusUpdate", ({ playing }) => {
+  audioPlayer.addListener("playbackStatusUpdate", ({ playing }) => {
     if (playing) {
       clearStreamTimeout();
       startTimer();
-      setLockScreenActive(true, {
-        title: playerState.currentTrack?.name || "Live Radio",
-        artist: playerState.currentTrack?.genre || "News Spend Radio",
-      });
     } else {
       stopTimer();
-      setLockScreenActive(false);
     }
   });
 
   playerState.isReady = true;
 }
 
-export function getAudioPlaylist(): AudioPlaylist | null {
-  return audioPlaylist;
+// AppState.addEventListener("change", (nextState) => {
+//   if (nextState === "background" && audioPlayer && !audioPlayer.playing) {
+//     releaseAudioPlaylist();
+//   }
+// });
+
+export function getAudioPlaylist(): AudioPlayer | null {
+  return audioPlayer;
 }
 
 // --- Helpers ---
@@ -256,7 +260,6 @@ if (hasDayChanged(playerState.lastResetDate)) {
 
 function stationToTrack(station: Station): TrackInfo {
   let trackUrl: string | undefined;
-
   if (station?.url?.startsWith("https:")) {
     trackUrl = station.url;
   } else if (station?.urlResolved?.startsWith("https:")) {
@@ -277,66 +280,11 @@ function stationToTrack(station: Station): TrackInfo {
   };
 }
 
-function updatePlaylistState() {
-  if (!audioPlaylist) {
-    return;
-  }
-  playerState.hasNext =
-    audioPlaylist.currentIndex < audioPlaylist.trackCount - 1;
-  playerState.hasPrevious = audioPlaylist.currentIndex > 0;
-}
-
-function attachPlaylistListeners() {
-  if (!audioPlaylist) {
-    return;
-  }
-  audioPlaylist.addListener("playlistStatusUpdate", ({ playing }) => {
-    if (playing) {
-      clearStreamTimeout();
-      startTimer();
-      setLockScreenActive(true, {
-        title: playerState.currentTrack?.name || "Live Radio",
-        artist: playerState.currentTrack?.genre || "News Spend Radio",
-      });
-    } else {
-      stopTimer();
-      setLockScreenActive(false);
-    }
-  });
-}
-
-// Live radio streams can't be resumed — force a fresh connection
-function reloadCurrentStream() {
-  if (!audioPlaylist) {
-    return;
-  }
-  const currentIndex = audioPlaylist.currentIndex;
-  const station = currentStationList[currentIndex];
-  if (!station) {
-    return;
-  }
-
-  const track = stationToTrack(station);
-
-  playerState.currentTrack = null; // unmount old indicator before mutating playlist
-
-  audioPlaylist.pause();
-  audioPlaylist.clear();
-
-  // Re-add ALL tracks from the station list to preserve navigation
-  for (const s of currentStationList) {
-    const t = stationToTrack(s);
-    if (t.url) {
-      audioPlaylist.add({ uri: t.url });
-    }
-  }
-
-  audioPlaylist.skipTo(currentIndex);
-  audioPlaylist.play();
-  updatePlaylistState();
-
-  playerState.currentTrack = track;
-  setStreamTimeout(station.name ?? "Unknown Station");
+function updateNavigationState() {
+  const list = currentStationList;
+  const idx = currentStationIndex;
+  playerState.hasNext = idx >= 0 && idx < list.length - 1;
+  playerState.hasPrevious = idx > 0;
 }
 
 // --- Playback controls ---
@@ -344,58 +292,92 @@ function reloadCurrentStream() {
 export const releaseAudioPlaylist = () => {
   clearStreamTimeout();
   stopTimer();
-  disposeAudioPlaylist();
+  disposePlayer();
   currentStationList = [];
+  currentStationIndex = -1;
   playerState.currentTrack = null;
   playerState.hasNext = false;
   playerState.hasPrevious = false;
   playerState.isReady = false;
 };
 
-export const playNext = () => {
-  if (!(audioPlaylist && playerState.hasNext)) {
+function playStation(station: Station, stationList: Station[], index: number) {
+  if (!audioPlayer) {
     return;
   }
-  audioPlaylist.next();
-  updatePlaylistState();
-  reloadCurrentStream();
+
+  const track = stationToTrack(station);
+  if (!track.url) {
+    toast.info("Unable to play this station. Please try another.");
+    return;
+  }
+
+  clearStreamTimeout();
+  stopTimer();
+
+  audioPlayer.replace({ uri: track.url });
+  audioPlayer.play();
+
+  currentStationList = stationList;
+  currentStationIndex = index;
+  playerState.currentTrack = track;
+  registerLockScreen();
+  updateNavigationState();
+  setStreamTimeout(station.name ?? "Unknown Station");
+}
+
+export const playNext = () => {
+  if (!(audioPlayer && playerState.hasNext)) {
+    return;
+  }
+  const nextIndex = currentStationIndex + 1;
+  const nextStation = currentStationList[nextIndex];
+  if (!nextStation) {
+    return;
+  }
+  playStation(nextStation, currentStationList, nextIndex);
 };
 
 export const playPrevious = () => {
-  if (!(audioPlaylist && playerState.hasPrevious)) {
+  if (!(audioPlayer && playerState.hasPrevious)) {
     return;
   }
-  audioPlaylist.previous();
-  updatePlaylistState();
-  reloadCurrentStream();
+  const prevIndex = currentStationIndex - 1;
+  const prevStation = currentStationList[prevIndex];
+  if (!prevStation) {
+    return;
+  }
+  playStation(prevStation, currentStationList, prevIndex);
 };
 
-// Live radio can't be resumed — reload the stream URL when unpausing
 export const togglePlayback = () => {
-  if (!audioPlaylist) {
+  if (!audioPlayer) {
     return;
   }
-  if (audioPlaylist.playing) {
-    audioPlaylist.pause();
+  if (audioPlayer.playing) {
+    audioPlayer.pause();
   } else {
-    reloadCurrentStream();
+    // Live radio can't be resumed — reload the current stream
+    const station = currentStationList[currentStationIndex];
+    if (station) {
+      playStation(station, currentStationList, currentStationIndex);
+    }
   }
 };
 
 export const loadTrack = (item: Station, stationList?: Station[]) => {
-  if (!playerState.isReady && audioPlaylist) {
-    disposeAudioPlaylist();
+  if (!playerState.isReady && audioPlayer) {
+    disposePlayer();
   }
-  currentStationList = [];
 
   const stations = stationList?.length ? stationList : [item];
   const startIndex = Math.max(
     0,
     stations.findIndex((s) => s?.id === item?.id)
   );
-  const tracks = stations.map(stationToTrack).filter((t) => t.url);
 
-  if (!tracks.length) {
+  const track = stationToTrack(item);
+  if (!track.url) {
     toast.info(
       "There was an error loading the station. Please try another station."
     );
@@ -404,39 +386,32 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
 
   clearStreamTimeout();
   stopTimer();
-
-  // Unset the old active track FIRST so the previously-active card
-  // unmounts its ActiveStationIndicator before we mutate the shared playlist.
   playerState.currentTrack = null;
   playerState.hasNext = false;
   playerState.hasPrevious = false;
 
   try {
-    if (audioPlaylist) {
-      audioPlaylist.pause();
-      audioPlaylist.clear();
-    } else {
-      audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
-      setStoredAudioPlaylist(audioPlaylist);
-      attachPlaylistListeners();
+    if (!audioPlayer) {
+      audioPlayer = createAudioPlayer({ uri: "" });
+      setStoredPlayer(audioPlayer);
+      audioPlayer.addListener("playbackStatusUpdate", ({ playing }) => {
+        if (playing) {
+          clearStreamTimeout();
+          startTimer();
+        } else {
+          stopTimer();
+        }
+      });
       playerState.isReady = true;
     }
 
-    for (const track of tracks) {
-      audioPlaylist.add({ uri: track.url });
-    }
-
     currentStationList = stations;
-    audioPlaylist.skipTo(startIndex);
-    audioPlaylist.play();
-    updatePlaylistState();
-
-    playerState.currentTrack = stationToTrack(item);
-    setStreamTimeout(item.name ?? "Unknown Station");
+    playStation(item, stations, startIndex);
   } catch (error) {
     console.error(error);
-    disposeAudioPlaylist();
+    disposePlayer();
     currentStationList = [];
+    currentStationIndex = -1;
     playerState.currentTrack = null;
     playerState.hasNext = false;
     playerState.hasPrevious = false;
