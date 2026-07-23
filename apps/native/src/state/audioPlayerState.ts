@@ -48,7 +48,9 @@ const defaultState: PlayerState = {
 function loadPersistedState(): PlayerState {
   try {
     const raw = storage.getString("playerState");
-    if (!raw) return defaultState;
+    if (!raw) {
+      return defaultState;
+    }
     const persisted: PersistedPlayerState = JSON.parse(raw);
     return { ...defaultState, ...persisted, timerRef: null, isReady: false };
   } catch {
@@ -97,7 +99,9 @@ function disposePlayer(): void {
   audioPlayer = null;
   setStoredPlayer(null);
   lastRegisteredTrackId = null;
-  if (!player) return;
+  if (!player) {
+    return;
+  }
   try {
     player.setActiveForLockScreen(false);
   } catch {
@@ -147,17 +151,25 @@ let lastRegisteredTrackId: string | null = null;
 
 function registerLockScreen() {
   const player = audioPlayer;
-  if (!player) return;
+  if (!player) {
+    return;
+  }
   const trackId = playerState.currentTrack?.id ?? null;
-  if (trackId === lastRegisteredTrackId) return;
+  if (trackId === lastRegisteredTrackId) {
+    return;
+  }
   lastRegisteredTrackId = trackId;
   try {
-    player.setActiveForLockScreen(true, {
-      title: playerState.currentTrack?.name || "Live Radio",
-      artist: playerState.currentTrack?.genre || "News Spend Radio",
-    }, {
-      isLiveStream: true,
-    });
+    player.setActiveForLockScreen(
+      true,
+      {
+        title: playerState.currentTrack?.name || "Live Radio",
+        artist: playerState.currentTrack?.genre || "News Spend Radio",
+      },
+      {
+        isLiveStream: true,
+      }
+    );
   } catch {
     // Lock screen control not available on this platform
   }
@@ -165,7 +177,9 @@ function registerLockScreen() {
 
 function unregisterLockScreen() {
   const player = audioPlayer;
-  if (!player) return;
+  if (!player) {
+    return;
+  }
   try {
     player.setActiveForLockScreen(false);
   } catch {
@@ -201,7 +215,9 @@ export function setupAudio() {
       // ignore
     }
   }
-  if (audioPlayer) return;
+  if (audioPlayer) {
+    return;
+  }
 
   audioPlayer = createAudioPlayer({ uri: "" });
   setStoredPlayer(audioPlayer);
@@ -218,6 +234,12 @@ export function setupAudio() {
   playerState.isReady = true;
 }
 
+// AppState.addEventListener("change", (nextState) => {
+//   if (nextState === "background" && audioPlayer && !audioPlayer.playing) {
+//     releaseAudioPlaylist();
+//   }
+// });
+
 export function getAudioPlaylist(): AudioPlayer | null {
   return audioPlayer;
 }
@@ -225,7 +247,9 @@ export function getAudioPlaylist(): AudioPlayer | null {
 // --- Helpers ---
 
 const hasDayChanged = (lastResetDate: number | null): boolean => {
-  if (lastResetDate === null) return true;
+  if (lastResetDate === null) {
+    return true;
+  }
   const currentMidnight = new Date().setHours(0, 0, 0, 0);
   return Date.now() >= currentMidnight && currentMidnight > lastResetDate;
 };
@@ -278,7 +302,9 @@ export const releaseAudioPlaylist = () => {
 };
 
 function playStation(station: Station, stationList: Station[], index: number) {
-  if (!audioPlayer) return;
+  if (!audioPlayer) {
+    return;
+  }
 
   const track = stationToTrack(station);
   if (!track.url) {
@@ -301,23 +327,33 @@ function playStation(station: Station, stationList: Station[], index: number) {
 }
 
 export const playNext = () => {
-  if (!audioPlayer || !playerState.hasNext) return;
+  if (!(audioPlayer && playerState.hasNext)) {
+    return;
+  }
   const nextIndex = currentStationIndex + 1;
   const nextStation = currentStationList[nextIndex];
-  if (!nextStation) return;
+  if (!nextStation) {
+    return;
+  }
   playStation(nextStation, currentStationList, nextIndex);
 };
 
 export const playPrevious = () => {
-  if (!audioPlayer || !playerState.hasPrevious) return;
+  if (!(audioPlayer && playerState.hasPrevious)) {
+    return;
+  }
   const prevIndex = currentStationIndex - 1;
   const prevStation = currentStationList[prevIndex];
-  if (!prevStation) return;
+  if (!prevStation) {
+    return;
+  }
   playStation(prevStation, currentStationList, prevIndex);
 };
 
 export const togglePlayback = () => {
-  if (!audioPlayer) return;
+  if (!audioPlayer) {
+    return;
+  }
   if (audioPlayer.playing) {
     audioPlayer.pause();
   } else {
@@ -337,13 +373,13 @@ export const loadTrack = (item: Station, stationList?: Station[]) => {
   const stations = stationList?.length ? stationList : [item];
   const startIndex = Math.max(
     0,
-    stations.findIndex((s) => s?.id === item?.id),
+    stations.findIndex((s) => s?.id === item?.id)
   );
 
   const track = stationToTrack(item);
   if (!track.url) {
     toast.info(
-      "There was an error loading the station. Please try another station.",
+      "There was an error loading the station. Please try another station."
     );
     return;
   }
@@ -396,8 +432,12 @@ export function resetDailyListeningTime() {
 }
 
 export const startTimer = () => {
-  if (playerState.timerRef) return;
-  if (playerState.listeningTime >= TIMER_THRESHOLD) return;
+  if (playerState.timerRef) {
+    return;
+  }
+  if (playerState.listeningTime >= TIMER_THRESHOLD) {
+    return;
+  }
 
   playerState.timerRef = setInterval(() => {
     playerState.listeningTime += 1;

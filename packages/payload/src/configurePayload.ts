@@ -166,6 +166,14 @@ const baseConfig: Config = {
         limit: 10,
       },
     ],
+    jobsCollectionOverrides: ({ defaultJobsCollection }) => {
+      if (!defaultJobsCollection.admin) {
+        defaultJobsCollection.admin = {};
+      }
+
+      defaultJobsCollection.admin.hidden = false;
+      return defaultJobsCollection;
+    },
   },
   secret: process.env.PAYLOAD_SECRET || "",
   typescript: {
