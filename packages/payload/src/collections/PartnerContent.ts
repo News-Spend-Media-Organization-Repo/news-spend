@@ -1,15 +1,8 @@
-import { exec } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { promisify } from "node:util";
-
 import type { CollectionConfig } from "payload";
 import { z } from "zod";
 
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
 import { urlField } from "../fields/urlField";
-
-const execAsync = promisify(exec);
 
 // ─── Google Ads standard sizes ────────────────────────────────────────────────
 export const AD_SIZES = {
@@ -89,9 +82,13 @@ const checkRatio = (
   media: { width?: number; height?: number } | null | undefined,
   adSizeKey: AdSizeKey | undefined
 ): string | true => {
-  if (!(adSizeKey && media?.width && media?.height)) return true;
+  if (!(adSizeKey && media?.width && media?.height)) {
+    return true;
+  }
   const spec = AD_SIZES[adSizeKey];
-  if (!spec || spec.width === 0) return true;
+  if (!spec || spec.width === 0) {
+    return true;
+  }
 
   const actual = media.width / media.height;
   const expected = spec.width / spec.height;
@@ -107,7 +104,7 @@ const checkRatio = (
 };
 
 // ─── Google Ads standard CTA labels ──────────────────────────────────────────
-const GOOGLE_CTA_OPTIONS = [
+const _GOOGLE_CTA_OPTIONS = [
   { label: "Apply now", value: "APPLY_NOW" },
   { label: "Book now", value: "BOOK_NOW" },
   { label: "Buy now", value: "BUY_NOW" },
@@ -142,8 +139,6 @@ const AD_SIZE_GUIDANCE: Record<string, string> = {
 const isBannerType = (data: any) => ["banner"].includes(data?.type);
 
 // ─── YouTube thumbnail helper ─────────────────────────────────────────────────
-// Extracts video ID from any YouTube URL format and returns the maxres thumbnail.
-// Used on the client side — no server work needed for YouTube.
 export const getYoutubeThumbnailUrl = (url: string): string | null => {
   const match = url.match(
     /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
@@ -156,7 +151,7 @@ export const getYoutubeThumbnailUrl = (url: string): string | null => {
 export const PartnerContent: CollectionConfig = {
   slug: "partner-content",
   admin: {
-    group: "Ads & Partners",
+    group: "Partners",
     defaultColumns: ["title", "type", "partner", "status", "points"],
     useAsTitle: "title",
     description:
@@ -166,7 +161,6 @@ export const PartnerContent: CollectionConfig = {
   hooks: {
     afterChange: [
       async ({ doc, operation, req }) => {
-        // Only run for promo-media type on create or update
         if (doc.type !== "promo-media") {
           return doc;
         }
@@ -174,99 +168,110 @@ export const PartnerContent: CollectionConfig = {
           return doc;
         }
 
-        const items: any[] = doc.items ?? [];
-        let changed = false;
+        const items: unknown[] = doc.items ?? [];
 
         for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          const blk = item?.layout?.[0];
+          const item = items[i] as { layout?: unknown[] } | undefined;
+          const blk = item?.layout?.[0] as
+            | {
+                blockType?: string;
+                videoSource?: string;
+                video?: unknown;
+                url?: string;
+                thumbnail?: unknown;
+                thumbnailSource?: string;
+              }
+            | undefined;
 
           if (blk?.blockType !== "promo-video-source") {
             continue;
           }
-          if (item.thumbnail) {
-            continue;
-          } // already has thumbnail, skip
 
-          // YouTube: no server-side frame extraction possible.
-          // Client should use getYoutubeThumbnailUrl() from this file instead.
           if (blk.videoSource === "youtube") {
+            continue;
+          }
+
+          const currentSource =
+            blk.videoSource === "upload"
+              ? typeof blk.video === "object"
+                ? (blk.video as { id?: string })?.id
+                : (blk.video as string)
+              : (blk.url as string);
+
+          if (!currentSource) {
+            continue;
+          }
+
+          const isManualThumbnail = blk.thumbnail && !blk.thumbnailSource;
+          const isUnchanged =
+            blk.thumbnail && (blk.thumbnailSource as string) === currentSource;
+
+          if (isManualThumbnail || isUnchanged) {
             continue;
           }
 
           let videoUrl: string | undefined;
 
           if (blk.videoSource === "upload") {
-            // video relation may be a populated object or a raw ID string
             const videoId =
-              typeof blk.video === "object" ? blk.video?.id : blk.video;
+              typeof blk.video === "object"
+                ? (blk.video as { id?: string })?.id
+                : (blk.video as string);
+
             if (!videoId) {
               continue;
             }
-
             try {
               const mediaDoc = await req.payload.findByID({
                 collection: "media",
                 id: videoId,
               });
-              videoUrl = mediaDoc?.url ?? undefined;
+              const raw = (mediaDoc as { url?: string })?.url;
+              if (!raw) {
+                continue;
+              }
+              videoUrl = raw.startsWith("http")
+                ? raw
+                : `${process.env.PAYLOAD_PUBLIC_SERVER_URL}${raw}`;
             } catch (err) {
               req.payload.logger.error(
                 { err },
-                `Could not resolve media doc for video id ${videoId}`
+                `Could not resolve media for video id ${videoId}`
               );
               continue;
             }
-          } else if (blk.videoSource === "normal") {
-            videoUrl = blk.url ?? undefined;
+          } else {
+            videoUrl = blk.url as string;
           }
 
           if (!videoUrl) {
             continue;
           }
 
-          const TMP = "/tmp/payload-video-thumbs";
-          fs.mkdirSync(TMP, { recursive: true });
-          const outPath = path.join(TMP, `${crypto.randomUUID()}.webp`);
+          const isHLS = videoUrl.includes(".m3u8");
 
-          try {
-            // -ss 00:00:01: seek to 1 second for a meaningful frame
-            // -vframes 1: extract exactly one frame
-            await execAsync(
-              `ffmpeg -i "${videoUrl}" -ss 00:00:01 -vframes 1 -f image2 "${outPath}" -y`
-            );
+          const oldThumbnailId =
+            blk.thumbnail && blk.thumbnailSource
+              ? typeof blk.thumbnail === "object"
+                ? (blk.thumbnail as { id?: string })?.id
+                : (blk.thumbnail as string)
+              : undefined;
 
-            const fileData = fs.readFileSync(outPath);
-            const filesize = fs.statSync(outPath).size;
-
-            const thumbDoc = await req.payload.create({
-              collection: "media",
-              data: { alt: `Thumbnail for ${doc.title}` },
-              file: {
-                data: fileData,
-                name: `promo-thumb-${crypto.randomUUID()}.webp`,
-                mimetype: "image/webp",
-                size: filesize,
-              },
-            });
-
-            items[i] = { ...item, thumbnail: thumbDoc.id };
-            changed = true;
-            fs.unlinkSync(outPath);
-          } catch (err) {
-            req.payload.logger.error(
-              { err },
-              `Failed to generate thumbnail for item ${i} on partner-content ${doc.id}`
-            );
-          }
-        }
-
-        if (changed) {
-          await req.payload.update({
-            collection: "partner-content",
-            id: doc.id,
-            data: { items },
+          await req.payload.jobs.queue({
+            task: "generateVideoThumbnail",
+            input: {
+              docId: doc.id,
+              itemIndex: i,
+              videoUrl,
+              isHLS,
+              oldThumbnailId: oldThumbnailId ?? null,
+              currentSource,
+            },
           });
+
+          req.payload.logger.info(
+            `Queued thumbnail generation for item ${i} on partner-content ${doc.id}`
+          );
         }
 
         return doc;
@@ -342,7 +347,6 @@ export const PartnerContent: CollectionConfig = {
               },
             },
 
-            // Per-size guidance blocks
             ...Object.entries(AD_SIZE_GUIDANCE).map(([sizeValue, hint]) => ({
               name: `adSizeGuide_${sizeValue}` as any,
               type: "ui" as const,
@@ -387,7 +391,7 @@ export const PartnerContent: CollectionConfig = {
               maxRows: 6,
               admin: {
                 description:
-                  "Promotion images and video URL — one video and at least three images",
+                  "Promotion images and video — one video and at least three images",
                 condition: (data) => data?.type === "promo-media",
               },
               validate: (val) => {
@@ -412,19 +416,6 @@ export const PartnerContent: CollectionConfig = {
                   minRows: 1,
                   maxRows: 1,
                   blocks: [PromoVideoSourceBlock, PromoImageBlock],
-                },
-                {
-                  name: "thumbnail",
-                  type: "upload",
-                  relationTo: "media",
-                  admin: {
-                    readOnly: true,
-                    description:
-                      "Auto-generated from video on save — do not edit manually",
-                    condition: (_, siblingData) =>
-                      siblingData?.layout?.[0]?.blockType ===
-                      "promo-video-source",
-                  },
                 },
               ],
             },
@@ -469,10 +460,7 @@ export const PartnerContent: CollectionConfig = {
                   return true;
                 }
                 if (data?.videoType === "YOUTUBE") {
-                  const isYoutube = /youtube\.com\/watch\?v=|youtu\.be\//.test(
-                    val
-                  );
-                  return isYoutube
+                  return /youtube\.com\/watch\?v=|youtu\.be\//.test(val)
                     ? true
                     : "Must be a valid YouTube URL (e.g. https://youtube.com/watch?v=VIDEO_ID)";
                 }
@@ -627,8 +615,7 @@ export const PartnerContent: CollectionConfig = {
                 { label: "Video Section (YouTube)", value: "video-section" },
               ],
               admin: {
-                condition: (data) =>
-                  !["banner", "promo-media"].includes(data?.type),
+                condition: (data) => data?.type !== "promo-media",
                 description: "Where this content should appear in the app",
               },
             },

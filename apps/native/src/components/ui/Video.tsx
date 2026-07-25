@@ -1,6 +1,7 @@
 // biome-ignore lint/style/useFilenamingConvention: PascalCase matches the convention of this directory
 
 import { useEvent } from "expo";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, type VideoThumbnail, VideoView } from "expo-video";
 import {
@@ -32,9 +33,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { useTheme } from "tamagui";
-
-import { Image as ExpoImageComponent } from "./Image";
 
 export type { VideoSource } from "expo-video";
 
@@ -256,24 +254,28 @@ const usePlaybackSync = ({
       if (!player || isSeeking) {
         return;
       }
-      const time = player.currentTime ?? 0;
-      const dur = player.duration ?? 0;
-      setCurrentTime(time);
-      if (dur > 0) {
-        setDuration(dur);
-      }
-      if (dur > 0 && time >= dur - 0.25 && !loop) {
-        setIsVideoEnded(true);
-      } else {
-        setIsVideoEnded(false);
-      }
-      const activeSub = subtitles.find((s) => time >= s.start && time <= s.end);
-      setCurrentSubtitle(activeSub?.text ?? "");
-      onPlaybackStatusUpdate?.({
-        currentTime: time,
-        duration: dur,
-        isPlaying: player.playing,
-      });
+      try {
+        const time = player.currentTime ?? 0;
+        const dur = player.duration ?? 0;
+        setCurrentTime(time);
+        if (dur > 0) {
+          setDuration(dur);
+        }
+        if (dur > 0 && time >= dur - 0.25 && !loop) {
+          setIsVideoEnded(true);
+        } else {
+          setIsVideoEnded(false);
+        }
+        const activeSub = subtitles.find(
+          (s) => time >= s.start && time <= s.end
+        );
+        setCurrentSubtitle(activeSub?.text ?? "");
+        onPlaybackStatusUpdate?.({
+          currentTime: time,
+          duration: dur,
+          isPlaying: player.playing,
+        });
+      } catch {}
     }, 250);
 
     return () => {
@@ -398,10 +400,9 @@ export const Video = ({
   onFullscreenUpdate,
   subtitles = [],
 }: VideoProps) => {
-  const theme = useTheme();
-  const textColor = theme.background.val;
-  const cardColor = theme.background.val;
-  const mutedColor = theme.placeholderColor?.val ?? "#aaaaaa";
+  const textColor = "#ffffff";
+  const cardColor = "#ffffff";
+  const mutedColor = "#003964";
 
   const videoViewRef = useRef<VideoView>(null);
   const [isMuted, setIsMuted] = useState(muted);
@@ -449,9 +450,7 @@ export const Video = ({
           setThumbnail(thumbnails[0] ?? null);
         }
       })
-      .catch(() => {
-        // Thumbnail generation is best-effort; silent failure is fine
-      });
+      .catch(() => {});
   }, [status, player]);
 
   const {
@@ -572,13 +571,19 @@ export const Video = ({
     ref,
     () => ({
       play: () => {
-        player.play();
+        try {
+          player.play();
+        } catch {}
       },
       pause: () => {
-        player.pause();
+        try {
+          player.pause();
+        } catch {}
       },
       seekTo: (seconds: number) => {
-        player.currentTime = seconds;
+        try {
+          player.currentTime = seconds;
+        } catch {}
       },
       mute: () => {
         setIsMuted(true);
@@ -587,11 +592,31 @@ export const Video = ({
         setIsMuted(false);
       },
       setVolume: (volume: number) => {
-        player.volume = volume;
+        try {
+          player.volume = volume;
+        } catch {}
       },
-      getCurrentTime: () => player.currentTime ?? 0,
-      getDuration: () => player.duration ?? 0,
-      isPlaying: () => player.playing,
+      getCurrentTime: () => {
+        try {
+          return player.currentTime ?? 0;
+        } catch {
+          return 0;
+        }
+      },
+      getDuration: () => {
+        try {
+          return player.duration ?? 0;
+        } catch {
+          return 0;
+        }
+      },
+      isPlaying: () => {
+        try {
+          return player.playing;
+        } catch {
+          return false;
+        }
+      },
       isMuted: () => isMuted,
       enterFullscreen: async () => {
         await videoViewRef.current?.enterFullscreen();
@@ -636,7 +661,7 @@ export const Video = ({
       {/* Poster thumbnail — shown until the user plays for the first time */}
       {Boolean(thumbnail && !hasPlayedOnce.current) && (
         <View pointerEvents="none" style={styles.thumbnailOverlay}>
-          <ExpoImageComponent
+          <ExpoImage
             contentFit={contentFit}
             source={thumbnail}
             style={styles.fill}

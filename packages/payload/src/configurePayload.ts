@@ -8,7 +8,12 @@ import { resendAdapter } from "@payloadcms/email-resend";
 import { sentryPlugin } from "@payloadcms/plugin-sentry";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import * as Sentry from "@sentry/nextjs";
-import { buildConfig, type Config, deepMerge } from "payload";
+import {
+  buildConfig,
+  type Config,
+  deepMerge,
+  type SanitizedConfig,
+} from "payload";
 import computeBlurhash from "payload-blurhash-plugin";
 import sharp from "sharp";
 
@@ -28,6 +33,7 @@ import {
   LotteryWinners,
   Media,
   News,
+  NewsAnalytics,
   NotificationDeliveries,
   NotificationInbox,
   Notifications,
@@ -48,10 +54,14 @@ import {
 import Admins from "./collections/Admins";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
-import { nestedDocsPlusPlugin } from "./plugins/nestedDocsPlusPlugin";
+import { auditLogPlugin } from "./plugins/audit-log";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
+import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
+import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processLotteryTask } from "./tasks/processLottery";
+import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
+import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
 
 const filename = fileURLToPath(import.meta.url);
@@ -59,6 +69,7 @@ const dirname = path.dirname(filename);
 
 const baseConfig: Config = {
   cors: "*",
+  logger: "sync",
   admin: {
     user: Admins.slug,
     meta: {
@@ -110,6 +121,7 @@ const baseConfig: Config = {
     LotteryWinners,
     Media,
     News,
+    NewsAnalytics,
     NotificationDeliveries,
     NotificationInbox,
     Notifications,
@@ -134,9 +146,13 @@ const baseConfig: Config = {
   jobs: {
     tasks: [
       sendScheduledNotificationTask,
+      sendCommentLikeNotificationTask,
+      sendModerationDigestTask,
       checkPushReceiptsTask,
       processLotteryTask,
       cleanupAnonymousUsersTask,
+      generateVideoThumbnailTask,
+      deleteVideoThumbTempTask,
     ],
     autoRun: [
       {
@@ -150,6 +166,14 @@ const baseConfig: Config = {
         limit: 10,
       },
     ],
+    jobsCollectionOverrides: ({ defaultJobsCollection }) => {
+      if (!defaultJobsCollection.admin) {
+        defaultJobsCollection.admin = {};
+      }
+
+      defaultJobsCollection.admin.hidden = false;
+      return defaultJobsCollection;
+    },
   },
   secret: process.env.PAYLOAD_SECRET || "",
   typescript: {
@@ -187,9 +211,7 @@ const baseConfig: Config = {
     computeBlurhash({ showBlurhashField: false }),
     sentryPlugin({ Sentry }),
     auditFieldsPlugin(),
-    nestedDocsPlusPlugin({
-      collections: ["categories"],
-    }),
+    auditLogPlugin,
   ],
   email: resendAdapter({
     defaultFromAddress:
@@ -220,5 +242,22 @@ const baseConfig: Config = {
   },
 };
 
-export const configurePayload = (overrides?: Partial<Config>) =>
-  buildConfig(deepMerge(baseConfig, overrides ?? {}));
+const globalForPayload = global as typeof global & {
+  __payloadConfig?: Promise<SanitizedConfig>;
+};
+
+export const configurePayload = (
+  overrides?: Partial<Config>
+): Promise<SanitizedConfig> => {
+  if (globalForPayload.__payloadConfig && !overrides) {
+    return globalForPayload.__payloadConfig;
+  }
+
+  const config = buildConfig(deepMerge(baseConfig, overrides ?? {}));
+
+  if (!overrides) {
+    globalForPayload.__payloadConfig = config;
+  }
+
+  return config;
+};

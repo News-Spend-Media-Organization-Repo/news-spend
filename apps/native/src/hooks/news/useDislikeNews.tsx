@@ -5,6 +5,8 @@ import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
 
+type UserReaction = "like" | "dislike" | "none";
+
 export default function useDislikeNews() {
   const route = useRoute<
     HomeTabRouteProps<"News"> | LiveTabRouteProps<"LiveHome">
@@ -29,8 +31,7 @@ export default function useDislikeNews() {
 
         let newLikesCount = prevNews?.likesCount ?? 0;
         let newDislikesCount = prevNews?.dislikesCount ?? 0;
-        let newUserReaction: typeof prevNews.userReaction =
-          prevNews?.userReaction ?? "none";
+        let newUserReaction: UserReaction = prevNews?.userReaction ?? "none";
 
         if (newUserReaction === "dislike") {
           // User is un-disliking
@@ -39,13 +40,13 @@ export default function useDislikeNews() {
         } else if (newUserReaction === "like") {
           // User previously liked, now disliking
           newUserReaction = "dislike";
-          newDislikesCount = newDislikesCount + 1;
+          newDislikesCount += 1;
           newLikesCount = Math.max(0, newLikesCount - 1);
         } else {
           // newUserReaction === "none"
           // User had no reaction, now disliking
           newUserReaction = "dislike";
-          newDislikesCount = newDislikesCount + 1;
+          newDislikesCount += 1;
         }
 
         const optimisticNews = {
@@ -69,12 +70,25 @@ export default function useDislikeNews() {
           context?.prevNews
         );
       },
-      // Always refetch after error or success:
-      onSettled: (_news, _error, variables) => {
-        queryClient.invalidateQueries({
-          queryKey: orpc.news.one.queryKey({
-            input: { slug: variables.slug || "", type },
-          }),
+      // Reconcile cache with server truth instead of refetching. A refetch
+      // re-reads the news doc and clobbers our optimistic userReaction.
+      onSettled: (serverReaction, _error, variables) => {
+        const slug = variables?.slug;
+        if (!(slug && serverReaction)) {
+          return;
+        }
+        const queryKey = orpc.news.one.queryKey({
+          input: { slug, type },
+        });
+        const prevNews = queryClient.getQueryData(queryKey);
+        if (!prevNews) {
+          return;
+        }
+        queryClient.setQueryData(queryKey, {
+          ...prevNews,
+          userReaction: serverReaction.userReaction,
+          likesCount: serverReaction.likesCount,
+          dislikesCount: serverReaction.dislikesCount,
         });
       },
     })

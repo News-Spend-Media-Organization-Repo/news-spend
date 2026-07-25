@@ -7,9 +7,9 @@ export const sizeMap: Record<NonNullable<BannerSize>, BannerAdSize> = {
   MEDIUM_RECTANGLE: BannerAdSize.MEDIUM_RECTANGLE,
   BANNER: BannerAdSize.BANNER,
   LARGE_BANNER: BannerAdSize.LARGE_BANNER,
-  FULL_BANNER: BannerAdSize.FULL_BANNER,
+  FULL_BANNER: BannerAdSize.INLINE_ADAPTIVE_BANNER,
   LEADERBOARD: BannerAdSize.LEADERBOARD,
-  ANCHORED_ADAPTIVE_BANNER: BannerAdSize.ANCHORED_ADAPTIVE_BANNER,
+  ANCHORED_ADAPTIVE: BannerAdSize.INLINE_ADAPTIVE_BANNER,
 };
 
 export const getGoogleBannerSize = (size: NonNullable<BannerSize>) =>

@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 
+import { notifyAdminsOnWitnessReport } from "../hooks/witnessReport/notifyAdmins";
+
 const WitnessReport: CollectionConfig = {
   slug: "witness-reports",
   admin: {
@@ -8,6 +10,9 @@ const WitnessReport: CollectionConfig = {
   access: {
     read: () => true,
     create: () => true,
+  },
+  hooks: {
+    afterChange: [notifyAdminsOnWitnessReport],
   },
   fields: [
     {

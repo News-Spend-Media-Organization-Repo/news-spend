@@ -8,10 +8,11 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from "react";
-import { Stack } from "tamagui";
+import { View } from "react-native";
 
-import { Video, type VideoRef } from "#/components/ui";
+import { Image, Video, type VideoRef } from "#/components/ui";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,6 +29,7 @@ type PromoVideoProps = {
   item: PromoVideoSource;
   onLoad?: () => void;
   autoPlay?: boolean;
+  posterSource?: { uri: string; width: number; height: number } | null;
   ref?: Ref<PromoVideoMethods>;
 };
 
@@ -39,37 +41,25 @@ const PromoVideo = ({
   item,
   onLoad,
   autoPlay = false,
+  posterSource,
   ref,
 }: PromoVideoProps) => {
   const videoRef = useRef<VideoRef>(null);
   const focused = useIsFocused();
+  const [videoKey, setVideoKey] = useState(0);
+  const savedPosition = useRef(0);
+  const wasPlaying = useRef(false);
+  const [effectiveAutoPlay, setEffectiveAutoPlay] = useState(autoPlay);
 
-  const videoSource: VideoSource = useMemo(
-    () =>
-      item.url
-        ? {
-            uri: item.url,
-            metadata: { title: "Promo Video", artist: "News Spend Media" },
-            useCaching: true,
-            headers: { "User-Agent": "NewsSpendMedia/1.0" },
-          }
-        : null, // null source = player allocated, nothing buffered
+  const videoSource = useMemo<VideoSource>(
+    () => ({ uri: item.url ?? undefined }),
     [item.url]
   );
 
-  // Preload thumbnail via cache (Video component shows it as a poster if provided)
-  // useEffect(() => {
-  //   if (!autoPlay && item.url) {
-  //     getThumbnailWithCache(item.url).catch((err) => {
-  //       console.warn("Failed to preload thumbnail:", err);
-  //     });
-  //   }
-  // }, [item.url, autoPlay]);
-
-  // Auto-pause when screen loses focus
   useEffect(() => {
-    if (!focused) {
-      videoRef.current?.pause();
+    if (focused) {
+      setVideoKey((k) => k + 1);
+      setEffectiveAutoPlay(wasPlaying.current);
     }
   }, [focused]);
 
@@ -102,18 +92,38 @@ const PromoVideo = ({
   );
 
   return (
-    <Stack h="100%" w="100%">
-      <Video
-        allowsPictureInPicture={false}
-        autoPlay={autoPlay}
-        contentFit="cover"
-        loop
-        onLoad={onLoad}
-        ref={videoRef}
-        source={videoSource}
-        style={{ width: "100%", height: "100%", borderRadius: 10 }}
-      />
-    </Stack>
+    <View className="relative h-full w-full">
+      {focused && (
+        <Video
+          allowsPictureInPicture={false}
+          autoPlay={effectiveAutoPlay}
+          contentFit="cover"
+          key={videoKey}
+          loop
+          onLoad={onLoad}
+          onPlaybackStatusUpdate={(status) => {
+            savedPosition.current = status.currentTime;
+            wasPlaying.current = status.isPlaying;
+          }}
+          ref={videoRef}
+          source={videoSource}
+          style={{ width: "100%", height: "100%", borderRadius: 10 }}
+        />
+      )}
+      {!(autoPlay && focused) && posterSource && (
+        <Image
+          source={posterSource}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            borderRadius: 10,
+          }}
+        />
+      )}
+    </View>
   );
 };
 

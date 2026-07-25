@@ -1,23 +1,7 @@
-import payload, { type CollectionConfig, type FieldHook } from "payload";
+import { sql } from "@payloadcms/db-postgres";
+import type { CollectionConfig } from "payload";
 
-const getReplies: FieldHook = async ({ data }) => {
-  const replies = await payload.find({
-    collection: "comments",
-    overrideAccess: true,
-    where: {
-      parent: {
-        equals: data?.id,
-      },
-    },
-    limit: 3,
-  });
-
-  if (replies.docs) {
-    return replies.docs.map((doc) => doc.id);
-  }
-
-  return null;
-};
+import notifyOnReply from "../hooks/comments/notifyOnReply";
 
 const Comments: CollectionConfig = {
   slug: "comments",
@@ -32,39 +16,128 @@ const Comments: CollectionConfig = {
     // Admins should have full control
   },
   hooks: {
-    beforeDelete: [
-      async ({ id, req }) => {
-        // delete replies if comment is a top-level comment
-        await req.payload.delete({
-          collection: "comments",
-          where: {
-            parent: {
-              equals: id,
-            },
-          },
-        });
+    beforeChange: [
+      // totalReplies is maintained by raw SQL in the afterChange/afterDelete
+      // hooks below. Strip it from incoming Payload writes (e.g. admin edits)
+      // so a stale form value can't overwrite the counter.
+      ({ data, operation }) => {
+        if (operation === "update" && data && "totalReplies" in data) {
+          const { totalReplies, ...rest } = data;
+          return rest;
+        }
+        return data;
       },
     ],
-    afterRead: [
-      async ({ doc, req }) => {
-        try {
-          const replies = await req.payload.count({
-            collection: "comments",
-            overrideAccess: true,
-            where: {
-              parent: {
-                equals: doc?.id,
-              },
-            },
-          });
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation !== "create") {
+          return;
+        }
 
-          return {
-            ...doc,
-            totalReplies: replies.totalDocs,
-          };
-        } catch (error) {
-          console.log("🚀 ~ file: Comments.ts:131 ~ error:", error);
-          return 0;
+        if (doc?.parent) {
+          const parentId =
+            typeof doc.parent === "string" ? doc.parent : doc.parent.id;
+          try {
+            req.payload.logger.info(
+              { parentId, op: "increment" },
+              "Comments.afterChange: incrementing parent totalReplies"
+            );
+            await req.payload.db.drizzle.execute(
+              sql`UPDATE comments
+                  SET total_replies = GREATEST(COALESCE(total_replies, 0) + 1, 0)
+                  WHERE id = ${parentId}`
+            );
+            req.payload.logger.info(
+              { parentId },
+              "Comments.afterChange: parent totalReplies incremented"
+            );
+          } catch (err) {
+            req.payload.logger.error(
+              { err, parentId, op: "increment" },
+              "Comments.afterChange: parent totalReplies increment failed"
+            );
+          }
+        }
+
+        if (doc?.news) {
+          const newsId = typeof doc.news === "string" ? doc.news : doc.news.id;
+          try {
+            req.payload.logger.info(
+              { newsId, op: "increment" },
+              "Comments.afterChange: incrementing news totalComments"
+            );
+            await req.payload.db.drizzle.execute(
+              sql`UPDATE "news"
+                  SET "total_comments" = GREATEST(COALESCE("total_comments", 0) + 1, 0)
+                  WHERE id = ${newsId}`
+            );
+            req.payload.logger.info(
+              { newsId },
+              "Comments.afterChange: news totalComments incremented"
+            );
+          } catch (err) {
+            req.payload.logger.error(
+              { err, newsId, op: "increment" },
+              "Comments.afterChange: news totalComments increment failed"
+            );
+          }
+        }
+      },
+      notifyOnReply,
+    ],
+    afterDelete: [
+      async ({ doc, req }) => {
+        // Descendants are cascade-deleted by the comments.parent_id FK
+        // (see migration 20260622_120000), so we only update the parent's
+        // totalReplies and the news article's totalComments.
+
+        if (doc?.parent) {
+          const parentId =
+            typeof doc.parent === "string" ? doc.parent : doc.parent.id;
+          try {
+            req.payload.logger.info(
+              { parentId, op: "decrement" },
+              "Comments.afterDelete: decrementing parent totalReplies"
+            );
+            await req.payload.db.drizzle.execute(
+              sql`UPDATE comments
+                  SET total_replies = GREATEST(COALESCE(total_replies, 0) - 1, 0)
+                  WHERE id = ${parentId}`
+            );
+            req.payload.logger.info(
+              { parentId },
+              "Comments.afterDelete: parent totalReplies decremented"
+            );
+          } catch (err) {
+            req.payload.logger.error(
+              { err, parentId, op: "decrement" },
+              "Comments.afterDelete: parent totalReplies decrement failed"
+            );
+          }
+        }
+
+        if (doc?.news) {
+          const newsId = typeof doc.news === "string" ? doc.news : doc.news.id;
+          try {
+            req.payload.logger.info(
+              { newsId, op: "decrement" },
+              "Comments.afterDelete: decrementing news totalComments"
+            );
+            await req.payload.db.drizzle.execute(
+              sql`UPDATE "news"
+                  SET "total_comments" = GREATEST(COALESCE("total_comments", 0) - 1, 0)
+                  WHERE id = ${newsId}`
+            );
+            req.payload.logger.info(
+              { newsId },
+              "Comments.afterDelete: news totalComments decremented"
+            );
+          } catch (err) {
+            req.payload.logger.error(
+              { err, newsId, op: "decrement" },
+              "Comments.afterDelete: news totalComments decrement failed"
+            );
+          }
         }
       },
     ],
@@ -106,12 +179,40 @@ const Comments: CollectionConfig = {
       type: "relationship",
       relationTo: "users",
       hasMany: true,
+      admin: {
+        hidden: true,
+        description:
+          "Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.",
+      },
     },
     {
       name: "dislikes",
       type: "relationship",
       relationTo: "users",
       hasMany: true,
+      admin: {
+        hidden: true,
+        description:
+          "Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.",
+      },
+    },
+    {
+      name: "likesCount",
+      type: "number",
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        hidden: process.env.NODE_ENV !== "development",
+      },
+    },
+    {
+      name: "dislikesCount",
+      type: "number",
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        hidden: process.env.NODE_ENV !== "development",
+      },
     },
     // virtual field for replies
     {
@@ -134,7 +235,7 @@ const Comments: CollectionConfig = {
       admin: {
         readOnly: true,
       },
-      virtual: true,
+      defaultValue: 0,
     },
   ],
 };

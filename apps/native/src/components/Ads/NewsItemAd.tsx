@@ -1,12 +1,12 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import * as Linking from "expo-linking";
 import { memo, useCallback, useMemo } from "react";
-import { Platform } from "react-native";
-import { Stack, Text, XStack, YStack } from "tamagui";
+import { Platform, Pressable, View } from "react-native";
 
-import { Image } from "#/components/ui";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
+import { Image } from "../heroui/image";
+import { Text } from "../heroui/text";
 
 function NewsItemAds({
   item,
@@ -55,49 +55,37 @@ function NewsItemAds({
   );
 
   return (
-    <Stack gap="$2.5" onPress={onPress}>
-      <XStack gap="$4">
+    <Pressable className="gap-2.5" onPress={onPress}>
+      <View className="flex-row gap-4">
         <Image
-          borderRadius={10}
+          className="size-25 rounded-[10px]"
           contentFit="cover"
-          h={100}
           placeholder={{
             blurhash,
           }}
           placeholderContentFit="cover"
           recyclingKey={item.id}
           source={url}
-          w={100}
         />
-        <YStack flex={1} gap="$4" jc="center">
-          <XStack jc="space-between">
-            <Text color="$p500" fontWeight="700">
-              {partnerContent.title}
-            </Text>
-            <Text
-              boc="$gray.50"
-              br="$1"
-              bw={1}
-              color="$s300"
-              fos={13}
-              h="auto"
-              px="$1"
-            >
+        <View className="flex-1 justify-center gap-4">
+          <View className="flex-row justify-between">
+            <Text className="font-bold text-p-500">{partnerContent.title}</Text>
+            <Text className="rounded-sm border border-gray-50 px-1 text-s-300">
               Ad
             </Text>
-          </XStack>
+          </View>
           <Text ellipsizeMode="tail" numberOfLines={2}>
             {partnerContent.condition || ""}
           </Text>
-          <XStack alignItems="center" jc="space-between">
-            <Text color="$p500">{partnerName}</Text>
-            <Text bg="$s300" br="$10" color="white" px="$2" py="$1">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-p-500">{partnerName}</Text>
+            <Text className="rounded-full bg-s-300 px-2 py-1 text-white text-xs">
               {ctaLabel}
             </Text>
-          </XStack>
-        </YStack>
-      </XStack>
-    </Stack>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -107,10 +95,13 @@ const getLink = (item: PartnerContent | null) => {
   if (!item) {
     return null;
   }
-  const url =
-    Platform.select({
-      ios: item.links?.iosAppStore,
-      android: item.links?.androidPlayStore,
-    }) ?? item.links?.website;
-  return url ?? null;
+
+  const { iosAppStore, androidPlayStore, website } = item.links ?? {};
+
+  const platformUrl = Platform.select({
+    ios: iosAppStore,
+    android: androidPlayStore,
+  });
+
+  return platformUrl || website || null;
 };

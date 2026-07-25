@@ -1,17 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { Spinner } from "heroui-native";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
+import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
-import { Input, Paragraph, Spinner, Stack, YStack } from "tamagui";
 import { z } from "zod";
-
-import { FormInput } from "#/components";
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui/Button";
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import FormTextInput from "#/components/heroui/text-input";
 import { useForgotPassword, useUpdateProfile, useUser } from "#/hooks/auth";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { queryClient } from "#/lib/tanstackQuery";
+
+const capitalize = (str: string) =>
+  str.replace(/\b\w/g, (char) => char.toUpperCase());
 
 const passwordSchema = z
   .object({
@@ -42,6 +44,8 @@ const profileSchema = z.object({
     .string("Phone number is required")
     .regex(/^\d+$/, "Invalid phone number")
     .trim(),
+  email: z.email("Invalid email").trim(),
+  wish: z.string("Wish is required").trim(),
 });
 
 export type ChangePasswordInput = z.infer<typeof passwordSchema>;
@@ -57,19 +61,23 @@ function Profile() {
 
   const profileFormMethods = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: "",
+      username: "",
+      phone: "",
+      email: "",
+      wish: "",
+    },
+    values: {
+      name: user?.name ?? "",
+      username: user?.username ?? "",
+      phone: user?.phone ?? "",
+      email: user?.email ?? "",
+      wish: user?.wish ?? "",
+    },
   });
 
   const isDirty = profileFormMethods.formState.isDirty;
-
-  useEffect(() => {
-    if (user) {
-      profileFormMethods.reset({
-        name: user?.name,
-        username: user?.username,
-        phone: user?.phone,
-      });
-    }
-  }, [user]);
 
   const onUpdateReset = () => {
     if (user?.email) {
@@ -95,13 +103,21 @@ function Profile() {
 
   const onUpdateProfile: SubmitHandler<ProfileInput> = (data) => {
     toast.loading("Updating profile...");
-    updateProfileMutation.mutate(data, {
+
+    const formattedData = {
+      name: capitalize(data.name),
+      username: data.username,
+      phone: data.phone,
+    };
+
+    updateProfileMutation.mutate(formattedData, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: userQueryOptions.queryKey });
         toast.dismiss();
         toast.success("Profile updated", {
           description: "Your profile information has been saved.",
         });
+        profileFormMethods.reset(formattedData);
       },
       onError: (error) => {
         toast.dismiss();
@@ -109,7 +125,7 @@ function Profile() {
           const fieldErrors = error?.data?.fieldErrors;
 
           if (fieldErrors) {
-            Object.keys(fieldErrors).forEach((key) => {
+            for (const key of Object.keys(fieldErrors)) {
               profileFormMethods.setError(
                 key as keyof ProfileInput,
                 {
@@ -120,7 +136,7 @@ function Profile() {
                   shouldFocus: true,
                 }
               );
-            });
+            }
           }
           return;
         }
@@ -132,85 +148,69 @@ function Profile() {
   };
 
   return (
-    <Screen safeAreaEdges={["bottom"]}>
+    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={40}
-        contentContainerStyle={{
-          paddingHorizontal: 25,
-          paddingTop: 20,
-          paddingBottom: 50,
-        }}
-        showsVerticalScrollIndicator={false}
+        contentContainerClassName="px-6 pt-5"
       >
-        <Stack gap="$10">
+        <View className="gap-10">
           <FormProvider {...profileFormMethods}>
-            <YStack gap="$5">
-              {/* <XStack alignItems="center" gap="$6">
-              <Avatar circular size="$8">
-                <Avatar.Image
-                  accessibilityLabel="Cam"
-                  src="https://images.unsplash.com/photo-1548142813-c348350df52b?&w=150&h=150&dpr=2&q=80"
-                />
-                <Avatar.Fallback backgroundColor="$blue10" />
-              </Avatar>
-
-              <Button outlined size="$3" borderRadius="$10">
-                <Button.Text color="$color">Change Profile Picture</Button.Text>
-              </Button>
-            </XStack> */}
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Name</Paragraph>
-                <FormInput name="name" placeholder={user?.name ?? ""} />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Username</Paragraph>
-                <FormInput name="username" placeholder={user?.username ?? ""} />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Phone</Paragraph>
-                <FormInput
-                  keyboardType="phone-pad"
-                  name="phone"
-                  placeholder={user?.phone ?? ""}
-                />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Email Address</Paragraph>
-                <Input bg="#dedede" disabled value={user?.email} />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Wish</Paragraph>
-                <Input bg="#dedede" disabled value={user?.wish} />
-              </YStack>
-              <YStack gap="$2">
+            <View className="gap-5">
+              <FormTextInput
+                autoCapitalize="words"
+                label="Name"
+                name="name"
+                placeholder={user?.name ?? ""}
+              />
+              <FormTextInput
+                label="Username"
+                name="username"
+                placeholder={user?.username ?? ""}
+              />
+              <FormTextInput
+                label="Phone"
+                name="phone"
+                placeholder={user?.phone ?? ""}
+              />
+              <FormTextInput
+                isDisabled
+                label="Email Address"
+                name="email"
+                placeholder={user?.email ?? ""}
+              />
+              <FormTextInput
+                isDisabled
+                label="Wish"
+                multiline
+                name="wish"
+                placeholder={user?.wish ?? ""}
+              />
+              <View className="gap-2">
                 <Button
-                  disabled={updateProfileMutation.isPending || !isDirty}
+                  isDisabled={updateProfileMutation.isPending || !isDirty}
                   onPress={profileFormMethods.handleSubmit(onUpdateProfile)}
                 >
                   {updateProfileMutation.isPending ? (
-                    <Button.Icon>
-                      <Spinner color="$s50" />
-                    </Button.Icon>
+                    <Spinner />
                   ) : (
-                    <Button.Text>Save</Button.Text>
+                    <Button.Label>Save</Button.Label>
                   )}
                 </Button>
-              </YStack>
-            </YStack>
+              </View>
+            </View>
           </FormProvider>
 
           <Button
-            disabled={resetPasswordMutation.isPending}
+            isDisabled={resetPasswordMutation.isPending}
             onPress={onUpdateReset}
           >
             {resetPasswordMutation.isPending ? (
-              <Button.Icon>
-                <Spinner color="$s50" />
-              </Button.Icon>
-            ) : null}
-            <Button.Text>Request Password Reset</Button.Text>
+              <Spinner />
+            ) : (
+              <Button.Label>Request Password Reset</Button.Label>
+            )}
           </Button>
-        </Stack>
+        </View>
       </KeyboardAwareScrollView>
     </Screen>
   );

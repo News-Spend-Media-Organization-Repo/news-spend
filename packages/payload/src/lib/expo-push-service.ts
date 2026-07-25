@@ -10,6 +10,51 @@ import type { PayloadRequest, Where } from "payload";
 import type { Notification } from "../payload-types";
 import { getPayload } from "./getPayload";
 
+/**
+ * Maps notification campaign types to user preference keys.
+ * Only notifications with a mapped preference key are filtered.
+ * Types without a mapping (e.g., "promo") are sent to all users.
+ */
+const NOTIFICATION_TYPE_TO_PREFERENCE: Record<string, string | undefined> = {
+  breaking_news: "BREAKING_NEWS",
+  news: "NEWS",
+  comment: "COMMENT",
+  misc: "MISC",
+  promo: undefined,
+};
+
+/**
+ * Android notification channel to deliver on (registered client-side in
+ * usePushNotification.tsx). "comment" notifications cover two different
+ * kinds of activity — a reply (data.kind: "reply") and a like
+ * (data.kind: "like") — which get their own channels so a user can turn
+ * down low-signal like notifications on Android without also muting
+ * replies, while still sharing the same COMMENT preference toggle that
+ * gates whether either is sent at all. Everything else falls back to the
+ * pre-existing "default" channel.
+ */
+function resolveChannelId(notification: Notification): string {
+  if (notification.type !== "comment") {
+    return "default";
+  }
+  const data =
+    notification.data &&
+    typeof notification.data === "object" &&
+    !Array.isArray(notification.data)
+      ? (notification.data as Record<string, unknown>)
+      : undefined;
+  return data?.kind === "like" ? "likes" : "comments";
+}
+
+/**
+ * All push-tokens queries here sort by id. The job queue runs multiple
+ * notification jobs concurrently (Promise.all), and processTickets() later
+ * updates each returned token's row sequentially within its own job. Without
+ * a deterministic order, two concurrent jobs whose token sets overlap could
+ * acquire those row locks in different relative orders and deadlock in
+ * Postgres — sorting guarantees every job walks overlapping rows in the same
+ * order, so a circular wait can't form.
+ */
 async function resolveTokens(
   notification: Notification,
   req: PayloadRequest
@@ -23,8 +68,39 @@ async function resolveTokens(
       : undefined;
 
   if (notification.targetType === "all") {
+    const preferenceKey =
+      NOTIFICATION_TYPE_TO_PREFERENCE[notification.type ?? "misc"];
+
+    if (preferenceKey) {
+      const { docs: users } = await payload.find({
+        collection: "users",
+        where: {
+          [`notificationPreferences.types.${preferenceKey}`]: { equals: true },
+        },
+        pagination: false,
+        req,
+      });
+
+      if (!users.length) {
+        return [];
+      }
+
+      const result = await payload.find({
+        collection: "push-tokens",
+        sort: "id",
+        where: {
+          user: { in: users.map((user) => user.id) },
+          ...deviceTypeWhere,
+        },
+        pagination: false,
+        req,
+      });
+      return result.docs;
+    }
+
     const result = await payload.find({
       collection: "push-tokens",
+      sort: "id",
       where: deviceTypeWhere,
       pagination: false,
       req,
@@ -40,10 +116,15 @@ async function resolveTokens(
     notification.targetType === "specific" &&
     notification.specificUsers?.length
   ) {
+    const specificUserIds = notification.specificUsers.map((user) =>
+      typeof user === "string" ? user : user.id
+    );
+
     const result = await payload.find({
       collection: "push-tokens",
+      sort: "id",
       where: {
-        user: { in: notification.specificUsers },
+        user: { in: specificUserIds },
         ...deviceTypeWhere,
       },
       pagination: false,
@@ -82,6 +163,7 @@ async function resolveSegmentTokens(
 
   const result = await payload.find({
     collection: "push-tokens",
+    sort: "id",
     where: segmentWhere,
     pagination: false,
     req,
@@ -159,6 +241,7 @@ async function recordDeliveryAndInbox(opts: {
       notification: notification.id,
       user: userId ?? null,
       pushToken: token.token,
+      deviceToken: token.id,
       status: isOk ? "pending" : "failed",
       ...(expoTicketId ? { expoTicketId } : {}),
       ...(!isOk && ticket.status === "error"
@@ -259,10 +342,13 @@ export async function sendNotification(
     const expo = new Expo();
     const deviceTokens = await resolveTokens(notification, req);
 
+    const channelId = resolveChannelId(notification);
+
     const messages: ExpoPushMessage[] = deviceTokens.map((token) => ({
       to: token.token,
       title: notification.title,
       body: notification.body,
+      channelId,
       data: {
         ...(notification.data &&
         typeof notification.data === "object" &&

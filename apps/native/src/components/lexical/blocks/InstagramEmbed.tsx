@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import WebView from "react-native-webview";
+import { Text } from "#/components/heroui/text";
 
 function extractPostId(input: string): string | undefined {
-  if (!input) return;
+  if (!input) {
+    return;
+  }
   const trimmed = input.trim();
   try {
     const url = new URL(trimmed);
@@ -73,67 +76,51 @@ export function InstagramEmbed({
   const [isLoaded, setIsLoaded] = useState(false);
   const postId = extractPostId(postUrl);
 
-  if (!postId) return null;
+  if (!postId) {
+    return null;
+  }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.webviewContainer, { height: webViewHeight }]}>
-        {!isLoaded && (
-          <View style={styles.loading}>
+    <View className="my-3 w-full">
+      <View
+        className="w-full overflow-hidden"
+        style={{ height: webViewHeight }}
+      >
+        {isLoaded ? null : (
+          <View className="absolute inset-0 h-120 items-center justify-center">
             <ActivityIndicator size="small" />
           </View>
         )}
         <WebView
-          source={{ html: buildHtml(postId) }}
-          style={[styles.webview, !isLoaded && styles.hidden]}
-          scrollEnabled={false}
+          domStorageEnabled
           injectedJavaScript={INJECTED_JS}
+          javaScriptEnabled
+          mixedContentMode="always"
           onMessage={(event) => {
-            const height = parseInt(event.nativeEvent.data, 10);
+            const height = Number.parseInt(event.nativeEvent.data, 10);
             if (height > 100) {
               setWebViewHeight(height);
               setIsLoaded(true);
             }
           }}
           originWhitelist={["*"]}
-          javaScriptEnabled
-          domStorageEnabled
-          mixedContentMode="always"
+          scrollEnabled={false}
+          source={{ html: buildHtml(postId) }}
+          style={[styles.webview, !isLoaded && styles.hidden]}
         />
       </View>
-      {caption && <Text style={styles.caption}>{caption}</Text>}
+      {caption && (
+        <Text className="px-4 pt-2 text-center text-gray-50">{caption}</Text>
+      )}
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    marginVertical: 12,
-  },
-  webviewContainer: {
-    width: "100%",
-    overflow: "hidden",
-  },
   webview: {
     flex: 1,
     backgroundColor: "transparent",
   },
   hidden: {
     opacity: 0,
-  },
-  loading: {
-    position: "absolute",
-    inset: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 480,
-  },
-  caption: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    marginTop: 8,
-    paddingHorizontal: 16,
   },
 });

@@ -1,11 +1,6 @@
-import { Dot } from "@tamagui/lucide-icons";
-import { Platform } from "react-native";
-import { Paragraph, SizableText, Stack, Text, XStack } from "tamagui";
-import { useSnapshot } from "valtio";
-
-import { Screen } from "#/components/Screen";
-import { routeState } from "#/state/route-state";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
+import { View } from "react-native";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 
 const privacyPolicyContent = [
   {
@@ -51,71 +46,58 @@ const privacyPolicyContent = [
     ],
   },
   {
-    title: "5. Data Security",
+    title: "5. Security",
     description:
-      "We take steps to protect your information from unauthorized access, use, or disclosure. However, no method of electronic transmission or storage is 100% secure. Therefore, we cannot guarantee the absolute security of your information.",
+      "We take reasonable measures to protect your information from unauthorized access, use, or disclosure.",
+    bullets: [
+      "We use industry-standard encryption to protect your data.",
+      "We regularly review our security practices.",
+    ],
+  },
+  {
+    title: "6. Children's Privacy",
+    description:
+      "The App is not intended for children under 13. We do not knowingly collect personal information from children under 13.",
     bullets: [],
   },
   {
-    title: "6. Changes to This Privacy Policy",
+    title: "7. Changes",
     description:
-      'We may update this Privacy Policy from time to time. If we make any changes, we will post the revised Privacy Policy on the App and update the "Last Updated" date at the top of this page. Your continued use of the App after any changes to this Privacy Policy constitutes your acceptance of the revised Privacy Policy.',
+      "We may update this privacy policy from time to time. We will notify you of any changes by posting the new policy on the App.",
     bullets: [],
   },
   {
-    title: "Contact Us",
+    title: "8. Contact",
     description:
-      "If you have any questions about this Privacy Policy, please contact us at support@newsspendmedia.com",
+      "If you have any questions about this privacy policy, please contact us at support@newsspendmedia.com",
     bullets: [],
   },
 ];
 
-export default function PrivacyPolicy() {
-  const { reactNavTabName } = useSnapshot(routeState);
-  const insets = useSafeAreaInsetsStyle(
-    reactNavTabName === "SettingsHome" ? ["bottom"] : ["bottom", "top"],
-    "padding"
-  );
+const PrivacyPolicy = () => (
+  <Screen
+    className="px-5"
+    contentContainerClassName="gap-6 py-4"
+    preset="scroll"
+    safeAreaEdges={["bottom"]}
+  >
+    <Text variant="HeadingMedium">Privacy Policy</Text>
+    {privacyPolicyContent.map((section) => (
+      <View className="gap-2" key={section.title}>
+        <Text className="font-semibold">{section.title}</Text>
+        <Text variant="caption">{section.description}</Text>
+        {section.bullets.length > 0 && (
+          <View className="gap-1 pl-4">
+            {section.bullets.map((bullet) => (
+              <Text key={bullet} variant="caption">
+                • {bullet}
+              </Text>
+            ))}
+          </View>
+        )}
+      </View>
+    ))}
+  </Screen>
+);
 
-  return (
-    <Screen
-      contentContainerStyle={{
-        ...insets,
-        paddingTop: Platform.OS === "ios" ? 10 : (insets?.paddingTop ?? 0) + 10,
-      }}
-      preset="scroll"
-      px="$2.5"
-    >
-      {/*<ScrollView
-        p="$3"
-        gap="$4"
-        contentContainerStyle={{
-          paddingBottom: 50,
-        }}
-      >*/}
-      <Stack mb="$1">
-        <Text fontSize={20} fontWeight="700">
-          Privacy Policy for News Spend Media
-        </Text>
-        <SizableText size="$3">Last Updated: October 5, 2023</SizableText>
-      </Stack>
-      {privacyPolicyContent.map((section, index) => (
-        <Stack key={index} py="$3">
-          <Text fontSize={18} fontWeight="700" py="$2">
-            {section.title}
-          </Text>
-          <Paragraph size="$4">{section.description}</Paragraph>
-          {section.bullets.map((bullet, bulletIndex) => (
-            <XStack key={bulletIndex}>
-              <Dot />
-              <Paragraph flex={1} size="$4">
-                {bullet}
-              </Paragraph>
-            </XStack>
-          ))}
-        </Stack>
-      ))}
-      {/*</ScrollView>*/}
-    </Screen>
-  );
-}
+export default PrivacyPolicy;

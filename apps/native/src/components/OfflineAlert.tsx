@@ -13,7 +13,7 @@ const OfflineAlert = () => {
         toastId.current = toast.error(
           "You are offline. Please check your internet connection.",
           {
-            duration: Infinity,
+            duration: Number.POSITIVE_INFINITY,
             dismissible: false,
           }
         );

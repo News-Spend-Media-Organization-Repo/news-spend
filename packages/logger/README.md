@@ -72,7 +72,7 @@ import { createLogger } from "@news-spend-media/logger";
 // Create a logger with request context
 const requestLogger = createLogger({ requestId: "abc-123", userId: 456 });
 
-requestLogger.info("Processing payment"); 
+requestLogger.info("Processing payment");
 // Output: { requestId: "abc-123", userId: 456, msg: "Processing payment" }
 
 requestLogger.error({ amount: 100 }, "Payment failed");
@@ -143,7 +143,7 @@ The React Native logger uses native console methods, making logs visible in Metr
    ```typescript
    // Good ✅
    logger.info({ userId: 123, orderId: 456 }, "Order created");
-   
+
    // Bad ❌
    logger.info(`Order 456 created by user 123`);
    ```
@@ -196,12 +196,12 @@ import { createLogger } from "@news-spend-media/logger";
 app.use(async (c, next) => {
   const requestId = crypto.randomUUID();
   const requestLogger = createLogger({ requestId });
-  
+
   c.set("logger", requestLogger);
   requestLogger.info({ path: c.req.path }, "Request started");
-  
+
   await next();
-  
+
   requestLogger.info({ status: c.res.status }, "Request completed");
 });
 ```
@@ -227,6 +227,7 @@ logger.warn("Deprecated API used");
 ### React Native
 
 In React Native environments, the logger:
+
 - Uses `console.log`, `console.warn`, and `console.error` under the hood
 - Maintains the same API as the Node.js version for consistency
 - Automatically formats structured data for React Native debuggers
@@ -235,6 +236,7 @@ In React Native environments, the logger:
 ### Node.js/Bun
 
 In Node.js and Bun environments, the logger:
+
 - Uses Pino for high-performance logging
 - Supports pretty printing in development with colors
 - Outputs structured JSON in production for log aggregation

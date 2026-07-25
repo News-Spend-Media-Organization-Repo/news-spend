@@ -8,9 +8,7 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
-/** @jsxImportSource react */
-import * as React from "react";
+} from "react-email";
 
 type ForgotPasswordEmailProps = {
   resetLink: string;
@@ -27,7 +25,7 @@ export const ForgotPasswordEmail = ({
         <Section style={logoSection}>
           <Img
             alt="News Spend Logo"
-            src="https://newsspend.com/images/email-banner.jpg"
+            src="https://newsspend.com/images/newsspend-logo.jpeg"
             style={logo}
           />
         </Section>

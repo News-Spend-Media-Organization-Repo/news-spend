@@ -46,9 +46,9 @@
 import { logger } from "@news-spend-media/logger";
 import { cloudStoragePlugin } from "@payloadcms/plugin-cloud-storage";
 import type {
-  Adapter,
-  CollectionOptions,
-  GeneratedAdapter,
+	Adapter,
+	CollectionOptions,
+	GeneratedAdapter,
 } from "@payloadcms/plugin-cloud-storage/types";
 import type { Config, Plugin } from "payload";
 import type { ConnectOptions } from "ssh2-sftp-client";
@@ -70,190 +70,195 @@ export type { CpanelStorageOptions } from "./utils/validation";
  * Plugin configuration options
  */
 export type CpanelStoragePluginOptions = {
-  /**
-   * Collections to enable SFTP storage for
-   *
-   * @example
-   * ```typescript
-   * collections: {
-   *   media: true,
-   *   documents: {
-   *     disableLocalStorage: true,
-   *   }
-   * }
-   * ```
-   */
-  collections: Record<string, Omit<CollectionOptions, "adapter"> | true>;
+	/**
+	 * Collections to enable SFTP storage for
+	 *
+	 * @example
+	 * ```typescript
+	 * collections: {
+	 *   media: true,
+	 *   documents: {
+	 *     disableLocalStorage: true,
+	 *   }
+	 * }
+	 * ```
+	 */
+	collections: Record<string, Omit<CollectionOptions, "adapter"> | true>;
 
-  /**
-   * Enable or disable the plugin
-   * @default true
-   */
-  enabled?: boolean;
+	/**
+	 * Enable or disable the plugin
+	 * @default true
+	 */
+	enabled?: boolean;
 
-  /**
-   * SFTP connection configuration
-   */
-  connection: ConnectOptions;
+	/**
+	 * SFTP connection configuration
+	 */
+	connection: ConnectOptions;
 
-  /**
-   * Public base URL where files will be accessible
-   * Should NOT include trailing slash
-   *
-   * @example "https://example.com/uploads"
-   */
-  baseUrl: string;
+	/**
+	 * Public base URL where files will be accessible
+	 * Should NOT include trailing slash
+	 *
+	 * @example "https://example.com/uploads"
+	 */
+	baseUrl: string;
 
-  /**
-   * Upload directory on the SFTP server (absolute path)
-   * Should start with / and NOT include trailing slash
-   *
-   * @example "/home/username/public_html/uploads"
-   */
-  uploadDir: string;
+	/**
+	 * Upload directory on the SFTP server (absolute path)
+	 * Should start with / and NOT include trailing slash
+	 *
+	 * @example "/home/username/public_html/uploads"
+	 */
+	uploadDir: string;
 
-  /**
-   * Connection pool configuration
-   */
-  pool?: {
-    /**
-     * Minimum number of connections to maintain
-     * @default 1
-     */
-    minConnections?: number;
+	/**
+	 * Connection pool configuration
+	 */
+	pool?: {
+		/**
+		 * Minimum number of connections to maintain
+		 * @default 1
+		 */
+		minConnections?: number;
 
-    /**
-     * Maximum number of connections allowed
-     * @default 10
-     */
-    maxConnections?: number;
+		/**
+		 * Maximum number of connections allowed
+		 * @default 10
+		 */
+		maxConnections?: number;
 
-    /**
-     * Time in milliseconds before an idle connection is closed
-     * @default 60000 (1 minute)
-     */
-    idleTimeoutMs?: number;
+		/**
+		 * Time in milliseconds before an idle connection is closed
+		 * @default 60000 (1 minute)
+		 */
+		idleTimeoutMs?: number;
 
-    /**
-     * Connection timeout in milliseconds
-     * @default 30000 (30 seconds)
-     */
-    connectionTimeoutMs?: number;
+		/**
+		 * Connection timeout in milliseconds
+		 * @default 30000 (30 seconds)
+		 */
+		connectionTimeoutMs?: number;
 
-    /**
-     * Interval for health check runs in milliseconds
-     * @default 30000 (30 seconds)
-     */
-    healthCheckIntervalMs?: number;
+		/**
+		 * Interval for health check runs in milliseconds
+		 * @default 30000 (30 seconds)
+		 */
+		healthCheckIntervalMs?: number;
 
-    /**
-     * Enable debug logging for connection pool
-     * @default false
-     */
-    debug?: boolean;
-  };
+		/**
+		 * Enable debug logging for connection pool
+		 * @default false
+		 */
+		debug?: boolean;
+	};
 
-  /**
-   * Static file handler configuration
-   */
-  static?: {
-    /**
-     * If true, proxy files through the server instead of redirecting
-     * @default false
-     */
-    proxyFiles?: boolean;
+	/**
+	 * Static file handler configuration
+	 */
+	static?: {
+		/**
+		 * If true, proxy files through the server instead of redirecting
+		 * @default false
+		 */
+		proxyFiles?: boolean;
 
-    /**
-     * Cache control header value for proxied files
-     * @default "public, max-age=31536000, immutable"
-     */
-    cacheControl?: string;
-  };
+		/**
+		 * Cache control header value for proxied files
+		 * @default "public, max-age=31536000, immutable"
+		 */
+		cacheControl?: string;
+	};
 };
 
 /**
  * Default plugin options
  */
 const DEFAULT_OPTIONS: Partial<CpanelStoragePluginOptions> = {
-  enabled: true,
-  pool: {
-    minConnections: 1,
-    maxConnections: 10,
-    idleTimeoutMs: 60_000,
-    connectionTimeoutMs: 30_000,
-    healthCheckIntervalMs: 30_000,
-    debug: false,
-  },
-  static: {
-    proxyFiles: false,
-    cacheControl: "public, max-age=31536000, immutable",
-  },
+	enabled: true,
+	pool: {
+		minConnections: 1,
+		maxConnections: 10,
+		idleTimeoutMs: 60_000,
+		connectionTimeoutMs: 30_000,
+		healthCheckIntervalMs: 30_000,
+		debug: false,
+	},
+	static: {
+		proxyFiles: false,
+		cacheControl: "public, max-age=31536000, immutable",
+	},
 };
 
 /**
  * Global connection pool instance
- * Shared across all collections to optimize resource usage
+ * Shared across all collections to optimize resource usage.
+ *
+ * Stored on globalThis to survive HMR/module re-evaluations in development.
  */
-let globalPool: SftpConnectionPool | null = null;
+declare global {
+	var __sftpConnectionPool: SftpConnectionPool | undefined;
+}
 
 /**
  * Creates the internal SFTP storage adapter
  */
 function createSftpAdapter(
-  options: Required<CpanelStoragePluginOptions>
+	options: Required<CpanelStoragePluginOptions>,
 ): Adapter {
-  return ({ collection }): GeneratedAdapter => {
-    if (!globalPool) {
-      throw new Error(
-        "SFTP connection pool not initialized. This should not happen."
-      );
-    }
+	return ({ collection }): GeneratedAdapter => {
+		const pool = globalThis.__sftpConnectionPool;
+		if (!pool) {
+			throw new Error(
+				"SFTP connection pool not initialized. This should not happen.",
+			);
+		}
 
-    return {
-      name: "cpanel-sftp-storage",
+		return {
+			name: "cpanel-sftp-storage",
 
-      /**
-       * Generates the public URL for accessing uploaded files
-       */
-      generateURL: ({ filename }) =>
-        `${options.baseUrl}/${collection.slug}/${filename}`,
+			/**
+			 * Generates the public URL for accessing uploaded files
+			 */
+			generateURL: ({ filename }) =>
+				`${options.baseUrl}/${collection.slug}/${filename}`,
 
-      /**
-       * Handles file uploads
-       */
-      handleUpload: handleUpload(
-        {
-          uploadDir: options.uploadDir,
-          pool: globalPool,
-        },
-        collection
-      ),
+			/**
+			 * Handles file uploads
+			 */
+			handleUpload: handleUpload(
+				{
+					uploadDir: options.uploadDir,
+					pool,
+				},
+				collection,
+			),
 
-      /**
-       * Handles file deletions
-       */
-      handleDelete: handleDelete(
-        {
-          uploadDir: options.uploadDir,
-          pool: globalPool,
-        },
-        collection
-      ),
+			/**
+			 * Handles file deletions
+			 */
+			handleDelete: handleDelete(
+				{
+					uploadDir: options.uploadDir,
+					pool,
+				},
+				collection,
+			),
 
-      /**
-       * Handles static file requests
-       */
-      staticHandler: staticHandler(
-        {
-          baseUrl: options.baseUrl,
-          uploadDir: options.uploadDir,
-          proxyFiles: options.static.proxyFiles,
-          cacheControl: options.static.cacheControl,
-        },
-        collection
-      ),
-    };
-  };
+			/**
+			 * Handles static file requests
+			 */
+			staticHandler: staticHandler(
+				{
+					baseUrl: options.baseUrl,
+					uploadDir: options.uploadDir,
+					proxyFiles: options.static.proxyFiles,
+					cacheControl: options.static.cacheControl,
+				},
+				collection,
+			),
+		};
+	};
 }
 
 /**
@@ -286,115 +291,118 @@ function createSftpAdapter(
  * ```
  */
 export const cpanelSftpStorage = (
-  pluginOptions: CpanelStoragePluginOptions
+	pluginOptions: CpanelStoragePluginOptions,
 ): Plugin => {
-  return (incomingConfig: Config): Config => {
-    // If plugin is disabled, return config unchanged
-    if (pluginOptions.enabled === false) {
-      logger.info({}, "cPanel SFTP storage plugin is disabled");
-      return incomingConfig;
-    }
+	return (incomingConfig: Config): Config => {
+		// If plugin is disabled, return config unchanged
+		if (pluginOptions.enabled === false) {
+			logger.info({}, "cPanel SFTP storage plugin is disabled");
+			return incomingConfig;
+		}
 
-    // Validate configuration
-    try {
-      validatePluginConfig(pluginOptions);
-    } catch (error) {
-      logger.error(
-        {
-          error: error instanceof Error ? error.message : String(error),
-        },
-        "Invalid cPanel SFTP storage plugin configuration"
-      );
-      throw error;
-    }
+		// Validate configuration
+		try {
+			validatePluginConfig(pluginOptions);
+		} catch (error) {
+			logger.error(
+				{
+					error: error instanceof Error ? error.message : String(error),
+				},
+				"Invalid cPanel SFTP storage plugin configuration",
+			);
+			throw error;
+		}
 
-    // Merge options with defaults
-    const options: Required<CpanelStoragePluginOptions> = {
-      ...DEFAULT_OPTIONS,
-      ...pluginOptions,
-      pool: {
-        ...DEFAULT_OPTIONS.pool!,
-        ...pluginOptions.pool,
-      },
-      static: {
-        ...DEFAULT_OPTIONS.static!,
-        ...pluginOptions.static,
-      },
-    } as Required<CpanelStoragePluginOptions>;
+		// Merge options with defaults
+		const options: Required<CpanelStoragePluginOptions> = {
+			...DEFAULT_OPTIONS,
+			...pluginOptions,
+			pool: {
+				...DEFAULT_OPTIONS.pool!,
+				...pluginOptions.pool,
+			},
+			static: {
+				...DEFAULT_OPTIONS.static!,
+				...pluginOptions.static,
+			},
+		} as Required<CpanelStoragePluginOptions>;
 
-    logger.info(
-      {
-        collections: Object.keys(options.collections),
-        poolConfig: {
-          min: options.pool.minConnections,
-          max: options.pool.maxConnections,
-        },
-      },
-      "Initializing cPanel SFTP storage plugin"
-    );
+		if (!globalThis.__sftpConnectionPool) {
+			if (options.pool.debug) {
+				logger.info(
+					{
+						collections: Object.keys(options.collections),
+						poolConfig: {
+							min: options.pool.minConnections,
+							max: options.pool.maxConnections,
+						},
+					},
+					"Initializing cPanel SFTP storage plugin",
+				);
+			}
 
-    // Initialize connection pool (singleton)
-    if (!globalPool) {
-      const poolOptions: ConnectionPoolOptions = {
-        connection: options.connection,
-        minConnections: options.pool.minConnections,
-        maxConnections: options.pool.maxConnections,
-        idleTimeoutMs: options.pool.idleTimeoutMs,
-        connectionTimeoutMs: options.pool.connectionTimeoutMs,
-        healthCheckIntervalMs: options.pool.healthCheckIntervalMs,
-        debug: options.pool.debug,
-      };
+			const poolOptions: ConnectionPoolOptions = {
+				connection: options.connection,
+				minConnections: options.pool.minConnections,
+				maxConnections: options.pool.maxConnections,
+				idleTimeoutMs: options.pool.idleTimeoutMs,
+				connectionTimeoutMs: options.pool.connectionTimeoutMs,
+				healthCheckIntervalMs: options.pool.healthCheckIntervalMs,
+				debug: options.pool.debug,
+			};
 
-      globalPool = new SftpConnectionPool(poolOptions);
+			globalThis.__sftpConnectionPool = new SftpConnectionPool(poolOptions);
 
-      logger.info(
-        {
-          min: options.pool.minConnections,
-          max: options.pool.maxConnections,
-        },
-        "SFTP connection pool initialized"
-      );
-    }
+			if (options.pool.debug) {
+				logger.info(
+					{
+						min: options.pool.minConnections,
+						max: options.pool.maxConnections,
+					},
+					"SFTP connection pool initialized",
+				);
+			}
+		}
 
-    // Create adapter
-    const adapter = createSftpAdapter(options);
+		// Create adapter
+		const adapter = createSftpAdapter(options);
 
-    // Build collections configuration for cloud storage plugin
-    const collectionsWithAdapter: Record<string, CollectionOptions> =
-      Object.entries(options.collections).reduce(
-        (acc, [slug, collOptions]) => {
-          acc[slug] = {
-            ...(collOptions === true ? {} : collOptions),
-            adapter,
-          };
-          return acc;
-        },
-        {} as Record<string, CollectionOptions>
-      );
+		// Build collections configuration for cloud storage plugin
+		const collectionsWithAdapter: Record<string, CollectionOptions> =
+			Object.entries(options.collections).reduce(
+				(acc, [slug, collOptions]) => {
+					acc[slug] = {
+						...(collOptions === true ? {} : collOptions),
+						adapter,
+					};
+					return acc;
+				},
+				{} as Record<string, CollectionOptions>,
+			);
 
-    // Update collection configs to disable local storage
-    const config: Config = {
-      ...incomingConfig,
-      collections: (incomingConfig.collections || []).map((collection) => {
-        if (!collectionsWithAdapter[collection.slug]) {
-          return collection;
-        }
+		// Update collection configs to disable local storage
+		const config: Config = {
+			...incomingConfig,
+			collections: (incomingConfig.collections || []).map((collection) => {
+				if (!collectionsWithAdapter[collection.slug]) {
+					return collection;
+				}
 
-        return {
-          ...collection,
-          upload: {
-            ...(typeof collection.upload === "object" ? collection.upload : {}),
-            disableLocalStorage: true,
-          },
-        };
-      }),
-    };
+				return {
+					...collection,
+					upload: {
+						...(typeof collection.upload === "object" ? collection.upload : {}),
+						disableLocalStorage: true,
+					},
+				};
+			}),
+		};
 
-    // Apply cloud storage plugin
-    return cloudStoragePlugin({
-      collections: collectionsWithAdapter,
-    })(config);
-  };
+		// Apply cloud storage plugin
+		return cloudStoragePlugin({
+			collections: collectionsWithAdapter,
+		})(config);
+	};
 };
 
 /**
@@ -404,7 +412,7 @@ export const cpanelSftpStorage = (
  * @returns The global connection pool instance or null if not initialized
  */
 export function getConnectionPool(): SftpConnectionPool | null {
-  return globalPool;
+	return globalThis.__sftpConnectionPool ?? null;
 }
 
 /**
@@ -412,9 +420,9 @@ export function getConnectionPool(): SftpConnectionPool | null {
  * Useful for testing or custom shutdown logic
  */
 export async function shutdownConnectionPool(): Promise<void> {
-  if (globalPool) {
-    await globalPool.shutdown();
-    globalPool = null;
-    logger.info({}, "SFTP connection pool shut down manually");
-  }
+	if (globalThis.__sftpConnectionPool) {
+		await globalThis.__sftpConnectionPool.shutdown();
+		globalThis.__sftpConnectionPool = undefined;
+		logger.info({}, "SFTP connection pool shut down manually");
+	}
 }

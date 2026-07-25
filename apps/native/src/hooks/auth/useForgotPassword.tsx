@@ -4,7 +4,7 @@ import { authClient } from "#/lib/authClient";
 
 const useForgotPassword = () => {
   const resetPassword = async ({ email }: { email: string }) => {
-    const res = await authClient.forgetPassword({
+    const res = await authClient.requestPasswordReset({
       email,
       redirectTo: "/reset-password",
     });

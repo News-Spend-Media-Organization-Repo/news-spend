@@ -1,8 +1,9 @@
 import type { News } from "@news-spend-media/payload/types";
 import { FlashList } from "@shopify/flash-list";
-import { Heading, Square, Stack } from "tamagui";
+import { View } from "react-native";
 
-import { Image } from "#/components/ui";
+import { Image } from "#/components/heroui/image";
+import { Text } from "#/components/heroui/text";
 import VideoNewsItem from "#/components/videoNews/VideoNewsItem";
 
 const blurhash = [
@@ -16,40 +17,38 @@ const blurhash = [
 
 export default function LiveListHeader({ news }: { news: News }) {
   const renderProgramsItem = ({ item, index }) => (
-    <Square br="$4" h={170} ov="hidden" w={150}>
+    <View className="h-[170px] w-[150px] overflow-hidden rounded-2xl">
       <Image
         cachePolicy="memory-disk"
+        className="h-full w-full"
         contentFit="cover"
-        h="100%"
         placeholder={{
           blurhash: blurhash.at(Math.floor(Math.random() * blurhash.length))!,
         }}
         source={`https://picsum.photos/250/${514 * (index + 2)}`}
-        w="100%"
       />
-    </Square>
+    </View>
   );
 
   return (
-    <Stack gap="$2" mb="$2">
+    <View className="mb-2 gap-2">
       <VideoNewsItem videoNews={news} />
 
-      <Stack gap="$1.5">
-        <Heading fos="$6">TV Programs</Heading>
+      <View className="gap-1.5">
+        <Text variant="HeadingMedium">TV Programs</Text>
         <FlashList
           data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
           horizontal
-          ItemSeparatorComponent={() => <Square w={15} />}
+          ItemSeparatorComponent={() => <View className="w-3.5" />}
           keyExtractor={(_item, index) => index.toString()}
           renderItem={renderProgramsItem}
           showsHorizontalScrollIndicator={false}
-          // recycleItems
         />
-      </Stack>
+      </View>
 
-      <Heading fos="$6" mt="$2">
+      <Text className="mt-2" variant="HeadingMedium">
         Latest Videos
-      </Heading>
-    </Stack>
+      </Text>
+    </View>
   );
 }

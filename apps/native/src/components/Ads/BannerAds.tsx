@@ -2,9 +2,9 @@ import { memo } from "react";
 import {
   BannerAdSize,
   BannerAd as GoogleBannerAd,
-  TestIds,
 } from "react-native-google-mobile-ads";
 
+import { adUnits } from "#/lib/adUnits";
 import { getGoogleBannerSize, sizeMap } from "#/utils/ads";
 
 import CustomBannerAd from "./CustomBannerAd";
@@ -30,7 +30,7 @@ function BannerAds({ size }: BannerAdsProps) {
           requestNonPersonalizedAdsOnly: true,
         }}
         size={getGoogleBannerSize(size)}
-        unitId={TestIds.BANNER}
+        unitId={adUnits.banner}
       />
     ) : (
       <CustomBannerAd size={size} />
@@ -39,8 +39,8 @@ function BannerAds({ size }: BannerAdsProps) {
 
   return (
     <GoogleBannerAd
-      size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-      unitId={TestIds.BANNER}
+      size={BannerAdSize.LARGE_ANCHORED_ADAPTIVE_BANNER}
+      unitId={adUnits.banner}
     />
   );
 }

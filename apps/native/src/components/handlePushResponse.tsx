@@ -6,7 +6,7 @@ import {
 import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
 
-import { segmentClient } from "#/lib/segmentClient";
+import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 
 export function HandlePushResponse() {
   const responseListener = useRef<Notifications.EventSubscription>(null);
@@ -43,9 +43,9 @@ export function HandlePushResponse() {
                 : `/${screenUrl}`
             );
           } else {
-            linkTo("/" + screenUrl);
+            linkTo(`/${screenUrl}`);
           }
-          segmentClient.track("Notification Opened", {
+          trackNotificationOpen({
             ...response.notification.request.content,
             routeName,
           });
@@ -53,7 +53,7 @@ export function HandlePushResponse() {
       });
 
     return () => {
-      responseListener.current && responseListener.current.remove();
+      responseListener.current?.remove();
     };
   }, [linkTo, routeName]);
 

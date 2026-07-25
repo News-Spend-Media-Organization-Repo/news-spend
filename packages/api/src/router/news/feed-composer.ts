@@ -198,7 +198,7 @@ export class FeedComposer {
         default:
           return null;
       }
-    } catch (_e) {
+    } catch {
       return null;
     }
   }

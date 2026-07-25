@@ -1,14 +1,20 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { Pause, Play, Volume2, VolumeOff } from "@tamagui/lucide-icons";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
+import {
+  CaretRightIcon,
+  PauseIcon,
+  PlayIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
+} from "phosphor-react-native";
 import { useCallback, useEffect, useMemo } from "react";
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
-import { H3, Stack, Text, XStack } from "tamagui";
-import { CaretRight } from "tamagui-phosphor";
 
-import { Button, Image } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Image } from "#/components/heroui/image";
+import { Text } from "#/components/heroui/text";
 import { useVideoSettings } from "#/hooks/use-video-settings";
 import { getCtaLabel } from "#/utils";
 import { getImageData } from "#/utils/getImageData";
@@ -31,7 +37,7 @@ function extractYouTubeId(url: string): string {
   const match = url.match(
     /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
   );
-  return match && match[2].length === 11 ? match[2] : "";
+  return match && match[2]?.length === 11 ? match[2] : "";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -104,74 +110,62 @@ export function PartnerAdContent({
     [isImageAd, ad.media]
   );
 
-  const partner = typeof ad.partner !== "string" ? ad.partner : null;
+  const partner = typeof ad.partner === "string" ? null : ad.partner;
   const partnerLogo = useMemo(
     () => getImageData(partner?.logo),
     [partner?.logo]
   );
 
   return (
-    <Stack
-      bg="$background"
-      borderTopLeftRadius={10}
-      borderTopRightRadius={10}
-      gap="$9"
-      h="100%"
-      onPress={onAdClick}
-      py="$2"
-      zi="$3"
+    <View
+      className="h-full gap-9 bg-white py-2"
+      onTouchEnd={onAdClick}
+      style={{ borderTopLeftRadius: 10, borderTopRightRadius: 10 }}
     >
       {/* ── Media ─────────────────────────────────────────────────────────── */}
-      <Stack ai="center" gap="$2" jc="center" px="$5">
+      <View className="items-center justify-center gap-2 px-5">
         <Text>Advertisement</Text>
 
         {isUploadedVideoAd ? (
-          <Stack height={(width / 16) * 9} mx={8} pos="relative" w="100%">
+          <View
+            className="relative mx-2 w-full"
+            style={{ height: (width / 16) * 9 }}
+          >
             <VideoView
               aria-label="Video advertisement"
               nativeControls={false}
               player={player}
               style={{ minHeight: "100%", width: "100%" }}
             />
-            <Stack
-              alignItems="flex-start"
-              bg="transparent"
-              bottom={0}
-              justifyContent="flex-end"
-              left={0}
-              onPress={onAdClick}
-              position="absolute"
-              right={0}
-              top={0}
-            >
-              <XStack>
-                <Button
-                  aria-label={isPlaying ? "Pause video" : "Play video"}
-                  bg="rgba(0,0,0,0.5)"
-                  br={0}
-                  onPress={togglePlaying}
-                  size="$2.5"
-                >
-                  <Button.Icon color="white">
-                    {isPlaying ? <Pause /> : <Play />}
-                  </Button.Icon>
-                </Button>
-                <Button
-                  aria-label={muted ? "Unmute video" : "Mute video"}
-                  bg="rgba(0,0,0,0.5)"
-                  borderRadius={0}
-                  onPress={() => {
-                    player.muted = !muted;
-                  }}
-                  size="$2.5"
-                >
-                  <Button.Icon color="white">
-                    {muted ? <Volume2 /> : <VolumeOff />}
-                  </Button.Icon>
-                </Button>
-              </XStack>
-            </Stack>
-          </Stack>
+            <View className="absolute inset-0 flex-row items-end justify-start bg-transparent">
+              <Button
+                aria-label={isPlaying ? "Pause video" : "Play video"}
+                className="rounded-none bg-black/50"
+                onPress={togglePlaying}
+                size="sm"
+              >
+                {isPlaying ? (
+                  <PauseIcon color="white" size={18} />
+                ) : (
+                  <PlayIcon color="white" size={18} />
+                )}
+              </Button>
+              <Button
+                aria-label={muted ? "Unmute video" : "Mute video"}
+                className="rounded-none bg-black/50"
+                onPress={() => {
+                  player.muted = !muted;
+                }}
+                size="sm"
+              >
+                {muted ? (
+                  <SpeakerHighIcon color="white" size={18} />
+                ) : (
+                  <SpeakerSlashIcon color="white" size={18} />
+                )}
+              </Button>
+            </View>
+          </View>
         ) : isYouTubeAd ? (
           <YoutubePlayer
             aria-label="YouTube video advertisement"
@@ -183,51 +177,38 @@ export function PartnerAdContent({
         ) : (
           <Image
             aria-label="Advertisement banner"
-            height={height * 0.3}
+            className="w-full"
+            contentFit="contain"
             placeholder={{ blurhash }}
             source={imageUrl}
-            width="100%"
+            style={{ height: height * 0.3 }}
           />
         )}
 
         {showAdLabel ? (
-          <Text
-            alignSelf="flex-start"
-            borderColor="$color"
-            borderWidth={1}
-            px={1}
-          >
-            Ad
-          </Text>
+          <Text className="self-start border border-black px-1">Ad</Text>
         ) : null}
-      </Stack>
+      </View>
 
       {/* ── CTA ───────────────────────────────────────────────────────────── */}
-      <Stack ai="center" jc="center">
+      <View className="items-center justify-center">
         <Image
           aria-label="Partner logo"
-          height={100}
+          className="size-30"
+          contentFit="contain"
           placeholder={{ blurhash: partnerLogo?.blurhash }}
           source={{ uri: partnerLogo?.url ?? undefined }}
-          width={100}
         />
-        <H3 ta="center">{ad.title}</H3>
-        <Text fontSize={16} maxWidth={350} textAlign="center">
-          {ad.condition}
-        </Text>
+        <Text className="text-center font-bold text-lg">{ad.title}</Text>
+        <Text className="max-w-87.5 text-center text-base">{ad.condition}</Text>
         <Button
-          borderRadius="$8"
-          gap="$2"
-          minWidth="$11"
-          mt="$5"
+          className="mt-5 min-w-30 gap-2 rounded-full"
           onPress={onAdClick}
         >
-          <Button.Text>{getCtaLabel(ad.cta)}</Button.Text>
-          <Button.Icon color="#fff">
-            <CaretRight />
-          </Button.Icon>
+          <Button.Label>{getCtaLabel(ad.cta)}</Button.Label>
+          <CaretRightIcon color="white" size={18} weight="bold" />
         </Button>
-      </Stack>
-    </Stack>
+      </View>
+    </View>
   );
 }

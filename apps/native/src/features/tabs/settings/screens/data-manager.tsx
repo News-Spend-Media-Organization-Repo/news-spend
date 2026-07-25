@@ -1,22 +1,13 @@
-import { Check, X } from "@tamagui/lucide-icons";
 import { Directory, Paths } from "expo-file-system";
+import { Spinner } from "heroui-native";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
+import { Switch } from "heroui-native/switch";
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
-import {
-  Button,
-  H4,
-  Label,
-  ListItem,
-  Separator,
-  SizableText,
-  Stack,
-  XStack,
-  YGroup,
-  YStack,
-} from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import { Switch } from "#/components/ui/Switch";
+import { Alert, View } from "react-native";
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { storage } from "#/utils/storage";
 
 const SETTINGS_KEY = "video_settings";
@@ -69,7 +60,7 @@ const SettingsManager = {
     try {
       const value = storage.getNumber(LAST_CACHE_CLEAR_KEY);
       return value ?? 0;
-    } catch (e) {
+    } catch {
       return 0;
     }
   },
@@ -190,30 +181,23 @@ const Item = ({
   checked: boolean;
   onToggle: (value: boolean) => void;
 }) => (
-  <YGroup.Item>
-    <ListItem>
-      <XStack ai="center" gap="$2" w="100%">
-        <Stack flex={1}>
-          <Label fos="$5" htmlFor={title} lh="$3">
-            {title}
-          </Label>
-          <SizableText color="$gray11" size="$3">
-            {description}
-          </SizableText>
-        </Stack>
-        <Switch checked={checked} id={title} onCheckedChange={onToggle}>
-          <Switch.Icon placement="left">
-            <X color="#fff" />
-          </Switch.Icon>
-          <Switch.Icon placement="right">
-            <Check color="#fff" />
-          </Switch.Icon>
-          <Switch.Thumb animation="quick" />
-        </Switch>
-      </XStack>
-    </ListItem>
-    <Separator />
-  </YGroup.Item>
+  <ListGroup.Item onPress={() => onToggle(!checked)}>
+    <ListGroup.ItemContent>
+      <ListGroup.ItemTitle>{title}</ListGroup.ItemTitle>
+      <ListGroup.ItemDescription>
+        <Text className="text-muted text-xs">{description}</Text>
+      </ListGroup.ItemDescription>
+    </ListGroup.ItemContent>
+    <ListGroup.ItemSuffix>
+      <Switch
+        isDisabled={false}
+        isSelected={checked}
+        onSelectedChange={onToggle}
+      >
+        <Switch.Thumb />
+      </Switch>
+    </ListGroup.ItemSuffix>
+  </ListGroup.Item>
 );
 
 export default function DataManager() {
@@ -232,7 +216,7 @@ export default function DataManager() {
     loadSettings();
     loadCacheInfo();
     checkAutoClear();
-  }, []);
+  }, [loadSettings, loadCacheInfo, checkAutoClear]);
 
   const loadSettings = () => {
     const savedSettings = SettingsManager.getSettings();
@@ -340,58 +324,48 @@ export default function DataManager() {
   ];
 
   return (
-    <Screen>
-      <YStack gap="$4">
-        <YGroup alignSelf="center" size="$4" w="100%">
-          {notificationOptions.map((option) => (
-            <Item
-              checked={option.checked}
-              description={option.description}
-              key={option.title}
-              onToggle={(value) => handleToggle(option.title, value)}
-              title={option.title}
-            />
+    <Screen systemBarStyle="light">
+      <View className="gap-4">
+        <ListGroup variant="transparent">
+          {notificationOptions.map((option, index) => (
+            <View key={option.title}>
+              <Item
+                checked={option.checked}
+                description={option.description}
+                onToggle={(value) => handleToggle(option.title, value)}
+                title={option.title}
+              />
+              {index < notificationOptions.length - 1 && (
+                <Separator className="mx-4" />
+              )}
+            </View>
           ))}
-        </YGroup>
+        </ListGroup>
 
-        <YStack
-          bg="$background"
-          borderColor="$borderColor"
-          borderWidth={1}
-          br="$4"
-          gap="$3"
-          mx="$4"
-          p="$4"
-        >
-          <H4>Storage</H4>
+        <View className="mx-4 gap-3 rounded-xl bg-surface p-4">
+          <Text variant="HeadingLarge">Storage</Text>
 
-          <XStack ai="center" jc="space-between">
-            <SizableText color="$gray11" size="$4">
-              Cache Size
-            </SizableText>
-            <SizableText fontWeight="600" size="$4">
-              {formatBytes(cacheSize)}
-            </SizableText>
-          </XStack>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-muted">Cache Size</Text>
+            <Text className="font-semibold">{formatBytes(cacheSize)}</Text>
+          </View>
 
-          <XStack ai="center" jc="space-between">
-            <SizableText color="$gray11" size="$4">
-              Last Cleared
-            </SizableText>
-            <SizableText fontWeight="600" size="$4">
-              {formatDate(lastClearDate)}
-            </SizableText>
-          </XStack>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-muted">Last Cleared</Text>
+            <Text className="font-semibold">{formatDate(lastClearDate)}</Text>
+          </View>
 
           <Button
-            disabled={isClearing || cacheSize === 0}
+            isDisabled={isClearing || cacheSize === 0}
             onPress={handleClearCache}
-            opacity={cacheSize === 0 ? 0.5 : 1}
           >
-            {isClearing ? "Clearing..." : "Clear Cache Now"}
+            {isClearing ? <Spinner /> : null}
+            <Button.Label>
+              {isClearing ? "Clearing..." : "Clear Cache Now"}
+            </Button.Label>
           </Button>
-        </YStack>
-      </YStack>
+        </View>
+      </View>
     </Screen>
   );
 }

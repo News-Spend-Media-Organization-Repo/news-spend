@@ -2,6 +2,8 @@
  * Platform-aware logger that works in Node.js, Bun, and React Native environments
  */
 
+import type * as pino from "pino";
+
 // Detect if we're in a React Native environment
 // React Native check must come first since it also has process global
 const isReactNative =
@@ -144,27 +146,36 @@ class ReactNativeLogger implements Logger {
 /**
  * Node.js/Bun logger implementation using Pino
  */
-async function createNodeLogger(): Promise<Logger> {
+async function createNodeLogger(): Promise<pino.Logger> {
   // Dynamic import of pino only in Node.js environment
-  const pino = (await import("pino")).default;
+  const pinoModule = await import("pino");
 
   const isDevelopment =
     typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 
-  const pinoLogger = pino({
+  const loggerOptions: pino.LoggerOptions = {
     level:
       (typeof process !== "undefined" && process.env.LOG_LEVEL) ||
       (isDevelopment ? "debug" : "info"),
     formatters: {
       level: (label: string) => ({ level: label }),
     },
-    timestamp: pino.stdTimeFunctions.isoTime,
+    timestamp: pinoModule.stdTimeFunctions.isoTime,
     base: {
-      env: typeof process !== "undefined" ? process.env.NODE_ENV : "unknown",
+      env: typeof process === "undefined" ? "unknown" : process.env.NODE_ENV,
     },
+  };
+
+  const { build } = await import("pino-pretty");
+  const destination = build({
+    colorize: isDevelopment,
+    translateTime: "SYS:standard",
+    ignore: "pid,hostname",
+    destination: 1,
+    sync: true,
   });
 
-  return pinoLogger as Logger;
+  return pinoModule.default(loggerOptions, destination);
 }
 
 /**
@@ -221,6 +232,12 @@ export const logger: Logger = new Proxy({} as Logger, {
  */
 export function createLogger(context: Record<string, unknown>): Logger {
   return logger.child(context);
+}
+
+export type { Logger as PinoLogger, pino } from "pino";
+
+export async function getPinoLogger() {
+  return initializeLogger();
 }
 
 /**

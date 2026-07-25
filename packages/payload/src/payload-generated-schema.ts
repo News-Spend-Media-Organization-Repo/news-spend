@@ -7,23 +7,23 @@
  */
 
 import type {} from "@payloadcms/db-postgres";
-import { sql, relations } from "@payloadcms/db-postgres/drizzle";
+import { relations, sql } from "@payloadcms/db-postgres/drizzle";
 import {
-  pgTable,
-  index,
-  uniqueIndex,
+  type AnyPgColumn,
+  boolean,
   foreignKey,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
   uuid,
   varchar,
-  timestamp,
-  serial,
-  integer,
-  numeric,
-  jsonb,
-  boolean,
-  type AnyPgColumn,
-  text,
-  pgEnum,
 } from "@payloadcms/db-postgres/drizzle/pg-core";
 export const enum_activities_type = pgEnum("enum_activities_type", [
   "point",
@@ -103,13 +103,26 @@ export const enum__news_v_version_status = pgEnum(
   "enum__news_v_version_status",
   ["draft", "published"]
 );
+export const enum_news_analytics_event = pgEnum("enum_news_analytics_event", [
+  "impression",
+  "view",
+  "read",
+  "like",
+  "dislike",
+  "share",
+  "comment",
+]);
+export const enum_news_analytics_platform = pgEnum(
+  "enum_news_analytics_platform",
+  ["android", "ios", "web"]
+);
 export const enum_notification_deliveries_status = pgEnum(
   "enum_notification_deliveries_status",
-  ["pending", "delivered", "failed"]
+  ["pending", "delivered", "opened", "failed"]
 );
 export const enum_notification_inbox_type = pgEnum(
   "enum_notification_inbox_type",
-  ["breaking_news", "news", "promo", "misc"]
+  ["breaking_news", "news", "comment", "promo", "misc"]
 );
 export const enum_notifications_device_types = pgEnum(
   "enum_notifications_device_types",
@@ -118,6 +131,7 @@ export const enum_notifications_device_types = pgEnum(
 export const enum_notifications_type = pgEnum("enum_notifications_type", [
   "breaking_news",
   "news",
+  "comment",
   "promo",
   "misc",
 ]);
@@ -148,7 +162,7 @@ export const enum__notifications_v_version_device_types = pgEnum(
 );
 export const enum__notifications_v_version_type = pgEnum(
   "enum__notifications_v_version_type",
-  ["breaking_news", "news", "promo", "misc"]
+  ["breaking_news", "news", "comment", "promo", "misc"]
 );
 export const enum__notifications_v_version_delivery_action = pgEnum(
   "enum__notifications_v_version_delivery_action",
@@ -292,14 +306,26 @@ export const enum_witness_reports_report_type = pgEnum(
   "enum_witness_reports_report_type",
   ["shortMessage", "video", "picture"]
 );
+export const enum_audit_logs_operation = pgEnum("enum_audit_logs_operation", [
+  "create",
+  "read",
+  "update",
+  "delete",
+  "login",
+  "logout",
+]);
 export const enum_payload_jobs_log_task_slug = pgEnum(
   "enum_payload_jobs_log_task_slug",
   [
     "inline",
     "sendScheduledNotification",
+    "sendCommentLikeNotification",
     "checkPushReceipts",
     "processLottery",
     "cleanupAnonymousUsers",
+    "generateVideoThumbnail",
+    "deleteVideoThumbTemp",
+    "cleanupAuditLogs",
   ]
 );
 export const enum_payload_jobs_log_state = pgEnum(
@@ -311,9 +337,13 @@ export const enum_payload_jobs_task_slug = pgEnum(
   [
     "inline",
     "sendScheduledNotification",
+    "sendCommentLikeNotification",
     "checkPushReceipts",
     "processLottery",
     "cleanupAnonymousUsers",
+    "generateVideoThumbnail",
+    "deleteVideoThumbTemp",
+    "cleanupAuditLogs",
   ]
 );
 
@@ -647,6 +677,9 @@ export const comments = pgTable(
         onDelete: "set null",
       }
     ),
+    likesCount: numeric("likes_count", { mode: "number" }).default(0),
+    dislikesCount: numeric("dislikes_count", { mode: "number" }).default(0),
+    totalReplies: numeric("total_replies", { mode: "number" }).default(0),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -1202,6 +1235,18 @@ export const media = pgTable(
     sizes_mobile_mimeType: varchar("sizes_mobile_mime_type"),
     sizes_mobile_filesize: numeric("sizes_mobile_filesize", { mode: "number" }),
     sizes_mobile_filename: varchar("sizes_mobile_filename"),
+    sizes_videoThumbnail_url: varchar("sizes_video_thumbnail_url"),
+    sizes_videoThumbnail_width: numeric("sizes_video_thumbnail_width", {
+      mode: "number",
+    }),
+    sizes_videoThumbnail_height: numeric("sizes_video_thumbnail_height", {
+      mode: "number",
+    }),
+    sizes_videoThumbnail_mimeType: varchar("sizes_video_thumbnail_mime_type"),
+    sizes_videoThumbnail_filesize: numeric("sizes_video_thumbnail_filesize", {
+      mode: "number",
+    }),
+    sizes_videoThumbnail_filename: varchar("sizes_video_thumbnail_filename"),
   },
   (columns) => [
     index("media_updated_at_idx").on(columns.updatedAt),
@@ -1215,6 +1260,9 @@ export const media = pgTable(
     ),
     index("media_sizes_mobile_sizes_mobile_filename_idx").on(
       columns.sizes_mobile_filename
+    ),
+    index("media_sizes_video_thumbnail_sizes_video_thumbnail_filena_idx").on(
+      columns.sizes_videoThumbnail_filename
     ),
   ]
 );
@@ -1305,6 +1353,7 @@ export const news = pgTable(
       onDelete: "set null",
     }),
     hasBeenPublished: boolean("has_been_published").default(false),
+    totalComments: numeric("total_comments", { mode: "number" }).default(0),
     likesCount: numeric("likes_count", { mode: "number" }).default(0),
     dislikesCount: numeric("dislikes_count", { mode: "number" }).default(0),
     createdAt: timestamp("created_at", {
@@ -1421,6 +1470,9 @@ export const _news_v = pgTable(
     version_hasBeenPublished: boolean("version_has_been_published").default(
       false
     ),
+    version_totalComments: numeric("version_total_comments", {
+      mode: "number",
+    }).default(0),
     version_likesCount: numeric("version_likes_count", {
       mode: "number",
     }).default(0),
@@ -1493,6 +1545,78 @@ export const _news_v_rels = pgTable(
   ]
 );
 
+export const news_analytics = pgTable(
+  "news_analytics",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    article: uuid("article_id")
+      .notNull()
+      .references(() => news.id, {
+        onDelete: "set null",
+      }),
+    event: enum_news_analytics_event("event").notNull(),
+    userId: varchar("user_id"),
+    sessionId: varchar("session_id").notNull(),
+    deviceId: varchar("device_id").notNull(),
+    platform: enum_news_analytics_platform("platform"),
+    metadata: jsonb("metadata"),
+    timestamp: timestamp("timestamp", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("news_analytics_article_idx").on(columns.article),
+    index("news_analytics_event_idx").on(columns.event),
+    index("news_analytics_user_id_idx").on(columns.userId),
+    index("news_analytics_timestamp_idx").on(columns.timestamp),
+    index("news_analytics_updated_at_idx").on(columns.updatedAt),
+    index("news_analytics_created_at_idx").on(columns.createdAt),
+  ]
+);
+
+export const news_analytics_rels = pgTable(
+  "news_analytics_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("news_analytics_rels_order_idx").on(columns.order),
+    index("news_analytics_rels_parent_idx").on(columns.parent),
+    index("news_analytics_rels_path_idx").on(columns.path),
+    index("news_analytics_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [news_analytics.id],
+      name: "news_analytics_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "news_analytics_rels_admins_fk",
+    }).onDelete("cascade"),
+  ]
+);
+
 export const notification_deliveries = pgTable(
   "notification_deliveries",
   {
@@ -1506,6 +1630,14 @@ export const notification_deliveries = pgTable(
       onDelete: "set null",
     }),
     pushToken: varchar("push_token").notNull(),
+    deviceToken: uuid("device_token_id").references(() => push_tokens.id, {
+      onDelete: "set null",
+    }),
+    openedAt: timestamp("opened_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     status: enum_notification_deliveries_status("status")
       .notNull()
       .default("pending"),
@@ -1534,6 +1666,7 @@ export const notification_deliveries = pgTable(
   (columns) => [
     index("notification_deliveries_notification_idx").on(columns.notification),
     index("notification_deliveries_user_idx").on(columns.user),
+    index("notification_deliveries_device_token_idx").on(columns.deviceToken),
     index("notification_deliveries_status_idx").on(columns.status),
     index("notification_deliveries_updated_at_idx").on(columns.updatedAt),
     index("notification_deliveries_created_at_idx").on(columns.createdAt),
@@ -1884,6 +2017,10 @@ export const partner_content_blocks_promo_video_source = pgTable(
       onDelete: "set null",
     }),
     url: varchar("url"),
+    thumbnail: uuid("thumbnail_id").references(() => media.id, {
+      onDelete: "set null",
+    }),
+    thumbnailSource: varchar("thumbnail_source"),
     blockName: varchar("block_name"),
   },
   (columns) => [
@@ -1898,6 +2035,9 @@ export const partner_content_blocks_promo_video_source = pgTable(
     ),
     index("partner_content_blocks_promo_video_source_video_idx").on(
       columns.video
+    ),
+    index("partner_content_blocks_promo_video_source_thumbnail_idx").on(
+      columns.thumbnail
     ),
     foreignKey({
       columns: [columns["_parentID"]],
@@ -1940,14 +2080,10 @@ export const partner_content_items = pgTable(
     _order: integer("_order").notNull(),
     _parentID: uuid("_parent_id").notNull(),
     id: varchar("id").primaryKey(),
-    thumbnail: uuid("thumbnail_id").references(() => media.id, {
-      onDelete: "set null",
-    }),
   },
   (columns) => [
     index("partner_content_items_order_idx").on(columns._order),
     index("partner_content_items_parent_id_idx").on(columns._parentID),
-    index("partner_content_items_thumbnail_idx").on(columns.thumbnail),
     foreignKey({
       columns: [columns["_parentID"]],
       foreignColumns: [partner_content.id],
@@ -2255,6 +2391,10 @@ export const promotion_media_blocks_promo_video_source = pgTable(
       onDelete: "set null",
     }),
     url: varchar("url"),
+    thumbnail: uuid("thumbnail_id").references(() => media.id, {
+      onDelete: "set null",
+    }),
+    thumbnailSource: varchar("thumbnail_source"),
     blockName: varchar("block_name"),
   },
   (columns) => [
@@ -2269,6 +2409,9 @@ export const promotion_media_blocks_promo_video_source = pgTable(
     ),
     index("promotion_media_blocks_promo_video_source_video_idx").on(
       columns.video
+    ),
+    index("promotion_media_blocks_promo_video_source_thumbnail_idx").on(
+      columns.thumbnail
     ),
     foreignKey({
       columns: [columns["_parentID"]],
@@ -2460,11 +2603,9 @@ export const reactions = pgTable(
       .references(() => users.id, {
         onDelete: "set null",
       }),
-    news: uuid("news_id")
-      .notNull()
-      .references(() => news.id, {
-        onDelete: "set null",
-      }),
+    news: uuid("news_id").references(() => news.id, {
+      onDelete: "set null",
+    }),
     type: enum_reactions_type("type").notNull(),
     updatedAt: timestamp("updated_at", {
       mode: "string",
@@ -2496,17 +2637,31 @@ export const reactions_rels = pgTable(
     order: integer("order"),
     parent: uuid("parent_id").notNull(),
     path: varchar("path").notNull(),
+    newsID: uuid("news_id"),
+    commentsID: uuid("comments_id"),
     adminsID: uuid("admins_id"),
   },
   (columns) => [
     index("reactions_rels_order_idx").on(columns.order),
     index("reactions_rels_parent_idx").on(columns.parent),
     index("reactions_rels_path_idx").on(columns.path),
+    index("reactions_rels_news_id_idx").on(columns.newsID),
+    index("reactions_rels_comments_id_idx").on(columns.commentsID),
     index("reactions_rels_admins_id_idx").on(columns.adminsID),
     foreignKey({
       columns: [columns["parent"]],
       foreignColumns: [reactions.id],
       name: "reactions_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["newsID"]],
+      foreignColumns: [news.id],
+      name: "reactions_rels_news_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["commentsID"]],
+      foreignColumns: [comments.id],
+      name: "reactions_rels_comments_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["adminsID"]],
@@ -2976,6 +3131,74 @@ export const witness_reports_rels = pgTable(
   ]
 );
 
+export const audit_logs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collection: varchar("collection").notNull(),
+    documentId: varchar("document_id").notNull(),
+    operation: enum_audit_logs_operation("operation").notNull(),
+    diff: jsonb("diff"),
+    snapshot: jsonb("snapshot"),
+    ip: varchar("ip"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("audit_logs_collection_idx").on(columns.collection),
+    index("audit_logs_document_id_idx").on(columns.documentId),
+    index("audit_logs_operation_idx").on(columns.operation),
+    index("audit_logs_updated_at_idx").on(columns.updatedAt),
+    index("audit_logs_created_at_idx").on(columns.createdAt),
+  ]
+);
+
+export const audit_logs_rels = pgTable(
+  "audit_logs_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+    usersID: uuid("users_id"),
+  },
+  (columns) => [
+    index("audit_logs_rels_order_idx").on(columns.order),
+    index("audit_logs_rels_parent_idx").on(columns.parent),
+    index("audit_logs_rels_path_idx").on(columns.path),
+    index("audit_logs_rels_admins_id_idx").on(columns.adminsID),
+    index("audit_logs_rels_users_id_idx").on(columns.usersID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [audit_logs.id],
+      name: "audit_logs_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "audit_logs_rels_admins_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["usersID"]],
+      foreignColumns: [users.id],
+      name: "audit_logs_rels_users_fk",
+    }).onDelete("cascade"),
+  ]
+);
+
 export const payload_kv = pgTable(
   "payload_kv",
   {
@@ -3117,6 +3340,7 @@ export const payload_locked_documents_rels = pgTable(
     "lottery-winnersID": uuid("lottery_winners_id"),
     mediaID: uuid("media_id"),
     newsID: uuid("news_id"),
+    "news-analyticsID": uuid("news_analytics_id"),
     "notification-deliveriesID": uuid("notification_deliveries_id"),
     "notification-inboxID": uuid("notification_inbox_id"),
     notificationsID: uuid("notifications_id"),
@@ -3133,6 +3357,7 @@ export const payload_locked_documents_rels = pgTable(
     usersID: uuid("users_id"),
     verificationsID: uuid("verifications_id"),
     "witness-reportsID": uuid("witness_reports_id"),
+    "audit-logsID": uuid("audit_logs_id"),
   },
   (columns) => [
     index("payload_locked_documents_rels_order_idx").on(columns.order),
@@ -3169,6 +3394,9 @@ export const payload_locked_documents_rels = pgTable(
     ),
     index("payload_locked_documents_rels_media_id_idx").on(columns.mediaID),
     index("payload_locked_documents_rels_news_id_idx").on(columns.newsID),
+    index("payload_locked_documents_rels_news_analytics_id_idx").on(
+      columns["news-analyticsID"]
+    ),
     index("payload_locked_documents_rels_notification_deliveries_id_idx").on(
       columns["notification-deliveriesID"]
     ),
@@ -3212,6 +3440,9 @@ export const payload_locked_documents_rels = pgTable(
     ),
     index("payload_locked_documents_rels_witness_reports_id_idx").on(
       columns["witness-reportsID"]
+    ),
+    index("payload_locked_documents_rels_audit_logs_id_idx").on(
+      columns["audit-logsID"]
     ),
     foreignKey({
       columns: [columns["parent"]],
@@ -3282,6 +3513,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["newsID"]],
       foreignColumns: [news.id],
       name: "payload_locked_documents_rels_news_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["news-analyticsID"]],
+      foreignColumns: [news_analytics.id],
+      name: "payload_locked_documents_rels_news_analytics_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["notification-deliveriesID"]],
@@ -3362,6 +3598,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["witness-reportsID"]],
       foreignColumns: [witness_reports.id],
       name: "payload_locked_documents_rels_witness_reports_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["audit-logsID"]],
+      foreignColumns: [audit_logs.id],
+      name: "payload_locked_documents_rels_audit_logs_fk",
     }).onDelete("cascade"),
   ]
 );
@@ -3978,6 +4219,34 @@ export const relations__news_v = relations(_news_v, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
+export const relations_news_analytics_rels = relations(
+  news_analytics_rels,
+  ({ one }) => ({
+    parent: one(news_analytics, {
+      fields: [news_analytics_rels.parent],
+      references: [news_analytics.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [news_analytics_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  })
+);
+export const relations_news_analytics = relations(
+  news_analytics,
+  ({ one, many }) => ({
+    article: one(news, {
+      fields: [news_analytics.article],
+      references: [news.id],
+      relationName: "article",
+    }),
+    _rels: many(news_analytics_rels, {
+      relationName: "_rels",
+    }),
+  })
+);
 export const relations_notification_deliveries_rels = relations(
   notification_deliveries_rels,
   ({ one }) => ({
@@ -4005,6 +4274,11 @@ export const relations_notification_deliveries = relations(
       fields: [notification_deliveries.user],
       references: [users.id],
       relationName: "user",
+    }),
+    deviceToken: one(push_tokens, {
+      fields: [notification_deliveries.deviceToken],
+      references: [push_tokens.id],
+      relationName: "deviceToken",
     }),
     _rels: many(notification_deliveries_rels, {
       relationName: "_rels",
@@ -4141,6 +4415,11 @@ export const relations_partner_content_blocks_promo_video_source = relations(
       references: [media.id],
       relationName: "video",
     }),
+    thumbnail: one(media, {
+      fields: [partner_content_blocks_promo_video_source.thumbnail],
+      references: [media.id],
+      relationName: "thumbnail",
+    }),
   })
 );
 export const relations_partner_content_blocks_promo_image = relations(
@@ -4165,11 +4444,6 @@ export const relations_partner_content_items = relations(
       fields: [partner_content_items._parentID],
       references: [partner_content.id],
       relationName: "items",
-    }),
-    thumbnail: one(media, {
-      fields: [partner_content_items.thumbnail],
-      references: [media.id],
-      relationName: "thumbnail",
     }),
   })
 );
@@ -4309,6 +4583,11 @@ export const relations_promotion_media_blocks_promo_video_source = relations(
       references: [media.id],
       relationName: "video",
     }),
+    thumbnail: one(media, {
+      fields: [promotion_media_blocks_promo_video_source.thumbnail],
+      references: [media.id],
+      relationName: "thumbnail",
+    }),
   })
 );
 export const relations_promotion_media_blocks_promo_image = relations(
@@ -4406,6 +4685,16 @@ export const relations_reactions_rels = relations(
       fields: [reactions_rels.parent],
       references: [reactions.id],
       relationName: "_rels",
+    }),
+    newsID: one(news, {
+      fields: [reactions_rels.newsID],
+      references: [news.id],
+      relationName: "news",
+    }),
+    commentsID: one(comments, {
+      fields: [reactions_rels.commentsID],
+      references: [comments.id],
+      relationName: "comments",
     }),
     adminsID: one(admins, {
       fields: [reactions_rels.adminsID],
@@ -4594,6 +4883,31 @@ export const relations_witness_reports = relations(
     }),
   })
 );
+export const relations_audit_logs_rels = relations(
+  audit_logs_rels,
+  ({ one }) => ({
+    parent: one(audit_logs, {
+      fields: [audit_logs_rels.parent],
+      references: [audit_logs.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [audit_logs_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+    usersID: one(users, {
+      fields: [audit_logs_rels.usersID],
+      references: [users.id],
+      relationName: "users",
+    }),
+  })
+);
+export const relations_audit_logs = relations(audit_logs, ({ many }) => ({
+  _rels: many(audit_logs_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_payload_kv = relations(payload_kv, () => ({}));
 export const relations_payload_jobs_log = relations(
   payload_jobs_log,
@@ -4683,6 +4997,11 @@ export const relations_payload_locked_documents_rels = relations(
       references: [news.id],
       relationName: "news",
     }),
+    "news-analyticsID": one(news_analytics, {
+      fields: [payload_locked_documents_rels["news-analyticsID"]],
+      references: [news_analytics.id],
+      relationName: "news-analytics",
+    }),
     "notification-deliveriesID": one(notification_deliveries, {
       fields: [payload_locked_documents_rels["notification-deliveriesID"]],
       references: [notification_deliveries.id],
@@ -4762,6 +5081,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels["witness-reportsID"]],
       references: [witness_reports.id],
       relationName: "witness-reports",
+    }),
+    "audit-logsID": one(audit_logs, {
+      fields: [payload_locked_documents_rels["audit-logsID"]],
+      references: [audit_logs.id],
+      relationName: "audit-logs",
     }),
   })
 );
@@ -4857,6 +5181,8 @@ type DatabaseSchema = {
   enum_news_status: typeof enum_news_status;
   enum__news_v_version_type: typeof enum__news_v_version_type;
   enum__news_v_version_status: typeof enum__news_v_version_status;
+  enum_news_analytics_event: typeof enum_news_analytics_event;
+  enum_news_analytics_platform: typeof enum_news_analytics_platform;
   enum_notification_deliveries_status: typeof enum_notification_deliveries_status;
   enum_notification_inbox_type: typeof enum_notification_inbox_type;
   enum_notifications_device_types: typeof enum_notifications_device_types;
@@ -4891,6 +5217,7 @@ type DatabaseSchema = {
   enum_shop_analytics_device: typeof enum_shop_analytics_device;
   enum_shop_analytics_platform: typeof enum_shop_analytics_platform;
   enum_witness_reports_report_type: typeof enum_witness_reports_report_type;
+  enum_audit_logs_operation: typeof enum_audit_logs_operation;
   enum_payload_jobs_log_task_slug: typeof enum_payload_jobs_log_task_slug;
   enum_payload_jobs_log_state: typeof enum_payload_jobs_log_state;
   enum_payload_jobs_task_slug: typeof enum_payload_jobs_task_slug;
@@ -4925,6 +5252,8 @@ type DatabaseSchema = {
   _news_v_version_key_points: typeof _news_v_version_key_points;
   _news_v: typeof _news_v;
   _news_v_rels: typeof _news_v_rels;
+  news_analytics: typeof news_analytics;
+  news_analytics_rels: typeof news_analytics_rels;
   notification_deliveries: typeof notification_deliveries;
   notification_deliveries_rels: typeof notification_deliveries_rels;
   notification_inbox: typeof notification_inbox;
@@ -4968,6 +5297,8 @@ type DatabaseSchema = {
   verifications_rels: typeof verifications_rels;
   witness_reports: typeof witness_reports;
   witness_reports_rels: typeof witness_reports_rels;
+  audit_logs: typeof audit_logs;
+  audit_logs_rels: typeof audit_logs_rels;
   payload_kv: typeof payload_kv;
   payload_jobs_log: typeof payload_jobs_log;
   payload_jobs: typeof payload_jobs;
@@ -5011,6 +5342,8 @@ type DatabaseSchema = {
   relations__news_v_version_key_points: typeof relations__news_v_version_key_points;
   relations__news_v_rels: typeof relations__news_v_rels;
   relations__news_v: typeof relations__news_v;
+  relations_news_analytics_rels: typeof relations_news_analytics_rels;
+  relations_news_analytics: typeof relations_news_analytics;
   relations_notification_deliveries_rels: typeof relations_notification_deliveries_rels;
   relations_notification_deliveries: typeof relations_notification_deliveries;
   relations_notification_inbox_rels: typeof relations_notification_inbox_rels;
@@ -5054,6 +5387,8 @@ type DatabaseSchema = {
   relations_verifications: typeof relations_verifications;
   relations_witness_reports_rels: typeof relations_witness_reports_rels;
   relations_witness_reports: typeof relations_witness_reports;
+  relations_audit_logs_rels: typeof relations_audit_logs_rels;
+  relations_audit_logs: typeof relations_audit_logs;
   relations_payload_kv: typeof relations_payload_kv;
   relations_payload_jobs_log: typeof relations_payload_jobs_log;
   relations_payload_jobs: typeof relations_payload_jobs;
@@ -5069,7 +5404,7 @@ type DatabaseSchema = {
 };
 
 declare module "@payloadcms/db-postgres" {
-  export interface GeneratedDatabaseSchema {
+  export type GeneratedDatabaseSchema = {
     schema: DatabaseSchema;
-  }
+  };
 }

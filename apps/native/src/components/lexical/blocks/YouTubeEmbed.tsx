@@ -9,7 +9,9 @@ import {
 import YoutubeIframe from "react-native-youtube-iframe";
 
 function extractVideoId(input: string): string | undefined {
-  if (!input) return;
+  if (!input) {
+    return;
+  }
   try {
     const url = new URL(input.trim());
     if (url.hostname.includes("youtu.be")) {
@@ -18,7 +20,9 @@ function extractVideoId(input: string): string | undefined {
     if (url.hostname.includes("youtube.com")) {
       const parts = url.pathname.split("/").filter(Boolean);
       const shortsIdx = parts.indexOf("shorts");
-      if (shortsIdx !== -1 && parts[shortsIdx + 1]) return parts[shortsIdx + 1];
+      if (shortsIdx !== -1 && parts[shortsIdx + 1]) {
+        return parts[shortsIdx + 1];
+      }
       return (
         url.searchParams.get("v") ??
         url.searchParams.get("video_id") ??
@@ -41,7 +45,9 @@ export function YouTubeEmbed({
   const [isReady, setIsReady] = useState(false);
   const videoId = extractVideoId(videoUrl);
 
-  if (!videoId) return null;
+  if (!videoId) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -51,10 +57,10 @@ export function YouTubeEmbed({
         </View>
       )}
       <YoutubeIframe
-        videoId={videoId}
         // width={screenWidth}
         height={videoHeight}
         onReady={() => setIsReady(true)}
+        videoId={videoId}
       />
       {caption && <Text style={styles.caption}>{caption}</Text>}
     </View>

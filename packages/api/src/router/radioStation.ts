@@ -1,4 +1,4 @@
-// @ts-expect-error
+import type { StationInfo } from "node-internet-radio";
 import internetRadio from "node-internet-radio";
 import { RadioBrowserApi } from "radio-browser-api";
 import z from "zod";
@@ -113,8 +113,9 @@ const byGenreGroup = publicProcedure.handler(async () => {
 const top = publicProcedure.input(TopInput).handler(async ({ input }) => {
   const api = new RadioBrowserApi("News Spend Media", true);
   try {
-    const stations = await api.getStationsByVotes(input.limit);
-    return stations ?? [];
+    const stations = await api.getStationsByVotes(input.limit * 3);
+    const shuffled = (stations ?? []).sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, input.limit);
   } catch (error) {
     console.error(error);
     return [];
@@ -125,8 +126,8 @@ const getStreamMetadata = publicProcedure
   .input(StreamMetadataInput)
   .handler(async ({ input }) => {
     const getStationInfoAsync = (url: string) =>
-      new Promise((resolve, reject) => {
-        internetRadio.getStationInfo(url, (error: any, station: any) => {
+      new Promise<StationInfo>((resolve, reject) => {
+        internetRadio.getStationInfo(url, (error, station) => {
           if (error) {
             reject(error);
           } else {
@@ -137,17 +138,15 @@ const getStreamMetadata = publicProcedure
 
     try {
       const station = await getStationInfoAsync(input.streamUrl);
-
       return {
         metadata: station,
         success: true,
       };
-    } catch (error) {
-      console.error("Error getting station info:", error);
-      throw new Error(
-        // @ts-expect-error
-        `Failed to get station info: ${error?.message ?? "Unknown error"}`
-      );
+    } catch {
+      return {
+        metadata: null,
+        success: false,
+      };
     }
   });
 

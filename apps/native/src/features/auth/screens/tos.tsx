@@ -1,25 +1,18 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
-import { CheckIcon } from "phosphor-react-native";
-import { useId, useState } from "react";
+import { Checkbox, ControlField, LinkButton } from "heroui-native";
+import { useState } from "react";
+import { View } from "react-native";
 import { toast } from "sonner-native";
-import {
-  Checkbox,
-  type CheckedState,
-  Label,
-  SizableText,
-  XStack,
-} from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { authClient } from "#/lib/authClient";
 import { hydrateAuth } from "#/state/auth";
 
 export default function TOS() {
   const navigation = useNavigation("TOS");
-  const [checked, setChecked] = useState<CheckedState>(false);
-  const id = useId();
+  const [checked, setChecked] = useState(false);
   const route = useRoute("TOS");
 
   const anonymousSignInMutation = useMutation({
@@ -33,18 +26,15 @@ export default function TOS() {
       await hydrateAuth();
     },
     onSuccess: () => {
-      console.log("Anonymous sign-in successful");
       toast.success("Signed in as a guest");
     },
-    onError: (error) => {
-      console.error("Failed to sign in anonymously:", error);
+    onError: () => {
       toast.error("Failed to sign in as a guest");
     },
   });
 
   const onConfirm = () => {
-    const { goto } = route.params;
-    // if user is signing up, redirect to sign up page
+    const { goto } = (route.params as { goto?: string }) || {};
     if (goto === "SignUp") {
       navigation.replace(goto);
     } else {
@@ -53,60 +43,49 @@ export default function TOS() {
   };
 
   return (
-    <Screen px="$2.5" safeAreaEdges={["bottom"]}>
-      <XStack ai="center" flex={1} jc="center">
-        <XStack gap="$3">
-          <Checkbox
-            ai="center"
-            bg={checked ? "$color.p500" : "transparent"}
-            boc={checked ? "$color.p500" : "gray"}
-            bw={checked ? 0 : 1}
-            checked={checked}
-            h="$1.5"
-            id={id}
-            jc="center"
-            mt="$2"
-            onCheckedChange={(c) => setChecked(c)}
-            unstyled
-            w="$1.5"
+    <Screen className="px-6" safeAreaEdges={["bottom"]}>
+      <View className="flex-1 items-center justify-center gap-3">
+        <View className="w-full max-w-xs gap-6">
+          <ControlField
+            className="items-start"
+            isSelected={checked}
+            onSelectedChange={setChecked}
           >
-            <Checkbox.Indicator>
-              <CheckIcon color="white" />
-            </Checkbox.Indicator>
-          </Checkbox>
-
-          <Label htmlFor={id} maxWidth={250}>
-            <SizableText fontSize="$4" lh={24}>
-              I accept the{" "}
-              <SizableText
-                color="#00f"
+            <ControlField.Indicator className="">
+              <Checkbox className="mt-0.5 rounded-sm border border-field-border" />
+            </ControlField.Indicator>
+            <View className="max-w-60 flex-1 flex-row flex-wrap">
+              <Text className="text-[1rem] text-muted">I agree to the </Text>
+              <LinkButton
                 onPress={() => navigation.navigate("TermsOfUse")}
-                textDecorationLine="underline"
+                size="sm"
               >
-                terms of use
-              </SizableText>{" "}
-              and acknowledge the{" "}
-              <SizableText
-                color="#00f"
+                <LinkButton.Label className="text-blue-600 underline">
+                  Terms of Service
+                </LinkButton.Label>
+              </LinkButton>
+              <Text className="text-[16px] text-muted"> and </Text>
+              <LinkButton
                 onPress={() => navigation.navigate("PrivacyPolicy")}
-                textDecorationLine="underline"
+                size="sm"
               >
-                privacy policy
-              </SizableText>
-            </SizableText>
-          </Label>
-        </XStack>
-      </XStack>
+                <LinkButton.Label className="text-blue-600 underline">
+                  Privacy Policy
+                </LinkButton.Label>
+              </LinkButton>
+            </View>
+          </ControlField>
+        </View>
+      </View>
 
       <Button
-        disabled={!checked || anonymousSignInMutation.isPending}
-        mb="$6"
+        className="mb-6 w-full"
+        isDisabled={!checked || anonymousSignInMutation.isPending}
         onPress={onConfirm}
-        w="100%"
       >
-        <Button.Text>
+        <Button.Label>
           {anonymousSignInMutation.isPending ? "Loading..." : "Proceed"}
-        </Button.Text>
+        </Button.Label>
       </Button>
     </Screen>
   );

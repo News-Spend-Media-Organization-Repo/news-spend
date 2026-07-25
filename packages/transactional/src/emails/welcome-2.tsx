@@ -8,9 +8,7 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
-/** @jsxImportSource react */
-import * as React from "react";
+} from "react-email";
 
 const WelcomeEmail = ({ username = "there" }) => (
   <Html>
@@ -47,8 +45,9 @@ const WelcomeEmail = ({ username = "there" }) => (
           </Text>
 
           <Text style={styles.text}>
-            Please note that points expire after 12 months, and you can redeem
-            them for various rewards or enter our bi-weekly prize drawings.
+            Please note that Dream Points expire after 12 months, and you can
+            redeem them for in-app rewards or enter our bi-weekly Giveaway. See
+            the in-app Giveaway Official Rules for full details.
           </Text>
 
           <Text style={styles.text}>

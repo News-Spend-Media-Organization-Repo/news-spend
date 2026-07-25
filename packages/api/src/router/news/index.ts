@@ -5,6 +5,8 @@ import z from "zod";
 import { protectedProcedure, publicProcedure } from "../..";
 import { withCache } from "../../lib/cache";
 import { createAdManager, DEFAULT_AD_CONFIG } from "./ad-manager";
+import { newsAnalyticsRouter } from "./analytics";
+import { getCommentCountForNews } from "./comment-counts";
 import {
   fetchMainNews,
   fetchPromoMedia,
@@ -16,6 +18,12 @@ import {
   DEFAULT_FEED_CONFIG,
   type FeedComposerData,
 } from "./feed-composer";
+import { sanitizeContent } from "./sanitize-content";
+import {
+  getNewsReactionCounts,
+  getUserReactionForNews,
+  type UserReaction,
+} from "./user-reaction";
 
 // Input schemas
 const HomeInputSchema = z.object({
@@ -84,6 +92,9 @@ const trending = publicProcedure
   .handler(async ({ input, context }) => {
     const { payload } = context;
     const limit = input?.limit ?? 3;
+
+    let cachedResult: any[] | null = null;
+
     // try redis first
     try {
       const { getRedis } = await import("../../lib/redis");
@@ -91,27 +102,52 @@ const trending = publicProcedure
       const cached = await r.get("trending:news");
       if (cached) {
         const parsed = JSON.parse(cached) as { id: string; score: number }[];
-        const ids = parsed.slice(0, limit).map((p) => p.id);
-        if (ids.length) {
+        // Grab a larger pool to account for unpublished/drafted items
+        const candidateIds = parsed.slice(0, limit * 3).map((p) => p.id);
+        if (candidateIds.length) {
           const res = await payload.find({
             collection: "news",
-            where: { id: { in: ids }, _status: { equals: "published" } },
+            where: {
+              id: { in: candidateIds },
+              _status: { equals: "published" },
+            },
             depth: 1,
-            limit: ids.length,
+            limit: candidateIds.length,
             pagination: false,
             select: { content: false, keyPoints: false },
           });
-          // preserve order
+          // preserve score order from cache
           const docsById = new Map(res.docs.map((d) => [d.id, d]));
-          const ordered = ids.map((id) => docsById.get(id)).filter(Boolean);
-          return ordered;
+          const ordered = candidateIds
+            .map((id) => docsById.get(id))
+            .filter(Boolean);
+          cachedResult = ordered.slice(0, limit);
         }
       }
-    } catch (e) {
+    } catch {
       // ignore redis errors
     }
 
-    // fallback: latest published
+    if (cachedResult && cachedResult.length >= limit) {
+      return cachedResult;
+    }
+
+    if (cachedResult && cachedResult.length > 0) {
+      const remaining = limit - cachedResult.length;
+      const news = await payload.find({
+        collection: "news",
+        limit: remaining,
+        depth: 1,
+        sort: "-createdAt",
+        select: { content: false, keyPoints: false },
+        where: {
+          _status: { equals: "published" },
+          id: { not_in: cachedResult.map((d: any) => d.id) },
+        },
+      });
+      return [...cachedResult, ...news.docs];
+    }
+
     const news = await payload.find({
       collection: "news",
       limit,
@@ -138,8 +174,12 @@ const recordView = publicProcedure
     }
 
     const where: Where = {};
-    if (input.newsId) where.id = { equals: input.newsId };
-    if (input.slug) where.slug = { equals: input.slug };
+    if (input.newsId) {
+      where.id = { equals: input.newsId };
+    }
+    if (input.slug) {
+      where.slug = { equals: input.slug };
+    }
     where._status = { equals: "published" };
 
     const news = await payload.find({
@@ -149,15 +189,16 @@ const recordView = publicProcedure
       depth: 0,
     });
     const doc = news.docs[0];
-    if (!doc)
+    if (!doc) {
       throw new ORPCError("NOT_FOUND", {
         message: "News not found",
       });
+    }
 
     // determine dedupe key: prefer user id, fallback to IP header
     let dedupeKey = "";
     try {
-      if (user && user.id) {
+      if (user?.id) {
         dedupeKey = `news:view:${doc?.id}:user:${user.id}`;
       } else {
         const hdr =
@@ -166,7 +207,7 @@ const recordView = publicProcedure
         const ip = hdr ? String(hdr).split(",")[0]?.trim() : "anonymous";
         dedupeKey = `news:view:${doc?.id}:ip:${ip}`;
       }
-    } catch (err) {
+    } catch {
       // If header parsing fails, fallback to anonymous dedupe key
       dedupeKey = `news:view:${doc?.id}:anon`;
     }
@@ -186,25 +227,30 @@ const recordView = publicProcedure
         // already viewed recently — do not increment
         incremented = false;
       }
-    } catch (e) {
+    } catch {
       // if redis not available, fall back to incrementing always
       incremented = true;
     }
 
     if (incremented) {
-      const updated = await payload.update({
-        collection: "news",
-        id: doc.id,
-        data: { views: (doc.views ?? 0) + 1 },
-      });
-      try {
-        const { getRedis } = await import("../../lib/redis");
-        const r = getRedis();
-        await r.incr(`news:views:${doc.id}`);
-      } catch (e) {
-        // ignore
-      }
-      return { ok: true, views: updated.views, incremented: true };
+      // Raw SQL (not payload.update) on purpose: news is a drafts/versions
+      // collection, and a normal update writes a new _news_v snapshot on
+      // every call — meaning every article view was generating a junk
+      // editorial-history entry. It was also a non-atomic read-then-write
+      // (data: { views: (doc.views ?? 0) + 1 }), so concurrent viewers could
+      // race and lose an increment. Raw SQL is a single atomic UPDATE and
+      // bypasses Payload's hooks/versioning entirely — the one afterChange
+      // hook on News (sendNotificationOnCreate) already no-ops on repeat
+      // updates via doc.hasBeenPublished, so skipping it here changes nothing.
+      const { sql } = await import("@payloadcms/db-postgres");
+      const result = await payload.db.drizzle.execute(sql`
+        UPDATE news SET views = COALESCE(views, 0) + 1
+        WHERE id = ${doc.id}
+        RETURNING views
+      `);
+      const updatedViews = (result.rows[0] as { views: number } | undefined)
+        ?.views;
+      return { ok: true, views: updatedViews ?? doc.views, incremented: true };
     }
 
     // not incremented due to dedupe
@@ -289,11 +335,24 @@ const one = publicProcedure
       depth: 2,
       limit: 1,
       context: user?.id ? { userId: user.id } : undefined,
+      // draft: false,
     });
     if (!news.docs.length) {
-      throw new Error("News not found");
+      throw new ORPCError("NOT_FOUND", {
+        message: "News not found",
+      });
     }
-    return news.docs[0];
+    const doc = news.docs[0]!;
+    const [userReaction, totalComments] = await Promise.all([
+      getUserReactionForNews(payload, user?.id, doc.id),
+      getCommentCountForNews(payload, doc.id),
+    ]);
+    return {
+      ...doc,
+      content: sanitizeContent(doc.content),
+      userReaction,
+      totalComments,
+    };
   });
 
 const relatedNews = publicProcedure
@@ -304,6 +363,7 @@ const relatedNews = publicProcedure
       collection: "news",
       pagination: false,
       where: { _status: { equals: "published" } },
+      draft: false,
     });
     const randomPage =
       Math.floor(Math.random() * (queryCount.totalPages || 1)) + 1;
@@ -314,6 +374,7 @@ const relatedNews = publicProcedure
       page: randomPage,
       sort: "-createdAt",
       where: { _status: { equals: "published" } },
+      draft: false,
       select: { content: false, keyPoints: false },
     });
     let relatedDocs = items.docs;
@@ -325,6 +386,7 @@ const relatedNews = publicProcedure
         sort: "-createdAt",
         page: 1,
         where: { _status: { equals: "published" } },
+        draft: false,
         select: { content: false, keyPoints: false },
       });
       relatedDocs = [...relatedDocs, ...remainingItems.docs];
@@ -341,77 +403,109 @@ const likeDislikeInput = z.object({
   slug: z.string(),
 });
 
+/**
+ * Shared response shape returned by like/dislike. The client uses this to
+ * reconcile the optimistic cache write with server truth — no refetch needed,
+ * so the icon doesn't get clobbered by a stale read.
+ */
+type ReactionResponse = {
+  userReaction: UserReaction;
+  likesCount: number;
+  dislikesCount: number;
+};
+
 const like = protectedProcedure
   .input(likeDislikeInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context }): Promise<ReactionResponse> => {
     const { payload } = context;
     const reaction = await payload.find({
       collection: "reactions",
       where: {
-        news: { equals: input.newsId },
-        user: { equals: input.userId },
+        and: [
+          { "target.relationTo": { equals: "news" } },
+          { "target.value": { equals: input.newsId } },
+          { user: { equals: input.userId } },
+        ],
       },
     });
 
     if (reaction.docs && reaction.docs.length > 0 && reaction.docs[0]) {
       const existing = reaction.docs[0];
       if (existing.type === "like") {
-        return await payload.delete({
+        await payload.delete({
           collection: "reactions",
           id: existing.id,
         });
+      } else {
+        await payload.update({
+          collection: "reactions",
+          where: { id: { equals: existing.id } },
+          data: { type: "like" },
+        });
       }
-      return await payload.update({
+    } else {
+      await payload.create({
         collection: "reactions",
-        where: { id: { equals: existing.id } },
-        data: { type: "like" },
+        data: {
+          target: { relationTo: "news", value: input.newsId },
+          user: input.userId,
+          type: "like",
+        },
       });
     }
 
-    return await payload.create({
-      collection: "reactions",
-      data: {
-        news: input.newsId,
-        user: input.userId,
-        type: "like",
-      },
-    });
+    const [counts, userReaction] = await Promise.all([
+      getNewsReactionCounts(payload, input.newsId),
+      getUserReactionForNews(payload, input.userId, input.newsId),
+    ]);
+    return { userReaction, ...counts };
   });
 
 const dislike = protectedProcedure
   .input(likeDislikeInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context }): Promise<ReactionResponse> => {
     const { payload } = context;
     const reaction = await payload.find({
       collection: "reactions",
       where: {
-        news: { equals: input.newsId },
-        user: { equals: input.userId },
+        and: [
+          { "target.relationTo": { equals: "news" } },
+          { "target.value": { equals: input.newsId } },
+          { user: { equals: input.userId } },
+        ],
       },
     });
 
     if (reaction.docs.length > 0 && reaction.docs[0]) {
-      if (reaction.docs[0].type === "dislike") {
-        return await payload.delete({
+      const existing = reaction.docs[0];
+      if (existing.type === "dislike") {
+        await payload.delete({
           collection: "reactions",
-          id: reaction.docs[0].id,
+          id: existing.id,
+        });
+      } else {
+        await payload.update({
+          collection: "reactions",
+          where: { id: { equals: existing.id } },
+          data: { type: "dislike" },
         });
       }
-      return await payload.update({
+    } else {
+      await payload.create({
         collection: "reactions",
-        where: { id: { equals: reaction.docs[0].id } },
-        data: { type: "dislike" },
+        data: {
+          target: { relationTo: "news", value: input.newsId },
+          user: input.userId,
+          type: "dislike",
+        },
       });
     }
 
-    return await payload.create({
-      collection: "reactions",
-      data: {
-        news: input.newsId,
-        user: input.userId,
-        type: "dislike",
-      },
-    });
+    const [counts, userReaction] = await Promise.all([
+      getNewsReactionCounts(payload, input.newsId),
+      getUserReactionForNews(payload, input.userId, input.newsId),
+    ]);
+    return { userReaction, ...counts };
   });
 
 const categories = publicProcedure
@@ -447,4 +541,5 @@ export const newsRouter = {
   like,
   dislike,
   categories,
+  analytics: newsAnalyticsRouter,
 };

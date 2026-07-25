@@ -5,7 +5,6 @@ import {
   type NavigationState,
 } from "@react-navigation/native";
 
-import { segmentClient } from "#/lib/segmentClient";
 import { navigationIntegration } from "#/lib/sentry";
 import {
   routeState,
@@ -64,7 +63,7 @@ export function getCurrentTabName() {
  * @param PersistNavigationConfig persistNavigation - The config setting for navigation persistence.
  * @returns boolean - Whether to restore navigation state by default.
  */
-function navigationRestoredDefaultState(
+function _navigationRestoredDefaultState(
   persistNavigation: "dev" | "prod" | "always"
 ) {
   if (persistNavigation === "always") {
@@ -89,8 +88,8 @@ function navigationRestoredDefaultState(
  * @returns object - The navigation state and persistence functions.
  */
 export function useNavigationPersistence(
-  storage: MMKVStorage,
-  persistenceKey: string
+  _storage: MMKVStorage,
+  _persistenceKey: string
 ) {
   const onNavigationStateChange = (state: NavigationState | undefined) => {
     if (!state) {
@@ -104,10 +103,12 @@ export function useNavigationPersistence(
         state
       ) as (typeof CONSTANTS.TAB_SCREENS)[number];
 
-      // Update route tracking and analytics
       if (routeName !== newRouteName) {
-        segmentClient.screen(newRouteName);
         setRouteName(newRouteName);
+
+        if (__DEV__) {
+          console.log("Route changed to:", newRouteName);
+        }
 
         if (CONSTANTS.TAB_SCREENS.includes(newRouteName)) {
           setReactNavTabName(newRouteName);

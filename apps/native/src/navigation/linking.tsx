@@ -1,11 +1,17 @@
 import type { LinkingOptions, RootParamList } from "@react-navigation/native";
+import { DETOUR_LINKING_PREFIX, Detour } from "@swmansion/react-native-detour";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 
-import { segmentClient } from "#/lib/segmentClient";
+import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 import { routeState } from "#/state/route-state";
 
-const prefixes = [Linking.createURL(""), "https://csb-9i1lhi-lac.vercel.app/"];
+const prefixes = [
+  DETOUR_LINKING_PREFIX,
+  Linking.createURL(""),
+  "https://link.newsspend.com/",
+  "https://newspend.godetour.link/",
+];
 
 function ensureScheme(url: string) {
   // Check if the URL already starts with any of the valid schemes
@@ -17,10 +23,25 @@ function ensureScheme(url: string) {
   return Linking.createURL(url);
 }
 
+function withNewsId(url: string, newsId: unknown) {
+  if (typeof newsId !== "string" || !newsId.length) {
+    return url;
+  }
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}newsId=${encodeURIComponent(newsId)}`;
+}
+
 export const linking: LinkingOptions<RootParamList> = {
   enabled: true,
   prefixes,
   async getInitialURL() {
+    // check if app was opened from a Detour deferred link
+    const detourUrl = await Detour.getInitialURL();
+    if (detourUrl !== undefined) {
+      return detourUrl;
+    }
+
     // check if app was opened from a deep link
     const url = await Linking.getInitialURL();
 
@@ -32,19 +53,24 @@ export const linking: LinkingOptions<RootParamList> = {
     const response = Notifications.getLastNotificationResponse();
     if (response?.notification.request.content.body) {
       const screenUrl = response?.notification.request.content.data?.url;
+      const newsId = response?.notification.request.content.data?.newsId;
 
       console.log(response.notification.request.content);
 
-      segmentClient.track("Notification Opened", {
+      trackNotificationOpen({
         ...response.notification.request.content,
       });
 
       if (screenUrl) {
-        return ensureScheme(screenUrl);
+        return ensureScheme(withNewsId(screenUrl, newsId));
       }
     }
   },
   subscribe(listener) {
+    const detourSub = Detour.addEventListener("url", ({ url }) => {
+      listener(url);
+    });
+
     const onReceiveURL = ({ url }: { url: string }) => {
       listener(ensureScheme(url));
     };
@@ -56,7 +82,8 @@ export const linking: LinkingOptions<RootParamList> = {
     const notificationListenerSub =
       Notifications.addNotificationResponseReceivedListener((response) => {
         let screenUrl = response.notification.request.content.data?.url;
-        const common = response.notification.request.content.data?.common;
+        const newsId = response.notification.request.content.data?.newsId;
+        const _common = response.notification.request.content.data?.common;
 
         if (screenUrl) {
           const currentTab = routeState.reactNavTabName ?? "NewsHome";
@@ -74,14 +101,15 @@ export const linking: LinkingOptions<RootParamList> = {
             );
             screenUrl = `${invertedRouteMap[currentTab]}/${screenUrl?.split("/").slice(1).join("/")}`;
           }
-          listener(ensureScheme(screenUrl));
-          segmentClient.track("Notification Opened", {
+          listener(ensureScheme(withNewsId(screenUrl, newsId)));
+          trackNotificationOpen({
             ...response.notification.request.content,
           });
         }
       });
 
     return () => {
+      detourSub.remove();
       eventListenerSub.remove();
       notificationListenerSub.remove();
     };

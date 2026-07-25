@@ -26,32 +26,25 @@ const News: CollectionConfig = {
     //     return args
     //   },
     // ],
-    beforeChange: [calculateNewsMetrics],
-    afterRead: [
-      async ({ doc, req }) => {
-        if (!doc?.id) {
-          return doc;
+    beforeChange: [
+      calculateNewsMetrics,
+      // totalComments, likesCount, and dislikesCount are all maintained by raw
+      // SQL in the Comments/NewsReactions hooks. Strip them from incoming
+      // Payload writes (admin edits, republishes, version restores) so a
+      // stale form/version value can't overwrite the counters.
+      ({ data, operation }) => {
+        if (operation === "update" && data) {
+          for (const field of [
+            "totalComments",
+            "likesCount",
+            "dislikesCount",
+          ]) {
+            if (field in data) {
+              delete data[field];
+            }
+          }
         }
-        try {
-          const comments = req.payload.count({
-            collection: "comments",
-            where: {
-              news: {
-                equals: doc?.id,
-              },
-            },
-            req,
-          });
-
-          const result = await Promise.all([comments]);
-          return {
-            ...doc,
-            totalComments: result[0]?.totalDocs ?? 0,
-          };
-        } catch (error) {
-          console.log(`🚀 ~ file: News.ts:329 ~ error: ${error}`);
-          return doc;
-        }
+        return data;
       },
     ],
     afterChange: [sendNotificationOnCreate],
@@ -144,9 +137,9 @@ const News: CollectionConfig = {
         },
       ],
       admin: {
-        condition: (data, siblingData, { user }) => data.type === "article",
+        condition: (data, _siblingData) => data.type === "article",
       },
-      validate: (val) => {
+      validate: (_val) => {
         // if (!val || (val && (val?.length < 1 || val?.length > 3))) {
         //   return 'Articles must have between 1 and 3 key points'
         // }
@@ -187,7 +180,7 @@ const News: CollectionConfig = {
         try {
           new URL(val);
           return true;
-        } catch (error) {
+        } catch {
           return "Please enter a valid URL";
         }
       },
@@ -294,20 +287,15 @@ const News: CollectionConfig = {
         hidden: process.env.NODE_ENV !== "development",
       },
     },
-    // virtual fields
+    // persisted count fields (updated by hooks on Comments collection)
     {
       name: "totalComments",
       type: "number",
-      virtual: true,
       admin: {
         readOnly: true,
         hidden: process.env.NODE_ENV !== "development",
       },
       defaultValue: 0,
-      access: {
-        create: () => false,
-        update: () => false,
-      },
     },
     {
       name: "totalCommentLikes",

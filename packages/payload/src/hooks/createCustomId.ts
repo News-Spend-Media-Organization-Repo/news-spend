@@ -5,7 +5,7 @@ export const createCustomId: FieldHook = async ({
   data,
   req,
 }): Promise<void> => {
-  if (operation === "create") {
-    if (data) data.id = crypto.randomUUID();
+  if (operation === "create" && data) {
+    data.id = crypto.randomUUID();
   }
 };

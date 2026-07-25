@@ -1,33 +1,35 @@
+import { LegendList } from "@legendapp/list/react-native";
 import { useNetInfo } from "@react-native-community/netinfo";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { FlashList } from "@shopify/flash-list";
-import { ArrowLeft } from "@tamagui/lucide-icons";
+import { useRoute } from "@react-navigation/native";
 import {
   type InfiniteData,
   useInfiniteQuery,
-  useQuery,
+  useQueries,
 } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import type { TextInput } from "react-native";
+import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Paragraph, Spinner, YStack } from "tamagui";
-
-import CommentCard from "#/components/comment/CommentCard";
-import Reply from "#/components/comment/Reply";
 import { CommentBox } from "#/components/CommentBox";
-import { EditCommentBox } from "#/components/EditCommentBox";
-import { Screen } from "#/components/Screen";
-import { Button, Text } from "#/components/ui";
+import CommentCard from "#/components/comment/CommentCard";
+import { HighlightedReply } from "#/components/comment/HighlightedReply";
+import Reply from "#/components/comment/Reply";
+
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 function CommentReplies() {
-  const { commentId, ...rest } = useRoute().params;
+  const { commentId, highlightCommentId, ...rest } = useRoute("CommentReply")
+    .params as {
+    commentId: string;
+    highlightCommentId?: string;
+    newsId?: string;
+    newsSlug?: string;
+    focus?: boolean;
+  };
   const ref = useRef<TextInput>(null);
-  const editRef = useRef<TextInput>(null);
   const { isConnected } = useNetInfo();
 
   useEffect(() => {
@@ -41,43 +43,84 @@ function CommentReplies() {
       };
     }
   }, [rest?.focus]);
-  const { data, isPending, isError } = useQuery(
-    orpc.comments.one.queryOptions({
-      input: commentId,
-      initialData: () => {
-        const comments = queryClient.getQueryData<
-          InfiniteData<RouterOutputs["comments"]["all"]>
-        >(
-          orpc.comments.all.infiniteKey({
-            input: () => ({ newsId: rest.newsId }),
+  const showHighlight =
+    Boolean(highlightCommentId) && highlightCommentId !== commentId;
+
+  // Shared helper to seed a single-comment query from the paginated all-comments
+  // cache — avoids a network round-trip when the comment was already loaded.
+  const getCommentFromCache = (
+    targetId: string
+  ): RouterOutputs["comments"]["one"] | undefined => {
+    if (!rest.newsId) {
+      return;
+    }
+    const comments = queryClient.getQueryData<
+      InfiniteData<RouterOutputs["comments"]["all"]>
+    >(
+      orpc.comments.all.infiniteKey({
+        input: (pageParam) => ({
+          newsId: rest.newsId,
+          page: pageParam,
+        }),
+        initialPageParam: undefined,
+      })
+    );
+    const found = comments?.pages
+      .flatMap((page) => page.docs)
+      .find((comment) => comment.id === targetId);
+    if (!found) {
+      return;
+    }
+    return {
+      ...found,
+      user: found.user ?? { id: "", username: "" },
+    } as RouterOutputs["comments"]["one"];
+  };
+
+  const [rootCommentQuery, highlightedCommentQuery] = useQueries({
+    queries: [
+      orpc.comments.one.queryOptions({
+        input: commentId,
+        initialData: () => getCommentFromCache(commentId),
+        initialDataUpdatedAt: () => {
+          const qKey = orpc.comments.all.infiniteKey({
+            input: (pageParam) => ({
+              newsId: rest.newsId ?? "",
+              page: pageParam,
+            }),
             initialPageParam: undefined,
-          })
-        );
-        const comment = comments?.pages
-          .flatMap((page) => page.docs)
-          ?.find((comment) => comment.id === commentId);
-        return comment;
-      },
-      initialDataUpdatedAt: () => {
-        const qKey = orpc.comments.all.infiniteKey({
-          input: () => ({ newsId: rest.newsId }),
-          initialPageParam: undefined,
-        });
-        return queryClient.getQueryState(qKey)?.dataUpdatedAt;
-      },
-    })
-  );
+          });
+          return queryClient.getQueryState(qKey)?.dataUpdatedAt;
+        },
+      }),
+      orpc.comments.one.queryOptions({
+        input: highlightCommentId ?? "",
+        enabled: showHighlight,
+        initialData: () =>
+          highlightCommentId
+            ? getCommentFromCache(highlightCommentId)
+            : undefined,
+      }),
+    ],
+  });
+
+  const { data, isPending, isError } = rootCommentQuery;
+  const effectiveNewsId =
+    rest.newsId ??
+    (typeof data?.news === "string" ? data?.news : data?.news?.id);
+
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
       input: (pageParam: number | undefined) => ({
-        newsId: rest.newsId,
+        // Guarded by `enabled` below — never actually fetches with "".
+        newsId: effectiveNewsId ?? "",
         parentId: commentId,
-        pageParam,
+        page: pageParam,
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: 0,
-      gcTime: 0,
+      enabled: Boolean(effectiveNewsId),
     })
   );
 
@@ -87,79 +130,70 @@ function CommentReplies() {
     }
   };
 
-  const navigation = useNavigation();
-
-  const allPages = replies.data?.pages.flatMap((page) => page.docs) ?? [];
+  // The notification's target comment is pinned under the root header, so
+  // drop it from the regular list to avoid rendering it twice.
+  const allPages = (
+    replies.data?.pages.flatMap((page) => page.docs) ?? []
+  ).filter((item) => !showHighlight || item.id !== highlightCommentId);
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
     replies.refetch
   );
-  const insets = useSafeAreaInsetsStyle(["top"]);
-
-  console.log(useSafeAreaInsets());
 
   if (isPending) {
     return (
-      <YStack ai="center" flex={1} justifyContent="center">
-        <Spinner />
-      </YStack>
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
     );
   }
 
-  // if ((isError || replies.isError) && isConnected) {
-  //   return (
-  //     <Screen>
-  //       <Stack flex={1} px={10} mt={10}>
-  //         <Paragraph textAlign="center">Something went wrong</Paragraph>
-  //       </Stack>
-  //     </Screen>
-  //   );
-  // }
+  if (isError || !data) {
+    return (
+      <Screen>
+        <View className="flex-1 items-center justify-center px-2.5">
+          <Text className="text-center">
+            {isError ? "Something went wrong" : "This comment has been deleted"}
+          </Text>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
-    <Screen safeAreaEdges={["bottom"]}>
+    <Screen
+      contentContainerClassName="py-safe"
+      disableKeyboardAvoidingView
+      systemBarStyle="auto"
+    >
       <KeyboardAvoidingView
         behavior="padding"
         // keyboardVerticalOffset={50}
         style={{ flex: 1 }}
       >
-        <FlashList
-          contentContainerStyle={{ paddingBottom: 50, paddingTop: 20 }}
+        <LegendList
           data={allPages}
           keyExtractor={(item) => (typeof item === "string" ? item : item.id)}
           ListEmptyComponent={
             replies.isLoading ? (
-              <Spinner />
-            ) : (
-              <YStack ai="center" flex={1} jc="center">
-                <Paragraph>No replies yet</Paragraph>
-              </YStack>
+              <ActivityIndicator />
+            ) : showHighlight ? null : (
+              <View className="flex-1 items-center justify-center">
+                <Text>No replies yet</Text>
+              </View>
             )
           }
-          ListFooterComponent={replies.isFetchingNextPage ? <Spinner /> : null}
+          ListFooterComponent={
+            replies.isFetchingNextPage ? <ActivityIndicator /> : null
+          }
           ListHeaderComponent={
             <>
-              <Button
-                ai="center"
-                gap="$2"
-                ghost
-                h="auto"
-                jc="flex-start"
-                mb="$4"
-                mx={10}
-                onPress={() => navigation.goBack()}
-                p="$0"
-              >
-                <Button.Icon color="black">
-                  <ArrowLeft size={30} />
-                </Button.Icon>
-                <Button.Text>
-                  <Text fos="$5">
-                    {data?.totalReplies}
-                    {(data?.totalReplies ?? 0) > 1 ? " Replies" : " Reply"}
-                  </Text>
-                </Button.Text>
-              </Button>
               <CommentCard comment={data} ref={ref} />
+              {showHighlight && highlightedCommentQuery.data ? (
+                <HighlightedReply
+                  comment={highlightedCommentQuery.data}
+                  inputRef={ref}
+                />
+              ) : null}
             </>
           }
           ListHeaderComponentStyle={{ marginVertical: 15 }}
@@ -167,6 +201,7 @@ function CommentReplies() {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           onRefresh={refetchByUser}
+          recycleItems={false}
           refreshing={isRefetchingByUser && !replies.isFetchingNextPage}
           renderItem={({ item }) => <Reply comment={item} ref={ref} />}
           // ItemSeparatorComponent={() => <Stack h={15} />}
@@ -175,7 +210,6 @@ function CommentReplies() {
           inputRef={ref}
           newsId={typeof data?.news === "string" ? data?.news : data?.news?.id}
         />
-        <EditCommentBox inputRef={editRef} />
       </KeyboardAvoidingView>
     </Screen>
   );

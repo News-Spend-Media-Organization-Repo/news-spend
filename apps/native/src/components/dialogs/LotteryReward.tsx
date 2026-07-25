@@ -1,19 +1,34 @@
-import { X } from "@tamagui/lucide-icons";
+import { isDefinedError } from "@orpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { XIcon } from "phosphor-react-native";
+import { Dialog } from "heroui-native";
+import { StarIcon } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { TestIds, useRewardedAd } from "react-native-google-mobile-ads";
+import { ActivityIndicator, View } from "react-native";
+import { useRewardedAd } from "react-native-google-mobile-ads";
 import { toast } from "sonner-native";
-import { Dialog, H4, Paragraph, Spinner, Square, Unspaced } from "tamagui";
-import { Star } from "tamagui-phosphor";
 import { useSnapshot } from "valtio";
-
-import { ConnectBrandDialog } from "#/components/discover/connectBrand-dialog";
-import { Button } from "#/components/ui";
+import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
+import { Button } from "#/components/heroui/button";
+import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { navigate } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
+import { Icon } from "../heroui/icon";
+import { Text } from "../ui";
+
+// DEV-ONLY manual test harness. Stripped from release builds by __DEV__.
+// Lets you seed fake reward data (no real winner row / winnerId needed) and
+// simulate a successful claim locally, so the dialog states below can be
+// tapped through on a real device. Remove once done testing.
+type DevMockTier = "HIGH" | "LOW" | "NONE";
+const DEV_MOCK_REWARDS: Record<
+  Exclude<DevMockTier, "NONE">,
+  { id: string; prize: string; prizeTier: "LOW" | "HIGH" }
+> = {
+  LOW: { id: "dev-mock-low", prize: "50", prizeTier: "LOW" },
+  HIGH: { id: "dev-mock-high", prize: "iPhone 16 Pro", prizeTier: "HIGH" },
+};
 
 export default memo(function LotteryReward() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -23,51 +38,106 @@ export default memo(function LotteryReward() {
   const { session } = useSnapshot(authState);
   const user = session?.user;
 
-  // Fetch reward data when a user is authenticated.
-  const { data, isPending } = useQuery(
+  const [devMockTier, setDevMockTier] = useState<DevMockTier | null>(null);
+  const [devClaimPending, setDevClaimPending] = useState(false);
+  const isMocking = __DEV__ && devMockTier !== null;
+
+  const realQuery = useQuery(
     orpc.lottery.getReward.queryOptions({
-      staleTime: Number.POSITIVE_INFINITY,
-      enabled: Boolean(user),
+      enabled: Boolean(user) && !isMocking,
     })
   );
-  // console.log(data);
+
+  const mockData =
+    isMocking && devMockTier !== "NONE"
+      ? { ...DEV_MOCK_REWARDS[devMockTier], claimed: false }
+      : isMocking
+        ? { id: "dev-mock-none", prize: null, prizeTier: null, claimed: false }
+        : null;
+
+  const data = isMocking ? mockData : realQuery.data;
+  const isPending = isMocking ? false : realQuery.isPending;
 
   const { isLoaded, isClosed, load, show, isEarnedReward } = useRewardedAd(
-    TestIds.REWARDED
+    adUnits.rewarded
   );
+
+  const applyClaimSuccessSideEffects = useCallback(() => {
+    queryClient.setQueryData(
+      orpc.lottery.getReward.queryKey(undefined),
+      (oldData) => ({
+        ...oldData,
+        claimed: true,
+      })
+    );
+
+    if (!data?.prize) {
+      return;
+    }
+
+    if (data.prizeTier === "LOW") {
+      toast.success("Reward claimed!", {
+        description: `${data.prize} Dream Points added!`,
+      });
+      queryClient.invalidateQueries(orpc.activity.totalPoints.queryOptions());
+    } else {
+      toast.success("Reward claimed!", {
+        description: `You claimed ${data.prize}! Please verify your identity to finish up.`,
+      });
+    }
+  }, [data]);
 
   const claimRewardMutation = useMutation(
     orpc.lottery.claimReward.mutationOptions({
-      onSuccess: () => {
-        if (!data?.prize) return;
-
-        if (data.prizeTier === "LOW") {
-          toast.success("Reward claimed!", {
-            description: `${data.prize} points added!`,
-          });
-          queryClient.invalidateQueries(
-            orpc.activity.totalPoints.queryOptions()
-          );
-        } else {
-          toast.success("Reward claimed!", {
-            description: `You claimed ${data.prize}! Please verify your identity to finish up.`,
-          });
+      onSuccess: applyClaimSuccessSideEffects,
+      onError: (error) => {
+        // CONFLICT means the backend's atomic claim check found this
+        // reward already marked claimed — most likely this exact request
+        // already succeeded once (e.g. a retry after a lost response) and
+        // this is a duplicate, not a genuine failure. Treat it the same
+        // as a success instead of surfacing an error toast.
+        if (isDefinedError(error) && error.code === "CONFLICT") {
+          applyClaimSuccessSideEffects();
+          return;
         }
-        queryClient.setQueryData(
-          orpc.lottery.getReward.queryKey(undefined),
-          (oldData) => ({
-            ...oldData,
-            claimed: true,
-          })
-        );
-      },
-      onError: () => {
         toast.error("Failed to claim reward!");
+        setShowPrize(false);
       },
     })
   );
 
-  // Effect: when data, user, and not pending, schedule the dialog to open and preload the ad.
+  const isClaimPending = isMocking
+    ? devClaimPending
+    : claimRewardMutation.isPending;
+
+  const handleClaim = useCallback(() => {
+    if (!data || isClaimPending) {
+      return;
+    }
+    if (isMocking) {
+      setDevClaimPending(true);
+      setTimeout(() => {
+        setDevClaimPending(false);
+        applyClaimSuccessSideEffects();
+      }, 800);
+      return;
+    }
+    claimRewardMutation.mutate({ winnerId: data.id });
+  }, [
+    data,
+    isClaimPending,
+    isMocking,
+    claimRewardMutation,
+    applyClaimSuccessSideEffects,
+  ]);
+
+  // Keyed on data?.id (not `data`) so marking the reward `claimed` in the
+  // cache after a claim doesn't produce a new object reference and
+  // re-trigger this effect, which would reopen the dialog.
+  // `user` is intentionally omitted from deps — including it would re-open
+  // the dialog every time the auth session reference changes (e.g. after
+  // useUser() re-fetches on Profile visit), even for the same reward.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (data && !isPending && user) {
       timeoutRef.current = setTimeout(() => {
@@ -76,42 +146,46 @@ export default memo(function LotteryReward() {
       load();
 
       return () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
       };
     }
-  }, [data, isPending, user, load]);
+  }, [data?.id, isPending, load]);
 
-  // Effect: When the ad is closed and the user earned the reward,
-  // show the prize content and claim the reward.
+  // `handleClaim` is read through a ref instead of a dependency: it's
+  // re-created whenever `isClaimPending` changes, and `isClosed`/
+  // `isEarnedReward` from the ad SDK stay `true` once set (they don't
+  // reset on their own) — depending on `handleClaim` directly would
+  // re-fire this effect on every claim-pending toggle, re-claiming in
+  // an infinite loop.
+  const handleClaimRef = useRef(handleClaim);
+  handleClaimRef.current = handleClaim;
+
   useEffect(() => {
     if (isClosed && isEarnedReward) {
       setShowPrize(true);
-      handleClaim();
-      // load(); // preload next ad if needed
+      handleClaimRef.current();
     }
-  }, [isClosed, isEarnedReward, load]);
+  }, [isClosed, isEarnedReward]);
 
-  // Helper: Claim the reward via mutation
-  const handleClaim = useCallback(() => {
-    if (!data || claimRewardMutation.isPending) return;
-    claimRewardMutation.mutate({ winnerId: data.id });
-  }, [data, claimRewardMutation]);
-
-  // When closing the dialog, perform cleanup and, if no prize exists, try to claim.
   const handleClose = () => {
     setDialogOpen(false);
+    setShowPrize(false);
     if (data?.prize) {
       queryClient.invalidateQueries(orpc.lottery.getReward.queryOptions());
     } else {
       handleClaim();
     }
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
   };
 
-  // Function called when the user taps the “Claim your prize” button.
-  // For a LOW prize, claim directly; for others, either show the ad or launch the brand connection dialog.
   const handleClaimReward = () => {
-    if (claimRewardMutation.isPending) return;
+    if (isClaimPending) {
+      return;
+    }
     if (isLoaded) {
       show();
     } else {
@@ -119,147 +193,143 @@ export default memo(function LotteryReward() {
     }
   };
 
-  // Navigate to the identity verification screen.
   const handleVerifyIdentity = () => {
-    setDialogOpen(false);
-    // navigate("Tab", {
-    //   screen: "Settings",
-    //   params: {
-    //     screen: "VerifyIdentity",
-    //     initial: true,
-    //   },
-    // });
     handleClose();
+    navigate("VerifyIdentity");
   };
-
-  // Do not render until we have a reward data object.
-  // if (!data) return null;
 
   return (
     <>
       <Dialog
-        modal
+        isOpen={dialogOpen}
         onOpenChange={(openVal) => {
           setDialogOpen(openVal);
           if (!openVal) {
             handleClose();
           }
         }}
-        open={dialogOpen}
       >
         <Dialog.Portal>
-          <Dialog.Overlay
-            animation="slow"
-            bg="black"
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-            key="overlay"
-            opacity={0.5}
-          />
-          <Dialog.Content
-            animateOnly={["transform", "opacity"]}
-            animation={[
-              "fast",
-              {
-                opacity: {
-                  overshootClamping: true,
-                },
-              },
-            ]}
-            bordered
-            elevate
-            enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-            exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-            gap="$4"
-            key="content"
-            w="95%"
-          >
-            {data?.prize ? (
-              showPrize ? (
-                <Square>
-                  <Star color="$p500" size={48} />
-                  <Paragraph
-                    bg="$s75"
-                    br="$12"
-                    color="$s400"
-                    fow="800"
-                    mt="$2"
-                    px="$2.5"
-                    textAlign="center"
-                  >
-                    {`${data.prize} ${data.prizeTier === "LOW" ? "points" : ""}`}
-                  </Paragraph>
-                  <H4 textAlign="center">Congratulations!</H4>
-                  <Paragraph color="$gray.50" fos="$4" ta="center">
-                    You won {data.prize}{" "}
-                    {data.prizeTier === "LOW" ? "points" : ""} in the Lottery.
-                  </Paragraph>
-                </Square>
-              ) : (
-                <Square>
-                  <H4 textAlign="center">Congratulations!</H4>
-                  <Paragraph color="$gray.50" fos="$4" ta="center">
-                    You have won a prize from the Lottery.
-                  </Paragraph>
-                </Square>
-              )
-            ) : (
-              <Square>
-                <H4 textAlign="center">Better luck next time!</H4>
-                <Paragraph color="$gray.50" fos="$4" ta="center">
+          <Dialog.Overlay />
+          <Dialog.Content className="w-[95%]">
+            <Dialog.Close className="absolute top-1 right-2" variant="ghost" />
+
+            {data?.prize && showPrize && (
+              <View className="items-center gap-2">
+                <Icon color="#00223d" name={StarIcon} size={48} weight="fill" />
+                <View
+                  className="rounded-full px-2.5 py-0.5"
+                  style={{ backgroundColor: "#F7E0C0" }}
+                >
+                  <Text className="text-center font-extrabold text-[#A57D47]">
+                    {`${data.prize} ${data.prizeTier === "LOW" ? "Dream Points" : ""}`}
+                  </Text>
+                </View>
+                <Text className="text-center font-semibold text-lg">
+                  Congratulations!
+                </Text>
+                <Text className="text-center text-subtle-text">
+                  You won {data.prize}{" "}
+                  {data.prizeTier === "LOW" ? "Dream Points" : ""} in the
+                  Giveaway.
+                </Text>
+              </View>
+            )}
+            {data?.prize && !showPrize && (
+              <View className="items-center gap-2">
+                <Text className="text-center font-semibold text-lg">
+                  Congratulations!
+                </Text>
+                <Text className="text-center text-subtle-text">
+                  You have won a prize from the Giveaway.
+                </Text>
+              </View>
+            )}
+            {!data?.prize && (
+              <View className="items-center gap-2">
+                <Text className="text-center font-semibold text-lg">
+                  Better luck next time!
+                </Text>
+                <Text className="text-center text-subtle-text">
                   Unfortunately, you didn't win any prizes this time. Keep
                   participating for more chances to win!
-                </Paragraph>
-              </Square>
+                </Text>
+              </View>
             )}
 
             {data?.prize && !showPrize && (
               <Button
-                disabled={claimRewardMutation.isPending}
+                className="mt-4"
+                isDisabled={isClaimPending}
                 onPress={handleClaimReward}
               >
-                <Button.Text>
-                  {claimRewardMutation.isPending
-                    ? "Claiming Reward..."
-                    : "Claim your prize"}
-                </Button.Text>
-                {claimRewardMutation.isPending && (
-                  <Button.Icon>
-                    <Spinner />
-                  </Button.Icon>
+                <Button.Label>
+                  {isClaimPending ? "Claiming Reward..." : "Claim your prize"}
+                </Button.Label>
+                {isClaimPending && (
+                  <ActivityIndicator
+                    className="ml-2"
+                    color="#fff"
+                    size="small"
+                  />
                 )}
               </Button>
             )}
 
             {data?.prize && showPrize && data.prizeTier !== "LOW" && (
-              <Button onPress={handleVerifyIdentity}>
-                <Button.Text>Verify your Identity</Button.Text>
+              <Button className="mt-4" onPress={handleVerifyIdentity}>
+                <Button.Label>Verify your Identity</Button.Label>
               </Button>
             )}
-
-            <Unspaced>
-              <Dialog.Close asChild>
-                <Button ghost p="$1" position="absolute" right="$2" top="$1">
-                  <Button.Icon color="$p500">
-                    <XIcon size={16} />
-                  </Button.Icon>
-                </Button>
-              </Dialog.Close>
-            </Unspaced>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog>
 
-      <ConnectBrandDialog
+      <PartnerAdDialog
+        fallbackToAppWall={false}
+        hideTrigger
         onCountdownComplete={() => {
-          // When the connectBrand dialog signals completion,
-          // display the prize and claim the reward
           setShowPrize(true);
           handleClaim();
         }}
         open={connectBrandOpen}
         setOpen={setConnectBrandOpen}
       />
+
+      {/*{__DEV__ && (
+        <View
+          className="absolute right-2 bottom-24 gap-1 rounded-lg bg-black/80 p-2"
+          pointerEvents="box-none"
+        >
+          {(["LOW", "HIGH", "NONE"] as const).map((tier) => (
+            <Pressable
+              key={tier}
+              onPress={() => {
+                setShowPrize(false);
+                setDevClaimPending(false);
+                setDevMockTier(tier);
+                setDialogOpen(true);
+              }}
+              style={{ paddingVertical: 4, paddingHorizontal: 8 }}
+            >
+              <Text className="text-white text-xs">
+                Mock: {tier === "NONE" ? "No prize" : `${tier} win`}
+              </Text>
+            </Pressable>
+          ))}
+          <Pressable
+            onPress={() => {
+              setDialogOpen(false);
+              setShowPrize(false);
+              setDevMockTier(null);
+              setDevClaimPending(false);
+            }}
+            style={{ paddingVertical: 4, paddingHorizontal: 8 }}
+          >
+            <Text className="text-white text-xs">Clear mock</Text>
+          </Pressable>
+        </View>
+      )}*/}
     </>
   );
 });

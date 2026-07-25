@@ -3,7 +3,9 @@ import Redis from "ioredis";
 let client: Redis | null = null;
 
 export function getRedis() {
-  if (client) return client;
+  if (client) {
+    return client;
+  }
   const url = process.env.REDIS_URL;
   if (!url) {
     throw new Error("REDIS_URL is not configured");
@@ -17,10 +19,12 @@ export function getRedis() {
 }
 
 export async function disconnectRedis() {
-  if (!client) return;
+  if (!client) {
+    return;
+  }
   try {
     await client.quit();
-  } catch (e) {
+  } catch {
     // ignore
   }
   client = null;

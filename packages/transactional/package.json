@@ -7,21 +7,20 @@
     "./emails/*": "./src/emails/*.tsx"
   },
   "scripts": {
-    "dev": "email dev -p 3001",
+    "dev": "email dev --dir src/emails -p 3001",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@news-spend-media/config": "workspace:*",
     "@news-spend-media/logger": "workspace:*",
-    "@react-email/components": "1.0.10",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@react-email/preview-server": "^5.1.0",
+    "@react-email/ui": "^6.0.0",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "react-email": "^1.9.5",
+    "react-email": "^6.0.0",
     "typescript": "catalog:"
   }
 }

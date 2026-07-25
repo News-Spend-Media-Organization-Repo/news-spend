@@ -62,7 +62,7 @@ function useLogin() {
       // authState.token = data.token;
       // authState.exp = data.exp;
     },
-    onError: (error) => {
+    onError: (_error) => {
       toast.error("An error occurred", {
         description: "Login failed",
       });

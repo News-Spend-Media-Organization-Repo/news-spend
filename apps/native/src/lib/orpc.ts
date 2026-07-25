@@ -28,19 +28,6 @@ const link = new RPCLink({
     }
     return Object.fromEntries(headers);
   },
-  async fetch(request, init) {
-    const { fetch } = await import("expo/fetch");
-
-    const resp = await fetch(request.url, {
-      body: await request.blob(),
-      headers: request.headers,
-      method: request.method,
-      signal: request.signal,
-      ...init,
-    });
-
-    return resp;
-  },
   interceptors: [
     // onError((error) => {
     //   console.error("error", error);
@@ -70,11 +57,6 @@ const openapiLink = new OpenAPILink(contract as unknown as typeof router, {
     }
     return Object.fromEntries(headers);
   },
-  fetch: (request, init) =>
-    globalThis.fetch(request, {
-      ...init,
-      credentials: "include",
-    }),
   // interceptors: [
   //   onError((error) => {
   //     console.error("interceptor error", error);

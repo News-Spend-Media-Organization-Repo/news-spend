@@ -1,5 +1,6 @@
 {
   "name": "@news-spend-media/auth",
+  "type": "module",
   "exports": {
     ".": {
       "default": "./src/index.ts"
@@ -8,20 +9,19 @@
       "default": "./src/*.ts"
     }
   },
-  "type": "module",
   "scripts": {},
-  "devDependencies": {
-    "@news-spend-media/config": "workspace:*",
-    "@news-spend-media/logger": "workspace:*",
-    "@news-spend-media/mail": "workspace:*",
-    "@types/pg": "^8.15.6",
-    "typescript": "catalog:"
-  },
   "dependencies": {
     "@better-auth/expo": "catalog:",
     "@news-spend-media/db": "workspace:*",
     "better-auth": "catalog:",
     "pg": "^8.18.0",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@news-spend-media/config": "workspace:*",
+    "@news-spend-media/logger": "workspace:*",
+    "@news-spend-media/mail": "workspace:*",
+    "@types/pg": "^8.15.6",
+    "typescript": "catalog:"
   }
 }

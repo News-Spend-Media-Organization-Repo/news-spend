@@ -73,7 +73,7 @@ export class AdManager {
       // (shuffle a copy — cached data should not be mutated)
       this.pool = [...docs].sort(() => Math.random() - 0.5);
       this.poolIndex = 0;
-    } catch (_e) {
+    } catch {
       // If fetching fails, pool stays empty — pickAd() will return Google ads
       this.pool = [];
       this.poolIndex = 0;
@@ -96,7 +96,7 @@ export class AdManager {
         }
       }
       return buildGoogleAd(this.config.googleAdSlot);
-    } catch (_e) {
+    } catch {
       return buildGoogleAd(this.config.googleAdSlot);
     }
   }

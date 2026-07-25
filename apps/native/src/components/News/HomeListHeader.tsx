@@ -1,8 +1,7 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { Heading, Stack } from "tamagui";
-
+import { View } from "react-native";
 import type { RouterOutputs } from "#/lib/orpc";
-
+import { Text } from "../heroui/text";
 import SpecialCoverage from "./SpecialCoverage";
 import TrendingBooks from "./TrendingBooks";
 import TrendingNews from "./TrendingNews";
@@ -19,16 +18,13 @@ export default function HomeListHeader({
   books: PartnerContent[];
 }) {
   return (
-    <Stack gap="$4" mb="$3">
+    <View className="mb-3 gap-4">
       <TrendingNews news={news} />
 
       <TrendingBooks books={books} />
 
       <SpecialCoverage specialCoverage={specialCoverage} />
-
-      <Heading fos="$6" mt="$3" px="$3">
-        Latest News
-      </Heading>
-    </Stack>
+      <Text className="px-4 font-semibold text-base">Latest News</Text>
+    </View>
   );
 }

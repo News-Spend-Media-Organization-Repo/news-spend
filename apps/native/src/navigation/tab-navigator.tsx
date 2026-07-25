@@ -1,11 +1,11 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
-  Home,
-  PlusCircle,
-  ShoppingCart,
-  Tag,
-  Video,
-} from "@tamagui/lucide-icons";
+  HouseIcon,
+  PlusCircleIcon,
+  ShoppingCartIcon,
+  TagIcon,
+  VideoCameraIcon,
+} from "phosphor-react-native";
 
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
@@ -15,8 +15,8 @@ import ShopStack from "./shop-stack";
 import TabBar from "./tab-bar";
 
 export default createBottomTabNavigator({
-  implementation: "custom",
   tabBar: (props) => <TabBar {...props} />,
+  implementation: "native",
   backBehavior: "history",
   screens: {
     Home: {
@@ -27,7 +27,13 @@ export default createBottomTabNavigator({
       screen: NewsStack,
       options: {
         tabBarIcon(props) {
-          return <Home {...props} />;
+          return (
+            <HouseIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
+          );
         },
       },
     },
@@ -39,7 +45,13 @@ export default createBottomTabNavigator({
       screen: LiveStack,
       options: {
         tabBarIcon(props) {
-          return <Video {...props} />;
+          return (
+            <VideoCameraIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
+          );
         },
       },
     },
@@ -53,7 +65,13 @@ export default createBottomTabNavigator({
         headerShown: false,
         title: "Settings",
         tabBarIcon(props) {
-          return <PlusCircle {...props} />;
+          return (
+            <PlusCircleIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
+          );
         },
       },
     },
@@ -65,7 +83,9 @@ export default createBottomTabNavigator({
       screen: DiscoverStack,
       options: {
         tabBarIcon(props) {
-          return <Tag {...props} />;
+          return (
+            <TagIcon color={props.color} size={props.size} weight="regular" />
+          );
         },
       },
     },
@@ -77,7 +97,13 @@ export default createBottomTabNavigator({
       screen: ShopStack,
       options: {
         tabBarIcon(props) {
-          return <ShoppingCart {...props} />;
+          return (
+            <ShoppingCartIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
+          );
         },
       },
     },
@@ -86,6 +112,12 @@ export default createBottomTabNavigator({
     headerShown: false,
     tabBarHideOnKeyboard: true,
     animation: "none",
+    tabBarStyle: {
+      backgroundColor: "red",
+      borderTopWidth: 0,
+      elevation: 0, // Android
+      shadowOpacity: 0, // iOS
+    },
   },
   initialRouteName: "Home",
 });

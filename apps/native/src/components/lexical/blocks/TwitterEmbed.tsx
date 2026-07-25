@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import WebView from "react-native-webview";
-import { View } from "tamagui";
 
 function extractTweetId(input: string): string | undefined {
   if (!input) {

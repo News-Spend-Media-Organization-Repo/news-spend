@@ -24,7 +24,7 @@ export const Survey: CollectionConfig = {
         try {
           new URL(val);
           return true;
-        } catch (e) {
+        } catch {
           return "Please enter a valid URL";
         }
       },

@@ -13,6 +13,9 @@ export const ReadAlsoBlock: Block = {
       type: "relationship",
       relationTo: "news",
       hasMany: false,
+      filterOptions: {
+        _status: { equals: "published" },
+      },
       admin: {
         description: "💡This will be inserted in between the news content",
         allowCreate: false,

@@ -2,13 +2,55 @@
   "format_on_save": "on",
   "formatter": "language_server",
   "lsp": {
-    "typescript-language-server": {
+    "vtsls": {
       "settings": {
         "typescript": {
-          "preferences": {
-            "includePackageJsonAutoImports": "on"
-          }
+          "tsserver": {
+            "maxTsServerMemory": 4096
+          },
+          "disableAutomaticTypeAcquisition": true
+        },
+        "javascript": {
+          "tsserver": {
+            "maxTsServerMemory": 4096
+          },
+          "disableAutomaticTypeAcquisition": true
         }
+      }
+    },
+    "tailwindcss-language-server": {
+      "settings": {
+        "classAttributes": [
+          "class",
+          "className",
+          "headerClassName",
+          "contentContainerClassName",
+          "columnWrapperClassName",
+          "endFillColorClassName",
+          "imageClassName",
+          "tintColorClassName",
+          "ios_backgroundColorClassName",
+          "thumbColorClassName",
+          "trackColorOnClassName",
+          "trackColorOffClassName",
+          "selectionColorClassName",
+          "cursorColorClassName",
+          "underlineColorAndroidClassName",
+          "placeholderTextColorClassName",
+          "selectionHandleColorClassName",
+          "colorsClassName",
+          "progressBackgroundColorClassName",
+          "titleColorClassName",
+          "underlayColorClassName",
+          "colorClassName",
+          "drawerBackgroundColorClassName",
+          "statusBarBackgroundColorClassName",
+          "backdropColorClassName",
+          "backgroundColorClassName",
+          "ListFooterComponentClassName",
+          "ListHeaderComponentClassName"
+        ],
+        "classFunctions": ["useResolveClassNames"]
       }
     },
     "oxfmt": {
@@ -34,41 +76,68 @@
           "unusedDisableDirectives": "deny"
         }
       }
+    },
+    "typescript-language-server": {
+      "settings": {
+        "typescript": {
+          "preferences": {
+            "includePackageJsonAutoImports": "on"
+          }
+        }
+      }
     }
   },
   "languages": {
     "JavaScript": {
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
+        "source.organizeImports.oxc": true,
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
       },
       "formatter": {
         "language_server": {
-          "name": "oxfmt"
+          "name": "biome"
         }
       }
     },
     "TSX": {
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
+        "source.organizeImports.oxc": true,
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
       },
       "formatter": {
         "language_server": {
-          "name": "oxfmt"
+          "name": "biome"
         }
       }
     },
     "TypeScript": {
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
+        "source.organizeImports.oxc": true,
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
       },
       "formatter": {
         "language_server": {
-          "name": "oxfmt"
+          "name": "biome"
         }
       }
+    }
+  },
+  "context_servers": {
+    "argent": {
+      "source": "custom",
+      "command": "argent",
+      "args": ["mcp"]
+    }
+  },
+  "agent": {
+    "tool_permissions": {
+      "default": "allow"
     }
   }
 }

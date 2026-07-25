@@ -11,7 +11,7 @@ export const getThumbnailWithCache = async (
 
   try {
     const { uri } = await getThumbnailAsync(videoUrl, {
-      time: 10000,
+      time: 10_000,
       quality: 1,
     });
     thumbnailCache[videoUrl] = uri;

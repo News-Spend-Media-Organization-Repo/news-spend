@@ -1,8 +1,9 @@
 import { ErrorBoundary } from "@sentry/react-native";
 import type React from "react";
-import { Heading, Stack, Text } from "tamagui";
+import { View } from "react-native";
 
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Text } from "../ui";
 
 type AppFallbackProps = {
   error: unknown;
@@ -12,16 +13,18 @@ type AppFallbackProps = {
 };
 
 const FallbackComponent: React.FC<AppFallbackProps> = ({ resetError }) => (
-  <Stack ai="center" f={1} jc="center" p="$4">
-    <Heading mb="$2">Oops! Something went wrong</Heading>
-    <Text mb="$4" ta="center">
+  <View className="flex-1 items-center justify-center p-4">
+    <Text className="mb-2 font-semibold text-lg">
+      Oops! Something went wrong
+    </Text>
+    <Text className="mb-4 text-center">
       Something unexpected happened. We've been notified and are working on a
       fix.
     </Text>
     <Button onPress={() => resetError?.()}>
-      <Button.Text>Try Again</Button.Text>
+      <Button.Label>Try Again</Button.Label>
     </Button>
-  </Stack>
+  </View>
 );
 
 export const AppErrorBoundary = ({
@@ -30,8 +33,6 @@ export const AppErrorBoundary = ({
   children: React.ReactNode;
 }) => {
   const handleError = (error: unknown) => {
-    // Sentry.ErrorBoundary will capture the error automatically.
-    // Use onError for local logging or side effects.
     console.error("Error caught by AppErrorBoundary:", error);
   };
 

@@ -1,7 +1,7 @@
-import { Linking } from "react-native";
-import { H5, Image, Stack, XStack } from "tamagui";
-
-import { Screen } from "#/components/Screen";
+import { Image } from "expo-image";
+import { Linking, Pressable, View } from "react-native";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 
 const socials = [
   {
@@ -23,21 +23,23 @@ const socials = [
 
 export default function Socials() {
   return (
-    <Screen>
-      <Stack gap="$3" pt="$2" px="$3">
-        <H5 ta="center">Follow us on social media</H5>
+    <Screen systemBarStyle="light">
+      <View className="gap-3 px-3 pt-2">
+        <Text className="text-center" variant="subtitle">
+          Follow us on social media
+        </Text>
 
-        <XStack jc="space-around">
+        <View className="flex-row justify-around">
           {socials.map((social) => (
-            <Stack
+            <Pressable
               key={social.title}
               onPress={() => Linking.openURL(social.url)}
             >
-              <Image height={50} source={social.image} width={50} />
-            </Stack>
+              <Image source={social.image} style={{ height: 50, width: 50 }} />
+            </Pressable>
           ))}
-        </XStack>
-      </Stack>
+        </View>
+      </View>
     </Screen>
   );
 }

@@ -5,27 +5,45 @@ import {
 } from "@react-navigation/native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
 import WebView from "react-native-webview";
 import type { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
-
 import { ScreenHeader } from "#/components";
-import { Screen } from "#/components/Screen";
+import { Screen } from "#/components/heroui/screen";
 
 export default function SurveyWebView() {
   const [canGoBack, setCanGoBack] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
+  const params = route.params as { url: string; type?: string; title?: string };
   const webViewRef = useRef<WebView>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Lock the screen orientation to portrait when the app starts
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.ALL);
+    const lockOrientation = async () => {
+      if (Platform.OS === "android") {
+        // Android supports ALL
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.ALL
+        );
+      } else {
+        // iOS: use DEFAULT (respects Info.plist settings)
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.DEFAULT
+        );
+      }
+    };
+
+    lockOrientation();
 
     return () => {
-      // Unlock the screen orientation when the component unmounts
       ScreenOrientation.unlockAsync();
     };
   }, []);
@@ -50,24 +68,31 @@ export default function SurveyWebView() {
     }
   };
 
-  usePreventRemove(canGoBack === false, ({ data }) => {
-    Alert.alert("Are you sure?", "You will lose the chance to earn points", [
-      {
-        text: "no",
-        style: "cancel",
-        onPress: () => {},
-      },
-      {
-        text: "yes, leave",
-        style: "destructive",
-        onPress: () => navigation.dispatch(data.action),
-      },
-    ]);
+  usePreventRemove(!canGoBack, ({ data }) => {
+    const isGame = params?.type === "game";
+    Alert.alert(
+      "Are you sure?",
+      isGame
+        ? "Are you sure you want to leave the game?"
+        : "You will lose the chance to earn points",
+      [
+        {
+          text: "no",
+          style: "cancel",
+          onPress: () => {},
+        },
+        {
+          text: "yes, leave",
+          style: "destructive",
+          onPress: () => navigation.dispatch(data.action),
+        },
+      ]
+    );
   });
 
   return (
     <Screen safeAreaEdges={["bottom"]}>
-      <ScreenHeader title="" />
+      <ScreenHeader title={params?.title ?? ""} />
       <WebView
         onError={() => {
           setIsLoading(false);
@@ -76,11 +101,10 @@ export default function SurveyWebView() {
             loadingTimeoutRef.current = null;
           }
         }}
+        onLoadStart={() => setIsLoading(true)}
         onNavigationStateChange={handleNavigationStateChange}
         ref={webViewRef}
-        source={{
-          uri: `${(route.params as { url: string })?.url}`,
-        }}
+        source={{ uri: params?.url ?? "" }}
       />
       {isLoading ? (
         <View style={styles.loaderContainer}>

@@ -13,53 +13,53 @@
  * via the `definition` "supportedTimezones".
  */
 export type SupportedTimezones =
-  | "Pacific/Midway"
-  | "Pacific/Niue"
-  | "Pacific/Honolulu"
-  | "Pacific/Rarotonga"
-  | "America/Anchorage"
-  | "Pacific/Gambier"
-  | "America/Los_Angeles"
-  | "America/Tijuana"
-  | "America/Denver"
-  | "America/Phoenix"
-  | "America/Chicago"
-  | "America/Guatemala"
-  | "America/New_York"
-  | "America/Bogota"
-  | "America/Caracas"
-  | "America/Santiago"
-  | "America/Buenos_Aires"
-  | "America/Sao_Paulo"
-  | "Atlantic/South_Georgia"
-  | "Atlantic/Azores"
-  | "Atlantic/Cape_Verde"
-  | "Europe/London"
-  | "Europe/Berlin"
-  | "Africa/Lagos"
-  | "Europe/Athens"
-  | "Africa/Cairo"
-  | "Europe/Moscow"
-  | "Asia/Riyadh"
-  | "Asia/Dubai"
-  | "Asia/Baku"
-  | "Asia/Karachi"
-  | "Asia/Tashkent"
-  | "Asia/Calcutta"
-  | "Asia/Dhaka"
-  | "Asia/Almaty"
-  | "Asia/Jakarta"
-  | "Asia/Bangkok"
-  | "Asia/Shanghai"
-  | "Asia/Singapore"
-  | "Asia/Tokyo"
-  | "Asia/Seoul"
-  | "Australia/Brisbane"
-  | "Australia/Sydney"
-  | "Pacific/Guam"
-  | "Pacific/Noumea"
-  | "Pacific/Auckland"
-  | "Pacific/Fiji";
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
 
 export interface Config {
   auth: {
@@ -78,33 +78,35 @@ export interface Config {
     comments: Comment;
     contentReports: ContentReport;
     feedback: Feedback;
-    "identity-verification": IdentityVerification;
+    'identity-verification': IdentityVerification;
     lottery: Lottery;
-    "lottery-tickets": LotteryTicket;
-    "lottery-winners": LotteryWinner;
+    'lottery-tickets': LotteryTicket;
+    'lottery-winners': LotteryWinner;
     media: Media;
     news: News;
-    "notification-deliveries": NotificationDelivery;
-    "notification-inbox": NotificationInbox;
+    'news-analytics': NewsAnalytic;
+    'notification-deliveries': NotificationDelivery;
+    'notification-inbox': NotificationInbox;
     notifications: Notification;
-    "partner-content": PartnerContent;
-    "partner-conversions": PartnerConversion;
+    'partner-content': PartnerContent;
+    'partner-conversions': PartnerConversion;
     partners: Partner;
-    "promotion-media": PromotionMedia;
-    "push-tokens": PushToken;
+    'promotion-media': PromotionMedia;
+    'push-tokens': PushToken;
     reactions: Reaction;
     sessions: Session;
-    "shop-analytics": ShopAnalytic;
+    'shop-analytics': ShopAnalytic;
     survey: Survey;
-    "ticket-purchase-log": TicketPurchaseLog;
+    'ticket-purchase-log': TicketPurchaseLog;
     users: User;
     verifications: Verification;
-    "witness-reports": WitnessReport;
-    "payload-kv": PayloadKv;
-    "payload-jobs": PayloadJob;
-    "payload-locked-documents": PayloadLockedDocument;
-    "payload-preferences": PayloadPreference;
-    "payload-migrations": PayloadMigration;
+    'witness-reports': WitnessReport;
+    'audit-logs': AuditLog;
+    'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
+    'payload-locked-documents': PayloadLockedDocument;
+    'payload-preferences': PayloadPreference;
+    'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {};
   collectionsSelect: {
@@ -115,63 +117,47 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     contentReports: ContentReportsSelect<false> | ContentReportsSelect<true>;
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
-    "identity-verification":
-      | IdentityVerificationSelect<false>
-      | IdentityVerificationSelect<true>;
+    'identity-verification': IdentityVerificationSelect<false> | IdentityVerificationSelect<true>;
     lottery: LotterySelect<false> | LotterySelect<true>;
-    "lottery-tickets": LotteryTicketsSelect<false> | LotteryTicketsSelect<true>;
-    "lottery-winners": LotteryWinnersSelect<false> | LotteryWinnersSelect<true>;
+    'lottery-tickets': LotteryTicketsSelect<false> | LotteryTicketsSelect<true>;
+    'lottery-winners': LotteryWinnersSelect<false> | LotteryWinnersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
-    "notification-deliveries":
-      | NotificationDeliveriesSelect<false>
-      | NotificationDeliveriesSelect<true>;
-    "notification-inbox":
-      | NotificationInboxSelect<false>
-      | NotificationInboxSelect<true>;
+    'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
+    'notification-deliveries': NotificationDeliveriesSelect<false> | NotificationDeliveriesSelect<true>;
+    'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
-    "partner-content": PartnerContentSelect<false> | PartnerContentSelect<true>;
-    "partner-conversions":
-      | PartnerConversionsSelect<false>
-      | PartnerConversionsSelect<true>;
+    'partner-content': PartnerContentSelect<false> | PartnerContentSelect<true>;
+    'partner-conversions': PartnerConversionsSelect<false> | PartnerConversionsSelect<true>;
     partners: PartnersSelect<false> | PartnersSelect<true>;
-    "promotion-media": PromotionMediaSelect<false> | PromotionMediaSelect<true>;
-    "push-tokens": PushTokensSelect<false> | PushTokensSelect<true>;
+    'promotion-media': PromotionMediaSelect<false> | PromotionMediaSelect<true>;
+    'push-tokens': PushTokensSelect<false> | PushTokensSelect<true>;
     reactions: ReactionsSelect<false> | ReactionsSelect<true>;
     sessions: SessionsSelect<false> | SessionsSelect<true>;
-    "shop-analytics": ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
+    'shop-analytics': ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
-    "ticket-purchase-log":
-      | TicketPurchaseLogSelect<false>
-      | TicketPurchaseLogSelect<true>;
+    'ticket-purchase-log': TicketPurchaseLogSelect<false> | TicketPurchaseLogSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
-    "witness-reports": WitnessReportsSelect<false> | WitnessReportsSelect<true>;
-    "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>;
-    "payload-jobs": PayloadJobsSelect<false> | PayloadJobsSelect<true>;
-    "payload-locked-documents":
-      | PayloadLockedDocumentsSelect<false>
-      | PayloadLockedDocumentsSelect<true>;
-    "payload-preferences":
-      | PayloadPreferencesSelect<false>
-      | PayloadPreferencesSelect<true>;
-    "payload-migrations":
-      | PayloadMigrationsSelect<false>
-      | PayloadMigrationsSelect<true>;
+    'witness-reports': WitnessReportsSelect<false> | WitnessReportsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
+    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
+    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: string;
   };
   fallbackLocale: null;
   globals: {
-    "news-category": NewsCategory;
-    "payload-jobs-stats": PayloadJobsStat;
+    'news-category': NewsCategory;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
-    "news-category": NewsCategorySelect<false> | NewsCategorySelect<true>;
-    "payload-jobs-stats":
-      | PayloadJobsStatsSelect<false>
-      | PayloadJobsStatsSelect<true>;
+    'news-category': NewsCategorySelect<false> | NewsCategorySelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -181,9 +167,14 @@ export interface Config {
   jobs: {
     tasks: {
       sendScheduledNotification: TaskSendScheduledNotification;
+      sendCommentLikeNotification: TaskSendCommentLikeNotification;
+      sendModerationDigest: TaskSendModerationDigest;
       checkPushReceipts: TaskCheckPushReceipts;
       processLottery: TaskProcessLottery;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
+      generateVideoThumbnail: TaskGenerateVideoThumbnail;
+      deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
+      cleanupAuditLogs: TaskCleanupAuditLogs;
       inline: {
         input: unknown;
         output: unknown;
@@ -225,7 +216,7 @@ export interface InstagramEmbedBlock {
   caption?: string | null;
   id?: string | null;
   blockName?: string | null;
-  blockType: "instagramEmbed";
+  blockType: 'instagramEmbed';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -242,7 +233,7 @@ export interface YouTubeEmbedBlock {
   caption?: string | null;
   id?: string | null;
   blockName?: string | null;
-  blockType: "youtubeEmbed";
+  blockType: 'youtubeEmbed';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -255,7 +246,7 @@ export interface TwitterPostBlock {
   tweetId: string;
   id?: string | null;
   blockName?: string | null;
-  blockType: "twitterEmbed";
+  blockType: 'twitterEmbed';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -274,11 +265,11 @@ export interface Account {
   scope?: string | null;
   expiresAt?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -290,16 +281,16 @@ export interface Account {
  */
 export interface Admin {
   id: string;
-  role: "super-admin" | "content-manager" | "editor" | "viewer" | "partner";
+  role: 'super-admin' | 'content-manager' | 'editor' | 'viewer' | 'partner';
   partner?: (string | null) | Partner;
   fullName: string;
   image?: (string | null) | Media;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -319,7 +310,7 @@ export interface Admin {
       }[]
     | null;
   password?: string | null;
-  collection: "admins";
+  collection: 'admins';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -335,7 +326,7 @@ export interface Partner {
   slug: string;
   description?: string | null;
   websiteUrl: string;
-  status?: ("prospective" | "active" | "inactive") | null;
+  status?: ('prospective' | 'active' | 'inactive') | null;
   contractSigned?: boolean | null;
   inShopTab?: boolean | null;
   /**
@@ -346,17 +337,7 @@ export interface Partner {
    * Auto-calculated popularity score based on views and clicks for the shop tab.
    */
   popularityScore?: number | null;
-  category?:
-    | (
-        | "books"
-        | "ecommerce"
-        | "education"
-        | "food"
-        | "digital"
-        | "business"
-        | "other"
-      )
-    | null;
+  category?: ('books' | 'ecommerce' | 'education' | 'food' | 'digital' | 'business' | 'other') | null;
   logo?: (string | null) | Media;
   contactInfo?: {
     contactPerson?: string | null;
@@ -366,7 +347,7 @@ export interface Partner {
   /**
    * How will this partner send conversion data?
    */
-  integrationMethod: "manual" | "webhook" | "postback" | "csv";
+  integrationMethod: 'manual' | 'webhook' | 'postback' | 'csv';
   /**
    * Share this URL with technical partners
    */
@@ -380,11 +361,11 @@ export interface Partner {
    */
   apiKey?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -405,8 +386,8 @@ export interface Media {
         version: number;
         [k: string]: unknown;
       }[];
-      direction: ("ltr" | "rtl") | null;
-      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
       indent: number;
       version: number;
     };
@@ -414,11 +395,11 @@ export interface Media {
   } | null;
   blurhash?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -457,6 +438,14 @@ export interface Media {
       filesize?: number | null;
       filename?: string | null;
     };
+    videoThumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
   };
 }
 /**
@@ -465,23 +454,23 @@ export interface Media {
  */
 export interface Activity {
   id: string;
-  type?: ("point" | "badge" | "reward") | null;
+  type?: ('point' | 'badge' | 'reward') | null;
   point: number;
   reward?: string | null;
   action:
-    | "signUp"
-    | "watchLive"
-    | "read"
-    | "dailyLogin"
-    | "share"
-    | "connectBrandAd"
-    | "referral"
-    | "ticketPurchase"
-    | "lottery"
-    | "surveyTask"
-    | "musicListeningTime"
-    | "partnerContentTask"
-    | "pointReversal";
+    | 'signUp'
+    | 'watchLive'
+    | 'read'
+    | 'dailyLogin'
+    | 'share'
+    | 'connectBrandAd'
+    | 'referral'
+    | 'ticketPurchase'
+    | 'lottery'
+    | 'surveyTask'
+    | 'musicListeningTime'
+    | 'partnerContentTask'
+    | 'pointReversal';
   description?: string | null;
   user: string | User;
   news?: (string | null) | News;
@@ -495,11 +484,11 @@ export interface Activity {
     | boolean
     | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -548,12 +537,22 @@ export interface User {
     | number
     | boolean
     | null;
+  blockedUsers?: (string | User)[] | null;
+  reportedComments?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -573,7 +572,7 @@ export interface News {
   /**
    * 💡 Article or Video
    */
-  type?: ("article" | "video") | null;
+  type?: ('article' | 'video') | null;
   /**
    * 💡 Check if video is live
    */
@@ -602,8 +601,8 @@ export interface News {
         version: number;
         [k: string]: unknown;
       }[];
-      direction: ("ltr" | "rtl") | null;
-      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
       indent: number;
       version: number;
     };
@@ -637,15 +636,15 @@ export interface News {
   likesCount?: number | null;
   dislikesCount?: number | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   createdAt: string;
-  _status?: ("draft" | "published") | null;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -662,23 +661,13 @@ export interface Category {
   description?: string | null;
   image?: (string | null) | Media;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  parent?: (string | null) | Category;
-  breadcrumbs?:
-    | {
-        doc?: (string | null) | Category;
-        url?: string | null;
-        label?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  pathname?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -693,16 +682,24 @@ export interface Comment {
   news: string | News;
   parent?: (string | null) | Comment;
   replyingTo?: (string | null) | Comment;
+  /**
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
+   */
   likes?: (string | User)[] | null;
+  /**
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
+   */
   dislikes?: (string | User)[] | null;
+  likesCount?: number | null;
+  dislikesCount?: number | null;
   replies?: (string | Comment)[] | null;
   totalReplies?: number | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -714,42 +711,42 @@ export interface Comment {
  */
 export interface ContentReport {
   id: string;
-  reportType: "comment" | "news";
   reason:
-    | "spam"
-    | "harassment"
-    | "hate-speech"
-    | "misinformation"
-    | "personal-info"
-    | "inappropriate"
-    | "off-topic"
-    | "trolling"
-    | "illegal"
-    | "other";
+    | 'spam'
+    | 'harassment'
+    | 'hate-speech'
+    | 'misinformation'
+    | 'personal-info'
+    | 'inappropriate'
+    | 'off-topic'
+    | 'trolling'
+    | 'illegal'
+    | 'other';
   additionalDetails?: string | null;
-  reportedItem:
-    | {
-        relationTo: "comments";
+  /**
+   * The reported content. Optional — not set for user-level actions (e.g. blocking).
+   */
+  reportedItem?:
+    | ({
+        relationTo: 'comments';
         value: string | Comment;
-      }
-    | {
-        relationTo: "news";
+      } | null)
+    | ({
+        relationTo: 'news';
         value: string | News;
-      };
+      } | null);
   reportedBy: string | User;
-  status?: ("pending" | "reviewing" | "resolved" | "dismissed") | null;
+  status?: ('pending' | 'reviewing' | 'resolved' | 'dismissed') | null;
   moderatorNotes?: string | null;
-  resolution?:
-    | ("noAction" | "warning" | "removed" | "suspended" | "banned")
-    | null;
+  resolution?: ('noAction' | 'warning' | 'removed' | 'suspended' | 'banned') | null;
   resolvedBy?: (string | null) | Admin;
   resolvedAt?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -763,15 +760,15 @@ export interface Feedback {
   id: string;
   name: string;
   email: string;
-  type: "general" | "bug" | "feature" | "advertisement" | "other";
+  type: 'general' | 'bug' | 'feature' | 'advertisement' | 'other';
   message: string;
   rating: number;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -794,11 +791,11 @@ export interface IdentityVerification {
     back: string | Media;
   };
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -821,11 +818,11 @@ export interface Lottery {
   ticketPrice: number;
   winners?: (string | User)[] | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -842,11 +839,11 @@ export interface LotteryTicket {
   count: number;
   boostLuck: number;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -860,16 +857,52 @@ export interface LotteryWinner {
   id: string;
   lottery: string | Lottery;
   user: string | User;
-  prizeTier: "HIGH" | "MID" | "LOW" | "NONE";
+  prizeTier: 'HIGH' | 'MID' | 'LOW' | 'NONE';
   prize?: string | null;
   claimed?: boolean | null;
   claimedAt?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-analytics".
+ */
+export interface NewsAnalytic {
+  id: string;
+  article: string | News;
+  event: 'impression' | 'view' | 'read' | 'like' | 'dislike' | 'share' | 'comment';
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
+  /**
+   * Event-specific data: position, screen, timeSpent, scrollDepth, shareMethod
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  timestamp: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -895,7 +928,15 @@ export interface NotificationDelivery {
    * The Expo push token used for this delivery
    */
   pushToken: string;
-  status: "pending" | "delivered" | "failed";
+  /**
+   * The push-token record for matching open events
+   */
+  deviceToken?: (string | null) | PushToken;
+  /**
+   * When the user opened this notification
+   */
+  openedAt?: string | null;
+  status: 'pending' | 'delivered' | 'opened' | 'failed';
   /**
    * Error message if delivery failed
    */
@@ -909,11 +950,11 @@ export interface NotificationDelivery {
    */
   deliveredAt?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -936,7 +977,7 @@ export interface Notification {
   /**
    * Notification category
    */
-  type?: ("breaking_news" | "news" | "promo" | "misc") | null;
+  type?: ('breaking_news' | 'news' | 'comment' | 'promo' | 'misc') | null;
   /**
    * Additional data to send with the notification
    */
@@ -952,7 +993,7 @@ export interface Notification {
   /**
    * Choose when to deliver this notification
    */
-  deliveryAction?: ("send-now" | "schedule") | null;
+  deliveryAction?: ('send-now' | 'schedule') | null;
   /**
    * When to send this notification (your local time)
    */
@@ -960,11 +1001,11 @@ export interface Notification {
   /**
    * Target audience type
    */
-  targetType?: ("all" | "segment" | "specific") | null;
+  targetType?: ('all' | 'segment' | 'specific') | null;
   /**
    * User segment to target
    */
-  segment?: ("active-users" | "inactive-users" | "new-users") | null;
+  segment?: ('active-users' | 'inactive-users' | 'new-users') | null;
   /**
    * Specific users to target
    */
@@ -972,11 +1013,11 @@ export interface Notification {
   /**
    * Device types to target
    */
-  deviceTypes?: ("all" | "ios" | "android")[] | null;
+  deviceTypes?: ('all' | 'ios' | 'android')[] | null;
   /**
    * Notification priority
    */
-  priority?: ("default" | "high" | "normal") | null;
+  priority?: ('default' | 'high' | 'normal') | null;
   /**
    * Play sound when notification is received
    */
@@ -1004,14 +1045,61 @@ export interface Notification {
   createdAt: string;
   updatedAt: string;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  _status?: ("draft" | "published") | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-tokens".
+ */
+export interface PushToken {
+  id: string;
+  /**
+   * The unique token for the push notification service.
+   */
+  token: string;
+  /**
+   * The user associated with the push token.
+   */
+  user: string | User;
+  deviceType?: ('ios' | 'android' | 'web') | null;
+  /**
+   * Name of the device (e.g., iPhone 13, Pixel 6)
+   */
+  deviceName?: string | null;
+  /**
+   * Model of the device
+   */
+  deviceModel?: string | null;
+  /**
+   * Version of the operating system
+   */
+  osVersion?: string | null;
+  /**
+   * Version of the app when token was registered
+   */
+  appVersion?: string | null;
+  status: 'active' | 'inactive';
+  /**
+   * Last time a notification was successfully sent to this token
+   */
+  lastUsed?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Per-user notification inbox. One record per user per campaign. Read by the mobile app to display notification history.
@@ -1056,17 +1144,17 @@ export interface NotificationInbox {
   /**
    * Notification category
    */
-  type?: ("breaking_news" | "news" | "promo" | "misc") | null;
+  type?: ('breaking_news' | 'news' | 'comment' | 'promo' | 'misc') | null;
   /**
    * Number of times the user tapped this notification
    */
   clickCount?: number | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1092,33 +1180,23 @@ export interface PartnerContent {
   /**
    * Content category. Banner Ad Size options in the Display Settings tab.
    */
-  type:
-    | "book"
-    | "app"
-    | "game"
-    | "survey"
-    | "video"
-    | "banner"
-    | "promo-media"
-    | "product"
-    | "custom"
-    | "";
+  type: 'book' | 'app' | 'game' | 'survey' | 'video' | 'banner' | 'promo-media' | 'product' | 'custom' | '';
   /**
    * Select the Google Ads standard size for this placement. Then upload your image at exactly those dimensions in the Content tab.
    */
   adSize?:
     | (
-        | "BANNER"
-        | "LARGE_BANNER"
-        | "FULL_BANNER"
-        | "LEADERBOARD"
-        | "INLINE_RECTANGLE"
-        | "MEDIUM_RECTANGLE"
-        | "LARGE_RECTANGLE"
-        | "HALF_PAGE"
-        | "WIDE_SKYSCRAPER"
-        | "BILLBOARD"
-        | "ANCHORED_ADAPTIVE"
+        | 'BANNER'
+        | 'LARGE_BANNER'
+        | 'FULL_BANNER'
+        | 'LEADERBOARD'
+        | 'INLINE_RECTANGLE'
+        | 'MEDIUM_RECTANGLE'
+        | 'LARGE_RECTANGLE'
+        | 'HALF_PAGE'
+        | 'WIDE_SKYSCRAPER'
+        | 'BILLBOARD'
+        | 'ANCHORED_ADAPTIVE'
       )
     | null;
   /**
@@ -1126,22 +1204,18 @@ export interface PartnerContent {
    */
   media?: (string | null) | Media;
   /**
-   * Promotion images and video URL — one video and at least three images
+   * Promotion images and video — one video and at least three images
    */
   items?:
     | {
         layout?: (PromoVideoSource | PromoImage)[] | null;
-        /**
-         * Auto-generated from video on save — do not edit manually
-         */
-        thumbnail?: (string | null) | Media;
         id?: string | null;
       }[]
     | null;
   /**
    * Video source type
    */
-  videoType?: ("UPLOAD" | "YOUTUBE" | "EXTERNAL") | null;
+  videoType?: ('UPLOAD' | 'YOUTUBE' | 'EXTERNAL') | null;
   /**
    * Upload MP4 (recommended 1280x720, max 50MB)
    */
@@ -1185,25 +1259,25 @@ export interface PartnerContent {
    */
   placements?:
     | (
-        | "homepage-trending-books"
-        | "homepage-ads-banner"
-        | "discover-tab"
-        | "points-mall-books"
-        | "points-mall-apps"
-        | "connect-brand-video"
-        | "connect-brands-tab"
-        | "lucky-app-wall"
-        | "shop-tab"
-        | "news-click-ads"
-        | "banner-news-post"
-        | "news-post"
-        | "product-display"
-        | "push-notification"
-        | "email-campaign"
-        | "video-section"
+        | 'homepage-trending-books'
+        | 'homepage-ads-banner'
+        | 'discover-tab'
+        | 'points-mall-books'
+        | 'points-mall-apps'
+        | 'connect-brand-video'
+        | 'connect-brands-tab'
+        | 'lucky-app-wall'
+        | 'shop-tab'
+        | 'news-click-ads'
+        | 'banner-news-post'
+        | 'news-post'
+        | 'product-display'
+        | 'push-notification'
+        | 'email-campaign'
+        | 'video-section'
       )[]
     | null;
-  status: "draft" | "active" | "paused" | "archived";
+  status: 'draft' | 'active' | 'paused' | 'archived';
   schedule?: {
     /**
      * When to start displaying this content
@@ -1223,11 +1297,11 @@ export interface PartnerContent {
    */
   displayNotes?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1241,15 +1315,20 @@ export interface PromoVideoSource {
   /**
    * Specify the video source
    */
-  videoSource: "upload" | "normal" | "youtube";
+  videoSource: 'upload' | 'normal' | 'youtube';
   /**
    * Upload an MP4 video file
    */
   video?: (string | null) | Media;
   url?: string | null;
+  /**
+   * Upload a custom thumbnail, or leave empty to auto-generate from video on save
+   */
+  thumbnail?: (string | null) | Media;
+  thumbnailSource?: string | null;
   id?: string | null;
   blockName?: string | null;
-  blockType: "promo-video-source";
+  blockType: 'promo-video-source';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1259,7 +1338,7 @@ export interface PromoImage {
   image: string | Media;
   id?: string | null;
   blockName?: string | null;
-  blockType: "promo-image";
+  blockType: 'promo-image';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1274,7 +1353,7 @@ export interface PartnerConversion {
    * Unique tracking ID for this click/conversion
    */
   clickId: string;
-  status: "clicked" | "converted" | "awarded" | "failed";
+  status: 'clicked' | 'converted' | 'awarded' | 'failed';
   /**
    * Points awarded to user upon conversion
    */
@@ -1305,11 +1384,11 @@ export interface PartnerConversion {
    */
   awardedAt?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1334,58 +1413,11 @@ export interface PromotionMedia {
       }[]
     | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "push-tokens".
- */
-export interface PushToken {
-  id: string;
-  /**
-   * The unique token for the push notification service.
-   */
-  token: string;
-  /**
-   * The user associated with the push token.
-   */
-  user: string | User;
-  deviceType?: ("ios" | "android" | "web") | null;
-  /**
-   * Name of the device (e.g., iPhone 13, Pixel 6)
-   */
-  deviceName?: string | null;
-  /**
-   * Model of the device
-   */
-  deviceModel?: string | null;
-  /**
-   * Version of the operating system
-   */
-  osVersion?: string | null;
-  /**
-   * Version of the app when token was registered
-   */
-  appVersion?: string | null;
-  status: "active" | "inactive";
-  /**
-   * Last time a notification was successfully sent to this token
-   */
-  lastUsed?: string | null;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1398,14 +1430,26 @@ export interface PushToken {
 export interface Reaction {
   id: string;
   user: string | User;
-  news: string | News;
-  type: "like" | "dislike" | "none";
+  /**
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all rows have `target` set.
+   */
+  news?: (string | null) | News;
+  target:
+    | {
+        relationTo: 'news';
+        value: string | News;
+      }
+    | {
+        relationTo: 'comments';
+        value: string | Comment;
+      };
+  type: 'like' | 'dislike' | 'none';
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1423,11 +1467,11 @@ export interface Session {
   token?: string | null;
   userAgent?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1440,17 +1484,17 @@ export interface Session {
 export interface ShopAnalytic {
   id: string;
   store: string | Partner;
-  type: "view" | "click";
+  type: 'view' | 'click';
   userId?: string | null;
-  device?: ("mobile" | "tablet" | "desktop" | "unknown") | null;
-  platform?: ("android" | "ios" | "web") | null;
+  device?: ('mobile' | 'tablet' | 'desktop' | 'unknown') | null;
+  platform?: ('android' | 'ios' | 'web') | null;
   timestamp: string;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1468,11 +1512,11 @@ export interface Survey {
   users?: (string | User)[] | null;
   points?: number | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1488,11 +1532,11 @@ export interface TicketPurchaseLog {
   lottery: string | Lottery;
   ticketQuantity: number;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1508,11 +1552,11 @@ export interface Verification {
   value?: string | null;
   expiresAt?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
@@ -1527,16 +1571,62 @@ export interface WitnessReport {
   name: string;
   title: string;
   description?: string | null;
-  reportType?: ("shortMessage" | "video" | "picture") | null;
+  reportType?: ('shortMessage' | 'video' | 'picture') | null;
   files: (string | Media)[];
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: string;
+  collection: string;
+  documentId: string;
+  operation: 'create' | 'read' | 'update' | 'delete' | 'login' | 'logout';
+  performedBy?:
+    | ({
+        relationTo: 'admins';
+        value: string | Admin;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: string | User;
+      } | null);
+  /**
+   * Changed fields only — { field: { from, to } }. Present on updates when originalDoc is available.
+   */
+  diff?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Full sanitized document. Present on create, and on update when originalDoc is unavailable (e.g. bulk ops).
+   */
+  snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  ip?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1610,11 +1700,16 @@ export interface PayloadJob {
         executedAt: string;
         completedAt: string;
         taskSlug:
-          | "inline"
-          | "sendScheduledNotification"
-          | "checkPushReceipts"
-          | "processLottery"
-          | "cleanupAnonymousUsers";
+          | 'inline'
+          | 'sendScheduledNotification'
+          | 'sendCommentLikeNotification'
+          | 'sendModerationDigest'
+          | 'checkPushReceipts'
+          | 'processLottery'
+          | 'cleanupAnonymousUsers'
+          | 'generateVideoThumbnail'
+          | 'deleteVideoThumbTemp'
+          | 'cleanupAuditLogs';
         taskID: string;
         input?:
           | {
@@ -1634,7 +1729,7 @@ export interface PayloadJob {
           | number
           | boolean
           | null;
-        state: "failed" | "succeeded";
+        state: 'failed' | 'succeeded';
         error?:
           | {
               [k: string]: unknown;
@@ -1649,11 +1744,16 @@ export interface PayloadJob {
     | null;
   taskSlug?:
     | (
-        | "inline"
-        | "sendScheduledNotification"
-        | "checkPushReceipts"
-        | "processLottery"
-        | "cleanupAnonymousUsers"
+        | 'inline'
+        | 'sendScheduledNotification'
+        | 'sendCommentLikeNotification'
+        | 'sendModerationDigest'
+        | 'checkPushReceipts'
+        | 'processLottery'
+        | 'cleanupAnonymousUsers'
+        | 'generateVideoThumbnail'
+        | 'deleteVideoThumbTemp'
+        | 'cleanupAuditLogs'
       )
     | null;
   queue?: string | null;
@@ -1679,124 +1779,132 @@ export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: "accounts";
+        relationTo: 'accounts';
         value: string | Account;
       } | null)
     | ({
-        relationTo: "activities";
+        relationTo: 'activities';
         value: string | Activity;
       } | null)
     | ({
-        relationTo: "admins";
+        relationTo: 'admins';
         value: string | Admin;
       } | null)
     | ({
-        relationTo: "categories";
+        relationTo: 'categories';
         value: string | Category;
       } | null)
     | ({
-        relationTo: "comments";
+        relationTo: 'comments';
         value: string | Comment;
       } | null)
     | ({
-        relationTo: "contentReports";
+        relationTo: 'contentReports';
         value: string | ContentReport;
       } | null)
     | ({
-        relationTo: "feedback";
+        relationTo: 'feedback';
         value: string | Feedback;
       } | null)
     | ({
-        relationTo: "identity-verification";
+        relationTo: 'identity-verification';
         value: string | IdentityVerification;
       } | null)
     | ({
-        relationTo: "lottery";
+        relationTo: 'lottery';
         value: string | Lottery;
       } | null)
     | ({
-        relationTo: "lottery-tickets";
+        relationTo: 'lottery-tickets';
         value: string | LotteryTicket;
       } | null)
     | ({
-        relationTo: "lottery-winners";
+        relationTo: 'lottery-winners';
         value: string | LotteryWinner;
       } | null)
     | ({
-        relationTo: "media";
+        relationTo: 'media';
         value: string | Media;
       } | null)
     | ({
-        relationTo: "news";
+        relationTo: 'news';
         value: string | News;
       } | null)
     | ({
-        relationTo: "notification-deliveries";
+        relationTo: 'news-analytics';
+        value: string | NewsAnalytic;
+      } | null)
+    | ({
+        relationTo: 'notification-deliveries';
         value: string | NotificationDelivery;
       } | null)
     | ({
-        relationTo: "notification-inbox";
+        relationTo: 'notification-inbox';
         value: string | NotificationInbox;
       } | null)
     | ({
-        relationTo: "notifications";
+        relationTo: 'notifications';
         value: string | Notification;
       } | null)
     | ({
-        relationTo: "partner-content";
+        relationTo: 'partner-content';
         value: string | PartnerContent;
       } | null)
     | ({
-        relationTo: "partner-conversions";
+        relationTo: 'partner-conversions';
         value: string | PartnerConversion;
       } | null)
     | ({
-        relationTo: "partners";
+        relationTo: 'partners';
         value: string | Partner;
       } | null)
     | ({
-        relationTo: "promotion-media";
+        relationTo: 'promotion-media';
         value: string | PromotionMedia;
       } | null)
     | ({
-        relationTo: "push-tokens";
+        relationTo: 'push-tokens';
         value: string | PushToken;
       } | null)
     | ({
-        relationTo: "reactions";
+        relationTo: 'reactions';
         value: string | Reaction;
       } | null)
     | ({
-        relationTo: "sessions";
+        relationTo: 'sessions';
         value: string | Session;
       } | null)
     | ({
-        relationTo: "shop-analytics";
+        relationTo: 'shop-analytics';
         value: string | ShopAnalytic;
       } | null)
     | ({
-        relationTo: "survey";
+        relationTo: 'survey';
         value: string | Survey;
       } | null)
     | ({
-        relationTo: "ticket-purchase-log";
+        relationTo: 'ticket-purchase-log';
         value: string | TicketPurchaseLog;
       } | null)
     | ({
-        relationTo: "users";
+        relationTo: 'users';
         value: string | User;
       } | null)
     | ({
-        relationTo: "verifications";
+        relationTo: 'verifications';
         value: string | Verification;
       } | null)
     | ({
-        relationTo: "witness-reports";
+        relationTo: 'witness-reports';
         value: string | WitnessReport;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: string | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   };
   updatedAt: string;
@@ -1809,7 +1917,7 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: string;
   user: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   };
   key?: string | null;
@@ -1914,16 +2022,6 @@ export interface CategoriesSelect<T extends boolean = true> {
   image?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  parent?: T;
-  breadcrumbs?:
-    | T
-    | {
-        doc?: T;
-        url?: T;
-        label?: T;
-        id?: T;
-      };
-  pathname?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1939,6 +2037,8 @@ export interface CommentsSelect<T extends boolean = true> {
   replyingTo?: T;
   likes?: T;
   dislikes?: T;
+  likesCount?: T;
+  dislikesCount?: T;
   replies?: T;
   totalReplies?: T;
   createdBy?: T;
@@ -1951,7 +2051,6 @@ export interface CommentsSelect<T extends boolean = true> {
  * via the `definition` "contentReports_select".
  */
 export interface ContentReportsSelect<T extends boolean = true> {
-  reportType?: T;
   reason?: T;
   additionalDetails?: T;
   reportedItem?: T;
@@ -2107,6 +2206,16 @@ export interface MediaSelect<T extends boolean = true> {
               filesize?: T;
               filename?: T;
             };
+        videoThumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
       };
 }
 /**
@@ -2149,12 +2258,32 @@ export interface NewsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-analytics_select".
+ */
+export interface NewsAnalyticsSelect<T extends boolean = true> {
+  article?: T;
+  event?: T;
+  userId?: T;
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  metadata?: T;
+  timestamp?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-deliveries_select".
  */
 export interface NotificationDeliveriesSelect<T extends boolean = true> {
   notification?: T;
   user?: T;
   pushToken?: T;
+  deviceToken?: T;
+  openedAt?: T;
   status?: T;
   errorMessage?: T;
   expoTicketId?: T;
@@ -2227,10 +2356,9 @@ export interface PartnerContentSelect<T extends boolean = true> {
         layout?:
           | T
           | {
-              "promo-video-source"?: T | PromoVideoSourceSelect<T>;
-              "promo-image"?: T | PromoImageSelect<T>;
+              'promo-video-source'?: T | PromoVideoSourceSelect<T>;
+              'promo-image'?: T | PromoImageSelect<T>;
             };
-        thumbnail?: T;
         id?: T;
       };
   videoType?: T;
@@ -2270,6 +2398,8 @@ export interface PromoVideoSourceSelect<T extends boolean = true> {
   videoSource?: T;
   video?: T;
   url?: T;
+  thumbnail?: T;
+  thumbnailSource?: T;
   id?: T;
   blockName?: T;
 }
@@ -2350,8 +2480,8 @@ export interface PromotionMediaSelect<T extends boolean = true> {
         layout?:
           | T
           | {
-              "promo-video-source"?: T | PromoVideoSourceSelect<T>;
-              "promo-image"?: T | PromoImageSelect<T>;
+              'promo-video-source'?: T | PromoVideoSourceSelect<T>;
+              'promo-image'?: T | PromoImageSelect<T>;
             };
         id?: T;
       };
@@ -2386,6 +2516,7 @@ export interface PushTokensSelect<T extends boolean = true> {
 export interface ReactionsSelect<T extends boolean = true> {
   user?: T;
   news?: T;
+  target?: T;
   type?: T;
   createdBy?: T;
   lastModifiedBy?: T;
@@ -2469,6 +2600,8 @@ export interface UsersSelect<T extends boolean = true> {
   notificationPreferences?: T;
   lastActive?: T;
   customAttributes?: T;
+  blockedUsers?: T;
+  reportedComments?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -2499,6 +2632,21 @@ export interface WitnessReportsSelect<T extends boolean = true> {
   files?: T;
   createdBy?: T;
   lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  collection?: T;
+  documentId?: T;
+  operation?: T;
+  performedBy?: T;
+  diff?: T;
+  snapshot?: T;
+  ip?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2587,11 +2735,11 @@ export interface NewsCategory {
       }[]
     | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt?: string | null;
@@ -2650,7 +2798,7 @@ export interface CollectionsWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "full";
+  width: 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2663,6 +2811,26 @@ export interface TaskSendScheduledNotification {
   output: {
     sent: boolean;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendCommentLikeNotification".
+ */
+export interface TaskSendCommentLikeNotification {
+  input: {
+    authorId: string;
+  };
+  output: {
+    sent: boolean;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendModerationDigest".
+ */
+export interface TaskSendModerationDigest {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2699,13 +2867,54 @@ export interface TaskCleanupAnonymousUsers {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskGenerateVideoThumbnail".
+ */
+export interface TaskGenerateVideoThumbnail {
+  input: {
+    docId: string;
+    itemIndex: number;
+    videoUrl: string;
+    isHLS: boolean;
+    oldThumbnailId?: string | null;
+    currentSource: string;
+  };
+  output: {
+    success?: boolean | null;
+    thumbnailId?: string | null;
+    reason?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskDeleteVideoThumbTemp".
+ */
+export interface TaskDeleteVideoThumbTemp {
+  input: {
+    mediaId: string;
+  };
+  output: {
+    deleted?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupAuditLogs".
+ */
+export interface TaskCleanupAuditLogs {
+  input?: unknown;
+  output: {
+    deletedCount?: number | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "AdsBlock".
  */
 export interface AdsBlock {
-  type: "BANNER" | "FULL_BANNER" | "LARGE_BANNER" | "MEDIUM_RECTANGLE";
+  type: 'BANNER' | 'FULL_BANNER' | 'LARGE_BANNER' | 'MEDIUM_RECTANGLE';
   id?: string | null;
   blockName?: string | null;
-  blockType: "ads";
+  blockType: 'ads';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2718,7 +2927,7 @@ export interface ReadAlsoBlock {
   news: string | News;
   id?: string | null;
   blockName?: string | null;
-  blockType: "readAlso";
+  blockType: 'readAlso';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2728,6 +2937,7 @@ export interface Auth {
   [k: string]: unknown;
 }
 
-declare module "payload" {
+
+declare module 'payload' {
   export interface GeneratedTypes extends Config {}
 }

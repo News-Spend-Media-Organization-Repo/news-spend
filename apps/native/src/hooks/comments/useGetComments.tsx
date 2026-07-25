@@ -4,7 +4,7 @@ import { orpc } from "#/lib/orpc";
 
 export default function useGetComments(
   newsId: string,
-  isRepliesScreen: boolean
+  _isRepliesScreen: boolean
 ) {
   return useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
@@ -14,8 +14,7 @@ export default function useGetComments(
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
-      staleTime: Infinity,
-      gcTime: 0,
+      staleTime: 0,
       enabled: !!newsId,
     })
   );

@@ -11,6 +11,9 @@ const PromotionMedia: CollectionConfig = {
   access: {
     read: () => true,
   },
+  admin: {
+    hidden: () => true,
+  },
   fields: [
     {
       name: "title",

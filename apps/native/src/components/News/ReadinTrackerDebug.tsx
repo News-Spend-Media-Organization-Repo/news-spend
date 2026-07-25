@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet } from "react-native";
-import { Text, XStack, YStack } from "tamagui";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 const __DEV_TRACKER__ = __DEV__;
 
@@ -20,14 +19,14 @@ type RowProps = {
 };
 
 const Row = ({ label, value, valueColor = "#e2e2e2" }: RowProps) => (
-  <XStack gap="$3" jc="space-between">
-    <Text color="#888" fontSize={11}>
+  <View className="flex-row justify-between gap-3">
+    <Text className="text-[11px]" style={{ color: "#888" }}>
       {label}
     </Text>
-    <Text color={valueColor} fontSize={11} fontWeight="600">
+    <Text className="font-semibold text-[11px]" style={{ color: valueColor }}>
       {value}
     </Text>
-  </XStack>
+  </View>
 );
 
 export function ReadingTrackerDebug({
@@ -49,9 +48,8 @@ export function ReadingTrackerDebug({
       tension: 80,
       friction: 12,
     }).start();
-  }, [visible]);
+  }, [visible, slideAnim]);
 
-  // Pulse the indicator dot when tracking is active
   useEffect(() => {
     if (!isTracking) {
       pulseAnim.setValue(1);
@@ -73,7 +71,7 @@ export function ReadingTrackerDebug({
     );
     loop.start();
     return () => loop.stop();
-  }, [isTracking]);
+  }, [isTracking, pulseAnim.setValue, pulseAnim]);
 
   if (!__DEV_TRACKER__) {
     return null;
@@ -88,14 +86,13 @@ export function ReadingTrackerDebug({
       ? "#4ade80"
       : "#facc15";
 
-  const panelTranslateY = slideAnim.interpolate({
+  const _panelTranslateY = slideAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [200, 0],
   });
 
   return (
     <>
-      {/* Toggle button */}
       <Pressable
         onPress={() => setVisible((v) => !v)}
         style={styles.toggleButton}
@@ -106,23 +103,17 @@ export function ReadingTrackerDebug({
             { backgroundColor: statusColor, opacity: pulseAnim },
           ]}
         />
-        <Text color="#e2e2e2" fontSize={10} ml={6}>
+        <Text className="ml-1.5 text-[10px]" style={{ color: "#e2e2e2" }}>
           {visible ? "HIDE" : "DBG"}
         </Text>
       </Pressable>
 
-      {/* Debug panel */}
       {visible ? (
         <Animated.View pointerEvents="none" style={[styles.panel]}>
-          <YStack gap="$1.5">
-            {/* Progress bar */}
-            <XStack
-              bg="rgba(255,255,255,0.08)"
-              borderRadius={3}
-              h={4}
-              mb="$1"
-              overflow="hidden"
-              w="100%"
+          <View className="gap-1.5">
+            <View
+              className="mb-1 h-1 w-full flex-row overflow-hidden rounded-[3px]"
+              style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
             >
               <Animated.View
                 style={[
@@ -133,7 +124,7 @@ export function ReadingTrackerDebug({
                   },
                 ]}
               />
-            </XStack>
+            </View>
 
             <Row label="elapsed" value={`${elapsedSeconds}s`} />
             <Row label="required" value={`${minReadingSeconds}s`} />
@@ -143,7 +134,10 @@ export function ReadingTrackerDebug({
               <Row label="word count" value={String(wordCount)} />
             )}
 
-            <XStack bg="rgba(255,255,255,0.1)" h={1} my="$1" />
+            <View
+              className="my-1 h-px w-full flex-row"
+              style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+            />
 
             <Row
               label="scroll ≥85%"
@@ -160,7 +154,7 @@ export function ReadingTrackerDebug({
               value={isTracking ? "● active" : "○ paused"}
               valueColor={isTracking ? "#4ade80" : "#facc15"}
             />
-          </YStack>
+          </View>
         </Animated.View>
       ) : null}
     </>
@@ -192,7 +186,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.1)",
     borderRadius: 10,
     borderWidth: 1,
-    // bottom: 130,
     paddingHorizontal: 14,
     paddingVertical: 12,
     position: "absolute",

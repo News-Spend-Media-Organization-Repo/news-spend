@@ -1,8 +1,7 @@
 import { useEffect } from "react";
-import {
-  TestIds,
-  useRewardedInterstitialAd,
-} from "react-native-google-mobile-ads";
+import { useRewardedInterstitialAd } from "react-native-google-mobile-ads";
+
+import { adUnits } from "#/lib/adUnits";
 
 type UseGoogleAdOptions = {
   onRewarded?: () => void;
@@ -25,7 +24,7 @@ export function useGoogleAd({
   onClosed,
 }: UseGoogleAdOptions = {}): UseGoogleAdReturn {
   const { isLoaded, isClosed, load, show, isEarnedReward } =
-    useRewardedInterstitialAd(TestIds.REWARDED_INTERSTITIAL);
+    useRewardedInterstitialAd(adUnits.rewardedInterstitial);
 
   useEffect(() => {
     load();

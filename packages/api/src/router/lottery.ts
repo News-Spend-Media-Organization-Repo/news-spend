@@ -1,5 +1,8 @@
 import logger from "@news-spend-media/logger";
+import { lottery_winners } from "@news-spend-media/payload/payload-generated-schema";
 import type { Media } from "@news-spend-media/payload/types";
+import { ORPCError } from "@orpc/client";
+import { and, eq, ne } from "@payloadcms/db-postgres/drizzle";
 import { subWeeks } from "date-fns";
 import z from "zod";
 import { zfd } from "zod-form-data";
@@ -9,6 +12,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "../index";
+import { addActivity } from "../shared/activity";
 
 // --- Schemas ---
 const LotteryCreateInput = z.object({
@@ -77,7 +81,7 @@ const current = publicProcedure.handler(async ({ context }) => {
   return result.docs[0] ?? null;
 });
 
-const create = publicProcedure
+const _create = publicProcedure
   .input(LotteryCreateInput)
   .handler(async ({ input, context }) =>
     context.payload.create({
@@ -97,37 +101,84 @@ const create = publicProcedure
   );
 
 const getReward = protectedProcedure.handler(async ({ context }) => {
-  const oneWeekAgo = subWeeks(new Date(), 1);
+  const _oneWeekAgo = subWeeks(new Date(), 1);
   const result = await context.payload.find({
     collection: "lottery-winners",
     depth: 0,
     where: {
       user: { equals: context.user.id },
       claimed: { not_equals: true },
-      createdAt: { greater_than_equal: oneWeekAgo },
+      // createdAt: { greater_than_equal: oneWeekAgo },
     },
   });
+
   return result.docs[0] ?? null;
 });
 
 const claimReward = protectedProcedure
   .input(z.object({ winnerId: z.string() }))
   .handler(async ({ input, context }) => {
-    const result = await context.payload.update({
+    const { payload, user } = context;
+
+    // Fetch winner to get prize info
+    const winner = await payload.findByID({
       collection: "lottery-winners",
-      depth: 0,
-      where: {
-        and: [
-          { id: { equals: input.winnerId } },
-          { user: { equals: context.user.id } },
-        ],
-      },
-      data: {
+      id: input.winnerId,
+      depth: 1,
+    });
+
+    const lotteryWinnerId =
+      typeof winner.user === "string" ? winner.user : winner.user.id;
+
+    if (!winner || lotteryWinnerId !== user.id) {
+      throw new ORPCError("NOT_FOUND", {
+        message: "Winner not found",
+      });
+    }
+
+    // Atomically mark as claimed only if it isn't already, so two
+    // concurrent/duplicate claim calls for the same winnerId can't both
+    // pass the check and double-award points (a plain read-then-write
+    // has a race window this closes at the DB level).
+    const claimedRows = await payload.db.drizzle
+      .update(lottery_winners)
+      .set({
         claimed: true,
         claimedAt: new Date().toISOString(),
-      },
-    });
-    return result.docs[0] ?? null;
+      })
+      .where(
+        and(
+          eq(lottery_winners.id, input.winnerId),
+          ne(lottery_winners.claimed, true)
+        )
+      )
+      .returning();
+
+    if (claimedRows.length === 0) {
+      throw new ORPCError("CONFLICT", {
+        message: "Reward already claimed",
+      });
+    }
+
+    const result = claimedRows[0];
+
+    // Add points for LOW tier
+    if (winner.prizeTier === "LOW" && winner.prize) {
+      const points = Number.parseInt(winner.prize, 10);
+      if (!Number.isNaN(points)) {
+        await addActivity(
+          {
+            type: "point",
+            point: points,
+            action: "lottery",
+            description: "Giveaway reward claimed",
+          },
+          context
+        );
+      }
+    }
+
+    return result;
   });
 
 const verifyIdentity = protectedNoGuestProcedure
@@ -205,7 +256,9 @@ const verifyIdentity = protectedNoGuestProcedure
       ]);
 
       if (!(files[0] && files[1])) {
-        throw new Error("File upload failed");
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "File upload failed",
+        });
       }
 
       const result = await payload.create({

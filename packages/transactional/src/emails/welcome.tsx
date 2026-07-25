@@ -2,7 +2,6 @@ import {
   Body,
   Container,
   Head,
-  Heading,
   Hr,
   Html,
   Img,
@@ -10,9 +9,7 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
-/** @jsxImportSource react */
-import * as React from "react";
+} from "react-email";
 
 type WelcomeEmailProps = {
   username: string;
@@ -21,195 +18,153 @@ type WelcomeEmailProps = {
 export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
   <Html>
     <Head />
-    <Preview>Welcome to News-Spend Media – Where Dreams Come to Life!</Preview>
+    <Preview>Welcome to Newsspend Media — Today is just the beginning.</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={logoSection}>
           <Img
-            alt="News Spend Logo"
-            src="https://newsspend.com/images/email-banner.jpg"
+            alt="News Spend Welcome Banner"
+            src="https://newsspend.com/images/Newspend-welcome-banner.jpg"
             style={logo}
           />
         </Section>
-        {/* <Heading style={h1}>
-          Welcome to News-Spend Media – Where Dreams Come to Life!
-        </Heading> */}
 
-        <Text style={text}>Dear {username},</Text>
+        <Text style={greeting}>Hi {username}</Text>
 
-        <Text style={text}>
-          I am Segun Obisesan, the Director of Newsspend Media. It's an absolute
-          pleasure to welcome you to our growing family. By joining Newsspend
-          Media, you've taken the first step on a journey where your dreams can
-          truly come to life.
+        <Text style={title}>🌟 Welcome to Newsspend Media</Text>
+
+        <Text style={intro}>
+          Today isn't just a welcome. <br />
+          It's the beginning of something bigger.
+        </Text>
+
+        <Text style={description}>
+          You've just stepped into a platform designed to transform your
+          everyday digital life into real-world progress, rewards, and
+          opportunities — a platform built to celebrate ambition, reward
+          perseverance, and change lives.
         </Text>
 
         <Section style={section}>
-          <Heading style={h2}>Our Vision</Heading>
-          <Text style={text}>
-            Newsspend Media was founded with a bold purpose: to make your
-            engagement with media not only entertaining but also life-changing.
-            Imagine earning points for activities you already love—watching live
-            streams, sharing content, shopping, and completing surveys—and using
-            those points to achieve what you've always wished for.
+          <Text style={sectionTitle}>🎯 Our Vision</Text>
+          <Text style={sectionSubtitle}>
+            Turning Engagement into Empowerment
           </Text>
-          <Text style={text}>
-            This is your moment. This is where ordinary actions meet
-            extraordinary possibilities.
+          <Text style={description}>We believe something powerful:</Text>
+          <Text style={description}>
+            The time you spend online should move your life forward.
+          </Text>
+          <Text style={description}>
+            With Newsspend, the things you already do every day become valuable:
+          </Text>
+          <Text style={list}>📱 Watch content</Text>
+          <Text style={list}>📰 Read news</Text>
+          <Text style={list}>🛍️ Shop</Text>
+          <Text style={list}>📊 Complete surveys</Text>
+          <Text style={list}>
+            ➡️ And earn rewards that bring your dreams closer
           </Text>
         </Section>
 
         <Section style={section}>
-          <Heading style={h2}>Your Path to Redefined Possibilities</Heading>
-          <Text style={text}>
-            Here at Newsspend, every engagement brings you closer to fulfilling
-            your dreams. Let us show you how to start your journey:
+          <Text style={sectionTitle}>🚀 How It Works</Text>
+
+          <Text style={stepTitle}>📍 1. Begin Your Journey</Text>
+          <ul style={steps}>
+            <li style={stepItem}>You're already set up and ready</li>
+            <li style={stepItem}>Your goals are in place</li>
+            <li style={stepItem}>Every action from now on moves you forward</li>
+          </ul>
+
+          <Text style={stepTitle}>⚡ 2. Earn Points Effortlessly</Text>
+          <Text style={description}>
+            Do what you already love — and get rewarded:
+          </Text>
+          <ul style={checklist}>
+            <li>✔️ Read meaningful content</li>
+            <li>✔️ Watch &amp; share live streams</li>
+            <li>✔️ Engage with brands and content</li>
+            <li>✔️ Complete simple tasks &amp; surveys</li>
+          </ul>
+          <Text style={note}>
+            💡 Every interaction = Progress toward your dream
           </Text>
 
-          <Section
-            style={{
-              padding: "0 15px",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: "16px",
-                lineHeight: "1.5",
-                color: "#333",
-                fontWeight: "bold",
-              }}
-            >
-              1. Activate your Dream
-            </Text>
-            <Text
-              style={{
-                fontSize: "14px",
-                lineHeight: "1.5",
-                color: "#333",
-              }}
-            >
-              Log into the App and unlock a world of endless opportunities
-              tailored just for you.
-            </Text>
+          <Text style={stepTitle}>
+            💎 3. Turn Points into Real-Life Rewards
+          </Text>
+          <Text style={description}>This is where it becomes real:</Text>
+          <Text style={rewardTitle}>🎯 Dream Fulfillment</Text>
+          <Text style={description}>
+            Track your progress toward goals that matter to you — scholarships,
+            sponsored experiences, shopping support, skill development, and
+            more.
+          </Text>
+          <Text style={rewardTitle}>🎁 Enter the Giveaway</Text>
+          <Text style={description}>
+            Use your Dream Points to enter our bi-weekly Giveaway for a chance
+            to win:
+          </Text>
+          <ul style={rewardList}>
+            <li>Dream Points</li>
+            <li>Airtime and data bundles</li>
+            <li>Promotional merchandise and electronics</li>
+          </ul>
+          <Text style={description}>
+            See the in-app Giveaway Official Rules for full details.
+          </Text>
 
-            <Text
-              style={{
-                fontSize: "16px",
-                lineHeight: "1.5",
-                color: "#333",
-                fontWeight: "bold",
-              }}
-            >
-              2. Earn Points Every Day
-            </Text>
-            <Text
-              style={{
-                fontSize: "14px",
-                lineHeight: "1.5",
-                color: "#333",
-              }}
-            >
-              Discover exciting ways to build your dream by engaging with:
-            </Text>
-            <ul
-              style={{
-                paddingLeft: "20px",
-                fontSize: "14px",
-                lineHeight: "1.5",
-                color: "#333",
-              }}
-            >
-              <li>Reading news that matters</li>
-              <li>Watching and sharing captivating live streams</li>
-              <li>Connecting with content that inspires</li>
-              <li>Complete surveys</li>
-            </ul>
-
-            <Text
-              style={{
-                fontSize: "16px",
-                lineHeight: "1.5",
-                color: "#333",
-                fontWeight: "bold",
-              }}
-            >
-              3. Make Your Points Count
-            </Text>
-            <Text
-              style={{
-                fontSize: "14px",
-                lineHeight: "1.5",
-                color: "#333",
-              }}
-            >
-              Your points are your currency of dreams. Use them to:
-            </Text>
-            <ul
-              style={{
-                paddingLeft: "20px",
-                fontSize: "14px",
-                lineHeight: "1.5",
-                color: "#333",
-              }}
-            >
-              <li>
-                <strong>Achieve Your Dream:</strong> Hit your target points, and
-                we'll bring your vision to life—your wish made real by Newsspend
-                Media.
-              </li>
-              <li>
-                <strong>Play & Win:</strong> Enter our bi-weekly lottery for a
-                chance to win incredible prizes like phones, laptops, fridges,
-                generators, and even cash.
-              </li>
-            </ul>
-
-            <Text
-              style={{
-                fontSize: "16px",
-                lineHeight: "1.5",
-                color: "#333",
-                fontWeight: "bold",
-              }}
-            >
-              4. Bank Your Points
-            </Text>
-            <Text
-              style={{
-                fontSize: "14px",
-                lineHeight: "1.5",
-                color: "#333",
-              }}
-            >
-              Consistency is key. Bank your points daily and watch your dreams
-              get closer. Keep in mind, your points reset every 12 months, so
-              seize every opportunity to engage and grow.
-            </Text>
-          </Section>
+          <Text style={stepTitle}>🏦 4. Grow &amp; Bank Your Progress</Text>
+          <ul style={steps}>
+            <li style={stepItem}>Stay consistent</li>
+            <li style={stepItem}>Build momentum daily</li>
+            <li style={stepItem}>Watch your progress stack up</li>
+          </ul>
         </Section>
 
         <Section style={section}>
-          <Heading style={h2}>Why This Matters</Heading>
-          <Text style={text}>
-            Newsspend Media is more than an app; it's a community of dreamers,
-            achievers, and go-getters. Here, your time isn't just spent—it's
-            invested. Your small daily actions can lead to remarkable
-            transformations, proving that greatness is within your reach.
+          <Text style={note}>
+            📝 Note: Points reset every 12 months, so make the most of every
+            opportunity to earn and grow.
           </Text>
         </Section>
 
-        <Text style={text}>
-          If you ever need assistance, our support team is just an email away at{" "}
-          <Link href="mailto:support@newsspend.com">support@newsspend.com</Link>
-          .
-        </Text>
+        <Section style={section}>
+          <Text style={sectionTitle}>🌍 Why This Changes Everything</Text>
+          <Text style={description}>Newsspend is not just another app.</Text>
+          <Text style={description}>
+            It's a new system of opportunity. A place where:
+          </Text>
+          <ul style={checklist}>
+            <li>Your time has value</li>
+            <li>Your effort gets rewarded</li>
+            <li>Your dreams become achievable</li>
+          </ul>
+          <Text style={description}>
+            Small daily actions → Meaningful life progress
+          </Text>
+        </Section>
 
-        <Text style={text}>
-          Thank you for being part of Newsspend Media. You're not just a user,
-          you're part of a movement that celebrates ambition, rewards
-          perseverance, and changes lives. Together, we'll turn your dreams into
-          reality!
-        </Text>
+        <Section style={section}>
+          <Text style={sectionTitle}>🤝 You're Part of Something Bigger</Text>
+          <Text style={description}>
+            You're not just a user. You are now part of a growing community of
+            people who are:
+          </Text>
+          <ul style={checklist}>
+            <li>Taking control of their future</li>
+            <li>Turning consistency into results</li>
+            <li>Building real progress, one action at a time</li>
+          </ul>
+        </Section>
+
+        <Section style={footerSection}>
+          <Text style={sectionTitle}>📩 We're Here for You</Text>
+          <Text style={description}>Need support?</Text>
+          <Link href="mailto:support@newsspend.com" style={link}>
+            support@newsspend.com
+          </Link>
+        </Section>
 
         <Hr style={hr} />
 
@@ -226,7 +181,6 @@ export default WelcomeEmail;
 
 const main = {
   backgroundColor: "#ffffff",
-  fontSize: "5px",
   fontFamily:
     '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
 };
@@ -236,8 +190,6 @@ const container = {
   margin: "0 auto",
   backgroundColor: "white",
   padding: "20px",
-  borderRadius: "8px",
-  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
 };
 
 const logoSection = {
@@ -246,58 +198,135 @@ const logoSection = {
   borderBottom: "1px solid #e0e0e0",
 };
 
-const logo = {
-  maxWidth: "250px",
-  height: "auto",
+const logo: React.CSSProperties = {
+  maxWidth: "100%",
+  height: "150px",
   margin: "0 auto",
+  objectFit: "contain",
 };
 
-const _h1 = {
-  color: "#333",
-  fontSize: "24px",
-  fontWeight: "bold",
-  margin: "40px 0",
-  padding: "0",
-  textAlign: "center" as const,
-};
-
-const h2 = {
-  color: "#333",
-  fontSize: "20px",
-  fontWeight: "bold",
-  margin: "18px 0",
-  padding: "0",
-};
-
-const text = {
-  color: "#333",
+const greeting = {
   fontSize: "14px",
-  lineHeight: "26px",
+  color: "#333",
+  marginTop: "24px",
 };
 
-const _listItem = {
-  ...text,
-  marginBottom: "10px",
+const title = {
+  fontSize: "28px",
+  fontWeight: "bold",
+  color: "#333",
+  margin: "24px 0 12px",
+};
+
+const intro = {
+  fontSize: "18px",
+  color: "#333",
+  lineHeight: "1.5",
+  marginBottom: "12px",
+};
+
+const description = {
+  fontSize: "14px",
+  color: "#333",
+  lineHeight: "1.6",
+  marginBottom: "12px",
 };
 
 const section = {
-  margin: "18px 0",
+  margin: "24px 0",
 };
 
-const _signature = {
-  ...text,
+const sectionTitle = {
+  fontSize: "20px",
+  fontWeight: "bold",
+  color: "#333",
+  marginBottom: "8px",
+};
+
+const sectionSubtitle = {
+  fontSize: "16px",
+  fontWeight: "600",
+  color: "#333",
+  marginBottom: "12px",
+};
+
+const _quote = {
+  fontSize: "14px",
   fontStyle: "italic",
-  marginTop: "32px",
+  color: "#333",
+  marginBottom: "12px",
+  paddingLeft: "12px",
+  borderLeft: "3px solid #7c3aed",
+};
+
+const list = {
+  fontSize: "14px",
+  color: "#333",
+  marginBottom: "4px",
+};
+
+const steps = {
+  paddingLeft: "20px",
+  marginBottom: "12px",
+};
+
+const stepItem = {
+  fontSize: "14px",
+  color: "#333",
+  marginBottom: "4px",
+};
+
+const stepTitle = {
+  fontSize: "16px",
+  fontWeight: "bold",
+  color: "#333",
+  marginTop: "16px",
+  marginBottom: "8px",
+};
+
+const checklist = {
+  paddingLeft: "20px",
+  marginBottom: "12px",
+};
+
+const note = {
+  fontSize: "14px",
+  color: "#7c3aed",
+  fontWeight: "500",
+  marginBottom: "12px",
+};
+
+const rewardTitle = {
+  fontSize: "14px",
+  fontWeight: "bold",
+  color: "#333",
+  marginTop: "12px",
+  marginBottom: "4px",
+};
+
+const rewardList = {
+  paddingLeft: "20px",
+  fontSize: "14px",
+  color: "#333",
+};
+
+const link = {
+  color: "#7c3aed",
+  textDecoration: "underline",
 };
 
 const hr = {
   borderColor: "#cccccc",
-  margin: "20px 0",
+  margin: "32px 0",
+};
+
+const footerSection = {
+  backgroundColor: "#f9f9f9",
+  padding: "24px",
 };
 
 const footer = {
   color: "#898989",
   fontSize: "12px",
-  marginTop: "24px",
   textAlign: "center" as const,
 };

@@ -4,6 +4,7 @@ import type { News, PartnerContent } from "@news-spend-media/payload/types";
 
 export type RelatedNewsItem = {
   _type: "relatedNews";
+  type: "relatedNews";
   id: string;
   data: (News | PartnerContent | (PartnerContent & { _type: string }))[];
 };

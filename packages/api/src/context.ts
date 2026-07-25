@@ -31,6 +31,7 @@ export async function createContext({
     user: session?.user,
     payload,
     request: request || context?.req?.raw,
+    headers,
   };
 }
 

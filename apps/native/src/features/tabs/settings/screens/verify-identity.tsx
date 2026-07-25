@@ -1,45 +1,47 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { cn } from "heroui-native";
+import { BottomSheet } from "heroui-native/bottom-sheet";
+import { FieldError } from "heroui-native/field-error";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
+import { CameraIcon, CameraRotateIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
-import {
-  ListItem,
-  Paragraph,
-  Separator,
-  Sheet,
-  Spinner,
-  Square,
-  Stack,
-  Text,
-  XStack,
-  YGroup,
-  YStack,
-} from "tamagui";
-import { Camera, CameraRotate } from "tamagui-phosphor";
 import { z } from "zod";
 
-import { Screen } from "#/components/Screen";
-import FormInput from "#/components/text-input";
-import { Button, Image } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import FormTextInput from "#/components/heroui/text-input";
 import useUser from "#/hooks/useUser";
 import { openapi, orpc } from "#/lib/orpc";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 const schema = z.object({
   firstName: z
-    .string()
+    .string("First name is required")
     .trim()
     .min(3, "First name must be at least 3 characters"),
-  lastName: z.string().trim().min(3, "Last name must be at least 3 characters"),
-  email: z.email(),
-  phoneNumber: z.string().trim().regex(/^\d+$/, "Invalid phone number"),
+  lastName: z
+    .string("Last name is required")
+    .trim()
+    .min(3, "Last name must be at least 3 characters"),
+  email: z.email("Enter a valid email"),
+  phoneNumber: z
+    .string("Phone number is required")
+    .trim()
+    .regex(/^\d+$/, "Invalid phone number"),
   shippingAddress: z
-    .string()
+    .string("Shipping address is required")
     .trim()
     .min(3, "Address must be at least 3 characters"),
   governmentId: z.object({
@@ -57,17 +59,20 @@ const schema = z.object({
 });
 
 export type VerifyIdentityInput = z.infer<typeof schema>;
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const VerifyIdentity = () => {
   const { data: session } = useUser();
   const user = session?.user;
   const [open, setOpen] = useState(false);
-  const insets = useSafeAreaInsetsStyle(["bottom"]);
-  const positionRef = useRef<string>("back");
+  const insets = useSafeAreaInsets();
+  const positionRef = useRef<"front" | "back">("back");
+
   const mutation = useMutation(
     openapi.lottery.verifyIdentity.mutationOptions()
   );
+
   const navigation = useNavigation();
   const identityStatus = useQuery(
     orpc.lottery.identityStatus.queryOptions({
@@ -75,14 +80,14 @@ const VerifyIdentity = () => {
       staleTime: 0,
     })
   );
+
   const formMethods = useForm<VerifyIdentityInput>({
     resolver: zodResolver(schema),
   });
 
-  const { getValues, setValue, handleSubmit, watch } = formMethods;
+  const { getValues, setValue, handleSubmit } = formMethods;
 
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -90,7 +95,6 @@ const VerifyIdentity = () => {
       quality: 1,
     });
 
-    // check file size
     if (
       !result.canceled &&
       result.assets[0]?.fileSize &&
@@ -117,8 +121,8 @@ const VerifyIdentity = () => {
       setOpen(false);
     }
   };
+
   const takePhoto = async () => {
-    // Request camera permissions
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
     if (status !== "granted") {
@@ -163,9 +167,9 @@ const VerifyIdentity = () => {
     } catch (error) {
       console.log(error);
       Alert.alert("Error", "Failed to take photo");
-    } finally {
     }
   };
+
   const onSubmit = (data: VerifyIdentityInput) => {
     const formData = new FormData();
     formData.append("firstName", data.firstName);
@@ -177,14 +181,11 @@ const VerifyIdentity = () => {
     formData.append("governmentId.back", data.governmentId.back as any);
 
     mutation.mutate(formData, {
-      onSuccess: (_data, _variables, _onMutateResult, ctx) => {
+      onSuccess: () => {
         toast("Success", {
           description: "Identity verification submitted successfully",
         });
         formMethods.reset();
-        return ctx?.client.invalidateQueries({
-          queryKey: orpc.lottery.identityStatus.key(),
-        });
       },
       onError: (err) => {
         console.log(err);
@@ -192,7 +193,6 @@ const VerifyIdentity = () => {
           description: "Something went wrong",
         });
       },
-      onSettled: (_data, _err, _variables, _onMutateResult, ctx) => {},
     });
   };
 
@@ -203,7 +203,7 @@ const VerifyIdentity = () => {
         email: user.email,
       });
     }
-  }, [user]);
+  }, [user, formMethods.reset]);
 
   useEffect(() => {
     if (identityStatus.data && !identityStatus.isFetching) {
@@ -227,219 +227,198 @@ const VerifyIdentity = () => {
           },
         ]
       );
-      return;
     }
-  }, [identityStatus.data, identityStatus.isFetching]);
+  }, [
+    identityStatus.data,
+    identityStatus.isFetching,
+    navigation.goBack,
+    formMethods.reset,
+  ]);
 
   if (identityStatus.isPending || identityStatus.isFetching) {
     return (
-      <Stack ai="center" bg="$background" flex={1} jc="center">
-        <Spinner size="large" />
-      </Stack>
+      <View className="flex-1 items-center justify-center bg-white">
+        <Spinner size="lg" />
+      </View>
     );
   }
+
   return (
-    <Screen>
+    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={40}
-        contentContainerStyle={{
-          paddingHorizontal: 25,
-          paddingTop: 20,
-          paddingBottom: 50,
-        }}
+        contentContainerClassName="gap-6 px-5 pt-5 pb-12"
         showsVerticalScrollIndicator={false}
       >
-        <Paragraph color="gray" fos="$4" mb="$2">
-          To ensure a safe and compliant prize delivery from the lottery, we
+        <Text className="text-base text-muted-foreground">
+          To ensure a safe and compliant prize delivery from the Giveaway, we
           need to verify your identity.
-        </Paragraph>
-        <Stack gap="$10">
-          <FormProvider {...formMethods}>
-            <YStack gap="$5">
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">First Name</Paragraph>
-                <FormInput
-                  autoCapitalize="words"
-                  name="firstName"
-                  placeholder=""
-                />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Last Name</Paragraph>
-                <FormInput
-                  autoCapitalize="words"
-                  name="lastName"
-                  placeholder=""
-                />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Phone Number</Paragraph>
-                <FormInput
-                  keyboardType="phone-pad"
-                  name="phoneNumber"
-                  placeholder=""
-                />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Email Address</Paragraph>
-                <FormInput
-                  keyboardType="email-address"
-                  name="email"
-                  placeholder=""
-                />
-              </YStack>
-              <YStack gap="$2">
-                <Paragraph fontSize="$5">Shipping Address</Paragraph>
-                <FormInput multiline name="shippingAddress" placeholder="" />
-              </YStack>
+        </Text>
 
-              <Stack gap="$2">
-                <Paragraph>Government-issued ID (Front and Back)</Paragraph>
-                <XStack gap="$2">
-                  <Controller
-                    name="governmentId.front"
-                    render={({
-                      field: { onChange, value },
-                      fieldState: { error },
-                    }) => (
-                      <YStack flex={1}>
-                        <Square
-                          boc={error ? "red" : "#E4E3E3"}
-                          br="$5"
-                          bw="$0.5"
-                          flex={1}
-                          h="$10"
-                          onPress={() => {
-                            positionRef.current = "front";
-                            setOpen(true);
-                          }}
-                          overflow="hidden"
-                        >
-                          <Camera size="$3" />
-                          <Text>Front</Text>
-                          {value ? (
-                            <Image
-                              h="100%"
-                              pos="absolute"
-                              source={{ uri: value?.uri }}
-                              w="100%"
-                            />
-                          ) : null}
-                        </Square>
-                        {error && (
-                          <Text color="red" fontSize="$2" mt="$1">
-                            {error.message}
-                          </Text>
+        <FormProvider {...formMethods}>
+          <View className="gap-5">
+            <FormTextInput
+              autoCapitalize="words"
+              label="First Name"
+              name="firstName"
+              placeholder=""
+            />
+            <FormTextInput
+              autoCapitalize="words"
+              label="Last Name"
+              name="lastName"
+              placeholder=""
+            />
+            <FormTextInput
+              keyboardType="phone-pad"
+              label="Phone Number"
+              name="phoneNumber"
+              placeholder=""
+            />
+            <FormTextInput
+              keyboardType="email-address"
+              label="Email Address"
+              name="email"
+              placeholder=""
+            />
+            <FormTextInput
+              label="Shipping Address"
+              multiline
+              name="shippingAddress"
+              placeholder=""
+            />
+
+            <View className="gap-2">
+              <Text className="font-semibold">
+                Government-issued ID (Front and Back)
+              </Text>
+              <View className="flex-row gap-2">
+                <Controller
+                  name="governmentId.front"
+                  render={({ field: { value }, fieldState: { error } }) => (
+                    <View className="flex-1">
+                      <View
+                        className={cn(
+                          "h-40 flex-1 items-center justify-center overflow-hidden rounded-xl border-2",
+                          error ? "border-red-500" : "border-gray-200"
                         )}
-                      </YStack>
-                    )}
-                  />
-                  <Controller
-                    name="governmentId.back"
-                    render={({ field: { value }, fieldState: { error } }) => (
-                      <YStack flex={1}>
-                        {console.log(value)}
-                        <Square
-                          boc={error ? "red" : "#E4E3E3"}
-                          br="$5"
-                          bw="$0.5"
-                          flex={1}
-                          h="$10"
-                          onPress={() => {
-                            positionRef.current = "back";
-                            setOpen(true);
-                          }}
-                          overflow="hidden"
-                        >
-                          <CameraRotate size="$3" />
-                          <Text>Back</Text>
-                          {value ? (
-                            <Image
-                              h="100%"
-                              pos="absolute"
-                              source={{ uri: value?.uri }}
-                              w="100%"
-                            />
-                          ) : null}
-                        </Square>
-                        {error && (
-                          <Text color="red" fontSize="$2" mt="$1">
-                            {error.message}
-                          </Text>
-                        )}
-                      </YStack>
-                    )}
-                  />
-                </XStack>
-              </Stack>
-              <YStack gap="$2">
-                <Button
-                  disabled={mutation.isPending}
-                  onPress={handleSubmit(onSubmit)}
-                >
-                  {mutation.isPending ? (
-                    <Button.Icon>
-                      <Spinner color="$s50" />
-                    </Button.Icon>
-                  ) : (
-                    <Button.Text>Submit</Button.Text>
+                        onTouchEnd={() => {
+                          positionRef.current = "front";
+                          setOpen(true);
+                        }}
+                      >
+                        <Icon name={CameraIcon} size={24} />
+                        <Text className="mt-1 text-sm">Front</Text>
+                        {value?.uri ? (
+                          <Image
+                            contentFit="cover"
+                            source={{ uri: value.uri }}
+                            style={{
+                              position: "absolute",
+                              width: "100%",
+                              height: "100%",
+                            }}
+                          />
+                        ) : null}
+                      </View>
+                      {error ? <FieldError>{error.message}</FieldError> : null}
+                    </View>
                   )}
-                </Button>
-              </YStack>
-            </YStack>
-          </FormProvider>
-        </Stack>
+                />
+                <Controller
+                  name="governmentId.back"
+                  render={({ field: { value }, fieldState: { error } }) => (
+                    <View className="flex-1">
+                      <View
+                        className={cn(
+                          "h-40 flex-1 items-center justify-center overflow-hidden rounded-xl border-2",
+                          error ? "border-red-500" : "border-gray-200"
+                        )}
+                        onTouchEnd={() => {
+                          positionRef.current = "back";
+                          setOpen(true);
+                        }}
+                      >
+                        <Icon name={CameraRotateIcon} size={24} />
+                        <Text className="mt-1 text-sm">Back</Text>
+                        {value?.uri ? (
+                          <Image
+                            contentFit="cover"
+                            source={{ uri: value.uri }}
+                            style={{
+                              position: "absolute",
+                              width: "100%",
+                              height: "100%",
+                            }}
+                          />
+                        ) : null}
+                      </View>
+                      {error ? <FieldError>{error.message}</FieldError> : null}
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
+
+            <Button
+              isDisabled={mutation.isPending}
+              onPress={handleSubmit(onSubmit)}
+            >
+              {mutation.isPending ? <Spinner /> : null}
+              <Button.Label>Submit</Button.Label>
+            </Button>
+          </View>
+        </FormProvider>
       </KeyboardAwareScrollView>
-      <Sheet
-        animation="easeIn"
-        dismissOnSnapToBottom
-        forceRemoveScrollEnabled={open}
-        modal
-        onOpenChange={setOpen}
-        open={open}
-        snapPointsMode="fit"
-        zIndex={100_000}
-      >
-        <Sheet.Overlay bg="rgba(0, 0, 0, 0.5)" />
-        <Sheet.Frame style={insets}>
-          <YGroup alignSelf="center" size="$4">
-            <ListItem fontWeight="800">Upload a file</ListItem>
-            <Separator />
-            <YGroup.Item>
-              <ListItem
-                onPress={takePhoto}
-                pressStyle={{
-                  bg: "#f9f9f9",
-                }}
-              >
-                Take a photo
-              </ListItem>
-              <ListItem
-                onPress={pickImage}
-                pressStyle={{
-                  bg: "#f9f9f9",
-                }}
-              >
-                Choose a photo
-              </ListItem>
-              <ListItem
+
+      <BottomSheet isOpen={open} onOpenChange={setOpen}>
+        {/* FullWindowOverlay (default) renders in a separate native iOS
+        window so the sheet appears above modals/keyboard, but that also
+        blocks the RN element inspector, which attaches to the main window
+        only. Disabled in dev so the inspector keeps working. */}
+        <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
+            <ListGroup variant="transparent">
+              <Text className="px-4 pb-3 font-semibold">Upload a file</Text>
+              <Separator />
+              <ListGroup.Item onPress={takePhoto}>
+                <ListGroup.ItemContent>
+                  <ListGroup.ItemTitle>Take a photo</ListGroup.ItemTitle>
+                </ListGroup.ItemContent>
+              </ListGroup.Item>
+              <Separator className="mx-4" />
+              <ListGroup.Item onPress={pickImage}>
+                <ListGroup.ItemContent>
+                  <ListGroup.ItemTitle>Choose a photo</ListGroup.ItemTitle>
+                </ListGroup.ItemContent>
+              </ListGroup.Item>
+              <Separator className="mx-4" />
+              <ListGroup.Item
                 onPress={() => {
-                  setValue("governmentId", {
-                    ...getValues("governmentId"),
-                    [positionRef.current]: null,
-                  });
+                  const current = getValues("governmentId");
+                  if (positionRef.current === "front") {
+                    setValue("governmentId", {
+                      ...current,
+                      front: { uri: "", type: "", name: "" },
+                    });
+                  } else {
+                    setValue("governmentId", {
+                      ...current,
+                      back: { uri: "", type: "", name: "" },
+                    });
+                  }
                   setOpen(false);
                 }}
-                pressStyle={{
-                  bg: "#f9f9f9",
-                }}
               >
-                Remove
-              </ListItem>
-            </YGroup.Item>
-          </YGroup>
-        </Sheet.Frame>
-      </Sheet>
+                <ListGroup.ItemContent>
+                  <ListGroup.ItemTitle>Remove</ListGroup.ItemTitle>
+                </ListGroup.ItemContent>
+              </ListGroup.Item>
+            </ListGroup>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
     </Screen>
   );
 };

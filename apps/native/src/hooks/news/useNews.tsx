@@ -22,7 +22,7 @@ export default function useNews(slug: string, type?: "article" | "video") {
         type: type ?? "article",
       },
       retry: (failureCount, error) => {
-        if (isDefinedError(error) && error?.data?.code === "NOT_FOUND") {
+        if (isDefinedError(error) && error?.code === "NOT_FOUND") {
           return false;
         }
         return failureCount < 3;

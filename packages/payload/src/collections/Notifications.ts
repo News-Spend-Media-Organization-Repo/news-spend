@@ -215,6 +215,21 @@ const Notifications: CollectionConfig = {
     },
   ],
   hooks: {
+    afterDelete: [
+      async ({ doc, req }) => {
+        await req.payload.delete({
+          collection: "notification-inbox",
+          where: { notification: { equals: doc.id } },
+          req,
+        });
+
+        await req.payload.delete({
+          collection: "notification-deliveries",
+          where: { notification: { equals: doc.id } },
+          req,
+        });
+      },
+    ],
     afterChange: [
       async ({ operation, doc, req }) => {
         if (operation !== "create" && operation !== "update") {

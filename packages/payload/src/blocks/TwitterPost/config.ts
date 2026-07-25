@@ -2,7 +2,7 @@ import type { Block } from "payload";
 
 export const TwitterBlock: Block = {
   slug: "twitterEmbed",
-  imageURL: "https://abs.twimg.com/favicons/favicon.ico",
+  imageURL: "https://thesvg.org/icons/twitter/default.svg",
   interfaceName: "TwitterPostBlock",
   imageAltText: "Twitter",
   labels: {

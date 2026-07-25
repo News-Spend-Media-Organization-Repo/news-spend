@@ -1,5 +1,3 @@
-/** @jsxImportSource hono/jsx */
-
 type LayoutProps = {
   title: string;
   description?: string;

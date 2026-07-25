@@ -2,7 +2,7 @@ import type { Block } from "payload";
 
 export const InstagramBlock: Block = {
   slug: "instagramEmbed",
-  imageURL: "https://www.instagram.com/favicon.ico",
+  imageURL: "https://thesvg.org/icons/instagram/default.svg",
   interfaceName: "InstagramEmbedBlock",
   imageAltText: "Instagram",
   labels: {

@@ -1,45 +1,27 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { ArrowLeft } from "@tamagui/lucide-icons";
+import { InputOTP, REGEXP_ONLY_DIGITS, Spinner } from "heroui-native";
+import { ArrowLeftIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
-import {
-  CodeField,
-  Cursor,
-  useBlurOnFulfill,
-  useClearByFocusCell,
-} from "react-native-confirmation-code-field";
+import { Pressable, View } from "react-native";
 import { useKeyboardState } from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
-import {
-  H2,
-  SizableText,
-  Spinner,
-  Stack,
-  Text,
-  useTheme,
-  XStack,
-  YStack,
-} from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui";
-
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { useSendOtp, useVerifyOTP } from "../hooks/useOTP";
 
 export default function Verification() {
   const route = useRoute("Verification");
   const [value, setValue] = useState("");
-  const isOpen = useKeyboardState((v) => v.isVisible);
-  const theme = useTheme();
-  const ref = useBlurOnFulfill({ value, cellCount: CELL_COUNT });
+  const _isOpen = useKeyboardState((v) => v.isVisible);
   const navigation = useNavigation("Verification");
-  const [props, getCellOnLayoutHandler] = useClearByFocusCell({
-    value,
-    setValue,
-  });
   const sendOTPMutation = useSendOtp();
   const verifyOTPMutation = useVerifyOTP();
-  const { email, otpSent = false } = route.params;
+  const { email, otpSent = false } = route.params as {
+    email?: string;
+    otpSent?: boolean;
+  };
   const otpSentRef = useRef(false);
 
   useEffect(() => {
@@ -47,13 +29,13 @@ export default function Verification() {
       otpSentRef.current = true;
       sendOTPMutation.mutate({ email });
     }
-  }, [email, otpSent]);
+  }, [email, otpSent, sendOTPMutation.mutate]);
 
   const verifyOTP = () => {
     verifyOTPMutation.mutate(
       {
         otp: value,
-        email,
+        email: email || "",
       },
       {
         onSuccess({ data, error }) {
@@ -81,7 +63,7 @@ export default function Verification() {
           });
           navigation.navigate("RegSuccess");
         },
-        onError(err) {
+        onError(_err) {
           toast.error("Verification failed", {
             description:
               "We couldn't verify your code. Please check the code and try again.",
@@ -93,7 +75,7 @@ export default function Verification() {
 
   const sendOTP = () => {
     sendOTPMutation.mutate(
-      { email },
+      { email: email || "" },
       {
         onSuccess({ data, error }) {
           if (error) {
@@ -106,7 +88,7 @@ export default function Verification() {
             description: "Code sent successfully",
           });
         },
-        onError(err) {
+        onError(_err) {
           toast.error("Failed to resend code", {
             description:
               "We couldn't send a new verification code. Please check your internet connection and try again.",
@@ -117,108 +99,67 @@ export default function Verification() {
   };
 
   return (
-    <Screen
-      bg="$background"
-      contentContainerStyle={{ paddingBottom: 24 }}
-      KeyboardAvoidingViewProps={{
-        behavior: "padding",
-      }}
-      preset="fixed"
-      pt="$5"
-      px="$2.5"
-      safeAreaEdges={["bottom"]}
-    >
-      <XStack>
-        <ArrowLeft onPress={() => navigation.goBack()} />
-      </XStack>
-      <Stack flex={1} gap="$11" mt="$8">
-        <Stack gap="$5">
-          <H2 ta="center">Verification Code</H2>
-          <SizableText color="#737373" fontSize="$5" ta="center">
+    <Screen className="px-6 pt-safe-offset-5" safeAreaEdges={["bottom"]}>
+      <Pressable onPress={() => navigation.goBack()}>
+        <Icon className="size-6" name={ArrowLeftIcon} />
+      </Pressable>
+
+      <View className="mt-8 flex-1 gap-11">
+        <View className="gap-5">
+          <Text className="text-center font-bold text-2xl">
+            Verification Code
+          </Text>
+          <Text className="text-center text-gray-500 text-lg">
             Please enter the verification code sent to{" "}
-            <SizableText color="black">{email ?? ""}</SizableText>
-          </SizableText>
-          <YStack>
-            <CodeField
-              ref={ref}
-              {...props}
-              // Use `caretHidden={false}` when users can't paste a text value, because context menu doesn't appear
-              cellCount={CELL_COUNT}
-              keyboardType="number-pad"
-              onChangeText={setValue}
-              renderCell={({ index, symbol, isFocused }) => (
-                <Text
-                  key={index}
-                  onLayout={getCellOnLayoutHandler(index)}
-                  style={[
-                    styles.cell,
-                    isFocused && { borderColor: theme.p300.val },
-                  ]}
-                >
-                  {symbol || (isFocused ? <Cursor /> : null)}
-                </Text>
-              )}
-              rootStyle={styles.codeFieldRoot}
-              textContentType="oneTimeCode"
-              value={value}
-            />
-          </YStack>
-        </Stack>
-        <Stack ai="center" gap="$1">
-          <SizableText>Didn't receive the code? </SizableText>
-          <Button
-            disabled={verifyOTPMutation.isPending || sendOTPMutation.isPending}
-            ghost
-            onPress={sendOTP}
+            <Text className="text-black">{email ?? ""}</Text>
+          </Text>
+          <InputOTP
+            className="justify-center"
+            inputMode="numeric"
+            maxLength={CELL_COUNT}
+            onChange={setValue}
+            pattern={REGEXP_ONLY_DIGITS}
+            textInputProps={{ textContentType: "oneTimeCode" }}
+            value={value}
           >
-            {sendOTPMutation.isPending ? (
-              <Button.Icon color="$p300">
-                <Spinner color="$s300" />
-              </Button.Icon>
-            ) : null}
-            <Button.Text color="$s300" fontWeight="700">
+            <InputOTP.Group className="gap-4">
+              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={0} />
+              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={1} />
+              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={2} />
+              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={3} />
+            </InputOTP.Group>
+          </InputOTP>
+        </View>
+        <View className="items-center gap-1">
+          <Text>Didn't receive the code? </Text>
+          <Button
+            isDisabled={
+              verifyOTPMutation.isPending || sendOTPMutation.isPending
+            }
+            onPress={sendOTP}
+            variant="ghost"
+          >
+            {sendOTPMutation.isPending ? <Spinner /> : null}
+            <Button.Label className="font-bold text-primary">
               Resend OTP?
-            </Button.Text>
+            </Button.Label>
           </Button>
-        </Stack>
-      </Stack>
+        </View>
+      </View>
       <Button
-        disabled={
+        className="mb-6"
+        isDisabled={
           sendOTPMutation.isPending ||
-          value.length !== 4 ||
+          value.length !== CELL_COUNT ||
           verifyOTPMutation.isPending
         }
-        mb={isOpen ? undefined : "$6"}
-        my="auto"
         onPress={verifyOTP}
       >
-        {verifyOTPMutation.isPending ? (
-          <Button.Icon>
-            <Spinner color="#fff" />
-          </Button.Icon>
-        ) : null}
-        <Button.Text>Submit</Button.Text>
+        {verifyOTPMutation.isPending ? <Spinner /> : null}
+        <Button.Label>Submit</Button.Label>
       </Button>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  codeFieldRoot: { marginTop: 20 },
-  cell: {
-    width: 56,
-    height: 56,
-    lineHeight: 60,
-    fontSize: 24,
-    borderWidth: 2,
-    borderColor: "transparent",
-    backgroundColor: "#E4E3E3",
-    borderRadius: 8,
-    textAlign: "center",
-  },
-  // focusCell: {
-  //   borderColor: "#",
-  // },
-});
 
 const CELL_COUNT = 4;

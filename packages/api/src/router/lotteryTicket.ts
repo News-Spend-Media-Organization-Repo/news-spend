@@ -5,6 +5,7 @@ import {
   users,
 } from "@news-spend-media/payload/payload-generated-schema";
 import type { LotteryTicket } from "@news-spend-media/payload/types";
+import { ORPCError } from "@orpc/client";
 import { and, desc, eq, sql } from "@payloadcms/db-postgres/drizzle";
 import z from "zod";
 
@@ -38,7 +39,9 @@ const create = protectedNoGuestProcedure
     });
 
     if (currentLottery.totalDocs < 1) {
-      throw new Error("No active lottery");
+      throw new ORPCError("NOT_FOUND", {
+        message: "No active giveaway",
+      });
     }
 
     // Get user points
@@ -52,7 +55,9 @@ const create = protectedNoGuestProcedure
     const userPoints = pointsQuery[0]?.totalPoints ?? 0;
 
     if (userPoints < num_of_tickets) {
-      throw new Error("Not enough tickets");
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Not enough tickets",
+      });
     }
 
     // Check for existing ticket
@@ -98,7 +103,7 @@ const create = protectedNoGuestProcedure
       {
         type: "point",
         point: -(num_of_tickets * (currentLottery.docs[0]?.ticketPrice ?? 1)),
-        description: "Lottery ticket purchase",
+        description: "Giveaway ticket purchase",
         action: "ticketPurchase",
       },
       context
@@ -110,7 +115,7 @@ const create = protectedNoGuestProcedure
 const getByUser = protectedProcedure.handler(async ({ context }) => {
   const { user, payload } = context;
   const drizzle = payload.db.drizzle;
-  const db = payload.db;
+  const _db = payload.db;
   const result = await drizzle
     .select()
     .from(lottery_tickets)
@@ -118,7 +123,7 @@ const getByUser = protectedProcedure.handler(async ({ context }) => {
     .where(and(eq(lottery.isActive, true), eq(lottery_tickets.user, user.id)))
     .limit(1);
 
-  return result[0];
+  return result[0] ?? null;
 });
 
 const get = publicProcedure.handler(async ({ context }) => {
@@ -167,8 +172,10 @@ const boostLuck = protectedNoGuestProcedure.handler(async ({ context }) => {
     )
     .returning();
 
-  if (!result) {
-    throw new Error("No lottery ticket found");
+  if (!result.length) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No giveaway ticket found",
+    });
   }
 
   return result;

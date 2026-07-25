@@ -1,94 +1,80 @@
-import { AnalyticsProvider } from "@segment/analytics-react-native";
+import { ErrorBoundary } from "@sentry/react-native";
+import { DetourProvider } from "@swmansion/react-native-detour";
+import { type HeroUINativeConfig, HeroUINativeProvider } from "heroui-native";
 import { IconContext } from "phosphor-react-native";
-import ErrorBoundary from "react-native-error-boundary";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
-import { PortalProvider, TamaguiProvider } from "tamagui";
-
-import { tokens } from "#/constants/tokens";
 import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import usePushNotification from "#/hooks/usePushNotification";
-import { segmentClient } from "#/lib/segmentClient";
-import config from "#/tamagui.config";
+import { detourConfig } from "#/lib/detour";
+import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
+import { useUpdates } from "#/lib/UpdatesProvider";
+import { authState } from "#/state/auth";
 
 type Props = {
   children: React.ReactNode;
 };
 
+const config: HeroUINativeConfig = {
+  textProps: {
+    allowFontScaling: true,
+    maxFontSizeMultiplier: 1.2,
+    minimumFontScale: 0.5,
+  },
+  devInfo: {
+    stylingPrinciples: false,
+  },
+};
+
 export const Provider = ({ children }: Props) => {
   useListeningTimeSync();
   usePushNotification();
+  const { UpdateModalComponent } = useUpdates();
+
+  useEffect(() => {
+    newsAnalyticsClient.start(() => authState.user?.id);
+    return () => newsAnalyticsClient.stop();
+  }, []);
 
   return (
-    <SafeAreaProvider>
+    <DetourProvider config={detourConfig}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <AnalyticsProvider client={segmentClient}>
+        <SafeAreaProvider>
           <KeyboardProvider>
-            <TamaguiProvider config={config} defaultTheme="light">
+            <HeroUINativeProvider config={config}>
               <ErrorBoundary>
-                <PortalProvider shouldAddRootHost>
-                  <IconContext.Provider
-                    value={{ weight: "bold", color: tokens.color.p500.val }}
-                  >
-                    {children}
-                  </IconContext.Provider>
-                </PortalProvider>
+                <IconContext.Provider
+                  value={{
+                    weight: "bold",
+                    // color: "#eee",
+                  }}
+                >
+                  {children}
+                  <UpdateModalComponent />
+                </IconContext.Provider>
               </ErrorBoundary>
-            </TamaguiProvider>
+            </HeroUINativeProvider>
           </KeyboardProvider>
-        </AnalyticsProvider>
-        <Toaster
-          autoWiggleOnUpdate="toast-change"
-          pauseWhenPageIsHidden
-          toastOptions={{
-            titleStyle: {
-              fontFamily: "Inter-SemiBold",
-              fontSize: 18,
-            },
-            descriptionStyle: {
-              fontFamily: "Inter-Medium",
-              fontSize: 16,
-            },
-          }}
-        />
-
-        {/*<OptIn
-          activityIndicator="#ffffff"
-          containerStyle={{
-            // backgroundColor: "#ecf3fe",
-            width: "100%",
-            position: "absolute",
-            top: 40,
-          }}
-          enableNotificationButtonLabel="Go to Settings"
-          enableNotificationButtonLabelStyle={{}}
-          enableNotificationButtonStyle={{}}
-          enableNotificationContainerStyle={{}}
-          enableNotificationLabel="Missed something? Enable notifications in settings and restart the app to stay in the loop."
-          enableNotificationLabelStyle={{}}
-          externalIdentity={{
-            id: "2287a92f-867c-408e-bdc4-c3777be68c7b",
-            name: "George Washington",
-            email: "washington@wh.gov",
-            phone: "202-456-1111",
-          }}
-          primaryButtonLabel="Enable"
-          primaryButtonLabelStyle={{}}
-          primaryButtonStyle={{}}
-          primaryColor="#4285f4"
-          retrySubscriptionIntervalDays={3}
-          secondaryButtonLabel="Maybe Later"
-          secondaryButtonLabelStyle={{}}
-          secondaryButtonStyle={{}}
-          secondaryColor="#F1F4FF"
-          subtitle="Get notified about important updates and news."
-          subtitleStyle={{}}
-          title="Stay Updated"
-          titleStyle={{}}
-        />*/}
+          <Toaster
+            autoWiggleOnUpdate="toast-change"
+            pauseWhenPageIsHidden
+            richColors
+            toastOptions={{
+              titleStyle: {
+                fontFamily: "Inter-SemiBold",
+                fontSize: 18,
+              },
+              descriptionStyle: {
+                fontFamily: "Inter-Regular",
+                fontSize: 16,
+              },
+            }}
+          />
+        </SafeAreaProvider>
       </GestureHandlerRootView>
-    </SafeAreaProvider>
+    </DetourProvider>
   );
 };

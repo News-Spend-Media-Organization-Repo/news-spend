@@ -1,17 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { Spinner } from "heroui-native";
+import { ArrowLeftIcon } from "phosphor-react-native";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
-import { Keyboard } from "react-native";
+import { Keyboard, Pressable, View } from "react-native";
 import { toast } from "sonner-native";
-import { H2, Spinner, Stack, YStack } from "tamagui";
 import * as z from "zod";
-
-import { Screen } from "#/components/Screen";
-import FormInput from "#/components/text-input";
-import { Button } from "#/components/ui";
-import { useChangePassword } from "#/hooks/auth";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import FormInput from "#/components/heroui/text-input";
 import { authClient } from "#/lib/authClient";
 import { logout } from "#/state/auth";
+import useChangePassword from "../hooks/useChangePassword";
 
 const schema = z
   .object({
@@ -27,7 +29,7 @@ const schema = z
     path: ["confirmPassword"],
   });
 
-export type ChangePasswordInput = z.infer<typeof schema>; // TODO: move to schema file
+export type ChangePasswordInput = z.infer<typeof schema>;
 
 const ResetPassword = () => {
   const navigation = useNavigation("ResetPassword");
@@ -41,11 +43,9 @@ const ResetPassword = () => {
   });
 
   const onSubmit: SubmitHandler<ChangePasswordInput> = (data) => {
+    Keyboard.dismiss();
     changePasswordMutation.mutate(
-      {
-        password: data.password,
-        token,
-      },
+      { password: data.password, token },
       {
         onSuccess: async ({ data, error }) => {
           if (error) {
@@ -58,52 +58,57 @@ const ResetPassword = () => {
             description:
               "Your password has been changed. Please sign in with your new password.",
           });
-
           const session = await authClient.getSession();
           if (session.data) {
             await logout();
           }
           navigation.replace("SignIn");
         },
-        onError: (error) => {
+        onError: () => {
           toast.error("Failed to reset password", {
             description: "Something went wrong while resetting your password.",
           });
         },
       }
     );
-
-    Keyboard.dismiss();
   };
 
   return (
-    <Screen bg="$background" px="$2.5" safeAreaEdges={["bottom"]}>
-      <H2 mb="$11" mt="$7" ta="center">
-        Change Password
-      </H2>
-      <Stack gap="$6">
-        <FormProvider {...formMethods}>
-          <YStack gap="$5">
-            <FormInput name="password" placeholder="Password" secureTextEntry />
-            <FormInput
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              secureTextEntry
-            />
-          </YStack>
-        </FormProvider>
+    <Screen className="px-6 pt-safe-offset-5" safeAreaEdges={["bottom"]}>
+      <Pressable hitSlop={10} onPress={() => navigation.goBack()}>
+        <Icon className="size-6" name={ArrowLeftIcon} />
+      </Pressable>
+
+      <View className="mt-8 flex-1 gap-11">
+        <View className="gap-5">
+          <Text className="text-center font-bold text-3xl">
+            Change Password
+          </Text>
+          <FormProvider {...formMethods}>
+            <View className="gap-5">
+              <FormInput
+                isPassword
+                name="password"
+                placeholder="New password"
+                textContentType="newPassword"
+              />
+              <FormInput
+                isPassword
+                name="confirmPassword"
+                placeholder="Confirm new password"
+                textContentType="newPassword"
+              />
+            </View>
+          </FormProvider>
+        </View>
         <Button
-          disabled={changePasswordMutation.isPending}
-          mb="$3"
+          isDisabled={changePasswordMutation.isPending}
           onPress={formMethods.handleSubmit(onSubmit)}
-          {...(changePasswordMutation.isPending && {
-            iconAfter: <Spinner color="$s50" />,
-            disabled: true,
-          })}
         >
-          <Button.Text>Save</Button.Text>
+          {changePasswordMutation.isPending ? <Spinner /> : null}
+          <Button.Label>Save</Button.Label>
         </Button>
-      </Stack>
+      </View>
     </Screen>
   );
 };

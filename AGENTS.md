@@ -1,126 +1,166 @@
-# Ultracite Code Standards
+# AGENTS.md — Coding Agent Guide for turbo-payload
 
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
+## Project Overview
 
-## Quick Reference
+Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/Expo** (mobile).
 
-- **Format code**: `bun x ultracite fix`
-- **Check for issues**: `bun x ultracite check`
-- **Diagnose setup**: `bun x ultracite doctor`
+- **Package manager**: `bun` (v1.3.9) — use `bun` for all commands, NOT npm/yarn/pnpm
+- **Task runner**: Turborepo (`turbo.json` at root)
+- **Workspace roots**: `apps/*`, `packages/*`, `tooling/*`
 
-Oxlint + Oxfmt (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
+## Build / Lint / Test Commands
 
----
+| Task                   | Command                                                              |
+| ---------------------- | -------------------------------------------------------------------- |
+| Lint (check)           | `bun x biome lint .` or `bun run lint`                               |
+| Lint (auto-fix)        | `bun x biome check --write .` or `bun run lint:fix`                  |
+| Format (check)         | `bun x biome format .` or `bun run format`                           |
+| Format (fix)           | `bun x biome format --write .` or `bun run format:fix`               |
+| Typecheck (all)        | `bun run typecheck`                                                  |
+| Typecheck (single app) | `bun --filter @news-spend-media/cms typecheck`                       |
+| Build (CMS)            | `bun run build` (root) or `bun --filter @news-spend-media/cms build` |
+| Dev (CMS)              | `bun run dev` or `bun --filter @news-spend-media/cms dev`            |
+| Dev (Server)           | `bun --filter @news-spend-media/server dev`                          |
+| Test (API)             | `cd packages/api && bun x vitest run`                                |
+| Test (API, watch)      | `cd packages/api && bun x vitest`                                    |
+| Test (API, single file)| `cd packages/api && bun x vitest run path/to/file.test.ts`           |
+| Test (Native)          | `cd apps/native && bun run test`                                     |
+| Test (Native, watch)   | `cd apps/native && bun run test:watch`                               |
+| Generate Payload types | `cd apps/cms && bun run generate:types`                              |
+| DB push                | `cd packages/db && bun run db:push`                                  |
+| DB migrate             | `cd packages/db && bun run db:migrate`                               |
+| DB studio              | `cd packages/db && bun run db:studio`                                |
 
-## Core Principles
+Run `bun x biome check --write` before committing — pre-commit hooks (lefthook) enforce this.
 
-Write code that is **accessible, performant, type-safe, and maintainable**. Focus on clarity and explicit intent over brevity.
+## Linting & Formatting (Biome)
 
-### Type Safety & Explicitness
+This project uses **Biome** for linting and formatting — NOT ESLint/Prettier.
 
-- Use explicit types for function parameters and return values when they enhance clarity
-- Prefer `unknown` over `any` when the type is genuinely unknown
-- Use const assertions (`as const`) for immutable values and literal types
-- Leverage TypeScript's type narrowing instead of type assertions
-- Use meaningful variable names instead of magic numbers - extract constants with descriptive names
+Config files: `biome.jsonc` at repo root.
 
-### Modern JavaScript/TypeScript
+## TypeScript Config
 
-- Use arrow functions for callbacks and short functions
-- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
-- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
-- Prefer template literals over string concatenation
-- Use destructuring for object and array assignments
-- Use `const` by default, `let` only when reassignment is needed, never `var`
+All packages extend `@news-spend-media/config/tsconfig.base.json`:
 
-### Async & Promises
+- `strict: true`, `strictNullChecks: true`
+- `target: "ESNext"`, `module: "ESNext"`, `moduleResolution: "bundler"`
+- `verbatimModuleSyntax: true` — use `import type` for type-only imports
+- `noUncheckedIndexedAccess: true` — array/object access returns `T | undefined`
+- `noFallthroughCasesInSwitch: true`
+- `isolatedModules: true`
 
-- Always `await` promises in async functions - don't forget to use the return value
-- Use `async/await` syntax instead of promise chains for better readability
-- Handle errors appropriately in async code with try-catch blocks
-- Don't use async functions as Promise executors
+CMS tsconfig uses `~/*` path alias → `./src/*`.
 
-### React & JSX
+## Code Style Guidelines
 
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-  - Provide meaningful alt text for images
-  - Use proper heading hierarchy
-  - Add labels for form inputs
-  - Include keyboard event handlers alongside mouse events
-  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
+### Imports
 
-### Error Handling & Debugging
+- Use `import type` for type-only imports (enforced by `verbatimModuleSyntax`)
+- Prefer named exports; avoid default exports where possible
+- Use specific imports, not namespace imports (`import * as X`)
+- Workspace packages use `workspace:*` in package.json
 
-- Remove `console.log`, `debugger`, and `alert` statements from production code
-- Throw `Error` objects with descriptive messages, not strings or other values
-- Use `try-catch` blocks meaningfully - don't catch errors just to rethrow them
-- Prefer early returns over nested conditionals for error cases
+### Types & Safety
 
-### Code Organization
+- Prefer `unknown` over `any` when type is genuinely unknown
+- Use `as const` for immutable literal values
+- Leverage TypeScript narrowing over type assertions
+- Never use `as any`, `@ts-ignore`, `@ts-expect-error` to suppress errors
 
-- Keep functions focused and under reasonable cognitive complexity limits
-- Extract complex conditions into well-named boolean variables
-- Use early returns to reduce nesting
-- Prefer simple conditionals over nested ternary operators
-- Group related code together and separate concerns
+### JavaScript/TypeScript
 
-### Security
+- `const` by default; `let` only when reassignment needed; never `var`
+- Arrow functions for callbacks and short functions
+- `for...of` loops over `.forEach()` and indexed `for`
+- Optional chaining (`?.`) and nullish coalescing (`??`)
+- Template literals over string concatenation
+- Destructuring for object/array assignments
 
-- Add `rel="noopener"` when using `target="_blank"` on links
-- Avoid `dangerouslySetInnerHTML` unless absolutely necessary
-- Don't use `eval()` or assign directly to `document.cookie`
-- Validate and sanitize user input
+### Async
 
-### Performance
+- Always `await` promises in async functions
+- `async/await` over `.then()` chains
+- Use try-catch for error handling in async code
+- Never use async functions as Promise executors
 
-- Avoid spread syntax in accumulators within loops
-- Use top-level regex literals instead of creating them in loops
-- Prefer specific imports over namespace imports
-- Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
+### React
 
-### Framework-Specific Guidance
+- Function components, not class components
+- Hooks at top level only, never conditional
+- Complete dependency arrays for hooks
+- `key` prop on iterables (prefer unique IDs over array indices)
+- Semantic HTML + ARIA for accessibility
+- React 19: use `ref` as prop (not `React.forwardRef`)
 
-**Next.js:**
+### Error Handling
 
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
+- Remove `console.log`/`debugger`/`alert` from production code
+- Throw `Error` objects with descriptive messages
+- Early returns over nested conditionals for error cases
+- Don't catch errors just to rethrow them
 
-**React 19+:**
+### API Layer (orpc)
 
-- Use ref as a prop instead of `React.forwardRef`
+- Procedures: `publicProcedure`, `protectedProcedure`, `protectedNoGuestProcedure`, `rateLimitedPublicProcedure`
+- Validation: Zod schemas
+- Context: `packages/api/src/context.ts`
 
-**Solid/Svelte/Vue/Qwik:**
+### Payload CMS
 
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
+- Collections/fields/hooks in `packages/payload/src/`
+- Components in `packages/payload/src/components/`
+- Use `cn()` utility (clsx + tailwind-merge) for class merging
 
----
+## Project Structure
 
-## Testing
+```
+apps/
+  cms/          # Next.js + Payload admin + frontend
+  server/       # Bun HTTP server (orpc API, auth, health)
+  native/       # React Native / Expo mobile app
+packages/
+  api/          # orpc router, procedures, middlewares (vitest tests here)
+  auth/         # Better Auth config
+  config/       # Shared tsconfig bases
+  db/           # Drizzle ORM schema + migrations
+  env/          # Environment variable validation (@t3-oss/env-nextjs)
+  logger/       # Logging utilities
+  mail/         # Email sending
+  payload/      # Payload CMS config, collections, fields, blocks, hooks
+  payload-cpanel-storage/  # Custom Payload storage adapter
+  transactional/  # Email templates (react-email)
+  utils/        # Shared utilities
+tooling/
+  tailwind/     # Shared Tailwind config
+```
 
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
+## Key Libraries & Frameworks
 
-## When Oxlint + Oxfmt Can't Help
+| Library             | Purpose                         |
+| ------------------- | ------------------------------- |
+| Payload CMS v3      | Headless CMS, admin panel       |
+| Next.js 15          | CMS frontend (React 19)         |
+| orpc                | Type-safe API layer (tRPC-like) |
+| Zod v4              | Schema validation               |
+| Drizzle ORM         | Database (PostgreSQL)           |
+| Better Auth         | Authentication                  |
+| Tailwind CSS        | Styling                         |
+| React Native / Expo | Mobile app                      |
+| Jest                | Native unit testing             |
+| Vitest              | Web/API unit testing            |
+| Turborepo           | Monorepo task orchestration     |
+| Sentry              | Error tracking                  |
 
-Oxlint + Oxfmt's linter will catch most issues automatically. Focus your attention on:
+## Git Hooks (Lefthook)
 
-1. **Business logic correctness** - Oxlint + Oxfmt can't validate your algorithms
-2. **Meaningful naming** - Use descriptive names for functions, variables, and types
-3. **Architecture decisions** - Component structure, data flow, and API design
-4. **Edge cases** - Handle boundary conditions and error states
-5. **User experience** - Accessibility, performance, and usability considerations
-6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
+Pre-commit: runs `bun x biome check --write` on staged files, auto-stages fixes.
 
----
+## What Biome Won't Catch
 
-Most formatting and common issues are automatically fixed by Oxlint + Oxfmt. Run `bun x ultracite fix` before committing to ensure compliance.
+1. Business logic correctness
+2. Meaningful naming and self-documentation
+3. Architecture decisions (component structure, data flow)
+4. Edge cases and boundary conditions
+5. UX/accessibility beyond linting rules
+6. Performance implications of algorithmic choices

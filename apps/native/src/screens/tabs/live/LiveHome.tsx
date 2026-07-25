@@ -1,20 +1,18 @@
 import { LegendList } from "@legendapp/list/react-native";
-import type { News } from "@news-spend-media/payload/types";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import type { FeedItem } from "@news-spend-media/api/router/news/content-builders";
 import { memo, useCallback, useMemo } from "react";
-import { RefreshControl } from "react-native";
-import { Spinner, Stack, useTheme } from "tamagui";
-
+import { ActivityIndicator, RefreshControl } from "react-native";
+import { Screen } from "#/components/heroui/screen";
 import LiveListHeader from "#/components/News/LiveListHeader";
 import LiveListSkeleton from "#/components/News/LiveListSkeleton";
-import { Screen } from "#/components/Screen";
 import VideoNewsItem from "#/components/videoNews/VideoNewsItem";
 import { useAllNews } from "#/hooks/news";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { useTabBarHeight } from "#/state/route-state";
 
 function LiveHome() {
-  const theme = useTheme();
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useTabBarHeight();
   const {
     data,
     isPending,
@@ -28,52 +26,64 @@ function LiveHome() {
   });
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
-  const renderItem = useCallback(
-    ({ item }: { item: News }) => <VideoNewsItem videoNews={item} />,
-    []
-  );
+  const renderItem = useCallback(({ item }: { item: FeedItem }) => {
+    if (item.type !== "article" && item.type !== "video") {
+      return null;
+    }
+    return <VideoNewsItem videoNews={item} />;
+  }, []);
 
   const allPages = useMemo(
     () => data?.pages.flatMap((page) => page?.docs) ?? [],
     [data]
   );
 
-  const renderHeader = useCallback(
+  const _renderHeader = useCallback(
     () => <LiveListHeader news={allPages[0]} />,
     [allPages]
   );
 
-  const keyExtractor = (item: News) => item.id;
+  const keyExtractor = (item: FeedItem) => item.id;
 
   const videoNews = useMemo(() => {
-    if (!allPages.length) return [];
+    if (!allPages.length) {
+      return [];
+    }
     // remove the first item because it's already rendered in the header
     return allPages;
     // return allPages.slice(1);
   }, [allPages]);
 
   const onEndReached = useCallback(() => {
-    if (isFetchingNextPage || !hasNextPage) return;
+    if (isFetchingNextPage || !hasNextPage) {
+      return;
+    }
     fetchNextPage();
   }, [isFetchingNextPage, fetchNextPage, hasNextPage]);
 
-  if (isPending) return <LiveListSkeleton />;
+  // Emits nav_tti for /Tab/Live/LiveHome once the feed has rendered.
+  useMarkInteractive(!isPending);
+
+  if (isPending) {
+    return <LiveListSkeleton />;
+  }
 
   return (
-    <Screen px="$1.5">
+    <Screen contentContainerClassName="px-2" systemBarStyle="light">
       <LegendList
         contentContainerStyle={{
-          paddingBottom: tabBarHeight / 2,
+          paddingBottom: tabBarHeight + 20,
           paddingTop: 15,
+          gap: 28,
         }}
         data={videoNews}
-        estimatedItemSize={280}
-        ItemSeparatorComponent={() => <Stack h="$1.5" />}
+        estimatedItemSize={283}
         keyExtractor={keyExtractor}
-        ListFooterComponent={isFetchingNextPage ? <Spinner /> : null}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator /> : null}
         // ListHeaderComponent={renderHeader}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
+        recycleItems={false}
         refreshControl={
           <RefreshControl
             onRefresh={refetchByUser}
@@ -81,8 +91,6 @@ function LiveHome() {
           />
         }
         renderItem={renderItem}
-        scrollEnabled={!isPending}
-        showsVerticalScrollIndicator={false}
       />
     </Screen>
   );

@@ -18,6 +18,5 @@ export const formatSlugHook =
       return createSlug(data[fallback]);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return value;
   };

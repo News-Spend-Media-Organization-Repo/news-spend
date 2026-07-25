@@ -1,43 +1,43 @@
 import { CommonActions, useNavigation } from "@react-navigation/native";
-import { Coins } from "@tamagui/lucide-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInDays, differenceInHours, endOfWeek } from "date-fns";
+import { Card } from "heroui-native";
+import { CoinsIcon } from "phosphor-react-native";
 import { useRef } from "react";
+import { View } from "react-native";
 import { toast } from "sonner-native";
-import {
-  Card,
-  ScrollView,
-  Separator,
-  Stack,
-  Unspaced,
-  XStack,
-  YStack,
-} from "tamagui";
-import { CaretLeft } from "tamagui-phosphor";
 
-import { ConnectBrandDialog } from "#/components/discover/connectBrand-dialog";
-import { Screen } from "#/components/Screen";
-import { Button, Text } from "#/components/ui";
+import { ScreenHeader } from "#/components";
+import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
+import { Button } from "#/components/heroui/button";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { useFocusBackHandler } from "#/hooks/useBackHandler";
 import { orpc } from "#/lib/orpc";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 
 const BoostLuck = () => {
   const navigation = useNavigation("BoostLuck");
   const advertCount = useRef(0);
+  const queryClient = useQueryClient();
   const { data } = useQuery(orpc.lotteryTicket.getByUser.queryOptions());
   const boostLuckMutation = useMutation(
     orpc.lotteryTicket.boostLuck.mutationOptions({
-      onSuccess: (data) => {
+      onSuccess: () => {
         advertCount.current += 1;
         toast.success("Luck Boosted!", {
           description: "",
         });
+        queryClient.invalidateQueries({
+          queryKey: orpc.lotteryTicket.getByUser.queryKey(),
+        });
+      },
+      onError: (error) => {
+        toast.error("Failed to boost luck", {
+          description: error.message,
+        });
       },
     })
   );
-
-  const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
 
   const goToDiscoverHome = () => {
     navigation.dispatch(
@@ -52,7 +52,7 @@ const BoostLuck = () => {
   useFocusBackHandler(goToDiscoverHome);
 
   const onCountdownComplete = () => {
-    boostLuckMutation.mutate({});
+    boostLuckMutation.mutate(undefined);
   };
 
   const onDialogOpen = () => {
@@ -83,97 +83,75 @@ const BoostLuck = () => {
       : `${hoursLeft} hour${hoursLeft > 1 ? "s" : ""}`;
 
   return (
-    <Screen gap="$4">
-      <XStack ai="center" bg="$p500" gap="$2.5" pt={insets.paddingTop} px="$2">
-        <Button
-          gap="$2"
-          ghost
-          h="auto"
-          onPress={() => goToDiscoverHome()}
-          p="$0"
-          py="$2"
-        >
-          <Button.Icon color="#fff">
-            <CaretLeft />
-          </Button.Icon>
-          <Button.Text color="#fff" fos="$4">
-            Buy Lottery Tickets
-          </Button.Text>
-        </Button>
-        <Text
-          color="#fff"
-          ml="auto"
-          onPress={() => navigation.navigate("LotteryRules")}
-        >
-          Rules
-        </Text>
-      </XStack>
+    <Screen className="gap-4 pb-safe" systemBarStyle="light">
+      <ScreenHeader
+        right={
+          <Text
+            className="text-white"
+            onPress={() => navigation.navigate("LotteryRules")}
+          >
+            Rules
+          </Text>
+        }
+        title="Boost Your Entries"
+      />
 
-      <ScrollView gap="$5" pb={insets.paddingBottom} px="$4">
-        <Stack gap="$4">
-          <Stack gap="$2">
-            <Text fos="$7" lh="$7" ta="center">
-              Win Apple Watch, Gift Cards, 1000 points and more
-            </Text>
-            <Text ta="center">
-              Countdown:{" "}
-              <Text color="$p500" fos="$6">
-                {timeLeft}
-              </Text>{" "}
-              left
-            </Text>
-          </Stack>
+      <View className="gap-5 px-4 pt-2">
+        <View className="gap-2">
+          <Text className="text-center text-xl">
+            Win Dream Points, airtime, data bundles, and other prizes
+          </Text>
+          <Text className="text-center">
+            Countdown: <Text className="text-lg text-p-500">{timeLeft}</Text>{" "}
+            left
+          </Text>
+        </View>
 
-          <Card bg="$s300" p="$0" px="$6">
-            <XStack ai="center" jc="space-between" minHeight="$9">
-              <Stack ai="center" jc="center">
-                <Text fos="$8">{data?.lottery_tickets?.count ?? 0} </Text>
-                <Text>
-                  Ticket
-                  {(data?.lottery_tickets?.count ?? 0 > 1) ? "s" : ""}
-                </Text>
-              </Stack>
+        <Card className="rounded-md bg-s-300 p-0 px-6">
+          <View className="min-h-18 flex-row items-center justify-between">
+            <View className="items-center justify-center">
+              <Text className="text-2xl">
+                {data?.lottery_tickets?.count ?? 0}
+              </Text>
+              <Text>
+                Ticket
+                {(data?.lottery_tickets?.count ?? 0) > 1 ? "s" : ""}
+              </Text>
+            </View>
 
-              <Separator als="stretch" bw="$1" marginHorizontal={15} vertical />
+            <View className="mx-3.75 w-px self-stretch bg-gray-300" />
 
-              <Button
-                ghost
-                h="auto"
-                onPress={() => navigation.navigate("GetTicket")}
-              >
-                <Button.Text color="$p400" textDecorationLine="underline">
-                  Purchase more tickets
-                </Button.Text>
-              </Button>
-            </XStack>
-          </Card>
-
-          <Unspaced>
-            <Text fos={15} mt="$1" mx="$1">
-              Buy 10 or more tickets and your win ratio increases to more than
-              50%.
-            </Text>
-          </Unspaced>
-
-          <YStack gap="$4">
-            <Text ta="center">Our sponsors wish you good luck.</Text>
-
-            <ConnectBrandDialog
-              asChild
-              onCountdownComplete={onCountdownComplete}
-              onOpen={onDialogOpen}
+            <Button
+              className="h-auto"
+              onPress={() => navigation.navigate("GetTicket")}
+              variant="ghost"
             >
-              <Button gap="$2" w="100%">
-                <Button.Icon>
-                  <Coins />
-                </Button.Icon>
-                <Button.Text>Boost Your Luck</Button.Text>
-              </Button>
-            </ConnectBrandDialog>
-          </YStack>
-        </Stack>
-      </ScrollView>
+              <Button.Label className="text-p-400 underline">
+                Get more entries
+              </Button.Label>
+            </Button>
+          </View>
+        </Card>
+
+        <View className="gap-4">
+          <Text className="text-center">Our sponsors wish you good luck.</Text>
+
+          <PartnerAdDialog
+            asChild
+            onCountdownComplete={onCountdownComplete}
+            onOpen={onDialogOpen}
+          >
+            <Button className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
+              <CoinsIcon color="white" size={20} />
+              <Button.Label className="font-semibold text-white">
+                Boost Your Entries
+              </Button.Label>
+            </Button>
+          </PartnerAdDialog>
+        </View>
+      </View>
     </Screen>
   );
 };
+
 export default BoostLuck;

@@ -1,8 +1,9 @@
 import { ErrorBoundary } from "@sentry/react-native";
 import type React from "react";
-import { Heading, Stack, Text } from "tamagui";
+import { View } from "react-native";
 
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Text } from "../ui";
 
 type NavigatorFallbackProps = {
   error: unknown;
@@ -14,23 +15,22 @@ type NavigatorFallbackProps = {
 const NavigatorFallbackComponent: React.FC<NavigatorFallbackProps> = ({
   resetError,
 }) => (
-  <Stack ai="center" f={1} jc="center" p="$4">
-    <Heading mb="$2">Oops!</Heading>
-    <Text mb="$4" ta="center">
+  <View className="flex-1 items-center justify-center p-4">
+    <Text className="mb-2 font-semibold text-lg">Oops!</Text>
+    <Text className="mb-4 text-center">
       Something unexpected happened. We've been notified and are working on a
       fix.
     </Text>
-    <Stack flexDirection="row" gap="$2">
+    <View className="flex-row gap-2">
       <Button
         onPress={() => {
-          // resetError is provided by ErrorBoundary when fallback is a function
           resetError?.();
         }}
       >
-        <Button.Text>Try Again</Button.Text>
+        <Button.Label>Try Again</Button.Label>
       </Button>
-    </Stack>
-  </Stack>
+    </View>
+  </View>
 );
 
 export const NavigatorErrorBoundary = ({

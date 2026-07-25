@@ -1,7 +1,7 @@
 import {
-  type AudioPlaylist,
-  type AudioPlaylistOptions,
-  createAudioPlaylist,
+  type AudioPlayer,
+  createAudioPlayer,
+  setAudioModeAsync,
 } from "expo-audio";
 import type { Station } from "radio-browser-api";
 import { toast } from "sonner-native";
@@ -10,6 +10,7 @@ import { proxy, subscribe, useSnapshot } from "valtio";
 import { storage } from "#/utils/storage";
 
 const TIMER_THRESHOLD = 1800;
+const HTTP_TO_HTTPS = /^http:/;
 
 export type TrackInfo = {
   id: string;
@@ -59,29 +60,171 @@ function loadPersistedState(): PlayerState {
 
 export const playerState = proxy<PlayerState>(loadPersistedState());
 
-// Persist state, explicitly excluding timerRef and runtime-only fields
 subscribe(playerState, () => {
   const { timerRef, currentTrack, isReady, ...persistable } = playerState;
   storage.set("playerState", JSON.stringify(persistable));
 });
 
-// --- Playlist singleton ---
+// --- Player singleton ---
 
-let audioPlaylist: AudioPlaylist | null = null;
+const GLOBAL_AUDIO_KEY = "__newsSpendAudioPlayer" as const;
+const globalForAudio = globalThis as typeof globalThis & {
+  [GLOBAL_AUDIO_KEY]?: AudioPlayer | null;
+};
+
+function getStoredPlayer(): AudioPlayer | null {
+  return globalForAudio[GLOBAL_AUDIO_KEY] ?? null;
+}
+
+function setStoredPlayer(player: AudioPlayer | null): void {
+  globalForAudio[GLOBAL_AUDIO_KEY] = player;
+}
+
+let audioPlayer: AudioPlayer | null = getStoredPlayer();
 let currentStationList: Station[] = [];
+let currentStationIndex = -1;
+let streamFailureTimeout: NodeJS.Timeout | null = null;
+
+const STREAM_TIMEOUT_MS = 15_000;
+
+function clearStreamTimeout() {
+  if (streamFailureTimeout) {
+    clearTimeout(streamFailureTimeout);
+    streamFailureTimeout = null;
+  }
+}
+
+function disposePlayer(): void {
+  const player = audioPlayer;
+  audioPlayer = null;
+  setStoredPlayer(null);
+  lastRegisteredTrackId = null;
+  if (!player) {
+    return;
+  }
+  try {
+    player.setActiveForLockScreen(false);
+  } catch {
+    // ignore
+  }
+  try {
+    player.pause();
+  } catch {
+    // ignore
+  }
+  try {
+    player.destroy();
+  } catch {
+    // ignore
+  }
+}
+
+function resetPlayerState() {
+  disposePlayer();
+  currentStationList = [];
+  currentStationIndex = -1;
+  playerState.currentTrack = null;
+  playerState.hasNext = false;
+  playerState.hasPrevious = false;
+  playerState.isReady = false;
+}
+
+function setStreamTimeout(stationName: string) {
+  clearStreamTimeout();
+  streamFailureTimeout = setTimeout(() => {
+    if (
+      audioPlayer &&
+      !audioPlayer.playing &&
+      !audioPlayer.isBuffering &&
+      !audioPlayer.isLoaded
+    ) {
+      resetPlayerState();
+      toast.info("Unable to connect to station", {
+        description: `${stationName} is not responding. Please try another station.`,
+      });
+    }
+    streamFailureTimeout = null;
+  }, STREAM_TIMEOUT_MS);
+}
+
+let lastRegisteredTrackId: string | null = null;
+
+function registerLockScreen() {
+  const player = audioPlayer;
+  if (!player) {
+    return;
+  }
+  const trackId = playerState.currentTrack?.id ?? null;
+  if (trackId === lastRegisteredTrackId) {
+    return;
+  }
+  lastRegisteredTrackId = trackId;
+  try {
+    player.setActiveForLockScreen(
+      true,
+      {
+        title: playerState.currentTrack?.name || "Live Radio",
+        artist: playerState.currentTrack?.genre || "News Spend Radio",
+      },
+      {
+        isLiveStream: true,
+      }
+    );
+  } catch {
+    // Lock screen control not available on this platform
+  }
+}
+
+function unregisterLockScreen() {
+  const player = audioPlayer;
+  if (!player) {
+    return;
+  }
+  try {
+    player.setActiveForLockScreen(false);
+  } catch {
+    // ignore
+  }
+}
+
+async function configureAudioSession() {
+  try {
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+    });
+  } catch {
+    // Non-critical — may already be configured
+  }
+}
 
 export function setupAudio() {
-  // Destroy existing playlist if any (e.g. re-login without closing app)
-  if (audioPlaylist) {
-    audioPlaylist.destroy();
-    audioPlaylist = null;
+  void configureAudioSession();
+
+  const existing = audioPlayer ?? getStoredPlayer();
+  if (existing && existing !== audioPlayer) {
+    try {
+      existing.pause();
+    } catch {
+      // ignore
+    }
+    try {
+      existing.destroy();
+    } catch {
+      // ignore
+    }
+  }
+  if (audioPlayer) {
+    return;
   }
 
-  audioPlaylist = createAudioPlaylist({ sources: [], loop: "none" });
+  audioPlayer = createAudioPlayer({ uri: "" });
+  setStoredPlayer(audioPlayer);
 
-  // Background-safe listener — fires even when app is backgrounded
-  audioPlaylist.addListener("playlistStatusUpdate", ({ playing }) => {
+  audioPlayer.addListener("playbackStatusUpdate", ({ playing }) => {
     if (playing) {
+      clearStreamTimeout();
       startTimer();
     } else {
       stopTimer();
@@ -91,8 +234,14 @@ export function setupAudio() {
   playerState.isReady = true;
 }
 
-export function getAudioPlaylist(): AudioPlaylist | null {
-  return audioPlaylist;
+// AppState.addEventListener("change", (nextState) => {
+//   if (nextState === "background" && audioPlayer && !audioPlayer.playing) {
+//     releaseAudioPlaylist();
+//   }
+// });
+
+export function getAudioPlaylist(): AudioPlayer | null {
+  return audioPlayer;
 }
 
 // --- Helpers ---
@@ -111,15 +260,14 @@ if (hasDayChanged(playerState.lastResetDate)) {
 
 function stationToTrack(station: Station): TrackInfo {
   let trackUrl: string | undefined;
-
   if (station?.url?.startsWith("https:")) {
     trackUrl = station.url;
   } else if (station?.urlResolved?.startsWith("https:")) {
     trackUrl = station.urlResolved;
   } else if (station.url) {
-    trackUrl = station.url.replace(/^http:/, "https:");
+    trackUrl = station.url.replace(HTTP_TO_HTTPS, "https:");
   } else if (station.urlResolved) {
-    trackUrl = station.urlResolved.replace(/^http:/, "https:");
+    trackUrl = station.urlResolved.replace(HTTP_TO_HTTPS, "https:");
   }
 
   return {
@@ -132,120 +280,142 @@ function stationToTrack(station: Station): TrackInfo {
   };
 }
 
-function updatePlaylistState() {
-  if (!audioPlaylist) {
-    return;
-  }
-  playerState.hasNext =
-    audioPlaylist.currentIndex < audioPlaylist.trackCount - 1;
-  playerState.hasPrevious = audioPlaylist.currentIndex > 0;
-}
-
-// Live radio streams can't be resumed — force a fresh connection by
-// removing and re-inserting the source at the same index
-function reloadCurrentStream() {
-  if (!audioPlaylist) {
-    return;
-  }
-  const station = currentStationList[audioPlaylist.currentIndex];
-  if (!station) {
-    return;
-  }
-
-  const track = stationToTrack(station);
-  playerState.currentTrack = track;
-
-  const index = audioPlaylist.currentIndex;
-  audioPlaylist.remove(index);
-  audioPlaylist.insert({ uri: track.url }, index);
-  audioPlaylist.skipTo(index);
-  audioPlaylist.play();
+function updateNavigationState() {
+  const list = currentStationList;
+  const idx = currentStationIndex;
+  playerState.hasNext = idx >= 0 && idx < list.length - 1;
+  playerState.hasPrevious = idx > 0;
 }
 
 // --- Playback controls ---
 
 export const releaseAudioPlaylist = () => {
-  if (audioPlaylist) {
-    audioPlaylist.clear();
-    audioPlaylist.destroy();
-    audioPlaylist = null;
-  }
+  clearStreamTimeout();
+  stopTimer();
+  disposePlayer();
   currentStationList = [];
+  currentStationIndex = -1;
   playerState.currentTrack = null;
   playerState.hasNext = false;
   playerState.hasPrevious = false;
   playerState.isReady = false;
 };
 
-export const playNext = () => {
-  if (!(audioPlaylist && playerState.hasNext)) {
+function playStation(station: Station, stationList: Station[], index: number) {
+  if (!audioPlayer) {
     return;
   }
-  audioPlaylist.next();
-  updatePlaylistState();
-  reloadCurrentStream();
+
+  const track = stationToTrack(station);
+  if (!track.url) {
+    toast.info("Unable to play this station. Please try another.");
+    return;
+  }
+
+  clearStreamTimeout();
+  stopTimer();
+
+  audioPlayer.replace({ uri: track.url });
+  audioPlayer.play();
+
+  currentStationList = stationList;
+  currentStationIndex = index;
+  playerState.currentTrack = track;
+  registerLockScreen();
+  updateNavigationState();
+  setStreamTimeout(station.name ?? "Unknown Station");
+}
+
+export const playNext = () => {
+  if (!(audioPlayer && playerState.hasNext)) {
+    return;
+  }
+  const nextIndex = currentStationIndex + 1;
+  const nextStation = currentStationList[nextIndex];
+  if (!nextStation) {
+    return;
+  }
+  playStation(nextStation, currentStationList, nextIndex);
 };
 
 export const playPrevious = () => {
-  if (!(audioPlaylist && playerState.hasPrevious)) {
+  if (!(audioPlayer && playerState.hasPrevious)) {
     return;
   }
-  audioPlaylist.previous();
-  updatePlaylistState();
-  reloadCurrentStream();
+  const prevIndex = currentStationIndex - 1;
+  const prevStation = currentStationList[prevIndex];
+  if (!prevStation) {
+    return;
+  }
+  playStation(prevStation, currentStationList, prevIndex);
 };
 
-// Live radio can't be resumed — reload the stream URL when unpausing
 export const togglePlayback = () => {
-  if (!audioPlaylist) {
+  if (!audioPlayer) {
     return;
   }
-  if (audioPlaylist.playing) {
-    audioPlaylist.pause();
+  if (audioPlayer.playing) {
+    audioPlayer.pause();
   } else {
-    reloadCurrentStream();
+    // Live radio can't be resumed — reload the current stream
+    const station = currentStationList[currentStationIndex];
+    if (station) {
+      playStation(station, currentStationList, currentStationIndex);
+    }
   }
 };
 
 export const loadTrack = (item: Station, stationList?: Station[]) => {
+  if (!playerState.isReady && audioPlayer) {
+    disposePlayer();
+  }
+
   const stations = stationList?.length ? stationList : [item];
   const startIndex = Math.max(
     0,
     stations.findIndex((s) => s?.id === item?.id)
   );
-  const tracks = stations.map(stationToTrack).filter((t) => t.url);
 
-  if (!tracks.length) {
+  const track = stationToTrack(item);
+  if (!track.url) {
     toast.info(
       "There was an error loading the station. Please try another station."
     );
     return;
   }
 
-  playerState.currentTrack = stationToTrack(item);
+  clearStreamTimeout();
+  stopTimer();
+  playerState.currentTrack = null;
+  playerState.hasNext = false;
+  playerState.hasPrevious = false;
 
   try {
-    if (audioPlaylist) {
-      audioPlaylist.clear();
-      for (const track of tracks) {
-        audioPlaylist.add({ uri: track.url });
-      }
-    } else {
-      // Fallback if setupAudio wasn't called — create on the fly
-      const options: AudioPlaylistOptions = {
-        sources: tracks.map((t) => ({ uri: t.url })),
-        loop: "none",
-      };
-      audioPlaylist = createAudioPlaylist(options);
+    if (!audioPlayer) {
+      audioPlayer = createAudioPlayer({ uri: "" });
+      setStoredPlayer(audioPlayer);
+      audioPlayer.addListener("playbackStatusUpdate", ({ playing }) => {
+        if (playing) {
+          clearStreamTimeout();
+          startTimer();
+        } else {
+          stopTimer();
+        }
+      });
       playerState.isReady = true;
     }
 
     currentStationList = stations;
-    audioPlaylist.skipTo(startIndex);
-    audioPlaylist.play();
-    updatePlaylistState();
+    playStation(item, stations, startIndex);
   } catch (error) {
     console.error(error);
+    disposePlayer();
+    currentStationList = [];
+    currentStationIndex = -1;
+    playerState.currentTrack = null;
+    playerState.hasNext = false;
+    playerState.hasPrevious = false;
+    playerState.isReady = false;
     toast.info("Playback Error", {
       description:
         "There was an error playing this station. Please try another station.",

@@ -61,7 +61,7 @@ export class LotteryEngineError extends Error {
 }
 
 export class LotteryEngine {
-  private payload: import("payload").BasePayload;
+  private readonly payload: import("payload").BasePayload;
   private static readonly CONSECUTIVE_ROUNDS_THRESHOLD = 4;
   private static readonly HIGH_TIER_PROBABILITY = 0.0001; // 1 in 10,000
   private static readonly MID_TIER_PROBABILITY = 0.0002; // 1 in 5,000
@@ -87,7 +87,7 @@ export class LotteryEngine {
 
       if (!currentRound.docs[0]) {
         throw new LotteryEngineError(
-          "No active lottery found",
+          "No active giveaway found",
           "NO_ACTIVE_LOTTERY"
         );
       }
@@ -160,7 +160,7 @@ export class LotteryEngine {
 
       return {
         success: true,
-        message: "Lottery draw completed",
+        message: "Giveaway draw completed",
         totalParticipants: tickets.docs.length,
         totalWinners: winners.length,
         winners,
@@ -232,7 +232,7 @@ export class LotteryEngine {
    */
   private selectPrize(
     tier: "HIGH" | "MID" | "LOW" | null,
-    ticket: LotteryTicket
+    _ticket: LotteryTicket
   ) {
     // Default to LOW tier if null
     if (!tier) {
@@ -391,12 +391,12 @@ export class LotteryEngine {
       });
 
       if (!lottery) {
-        errors.push("Lottery not found");
+        errors.push("Giveaway not found");
         return { valid: false, errors };
       }
 
       if (!lottery.isActive) {
-        errors.push("Lottery is not active");
+        errors.push("Giveaway is not active");
       }
 
       const now = new Date();
@@ -404,7 +404,7 @@ export class LotteryEngine {
 
       if (now < endDate) {
         errors.push(
-          `Lottery has not ended yet. Ends at: ${endDate.toISOString()}`
+          `Giveaway has not ended yet. Ends at: ${endDate.toISOString()}`
         );
       }
 
@@ -415,7 +415,7 @@ export class LotteryEngine {
       });
 
       if (tickets.docs.length === 0) {
-        errors.push("No participants in this lottery");
+        errors.push("No participants in this giveaway");
       }
 
       return {

@@ -76,7 +76,7 @@ export async function sendLotteryNotification({
 
   await sendNotification({
     pushTokens: pushTokens.docs,
-    title: "Lottery has ended",
+    title: "Giveaway has ended",
     body: "Check to see if you won",
     data: {
       lotteryId,

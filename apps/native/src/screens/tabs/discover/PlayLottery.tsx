@@ -3,44 +3,76 @@ import {
   useIsFocused,
   useNavigation,
 } from "@react-navigation/native";
-import { FlashList } from "@shopify/flash-list";
-import { ChevronLeft } from "@tamagui/lucide-icons";
 import { useQueries } from "@tanstack/react-query";
 import {
   differenceInDays,
   differenceInHours,
   differenceInMinutes,
 } from "date-fns";
+import { LinkButton } from "heroui-native";
 import { useCallback, useState } from "react";
-import { H4, Separator, Square, Stack, XStack } from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import { Button, Image, Text } from "#/components/ui";
+import { Platform, ScrollView, View } from "react-native";
+import { useSnapshot } from "valtio";
+import { ScreenHeader } from "#/components";
+import { Button } from "#/components/heroui/button";
+import { Image } from "#/components/heroui/image";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
 import { authState } from "#/state/auth";
-import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
+
+const MAX_PARTICIPANTS_SHOWN = 20;
+
+const prizes = [
+  {
+    uri: "https://www.pngall.com/wp-content/uploads/15/Apple-Watch-PNG-Photos.png",
+    key: "watch",
+  },
+  {
+    uri: "https://freebiehive.com/wp-content/uploads/2023/07/iphone-14-pro-png.jpg",
+    key: "iphone",
+  },
+  {
+    uri: "https://w7.pngwing.com/pngs/263/706/png-transparent-gift-card-business-christmas-gift-gift-miscellaneous-ribbon-rectangle-thumbnail.png",
+    key: "gift-card",
+  },
+  {
+    uri: "https://png.pngtree.com/png-vector/20210521/ourmid/pngtree-golden-coins-stacks-lots-money-finance-business-profits-and-wealth-gold-png-image_3327583.jpg",
+    key: "coins",
+  },
+];
 
 const PlayLottery = () => {
   const navigation = useNavigation("PlayLottery");
   const isFocused = useIsFocused();
-  const insets = useSafeAreaInsetsStyle(["bottom", "top"]);
-  const [lotteryTicketQuery, purchaseLogQuery, currentLotteryQuery] =
-    useQueries({
-      queries: [
-        orpc.lotteryTicket.get.queryOptions({
-          refetchInterval: 50_000,
-          enabled: isFocused,
-        }),
-        orpc.lotteryTicket.purchaseLog.queryOptions({
-          refetchInterval: 50_000,
-          enabled: isFocused,
-        }),
-        orpc.lottery.current.queryOptions({
-          refetchInterval: 60_000,
-          enabled: isFocused,
-        }),
-      ],
-    });
+  const { user } = useSnapshot(authState);
+  const isLoggedInNonGuest = !!user && !user.isAnonymous;
+
+  const [
+    lotteryTicketQuery,
+    purchaseLogQuery,
+    currentLotteryQuery,
+    myTicketQuery,
+  ] = useQueries({
+    queries: [
+      orpc.lotteryTicket.get.queryOptions({
+        refetchInterval: 50_000,
+        enabled: isFocused,
+      }),
+      orpc.lotteryTicket.purchaseLog.queryOptions({
+        refetchInterval: 50_000,
+        enabled: isFocused,
+      }),
+      orpc.lottery.current.queryOptions({
+        refetchInterval: 60_000,
+        enabled: isFocused,
+      }),
+      orpc.lotteryTicket.getByUser.queryOptions({
+        refetchInterval: 50_000,
+        enabled: isFocused && isLoggedInNonGuest,
+      }),
+    ],
+  });
 
   const [now, setNow] = useState(() => new Date());
 
@@ -68,7 +100,7 @@ const PlayLottery = () => {
   if (isLoading) {
     timeLeft = "Loading...";
   } else if (!currentLottery) {
-    timeLeft = "No active lottery";
+    timeLeft = "No active giveaway";
   } else if (hasEnded) {
     timeLeft = "Ended";
   } else if (daysLeft > 0) {
@@ -79,10 +111,39 @@ const PlayLottery = () => {
     timeLeft = `${minutesLeft}m`;
   }
 
-  // Only show the "left" suffix when there's an active countdown
   const showLeftSuffix = !(isLoading || !currentLottery || hasEnded);
+  const hasActiveLottery = !isLoading && Boolean(currentLottery) && !hasEnded;
+  const enterButtonLabel = isLoading
+    ? "Loading..."
+    : currentLottery
+      ? hasEnded
+        ? "Giveaway Ended"
+        : "Enter Giveaway"
+      : "No Active Giveaway";
+
+  const participants =
+    purchaseLogQuery.data?.slice(0, MAX_PARTICIPANTS_SHOWN) ?? [];
+  const myTicket = myTicketQuery.data;
+  const isCurrentUserListed = participants.some(
+    (item: any) => item.users?.id === user?.id
+  );
+
+  if (user?.id && myTicket && !isCurrentUserListed) {
+    const selfEntry = {
+      lottery_tickets: myTicket.lottery_tickets,
+      users: { id: user.id, username: user.username ?? user.name },
+    };
+    participants.splice(
+      Math.min(participants.length, MAX_PARTICIPANTS_SHOWN - 1),
+      1,
+      selfEntry
+    );
+  }
 
   const onTestLuckPress = () => {
+    if (!hasActiveLottery) {
+      return;
+    }
     if (authState.user && !authState.user.isAnonymous) {
       navigation.navigate("GetTicket");
     } else {
@@ -93,117 +154,108 @@ const PlayLottery = () => {
   };
 
   return (
-    <Screen contentContainerStyle={{ paddingBottom: insets.paddingBottom }}>
-      <XStack ai="center" bg="$p400" gap="$2.5" pt={insets.paddingTop} px="$2">
-        <Button
-          gap="$2"
-          ghost
-          h="auto"
-          onPress={() => navigation.goBack()}
-          p="$0"
-          py="$2"
-        >
-          <Button.Icon color="#fff">
-            <ChevronLeft />
-          </Button.Icon>
-          <Button.Text color="#fff" fos="$4">
-            Lottery Tickets
-          </Button.Text>
-        </Button>
-        <Text
-          color="#fff"
-          ml="auto"
-          onPress={() => navigation.navigate("LotteryRules")}
-        >
-          Rules
-        </Text>
-      </XStack>
-      <FlashList
-        contentContainerStyle={{ paddingBottom: 80 }}
-        data={purchaseLogQuery.data}
-        ItemSeparatorComponent={() => <Separator />}
-        ListHeaderComponent={
-          <Stack gap="$4" mb="$4">
-            <Stack bg="$p400" gap="$2" px="$2" py="$2">
-              <Text color="$p50" fos="$6" ta="center">
-                Win a Laptop, Phone, More points, and other household items
-              </Text>
-              <XStack gap="$2">
-                <Square
-                  bg="$p200"
-                  borderWidth={1}
-                  flex={1}
-                  h="$6"
-                  opacity={0.6}
-                >
-                  <Image
-                    contentFit="contain"
-                    source="https://www.pngall.com/wp-content/uploads/15/Apple-Watch-PNG-Photos.png"
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </Square>
-                <Square borderWidth={1} flex={1} h="$6">
-                  <Image
-                    contentFit="contain"
-                    source="https://freebiehive.com/wp-content/uploads/2023/07/iphone-14-pro-png.jpg"
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </Square>
-                <Square borderWidth={1} flex={1} h="$6">
-                  <Image
-                    contentFit="contain"
-                    source="https://w7.pngwing.com/pngs/263/706/png-transparent-gift-card-business-christmas-gift-gift-miscellaneous-ribbon-rectangle-thumbnail.png"
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </Square>
-                <Square borderWidth={1} flex={1} h="$6">
-                  <Image
-                    contentFit="contain"
-                    source="https://png.pngtree.com/png-vector/20210521/ourmid/pngtree-golden-coins-stacks-lots-money-finance-business-profits-and-wealth-gold-png-image_3327583.jpg"
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </Square>
-              </XStack>
-            </Stack>
-
-            <Stack ai="center" jc="center">
-              <Text fos="$4" fow="500">
-                Countdown: {timeLeft}
-                {showLeftSuffix ? " left" : ""}
-              </Text>
-
-              <Text fos="$6">
-                Total Participants:{" "}
-                <H4 color="$s500">{lotteryTicketQuery.data?.length ?? 0}</H4>
-              </Text>
-            </Stack>
-          </Stack>
-        }
-        renderItem={({ item }) => (
-          <XStack
-            gap="$1"
-            jc="space-between"
-            key={item.lottery_tickets.id}
-            p="$2"
+    <Screen
+      className=""
+      SystemBarsProps={{
+        style: {
+          navigationBar: "dark",
+          statusBar: "light",
+        },
+      }}
+    >
+      <ScreenHeader
+        right={
+          <Text
+            className="text-white"
+            onPress={() => navigation.navigate("LotteryRules")}
           >
-            <Text color="$p400">User: {item.users.username}</Text>
-            <Text color="$s400">
-              bought {item.lottery_tickets.count} ticket
-              {+item.lottery_tickets.count > 1 ? "s" : ""}
-            </Text>
-          </XStack>
-        )}
-        scrollEnabled={false}
+            Rules
+          </Text>
+        }
+        title="Giveaway"
       />
-      <Button
-        bottom={insets.paddingBottom + 20}
-        left={0}
-        mx="$5"
-        onPress={onTestLuckPress}
-        pos="absolute"
-        right={0}
+
+      <View className="mb-4 gap-4">
+        <View className="gap-2 bg-p-500 px-2 py-2">
+          <Text className="text-center text-lg text-p-50">
+            Win Dream Points, airtime, data bundles, electronics, and other
+            prizes
+          </Text>
+          <View className="flex-row gap-2">
+            {prizes.map((prize, index) => (
+              <View
+                className="flex-1 border border-gray-400"
+                key={prize.key}
+                style={{ aspectRatio: 1 }}
+              >
+                <Image
+                  className={index === 0 ? "opacity-60" : ""}
+                  contentFit="contain"
+                  source={{ uri: prize.uri }}
+                  style={{ width: "100%", height: "100%" }}
+                />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View className="items-center justify-center">
+          <Text className="font-semibold text-lg">
+            Countdown: {timeLeft}
+            {showLeftSuffix ? " left" : ""}
+          </Text>
+          <Text className="text-xl">
+            Total Participants:{" "}
+            <Text className="font-bold text-s-500">
+              {lotteryTicketQuery.data?.length ?? 0}
+            </Text>
+          </Text>
+        </View>
+
+        <View className="flex-row flex-wrap justify-center px-4">
+          <Text className="text-gray-400 text-xs">
+            Not sponsored, endorsed, or administered by{" "}
+            {Platform.OS === "ios" ? "Apple Inc." : "Google LLC."}{" "}
+          </Text>
+          <LinkButton
+            onPress={() => navigation.navigate("LotteryRules")}
+            size="sm"
+          >
+            <LinkButton.Label className="text-p-400 text-xs underline">
+              See Official Rules
+            </LinkButton.Label>
+          </LinkButton>
+          <Text className="text-gray-400 text-xs">.</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="pb-24"
+        showsVerticalScrollIndicator={false}
       >
-        <Button.Text>Test My Luck</Button.Text>
+        {participants.map((item: any) => (
+          <View
+            className="border-gray-100 border-b"
+            key={item.lottery_tickets?.id}
+          >
+            <View className="flex-row justify-between gap-1 p-2">
+              <Text className="text-p-400">User: {item.users?.username}</Text>
+              <Text className="text-s-400">
+                entered {item.lottery_tickets?.count} ticket
+                {+(item.lottery_tickets?.count ?? 0) > 1 ? "s" : ""}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+
+      <Button
+        className="absolute right-5 bottom-safe-offset-2 left-5"
+        isDisabled={!hasActiveLottery}
+        onPress={onTestLuckPress}
+      >
+        <Button.Label>{enterButtonLabel}</Button.Label>
       </Button>
     </Screen>
   );

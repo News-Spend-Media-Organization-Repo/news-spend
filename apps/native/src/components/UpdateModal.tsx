@@ -1,9 +1,10 @@
-import { X } from "@tamagui/lucide-icons";
 import * as Updates from "expo-updates";
+import { Dialog } from "heroui-native";
 import { useCallback, useState } from "react";
-import { Dialog, H4, Paragraph, Unspaced, YStack } from "tamagui";
+import { View } from "react-native";
 
-import { Button } from "#/components/ui";
+import { Button } from "#/components/heroui/button";
+import { Text } from "#/components/heroui/text";
 
 export const useUpdateModal = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,67 +28,27 @@ export const useUpdateModal = () => {
   };
 
   const UpdateModalComponent = () => (
-    <Dialog modal onOpenChange={setIsOpen} open={isOpen}>
+    <Dialog isOpen={isOpen} onOpenChange={setIsOpen}>
       <Dialog.Portal>
-        <Dialog.Overlay
-          animation="slow"
-          bg="black"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-          key="overlay"
-          opacity={0.5}
-        />
-        <Dialog.Content
-          animateOnly={["transform", "opacity"]}
-          animation={[
-            "fast",
-            {
-              opacity: {
-                overshootClamping: true,
-              },
-            },
-          ]}
-          bordered
-          elevate
-          enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-          exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-          gap="$4"
-          key="content"
-          w="90%"
-        >
-          <YStack alignItems="center" gap="$3">
-            <H4 textAlign="center">Update Available</H4>
-            <Paragraph color="$gray.50" fos="$4" ta="center">
+        <Dialog.Overlay />
+        <Dialog.Content className="w-[90%]">
+          <Dialog.Close className="absolute top-3 right-3" variant="ghost" />
+
+          <View className="mb-4 items-center gap-3">
+            <Text variant="HeadingMedium">Update Available</Text>
+            <Text className="text-center text-subtle-text">
               A new version of the app is available. Restart to apply the
               update.
-            </Paragraph>
-          </YStack>
+            </Text>
+          </View>
 
           <Button onPress={handleUpdate}>
-            <Button.Text>Restart Now</Button.Text>
+            <Button.Label>Restart Now</Button.Label>
           </Button>
 
-          <Button onPress={hideUpdateModal} outlined>
-            <Button.Text>Later</Button.Text>
+          <Button className="mt-2" onPress={hideUpdateModal} variant="outline">
+            <Button.Label>Later</Button.Label>
           </Button>
-
-          <Unspaced>
-            <Dialog.Close asChild>
-              <Button
-                br="$9"
-                h="auto"
-                outlined
-                p="$1"
-                position="absolute"
-                right="$3"
-                top="$3"
-              >
-                <Button.Icon color="$p500">
-                  <X size={16} />
-                </Button.Icon>
-              </Button>
-            </Dialog.Close>
-          </Unspaced>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>

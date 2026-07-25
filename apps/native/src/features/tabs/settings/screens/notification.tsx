@@ -1,23 +1,21 @@
-import { Check, X } from "@tamagui/lucide-icons";
 import { useMutation } from "@tanstack/react-query";
-import { useCallback } from "react";
-import {
-  Label,
-  ListItem,
-  Separator,
-  SizableText,
-  Spinner,
-  Stack,
-  XStack,
-  YGroup,
-} from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import { Switch } from "#/components/ui/Switch";
+import { Spinner } from "heroui-native";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
+import { Switch } from "heroui-native/switch";
+import { useCallback, useState } from "react";
+import { View } from "react-native";
+import { toast } from "sonner-native";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import { useUser } from "#/hooks/auth";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { orpc, type RouterInputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type NotificationType =
   RouterInputs["notificationSettings"]["update"]["notification_type"];
@@ -27,6 +25,18 @@ type NotificationConfig = {
   title: string;
   description: string;
 };
+
+// Scoped extension of the user type — ideally merged into the real User type
+// upstream so this cast can be removed.
+type UserWithNotifications = {
+  notificationPreferences?: {
+    types?: Partial<Record<NotificationType, boolean>>;
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
 
 const NOTIFICATION_CONFIGS: NotificationConfig[] = [
   {
@@ -54,15 +64,15 @@ const NOTIFICATION_CONFIGS: NotificationConfig[] = [
 type ItemProps = {
   config: NotificationConfig;
   checked: boolean;
+  isLoading: boolean;
   onToggle: (type: NotificationType, enabled: boolean) => void;
-  isLoading?: boolean;
 };
 
 const NotificationItem = ({
   config,
   checked,
-  onToggle,
   isLoading,
+  onToggle,
 }: ItemProps) => {
   const handleValueChange = useCallback(
     (enabled: boolean) => {
@@ -72,61 +82,57 @@ const NotificationItem = ({
   );
 
   return (
-    <YGroup.Item>
-      <ListItem>
-        <XStack ai="center" gap="$2" w="100%">
-          <Stack flex={1}>
-            <Label fos="$5" htmlFor={config.type} lh="$3">
-              {config.title}
-            </Label>
-            <SizableText color="$gray11" size="$3">
-              {config.description}
-            </SizableText>
-          </Stack>
-          <Switch
-            checked={checked}
-            disabled={isLoading}
-            id={config.type}
-            onCheckedChange={handleValueChange}
-          >
-            <Switch.Icon placement="left">
-              <X color="#fff" />
-            </Switch.Icon>
-            <Switch.Icon placement="right">
-              <Check color="#fff" />
-            </Switch.Icon>
-            <Switch.Thumb animation="quick" />
-          </Switch>
-        </XStack>
-      </ListItem>
-      <Separator />
-    </YGroup.Item>
+    <ListGroup.Item onPress={() => handleValueChange(!checked)}>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle>{config.title}</ListGroup.ItemTitle>
+        <ListGroup.ItemDescription>
+          <Text className="text-muted text-xs">{config.description}</Text>
+        </ListGroup.ItemDescription>
+      </ListGroup.ItemContent>
+      <ListGroup.ItemSuffix>
+        <Switch
+          isDisabled={isLoading}
+          isSelected={checked}
+          onSelectedChange={handleValueChange}
+        >
+          <Switch.Thumb />
+        </Switch>
+      </ListGroup.ItemSuffix>
+    </ListGroup.Item>
   );
 };
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
 
 export default function Notifications() {
   const { data: session } = useUser();
   const user = session?.user;
 
-  console.log(user?.notificationPreferences);
+  // Track which notification types have an in-flight mutation so we can
+  // disable only the toggled item rather than the whole list.
+  const [pendingTypes, setPendingTypes] = useState<Set<NotificationType>>(
+    () => new Set()
+  );
 
   const notificationSettingsMutation = useMutation(
     orpc.notificationSettings.update.mutationOptions({
       onMutate: async ({ notification_type, enabled }) => {
-        // Cancel outgoing refetch
+        setPendingTypes((prev) => new Set(prev).add(notification_type));
+
         await queryClient.cancelQueries({
           queryKey: userQueryOptions.queryKey,
         });
 
-        // Snapshot the previous value
         const previousData = queryClient.getQueryData(
           userQueryOptions.queryKey
         );
 
-        // Optimistically update to the new value
         queryClient.setQueryData(userQueryOptions.queryKey, (old: any) => {
-          if (!old) return old;
-
+          if (!old) {
+            return old;
+          }
           return {
             ...old,
             user: {
@@ -142,12 +148,11 @@ export default function Notifications() {
           };
         });
 
-        return { previousData };
+        return { previousData, notification_type };
       },
-      onError: (err, variables, context) => {
-        console.error("Failed to update notification settings:", err);
 
-        // Roll back on error
+      onError: (_err, _variables, context) => {
+        toast.error("Failed to update notification settings");
         if (context?.previousData) {
           queryClient.setQueryData(
             userQueryOptions.queryKey,
@@ -155,9 +160,15 @@ export default function Notifications() {
           );
         }
       },
-      onSettled: () => {
-        // Always refetch after error or success
-        // queryClient.invalidateQueries({ queryKey: userQueryOptions.queryKey });
+
+      onSettled: (_data, _error, _variables, context) => {
+        if (context?.notification_type) {
+          setPendingTypes((prev) => {
+            const next = new Set(prev);
+            next.delete(context.notification_type);
+            return next;
+          });
+        }
       },
     })
   );
@@ -168,44 +179,48 @@ export default function Notifications() {
         console.warn("Cannot update notifications: user not found");
         return;
       }
-
-      notificationSettingsMutation.mutate({
-        notification_type,
-        enabled,
-      });
+      notificationSettingsMutation.mutate({ notification_type, enabled });
     },
     [user?.id, notificationSettingsMutation]
   );
 
+  // Extract the types object so the reference is stable across renders when
+  // the data hasn't changed — keeps the useCallback memoisation effective.
+  const notifTypes = (user as UserWithNotifications | undefined)
+    ?.notificationPreferences?.types;
+
   const getNotificationStatus = useCallback(
-    (type: NotificationType): boolean =>
-      user?.notificationPreferences?.types?.[type] ?? false,
-    [user?.notificationPreferences?.types]
+    (type: NotificationType): boolean => notifTypes?.[type] ?? false,
+    [notifTypes]
   );
 
   if (!user) {
     return (
       <Screen>
-        <Stack ai="center" flex={1} jc="center">
-          <Spinner size="large" />
-        </Stack>
+        <View className="flex-1 items-center justify-center">
+          <Spinner size="lg" />
+        </View>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <YGroup alignSelf="center" separator={<Separator />} size="$4">
-        {NOTIFICATION_CONFIGS.map((config) => (
-          <NotificationItem
-            checked={getNotificationStatus(config.type)}
-            config={config}
-            isLoading={notificationSettingsMutation.isPending}
-            key={config.type}
-            onToggle={handleNotificationToggle}
-          />
+    <Screen systemBarStyle="light">
+      <ListGroup variant="transparent">
+        {NOTIFICATION_CONFIGS.map((config, index) => (
+          <View key={config.type}>
+            <NotificationItem
+              checked={getNotificationStatus(config.type)}
+              config={config}
+              isLoading={pendingTypes.has(config.type)}
+              onToggle={handleNotificationToggle}
+            />
+            {index < NOTIFICATION_CONFIGS.length - 1 && (
+              <Separator className="mx-4" />
+            )}
+          </View>
         ))}
-      </YGroup>
+      </ListGroup>
     </Screen>
   );
 }

@@ -1,8 +1,8 @@
 import type { NewsCategory } from "@news-spend-media/payload/types";
 import { useScrollToTop } from "@react-navigation/native";
-import type { FlashList, FlashListRef } from "@shopify/flash-list";
+import type { FlashListRef } from "@shopify/flash-list";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
 import {
   type Route,
@@ -10,7 +10,6 @@ import {
   TabBarIndicator,
   TabView,
 } from "react-native-tab-view";
-import { Spinner, useTheme, XStack } from "tamagui";
 
 import Latest from "#/components/News/categories/Latest";
 import NewsCategoryComponent from "#/components/News/categories/NewsCategory";
@@ -19,7 +18,6 @@ import { setTabName } from "#/state/route-state";
 export default function NewsHome() {
   const [index, setIndex] = useState(0);
   const layout = useWindowDimensions();
-  const theme = useTheme();
 
   const [categories] = useMMKVObject<NewsCategory["items"]>("CATEGORIES");
 
@@ -83,7 +81,7 @@ export default function NewsHome() {
           );
       }
     },
-    [routes, createSetRef]
+    [createSetRef]
   );
 
   const onIndexChange = useCallback(
@@ -101,7 +99,7 @@ export default function NewsHome() {
         bounces
         inactiveColor="gray"
         indicatorStyle={{
-          backgroundColor: theme.s50.val,
+          backgroundColor: "#fff",
         }}
         pressColor="transparent"
         renderIndicator={(indicatorProps) => {
@@ -110,7 +108,7 @@ export default function NewsHome() {
         }}
         scrollEnabled
         style={{
-          backgroundColor: theme.p500.val,
+          backgroundColor: "#00223d",
           height: 35,
         }}
         tabStyle={{
@@ -119,17 +117,20 @@ export default function NewsHome() {
         }}
       />
     ),
-    [theme, index]
+    [index]
   );
 
   return (
     <TabView
       commonOptions={{
         labelStyle: {
-          color: theme.s50.val,
+          color: "#fff",
           fontSize: 14,
           fontFamily: "Inter-SemiBold",
           textTransform: "capitalize",
+        },
+        sceneStyle: {
+          backgroundColor: "white",
         },
       }}
       initialLayout={{ width: layout.width, height: 0 }}
@@ -138,9 +139,9 @@ export default function NewsHome() {
       onIndexChange={onIndexChange}
       pagerStyle={{ zIndex: -3 }}
       renderLazyPlaceholder={() => (
-        <XStack ai="center" backgroundColor="$background" flex={1} jc="center">
-          <Spinner />
-        </XStack>
+        <View className="flex-1 items-center justify-center bg-white">
+          <ActivityIndicator />
+        </View>
       )}
       renderScene={renderScene}
       renderTabBar={renderTabBar}

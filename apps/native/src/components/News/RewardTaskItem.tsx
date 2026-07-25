@@ -1,11 +1,11 @@
 import type { RewardTaskItem } from "@news-spend-media/api/router/news/content-builders";
-import { Linking, Platform } from "react-native";
-import { Stack, Text, XStack, YStack } from "tamagui";
-
-import { Button, Image } from "#/components/ui";
+import { Chip } from "heroui-native";
+import { Linking, Platform, Pressable, View } from "react-native";
 import { getImageData } from "#/utils/getImageData";
+import { Image } from "../heroui/image";
+import { Text } from "../heroui/text";
 
-function RewardTaskItem({ item }: { item: RewardTaskItem }) {
+function RewardTaskItemCard({ item }: { item: RewardTaskItem }) {
   const ad = item.payload;
   const { url, blurhash } = getImageData(ad?.media);
 
@@ -14,11 +14,12 @@ function RewardTaskItem({ item }: { item: RewardTaskItem }) {
   }
 
   const onPress = async () => {
-    const url =
-      Platform.select({
-        ios: ad?.links?.iosAppStore,
-        android: ad?.links?.androidPlayStore,
-      }) ?? ad?.links?.website;
+    const platformUrl = Platform.select({
+      ios: ad?.links?.iosAppStore,
+      android: ad?.links?.androidPlayStore,
+    });
+
+    const url = platformUrl || ad?.links?.website;
 
     if (url) {
       await Linking.openURL(url);
@@ -26,43 +27,31 @@ function RewardTaskItem({ item }: { item: RewardTaskItem }) {
   };
 
   return (
-    <Stack gap="$2.5" onPress={onPress}>
-      <XStack gap="$4">
+    <Pressable className="gap-2.5" onPress={onPress}>
+      <View className="flex-row gap-4">
         <Image
-          borderRadius={10}
+          className="size-25 rounded-[10px]"
           contentFit="cover"
-          h={100}
-          placeholder={blurhash}
+          placeholder={{ blurhash }}
           recyclingKey={item?.id}
           source={url}
-          w={100}
         />
-        <YStack flex={1} gap="$4" jc="center">
-          <XStack jc="space-between">
-            <Text color="$p500" fontWeight="700">
-              {ad?.title}
-            </Text>
-          </XStack>
+        <View className="flex-1 justify-center gap-4">
+          <View className="flex-row justify-between">
+            <Text className="font-bold">{ad?.title}</Text>
+          </View>
           <Text ellipsizeMode="tail" numberOfLines={2}>
             {ad?.condition}
           </Text>
-          <XStack alignItems="center" jc="flex-end">
-            <Button
-              als="flex-end"
-              bg="$color.s300"
-              br="$10"
-              fd="row"
-              h="auto"
-              px="$2"
-              py="$1"
-            >
-              <Button.Text fos="$3">{ad?.points} points</Button.Text>
-            </Button>
-          </XStack>
-        </YStack>
-      </XStack>
-    </Stack>
+          <View className="flex-row items-center justify-end">
+            <Chip className="bg-s-300" size="sm">
+              {ad.points} points
+            </Chip>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
-export default RewardTaskItem;
+export default RewardTaskItemCard;

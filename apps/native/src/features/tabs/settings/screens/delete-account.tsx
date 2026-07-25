@@ -1,27 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
-import { AlertCircle } from "@tamagui/lucide-icons";
-import { CheckIcon } from "phosphor-react-native";
+import { Checkbox } from "heroui-native/checkbox";
+import { ControlField } from "heroui-native/control-field";
+import { Spinner } from "heroui-native/spinner";
+import { WarningCircleIcon } from "phosphor-react-native";
 import { useState } from "react";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
-import { Alert, Keyboard } from "react-native";
+import { Alert, Keyboard, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { toast } from "sonner-native";
-import {
-  Checkbox,
-  H3,
-  Label,
-  Paragraph,
-  Spinner,
-  Stack,
-  XStack,
-  YStack,
-} from "tamagui";
 import { z } from "zod";
-
-import { FormInput } from "#/components";
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui/Button";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import FormTextInput from "#/components/heroui/text-input";
 import { useDeleteAccount } from "#/hooks/auth";
 import { logout } from "#/state/auth";
 
@@ -69,11 +62,6 @@ function DeleteAccount() {
     });
 
     await logout();
-
-    // navigation.reset({
-    //   index: 0,
-    //   routes: [{ name: "Welcome" }],
-    // });
   };
 
   const handleError = (error: Error) => {
@@ -146,144 +134,105 @@ function DeleteAccount() {
   };
 
   return (
-    <Screen bg="$background" safeAreaEdges={["bottom"]}>
+    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={40}
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingTop: 20,
-          paddingBottom: 50,
-        }}
+        contentContainerClassName="gap-6 px-5 pt-5 pb-12"
         showsVerticalScrollIndicator={false}
       >
-        <Stack gap="$6">
-          <YStack
-            bg="$red2"
-            borderColor="$red8"
-            borderRadius="$4"
-            borderWidth={1}
-            gap="$3"
-            p="$4"
-          >
-            <XStack ai="center" gap="$2">
-              <AlertCircle color="$red10" size={20} />
-              <H3 color="$red11" m="$0">
-                Warning
-              </H3>
-            </XStack>
-            <Paragraph color="$red11" fontSize="$3">
-              Deleting your account is permanent and cannot be undone. This
-              action will:
-            </Paragraph>
-          </YStack>
+        {/* Warning card */}
+        <View className="gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+          <View className="flex-row items-center gap-2">
+            <Icon color="#dc2626" name={WarningCircleIcon} size={20} />
+            <Text className="font-bold text-lg text-red-600">Warning</Text>
+          </View>
+          <Text className="text-red-600">
+            Deleting your account is permanent and cannot be undone. This action
+            will:
+          </Text>
+        </View>
 
-          <YStack bg="$p50" borderRadius="$4" gap="$3" p="$4">
-            <Paragraph fontSize="$4" fontWeight="600">
-              What will be deleted:
-            </Paragraph>
-            <YStack gap="$2">
-              <XStack ai="flex-start" gap="$2">
-                <Paragraph>•</Paragraph>
-                <Paragraph flex={1} fontSize="$3">
-                  Your profile information (name, email, username, phone)
-                </Paragraph>
-              </XStack>
-              <XStack ai="flex-start" gap="$2">
-                <Paragraph>•</Paragraph>
-                <Paragraph flex={1} fontSize="$3">
-                  All your reward points and activities
-                </Paragraph>
-              </XStack>
-              <XStack ai="flex-start" gap="$2">
-                <Paragraph>•</Paragraph>
-                <Paragraph flex={1} fontSize="$3">
-                  Your comments and posts
-                </Paragraph>
-              </XStack>
-              <XStack ai="flex-start" gap="$2">
-                <Paragraph>•</Paragraph>
-                <Paragraph flex={1} fontSize="$3">
-                  All saved preferences and settings
-                </Paragraph>
-              </XStack>
-              <XStack ai="flex-start" gap="$2">
-                <Paragraph>•</Paragraph>
-                <Paragraph flex={1} fontSize="$3">
-                  Your account access (you will be logged out immediately)
-                </Paragraph>
-              </XStack>
-            </YStack>
-          </YStack>
+        {/* What will be deleted */}
+        <View className="gap-3 rounded-xl bg-blue-50 p-4">
+          <Text className="font-semibold text-base">What will be deleted:</Text>
+          <View className="gap-2">
+            <View className="flex-row items-start gap-2">
+              <Text>•</Text>
+              <Text className="flex-1">
+                Your profile information (name, email, username, phone)
+              </Text>
+            </View>
+            <View className="flex-row items-start gap-2">
+              <Text>•</Text>
+              <Text className="flex-1">
+                All your reward points and activities
+              </Text>
+            </View>
+            <View className="flex-row items-start gap-2">
+              <Text>•</Text>
+              <Text className="flex-1">Your comments and posts</Text>
+            </View>
+            <View className="flex-row items-start gap-2">
+              <Text>•</Text>
+              <Text className="flex-1">All saved preferences and settings</Text>
+            </View>
+            <View className="flex-row items-start gap-2">
+              <Text>•</Text>
+              <Text className="flex-1">
+                Your account access (you will be logged out immediately)
+              </Text>
+            </View>
+          </View>
+        </View>
 
-          <FormProvider {...formMethods}>
-            <YStack gap="$4">
-              <YStack gap="$2">
-                <Label fontSize="$4" fontWeight="600" htmlFor="password">
-                  Enter Your Password
-                </Label>
-                <Paragraph color="$gray.50" fontSize="$3">
-                  To confirm this action, please enter your password
-                </Paragraph>
-                <FormInput
-                  name="password"
-                  placeholder="Your password"
-                  secureTextEntry
-                />
-              </YStack>
+        {/* Form */}
+        <FormProvider {...formMethods}>
+          <View className="gap-4">
+            <FormTextInput
+              description="To confirm this action, please enter your password"
+              isPassword
+              label="Enter Your Password"
+              name="password"
+              placeholder="Your password"
+            />
 
-              <XStack gap="$3" jc="center">
-                <Checkbox
-                  ai="center"
-                  bg={hasReadConsequences ? "$color.p500" : "transparent"}
-                  boc={hasReadConsequences ? "$color.p500" : "gray"}
-                  bw={hasReadConsequences ? 0 : 1}
-                  checked={hasReadConsequences}
-                  h="$1.5"
-                  id="consequences"
-                  jc="center"
-                  mt="$2"
-                  onCheckedChange={(c) => setHasReadConsequences(c === true)}
-                  unstyled
-                  w="$1.5"
-                >
-                  <Checkbox.Indicator>
-                    <CheckIcon color="white" />
-                  </Checkbox.Indicator>
-                </Checkbox>
-
-                <Label flex={1} fontSize="$4" htmlFor="consequences" lh={18}>
+            <ControlField
+              className="flex-col items-start"
+              isSelected={hasReadConsequences}
+              onSelectedChange={setHasReadConsequences}
+            >
+              <View className="flex-row items-start gap-3">
+                <ControlField.Indicator>
+                  <Checkbox className="mt-0.5 rounded-sm border border-field-border" />
+                </ControlField.Indicator>
+                <Text className="flex-1">
                   I understand that this action is permanent and cannot be
                   reversed
-                </Label>
-              </XStack>
-            </YStack>
-          </FormProvider>
+                </Text>
+              </View>
+            </ControlField>
+          </View>
+        </FormProvider>
 
-          <YStack gap="$3" mt="$4">
-            <Button
-              bg="$red10"
-              disabled={deleteAccountMutation.isPending || !hasReadConsequences}
-              hoverStyle={{ bg: "$red11" }}
-              onPress={formMethods.handleSubmit(onSubmit)}
-              pressStyle={{ bg: "$red11" }}
-            >
-              {deleteAccountMutation.isPending ? (
-                <Button.Icon>
-                  <Spinner color="$s50" />
-                </Button.Icon>
-              ) : null}
-              <Button.Text>Delete My Account</Button.Text>
-            </Button>
+        {/* Buttons */}
+        <View className="gap-3">
+          <Button
+            isDisabled={deleteAccountMutation.isPending || !hasReadConsequences}
+            onPress={formMethods.handleSubmit(onSubmit)}
+            variant="danger"
+          >
+            {deleteAccountMutation.isPending ? <Spinner /> : null}
+            <Button.Label>Delete My Account</Button.Label>
+          </Button>
 
-            <Button
-              disabled={deleteAccountMutation.isPending}
-              onPress={() => navigation.goBack()}
-              outlined
-            >
-              <Button.Text color="$color">Cancel</Button.Text>
-            </Button>
-          </YStack>
-        </Stack>
+          <Button
+            isDisabled={deleteAccountMutation.isPending}
+            onPress={() => navigation.goBack()}
+            variant="ghost"
+          >
+            <Button.Label>Cancel</Button.Label>
+          </Button>
+        </View>
       </KeyboardAwareScrollView>
     </Screen>
   );

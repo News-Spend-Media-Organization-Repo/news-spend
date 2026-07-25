@@ -1,161 +1,113 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
-import { useLinkBuilder } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  getFocusedRouteNameFromRoute,
+  useLinkBuilder,
+} from "@react-navigation/native";
+import { cn } from "heroui-native";
+import { memo, useCallback, useEffect } from "react";
+import type { LayoutChangeEvent } from "react-native";
+import { View } from "react-native";
 import Animated, {
-  Easing,
-  FadeInDown,
-  FadeInRight,
-  FadeOutDown,
-  FadeOutLeft,
-  LayoutAnimationConfig,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Circle, SizableText, Stack, Text, XStack } from "tamagui";
-import { CaretDown } from "tamagui-phosphor";
-import { useSnapshot } from "valtio";
+import { Text } from "#/components/heroui/text";
+import { setTabBarHeight } from "#/state/route-state";
+import { FloatingOverlays } from "./floating-overlays";
 
-import MusicPlayer from "#/components/MusicPlayer";
-import { Button } from "#/components/ui";
-import { orpc } from "#/lib/orpc";
-import { routeState } from "#/state/route-state";
+// Root screen of each tab where the tab bar should show, plus the tab's own
+// route name (Home/Live/Shop/Discover). Both are needed: tabs are lazy by
+// default, so on a tab's first focus its nested stack hasn't mounted/reported
+// state back yet, and getFocusedRouteNameFromRoute briefly returns undefined
+// for that one render — falling back to the tab's own name. Without the tab
+// names here too, that render would incorrectly hide the tab bar for a frame
+// before the nested stack resolves and it pops back — a visible flicker.
+// Deliberately excludes Settings/SettingsHome — the tab bar is never shown
+// anywhere in the Settings tab, including its own root.
+const TAB_ROOT_ROUTES = new Set([
+  "NewsHome",
+  "LiveHome",
+  "ShopHome",
+  "DiscoverHome",
+  "Home",
+  "Live",
+  "Shop",
+  "Discover",
+]);
 
 function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const currentRoute = state.routes[state.index];
+  const focusedRouteName = getFocusedRouteNameFromRoute(currentRoute);
+  const isTabBarVisible = TAB_ROOT_ROUTES.has(
+    focusedRouteName ?? currentRoute.name
+  );
+
   const { buildHref } = useLinkBuilder();
-  const navigationState = navigation.getState();
-  const currentTabName = navigationState.routes[navigationState.index].name;
-  const { routeName } = useSnapshot(routeState);
-  const [isLiveSectionVisible, setIsLiveSectionVisible] = useState(true);
-  const insets = useSafeAreaInsets();
-  const isTabBarVisible = useMemo(
-    () =>
-      ["NewsHome", "LiveHome", "ShopHome", "DiscoverHome"].includes(
-        routeName ?? ""
-      ),
-    [routeName]
-  );
 
-  const { data, isLoading, refetch } = useQuery(
-    orpc.news.liveVideos.queryOptions({
-      meta: { persist: false },
-      select: (news) => news?.docs,
-      enabled: isLiveSectionVisible && isTabBarVisible,
-    })
-  );
-
-  const prevIdRef = useRef<string>(null);
-
-  const query = useQuery(
-    orpc.publisher.onMessage.experimental_liveOptions({
-      input: { channel: "live-news" },
-      retry: true, // Infinite retry for more reliable streaming
-    })
-  );
+  // React Navigation renders whatever this component returns as a normal
+  // flex sibling of the "screens" container — so animating THIS component's
+  // own height (an earlier approach) made that sibling container resize
+  // too, and every screen (via StyleSheet.absoluteFill inside it) visibly
+  // resized along with it, even screens like PlayLottery that have nothing
+  // to do with the tab bar. Making our root position: absolute removes us
+  // from that flex column entirely, so the screens container — and every
+  // screen inside it — is always full height, completely unaffected by our
+  // own show/hide animation. We just slide and fade over top of it instead.
+  //
+  // FloatingOverlays (MusicPlayer/LiveBanner) renders as a sibling of the tab
+  // row inside this SAME wrapper, not its own separately-animated element —
+  // otherwise its height is never reflected in useTabBarHeight() (screens
+  // padding for the tab bar alone would sit partly behind it when a track is
+  // playing or a live banner shows), and its opacity fade only stays in sync
+  // with the tab row's by coincidence of matching durations, not by
+  // construction. One wrapper, one measurement, one animation for both.
+  const measuredHeight = useSharedValue(0);
+  const progress = useSharedValue(isTabBarVisible ? 1 : 0);
 
   useEffect(() => {
-    if (
-      query.data?.id !== prevIdRef.current && // Only alert on new id
-      isLiveSectionVisible &&
-      isTabBarVisible
-    ) {
-      refetch();
-      prevIdRef.current = query.data?.id ?? null;
-    }
-  }, [query.data, isLiveSectionVisible, isTabBarVisible]);
+    progress.value = withTiming(isTabBarVisible ? 1 : 0, { duration: 300 });
+  }, [isTabBarVisible, progress]);
 
-  const [index, setIndex] = useState(0);
+  const onWrapperLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const height = event.nativeEvent.layout.height;
+      setTabBarHeight(height);
+      measuredHeight.value = height;
+    },
+    [measuredHeight]
+  );
 
-  useEffect(() => {
-    if (
-      !(isLiveSectionVisible && isTabBarVisible) ||
-      (data?.length ?? 0) <= 1
-    ) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setIndex((prev) => {
-        const length = data?.length ?? 0;
-        return prev === length - 1 ? 0 : prev + 1;
-      });
-    }, 4000);
-
-    return () => clearTimeout(timer);
-  }, [data, isLiveSectionVisible, isTabBarVisible]);
-
-  useEffect(() => {
-    if (data && index >= data.length) {
-      setIndex(0);
-    }
-  }, [data, index]);
-
-  const onLivePress = useCallback(() => {
-    if (!data) return;
-
-    navigation.navigate(currentTabName, {
-      screen: "SingleLive",
-      initial: false,
-      params: {
-        slug: data[index].slug,
-        id: data[index].id,
-      },
-    });
-  }, [data, navigation, index, currentTabName]);
-
-  if (!isTabBarVisible) return null;
+  const animatedWrapperStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ translateY: measuredHeight.value * (1 - progress.value) }],
+  }));
 
   return (
-    <>
-      <MusicPlayer />
-      {isLiveSectionVisible && !isLoading && data && data?.length > 0 && (
-        <Stack bg="white">
-          <Animated.View
-            entering={FadeInDown.duration(300).easing(Easing.ease)}
-            exiting={FadeOutDown.easing(Easing.ease).duration(300)}
-          >
-            <XStack ai="center" bg="red" jc="space-between" px="$3">
-              <XStack ai="center" gap="$2">
-                <Circle bg="$background" size="$0.75" />
-                <Text color="$background">LIVE</Text>
-              </XStack>
-              <Button
-                onPress={() => setIsLiveSectionVisible((prev) => !prev)}
-                size="$1.5"
-                unstyled
-              >
-                <Button.Text fos="$3">HIDE</Button.Text>
-                <Button.Icon color="#fff">
-                  <CaretDown size={18} />
-                </Button.Icon>
-              </Button>
-            </XStack>
-            <Stack bg="$p400" onPress={onLivePress} p="$3">
-              <LayoutAnimationConfig skipEntering skipExiting>
-                <Animated.Text
-                  entering={FadeInRight}
-                  exiting={FadeOutLeft}
-                  key={index}
-                  numberOfLines={2}
-                  style={{
-                    color: "white",
-                    fontFamily: "Inter-Medium",
-                    fontSize: 16,
-                  }}
-                >
-                  LIVE NOW: {data?.[index]?.title}
-                </Animated.Text>
-              </LayoutAnimationConfig>
-            </Stack>
-          </Animated.View>
-        </Stack>
-      )}
-      <XStack bg="$color.p500" pb={insets.bottom} pt="$1.5">
+    <Animated.View
+      onLayout={onWrapperLayout}
+      style={[
+        { position: "absolute", bottom: 0, left: 0, right: 0 },
+        animatedWrapperStyle,
+      ]}
+    >
+      <View pointerEvents={isTabBarVisible ? "box-none" : "none"}>
+        <FloatingOverlays
+          isTabBarVisible={isTabBarVisible}
+          navigation={navigation}
+        />
+      </View>
+
+      <View
+        className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
+        pointerEvents={isTabBarVisible ? "auto" : "none"}
+      >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const label = options.tabBarLabel ?? options.title ?? route.name;
-
           const isFocused = state.index === index;
+          const isSettings = route.name === "Settings";
 
           const onPress = () => {
             const event = navigation.emit({
@@ -163,7 +115,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               target: route.key,
               canPreventDefault: true,
             });
-
             if (!(isFocused || event.defaultPrevented)) {
               navigation.navigate(route.name, route.params);
             }
@@ -182,7 +133,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               href={buildHref(route.name, route.params)}
-              key={index}
+              key={route.key}
               onLongPress={onLongPress}
               onPress={onPress}
               style={{
@@ -194,27 +145,28 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               {options.tabBarIcon && (
                 <options.tabBarIcon
                   color={isFocused ? "#fff" : "gray"}
-                  size={label === "Settings" ? 56 : 25}
-                  style={{
-                    alignSelf: "center",
-                  }}
+                  focused={isFocused}
+                  size={isSettings ? 56 : 25}
+                  style={{ alignSelf: "center" }}
                 />
               )}
-              {label !== "Settings" ? (
-                <SizableText
-                  color={isFocused ? "$s50" : "gray"}
-                  fontSize={12}
-                  lh={15}
-                  ta="center"
+              {isSettings ? null : (
+                <Text
+                  className={cn(
+                    "text-center text-xs",
+                    isFocused
+                      ? "font-semibold text-background"
+                      : "text-gray-500"
+                  )}
                 >
-                  {label}
-                </SizableText>
-              ) : null}
+                  {typeof label === "string" ? label : route.name}
+                </Text>
+              )}
             </PlatformPressable>
           );
         })}
-      </XStack>
-    </>
+      </View>
+    </Animated.View>
   );
 }
 

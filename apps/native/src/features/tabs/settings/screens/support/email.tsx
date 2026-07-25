@@ -1,26 +1,25 @@
-import { Linking } from "react-native";
-import { Paragraph, Stack } from "tamagui";
+import { Linking, ScrollView, View } from "react-native";
 
-import { Screen } from "#/components/Screen";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 
-const Email = () => {
-  return (
-    <Screen>
-      <Stack p="$3" gap="$4">
-        <Paragraph>
+const Email = () => (
+  <Screen systemBarStyle="light">
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <View className="gap-4 p-3">
+        <Text className="text-base leading-relaxed">
           Please email us at{" "}
-          <Paragraph
+          <Text
+            className="font-semibold text-blue-500 underline"
             onPress={() => Linking.openURL("mailto:support@newspend.com")}
-            color="blue"
-            fow="600"
-            textDecorationLine="underline"
           >
             support@newspend.com
-          </Paragraph>{" "}
+          </Text>{" "}
           and we'll get back to you shortly.
-        </Paragraph>
-      </Stack>
-    </Screen>
-  );
-};
+        </Text>
+      </View>
+    </ScrollView>
+  </Screen>
+);
+
 export default Email;

@@ -56,9 +56,8 @@ ios/
 docs
 Dockerfile.debug
 
-!google-services*.json
-!GoogleService-Info*.plist
-
 .git
 .opencode
 .next
+.agents
+migrations

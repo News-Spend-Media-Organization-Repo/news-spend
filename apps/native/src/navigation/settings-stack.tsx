@@ -1,10 +1,13 @@
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { X } from "@tamagui/lucide-icons";
-
+import {
+  createNativeStackNavigator,
+  type NativeStackHeaderProps,
+} from "@react-navigation/native-stack";
+import { PressableFeedback } from "heroui-native";
+import { XIcon } from "phosphor-react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
+import { Icon } from "#/components/heroui/icon";
 import ScreenHeader from "#/components/ScreenHeader";
 import SettingsHome from "#/features/tabs/settings/screens/SettingsHome";
-
 import { sharedScreens } from "./shared-screens";
 
 const ROUTE_TITLES = {
@@ -32,6 +35,13 @@ type RouteNames = keyof typeof ROUTE_TITLES;
 function getRouteTitle(routeName: string): string {
   return ROUTE_TITLES[routeName as RouteNames] ?? routeName;
 }
+
+const screenHeader = ({ route }: NativeStackHeaderProps) => {
+  const title = getRouteTitle(route.name);
+
+  return <ScreenHeader title={title} />;
+};
+
 export default createNativeStackNavigator({
   layout: ({ children, state, descriptors, navigation }) => (
     <NavigatorErrorBoundary>{children}</NavigatorErrorBoundary>
@@ -49,7 +59,12 @@ export default createNativeStackNavigator({
             <ScreenHeader
               left={null}
               right={
-                <X color="$background" onPress={() => navigation.goBack()} />
+                <PressableFeedback
+                  hitSlop={20}
+                  onPress={() => navigation.goBack()}
+                >
+                  <Icon color="white" name={XIcon} />
+                </PressableFeedback>
               }
               title="Settings"
             />
@@ -62,11 +77,7 @@ export default createNativeStackNavigator({
   },
   screenOptions: {
     headerShown: true,
-    header({ route }) {
-      const title = getRouteTitle(route.name);
-
-      return <ScreenHeader title={title} />;
-    },
+    header: screenHeader,
     animation: "slide_from_right",
   },
   initialRouteName: "SettingsHome",

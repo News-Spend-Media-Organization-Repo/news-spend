@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useRef } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import { useSnapshot } from "valtio";
 
 import { orpc } from "#/lib/orpc";
@@ -32,12 +32,33 @@ const setupAndroidChannel = async () => {
       showBadge: true,
       lightColor: "#FF231F7C",
     });
+
+    // Split from "default" so a user can turn down low-signal like
+    // notifications independently of replies, at the Android OS level —
+    // see resolveChannelId in packages/payload/src/lib/expo-push-service.ts.
+    // Channel settings only take effect on first creation; once a channel
+    // exists, the user's own choice in system settings always wins.
+    await Notifications.setNotificationChannelAsync("comments", {
+      name: "Comments & Replies",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
+      showBadge: true,
+      lightColor: "#FF231F7C",
+    });
+
+    await Notifications.setNotificationChannelAsync("likes", {
+      name: "Likes",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      showBadge: true,
+      lightColor: "#FF231F7C",
+    });
   }
 };
 
 const registerForPushNotificationsAsync = async () => {
   if (!Device.isDevice) {
-    Alert.alert("Must use physical device for Push Notifications");
+    console.warn("Must use physical device for Push Notifications");
     return null;
   }
 
@@ -135,9 +156,8 @@ const usePushNotification = () => {
     );
   }, [user, saveToken]);
 
+  // Listeners don't depend on auth — set up once, unconditionally
   useEffect(() => {
-    const tokenRegistrationTimeout = setTimeout(registerToken, 5000);
-
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         console.log("Notification received:", notification);
@@ -149,11 +169,16 @@ const usePushNotification = () => {
       });
 
     return () => {
-      clearTimeout(tokenRegistrationTimeout);
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, [registerToken]);
+  }, []); // ← empty deps, runs once
+
+  // Token registration depends on auth
+  useEffect(() => {
+    const timeout = setTimeout(registerToken, 5000);
+    return () => clearTimeout(timeout);
+  }, [registerToken]); // ← only re-runs when auth changes
 
   const sendPushNotification = useCallback(async (expoPushToken: string) => {
     const message = {
@@ -161,7 +186,7 @@ const usePushNotification = () => {
       sound: "default",
       title: "Original Title",
       body: "And here is the body!",
-      data: { url: "https://csb-9i1lhi-lac.vercel.app/" },
+      data: { url: "https://newsspend.com/" },
     };
 
     try {

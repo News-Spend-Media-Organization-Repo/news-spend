@@ -5,6 +5,7 @@ import { adminOnly } from "../access/hasRole";
 export const NOTIFICATION_TYPES = [
   { label: "Breaking News", value: "breaking_news" },
   { label: "News", value: "news" },
+  { label: "Comment", value: "comment" },
   { label: "Promo", value: "promo" },
   { label: "Misc", value: "misc" },
 ];

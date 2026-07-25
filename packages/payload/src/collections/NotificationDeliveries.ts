@@ -46,11 +46,28 @@ const NotificationDeliveries: CollectionConfig = {
       },
     },
     {
+      name: "deviceToken",
+      type: "relationship",
+      relationTo: "push-tokens",
+      index: true,
+      admin: {
+        description: "The push-token record for matching open events",
+      },
+    },
+    {
+      name: "openedAt",
+      type: "date",
+      admin: {
+        description: "When the user opened this notification",
+      },
+    },
+    {
       name: "status",
       type: "select",
       options: [
         { label: "Pending", value: "pending" },
         { label: "Delivered", value: "delivered" },
+        { label: "Opened", value: "opened" },
         { label: "Failed", value: "failed" },
       ],
       required: true,

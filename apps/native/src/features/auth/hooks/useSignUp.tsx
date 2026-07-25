@@ -11,9 +11,7 @@ function useSignUp() {
       wish: string;
       phone: string;
       username: string;
-    }) => {
-      return await authClient.signUp.email(data);
-    },
+    }) => await authClient.signUp.email(data),
   });
 }
 

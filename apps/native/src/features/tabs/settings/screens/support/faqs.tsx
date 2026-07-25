@@ -1,16 +1,8 @@
-import { FlashList, type ListRenderItem } from "@shopify/flash-list";
-import { ChevronDown } from "@tamagui/lucide-icons";
-import { useCallback } from "react";
-import {
-  Accordion,
-  Paragraph,
-  ScrollView,
-  Square,
-  Stack,
-  XStack,
-} from "tamagui";
+import { Accordion, AccordionLayoutTransition } from "heroui-native";
+import { ScrollView } from "react-native";
 
-import { Screen } from "#/components/Screen";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 
 const questions = [
   {
@@ -21,7 +13,7 @@ const questions = [
   {
     question: "What can I do with the points I earn?",
     answer:
-      "You can bank your points to achieve your dream or use it to play lottery to win amazing prizes.",
+      "You can bank your Dream Points toward your goals in the Dream Fulfillment ecosystem or use them to enter the Giveaway for a chance to win amazing prizes.",
   },
   {
     question: "Can I advertise on the app?",
@@ -50,52 +42,36 @@ const questions = [
   },
 ];
 
-const FAQs = () => {
-  const renderItem: ListRenderItem<Record<string, string>> = useCallback(
-    ({ item: { question, answer }, index }) => (
-      <Accordion.Item
-        value={index.toString()}
-        bg="#f2f2f2"
-        p="$2"
-        borderRadius="$3"
-      >
-        <Accordion.Trigger unstyled>
-          {({ open }: { open: boolean }) => (
-            <XStack jc="space-between">
-              <Paragraph fow="600">{`${index + 1}. ${question}`}</Paragraph>
-              <Square animation="quick" rotate={open ? "180deg" : "0deg"}>
-                <ChevronDown size="$1.5" />
-              </Square>
-            </XStack>
-          )}
-        </Accordion.Trigger>
-
-        <Accordion.Content bg="#f2f2f2">
-          <Paragraph fos="$4">{answer}</Paragraph>
-        </Accordion.Content>
-      </Accordion.Item>
-    ),
-    []
-  );
-  return (
-    <Screen
-      preset="scroll"
-      px="$4"
-      contentContainerStyle={{ paddingVertical: 12 }}
+const FAQs = () => (
+  <Screen systemBarStyle="light">
+    <ScrollView
+      contentContainerClassName="p-4"
+      layout={AccordionLayoutTransition}
+      showsVerticalScrollIndicator={false}
     >
       <Accordion
-        overflow="hidden"
-        type="multiple"
-        gap="$4"
         defaultValue={["0"]}
+        selectionMode="multiple"
+        variant="surface"
       >
-        <FlashList
-          data={questions}
-          ItemSeparatorComponent={() => <Square h={15} />}
-          renderItem={renderItem}
-        />
+        {questions.map((item, index) => (
+          <Accordion.Item key={index} value={index.toString()}>
+            <Accordion.Trigger>
+              <Text className="flex-1 pr-2 font-semibold text-base">
+                {index + 1}. {item.question}
+              </Text>
+              <Accordion.Indicator />
+            </Accordion.Trigger>
+            <Accordion.Content>
+              <Text className="text-muted-foreground text-sm leading-relaxed">
+                {item.answer}
+              </Text>
+            </Accordion.Content>
+          </Accordion.Item>
+        ))}
       </Accordion>
-    </Screen>
-  );
-};
+    </ScrollView>
+  </Screen>
+);
+
 export default FAQs;

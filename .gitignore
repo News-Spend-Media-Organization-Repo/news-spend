@@ -53,3 +53,6 @@ dist/
 .parcel-cache
 
 local.db
+.sisyphus
+docs
+.omo

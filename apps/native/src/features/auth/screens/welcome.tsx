@@ -1,67 +1,68 @@
 import { useNavigation } from "@react-navigation/native";
-import { Image, Stack } from "tamagui";
-
-import { Screen } from "#/components/Screen";
-import { Button } from "#/components/ui";
-
-import { ConfirmAsGuest } from "../components/ConfirmAsGuest";
+import { Image } from "expo-image";
+import { View } from "react-native";
+import { Button } from "#/components/heroui/button";
+import ConfirmAsGuest from "#/components/heroui/confirm-as-guest";
+import { Screen } from "#/components/heroui/screen";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 
 const Welcome = () => {
   const navigation = useNavigation("Welcome");
 
+  // Static screen — interactive as soon as it renders.
+  useMarkInteractive(true);
+
   return (
-    <Screen preset="fixed" systemBarStyle="light">
-      <Stack bg="$p500" flex={1} px="$5">
-        <Stack alignItems="center" flex={2} justifyContent="center">
-          <Image
-            height={330}
-            objectFit="contain"
-            source={require("#/images/welcome-logo.png")}
-            width={330}
-          />
-        </Stack>
+    <Screen className="bg-p-500 px-6" preset="fixed" systemBarStyle="light">
+      <View className="flex-2 items-center justify-center">
+        <Image
+          contentFit="contain"
+          source={require("#/images/welcome-logo.png")}
+          style={{
+            width: 330,
+            height: 330,
+          }}
+        />
+      </View>
 
-        <Stack flex={1} gap="$4">
-          <Button
-            backgroundColor="$p50"
-            onPress={() => navigation.navigate("SignIn", {})}
-            pressStyle={{
-              opacity: 0.8,
-              backgroundColor: "$p50",
-            }}
-          >
-            <Button.Text color="$p500" fontSize="$4">
-              Sign In
-            </Button.Text>
-          </Button>
+      <View className="flex-1 gap-4">
+        <Button
+          animation={{
+            highlight: {
+              backgroundColor: { value: "#000000" },
+              opacity: { value: [0, 0.08] },
+            },
+          }}
+          className="bg-p-50"
+          onPress={() => navigation.navigate("SignIn", {})}
+        >
+          <Button.Label className="text-p-500">Sign In</Button.Label>
+        </Button>
 
-          <Button
-            borderColor="$p50"
-            bw={0.5}
-            onPress={() =>
-              navigation.navigate("TOS", {
-                goto: "SignUp",
-              })
-            }
-            outlined
-            pressStyle={{
-              backgroundColor: "transparent",
-            }}
-          >
-            <Button.Text color="#fff">Create Account</Button.Text>
-          </Button>
+        <Button
+          onPress={() =>
+            navigation.navigate("TOS", {
+              goto: "SignUp",
+            })
+          }
+          variant="outline"
+        >
+          <Button.Label className="text-p-50">Create Account</Button.Label>
+        </Button>
 
-          <ConfirmAsGuest
-            trigger={
-              <Button ghost>
-                <Button.Text color="$s300" fontSize="$3" fontWeight="700">
-                  Continue as a guest
-                </Button.Text>
-              </Button>
-            }
-          />
-        </Stack>
-      </Stack>
+        <ConfirmAsGuest
+          trigger={
+            <Button variant="ghost">
+              <Button.Label
+                className="text-s-300"
+                // fontSize="$3" fontWeight="700"
+              >
+                Continue as a guest
+              </Button.Label>
+            </Button>
+          }
+        />
+      </View>
     </Screen>
   );
 };

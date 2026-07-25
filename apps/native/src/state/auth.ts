@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/react-native";
 import { proxy, subscribe } from "valtio";
 
 import { authClient } from "#/lib/authClient";
-import { segmentClient } from "#/lib/segmentClient";
 import { queryClient } from "#/lib/tanstackQuery";
 import { storage } from "#/utils/storage";
 
@@ -52,7 +51,7 @@ export const hydrateAuth = async () => {
     try {
       const session = await authClient.getSession();
 
-      console.log("Session data:", JSON.stringify(session, null, 2));
+      // console.log("Session data:", JSON.stringify(session, null, 2));
       if (session.data?.user) {
         const user = session.data.user;
         console.log("User found:", {
@@ -110,7 +109,7 @@ export const logout = async () => {
           body: {
             pushToken,
           },
-          onSuccess(context) {
+          onSuccess(_context) {
             authState.session = null;
             authState.status = "signOut";
             authState.user = null;
@@ -153,9 +152,7 @@ subscribe(authState, () => {
       ip_address: "{{auto}}",
     });
     const { id, createdAt, updatedAt, ...rest } = authState.session.user;
-    segmentClient.identify(id.toString(), rest);
   } else {
     Sentry.setUser(null);
-    segmentClient.reset();
   }
 });

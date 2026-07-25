@@ -1,10 +1,11 @@
-import { Play } from "@tamagui/lucide-icons";
-import { Circle, Stack } from "tamagui";
+import { PlayIcon } from "phosphor-react-native";
+import { Pressable, View } from "react-native";
 
 import { Image } from "#/components/ui";
+import { Icon } from "../heroui/icon";
 
 export const ThumbnailView = ({ thumbnail, onPress }) => (
-  <Stack ai="center" h="100%" jc="center" pos="relative" w="100%">
+  <View className="relative h-full w-full items-center justify-center">
     <Image
       contentFit="cover"
       source={{ uri: thumbnail }}
@@ -14,15 +15,13 @@ export const ThumbnailView = ({ thumbnail, onPress }) => (
         borderRadius: 10,
       }}
     />
-    <Circle
-      aria-label="Play video"
-      bg="white"
+    <Pressable
+      accessibilityLabel="Play video"
+      accessibilityRole="button"
+      className="absolute rounded-full bg-white p-2"
       onPress={onPress}
-      p="$2"
-      pos="absolute"
-      role="button"
     >
-      <Play size={40} />
-    </Circle>
-  </Stack>
+      <Icon color="#000" name={PlayIcon} size={40} />
+    </Pressable>
+  </View>
 );

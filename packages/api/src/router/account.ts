@@ -1,3 +1,4 @@
+import { auth } from "@news-spend-media/auth";
 import { ORPCError } from "@orpc/client";
 import z from "zod";
 
@@ -92,23 +93,24 @@ const updateProfile = protectedNoGuestProcedure
       });
     }
 
-    const userUpdate = await payload.update({
-      collection: "users",
-      id: userId,
-      data: {
+    // const nameFormatted = input.name
+    //   ?.split(" ")
+    //   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+    //   .join(" ");
+
+    console.log(input.name);
+
+    const userUpdate = await auth.api.updateUser({
+      headers: context.headers,
+      body: {
         ...rest,
-        name: input.name
-          ?.split(" ")
-          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" "),
+        name: input.name,
         ...(user?.username?.toLowerCase().trim() ===
         username?.toLowerCase().trim()
           ? {}
           : { username }),
       },
     });
-
-    console.log(userUpdate);
 
     return userUpdate;
   });
