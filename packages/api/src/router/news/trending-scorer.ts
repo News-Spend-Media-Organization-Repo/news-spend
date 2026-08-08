@@ -77,6 +77,14 @@ export async function computeTrendingScores(opts: ScoringOptions) {
     },
     pagination: false,
     depth: 0,
+    // only the scoring signals — without this every article's rich-text body
+    // is loaded into memory just to be discarded
+    select: {
+      views: true,
+      likesCount: true,
+      dislikesCount: true,
+      createdAt: true,
+    },
   });
 
   const docs = newsResult.docs;
@@ -91,27 +99,24 @@ export async function computeTrendingScores(opts: ScoringOptions) {
     const likes = Number(doc.likesCount ?? 0);
     const dislikes = Number(doc.dislikesCount ?? 0);
 
-    // get comments count
-    const comments = await payload.find({
-      collection: "comments",
-      where: { news: { equals: id } },
-      pagination: false,
-    });
+    // counts only — count() aggregates in the database instead of hydrating
+    // every matching row, which otherwise dominates this job's memory use
+    const [comments, shares, reads] = await Promise.all([
+      payload.count({
+        collection: "comments",
+        where: { news: { equals: id } },
+      }),
+      payload.count({
+        collection: "activities",
+        where: { news: { equals: id }, action: { equals: "share" } },
+      }),
+      payload.count({
+        collection: "activities",
+        where: { news: { equals: id }, action: { equals: "read" } },
+      }),
+    ]);
     const commentsCount = comments.totalDocs ?? 0;
-
-    // shares & read completions from activities
-    const shares = await payload.find({
-      collection: "activities",
-      where: { news: { equals: id }, action: { equals: "share" } },
-      pagination: false,
-    });
     const sharesCount = shares.totalDocs ?? 0;
-
-    const reads = await payload.find({
-      collection: "activities",
-      where: { news: { equals: id }, action: { equals: "read" } },
-      pagination: false,
-    });
     const readCount = reads.totalDocs ?? 0;
 
     const score = computeScore(
