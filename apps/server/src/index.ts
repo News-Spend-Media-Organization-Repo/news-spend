@@ -1,6 +1,6 @@
-import "dotenv/config";
 import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
+import { widgetHandler } from "@news-spend-media/api/router/widgets/handler";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
 // import { LoggingHandlerPlugin } from "@orpc/experimental-pino";
@@ -11,7 +11,6 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
@@ -315,6 +314,14 @@ const server = Bun.serve({
     if (url.pathname === "/rpc" || url.pathname.startsWith("/rpc/")) {
       logRequest(req);
       return handleRpc(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    if (url.pathname === "/api/widgets") {
+      logRequest(req);
+      return widgetHandler(req).then((res) => {
         logResponse(req, res.status, Date.now() - start);
         return res;
       });

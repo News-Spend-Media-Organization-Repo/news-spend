@@ -8,6 +8,7 @@
     "composite": true,
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
     "strictNullChecks": true,
+    "jsx": "react-jsx",
     "typeRoots": ["./src/types", "../../node_modules/@types"]
   }
 }
