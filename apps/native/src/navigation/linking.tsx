@@ -23,6 +23,52 @@ function ensureScheme(url: string) {
   return Linking.createURL(url);
 }
 
+/** Tab stack route name -> the path segment its screens are nested under. */
+const TAB_PATH_BY_ROUTE: Record<string, string> = {
+  NewsHome: "news",
+  LiveHome: "live",
+  ShopHome: "shop",
+  DiscoverHome: "discover",
+  SettingsHome: "settings",
+};
+
+const ROUTE_BY_TAB_PATH: Record<string, string> = Object.fromEntries(
+  Object.entries(TAB_PATH_BY_ROUTE).map(([route, path]) => [path, route])
+);
+
+/**
+ * Rewrites the tab segment of a deep link to whichever tab the user is on.
+ *
+ * Article, comment and related screens are registered in every tab stack, so a
+ * link that hardcodes one tab (`news/article/...`) would otherwise throw the
+ * user out of the tab they were using. Notifications have always done this;
+ * widget taps and other incoming URLs now go through the same path.
+ *
+ * Accepts a full URL or a bare path — app-generated links put the tab first in
+ * both forms. Returns the input unchanged when it carries no tab segment, or
+ * when the app has no current tab yet (cold start resolves to NewsHome, which
+ * leaves a `news/...` link alone).
+ */
+function retargetToCurrentTab(url: string): string {
+  const currentTabPath =
+    TAB_PATH_BY_ROUTE[routeState.reactNavTabName ?? "NewsHome"];
+  if (!currentTabPath) {
+    return url;
+  }
+
+  const segments = url.split("/");
+  const tabIndex = segments.findIndex(
+    (segment) => ROUTE_BY_TAB_PATH[segment] !== undefined
+  );
+
+  if (tabIndex === -1 || segments[tabIndex] === currentTabPath) {
+    return url;
+  }
+
+  segments[tabIndex] = currentTabPath;
+  return segments.join("/");
+}
+
 function withNewsId(url: string, newsId: unknown) {
   if (typeof newsId !== "string" || !newsId.length) {
     return url;
@@ -67,12 +113,17 @@ export const linking: LinkingOptions<RootParamList> = {
     }
   },
   subscribe(listener) {
+    // Detour also delivers incoming URLs, so it needs the same retargeting —
+    // otherwise it hands React Navigation the raw link first and the tab
+    // rewrite below never gets a say.
     const detourSub = Detour.addEventListener("url", ({ url }) => {
-      listener(url);
+      listener(retargetToCurrentTab(url));
     });
 
     const onReceiveURL = ({ url }: { url: string }) => {
-      listener(ensureScheme(url));
+      // Widget taps land here. Keep the user in their current tab, matching
+      // how notification taps have always behaved.
+      listener(retargetToCurrentTab(ensureScheme(url)));
     };
 
     // listen for incoming links from deep linking
@@ -86,21 +137,7 @@ export const linking: LinkingOptions<RootParamList> = {
         const _common = response.notification.request.content.data?.common;
 
         if (screenUrl) {
-          const currentTab = routeState.reactNavTabName ?? "NewsHome";
-          const routeMap = {
-            news: "NewsHome",
-            live: "LiveHome",
-            shop: "ShopHome",
-            discover: "DiscoverHome",
-            settings: "SettingsHome",
-          };
-          const tabName = screenUrl?.split("/")[0] as keyof typeof routeMap;
-          if (currentTab && currentTab !== routeMap[tabName]) {
-            const invertedRouteMap = Object.fromEntries(
-              Object.entries(routeMap).map(([key, value]) => [value, key])
-            );
-            screenUrl = `${invertedRouteMap[currentTab]}/${screenUrl?.split("/").slice(1).join("/")}`;
-          }
+          screenUrl = retargetToCurrentTab(screenUrl as string);
           listener(ensureScheme(withNewsId(screenUrl, newsId)));
           trackNotificationOpen({
             ...response.notification.request.content,
