@@ -1,4 +1,7 @@
-import { updateAndroidWidget } from "@use-voltra/android-client";
+import {
+  updateAndroidWidget,
+  VoltraAndroid as A,
+} from "@use-voltra/android-client";
 import type { ScheduledWidgetEntry } from "@use-voltra/ios-client";
 import { scheduleWidget, Voltra } from "@use-voltra/ios-client";
 import { Platform } from "react-native";
@@ -129,6 +132,97 @@ function renderDigestVariants(stories: NewsItem[], greeting: string) {
   };
 }
 
+/**
+ * Android variants, built from Android primitives.
+ *
+ * These cannot reuse the iOS tree above: `updateAndroidWidget` feeds whatever
+ * it is given to `renderAndroidWidgetToString`, and the two component sets do
+ * not overlap — Android has Column/Row/Box and no VStack, ZStack, Divider or
+ * Link. Layout intentionally matches the server-rendered Android digest.
+ */
+function renderAndroidDigestVariants(stories: NewsItem[], greeting: string) {
+  const lead = stories[0];
+  const rest = stories.slice(1, 3);
+  const remaining = stories.length - 1;
+
+  const eyebrow = (
+    <A.Text color={THEME.accent} fontSize={11} style={{ fontWeight: "600" }}>
+      {greeting.toUpperCase()}
+    </A.Text>
+  );
+
+  return {
+    small: (
+      <A.Column
+        style={{ gap: 10, padding: 16, flex: 1, backgroundColor: THEME.surface }}
+      >
+        {eyebrow}
+        {lead ? (
+          <A.Column deepLinkUrl={deepLink(lead)} style={{ gap: 10, flex: 1 }}>
+            <A.Text
+              color={THEME.textPrimary}
+              fontSize={16}
+              maxLines={4}
+              style={{ fontWeight: "600" }}
+            >
+              {lead.title}
+            </A.Text>
+            <A.Spacer />
+            {remaining > 0 ? (
+              <A.Text color={THEME.textMuted} fontSize={11}>
+                {`+ ${remaining} more today`}
+              </A.Text>
+            ) : null}
+          </A.Column>
+        ) : null}
+      </A.Column>
+    ),
+    medium: (
+      <A.Column
+        style={{ gap: 10, padding: 16, flex: 1, backgroundColor: THEME.surface }}
+      >
+        <A.Row style={{ alignItems: "center" }}>
+          {eyebrow}
+          <A.Spacer />
+          <A.Text color={THEME.textMuted} fontSize={11}>
+            {`${stories.length} new`}
+          </A.Text>
+        </A.Row>
+
+        {lead ? (
+          <A.Text
+            color={THEME.textPrimary}
+            deepLinkUrl={deepLink(lead)}
+            fontSize={16}
+            maxLines={2}
+            style={{ fontWeight: "600" }}
+          >
+            {lead.title}
+          </A.Text>
+        ) : null}
+
+        {rest.length > 0 ? (
+          <A.Box style={{ height: 1, backgroundColor: THEME.hairline }} />
+        ) : null}
+
+        <A.Column style={{ gap: 8 }}>
+          {rest.map((item) => (
+            <A.Text
+              color={THEME.textSecondary}
+              deepLinkUrl={deepLink(item)}
+              fontSize={13}
+              key={item.id}
+              maxLines={1}
+            >
+              {item.title}
+            </A.Text>
+          ))}
+        </A.Column>
+      </A.Column>
+    ),
+  };
+}
+
 type ArticleDoc = {
   id: string;
   title: string;
@@ -251,14 +345,14 @@ export async function scheduleDailyDigest(): Promise<void> {
 
       await scheduleWidget(WIDGET_ID, entries);
     } else {
-      const variants = renderDigestVariants(
+      const variants = renderAndroidDigestVariants(
         stories,
         greetingForHour(now.getHours())
       );
 
       await updateAndroidWidget(WIDGET_ID, [
-        { size: { width: 150, height: 100 }, content: variants.systemSmall },
-        { size: { width: 150, height: 200 }, content: variants.systemMedium },
+        { size: { width: 150, height: 100 }, content: variants.small },
+        { size: { width: 150, height: 200 }, content: variants.medium },
       ]);
     }
   } catch (error) {
