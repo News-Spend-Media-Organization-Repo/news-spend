@@ -351,6 +351,36 @@ appLogger.info(
   "Server is running"
 );
 
+// Periodic memory sample. Railway graphs RSS only, which cannot distinguish
+// native/allocator retention from the JS heap holding objects — the split is
+// what says whether a memory problem is ours. uptimeH is included so a restart
+// shows up in the series instead of having to be inferred from a reset counter.
+const MEMORY_SAMPLE_INTERVAL_MS = Number(
+  process.env.MEMORY_SAMPLE_INTERVAL_MS ?? 15 * 60 * 1000
+);
+
+if (MEMORY_SAMPLE_INTERVAL_MS > 0) {
+  const sampleMemory = () => {
+    const mem = process.memoryUsage();
+    const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+
+    logger.info(
+      {
+        rssMb: mb(mem.rss),
+        heapUsedMb: mb(mem.heapUsed),
+        heapTotalMb: mb(mem.heapTotal),
+        externalMb: mb(mem.external),
+        arrayBuffersMb: mb(mem.arrayBuffers),
+        uptimeH: Number((process.uptime() / 3600).toFixed(2)),
+      },
+      "memory sample"
+    );
+  };
+
+  sampleMemory(); // t=0, so the series has a baseline for this process
+  setInterval(sampleMemory, MEMORY_SAMPLE_INTERVAL_MS).unref();
+}
+
 // initialize redis and cron jobs (best-effort)
 try {
   if (process.env.REDIS_URL) {
