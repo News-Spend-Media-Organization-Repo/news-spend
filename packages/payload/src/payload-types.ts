@@ -78,6 +78,14 @@ export interface Config {
     comments: Comment;
     contentReports: ContentReport;
     feedback: Feedback;
+    'giveaway-audit-log': GiveawayAuditLog;
+    'giveaway-engagements': GiveawayEngagement;
+    'giveaway-prizes': GiveawayPrize;
+    giveaways: Giveaway;
+    'giveaway-streaks': GiveawayStreak;
+    'giveaway-tickets': GiveawayTicket;
+    'giveaway-winners': GiveawayWinner;
+    'prize-catalogue': PrizeCatalogue;
     'identity-verification': IdentityVerification;
     lottery: Lottery;
     'lottery-tickets': LotteryTicket;
@@ -117,6 +125,14 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     contentReports: ContentReportsSelect<false> | ContentReportsSelect<true>;
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
+    'giveaway-audit-log': GiveawayAuditLogSelect<false> | GiveawayAuditLogSelect<true>;
+    'giveaway-engagements': GiveawayEngagementsSelect<false> | GiveawayEngagementsSelect<true>;
+    'giveaway-prizes': GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
+    giveaways: GiveawaysSelect<false> | GiveawaysSelect<true>;
+    'giveaway-streaks': GiveawayStreaksSelect<false> | GiveawayStreaksSelect<true>;
+    'giveaway-tickets': GiveawayTicketsSelect<false> | GiveawayTicketsSelect<true>;
+    'giveaway-winners': GiveawayWinnersSelect<false> | GiveawayWinnersSelect<true>;
+    'prize-catalogue': PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
     'identity-verification': IdentityVerificationSelect<false> | IdentityVerificationSelect<true>;
     lottery: LotterySelect<false> | LotterySelect<true>;
     'lottery-tickets': LotteryTicketsSelect<false> | LotteryTicketsSelect<true>;
@@ -169,6 +185,7 @@ export interface Config {
       sendScheduledNotification: TaskSendScheduledNotification;
       sendCommentLikeNotification: TaskSendCommentLikeNotification;
       sendModerationDigest: TaskSendModerationDigest;
+      sendUrgentModerationAlert: TaskSendUrgentModerationAlert;
       checkPushReceipts: TaskCheckPushReceipts;
       processLottery: TaskProcessLottery;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
@@ -678,6 +695,10 @@ export interface Category {
 export interface Comment {
   id: string;
   text: string;
+  /**
+   * Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed — the threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.
+   */
+  moderationStatus?: ('visible' | 'hidden' | 'removed') | null;
   user: string | User;
   news: string | News;
   parent?: (string | null) | Comment;
@@ -763,6 +784,583 @@ export interface Feedback {
   type: 'general' | 'bug' | 'feature' | 'advertisement' | 'other';
   message: string;
   rating: number;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Append-only. Records cannot be edited or deleted.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-audit-log".
+ */
+export interface GiveawayAuditLog {
+  id: string;
+  giveaway: string | Giveaway;
+  eventType:
+    | 'ticket_purchase'
+    | 'ticket_status_change'
+    | 'boost_completion'
+    | 'featured_offer_completion'
+    | 'participants_snapshot'
+    | 'candidate_pool_built'
+    | 'winner_selected'
+    | 'prize_allocated'
+    | 'prize_exhausted'
+    | 'tier_completed'
+    | 'draw_started'
+    | 'draw_resumed'
+    | 'draw_completed'
+    | 'draw_error'
+    | 'winner_report_sent'
+    | 'claim_status_change';
+  /**
+   * The user this event concerns, where applicable.
+   */
+  user?: (string | null) | User;
+  tier?: string | null;
+  message: string;
+  /**
+   * Structured event payload — counts, IDs, seeds, errors.
+   */
+  detail?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  occurredAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaways".
+ */
+export interface Giveaway {
+  id: string;
+  name: string;
+  description?: string | null;
+  startDate: string;
+  /**
+   * When the countdown ends and the draw becomes eligible to run.
+   */
+  endDate: string;
+  ticketPrice: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier1WinnerPercentage: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier2WinnerPercentage: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier3WinnerPercentage: number;
+  status: 'draft' | 'active' | 'drawing' | 'completed' | 'failed';
+  /**
+   * Unique users holding at least one valid ticket, captured once when the draw begins. Constant for the whole draw.
+   */
+  totalValidParticipants?: number | null;
+  /**
+   * Cryptographic seed used for this draw. Enables replay for audit.
+   */
+  drawSeed?: string | null;
+  drawStartedAt?: string | null;
+  drawCompletedAt?: string | null;
+  drawError?: string | null;
+  winnerReportSentAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Boost Your Luck and Featured Offer completions. Contributes to Tier 1 and Tier 2 eligibility only — never creates additional draw entries.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-engagements".
+ */
+export interface GiveawayEngagement {
+  id: string;
+  /**
+   * Scopes the engagement to one giveaway, so aggregates are naturally per-giveaway and reset with it.
+   */
+  giveaway: string | Giveaway;
+  user: string | User;
+  /**
+   * Boost = a Connect Brand advertisement watched to completion. Featured Offer = an item on the Lucky App Wall.
+   */
+  type: 'boost' | 'featured_offer';
+  /**
+   * The partner item the user engaged with.
+   */
+  content?: (string | null) | PartnerContent;
+  /**
+   * Set once a CPA partner confirms the action. Not required for eligibility today — no partner platform is integrated yet.
+   */
+  conversion?: (string | null) | PartnerConversion;
+  /**
+   * Only 'completed' contributes towards tier eligibility. Incomplete, abandoned and failed engagements are ignored.
+   */
+  completionStatus: 'completed' | 'incomplete' | 'abandoned' | 'failed';
+  completedAt: string;
+  /**
+   * Activity-specific detail retained for audit.
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Manage promotions for books, banners, videos, shop items, etc.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partner-content".
+ */
+export interface PartnerContent {
+  id: string;
+  /**
+   * Main heading — 30 characters recommended
+   */
+  title: string;
+  /**
+   * Max 90 characters recommended
+   */
+  condition: string;
+  description?: string | null;
+  /**
+   * Content category. Banner Ad Size options in the Display Settings tab.
+   */
+  type: 'book' | 'app' | 'game' | 'survey' | 'video' | 'banner' | 'promo-media' | 'product' | 'custom' | '';
+  /**
+   * Select the Google Ads standard size for this placement. Then upload your image at exactly those dimensions in the Content tab.
+   */
+  adSize?:
+    | (
+        | 'BANNER'
+        | 'LARGE_BANNER'
+        | 'FULL_BANNER'
+        | 'LEADERBOARD'
+        | 'INLINE_RECTANGLE'
+        | 'MEDIUM_RECTANGLE'
+        | 'LARGE_RECTANGLE'
+        | 'HALF_PAGE'
+        | 'WIDE_SKYSCRAPER'
+        | 'BILLBOARD'
+        | 'ANCHORED_ADAPTIVE'
+      )
+    | null;
+  /**
+   * Main image or thumbnail. For Banner / Video / Custom types, dimensions should match the Ad Size selected in Display Settings.
+   */
+  media?: (string | null) | Media;
+  /**
+   * Promotion images and video — one video and at least three images
+   */
+  items?:
+    | {
+        layout?: (PromoVideoSource | PromoImage)[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Video source type
+   */
+  videoType?: ('UPLOAD' | 'YOUTUBE' | 'EXTERNAL') | null;
+  /**
+   * Upload MP4 (recommended 1280x720, max 50MB)
+   */
+  video?: (string | null) | Media;
+  /**
+   * YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link
+   */
+  videoUrl?: string | null;
+  /**
+   * Button text (e.g., Buy now, Learn more)
+   */
+  cta?: string | null;
+  /**
+   * Associate with an existing partner
+   */
+  partner: string | Partner;
+  links?: {
+    /**
+     * General landing page URL
+     */
+    website?: string | null;
+    /**
+     * iOS App Store link
+     */
+    iosAppStore?: string | null;
+    /**
+     * Google Play Store link
+     */
+    androidPlayStore?: string | null;
+  };
+  /**
+   * Points awarded for completing this action
+   */
+  points: number;
+  /**
+   * Higher = shown first in its placement slot
+   */
+  priority?: number | null;
+  /**
+   * Where this content should appear in the app
+   */
+  placements?:
+    | (
+        | 'homepage-trending-books'
+        | 'homepage-ads-banner'
+        | 'discover-tab'
+        | 'points-mall-books'
+        | 'points-mall-apps'
+        | 'connect-brand-video'
+        | 'connect-brands-tab'
+        | 'lucky-app-wall'
+        | 'shop-tab'
+        | 'news-click-ads'
+        | 'banner-news-post'
+        | 'news-post'
+        | 'product-display'
+        | 'push-notification'
+        | 'email-campaign'
+        | 'video-section'
+      )[]
+    | null;
+  status: 'draft' | 'active' | 'paused' | 'archived';
+  schedule?: {
+    /**
+     * When to start displaying this content
+     */
+    startDate?: string | null;
+    /**
+     * When to stop displaying this content
+     */
+    endDate?: string | null;
+  };
+  /**
+   * Internal notes (e.g. send push notification for new release)
+   */
+  notes?: string | null;
+  /**
+   * Notes for the design team (safe zones, background color, text placement, etc.)
+   */
+  displayNotes?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PromoVideoSource".
+ */
+export interface PromoVideoSource {
+  /**
+   * Specify the video source
+   */
+  videoSource: 'upload' | 'normal' | 'youtube';
+  /**
+   * Upload an MP4 video file
+   */
+  video?: (string | null) | Media;
+  url?: string | null;
+  /**
+   * Upload a custom thumbnail, or leave empty to auto-generate from video on save
+   */
+  thumbnail?: (string | null) | Media;
+  thumbnailSource?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'promo-video-source';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PromoImage".
+ */
+export interface PromoImage {
+  image: string | Media;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'promo-image';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partner-conversions".
+ */
+export interface PartnerConversion {
+  id: string;
+  user: string | User;
+  partner: string | Partner;
+  content: string | PartnerContent;
+  /**
+   * Unique tracking ID for this click/conversion
+   */
+  clickId: string;
+  status: 'clicked' | 'converted' | 'awarded' | 'failed';
+  /**
+   * Points awarded to user upon conversion
+   */
+  pointsAwarded?: number | null;
+  /**
+   * Order/transaction ID from partner
+   */
+  partnerOrderId?: string | null;
+  /**
+   * Additional data from partner (IP, device info, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  clickedAt: string;
+  /**
+   * When partner confirmed conversion
+   */
+  convertedAt?: string | null;
+  /**
+   * When points were awarded to user
+   */
+  awardedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The prizes selected for a giveaway, and how many units of each may be awarded.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-prizes".
+ */
+export interface GiveawayPrize {
+  id: string;
+  giveaway: string | Giveaway;
+  prize: string | PrizeCatalogue;
+  /**
+   * Inherited from the Master Prize Catalogue.
+   */
+  tier: 'tier1' | 'tier2' | 'tier3';
+  /**
+   * Maximum units of this prize that may be awarded. Positive whole numbers only.
+   */
+  maxUnits: number;
+  /**
+   * Incremented by the draw engine as prizes are allocated.
+   */
+  unitsAwarded: number;
+  /**
+   * Maximum Units − Units Awarded.
+   */
+  unitsRemaining?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Single source of truth for prizes. A prize belongs to exactly one tier.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "prize-catalogue".
+ */
+export interface PrizeCatalogue {
+  id: string;
+  /**
+   * Must be unique across the entire catalogue, including other tiers.
+   */
+  name: string;
+  /**
+   * The one and only tier this prize belongs to. Cannot be changed once the prize is used in a giveaway.
+   */
+  tier: 'tier1' | 'tier2' | 'tier3';
+  description?: string | null;
+  image?: (string | null) | Media;
+  /**
+   * Inactive prizes cannot be added to new giveaways. Existing giveaways are unaffected.
+   */
+  active?: boolean | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Consecutive-giveaway qualification counters. Persist across giveaways by design.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-streaks".
+ */
+export interface GiveawayStreak {
+  id: string;
+  user: string | User;
+  tier: 'tier1' | 'tier2' | 'tier3';
+  /**
+   * Consecutive giveaways in which the user met this tier's consecutive bar. Reset to 0 on any miss.
+   */
+  consecutiveCount: number;
+  /**
+   * Guards against double-counting if a draw is re-run for the same giveaway.
+   */
+  lastEvaluatedGiveaway?: (string | null) | Giveaway;
+  lastQualifiedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-tickets".
+ */
+export interface GiveawayTicket {
+  id: string;
+  giveaway: string | Giveaway;
+  user: string | User;
+  /**
+   * Number of tickets in this purchase. Each is one draw entry.
+   */
+  quantity: number;
+  /**
+   * Only valid tickets are counted for eligibility or entered into the draw.
+   */
+  status: 'valid' | 'cancelled' | 'refunded' | 'reversed' | 'unpaid' | 'fraudulent';
+  /**
+   * Ticket price at time of purchase, for audit.
+   */
+  unitPrice: number;
+  /**
+   * Payment provider reference for reconciliation.
+   */
+  paymentReference?: string | null;
+  purchasedAt: string;
+  statusChangedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-winners".
+ */
+export interface GiveawayWinner {
+  id: string;
+  giveaway: string | Giveaway;
+  user: string | User;
+  tier: 'tier1' | 'tier2' | 'tier3';
+  /**
+   * Reference to the Master Prize Catalogue entry.
+   */
+  prize: string | PrizeCatalogue;
+  /**
+   * Prize name captured at allocation time, so reports stay accurate if the catalogue is later renamed.
+   */
+  prizeName: string;
+  /**
+   * The specific ticket entry drawn for this winner.
+   */
+  winningTicket: string | GiveawayTicket;
+  /**
+   * Total valid tickets this user held when the draw began.
+   */
+  validTicketCount: number;
+  /**
+   * Successful Boost Your Luck interactions during the giveaway.
+   */
+  boostCount: number;
+  featuredOfferCount: number;
+  selectedAt: string;
+  claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited';
+  claimedAt?: string | null;
+  claimDeadline?: string | null;
+  fulfilmentStatus: 'pending' | 'in_progress' | 'fulfilled' | 'cancelled';
+  fulfilledAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -1161,240 +1759,6 @@ export interface NotificationInbox {
   createdAt: string;
 }
 /**
- * Manage promotions for books, banners, videos, shop items, etc.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "partner-content".
- */
-export interface PartnerContent {
-  id: string;
-  /**
-   * Main heading — 30 characters recommended
-   */
-  title: string;
-  /**
-   * Max 90 characters recommended
-   */
-  condition: string;
-  description?: string | null;
-  /**
-   * Content category. Banner Ad Size options in the Display Settings tab.
-   */
-  type: 'book' | 'app' | 'game' | 'survey' | 'video' | 'banner' | 'promo-media' | 'product' | 'custom' | '';
-  /**
-   * Select the Google Ads standard size for this placement. Then upload your image at exactly those dimensions in the Content tab.
-   */
-  adSize?:
-    | (
-        | 'BANNER'
-        | 'LARGE_BANNER'
-        | 'FULL_BANNER'
-        | 'LEADERBOARD'
-        | 'INLINE_RECTANGLE'
-        | 'MEDIUM_RECTANGLE'
-        | 'LARGE_RECTANGLE'
-        | 'HALF_PAGE'
-        | 'WIDE_SKYSCRAPER'
-        | 'BILLBOARD'
-        | 'ANCHORED_ADAPTIVE'
-      )
-    | null;
-  /**
-   * Main image or thumbnail. For Banner / Video / Custom types, dimensions should match the Ad Size selected in Display Settings.
-   */
-  media?: (string | null) | Media;
-  /**
-   * Promotion images and video — one video and at least three images
-   */
-  items?:
-    | {
-        layout?: (PromoVideoSource | PromoImage)[] | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Video source type
-   */
-  videoType?: ('UPLOAD' | 'YOUTUBE' | 'EXTERNAL') | null;
-  /**
-   * Upload MP4 (recommended 1280x720, max 50MB)
-   */
-  video?: (string | null) | Media;
-  /**
-   * YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link
-   */
-  videoUrl?: string | null;
-  /**
-   * Button text (e.g., Buy now, Learn more)
-   */
-  cta?: string | null;
-  /**
-   * Associate with an existing partner
-   */
-  partner: string | Partner;
-  links?: {
-    /**
-     * General landing page URL
-     */
-    website?: string | null;
-    /**
-     * iOS App Store link
-     */
-    iosAppStore?: string | null;
-    /**
-     * Google Play Store link
-     */
-    androidPlayStore?: string | null;
-  };
-  /**
-   * Points awarded for completing this action
-   */
-  points: number;
-  /**
-   * Higher = shown first in its placement slot
-   */
-  priority?: number | null;
-  /**
-   * Where this content should appear in the app
-   */
-  placements?:
-    | (
-        | 'homepage-trending-books'
-        | 'homepage-ads-banner'
-        | 'discover-tab'
-        | 'points-mall-books'
-        | 'points-mall-apps'
-        | 'connect-brand-video'
-        | 'connect-brands-tab'
-        | 'lucky-app-wall'
-        | 'shop-tab'
-        | 'news-click-ads'
-        | 'banner-news-post'
-        | 'news-post'
-        | 'product-display'
-        | 'push-notification'
-        | 'email-campaign'
-        | 'video-section'
-      )[]
-    | null;
-  status: 'draft' | 'active' | 'paused' | 'archived';
-  schedule?: {
-    /**
-     * When to start displaying this content
-     */
-    startDate?: string | null;
-    /**
-     * When to stop displaying this content
-     */
-    endDate?: string | null;
-  };
-  /**
-   * Internal notes (e.g. send push notification for new release)
-   */
-  notes?: string | null;
-  /**
-   * Notes for the design team (safe zones, background color, text placement, etc.)
-   */
-  displayNotes?: string | null;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "PromoVideoSource".
- */
-export interface PromoVideoSource {
-  /**
-   * Specify the video source
-   */
-  videoSource: 'upload' | 'normal' | 'youtube';
-  /**
-   * Upload an MP4 video file
-   */
-  video?: (string | null) | Media;
-  url?: string | null;
-  /**
-   * Upload a custom thumbnail, or leave empty to auto-generate from video on save
-   */
-  thumbnail?: (string | null) | Media;
-  thumbnailSource?: string | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'promo-video-source';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "PromoImage".
- */
-export interface PromoImage {
-  image: string | Media;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'promo-image';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "partner-conversions".
- */
-export interface PartnerConversion {
-  id: string;
-  user: string | User;
-  partner: string | Partner;
-  content: string | PartnerContent;
-  /**
-   * Unique tracking ID for this click/conversion
-   */
-  clickId: string;
-  status: 'clicked' | 'converted' | 'awarded' | 'failed';
-  /**
-   * Points awarded to user upon conversion
-   */
-  pointsAwarded?: number | null;
-  /**
-   * Order/transaction ID from partner
-   */
-  partnerOrderId?: string | null;
-  /**
-   * Additional data from partner (IP, device info, etc.)
-   */
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  clickedAt: string;
-  /**
-   * When partner confirmed conversion
-   */
-  convertedAt?: string | null;
-  /**
-   * When points were awarded to user
-   */
-  awardedAt?: string | null;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "promotion-media".
  */
@@ -1704,6 +2068,7 @@ export interface PayloadJob {
           | 'sendScheduledNotification'
           | 'sendCommentLikeNotification'
           | 'sendModerationDigest'
+          | 'sendUrgentModerationAlert'
           | 'checkPushReceipts'
           | 'processLottery'
           | 'cleanupAnonymousUsers'
@@ -1748,6 +2113,7 @@ export interface PayloadJob {
         | 'sendScheduledNotification'
         | 'sendCommentLikeNotification'
         | 'sendModerationDigest'
+        | 'sendUrgentModerationAlert'
         | 'checkPushReceipts'
         | 'processLottery'
         | 'cleanupAnonymousUsers'
@@ -1805,6 +2171,38 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'feedback';
         value: string | Feedback;
+      } | null)
+    | ({
+        relationTo: 'giveaway-audit-log';
+        value: string | GiveawayAuditLog;
+      } | null)
+    | ({
+        relationTo: 'giveaway-engagements';
+        value: string | GiveawayEngagement;
+      } | null)
+    | ({
+        relationTo: 'giveaway-prizes';
+        value: string | GiveawayPrize;
+      } | null)
+    | ({
+        relationTo: 'giveaways';
+        value: string | Giveaway;
+      } | null)
+    | ({
+        relationTo: 'giveaway-streaks';
+        value: string | GiveawayStreak;
+      } | null)
+    | ({
+        relationTo: 'giveaway-tickets';
+        value: string | GiveawayTicket;
+      } | null)
+    | ({
+        relationTo: 'giveaway-winners';
+        value: string | GiveawayWinner;
+      } | null)
+    | ({
+        relationTo: 'prize-catalogue';
+        value: string | PrizeCatalogue;
       } | null)
     | ({
         relationTo: 'identity-verification';
@@ -2031,6 +2429,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface CommentsSelect<T extends boolean = true> {
   text?: T;
+  moderationStatus?: T;
   user?: T;
   news?: T;
   parent?: T;
@@ -2075,6 +2474,155 @@ export interface FeedbackSelect<T extends boolean = true> {
   type?: T;
   message?: T;
   rating?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-audit-log_select".
+ */
+export interface GiveawayAuditLogSelect<T extends boolean = true> {
+  giveaway?: T;
+  eventType?: T;
+  user?: T;
+  tier?: T;
+  message?: T;
+  detail?: T;
+  occurredAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-engagements_select".
+ */
+export interface GiveawayEngagementsSelect<T extends boolean = true> {
+  giveaway?: T;
+  user?: T;
+  type?: T;
+  content?: T;
+  conversion?: T;
+  completionStatus?: T;
+  completedAt?: T;
+  metadata?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-prizes_select".
+ */
+export interface GiveawayPrizesSelect<T extends boolean = true> {
+  giveaway?: T;
+  prize?: T;
+  tier?: T;
+  maxUnits?: T;
+  unitsAwarded?: T;
+  unitsRemaining?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaways_select".
+ */
+export interface GiveawaysSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  startDate?: T;
+  endDate?: T;
+  ticketPrice?: T;
+  tier1WinnerPercentage?: T;
+  tier2WinnerPercentage?: T;
+  tier3WinnerPercentage?: T;
+  status?: T;
+  totalValidParticipants?: T;
+  drawSeed?: T;
+  drawStartedAt?: T;
+  drawCompletedAt?: T;
+  drawError?: T;
+  winnerReportSentAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-streaks_select".
+ */
+export interface GiveawayStreaksSelect<T extends boolean = true> {
+  user?: T;
+  tier?: T;
+  consecutiveCount?: T;
+  lastEvaluatedGiveaway?: T;
+  lastQualifiedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-tickets_select".
+ */
+export interface GiveawayTicketsSelect<T extends boolean = true> {
+  giveaway?: T;
+  user?: T;
+  quantity?: T;
+  status?: T;
+  unitPrice?: T;
+  paymentReference?: T;
+  purchasedAt?: T;
+  statusChangedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-winners_select".
+ */
+export interface GiveawayWinnersSelect<T extends boolean = true> {
+  giveaway?: T;
+  user?: T;
+  tier?: T;
+  prize?: T;
+  prizeName?: T;
+  winningTicket?: T;
+  validTicketCount?: T;
+  boostCount?: T;
+  featuredOfferCount?: T;
+  selectedAt?: T;
+  claimStatus?: T;
+  claimedAt?: T;
+  claimDeadline?: T;
+  fulfilmentStatus?: T;
+  fulfilledAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "prize-catalogue_select".
+ */
+export interface PrizeCatalogueSelect<T extends boolean = true> {
+  name?: T;
+  tier?: T;
+  description?: T;
+  image?: T;
+  active?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -2830,6 +3378,16 @@ export interface TaskSendCommentLikeNotification {
  */
 export interface TaskSendModerationDigest {
   input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendUrgentModerationAlert".
+ */
+export interface TaskSendUrgentModerationAlert {
+  input: {
+    reportId: string;
+  };
   output?: unknown;
 }
 /**

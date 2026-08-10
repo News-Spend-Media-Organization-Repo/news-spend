@@ -1,6 +1,8 @@
 import { DEFAULT_FROM_EMAIL, resend } from "@news-spend-media/mail";
 import type { TaskConfig } from "payload";
 import { getPayload } from "../lib/getPayload";
+import { REASON_LABELS } from "../lib/moderationLabels";
+import { nextDigestTime } from "../lib/nextDigestTime";
 
 /**
  * Payload job task: sendModerationDigest
@@ -21,12 +23,10 @@ export const sendModerationDigestTask = {
     const [reportsResult, adminsResult] = await Promise.all([
       payload.find({
         collection: "contentReports",
+        // Every unresolved report, not just today's. Scoping this to the last
+        // 24 hours meant a report that wasn't actioned on the day it arrived
+        // dropped out of every subsequent digest and was never surfaced again.
         where: {
-          createdAt: {
-            greater_than_equal: new Date(
-              Date.now() - DIGEST_WINDOW_MS
-            ).toISOString(),
-          },
           status: { equals: "pending" },
         },
         sort: "-createdAt",
@@ -47,6 +47,24 @@ export const sendModerationDigestTask = {
       email: string;
       fullName?: string;
     }>;
+
+    // While anything is still unresolved, schedule tomorrow's digest now. The
+    // report hook only queues a digest when a *new* report arrives, so without
+    // this a backlog would stop being reported the moment reports dried up.
+    if (reports.length > 0) {
+      try {
+        await payload.jobs.queue({
+          task: "sendModerationDigest",
+          input: {},
+          waitUntil: nextDigestTime(),
+        });
+      } catch (error) {
+        req.payload.logger.error(
+          { error },
+          "Failed to re-schedule moderation digest"
+        );
+      }
+    }
 
     if (reports.length === 0 || admins.length === 0) {
       return { output: { sent: false } };
@@ -71,20 +89,12 @@ export const sendModerationDigestTask = {
       reason: string;
       relationTo: string;
       value: string;
+      ageDays: number;
     }> = [];
 
-    const reasonLabels: Record<string, string> = {
-      spam: "Spam or Advertising",
-      harassment: "Harassment or Bullying",
-      "hate-speech": "Hate Speech or Discrimination",
-      misinformation: "Misinformation",
-      "personal-info": "Personal Information",
-      inappropriate: "Explicit or Inappropriate Content",
-      "off-topic": "Off-Topic",
-      trolling: "Trolling or Deliberate Provocation",
-      illegal: "Illegal Activity",
-      other: "Other",
-    };
+    const windowStart = Date.now() - DIGEST_WINDOW_MS;
+    let newInWindow = 0;
+    let oldestPendingDays = 0;
 
     for (const doc of reports) {
       const details = (doc as unknown as { additionalDetails?: string | null })
@@ -98,6 +108,16 @@ export const sendModerationDigestTask = {
         }
       ).reportedItem;
       const reason = (doc as unknown as { reason?: string }).reason;
+      const createdAt = new Date(
+        (doc as unknown as { createdAt: string }).createdAt
+      ).getTime();
+
+      if (createdAt >= windowStart) {
+        newInWindow++;
+      }
+
+      const ageDays = Math.floor((Date.now() - createdAt) / DIGEST_WINDOW_MS);
+      oldestPendingDays = Math.max(oldestPendingDays, ageDays);
 
       if (details?.includes("blocked by user")) {
         blocks++;
@@ -107,12 +127,16 @@ export const sendModerationDigestTask = {
         }
       } else if (reportedItem?.relationTo && reportedItem?.value) {
         contentFlags.push({
-          reason: reasonLabels[reason ?? "other"] ?? reason ?? "Other",
+          reason: REASON_LABELS[reason ?? "other"] ?? reason ?? "Other",
           relationTo: reportedItem.relationTo,
           value: reportedItem.value,
+          ageDays,
         });
       }
     }
+
+    // Oldest first: the backlog is what needs attention, not the newest arrival.
+    contentFlags.sort((a, b) => b.ageDays - a.ageDays);
 
     const now = new Date().toLocaleString("en-US", {
       timeZone: "Africa/Lagos",
@@ -135,7 +159,7 @@ export const sendModerationDigestTask = {
         contentFlags
           .map(
             (f) =>
-              `<li><strong>${f.reason}</strong> — <a href="${serverUrl}/admin/collections/${f.relationTo}/${f.value}" style="color: #1a73e8;">View ${f.relationTo === "news" ? "News" : "Comment"}</a></li>`
+              `<li><strong>${f.reason}</strong>${f.ageDays >= 1 ? ` <span style="color: #b3261e;">(pending ${f.ageDays} day${f.ageDays > 1 ? "s" : ""})</span>` : ""} — <a href="${serverUrl}/admin/collections/${f.relationTo}/${f.value}" style="color: #1a73e8;">View ${f.relationTo === "news" ? "News" : "Comment"}</a></li>`
           )
           .join("") +
         "</ul>";
@@ -143,10 +167,14 @@ export const sendModerationDigestTask = {
 
     const html = `<div style="font-family: system-ui, sans-serif; max-width: 520px;">
   <h2 style="color: #1a1a2e;">Moderation Digest</h2>
-  <p style="color: #666;">Summary of activity in the last 24 hours (as of ${now}):</p>
+  <p style="color: #666;">All unresolved reports (as of ${now}):</p>
   <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
     <tr>
-      <td style="padding: 8px 0; color: #666;">Total reports</td>
+      <td style="padding: 8px 0; color: #666;">New in last 24 hours</td>
+      <td><strong>${newInWindow}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0; color: #666;">Total still pending</td>
       <td><strong>${reports.length}</strong></td>
     </tr>
     <tr>
@@ -157,6 +185,14 @@ export const sendModerationDigestTask = {
       <td style="padding: 8px 0; color: #666;">Content flags</td>
       <td><strong>${contentFlags.length}</strong></td>
     </tr>
+    ${
+      oldestPendingDays >= 1
+        ? `<tr>
+      <td style="padding: 8px 0; color: #666;">Oldest unresolved</td>
+      <td><strong style="color: #b3261e;">${oldestPendingDays} day${oldestPendingDays > 1 ? "s" : ""}</strong></td>
+    </tr>`
+        : ""
+    }
   </table>
   ${blockList}
   ${contentFlagList}
@@ -167,7 +203,7 @@ export const sendModerationDigestTask = {
       await resend.emails.send({
         from: DEFAULT_FROM_EMAIL,
         to: adminEmails,
-        subject: `Moderation Digest — ${reports.length} report${reports.length > 1 ? "s" : ""} in the last 24 hours`,
+        subject: `Moderation Digest — ${reports.length} unresolved report${reports.length > 1 ? "s" : ""}${newInWindow > 0 ? ` (${newInWindow} new)` : ""}`,
         html,
       });
 

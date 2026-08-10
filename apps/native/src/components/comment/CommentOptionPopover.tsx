@@ -1,3 +1,4 @@
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
 import { DotsThreeVerticalIcon } from "phosphor-react-native";
 import React from "react";
@@ -11,12 +12,32 @@ import PostReportSheet from "#/components/sheets/PostReportSheet";
 import type { RouterOutputs } from "#/lib/orpc";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+import { authState } from "#/state/auth";
 
 type Comment = RouterOutputs["comments"]["one"];
 
 export function CommentOptionPopover({ comment }: { comment: Comment }) {
   const [open, setOpen] = React.useState(false);
   const [showReportSheet, setShowReportSheet] = React.useState(false);
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  /**
+   * Reporting and blocking both require a registered account. Guests still see
+   * the options — hiding them entirely is what left reviewers unable to find
+   * any moderation affordance — but tapping one routes to sign-in, matching
+   * how the Like button already treats anonymous users.
+   */
+  const requireAccount = () => {
+    if (!authState.user || authState.user.isAnonymous) {
+      setOpen(false);
+      // `redirect` is only read as truthy — it makes the sign-in screen
+      // goBack() on success, returning the user to this comment.
+      navigation.navigate("SignIn", { redirect: true });
+      return false;
+    }
+    return true;
+  };
 
   const commentUserId =
     typeof comment.user === "object" ? comment.user.id : comment.user;
@@ -135,6 +156,10 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
   );
 
   const handleBlock = () => {
+    if (!requireAccount()) {
+      return;
+    }
+
     Alert.alert(
       "Block User",
       `Block @${commentUsername}? You won't see their comments anymore.`,
@@ -170,6 +195,9 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
         onBlock={handleBlock}
         onOpenChange={setOpen}
         onReport={() => {
+          if (!requireAccount()) {
+            return;
+          }
           setOpen(false);
           setShowReportSheet(true);
         }}

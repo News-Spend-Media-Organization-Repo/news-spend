@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload";
 
+import { autoHideReportedContent } from "../hooks/contentReport/autoHideReportedContent";
 import { notifyAdminsOnReport } from "../hooks/contentReport/notifyAdmins";
 
 export const ContentReport: CollectionConfig = {
@@ -91,7 +92,7 @@ export const ContentReport: CollectionConfig = {
     },
   ],
   hooks: {
-    afterChange: [notifyAdminsOnReport],
+    afterChange: [autoHideReportedContent, notifyAdminsOnReport],
     beforeChange: [
       ({ data, req }) => {
         if (data.status === "resolved" && !data.resolvedAt) {

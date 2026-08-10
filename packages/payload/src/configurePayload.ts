@@ -27,6 +27,13 @@ import {
   Comments,
   ContentReport,
   Feedback,
+  GiveawayAuditLog,
+  GiveawayEngagements,
+  GiveawayPrizes,
+  Giveaways,
+  GiveawayStreaks,
+  GiveawayTickets,
+  GiveawayWinners,
   IdentityVerification,
   Lotteries,
   LotteryTickets,
@@ -40,6 +47,7 @@ import {
   PartnerContent,
   PartnerConversions,
   Partners,
+  PrizeCatalogue,
   PromotionMedia,
   PushTokens,
   Reactions,
@@ -62,6 +70,7 @@ import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processLotteryTask } from "./tasks/processLottery";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
+import { sendUrgentModerationAlertTask } from "./tasks/sendUrgentModerationAlert";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
 
 const filename = fileURLToPath(import.meta.url);
@@ -115,6 +124,16 @@ const baseConfig: Config = {
     ContentReport,
     Feedback,
     // Games,
+    // --- Giveaway draw engine (spec-compliant; supersedes Lottery* above) ---
+    GiveawayAuditLog,
+    GiveawayEngagements,
+    GiveawayPrizes,
+    Giveaways,
+    GiveawayStreaks,
+    GiveawayTickets,
+    GiveawayWinners,
+    PrizeCatalogue,
+    // --- Legacy lottery: retained read-only for audit until cutover ---
     IdentityVerification,
     Lotteries,
     LotteryTickets,
@@ -148,6 +167,7 @@ const baseConfig: Config = {
       sendScheduledNotificationTask,
       sendCommentLikeNotificationTask,
       sendModerationDigestTask,
+      sendUrgentModerationAlertTask,
       checkPushReceiptsTask,
       processLotteryTask,
       cleanupAnonymousUsersTask,

@@ -56,16 +56,15 @@ const settingsItems: SettingsItem[] = [
     screen: "Profile",
     authRequired: true,
   },
-  ...(__DEV__
-    ? [
-        {
-          title: "Blocked Users",
-          icon: UserMinusIcon,
-          screen: "BlockedUsers",
-          authRequired: true,
-        },
-      ]
-    : []),
+  // Must ship in release builds — it was previously __DEV__-only, so no
+  // reviewer could ever find the block-management screen. Guests are routed to
+  // sign-in, since blocking requires a registered account.
+  {
+    title: "Blocked Users",
+    icon: UserMinusIcon,
+    screen: "BlockedUsers",
+    authRequired: true,
+  },
   {
     title: "Activities",
     icon: ChartLineIcon,

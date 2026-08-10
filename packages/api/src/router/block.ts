@@ -2,8 +2,15 @@ import { ORPCError } from "@orpc/client";
 import z from "zod";
 
 import { protectedNoGuestProcedure } from "../index";
+import { createRateLimitMiddleware } from "../lib/ratelimit";
+
+// Each block also writes a contentReports row to notify admins, so an
+// unthrottled block endpoint is a direct path to flooding the moderation queue.
+const blockRateLimit = () =>
+  createRateLimitMiddleware({ maxRequests: 10, window: 60_000 });
 
 const blockUser = protectedNoGuestProcedure
+  .use(blockRateLimit())
   .input(z.object({ userId: z.string() }))
   .handler(async ({ input, context }) => {
     const { user, payload } = context;
@@ -52,6 +59,7 @@ const blockUser = protectedNoGuestProcedure
   });
 
 const unblockUser = protectedNoGuestProcedure
+  .use(blockRateLimit())
   .input(z.object({ userId: z.string() }))
   .handler(async ({ input, context }) => {
     const { user, payload } = context;

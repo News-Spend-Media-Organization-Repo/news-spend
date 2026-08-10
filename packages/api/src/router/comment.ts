@@ -1,6 +1,8 @@
 import { ORPCError } from "@orpc/client";
+import type { Where } from "payload";
 import z from "zod";
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
+import { CONTENT_FILTER_MESSAGE, screenText } from "../lib/content-filter";
 import { createRateLimitMiddleware } from "../lib/ratelimit";
 import {
   getCommentReactionCounts,
@@ -46,6 +48,20 @@ type ReactionResponse = {
   dislikesCount: number;
 };
 
+/**
+ * Excludes auto-hidden and moderator-removed comments from public reads.
+ *
+ * Written as an explicit OR rather than `not_in` because comments created
+ * before `moderationStatus` existed have NULL, and SQL's `NOT IN` drops NULL
+ * rows — which would hide the entire pre-existing comment history.
+ */
+const VISIBLE_COMMENTS_FILTER: Where = {
+  or: [
+    { moderationStatus: { equals: "visible" } },
+    { moderationStatus: { exists: false } },
+  ],
+};
+
 // Procedures
 
 const allComments = publicProcedure
@@ -78,7 +94,7 @@ const allComments = publicProcedure
       },
     };
 
-    const filters: Record<string, unknown>[] = [];
+    const filters: Where[] = [VISIBLE_COMMENTS_FILTER];
     if (blockedUserIds.length > 0) {
       filters.push({ "user.id": { not_in: blockedUserIds } });
     }
@@ -86,8 +102,7 @@ const allComments = publicProcedure
       filters.push({ id: { not_in: reportedCommentIds } });
     }
 
-    const where =
-      filters.length > 0 ? { and: [baseWhere, ...filters] } : baseWhere;
+    const where = { and: [baseWhere, ...filters] };
 
     const comments = await payload.find({
       collection: "comments",
@@ -135,6 +150,17 @@ const getComment = publicProcedure
       id: commentId,
       depth: 0,
     });
+
+    // Hidden/removed comments are not readable by anyone on the public API,
+    // signed in or not. NULL means "created before moderation existed".
+    if (
+      doc?.moderationStatus === "hidden" ||
+      doc?.moderationStatus === "removed"
+    ) {
+      throw new ORPCError("NOT_FOUND", {
+        message: "Comment not found",
+      });
+    }
 
     if (user && doc) {
       const commentUserId =
@@ -185,10 +211,27 @@ const getComment = publicProcedure
   });
 
 const addComment = protectedNoGuestProcedure
-  .use(createRateLimitMiddleware({ maxRequests: 10, window: 60 }))
+  // window is milliseconds — this previously passed 60, i.e. a 60ms window,
+  // which allowed effectively unlimited comments.
+  .use(createRateLimitMiddleware({ maxRequests: 10, window: 60_000 }))
   .input(CommentInput)
   .handler(async ({ input: comment, context }) => {
     const { payload, user } = context;
+
+    const screening = screenText(comment.text);
+    if (!screening.ok) {
+      payload.logger.warn(
+        {
+          userId: user.id,
+          newsId: comment.newsId,
+          severity: screening.severity,
+          matched: screening.matched,
+        },
+        "Comment rejected by content filter"
+      );
+      throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
+    }
+
     const newComment = await payload.create({
       collection: "comments",
       data: {
@@ -238,6 +281,22 @@ const updateComment = protectedNoGuestProcedure
         message: "Delete window has expired",
         data: { expiredAt: createdAt + DELETE_WINDOW_MS },
       });
+    }
+
+    // Screened on edit too, so a clean comment can't be rewritten into an
+    // objectionable one inside the edit window.
+    const screening = screenText(input.text);
+    if (!screening.ok) {
+      payload.logger.warn(
+        {
+          userId: user.id,
+          commentId: input.commentId,
+          severity: screening.severity,
+          matched: screening.matched,
+        },
+        "Comment edit rejected by content filter"
+      );
+      throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
     }
 
     const updatedComment = await payload.update({

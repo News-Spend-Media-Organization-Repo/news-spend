@@ -149,6 +149,21 @@ const Comments: CollectionConfig = {
       required: true,
     },
     {
+      name: "moderationStatus",
+      type: "select",
+      defaultValue: "visible",
+      index: true,
+      options: [
+        { label: "Visible", value: "visible" },
+        { label: "Hidden (pending review)", value: "hidden" },
+        { label: "Removed by moderator", value: "removed" },
+      ],
+      admin: {
+        description:
+          "Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed — the threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.",
+      },
+    },
+    {
       name: "user",
       type: "relationship",
       relationTo: "users",
