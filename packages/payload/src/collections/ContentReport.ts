@@ -11,6 +11,21 @@ export const ContentReport: CollectionConfig = {
   },
   fields: [
     {
+      name: "type",
+      type: "select",
+      defaultValue: "report",
+      index: true,
+      options: [
+        { label: "Content Report", value: "report" },
+        { label: "User Block", value: "block" },
+        { label: "Content Filter Rejection", value: "filterRejection" },
+      ],
+      admin: {
+        description:
+          "How this record was created. Blocks and filter rejections are recorded for visibility and are not actionable reports. Records created before this field existed have no value and are inferred from their details text.",
+      },
+    },
+    {
       name: "reason",
       type: "select",
       required: true,

@@ -2,15 +2,20 @@ import { DEFAULT_FROM_EMAIL, resend } from "@news-spend-media/mail";
 import type { TaskConfig } from "payload";
 import { getPayload } from "../lib/getPayload";
 import { REASON_LABELS } from "../lib/moderationLabels";
+import { resolveModerationRecipients } from "../lib/moderationRecipients";
 import { nextDigestTime } from "../lib/nextDigestTime";
 
 /**
  * Payload job task: sendModerationDigest
  *
  * Daily digest email for content reports. Runs via cron (configured in
- * configurePayload.ts → jobs.autoRun). Queries all pending ContentReports
- * from the last 24 hours and sends a single summary email to every admin
- * in the "admins" collection.
+ * configurePayload.ts → jobs.autoRun).
+ *
+ * Covers *every* unresolved report regardless of age — a 24h window meant
+ * anything not actioned on its arrival day silently disappeared — plus a
+ * rolling 24h count of content-filter rejections, which are informational
+ * rather than actionable. Recipients are resolved by role and per-admin
+ * preference; see lib/moderationRecipients.
  */
 export const DIGEST_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -20,33 +25,46 @@ export const sendModerationDigestTask = {
   handler: async ({ req }) => {
     const payload = await getPayload();
 
-    const [reportsResult, adminsResult] = await Promise.all([
+    const windowStartIso = new Date(
+      Date.now() - DIGEST_WINDOW_MS
+    ).toISOString();
+
+    const [reportsResult, rejectionsResult, adminEmails] = await Promise.all([
       payload.find({
         collection: "contentReports",
         // Every unresolved report, not just today's. Scoping this to the last
         // 24 hours meant a report that wasn't actioned on the day it arrived
         // dropped out of every subsequent digest and was never surfaced again.
         where: {
-          status: { equals: "pending" },
+          and: [
+            { status: { equals: "pending" } },
+            { type: { not_equals: "filterRejection" } },
+          ],
         },
         sort: "-createdAt",
         depth: 0,
         pagination: false,
         req,
       }),
+      // Filter rejections are informational rather than actionable, so they are
+      // reported as a rolling 24h count rather than a backlog.
       payload.find({
-        collection: "admins",
+        collection: "contentReports",
+        where: {
+          and: [
+            { type: { equals: "filterRejection" } },
+            { createdAt: { greater_than_equal: windowStartIso } },
+          ],
+        },
         depth: 0,
         pagination: false,
         req,
       }),
+      resolveModerationRecipients(payload, "digest", req),
     ]);
 
     const reports = reportsResult.docs;
-    const admins = adminsResult.docs as Array<{
-      email: string;
-      fullName?: string;
-    }>;
+    const rejections = rejectionsResult.docs;
 
     // While anything is still unresolved, schedule tomorrow's digest now. The
     // report hook only queues a digest when a *new* report arrives, so without
@@ -66,16 +84,12 @@ export const sendModerationDigestTask = {
       }
     }
 
-    if (reports.length === 0 || admins.length === 0) {
+    if (reports.length === 0 && rejections.length === 0) {
       return { output: { sent: false } };
     }
 
-    const adminEmails = admins
-      .map((a) => a.email)
-      .filter((e): e is string => Boolean(e));
-
     if (adminEmails.length === 0) {
-      return { output: { sent: false } };
+      return { output: { sent: false, reason: "no-recipients" } };
     }
 
     const serverUrl =
@@ -108,6 +122,7 @@ export const sendModerationDigestTask = {
         }
       ).reportedItem;
       const reason = (doc as unknown as { reason?: string }).reason;
+      const type = (doc as unknown as { type?: string | null }).type;
       const createdAt = new Date(
         (doc as unknown as { createdAt: string }).createdAt
       ).getTime();
@@ -119,9 +134,14 @@ export const sendModerationDigestTask = {
       const ageDays = Math.floor((Date.now() - createdAt) / DIGEST_WINDOW_MS);
       oldestPendingDays = Math.max(oldestPendingDays, ageDays);
 
-      if (details?.includes("blocked by user")) {
+      // Records predating the `type` field have no value, so fall back to the
+      // old details-text sniffing for them only.
+      const isBlock =
+        type === "block" || (!type && details?.includes("blocked by user"));
+
+      if (isBlock) {
         blocks++;
-        const match = details.match(/User (\S+) blocked by user (\S+)/);
+        const match = details?.match(/User (\S+) blocked by user (\S+)/);
         if (match) {
           blockDetails.push({ by: match[2]!, blocked: match[1]! });
         }
@@ -150,6 +170,43 @@ export const sendModerationDigestTask = {
           .map((b) => `<li><strong>${b.by}</strong> blocked ${b.blocked}</li>`)
           .join("") +
         "</ul>";
+    }
+
+    // Aggregated per user: a single user with many rejections is the signal
+    // worth acting on, not the individual blocked attempts.
+    const rejectionsByUser = new Map<string, number>();
+    for (const doc of rejections) {
+      const reportedBy = (doc as unknown as { reportedBy?: unknown })
+        .reportedBy;
+      const userId =
+        typeof reportedBy === "object" && reportedBy !== null
+          ? (reportedBy as { id?: string }).id
+          : (reportedBy as string | undefined);
+      if (userId) {
+        rejectionsByUser.set(userId, (rejectionsByUser.get(userId) ?? 0) + 1);
+      }
+    }
+
+    const repeatOffenders = [...rejectionsByUser.entries()]
+      .filter(([, count]) => count > 1)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    let rejectionList = "";
+    if (rejections.length > 0) {
+      const offenderRows =
+        repeatOffenders.length > 0
+          ? `<ul>${repeatOffenders
+              .map(
+                ([userId, count]) =>
+                  `<li><a href="${serverUrl}/admin/collections/users/${userId}" style="color: #1a73e8;">User ${userId}</a> — <strong>${count}</strong> blocked attempts</li>`
+              )
+              .join("")}</ul>`
+          : "";
+
+      rejectionList = `<h3>Content Filter (last 24 hours)</h3>
+  <p style="color: #666;"><strong>${rejections.length}</strong> comment${rejections.length > 1 ? "s were" : " was"} blocked before publication across <strong>${rejectionsByUser.size}</strong> user${rejectionsByUser.size === 1 ? "" : "s"}.${repeatOffenders.length > 0 ? " Users with repeated attempts:" : ""}</p>
+  ${offenderRows}`;
     }
 
     let contentFlagList = "";
@@ -185,6 +242,10 @@ export const sendModerationDigestTask = {
       <td style="padding: 8px 0; color: #666;">Content flags</td>
       <td><strong>${contentFlags.length}</strong></td>
     </tr>
+    <tr>
+      <td style="padding: 8px 0; color: #666;">Filter blocks (24h)</td>
+      <td><strong>${rejections.length}</strong></td>
+    </tr>
     ${
       oldestPendingDays >= 1
         ? `<tr>
@@ -196,6 +257,7 @@ export const sendModerationDigestTask = {
   </table>
   ${blockList}
   ${contentFlagList}
+  ${rejectionList}
   <p style="color: #666;">Review in the <strong>Content Reports</strong> section of the admin panel.</p>
 </div>`;
 
@@ -203,7 +265,7 @@ export const sendModerationDigestTask = {
       await resend.emails.send({
         from: DEFAULT_FROM_EMAIL,
         to: adminEmails,
-        subject: `Moderation Digest — ${reports.length} unresolved report${reports.length > 1 ? "s" : ""}${newInWindow > 0 ? ` (${newInWindow} new)` : ""}`,
+        subject: `Moderation Digest — ${reports.length} unresolved report${reports.length === 1 ? "" : "s"}${newInWindow > 0 ? ` (${newInWindow} new)` : ""}`,
         html,
       });
 
@@ -211,7 +273,8 @@ export const sendModerationDigestTask = {
         {
           count: reports.length,
           blocks,
-          contentFlags,
+          contentFlags: contentFlags.length,
+          filterRejections: rejections.length,
           recipients: adminEmails.length,
         },
         "Moderation digest email sent"

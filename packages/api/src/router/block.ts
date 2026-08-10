@@ -48,6 +48,7 @@ const blockUser = protectedNoGuestProcedure
     await payload.create({
       collection: "contentReports",
       data: {
+        type: "block",
         reason: "other",
         additionalDetails: `User ${input.userId} blocked by user ${user.id}`,
         reportedBy: user.id,

@@ -38,6 +38,21 @@ const Admins: CollectionConfig = {
       },
     },
     {
+      name: "moderationAlerts",
+      type: "select",
+      options: [
+        { label: "All moderation email", value: "all" },
+        { label: "Urgent reports only", value: "urgent" },
+        { label: "Daily digest only", value: "digest" },
+        { label: "None", value: "none" },
+      ],
+      admin: {
+        condition: (data) => data.role !== "partner",
+        description:
+          "Which moderation email this admin receives. Leave unset to follow the role: Super Admins and Content Managers get everything, other roles get nothing. Partners never receive moderation email. Extra non-admin addresses can be added via the MODERATION_ALERT_EMAILS env var.",
+      },
+    },
+    {
       name: "fullName",
       type: "text",
       required: true,

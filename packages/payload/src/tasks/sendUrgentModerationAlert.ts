@@ -2,6 +2,7 @@ import { DEFAULT_FROM_EMAIL, resend } from "@news-spend-media/mail";
 import type { TaskConfig } from "payload";
 import { getPayload } from "../lib/getPayload";
 import { REASON_LABELS } from "../lib/moderationLabels";
+import { resolveModerationRecipients } from "../lib/moderationRecipients";
 
 /**
  * Payload job task: sendUrgentModerationAlert
@@ -22,31 +23,22 @@ export const sendUrgentModerationAlertTask = {
     const payload = await getPayload();
     const reportId = (input as { reportId: string }).reportId;
 
-    const [report, adminsResult] = await Promise.all([
+    const [report, adminEmails] = await Promise.all([
       payload.findByID({
         collection: "contentReports",
         id: reportId,
         depth: 0,
         req,
       }),
-      payload.find({
-        collection: "admins",
-        depth: 0,
-        pagination: false,
-        req,
-      }),
+      resolveModerationRecipients(payload, "urgent", req),
     ]);
 
     if (!report) {
       return { output: { sent: false } };
     }
 
-    const adminEmails = (adminsResult.docs as Array<{ email?: string }>)
-      .map((admin) => admin.email)
-      .filter((email): email is string => Boolean(email));
-
     if (adminEmails.length === 0) {
-      return { output: { sent: false } };
+      return { output: { sent: false, reason: "no-recipients" } };
     }
 
     const serverUrl =

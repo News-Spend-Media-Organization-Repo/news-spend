@@ -22,8 +22,12 @@ export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
   }
 
   const reason = (doc as { reason?: string }).reason;
+  const type = (doc as { type?: string }).type;
 
-  if (reason && URGENT_REASONS.has(reason)) {
+  // Filter rejections carry a severe-sounding reason but describe content that
+  // was never published, so they must not page anyone. They still reach the
+  // nightly digest below.
+  if (reason && type !== "filterRejection" && URGENT_REASONS.has(reason)) {
     try {
       await req.payload.jobs.queue({
         task: "sendUrgentModerationAlert",

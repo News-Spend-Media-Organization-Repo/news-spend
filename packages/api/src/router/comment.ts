@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import type { Where } from "payload";
+import type { Payload, Where } from "payload";
 import z from "zod";
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { CONTENT_FILTER_MESSAGE, screenText } from "../lib/content-filter";
@@ -61,6 +61,43 @@ const VISIBLE_COMMENTS_FILTER: Where = {
     { moderationStatus: { exists: false } },
   ],
 };
+
+/**
+ * Records a filter rejection so repeat offenders are visible to moderators,
+ * who would otherwise never learn that a user keeps trying to post slurs —
+ * the comment is never created, so it leaves no other trace.
+ *
+ * Deliberately stores only the matched term and severity, never the attempted
+ * text: the point of the filter is that objectionable content is not persisted.
+ * Marked resolved because there is nothing for a moderator to action; the
+ * content never reached anyone.
+ */
+async function recordFilterRejection(
+  payload: Payload,
+  userId: string,
+  screening: { severity: "severe" | "profanity"; matched: string },
+  context: string
+) {
+  try {
+    await payload.create({
+      collection: "contentReports",
+      data: {
+        type: "filterRejection",
+        reason:
+          screening.severity === "severe" ? "hate-speech" : "inappropriate",
+        additionalDetails: `Content filter blocked a ${screening.severity} term ("${screening.matched}") on ${context}.`,
+        reportedBy: userId,
+        status: "resolved",
+      },
+    });
+  } catch (error) {
+    // Never turn a rejected comment into a 500 because bookkeeping failed.
+    payload.logger.error(
+      { error, userId },
+      "Failed to record content filter rejection"
+    );
+  }
+}
 
 // Procedures
 
@@ -229,6 +266,7 @@ const addComment = protectedNoGuestProcedure
         },
         "Comment rejected by content filter"
       );
+      await recordFilterRejection(payload, user.id, screening, "a new comment");
       throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
     }
 
@@ -295,6 +333,12 @@ const updateComment = protectedNoGuestProcedure
           matched: screening.matched,
         },
         "Comment edit rejected by content filter"
+      );
+      await recordFilterRejection(
+        payload,
+        user.id,
+        screening,
+        "a comment edit"
       );
       throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
     }

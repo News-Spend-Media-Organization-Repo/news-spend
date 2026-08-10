@@ -300,6 +300,10 @@ export interface Admin {
   id: string;
   role: 'super-admin' | 'content-manager' | 'editor' | 'viewer' | 'partner';
   partner?: (string | null) | Partner;
+  /**
+   * Which moderation email this admin receives. Leave unset to follow the role: Super Admins and Content Managers get everything, other roles get nothing. Partners never receive moderation email. Extra non-admin addresses can be added via the MODERATION_ALERT_EMAILS env var.
+   */
+  moderationAlerts?: ('all' | 'urgent' | 'digest' | 'none') | null;
   fullName: string;
   image?: (string | null) | Media;
   createdBy?: {
@@ -732,6 +736,10 @@ export interface Comment {
  */
 export interface ContentReport {
   id: string;
+  /**
+   * How this record was created. Blocks and filter rejections are recorded for visibility and are not actionable reports. Records created before this field existed have no value and are inferred from their details text.
+   */
+  type?: ('report' | 'block' | 'filterRejection') | null;
   reason:
     | 'spam'
     | 'harassment'
@@ -2387,6 +2395,7 @@ export interface ActivitiesSelect<T extends boolean = true> {
 export interface AdminsSelect<T extends boolean = true> {
   role?: T;
   partner?: T;
+  moderationAlerts?: T;
   fullName?: T;
   image?: T;
   createdBy?: T;
@@ -2450,6 +2459,7 @@ export interface CommentsSelect<T extends boolean = true> {
  * via the `definition` "contentReports_select".
  */
 export interface ContentReportsSelect<T extends boolean = true> {
+  type?: T;
   reason?: T;
   additionalDetails?: T;
   reportedItem?: T;
