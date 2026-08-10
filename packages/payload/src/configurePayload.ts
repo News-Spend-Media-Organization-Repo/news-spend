@@ -30,8 +30,8 @@ import {
   GiveawayAuditLog,
   GiveawayEngagements,
   GiveawayPrizes,
-  Giveaways,
   GiveawayStreaks,
+  Giveaways,
   GiveawayTickets,
   GiveawayWinners,
   IdentityVerification,
@@ -60,6 +60,7 @@ import {
   WitnessReport,
 } from "./collections";
 import Admins from "./collections/Admins";
+import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
@@ -70,8 +71,8 @@ import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processLotteryTask } from "./tasks/processLottery";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
-import { sendUrgentModerationAlertTask } from "./tasks/sendUrgentModerationAlert";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
+import { sendUrgentModerationAlertTask } from "./tasks/sendUrgentModerationAlert";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -112,7 +113,7 @@ const baseConfig: Config = {
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  globals: [NewsCategory],
+  globals: [NewsCategory, ModerationSettings],
   collections: [
     Account,
     Activities,

@@ -169,10 +169,12 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'news-category': NewsCategory;
+    'moderation-settings': ModerationSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'news-category': NewsCategorySelect<false> | NewsCategorySelect<true>;
+    'moderation-settings': ModerationSettingsSelect<false> | ModerationSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -3305,6 +3307,75 @@ export interface NewsCategory {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "moderation-settings".
+ */
+export interface ModerationSetting {
+  id: string;
+  /**
+   * Roles that receive moderation email by default. Leave empty to use the built-in default (Super Admin and Content Manager). Partners never receive moderation email and cannot be added here.
+   */
+  alertRoles?: ('super-admin' | 'content-manager' | 'editor' | 'viewer')[] | null;
+  /**
+   * Extra addresses that are not admin accounts — shared inboxes, on-call rotations, outsourced moderators. Merged with anything in the MODERATION_ALERT_EMAILS env var.
+   */
+  additionalRecipients?:
+    | {
+        email: string;
+        tier?: ('all' | 'urgent' | 'digest') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Distinct reporters required before a comment is hidden pending review. Counts distinct people, so one user cannot bury a comment alone. Leave empty for the default (3).
+   */
+  autoHideThreshold?: number | null;
+  /**
+   * Reasons that hide content immediately on a single report, bypassing the threshold above. Powerful: one report takes content down, so keep this to categories where waiting is indefensible. Leave empty for the default (Illegal Activity, Hate Speech, Explicit or Inappropriate Content).
+   */
+  hideOnFirstReportReasons?:
+    | (
+        | 'spam'
+        | 'harassment'
+        | 'hate-speech'
+        | 'misinformation'
+        | 'personal-info'
+        | 'inappropriate'
+        | 'off-topic'
+        | 'trolling'
+        | 'illegal'
+        | 'other'
+      )[]
+    | null;
+  /**
+   * Reasons that trigger an immediate alert instead of waiting for the nightly digest. Leave empty for the default (Illegal Activity, Hate Speech, Harassment, Explicit or Inappropriate Content).
+   */
+  urgentReasons?:
+    | (
+        | 'spam'
+        | 'harassment'
+        | 'hate-speech'
+        | 'misinformation'
+        | 'personal-info'
+        | 'inappropriate'
+        | 'off-topic'
+        | 'trolling'
+        | 'illegal'
+        | 'other'
+      )[]
+    | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -3332,6 +3403,28 @@ export interface NewsCategorySelect<T extends boolean = true> {
         category?: T;
         id?: T;
       };
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "moderation-settings_select".
+ */
+export interface ModerationSettingsSelect<T extends boolean = true> {
+  alertRoles?: T;
+  additionalRecipients?:
+    | T
+    | {
+        email?: T;
+        tier?: T;
+        id?: T;
+      };
+  autoHideThreshold?: T;
+  hideOnFirstReportReasons?: T;
+  urgentReasons?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

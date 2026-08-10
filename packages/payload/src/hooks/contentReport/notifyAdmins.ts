@@ -1,16 +1,15 @@
 import type { CollectionAfterChangeHook } from "payload";
-
-import { URGENT_REASONS } from "../../lib/moderationLabels";
+import { getModerationSettings } from "../../lib/moderationSettings";
 import { nextDigestTime } from "../../lib/nextDigestTime";
 
 /**
  * Routes new ContentReports to admins on one of two tiers.
  *
- * Severe categories (see URGENT_REASONS) queue an immediate alert job, picked
- * up by the next default-queue autoRun tick. Everything else is batched into
- * the daily digest at 11 PM Africa/Lagos: when a digest job is already pending
- * this does nothing, otherwise it queues one with a waitUntil of the next
- * 23:00.
+ * Severe categories — configurable via the Moderation Settings global — queue
+ * an immediate alert job, picked up by the next default-queue autoRun tick.
+ * Everything else is batched into the daily digest at 11 PM Africa/Lagos: when
+ * a digest job is already pending this does nothing, otherwise it queues one
+ * with a waitUntil of the next 23:00.
  */
 export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
   doc,
@@ -26,8 +25,14 @@ export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
 
   // Filter rejections carry a severe-sounding reason but describe content that
   // was never published, so they must not page anyone. They still reach the
-  // nightly digest below.
-  if (reason && type !== "filterRejection" && URGENT_REASONS.has(reason)) {
+  // nightly digest below. Settings are only read when a page is actually
+  // possible, so the common path costs no extra query.
+  const isUrgentCandidate = Boolean(reason) && type !== "filterRejection";
+  const settings = isUrgentCandidate
+    ? await getModerationSettings(req.payload, req)
+    : null;
+
+  if (reason && settings?.urgentReasons.has(reason)) {
     try {
       await req.payload.jobs.queue({
         task: "sendUrgentModerationAlert",

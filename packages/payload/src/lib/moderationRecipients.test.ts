@@ -5,6 +5,10 @@ import {
   parseExtraEmails,
   selectRecipients,
 } from "./moderationRecipients";
+import { applySettingsDefaults } from "./moderationSettings";
+
+// Defaults stand in for an unconfigured Moderation Settings global.
+const defaults = applySettingsDefaults(null);
 
 const admin = (over: Partial<AdminRecord> = {}): AdminRecord => ({
   email: "a@example.com",
@@ -20,11 +24,11 @@ describe("selectRecipients", () => {
         admin({ email: "cm@x.com", role: "content-manager" }),
       ];
 
-      expect(selectRecipients(admins, "urgent")).toEqual([
+      expect(selectRecipients(admins, "urgent", defaults)).toEqual([
         "super@x.com",
         "cm@x.com",
       ]);
-      expect(selectRecipients(admins, "digest")).toHaveLength(2);
+      expect(selectRecipients(admins, "digest", defaults)).toHaveLength(2);
     });
 
     it("excludes editors and viewers", () => {
@@ -33,8 +37,8 @@ describe("selectRecipients", () => {
         admin({ email: "vw@x.com", role: "viewer" }),
       ];
 
-      expect(selectRecipients(admins, "urgent")).toEqual([]);
-      expect(selectRecipients(admins, "digest")).toEqual([]);
+      expect(selectRecipients(admins, "urgent", defaults)).toEqual([]);
+      expect(selectRecipients(admins, "digest", defaults)).toEqual([]);
     });
   });
 
@@ -44,8 +48,12 @@ describe("selectRecipients", () => {
         admin({ email: "ed@x.com", role: "editor", moderationAlerts: "all" }),
       ];
 
-      expect(selectRecipients(admins, "urgent")).toEqual(["ed@x.com"]);
-      expect(selectRecipients(admins, "digest")).toEqual(["ed@x.com"]);
+      expect(selectRecipients(admins, "urgent", defaults)).toEqual([
+        "ed@x.com",
+      ]);
+      expect(selectRecipients(admins, "digest", defaults)).toEqual([
+        "ed@x.com",
+      ]);
     });
 
     it("honours an opt-out from a role that gets everything by default", () => {
@@ -57,8 +65,8 @@ describe("selectRecipients", () => {
         }),
       ];
 
-      expect(selectRecipients(admins, "urgent")).toEqual([]);
-      expect(selectRecipients(admins, "digest")).toEqual([]);
+      expect(selectRecipients(admins, "urgent", defaults)).toEqual([]);
+      expect(selectRecipients(admins, "digest", defaults)).toEqual([]);
     });
 
     it("routes urgent-only and digest-only to the right tier", () => {
@@ -67,8 +75,8 @@ describe("selectRecipients", () => {
         admin({ email: "d@x.com", role: "viewer", moderationAlerts: "digest" }),
       ];
 
-      expect(selectRecipients(admins, "urgent")).toEqual(["u@x.com"]);
-      expect(selectRecipients(admins, "digest")).toEqual(["d@x.com"]);
+      expect(selectRecipients(admins, "urgent", defaults)).toEqual(["u@x.com"]);
+      expect(selectRecipients(admins, "digest", defaults)).toEqual(["d@x.com"]);
     });
   });
 
@@ -80,24 +88,23 @@ describe("selectRecipients", () => {
         admin({ email: "p@x.com", role: "partner", moderationAlerts: "all" }),
       ];
 
-      expect(selectRecipients(admins, "urgent")).toEqual([]);
-      expect(selectRecipients(admins, "digest")).toEqual([]);
+      expect(selectRecipients(admins, "urgent", defaults)).toEqual([]);
+      expect(selectRecipients(admins, "digest", defaults)).toEqual([]);
     });
   });
 
   describe("hygiene", () => {
     it("skips admins with no email", () => {
       const admins = [admin({ email: null, role: "super-admin" })];
-      expect(selectRecipients(admins, "digest")).toEqual([]);
+      expect(selectRecipients(admins, "digest", defaults)).toEqual([]);
     });
 
     it("appends extra addresses from config", () => {
       const admins = [admin({ email: "super@x.com", role: "super-admin" })];
 
-      expect(selectRecipients(admins, "urgent", ["oncall@x.com"])).toEqual([
-        "super@x.com",
-        "oncall@x.com",
-      ]);
+      expect(
+        selectRecipients(admins, "urgent", defaults, ["oncall@x.com"])
+      ).toEqual(["super@x.com", "oncall@x.com"]);
     });
 
     it("dedupes case-insensitively", () => {
@@ -106,13 +113,67 @@ describe("selectRecipients", () => {
         admin({ email: "super@x.com", role: "content-manager" }),
       ];
 
-      expect(selectRecipients(admins, "digest", ["SUPER@X.COM"])).toEqual([
-        "Super@X.com",
-      ]);
+      expect(
+        selectRecipients(admins, "digest", defaults, ["SUPER@X.COM"])
+      ).toEqual(["Super@X.com"]);
     });
 
     it("returns an empty list when nobody is configured", () => {
-      expect(selectRecipients([], "urgent")).toEqual([]);
+      expect(selectRecipients([], "urgent", defaults)).toEqual([]);
+    });
+  });
+
+  describe("driven by the Moderation Settings global", () => {
+    it("uses the roles configured there instead of the built-in default", () => {
+      const settings = applySettingsDefaults({ alertRoles: ["editor"] });
+      const admins = [
+        admin({ email: "ed@x.com", role: "editor" }),
+        admin({ email: "super@x.com", role: "super-admin" }),
+      ];
+
+      // super-admin is only a default; once roles are configured it no longer
+      // applies unless explicitly listed.
+      expect(selectRecipients(admins, "digest", settings)).toEqual([
+        "ed@x.com",
+      ]);
+    });
+
+    it("still lets an individual admin override the configured roles", () => {
+      const settings = applySettingsDefaults({ alertRoles: ["editor"] });
+      const admins = [
+        admin({ email: "ed@x.com", role: "editor", moderationAlerts: "none" }),
+        admin({ email: "vw@x.com", role: "viewer", moderationAlerts: "all" }),
+      ];
+
+      expect(selectRecipients(admins, "digest", settings)).toEqual([
+        "vw@x.com",
+      ]);
+    });
+
+    it("includes additional recipients, respecting their tier", () => {
+      const settings = applySettingsDefaults({
+        additionalRecipients: [
+          { email: "all@x.com", tier: "all" },
+          { email: "urgent@x.com", tier: "urgent" },
+          { email: "digest@x.com", tier: "digest" },
+        ],
+      });
+
+      expect(selectRecipients([], "urgent", settings)).toEqual([
+        "all@x.com",
+        "urgent@x.com",
+      ]);
+      expect(selectRecipients([], "digest", settings)).toEqual([
+        "all@x.com",
+        "digest@x.com",
+      ]);
+    });
+
+    it("never routes to a partner even via configured roles", () => {
+      const settings = applySettingsDefaults({ alertRoles: ["partner"] });
+      const admins = [admin({ email: "p@x.com", role: "partner" })];
+
+      expect(selectRecipients(admins, "digest", settings)).toEqual([]);
     });
   });
 });

@@ -1,27 +1,17 @@
 import type { CollectionAfterChangeHook } from "payload";
 
-/**
- * Number of distinct reporters required before a comment is hidden pending
- * moderator review. Distinct reporters — not raw report count — so one user
- * cannot bury a comment on their own.
- */
-export const AUTO_HIDE_REPORT_THRESHOLD = 3;
+import { getModerationSettings } from "../../lib/moderationSettings";
 
-/**
- * Reasons severe enough to hide on a single report. Waiting for a third
- * reporter is not defensible for this category of content.
- */
-const HIDE_ON_FIRST_REPORT = new Set([
-  "illegal",
-  "hate-speech",
-  "inappropriate",
-]);
+export { DEFAULT_AUTO_HIDE_THRESHOLD as AUTO_HIDE_REPORT_THRESHOLD } from "../../lib/moderationLabels";
 
 /**
  * Hides reported comments automatically so objectionable content stops being
  * served without waiting for a moderator. Required by App Store Review
  * guideline 1.2, which expects reported content to be acted on promptly —
  * a human-in-the-loop-only flow cannot guarantee that.
+ *
+ * The threshold and the hide-on-first-report reasons come from the Moderation
+ * Settings global, falling back to code defaults when unconfigured.
  *
  * Hiding is reversible: a moderator sets `moderationStatus` back to "visible".
  */
@@ -54,12 +44,15 @@ export const autoHideReportedContent: CollectionAfterChangeHook = async ({
   const reason = (doc as { reason?: string }).reason;
 
   try {
-    const comment = await req.payload.findByID({
-      collection: "comments",
-      id: commentId,
-      depth: 0,
-      req,
-    });
+    const [comment, settings] = await Promise.all([
+      req.payload.findByID({
+        collection: "comments",
+        id: commentId,
+        depth: 0,
+        req,
+      }),
+      getModerationSettings(req.payload, req),
+    ]);
 
     // Only escalate content that is currently public. NULL counts as public:
     // comments created before this field existed have no value, and they must
@@ -70,7 +63,9 @@ export const autoHideReportedContent: CollectionAfterChangeHook = async ({
       return;
     }
 
-    let shouldHide = reason ? HIDE_ON_FIRST_REPORT.has(reason) : false;
+    let shouldHide = reason
+      ? settings.hideOnFirstReportReasons.has(reason)
+      : false;
 
     if (!shouldHide) {
       const reports = await req.payload.find({
@@ -96,7 +91,7 @@ export const autoHideReportedContent: CollectionAfterChangeHook = async ({
           .filter(Boolean)
       );
 
-      shouldHide = distinctReporters.size >= AUTO_HIDE_REPORT_THRESHOLD;
+      shouldHide = distinctReporters.size >= settings.autoHideThreshold;
     }
 
     if (!shouldHide) {
@@ -115,7 +110,7 @@ export const autoHideReportedContent: CollectionAfterChangeHook = async ({
         commentId,
         reason,
         trigger:
-          reason && HIDE_ON_FIRST_REPORT.has(reason)
+          reason && settings.hideOnFirstReportReasons.has(reason)
             ? "severe-reason"
             : "report-threshold",
       },

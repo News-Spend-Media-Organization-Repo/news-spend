@@ -11,9 +11,12 @@ function makeReq(options: {
   moderationStatus?: string | null;
   reports?: Report[];
   findByIDRejects?: boolean;
+  /** Stands in for the Moderation Settings global; null means unconfigured. */
+  settings?: Record<string, unknown> | null;
 }) {
   const update = vi.fn().mockResolvedValue({});
   const find = vi.fn().mockResolvedValue({ docs: options.reports ?? [] });
+  const findGlobal = vi.fn().mockResolvedValue(options.settings ?? null);
   const findByID = options.findByIDRejects
     ? vi.fn().mockRejectedValue(new Error("boom"))
     : vi.fn().mockResolvedValue({
@@ -28,6 +31,7 @@ function makeReq(options: {
     payload: {
       findByID,
       find,
+      findGlobal,
       update,
       logger: { warn: vi.fn(), error: vi.fn() },
     },
@@ -196,6 +200,59 @@ describe("autoHideReportedContent", () => {
       expect(req.payload.update).not.toHaveBeenCalled();
     });
   }
+
+  describe("Moderation Settings global", () => {
+    it("honours a raised threshold", async () => {
+      const req = makeReq({
+        settings: { autoHideThreshold: 5 },
+        reports: reporters(4),
+      });
+      await runHook({ doc: makeDoc(), req });
+
+      expect(req.payload.update).not.toHaveBeenCalled();
+    });
+
+    it("honours a lowered threshold", async () => {
+      const req = makeReq({
+        settings: { autoHideThreshold: 2 },
+        reports: reporters(2),
+      });
+      await runHook({ doc: makeDoc(), req });
+
+      expect(req.payload.update).toHaveBeenCalled();
+    });
+
+    it("honours configured hide-on-first-report reasons", async () => {
+      // "spam" is not severe by default; configuring it makes one report enough.
+      const req = makeReq({
+        settings: { hideOnFirstReportReasons: ["spam"] },
+        reports: [],
+      });
+      await runHook({ doc: makeDoc({ reason: "spam" }), req });
+
+      expect(req.payload.update).toHaveBeenCalled();
+      expect(req.payload.find).not.toHaveBeenCalled();
+    });
+
+    it("stops hiding on first report for a reason removed from the list", async () => {
+      const req = makeReq({
+        settings: { hideOnFirstReportReasons: ["spam"] },
+        reports: reporters(1),
+      });
+      await runHook({ doc: makeDoc({ reason: "hate-speech" }), req });
+
+      expect(req.payload.update).not.toHaveBeenCalled();
+    });
+
+    it("falls back to defaults when the global cannot be read", async () => {
+      const req = makeReq({ reports: reporters(AUTO_HIDE_REPORT_THRESHOLD) });
+      req.payload.findGlobal.mockRejectedValue(new Error("no global"));
+
+      await runHook({ doc: makeDoc(), req });
+
+      expect(req.payload.update).toHaveBeenCalled();
+    });
+  });
 
   it("swallows errors so a failed hide never fails the user's report", async () => {
     const req = makeReq({ findByIDRejects: true });

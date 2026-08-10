@@ -1,5 +1,10 @@
 import type { Payload, PayloadRequest } from "payload";
 
+import {
+  getModerationSettings,
+  type ResolvedModerationSettings,
+} from "./moderationSettings";
+
 /**
  * Which moderation emails an admin receives.
  *
@@ -10,9 +15,6 @@ import type { Payload, PayloadRequest } from "payload";
 export type AlertPreference = "all" | "urgent" | "digest" | "none";
 
 export type AlertTier = "urgent" | "digest";
-
-/** Roles that receive moderation email when they have no explicit preference. */
-export const DEFAULT_ALERT_ROLES = new Set(["super-admin", "content-manager"]);
 
 /**
  * Roles never mailed moderation content, even if explicitly opted in.
@@ -30,13 +32,18 @@ export type AdminRecord = {
 /**
  * Resolves which of the given admins should receive a given tier of alert.
  *
- * Pure so the routing rules can be tested without a database. `extraEmails`
- * carries addresses from MODERATION_ALERT_EMAILS — on-call or shared inboxes
- * that aren't admin accounts.
+ * Precedence, most specific first:
+ *   1. The admin's own `moderationAlerts` preference, if set.
+ *   2. The roles configured in the Moderation Settings global.
+ *   3. That global's own defaults, applied upstream by applySettingsDefaults.
+ *
+ * Partners are excluded at every level. Pure so the precedence rules can be
+ * tested without a database.
  */
 export function selectRecipients(
   admins: AdminRecord[],
   tier: AlertTier,
+  settings: ResolvedModerationSettings,
   extraEmails: string[] = []
 ): string[] {
   const selected: string[] = [];
@@ -53,10 +60,16 @@ export function selectRecipients(
 
     const preference: AlertPreference =
       admin.moderationAlerts ??
-      (DEFAULT_ALERT_ROLES.has(role) ? "all" : "none");
+      (settings.alertRoles.has(role) ? "all" : "none");
 
     if (preference === "all" || preference === tier) {
       selected.push(admin.email);
+    }
+  }
+
+  for (const recipient of settings.additionalRecipients) {
+    if (recipient.tier === "all" || recipient.tier === tier) {
+      selected.push(recipient.email);
     }
   }
 
@@ -92,25 +105,30 @@ export function parseExtraEmails(raw = process.env.MODERATION_ALERT_EMAILS) {
 export async function resolveModerationRecipients(
   payload: Payload,
   tier: AlertTier,
-  req?: PayloadRequest
+  req?: PayloadRequest,
+  settings?: ResolvedModerationSettings
 ): Promise<string[]> {
-  const admins = await payload.find({
-    collection: "admins",
-    depth: 0,
-    pagination: false,
-    req,
-  });
+  const [admins, resolvedSettings] = await Promise.all([
+    payload.find({
+      collection: "admins",
+      depth: 0,
+      pagination: false,
+      req,
+    }),
+    settings ? Promise.resolve(settings) : getModerationSettings(payload, req),
+  ]);
 
   const recipients = selectRecipients(
     admins.docs as AdminRecord[],
     tier,
+    resolvedSettings,
     parseExtraEmails()
   );
 
   if (recipients.length === 0) {
     payload.logger.error(
       { tier, adminCount: admins.docs.length },
-      "No moderation alert recipients resolved — moderation email will not be delivered. Set an admin's Moderation Alerts preference or MODERATION_ALERT_EMAILS."
+      "No moderation alert recipients resolved — moderation email will not be delivered. Configure Alert Recipients in Moderation Settings, set an admin's Moderation Alerts preference, or set MODERATION_ALERT_EMAILS."
     );
   }
 
