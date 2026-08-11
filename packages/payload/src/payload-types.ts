@@ -303,7 +303,7 @@ export interface Admin {
   role: 'super-admin' | 'content-manager' | 'editor' | 'viewer' | 'partner';
   partner?: (string | null) | Partner;
   /**
-   * Which moderation email this admin receives. Leave unset to follow the role: Super Admins and Content Managers get everything, other roles get nothing. Partners never receive moderation email. Extra non-admin addresses can be added via the MODERATION_ALERT_EMAILS env var.
+   * Which moderation email this admin receives. Leave unset to follow the roles configured in Moderation Settings. Partners never receive moderation email. Note that moderation alerts can never be switched off entirely: if every recipient opts out, Super Admins are notified regardless of this setting.
    */
   moderationAlerts?: ('all' | 'urgent' | 'digest' | 'none') | null;
   fullName: string;

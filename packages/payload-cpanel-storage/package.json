@@ -13,7 +13,7 @@
 		"lint": "bun x biome check .",
 		"lint:fix": "bun x biome check --write .",
 		"check-types": "tsc --noEmit",
-		"test": "vitest"
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@news-spend-media/logger": "workspace:*",
@@ -31,8 +31,7 @@
 		"react": "catalog:",
 		"react-dom": "catalog:",
 		"ssh2": "1.17.0",
-		"typescript": "catalog:",
-		"vitest": "catalog:"
+		"typescript": "catalog:"
 	},
 	"peerDependencies": {
 		"next": "catalog:",
