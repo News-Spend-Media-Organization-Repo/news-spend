@@ -1420,7 +1420,13 @@ export interface Lottery {
   startDate: string;
   endDate: string;
   isActive?: boolean | null;
+  /**
+   * Set while a draw is in progress. Blocks a second draw from starting.
+   */
   processing?: boolean | null;
+  /**
+   * Stamped when the draw completes. Once set, the draw cannot run again.
+   */
   processedAt?: string | null;
   drawSeed?: string | null;
   ticketPrice: number;

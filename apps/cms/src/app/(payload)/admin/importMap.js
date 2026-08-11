@@ -3,6 +3,7 @@ import { TwitterPostBlockComponent as TwitterPostBlockComponent_960102ca615da003
 import { YouTubeBlockComponent as YouTubeBlockComponent_27b5acc71c8946877a9ff929001bbdf2 } from "@news-spend-media/payload/blocks/YouTube/Component";
 import { Icon as Icon_92876dd9c4e9e3a3794035e4edc8ede5 } from "@news-spend-media/payload/components/Icon";
 import { Logo as Logo_502ee6abc1f396666feea23035509da4 } from "@news-spend-media/payload/components/Logo";
+import { RunLotteryDraw as RunLotteryDraw_9916e1c28a6cc77d7445bf9a6f37a0eb } from "@news-spend-media/payload/components/RunLotteryDraw";
 import { VideoPreviewField as VideoPreviewField_a86bb0b13348b042ba24277762780641 } from "@news-spend-media/payload/components/VideoPreviewField";
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from "@payloadcms/next/client";
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from "@payloadcms/next/rsc";
@@ -41,6 +42,8 @@ import {
 export const importMap = {
   "@payloadcms/next/client#SlugField":
     SlugField_2b8867833a34864a02ddf429b0728a40,
+  "@news-spend-media/payload/components/RunLotteryDraw#RunLotteryDraw":
+    RunLotteryDraw_9916e1c28a6cc77d7445bf9a6f37a0eb,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell":
     RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField":
