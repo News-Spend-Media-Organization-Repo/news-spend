@@ -14,11 +14,32 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "../index";
-import { addActivity } from "../shared/activity";
+
+/**
+ * Upper bound on a single purchase. Not a business rule so much as a guard: the
+ * quantity is multiplied by the ticket price to produce a points debit, so an
+ * absurd value is worth rejecting outright rather than reasoning about.
+ */
+const MAX_TICKETS_PER_PURCHASE = 1000;
 
 // Input schema for creating lottery tickets
-const CreateLotteryTicketInput = z.object({
-  num_of_tickets: z.number(),
+export const CreateLotteryTicketInput = z.object({
+  /**
+   * Must be a positive whole number.
+   *
+   * This was a bare `z.number()`, which accepted negatives and decimals. A
+   * negative quantity inverted the debit below — `-(-10 * 50)` credits 500
+   * points — so a purchase of minus ten tickets minted points and reduced the
+   * caller's ticket count.
+   */
+  num_of_tickets: z
+    .number()
+    .int("Ticket quantity must be a whole number.")
+    .min(1, "You must buy at least one ticket.")
+    .max(
+      MAX_TICKETS_PER_PURCHASE,
+      `You cannot buy more than ${MAX_TICKETS_PER_PURCHASE} tickets at once.`
+    ),
 });
 
 export type CreateLotteryTicketInput = z.infer<typeof CreateLotteryTicketInput>;
@@ -44,72 +65,120 @@ const create = protectedNoGuestProcedure
       });
     }
 
-    // Get user points
-    const pointsQuery = await db
-      .select({
-        totalPoints: sql`COALESCE(SUM(${activities.point}), 0)`.mapWith(Number),
-      })
-      .from(activities)
-      .where(eq(activities.user, user.id));
+    const activeLottery = currentLottery.docs[0];
+    const ticketPrice = activeLottery?.ticketPrice ?? 1;
+    const cost = num_of_tickets * ticketPrice;
 
-    const userPoints = pointsQuery[0]?.totalPoints ?? 0;
+    /**
+     * Charge for the tickets before handing any out.
+     *
+     * The balance check used to compare points against the ticket *count* while
+     * the debit was count × price, so at the default price of 50 a user holding
+     * 10 points could buy 10 tickets and land at −490.
+     *
+     * Reading the balance and then writing the debit as two statements also let
+     * two concurrent purchases both pass the check and overspend, so the read
+     * and the write happen inside one transaction that first takes a row lock
+     * on the user. Requests for the same user serialise on that lock; requests
+     * for different users do not contend.
+     *
+     * The debit is committed before the tickets are granted. If granting then
+     * fails the points are refunded below — the reverse order would hand out
+     * tickets that were never paid for.
+     */
+    await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT 1 FROM ${users} WHERE ${users.id} = ${user.id} FOR UPDATE`
+      );
 
-    if (userPoints < num_of_tickets) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Not enough tickets",
-      });
-    }
+      const balanceRows = await tx
+        .select({
+          totalPoints: sql`COALESCE(SUM(${activities.point}), 0)`.mapWith(
+            Number
+          ),
+        })
+        .from(activities)
+        .where(eq(activities.user, user.id));
 
-    // Check for existing ticket
-    const existingTicket = await payload.find({
-      collection: "lottery-tickets",
-      where: {
-        user: { equals: user.id },
-        lottery: { equals: currentLottery.docs[0]?.id ?? 0 },
-      },
-    });
+      const userPoints = balanceRows[0]?.totalPoints ?? 0;
 
-    let result: LotteryTicket;
-    if (existingTicket.totalDocs > 0 && existingTicket.docs[0]) {
-      result = await payload.update({
-        collection: "lottery-tickets",
-        id: existingTicket.docs[0].id,
-        data: {
-          count: existingTicket.docs[0].count + num_of_tickets,
-        },
-      });
-    } else {
-      result = await payload.create({
-        collection: "lottery-tickets",
-        data: {
-          count: num_of_tickets,
-          user: user.id,
-          lottery: currentLottery.docs[0]?.id ?? "0",
-          boostLuck: 0,
-        },
-      });
-    }
+      if (userPoints < cost) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `Not enough points. ${num_of_tickets} ticket${num_of_tickets === 1 ? "" : "s"} costs ${cost} points and you have ${userPoints}.`,
+        });
+      }
 
-    await payload.create({
-      collection: "ticket-purchase-log",
-      data: {
+      await tx.insert(activities).values({
         user: user.id,
-        lottery: currentLottery.docs[0]?.id ?? "0",
-        ticketQuantity: num_of_tickets,
-      },
+        type: "point",
+        action: "ticketPurchase",
+        point: -cost,
+        description: "Giveaway ticket purchase",
+      });
     });
 
-    await addActivity(
-      {
-        type: "point",
-        point: -(num_of_tickets * (currentLottery.docs[0]?.ticketPrice ?? 1)),
-        description: "Giveaway ticket purchase",
-        action: "ticketPurchase",
-      },
-      context
-    );
+    try {
+      // Check for existing ticket
+      const existingTicket = await payload.find({
+        collection: "lottery-tickets",
+        where: {
+          user: { equals: user.id },
+          lottery: { equals: activeLottery?.id },
+        },
+      });
 
-    return result;
+      let result: LotteryTicket;
+      if (existingTicket.totalDocs > 0 && existingTicket.docs[0]) {
+        result = await payload.update({
+          collection: "lottery-tickets",
+          id: existingTicket.docs[0].id,
+          data: {
+            count: existingTicket.docs[0].count + num_of_tickets,
+          },
+        });
+      } else {
+        result = await payload.create({
+          collection: "lottery-tickets",
+          data: {
+            count: num_of_tickets,
+            user: user.id,
+            lottery: activeLottery?.id ?? "0",
+            boostLuck: 0,
+          },
+        });
+      }
+
+      await payload.create({
+        collection: "ticket-purchase-log",
+        data: {
+          user: user.id,
+          lottery: activeLottery?.id ?? "0",
+          ticketQuantity: num_of_tickets,
+        },
+      });
+
+      return result;
+    } catch (error) {
+      // The points were already taken. Put them back rather than leave the user
+      // charged for tickets they did not receive.
+      await db
+        .insert(activities)
+        .values({
+          user: user.id,
+          type: "point",
+          action: "ticketPurchase",
+          point: cost,
+          description: "Refund — giveaway ticket purchase failed",
+        })
+        .catch((refundError) => {
+          payload.logger.error(
+            { err: refundError, user: user.id, cost },
+            "[lottery] failed to refund points after a failed ticket purchase"
+          );
+        });
+
+      throw error;
+    }
   });
 
 const getByUser = protectedProcedure.handler(async ({ context }) => {
