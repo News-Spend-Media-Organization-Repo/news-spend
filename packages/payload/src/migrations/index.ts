@@ -31,6 +31,7 @@ import * as migration_20260702_102512 from './20260702_102512';
 import * as migration_20260718_071254 from './20260718_071254';
 import * as migration_20260719_060000_backfill_comment_counts from './20260719_060000_backfill_comment_counts';
 import * as migration_20260721_110118 from './20260721_110118';
+import * as migration_20260811_093634 from './20260811_093634';
 
 export const migrations = [
   {
@@ -196,6 +197,11 @@ export const migrations = [
   {
     up: migration_20260721_110118.up,
     down: migration_20260721_110118.down,
-    name: '20260721_110118'
+    name: '20260721_110118',
+  },
+  {
+    up: migration_20260811_093634.up,
+    down: migration_20260811_093634.down,
+    name: '20260811_093634'
   },
 ];
