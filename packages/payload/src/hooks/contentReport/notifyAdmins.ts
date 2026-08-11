@@ -1,17 +1,51 @@
 import type { CollectionAfterChangeHook } from "payload";
+import { getModerationSettings } from "../../lib/moderationSettings";
+import { nextDigestTime } from "../../lib/nextDigestTime";
 
 /**
- * Schedules a daily moderation digest (11 PM Africa/Lagos). When a new
- * ContentReport is created, this checks if a digest job is already pending for
- * today. If not, it queues one with a waitUntil of the next 23:00. All reports
- * created during the day are batched into a single email sent to all admins.
+ * Routes new ContentReports to admins on one of two tiers.
+ *
+ * Severe categories — configurable via the Moderation Settings global — queue
+ * an immediate alert job, picked up by the next default-queue autoRun tick.
+ * Everything else is batched into the daily digest at 11 PM Africa/Lagos: when
+ * a digest job is already pending this does nothing, otherwise it queues one
+ * with a waitUntil of the next 23:00.
  */
 export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
+  doc,
   operation,
   req,
 }) => {
   if (operation !== "create") {
     return;
+  }
+
+  const reason = (doc as { reason?: string }).reason;
+  const type = (doc as { type?: string }).type;
+
+  // Filter rejections carry a severe-sounding reason but describe content that
+  // was never published, so they must not page anyone. They still reach the
+  // nightly digest below. Settings are only read when a page is actually
+  // possible, so the common path costs no extra query.
+  const isUrgentCandidate = Boolean(reason) && type !== "filterRejection";
+  const settings = isUrgentCandidate
+    ? await getModerationSettings(req.payload, req)
+    : null;
+
+  if (reason && settings?.urgentReasons.has(reason)) {
+    try {
+      await req.payload.jobs.queue({
+        task: "sendUrgentModerationAlert",
+        input: { reportId: String((doc as { id: string | number }).id) },
+      });
+    } catch (error) {
+      req.payload.logger.error(
+        { error, reason },
+        "Failed to queue urgent moderation alert"
+      );
+    }
+    // Falls through to the digest as well, so the nightly summary stays a
+    // complete record of the day rather than silently omitting severe reports.
   }
 
   try {
@@ -31,32 +65,10 @@ export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
       return;
     }
 
-    // Schedule for the next occurrence of 23:00 Africa/Lagos.
-    // Africa/Lagos is UTC+1 (no DST), so 23:00 Lagos equals 22:00 UTC.
-    const now = new Date();
-    const lagosParts = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Africa/Lagos",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(now);
-    const getPart = (type: "year" | "month" | "day") =>
-      Number(lagosParts.find((part) => part.type === type)?.value ?? "0");
-    const year = getPart("year");
-    const month = getPart("month");
-    const day = getPart("day");
-    let targetTimestamp = Date.UTC(year, month - 1, day, 22, 0, 0, 0);
-
-    if (targetTimestamp <= now.getTime()) {
-      targetTimestamp += 24 * 60 * 60 * 1000;
-    }
-
-    const target = new Date(targetTimestamp);
-
     await req.payload.jobs.queue({
       task: "sendModerationDigest",
       input: {},
-      waitUntil: target,
+      waitUntil: nextDigestTime(),
     });
   } catch (error) {
     req.payload.logger.error(

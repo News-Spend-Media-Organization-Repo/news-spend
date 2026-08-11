@@ -35,7 +35,10 @@ export default function TOS() {
 
   const onConfirm = () => {
     const { goto } = (route.params as { goto?: string }) || {};
-    if (goto === "SignUp") {
+    // Guideline 1.2 requires the agreement before registering *or* logging in,
+    // so both "SignUp" and "SignIn" enter through this gate. No goto means the
+    // guest path, which agrees here and then signs in anonymously.
+    if (goto === "SignUp" || goto === "SignIn") {
       navigation.replace(goto);
     } else {
       anonymousSignInMutation.mutate();

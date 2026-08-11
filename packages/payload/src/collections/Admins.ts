@@ -38,6 +38,21 @@ const Admins: CollectionConfig = {
       },
     },
     {
+      name: "moderationAlerts",
+      type: "select",
+      options: [
+        { label: "All moderation email", value: "all" },
+        { label: "Urgent reports only", value: "urgent" },
+        { label: "Daily digest only", value: "digest" },
+        { label: "None", value: "none" },
+      ],
+      admin: {
+        condition: (data) => data.role !== "partner",
+        description:
+          "Which moderation email this admin receives. Leave unset to follow the roles configured in Moderation Settings. Partners never receive moderation email. Note that moderation alerts can never be switched off entirely: if every recipient opts out, Super Admins are notified regardless of this setting.",
+      },
+    },
+    {
       name: "fullName",
       type: "text",
       required: true,

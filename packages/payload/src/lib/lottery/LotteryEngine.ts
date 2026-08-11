@@ -73,7 +73,10 @@ export class LotteryEngine {
   /**
    * Main lottery execution function
    */
-  async runLottery(lotteryId?: number) {
+  async runLottery(lotteryId?: string) {
+    // Tracked outside the try so the catch can release a claim it acquired.
+    let claimedLotteryId: string | null = null;
+
     try {
       // Get active lottery
       const currentRound = await this.payload.find({
@@ -94,6 +97,43 @@ export class LotteryEngine {
 
       const activeLottery = currentRound.docs[0];
 
+      /**
+       * Claim the draw before doing any work.
+       *
+       * This is a compare-and-set: the update only matches while the lottery is
+       * neither already being processed nor already processed, so a second
+       * caller gets zero rows back and stops. Without it, anything that re-runs
+       * the draw — the task's `retries: 2`, a manual trigger after an outage, a
+       * duplicate cron — creates a second full set of winner rows, because
+       * winners are written per ticket with no existence check.
+       */
+      const claim = await this.payload.update({
+        collection: "lottery",
+        where: {
+          and: [
+            { id: { equals: activeLottery.id } },
+            { processing: { not_equals: true } },
+            { processedAt: { exists: false } },
+          ],
+        },
+        data: { processing: true },
+      });
+
+      if (!claim.docs?.length) {
+        this.payload.logger.info(
+          `[LOTTERY] Draw for ${activeLottery.id} is already processing or already processed — skipping`
+        );
+        return {
+          success: true,
+          alreadyProcessed: true,
+          message: "Draw already processed",
+          lotteryId: activeLottery.id,
+          winners: [],
+        };
+      }
+
+      claimedLotteryId = activeLottery.id;
+
       // Get all participants
       const tickets = await this.payload.find({
         collection: "lottery-tickets",
@@ -102,15 +142,21 @@ export class LotteryEngine {
       });
 
       if (tickets.docs.length === 0) {
-        console.log("[LOTTERY] No participants found");
+        this.payload.logger.info("[LOTTERY] No participants found");
+        // A draw with nobody in it is still a completed draw — mark it so, or
+        // the lottery stays claimed forever and blocks the next one.
+        await this.markProcessed(activeLottery.id);
         return {
           success: true,
           message: "No participants",
+          lotteryId: activeLottery.id,
           winners: [],
         };
       }
 
-      console.log(`[LOTTERY] Processing ${tickets.docs.length} participants`);
+      this.payload.logger.info(
+        `[LOTTERY] Processing ${tickets.docs.length} participants`
+      );
       const winners = [];
 
       // Process each participant
@@ -137,11 +183,11 @@ export class LotteryEngine {
           });
 
           winners.push(winner);
-          console.log(
+          this.payload.logger.info(
             `[LOTTERY] Winner: ${userId} - ${prize.tier} - ${prize.name}`
           );
         } catch (error) {
-          console.error(
+          this.payload.logger.error(
             `[LOTTERY] Error processing ticket ${ticket.id}:`,
             error
           );
@@ -149,25 +195,62 @@ export class LotteryEngine {
         }
       }
 
-      // Deactivate lottery
-      await this.payload.update({
-        collection: "lottery",
-        id: activeLottery.id,
-        data: { isActive: false },
-      });
+      // Deactivate and stamp the draw as done in one write.
+      await this.markProcessed(activeLottery.id);
 
-      console.log(`[LOTTERY] Completed. ${winners.length} winners created`);
+      this.payload.logger.info(
+        `[LOTTERY] Completed. ${winners.length} winners created`
+      );
 
       return {
         success: true,
         message: "Giveaway draw completed",
+        lotteryId: activeLottery.id,
         totalParticipants: tickets.docs.length,
         totalWinners: winners.length,
         winners,
       };
     } catch (error) {
-      console.error("[LOTTERY] Fatal error:", error);
+      this.payload.logger.error("[LOTTERY] Fatal error:", error);
+
+      // Release the claim so the draw can be retried. `processedAt` is left
+      // unset deliberately — the draw did not finish. Any winners already
+      // written stay put, so a retry must be preceded by a check of how far
+      // the previous attempt got.
+      if (claimedLotteryId) {
+        await this.releaseClaim(claimedLotteryId);
+      }
+
       throw error;
+    }
+  }
+
+  /** Mark a draw finished: no longer processing, deactivated, stamped. */
+  private async markProcessed(lotteryId: string) {
+    await this.payload.update({
+      collection: "lottery",
+      id: lotteryId,
+      data: {
+        processing: false,
+        isActive: false,
+        processedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  /** Release a claim after a failed draw so it can be attempted again. */
+  private async releaseClaim(lotteryId: string) {
+    try {
+      await this.payload.update({
+        collection: "lottery",
+        id: lotteryId,
+        data: { processing: false },
+      });
+    } catch (releaseError) {
+      this.payload.logger.error(
+        "[LOTTERY] Failed to release draw claim:",
+        releaseError
+      );
     }
   }
 
@@ -326,7 +409,7 @@ export class LotteryEngine {
 
       return consecutiveCount >= LotteryEngine.CONSECUTIVE_ROUNDS_THRESHOLD;
     } catch (error) {
-      console.error(
+      this.payload.logger.error(
         "[LOTTERY] Error checking consecutive participation:",
         error
       );

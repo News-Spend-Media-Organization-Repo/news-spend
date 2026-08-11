@@ -1,6 +1,6 @@
-import "dotenv/config";
 import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
+import { widgetHandler } from "@news-spend-media/api/router/widgets/handler";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
 // import { LoggingHandlerPlugin } from "@orpc/experimental-pino";
@@ -11,7 +11,6 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
@@ -320,6 +319,14 @@ const server = Bun.serve({
       });
     }
 
+    if (url.pathname === "/api/widgets") {
+      logRequest(req);
+      return widgetHandler(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       logRequest(req);
       return handleApi(req).then((res) => {
@@ -343,6 +350,36 @@ appLogger.info(
   { port: server.port, hostname: server.hostname },
   "Server is running"
 );
+
+// Periodic memory sample. Railway graphs RSS only, which cannot distinguish
+// native/allocator retention from the JS heap holding objects — the split is
+// what says whether a memory problem is ours. uptimeH is included so a restart
+// shows up in the series instead of having to be inferred from a reset counter.
+const MEMORY_SAMPLE_INTERVAL_MS = Number(
+  process.env.MEMORY_SAMPLE_INTERVAL_MS ?? 15 * 60 * 1000
+);
+
+if (MEMORY_SAMPLE_INTERVAL_MS > 0) {
+  const sampleMemory = () => {
+    const mem = process.memoryUsage();
+    const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+
+    logger.info(
+      {
+        rssMb: mb(mem.rss),
+        heapUsedMb: mb(mem.heapUsed),
+        heapTotalMb: mb(mem.heapTotal),
+        externalMb: mb(mem.external),
+        arrayBuffersMb: mb(mem.arrayBuffers),
+        uptimeH: Number((process.uptime() / 3600).toFixed(2)),
+      },
+      "memory sample"
+    );
+  };
+
+  sampleMemory(); // t=0, so the series has a baseline for this process
+  setInterval(sampleMemory, MEMORY_SAMPLE_INTERVAL_MS).unref();
+}
 
 // initialize redis and cron jobs (best-effort)
 try {

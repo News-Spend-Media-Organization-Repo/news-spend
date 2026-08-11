@@ -8,6 +8,10 @@
     "composite": true,
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
     "strictNullChecks": true,
+    "jsx": "react-jsx",
+    // "bun" supplies the `bun:test` module types; the base config sets
+    // types: ["node"], which would otherwise exclude it.
+    "types": ["node", "bun"],
     "typeRoots": ["./src/types", "../../node_modules/@types"]
   }
 }

@@ -3,6 +3,7 @@ export { debounce } from "./debounce";
 export { formatDistance as formatDistanceUtil } from "./formatDistance";
 export { getBaseUrl } from "./getBaseUrl";
 export { getImageData } from "./getImageData";
+export { isNetworkError } from "./isNetworkError";
 
 export const randomColor = () => {
   const hue = Math.random() * 360;

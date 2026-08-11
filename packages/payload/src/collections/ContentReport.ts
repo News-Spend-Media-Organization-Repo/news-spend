@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload";
 
+import { autoHideReportedContent } from "../hooks/contentReport/autoHideReportedContent";
 import { notifyAdminsOnReport } from "../hooks/contentReport/notifyAdmins";
 
 export const ContentReport: CollectionConfig = {
@@ -9,6 +10,21 @@ export const ContentReport: CollectionConfig = {
     defaultColumns: ["reportedItem", "reason", "status", "reportedBy"],
   },
   fields: [
+    {
+      name: "type",
+      type: "select",
+      defaultValue: "report",
+      index: true,
+      options: [
+        { label: "Content Report", value: "report" },
+        { label: "User Block", value: "block" },
+        { label: "Content Filter Rejection", value: "filterRejection" },
+      ],
+      admin: {
+        description:
+          "How this record was created. Blocks and filter rejections are recorded for visibility and are not actionable reports. Records created before this field existed have no value and are inferred from their details text.",
+      },
+    },
     {
       name: "reason",
       type: "select",
@@ -91,7 +107,7 @@ export const ContentReport: CollectionConfig = {
     },
   ],
   hooks: {
-    afterChange: [notifyAdminsOnReport],
+    afterChange: [autoHideReportedContent, notifyAdminsOnReport],
     beforeChange: [
       ({ data, req }) => {
         if (data.status === "resolved" && !data.resolvedAt) {

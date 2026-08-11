@@ -189,9 +189,10 @@ const CommentCard = memo(
             </View>
           </View>
 
-          {auth.user && !auth.user.isAnonymous && (
-            <CommentOptionPopover comment={comment} />
-          )}
+          {/* Always rendered, including for guests: App Review guideline 1.2
+          requires the flag/block affordances to be reachable from every path
+          that can see user-generated content. */}
+          <CommentOptionPopover comment={comment} />
         </View>
 
         <Separator className="my-3.5" />

@@ -71,6 +71,29 @@
       }
     }
   },
+  "block": {
+    "blockUser": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {},
+        "route": {}
+      }
+    },
+    "unblockUser": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {},
+        "route": {}
+      }
+    },
+    "getBlockedUsers": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {},
+        "route": {}
+      }
+    }
+  },
   "ads": {
     "getPromoMedia": {
       "~orpc": {
@@ -190,13 +213,6 @@
       }
     },
     "identityStatus": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {},
-        "route": {}
-      }
-    },
-    "processLottery": {
       "~orpc": {
         "errorMap": {},
         "meta": {},

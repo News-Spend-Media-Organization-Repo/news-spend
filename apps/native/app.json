@@ -55,6 +55,65 @@
       ],
       "expo-asset",
       "expo-dev-client",
+      [
+        "@use-voltra/ios-client",
+        {
+          "groupIdentifier": "group.com.newsspend.app",
+          "widgets": [
+            {
+              "id": "trending_news",
+              "displayName": "Trending News",
+              "description": "Top trending stories from News Spend",
+              "supportedFamilies": ["systemSmall", "systemMedium"],
+              "initialStatePath": "./src/widgets/initial-states/trending-news-ios.tsx",
+              "serverUpdate": {
+                "intervalMinutes": 120,
+                "refresh": true
+              }
+            },
+            {
+              "id": "daily_digest",
+              "displayName": "Daily Digest",
+              "description": "Your morning and evening news summary",
+              "supportedFamilies": ["systemSmall", "systemMedium"],
+              "initialStatePath": "./src/widgets/initial-states/daily-digest-ios.tsx",
+              "serverUpdate": {
+                "intervalMinutes": 360,
+                "refresh": true
+              }
+            }
+          ]
+        }
+      ],
+      [
+        "@use-voltra/android-client",
+        {
+          "widgets": [
+            {
+              "id": "trending_news",
+              "displayName": "Trending News",
+              "description": "Top trending stories from News Spend",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "serverUpdate": {
+                "intervalMinutes": 120,
+                "refresh": true
+              }
+            },
+            {
+              "id": "daily_digest",
+              "displayName": "Daily Digest",
+              "description": "Your morning and evening news summary",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "serverUpdate": {
+                "intervalMinutes": 360,
+                "refresh": true
+              }
+            }
+          ]
+        }
+      ],
       "expo-localization",
       "expo-web-browser",
       "expo-secure-store",
