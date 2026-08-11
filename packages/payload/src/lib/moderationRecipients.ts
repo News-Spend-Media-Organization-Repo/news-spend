@@ -75,9 +75,13 @@ export function selectRecipients(
 
   selected.push(...extraEmails);
 
-  // Case-insensitive dedupe, preserving the first spelling seen.
+  return dedupe(selected);
+}
+
+/** Case-insensitive dedupe, preserving the first spelling seen. */
+function dedupe(emails: string[]): string[] {
   const seen = new Set<string>();
-  return selected.filter((email) => {
+  return emails.filter((email) => {
     const key = email.trim().toLowerCase();
     if (!key || seen.has(key)) {
       return false;
@@ -85,6 +89,49 @@ export function selectRecipients(
     seen.add(key);
     return true;
   });
+}
+
+/**
+ * Roles that are notified when every configured recipient has opted out.
+ * The last line of defence, not a routing rule.
+ */
+const FLOOR_ROLES = new Set(["super-admin"]);
+
+/**
+ * Guarantees moderation email always has somewhere to go.
+ *
+ * Individual opt-out is deliberately allowed — a Content Manager muting
+ * themselves while colleagues stay on rotation is legitimate. Everyone opting
+ * out at once is not: it would silently disable the notification path this app
+ * tells App Review guarantees reports get acted on, with nothing on screen to
+ * say so.
+ *
+ * So when selection yields nobody, super-admins are notified regardless of
+ * their own preference. The distinction that matters is not "can someone opt
+ * out" but "can everyone opt out at the same time".
+ */
+export function applyRecipientFloor(
+  admins: AdminRecord[],
+  selected: string[]
+): { recipients: string[]; floorEngaged: boolean } {
+  if (selected.length > 0) {
+    return { recipients: selected, floorEngaged: false };
+  }
+
+  const fallback = dedupe(
+    admins
+      .filter((admin) => {
+        const role = admin.role ?? "";
+        return (
+          Boolean(admin.email) &&
+          !EXCLUDED_ROLES.has(role) &&
+          FLOOR_ROLES.has(role)
+        );
+      })
+      .map((admin) => admin.email as string)
+  );
+
+  return { recipients: fallback, floorEngaged: fallback.length > 0 };
 }
 
 /** Parses the MODERATION_ALERT_EMAILS env var (comma-separated). */
@@ -96,9 +143,10 @@ export function parseExtraEmails(raw = process.env.MODERATION_ALERT_EMAILS) {
 }
 
 /**
- * Loads admins and resolves the recipient list for a tier.
+ * Loads admins, resolves the recipient list for a tier, and applies the
+ * safety floor.
  *
- * Logs loudly when the list is empty: previously both mail paths returned
+ * Logs loudly at both failure levels: previously both mail paths returned
  * "not sent" silently, which is indistinguishable from "nothing to report"
  * and would hide a total moderation-notification outage.
  */
@@ -118,16 +166,27 @@ export async function resolveModerationRecipients(
     settings ? Promise.resolve(settings) : getModerationSettings(payload, req),
   ]);
 
-  const recipients = selectRecipients(
-    admins.docs as AdminRecord[],
+  const adminDocs = admins.docs as AdminRecord[];
+
+  const selected = selectRecipients(
+    adminDocs,
     tier,
     resolvedSettings,
     parseExtraEmails()
   );
 
+  const { recipients, floorEngaged } = applyRecipientFloor(adminDocs, selected);
+
+  if (floorEngaged) {
+    payload.logger.warn(
+      { tier, recipientCount: recipients.length },
+      "Moderation alert safety floor engaged — every configured recipient has opted out, so super-admins were notified regardless of their preference. Review Alert Recipients in Moderation Settings."
+    );
+  }
+
   if (recipients.length === 0) {
     payload.logger.error(
-      { tier, adminCount: admins.docs.length },
+      { tier, adminCount: adminDocs.length },
       "No moderation alert recipients resolved — moderation email will not be delivered. Configure Alert Recipients in Moderation Settings, set an admin's Moderation Alerts preference, or set MODERATION_ALERT_EMAILS."
     );
   }

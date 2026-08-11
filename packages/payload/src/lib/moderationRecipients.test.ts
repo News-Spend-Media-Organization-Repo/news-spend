@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   type AdminRecord,
+  applyRecipientFloor,
   parseExtraEmails,
   selectRecipients,
 } from "./moderationRecipients";
@@ -174,6 +175,108 @@ describe("selectRecipients", () => {
       const admins = [admin({ email: "p@x.com", role: "partner" })];
 
       expect(selectRecipients(admins, "digest", settings)).toEqual([]);
+    });
+  });
+});
+
+describe("applyRecipientFloor", () => {
+  it("leaves a non-empty selection untouched", () => {
+    const admins = [admin({ email: "super@x.com", role: "super-admin" })];
+
+    expect(applyRecipientFloor(admins, ["someone@x.com"])).toEqual({
+      recipients: ["someone@x.com"],
+      floorEngaged: false,
+    });
+  });
+
+  it("notifies super-admins when everyone has opted out", () => {
+    // The case that motivated this: a single super-admin sets themselves to
+    // None and silently disables the entire moderation notification path.
+    const admins = [
+      admin({
+        email: "super@x.com",
+        role: "super-admin",
+        moderationAlerts: "none",
+      }),
+    ];
+    const settings = applySettingsDefaults(null);
+
+    const selected = selectRecipients(admins, "urgent", settings);
+    expect(selected).toEqual([]);
+
+    expect(applyRecipientFloor(admins, selected)).toEqual({
+      recipients: ["super@x.com"],
+      floorEngaged: true,
+    });
+  });
+
+  it("does not engage while any other recipient remains", () => {
+    const admins = [
+      admin({
+        email: "super@x.com",
+        role: "super-admin",
+        moderationAlerts: "none",
+      }),
+      admin({ email: "cm@x.com", role: "content-manager" }),
+    ];
+    const settings = applySettingsDefaults(null);
+
+    const selected = selectRecipients(admins, "digest", settings);
+    const result = applyRecipientFloor(admins, selected);
+
+    // The opt-out is still honoured — the floor is about total silence only.
+    expect(result).toEqual({ recipients: ["cm@x.com"], floorEngaged: false });
+  });
+
+  it("does not engage when a shared inbox still covers the tier", () => {
+    const admins = [
+      admin({
+        email: "super@x.com",
+        role: "super-admin",
+        moderationAlerts: "none",
+      }),
+    ];
+    const settings = applySettingsDefaults({
+      additionalRecipients: [{ email: "ops@x.com", tier: "all" }],
+    });
+
+    const selected = selectRecipients(admins, "urgent", settings);
+    const result = applyRecipientFloor(admins, selected);
+
+    expect(result).toEqual({ recipients: ["ops@x.com"], floorEngaged: false });
+  });
+
+  it("never falls back to a partner", () => {
+    const admins = [
+      admin({ email: "p@x.com", role: "partner", moderationAlerts: "all" }),
+    ];
+
+    expect(applyRecipientFloor(admins, [])).toEqual({
+      recipients: [],
+      floorEngaged: false,
+    });
+  });
+
+  it("does not fall back to non-super-admin roles", () => {
+    const admins = [
+      admin({
+        email: "cm@x.com",
+        role: "content-manager",
+        moderationAlerts: "none",
+      }),
+      admin({ email: "ed@x.com", role: "editor" }),
+    ];
+
+    expect(applyRecipientFloor(admins, [])).toEqual({
+      recipients: [],
+      floorEngaged: false,
+    });
+  });
+
+  it("reports no floor when there is genuinely nobody to fall back to", () => {
+    expect(applyRecipientFloor([], [])).toEqual({
+      recipients: [],
+      floorEngaged: false,
     });
   });
 });
