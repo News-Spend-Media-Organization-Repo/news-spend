@@ -4,6 +4,15 @@ import { getPayload } from "../lib/getPayload";
 import { REASON_LABELS } from "../lib/moderationLabels";
 import { resolveModerationRecipients } from "../lib/moderationRecipients";
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 /**
  * Payload job task: sendUrgentModerationAlert
  *
@@ -48,6 +57,7 @@ export const sendUrgentModerationAlertTask = {
     const reasonLabel = REASON_LABELS[reason] ?? reason;
     const details = (report as { additionalDetails?: string | null })
       .additionalDetails;
+    const escapedDetails = details ? escapeHtml(details) : null;
     const reportedItem = (
       report as {
         reportedItem?: { relationTo: string; value: string } | null;
@@ -72,7 +82,7 @@ export const sendUrgentModerationAlertTask = {
       <td>${new Date((report as { createdAt: string }).createdAt).toLocaleString("en-US", { timeZone: "Africa/Lagos" })}</td>
     </tr>
   </table>
-  ${details ? `<p style="color: #444;"><strong>Details:</strong> ${details}</p>` : ""}
+  ${escapedDetails ? `<p style="color: #444;"><strong>Details:</strong> ${escapedDetails}</p>` : ""}
   ${itemLink}
   <p style="color: #666;">The comment has already been hidden automatically if it met the auto-hide criteria. Resolve this report in the <strong>Content Reports</strong> section of the admin panel.</p>
 </div>`;

@@ -71,11 +71,30 @@ export const sendModerationDigestTask = {
     // this a backlog would stop being reported the moment reports dried up.
     if (reports.length > 0) {
       try {
-        await payload.jobs.queue({
-          task: "sendModerationDigest",
-          input: {},
-          waitUntil: nextDigestTime(),
+        const nowIso = new Date().toISOString();
+        const existingScheduledDigest = await payload.find({
+          collection: "payload-jobs",
+          where: {
+            and: [
+              { taskSlug: { equals: "sendModerationDigest" } },
+              { completedAt: { exists: false } },
+              { hasError: { not_equals: true } },
+              { waitUntil: { greater_than_equal: nowIso } },
+            ],
+          },
+          limit: 1,
+          depth: 0,
+          pagination: false,
+          req,
         });
+
+        if (existingScheduledDigest.docs.length === 0) {
+          await payload.jobs.queue({
+            task: "sendModerationDigest",
+            input: {},
+            waitUntil: nextDigestTime(),
+          });
+        }
       } catch (error) {
         req.payload.logger.error(
           { error },

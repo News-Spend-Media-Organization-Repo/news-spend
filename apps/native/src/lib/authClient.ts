@@ -30,13 +30,12 @@ async function fetchWithRetry(
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
       const response = await fetch(input, {
         ...init,
         signal: controller.signal,
+      }).finally(() => {
+        clearTimeout(timeoutId);
       });
-
-      clearTimeout(timeoutId);
       return response;
     } catch (error) {
       lastError = error;

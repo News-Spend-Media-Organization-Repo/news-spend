@@ -56,17 +56,41 @@ function retargetToCurrentTab(url: string): string {
     return url;
   }
 
-  const segments = url.split("/");
-  const tabIndex = segments.findIndex(
-    (segment) => ROUTE_BY_TAB_PATH[segment] !== undefined
-  );
+  try {
+    const parsed = new URL(url);
+    if (ROUTE_BY_TAB_PATH[parsed.hostname] !== undefined) {
+      if (parsed.hostname === currentTabPath) {
+        return url;
+      }
+      parsed.hostname = currentTabPath;
+      return parsed.toString();
+    }
 
-  if (tabIndex === -1 || segments[tabIndex] === currentTabPath) {
-    return url;
+    const pathSegments = parsed.pathname.split("/");
+    const pathTabIndex = pathSegments.findIndex(
+      (segment) => ROUTE_BY_TAB_PATH[segment] !== undefined
+    );
+
+    if (pathTabIndex === -1 || pathSegments[pathTabIndex] === currentTabPath) {
+      return url;
+    }
+
+    pathSegments[pathTabIndex] = currentTabPath;
+    parsed.pathname = pathSegments.join("/");
+    return parsed.toString();
+  } catch {
+    const segments = url.split("/");
+    const tabIndex = segments.findIndex(
+      (segment) => ROUTE_BY_TAB_PATH[segment] !== undefined
+    );
+
+    if (tabIndex === -1 || segments[tabIndex] === currentTabPath) {
+      return url;
+    }
+
+    segments[tabIndex] = currentTabPath;
+    return segments.join("/");
   }
-
-  segments[tabIndex] = currentTabPath;
-  return segments.join("/");
 }
 
 function withNewsId(url: string, newsId: unknown) {

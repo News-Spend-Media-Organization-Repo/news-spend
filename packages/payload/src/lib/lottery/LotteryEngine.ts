@@ -120,7 +120,7 @@ export class LotteryEngine {
       });
 
       if (!claim.docs?.length) {
-        console.log(
+        this.payload.logger.info(
           `[LOTTERY] Draw for ${activeLottery.id} is already processing or already processed — skipping`
         );
         return {
@@ -142,7 +142,7 @@ export class LotteryEngine {
       });
 
       if (tickets.docs.length === 0) {
-        console.log("[LOTTERY] No participants found");
+        this.payload.logger.info("[LOTTERY] No participants found");
         // A draw with nobody in it is still a completed draw — mark it so, or
         // the lottery stays claimed forever and blocks the next one.
         await this.markProcessed(activeLottery.id);
@@ -154,7 +154,9 @@ export class LotteryEngine {
         };
       }
 
-      console.log(`[LOTTERY] Processing ${tickets.docs.length} participants`);
+      this.payload.logger.info(
+        `[LOTTERY] Processing ${tickets.docs.length} participants`
+      );
       const winners = [];
 
       // Process each participant
@@ -181,11 +183,11 @@ export class LotteryEngine {
           });
 
           winners.push(winner);
-          console.log(
+          this.payload.logger.info(
             `[LOTTERY] Winner: ${userId} - ${prize.tier} - ${prize.name}`
           );
         } catch (error) {
-          console.error(
+          this.payload.logger.error(
             `[LOTTERY] Error processing ticket ${ticket.id}:`,
             error
           );
@@ -196,7 +198,9 @@ export class LotteryEngine {
       // Deactivate and stamp the draw as done in one write.
       await this.markProcessed(activeLottery.id);
 
-      console.log(`[LOTTERY] Completed. ${winners.length} winners created`);
+      this.payload.logger.info(
+        `[LOTTERY] Completed. ${winners.length} winners created`
+      );
 
       return {
         success: true,
@@ -207,7 +211,7 @@ export class LotteryEngine {
         winners,
       };
     } catch (error) {
-      console.error("[LOTTERY] Fatal error:", error);
+      this.payload.logger.error("[LOTTERY] Fatal error:", error);
 
       // Release the claim so the draw can be retried. `processedAt` is left
       // unset deliberately — the draw did not finish. Any winners already
@@ -243,7 +247,10 @@ export class LotteryEngine {
         data: { processing: false },
       });
     } catch (releaseError) {
-      console.error("[LOTTERY] Failed to release draw claim:", releaseError);
+      this.payload.logger.error(
+        "[LOTTERY] Failed to release draw claim:",
+        releaseError
+      );
     }
   }
 
@@ -402,7 +409,7 @@ export class LotteryEngine {
 
       return consecutiveCount >= LotteryEngine.CONSECUTIVE_ROUNDS_THRESHOLD;
     } catch (error) {
-      console.error(
+      this.payload.logger.error(
         "[LOTTERY] Error checking consecutive participation:",
         error
       );

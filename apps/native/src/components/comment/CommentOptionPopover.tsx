@@ -1,4 +1,4 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
 import { DotsThreeVerticalIcon } from "phosphor-react-native";
 import React from "react";
@@ -20,7 +20,6 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
   const [open, setOpen] = React.useState(false);
   const [showReportSheet, setShowReportSheet] = React.useState(false);
   const navigation = useNavigation();
-  const route = useRoute();
 
   /**
    * Reporting and blocking both require a registered account. Guests still see
