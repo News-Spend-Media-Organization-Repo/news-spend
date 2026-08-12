@@ -188,8 +188,8 @@ export class LotteryEngine {
           );
         } catch (error) {
           this.payload.logger.error(
-            `[LOTTERY] Error processing ticket ${ticket.id}:`,
-            error
+            { err: error, ticketId: ticket.id },
+            "[LOTTERY] Error processing ticket"
           );
           // Continue with next ticket
         }
@@ -211,7 +211,7 @@ export class LotteryEngine {
         winners,
       };
     } catch (error) {
-      this.payload.logger.error("[LOTTERY] Fatal error:", error);
+      this.payload.logger.error({ err: error }, "[LOTTERY] Fatal error");
 
       // Release the claim so the draw can be retried. `processedAt` is left
       // unset deliberately — the draw did not finish. Any winners already
@@ -248,8 +248,8 @@ export class LotteryEngine {
       });
     } catch (releaseError) {
       this.payload.logger.error(
-        "[LOTTERY] Failed to release draw claim:",
-        releaseError
+        { err: releaseError, lotteryId },
+        "[LOTTERY] Failed to release draw claim"
       );
     }
   }
@@ -410,8 +410,8 @@ export class LotteryEngine {
       return consecutiveCount >= LotteryEngine.CONSECUTIVE_ROUNDS_THRESHOLD;
     } catch (error) {
       this.payload.logger.error(
-        "[LOTTERY] Error checking consecutive participation:",
-        error
+        { err: error },
+        "[LOTTERY] Error checking consecutive participation"
       );
       return false;
     }
