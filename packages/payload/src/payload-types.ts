@@ -561,15 +561,6 @@ export interface User {
     | boolean
     | null;
   blockedUsers?: (string | User)[] | null;
-  reportedComments?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -3167,7 +3158,6 @@ export interface UsersSelect<T extends boolean = true> {
   lastActive?: T;
   customAttributes?: T;
   blockedUsers?: T;
-  reportedComments?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

@@ -207,11 +207,9 @@ export const Users: CollectionConfig = {
       hasMany: true,
       admin: { hidden: true },
     },
-    {
-      name: "reportedComments",
-      type: "json",
-      admin: { hidden: true },
-      defaultValue: [],
-    },
+    // `reportedComments` (a JSON array of comment ids) was removed: it
+    // duplicated contentReports, had no index or referential integrity, and
+    // grew without bound on a single row. "Comments I reported" is now derived
+    // from contentReports at read time.
   ],
 };

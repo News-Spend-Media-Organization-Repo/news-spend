@@ -5,6 +5,12 @@ import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { CONTENT_FILTER_MESSAGE, screenText } from "../lib/content-filter";
 import { createRateLimitMiddleware } from "../lib/ratelimit";
 import {
+  getBlockedUserIdsForNews,
+  getReportedCommentIdsForNews,
+  hasBlockedUser,
+  hasReportedComment,
+} from "./comment/moderation-filters";
+import {
   getCommentReactionCounts,
   getUserReactionForComment,
   getUserReactionsForComments,
@@ -106,21 +112,14 @@ const allComments = publicProcedure
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
 
-    let blockedUserIds: string[] = [];
-    let reportedCommentIds: string[] = [];
-    if (user) {
-      const currentUser = await payload.findByID({
-        collection: "users",
-        id: user.id,
-        depth: 0,
-      });
-      blockedUserIds = Array.isArray(currentUser.blockedUsers)
-        ? (currentUser.blockedUsers as string[])
-        : [];
-      reportedCommentIds = Array.isArray(currentUser.reportedComments)
-        ? (currentUser.reportedComments as string[])
-        : [];
-    }
+    // Scoped to this article rather than the viewer's lifetime history, so the
+    // exclusion lists stay small however much they have blocked or reported.
+    const [blockedUserIds, reportedCommentIds] = user
+      ? await Promise.all([
+          getBlockedUserIdsForNews(payload, user.id, input.newsId),
+          getReportedCommentIdsForNews(payload, user.id, input.newsId),
+        ])
+      : [[], []];
 
     const baseWhere = {
       ...(input.parentId
@@ -203,24 +202,14 @@ const getComment = publicProcedure
       const commentUserId =
         typeof doc.user === "string" ? doc.user : doc.user?.id;
       if (commentUserId) {
-        const currentUser = await payload.findByID({
-          collection: "users",
-          id: user.id,
-          depth: 0,
-        });
-        const blockedUserIds: string[] = Array.isArray(currentUser.blockedUsers)
-          ? (currentUser.blockedUsers as string[])
-          : [];
-        const reportedCommentIds: string[] = Array.isArray(
-          currentUser.reportedComments
-        )
-          ? (currentUser.reportedComments as string[])
-          : [];
+        // Two targeted existence checks rather than loading the viewer's whole
+        // block list and report history to test a single comment.
+        const [blocked, reported] = await Promise.all([
+          hasBlockedUser(payload, user.id, commentUserId),
+          hasReportedComment(payload, user.id, commentId),
+        ]);
 
-        if (
-          blockedUserIds.includes(commentUserId) ||
-          reportedCommentIds.includes(commentId)
-        ) {
+        if (blocked || reported) {
           throw new ORPCError("NOT_FOUND", {
             message: "Comment not found",
           });
