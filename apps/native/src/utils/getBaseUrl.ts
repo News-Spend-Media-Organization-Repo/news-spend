@@ -2,6 +2,8 @@ import Constants from "expo-constants";
 
 export const getBaseUrl = () => {
   const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
+  console.log("API_URL", API_URL);
+  console.log("__DEV__", __DEV__);
 
   if (!__DEV__) {
     return API_URL;
@@ -20,3 +22,5 @@ export const getBaseUrl = () => {
 
   return `http://${localhost}:9000`;
 };
+
+console.log("getBaseUrl", getBaseUrl());

@@ -96,6 +96,22 @@ export default function SignIn() {
           </LinkButton.Label>
         </LinkButton>
       </View>
+      <View className="mb-4 flex-row flex-wrap justify-center px-4">
+        <Text className="text-center text-gray-500 text-xs">
+          By signing in, you agree to our{" "}
+        </Text>
+        <LinkButton onPress={() => navigation.navigate("TermsOfUse")}>
+          <LinkButton.Label className="text-accent text-xs underline">
+            Terms of Use
+          </LinkButton.Label>
+        </LinkButton>
+        <Text className="text-center text-gray-500 text-xs"> and </Text>
+        <LinkButton onPress={() => navigation.navigate("PrivacyPolicy")}>
+          <LinkButton.Label className="text-accent text-xs underline">
+            Privacy Policy
+          </LinkButton.Label>
+        </LinkButton>
+      </View>
     </Screen>
   );
 }
