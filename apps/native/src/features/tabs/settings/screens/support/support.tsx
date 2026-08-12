@@ -11,6 +11,10 @@ const options: {
   screen: any;
 }[] = [
   {
+    title: "Community Guidelines",
+    screen: "CommunityGuidelines",
+  },
+  {
     title: "Frequently Asked Questions",
     screen: "FAQ",
   },

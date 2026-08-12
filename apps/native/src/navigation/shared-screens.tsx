@@ -4,6 +4,7 @@ import PrivacyPolicy from "#/features/auth/screens/privacy-policy";
 import TermOfUse from "#/features/auth/screens/term-of-use";
 import Activities from "#/features/tabs/settings/screens/activities";
 import BlockedUsers from "#/features/tabs/settings/screens/blocked-users";
+import CommunityGuidelines from "#/features/tabs/settings/screens/community-guidelines";
 import DataManager from "#/features/tabs/settings/screens/data-manager";
 import DeleteAccount from "#/features/tabs/settings/screens/delete-account";
 import LegalAgreement from "#/features/tabs/settings/screens/legal";
@@ -228,6 +229,12 @@ export const sharedScreens = {
     screen: PrivacyPolicy,
     linking: {
       path: "privacy-policy",
+    },
+  }),
+  CommunityGuidelines: createNativeStackScreen({
+    screen: CommunityGuidelines,
+    linking: {
+      path: "community-guidelines",
     },
   }),
   // // Discover screens
