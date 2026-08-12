@@ -25,6 +25,7 @@ import {
   resetCommentState,
   setDraft,
 } from "#/state/commentState";
+import { apiErrorMessage } from "#/utils/apiErrorMessage";
 import { getUsername, isRefObject } from "#/utils/comment-utils";
 import { Button } from "./heroui/button";
 
@@ -161,6 +162,16 @@ export const CommentBox = ({
             inputRef.current?.blur();
           }
         },
+        onError: (err) => {
+          // The draft is deliberately left in the box so the author can edit
+          // and retry — a content-filter rejection asks them to revise.
+          toast.error("Comment not posted", {
+            description: apiErrorMessage(
+              err,
+              "Something went wrong. Please try again."
+            ),
+          });
+        },
       }
     );
   };
@@ -185,9 +196,11 @@ export const CommentBox = ({
         },
         onError: (err) => {
           toast.dismiss();
-          console.error(err);
-          toast.error("Something went wrong", {
-            description: "Comment could not be updated",
+          toast.error("Comment not updated", {
+            description: apiErrorMessage(
+              err,
+              "Comment could not be updated. Please try again."
+            ),
           });
         },
       }
