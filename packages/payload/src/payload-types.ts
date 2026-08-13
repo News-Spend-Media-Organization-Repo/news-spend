@@ -81,6 +81,7 @@ export interface Config {
     'giveaway-account-flags': GiveawayAccountFlag;
     'giveaway-audit-log': GiveawayAuditLog;
     'giveaway-engagements': GiveawayEngagement;
+    'giveaway-pool-snapshots': GiveawayPoolSnapshot;
     'giveaway-prizes': GiveawayPrize;
     giveaways: Giveaway;
     'giveaway-streaks': GiveawayStreak;
@@ -130,6 +131,7 @@ export interface Config {
     'giveaway-account-flags': GiveawayAccountFlagsSelect<false> | GiveawayAccountFlagsSelect<true>;
     'giveaway-audit-log': GiveawayAuditLogSelect<false> | GiveawayAuditLogSelect<true>;
     'giveaway-engagements': GiveawayEngagementsSelect<false> | GiveawayEngagementsSelect<true>;
+    'giveaway-pool-snapshots': GiveawayPoolSnapshotsSelect<false> | GiveawayPoolSnapshotsSelect<true>;
     'giveaway-prizes': GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
     giveaways: GiveawaysSelect<false> | GiveawaysSelect<true>;
     'giveaway-streaks': GiveawayStreaksSelect<false> | GiveawayStreaksSelect<true>;
@@ -852,6 +854,10 @@ export interface GiveawayAuditLog {
     | 'featured_offer_completion'
     | 'participants_snapshot'
     | 'candidate_pool_built'
+    | 'candidate_pool_locked'
+    | 'winner_disqualified'
+    | 'replacement_selected'
+    | 'winner_held_ticket_invalid'
     | 'account_excluded'
     | 'fairness_exclusion'
     | 'loyalty_waiver_applied'
@@ -1234,6 +1240,44 @@ export interface PartnerConversion {
   createdAt: string;
 }
 /**
+ * The candidate pool as locked at draw time. Replacement winners are drawn from here.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-pool-snapshots".
+ */
+export interface GiveawayPoolSnapshot {
+  id: string;
+  giveaway: string | Giveaway;
+  tier: 'tier1' | 'tier2' | 'tier3';
+  /**
+   * Distinct users eligible for this tier when it was locked.
+   */
+  candidateCount: number;
+  /**
+   * One entry per valid ticket purchase: { ticketId, userKey, quantity }. Preserves the ticket weighting the draw used.
+   */
+  entries:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lockedAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * The prizes selected for a giveaway, and how many units of each may be awarded.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1401,7 +1445,7 @@ export interface GiveawayWinner {
   boostCount: number;
   featuredOfferCount: number;
   selectedAt: string;
-  claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited';
+  claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited' | 'disqualified';
   claimedAt?: string | null;
   claimDeadline?: string | null;
   /**
@@ -1413,6 +1457,15 @@ export interface GiveawayWinner {
    */
   reviewNote?: string | null;
   fulfilledAt?: string | null;
+  /**
+   * Set when this record replaces a disqualified winner (§12). The original is kept rather than deleted, so the audit trail stays intact.
+   */
+  replaces?: (string | null) | GiveawayWinner;
+  disqualifiedAt?: string | null;
+  /**
+   * Why this winner was disqualified — recorded before any replacement is drawn.
+   */
+  disqualificationReason?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -2270,6 +2323,10 @@ export interface PayloadLockedDocument {
         value: string | GiveawayEngagement;
       } | null)
     | ({
+        relationTo: 'giveaway-pool-snapshots';
+        value: string | GiveawayPoolSnapshot;
+      } | null)
+    | ({
         relationTo: 'giveaway-prizes';
         value: string | GiveawayPrize;
       } | null)
@@ -2627,6 +2684,21 @@ export interface GiveawayEngagementsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-pool-snapshots_select".
+ */
+export interface GiveawayPoolSnapshotsSelect<T extends boolean = true> {
+  giveaway?: T;
+  tier?: T;
+  candidateCount?: T;
+  entries?: T;
+  lockedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-prizes_select".
  */
 export interface GiveawayPrizesSelect<T extends boolean = true> {
@@ -2720,6 +2792,9 @@ export interface GiveawayWinnersSelect<T extends boolean = true> {
   fulfilmentStatus?: T;
   reviewNote?: T;
   fulfilledAt?: T;
+  replaces?: T;
+  disqualifiedAt?: T;
+  disqualificationReason?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

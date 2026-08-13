@@ -544,6 +544,26 @@ export class GiveawayEngine {
       }
     }
 
+    // Only entries belonging to candidates form the locked pool (§12).
+    const pooledEntries = ticketEntries.filter((entry) =>
+      candidates.has(entry.userKey)
+    );
+
+    /**
+     * Lock the pool before selecting anything (§12).
+     *
+     * The specification requires the pool to be locked, not merely computed:
+     * a replacement winner must later be drawn from "the original locked
+     * candidate pool". That is impossible if the pool only ever existed in
+     * memory, because a refund typically surfaces long after the draw.
+     *
+     * Written even when the tier awards nobody, so the record of who *could*
+     * have won is complete.
+     */
+    if (!dryRun) {
+      await this.lockCandidatePool(giveawayId, tier, candidates, pooledEntries);
+    }
+
     if (effectiveCap === 0) {
       return outcome;
     }
@@ -551,10 +571,8 @@ export class GiveawayEngine {
     const selectionRng = createRng(seed, `winners:${tier}`);
     const allocationRng = createRng(seed, `prizes:${tier}`);
 
-    // Only entries belonging to candidates can be drawn.
-    const eligibleEntries = ticketEntries.filter((entry) =>
-      candidates.has(entry.userKey)
-    );
+    // The locked pool is exactly the set the draw may pick from.
+    const eligibleEntries = pooledEntries;
 
     // Step 2 & 3 — Select a winner, then immediately allocate a prize to them.
     // Interleaving the two keeps unit accounting exact when a prize runs out
@@ -678,6 +696,270 @@ export class GiveawayEngine {
     }
 
     return { winnersByTier, completedTiers };
+  }
+
+  /** Persist the locked candidate pool for one tier (spec §12). */
+  private async lockCandidatePool(
+    giveawayId: string,
+    tier: PrizeTier,
+    candidates: Set<UserKey>,
+    entries: TicketEntry[]
+  ) {
+    // A resumed draw re-reaches tiers it already locked. The pool must not be
+    // rewritten — it is the record of what the original draw saw.
+    const existing = await this.payload.find({
+      collection: "giveaway-pool-snapshots",
+      where: {
+        and: [{ giveaway: { equals: giveawayId } }, { tier: { equals: tier } }],
+      },
+      limit: 1,
+      pagination: false,
+      depth: 0,
+    });
+
+    if (existing.docs.length > 0) {
+      return;
+    }
+
+    await this.payload.create({
+      collection: "giveaway-pool-snapshots",
+      data: {
+        giveaway: giveawayId,
+        tier,
+        candidateCount: candidates.size,
+        entries,
+        lockedAt: new Date().toISOString(),
+      },
+    });
+
+    await this.audit(
+      giveawayId,
+      "candidate_pool_locked",
+      `${tier} candidate pool locked: ${candidates.size} users, ${entries.length} ticket entries`,
+      { tier, candidateCount: candidates.size, entryCount: entries.length },
+      tier
+    );
+  }
+
+  /**
+   * Disqualify a winner and draw their replacement from the locked pool
+   * (spec §12).
+   *
+   * The specification is emphatic that this must not rerun the draw: every
+   * other winner keeps their prize, and the replacement comes from the pool as
+   * it was locked, not from a pool rebuilt out of data that has since changed.
+   *
+   * The disqualified record is kept rather than deleted, so the audit trail
+   * shows what happened. The replacement inherits the same prize — no stock is
+   * returned or re-allocated, because the unit was already spent.
+   *
+   * Selection is seeded from the draw seed plus the disqualified winner's id,
+   * which makes each replacement reproducible and distinct: replacing the same
+   * winner twice would pick the same person, while replacing two different
+   * winners cannot collide.
+   */
+  async replaceWinner(
+    winnerId: string,
+    { reason }: { reason: string }
+  ): Promise<
+    | { replaced: true; replacementWinnerId: string; userKey: UserKey }
+    | { replaced: false; message: string }
+  > {
+    const winner = await this.payload.findByID({
+      collection: "giveaway-winners",
+      id: winnerId,
+      depth: 0,
+    });
+
+    if (!winner) {
+      return { replaced: false, message: "Winner record not found." };
+    }
+
+    if (winner.claimStatus === "disqualified") {
+      return {
+        replaced: false,
+        message: "This winner has already been disqualified.",
+      };
+    }
+
+    if (winner.fulfilmentStatus === "fulfilled") {
+      return {
+        replaced: false,
+        message:
+          "This prize has already been fulfilled and cannot be withdrawn here.",
+      };
+    }
+
+    const giveawayId = relationKey(winner.giveaway);
+    const tier = winner.tier as PrizeTier;
+    if (!giveawayId) {
+      return { replaced: false, message: "Winner has no giveaway." };
+    }
+
+    const giveaway = await this.payload.findByID({
+      collection: "giveaways",
+      id: giveawayId,
+      depth: 0,
+    });
+
+    // Record the disqualification before drawing anyone, so a failure midway
+    // leaves the prize withheld rather than awarded twice.
+    await this.payload.update({
+      collection: "giveaway-winners",
+      id: winnerId,
+      data: {
+        claimStatus: "disqualified",
+        fulfilmentStatus: "cancelled",
+        disqualifiedAt: new Date().toISOString(),
+        disqualificationReason: reason,
+      },
+    });
+
+    await this.audit(
+      giveawayId,
+      "winner_disqualified",
+      `Winner disqualified: ${reason}`,
+      { tier, winnerId, reason },
+      tier,
+      relationKey(winner.user) ?? undefined
+    );
+
+    const snapshot = await this.payload.find({
+      collection: "giveaway-pool-snapshots",
+      where: {
+        and: [{ giveaway: { equals: giveawayId } }, { tier: { equals: tier } }],
+      },
+      limit: 1,
+      pagination: false,
+      depth: 0,
+    });
+
+    const pool = snapshot.docs[0];
+    if (!pool) {
+      return {
+        replaced: false,
+        message: `Disqualified, but no locked candidate pool exists for ${tier}, so no replacement can be drawn.`,
+      };
+    }
+
+    const excluded = await this.usersIneligibleForReplacement(giveawayId);
+    const entries = (pool.entries as TicketEntry[]).filter(
+      (entry) => !excluded.has(entry.userKey)
+    );
+
+    // Tickets invalidated since the lock cannot win (§12).
+    const validEntries = await this.dropInvalidatedTickets(entries);
+
+    const seed = (giveaway?.drawSeed as string | undefined) ?? winnerId;
+    const replacement = weightedPick(
+      validEntries,
+      (entry) => entry.quantity,
+      createRng(seed, `replacement:${winnerId}`)
+    );
+
+    if (!replacement) {
+      return {
+        replaced: false,
+        message: `Disqualified, but no eligible replacement remains in the ${tier} pool.`,
+      };
+    }
+
+    const prizeId = relationKey(winner.prize);
+    if (!prizeId) {
+      return {
+        replaced: false,
+        message: "Disqualified, but the original prize could not be resolved.",
+      };
+    }
+
+    const created = await this.payload.create({
+      collection: "giveaway-winners",
+      data: {
+        giveaway: giveawayId,
+        user: replacement.userKey,
+        tier,
+        prize: prizeId,
+        prizeName: winner.prizeName,
+        winningTicket: replacement.ticketId,
+        validTicketCount: replacement.quantity,
+        boostCount: 0,
+        featuredOfferCount: 0,
+        selectedAt: new Date().toISOString(),
+        claimStatus: "unclaimed",
+        fulfilmentStatus: "pending",
+        replaces: winnerId,
+      },
+    });
+
+    await this.audit(
+      giveawayId,
+      "replacement_selected",
+      `Replacement drawn from the locked ${tier} pool for a disqualified winner`,
+      { tier, replaces: winnerId, ticketId: replacement.ticketId },
+      tier,
+      replacement.userKey
+    );
+
+    return {
+      replaced: true,
+      replacementWinnerId: created.id,
+      userKey: replacement.userKey,
+    };
+  }
+
+  /**
+   * Everyone who cannot be drawn as a replacement: current winners of this
+   * giveaway, anyone already disqualified from it, and flagged accounts.
+   */
+  private async usersIneligibleForReplacement(
+    giveawayId: string
+  ): Promise<Set<UserKey>> {
+    const [winners, flags] = await Promise.all([
+      this.payload.find({
+        collection: "giveaway-winners",
+        where: { giveaway: { equals: giveawayId } },
+        pagination: false,
+        depth: 0,
+      }),
+      this.loadAccountFlags(),
+    ]);
+
+    // Every winner row counts, including disqualified ones — §12 excludes
+    // "previously selected replacement candidates" as well as current winners,
+    // so nobody who has already been drawn can be drawn again.
+    const excluded = new Set<UserKey>(flags.excluded);
+    for (const row of winners.docs) {
+      const userKey = relationKey(row.user);
+      if (userKey) {
+        excluded.add(userKey);
+      }
+    }
+
+    return excluded;
+  }
+
+  /** Remove entries whose ticket is no longer valid (§12 post-draw events). */
+  private async dropInvalidatedTickets(
+    entries: TicketEntry[]
+  ): Promise<TicketEntry[]> {
+    if (entries.length === 0) {
+      return entries;
+    }
+
+    const stillValid = await this.payload.find({
+      collection: "giveaway-tickets",
+      where: {
+        and: [
+          { id: { in: entries.map((entry) => entry.ticketId) } },
+          { status: { equals: "valid" } },
+        ],
+      },
+      pagination: false,
+      depth: 0,
+    });
+
+    const validIds = new Set(stillValid.docs.map((doc) => String(doc.id)));
+    return entries.filter((entry) => validIds.has(entry.ticketId));
   }
 
   /**

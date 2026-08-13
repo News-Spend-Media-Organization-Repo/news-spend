@@ -127,6 +127,7 @@ export const GiveawayWinners: CollectionConfig = {
         { label: "Claimed", value: "claimed" },
         { label: "Expired", value: "expired" },
         { label: "Forfeited", value: "forfeited" },
+        { label: "Disqualified", value: "disqualified" },
       ],
     },
     {
@@ -178,6 +179,35 @@ export const GiveawayWinners: CollectionConfig = {
       admin: {
         position: "sidebar",
         date: { pickerAppearance: "dayAndTime" },
+      },
+    },
+    {
+      name: "replaces",
+      type: "relationship",
+      relationTo: "giveaway-winners",
+      index: true,
+      admin: {
+        readOnly: true,
+        description:
+          "Set when this record replaces a disqualified winner (§12). The original is kept rather than deleted, so the audit trail stays intact.",
+      },
+    },
+    {
+      name: "disqualifiedAt",
+      type: "date",
+      admin: {
+        position: "sidebar",
+        readOnly: true,
+        date: { pickerAppearance: "dayAndTime" },
+      },
+    },
+    {
+      name: "disqualificationReason",
+      type: "textarea",
+      admin: {
+        readOnly: true,
+        description:
+          "Why this winner was disqualified — recorded before any replacement is drawn.",
       },
     },
   ],

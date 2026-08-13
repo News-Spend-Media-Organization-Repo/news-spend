@@ -116,6 +116,62 @@ export const GiveawayTickets: CollectionConfig = {
         return data;
       },
     ],
+    afterChange: [
+      /**
+       * Hold any prize won on a ticket that has just been invalidated
+       * (spec §12, post-draw refund or fraud event).
+       *
+       * The specification's sequence is: hold the record, prevent fulfilment,
+       * record the reason, then require an administrator to review before the
+       * winner is disqualified and a replacement drawn. This hook does the
+       * first three automatically — the refund itself is the trigger — and
+       * deliberately stops short of disqualifying anyone, because that is the
+       * administrator's decision and it forfeits someone's prize.
+       */
+      async ({ doc, previousDoc, operation, req }) => {
+        const becameInvalid =
+          operation === "update" &&
+          previousDoc?.status === "valid" &&
+          doc.status !== "valid";
+
+        if (!becameInvalid) {
+          return doc;
+        }
+
+        const affected = await req.payload.find({
+          collection: "giveaway-winners",
+          where: {
+            and: [
+              { winningTicket: { equals: doc.id } },
+              { fulfilmentStatus: { not_equals: "fulfilled" } },
+              { claimStatus: { not_equals: "disqualified" } },
+            ],
+          },
+          pagination: false,
+          depth: 0,
+        });
+
+        for (const winner of affected.docs) {
+          await req.payload.update({
+            collection: "giveaway-winners",
+            id: winner.id,
+            data: {
+              fulfilmentStatus: "on_hold",
+              reviewNote: `The winning ticket was marked "${doc.status}" after the draw. Fulfilment is held pending administrator review (§12).`,
+            },
+          });
+
+          req.payload.logger.warn({
+            msg: "[giveaway] winning ticket invalidated after the draw",
+            winnerId: winner.id,
+            ticketId: doc.id,
+            newStatus: doc.status,
+          });
+        }
+
+        return doc;
+      },
+    ],
   },
 };
 

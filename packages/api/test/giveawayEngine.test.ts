@@ -1328,6 +1328,178 @@ describe("fairness and anti-abuse in a real draw (spec §22)", () => {
   });
 });
 
+describe("pool lock and replacement winners (spec §12)", () => {
+  /**
+   * Runs a real Tier 3 draw over `count` participants producing exactly
+   * `maxUnits` winners. Tier 3 is set to 100% so the prize stock is what caps
+   * the winner count — deriving a percentage instead runs into floating point
+   * (a 1-in-6 share evaluates to 0.9999…, which floors to zero winners).
+   */
+  async function drawnGiveaway(count: number, maxUnits: number) {
+    const { ticketRows } = participants(count);
+    const fake = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 100,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", maxUnits)],
+    });
+
+    const result = await new GiveawayEngine(fake.payload).runDraw("g1");
+    return { ...fake, result };
+  }
+
+  it("locks a pool snapshot per tier, even when the tier awards nobody", async () => {
+    const { ticketRows } = participants(6);
+    const { payload, created } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 10)],
+    });
+
+    await new GiveawayEngine(payload).runDraw("g1");
+
+    const snapshots = created["giveaway-pool-snapshots"] ?? [];
+    // One per tier, including the two that awarded nothing.
+    expect(snapshots).toHaveLength(3);
+
+    const tier3 = snapshots.find((s) => s.tier === "tier3");
+    expect(tier3?.candidateCount).toBe(6);
+    expect(tier3?.entries).toHaveLength(6);
+
+    // Tier 1 and Tier 2 have empty pools — nobody met their thresholds.
+    expect(snapshots.find((s) => s.tier === "tier1")?.candidateCount).toBe(0);
+  });
+
+  it("does not lock a pool on a dry run", async () => {
+    const { ticketRows } = participants(5);
+    const { payload, created } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    await new GiveawayEngine(payload).runDraw("g1", { dryRun: true });
+    expect(created["giveaway-pool-snapshots"]).toBeUndefined();
+  });
+
+  it("replaces a disqualified winner from the locked pool", async () => {
+    const { payload, created, seed } = await drawnGiveaway(10, 2);
+
+    const winners = created["giveaway-winners"] ?? [];
+    expect(winners).toHaveLength(2);
+
+    // The fake serves finds from `collections`, so mirror the draw's writes.
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const target = winners[0]!;
+    const outcome = await new GiveawayEngine(payload).replaceWinner(target.id, {
+      reason: "Ticket charged back",
+    });
+
+    expect(outcome.replaced).toBe(true);
+
+    // Original is kept, marked disqualified, and its prize withheld.
+    expect(target.claimStatus).toBe("disqualified");
+    expect(target.fulfilmentStatus).toBe("cancelled");
+    expect(target.disqualificationReason).toBe("Ticket charged back");
+
+    const replacement = (created["giveaway-winners"] ?? []).at(-1);
+    expect(replacement?.replaces).toBe(target.id);
+    expect(replacement?.prizeName).toBe(target.prizeName);
+    expect(replacement?.tier).toBe(target.tier);
+  });
+
+  it("never draws a replacement who already holds a prize", async () => {
+    const { payload, created, seed } = await drawnGiveaway(6, 3);
+
+    const winners = created["giveaway-winners"] ?? [];
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const existingWinnerIds = winners.map((w) => w.user);
+
+    const outcome = await new GiveawayEngine(payload).replaceWinner(
+      winners[0]!.id,
+      { reason: "Fraud confirmed" }
+    );
+
+    expect(outcome.replaced).toBe(true);
+    if (outcome.replaced) {
+      expect(existingWinnerIds).not.toContain(outcome.userKey);
+    }
+  });
+
+  it("refuses to disqualify a prize that has already been fulfilled", async () => {
+    const { payload, created, seed } = await drawnGiveaway(6, 1);
+
+    const winners = created["giveaway-winners"] ?? [];
+    winners[0]!.fulfilmentStatus = "fulfilled";
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const outcome = await new GiveawayEngine(payload).replaceWinner(
+      winners[0]!.id,
+      { reason: "Too late" }
+    );
+
+    expect(outcome.replaced).toBe(false);
+    if (!outcome.replaced) {
+      expect(outcome.message).toMatch(/already been fulfilled/);
+    }
+    expect(winners[0]?.claimStatus).not.toBe("disqualified");
+  });
+
+  it("still disqualifies when the pool has nobody left to draw", async () => {
+    // Every participant wins, so no replacement is available.
+    const { payload, created, seed } = await drawnGiveaway(3, 3);
+
+    const winners = created["giveaway-winners"] ?? [];
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const outcome = await new GiveawayEngine(payload).replaceWinner(
+      winners[0]!.id,
+      { reason: "Refunded" }
+    );
+
+    expect(outcome.replaced).toBe(false);
+    // The disqualification must still stand — the prize is withheld either way.
+    expect(winners[0]?.claimStatus).toBe("disqualified");
+    expect(winners[0]?.fulfilmentStatus).toBe("cancelled");
+  });
+
+  it("will not disqualify the same winner twice", async () => {
+    const { payload, created, seed } = await drawnGiveaway(8, 2);
+
+    const winners = created["giveaway-winners"] ?? [];
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const engine = new GiveawayEngine(payload);
+    await engine.replaceWinner(winners[0]!.id, { reason: "First" });
+    const second = await engine.replaceWinner(winners[0]!.id, {
+      reason: "Second",
+    });
+
+    expect(second.replaced).toBe(false);
+    if (!second.replaced) {
+      expect(second.message).toMatch(/already been disqualified/);
+    }
+  });
+});
+
 describe("resuming a failed draw (spec §19)", () => {
   /**
    * A giveaway whose Tier 1 completed and awarded `tier1Winners`, then failed

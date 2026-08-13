@@ -10,6 +10,7 @@ export {
   GiveawayAccountFlags,
   GiveawayAuditLog,
   GiveawayEngagements,
+  GiveawayPoolSnapshots,
   GiveawayPrizes,
   Giveaways,
   GiveawayStreaks,
