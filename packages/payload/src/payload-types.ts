@@ -106,6 +106,7 @@ export interface Config {
     'shop-analytics': ShopAnalytic;
     survey: Survey;
     'ticket-purchase-log': TicketPurchaseLog;
+    userBlocks: UserBlock;
     users: User;
     verifications: Verification;
     'witness-reports': WitnessReport;
@@ -153,6 +154,7 @@ export interface Config {
     'shop-analytics': ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
     'ticket-purchase-log': TicketPurchaseLogSelect<false> | TicketPurchaseLogSelect<true>;
+    userBlocks: UserBlocksSelect<false> | UserBlocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
     'witness-reports': WitnessReportsSelect<false> | WitnessReportsSelect<true>;
@@ -560,7 +562,6 @@ export interface User {
     | number
     | boolean
     | null;
-  blockedUsers?: (string | User)[] | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -1914,6 +1915,33 @@ export interface TicketPurchaseLog {
   createdAt: string;
 }
 /**
+ * Users blocked by other users. Created from the app; blocking also files a Content Report so moderators are notified.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "userBlocks".
+ */
+export interface UserBlock {
+  id: string;
+  /**
+   * The user who initiated the block.
+   */
+  blocker: string | User;
+  /**
+   * The user whose content is hidden as a result.
+   */
+  blocked: string | User;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "verifications".
  */
@@ -2290,6 +2318,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'ticket-purchase-log';
         value: string | TicketPurchaseLog;
+      } | null)
+    | ({
+        relationTo: 'userBlocks';
+        value: string | UserBlock;
       } | null)
     | ({
         relationTo: 'users';
@@ -3141,6 +3173,18 @@ export interface TicketPurchaseLogSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "userBlocks_select".
+ */
+export interface UserBlocksSelect<T extends boolean = true> {
+  blocker?: T;
+  blocked?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -3157,7 +3201,6 @@ export interface UsersSelect<T extends boolean = true> {
   notificationPreferences?: T;
   lastActive?: T;
   customAttributes?: T;
-  blockedUsers?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

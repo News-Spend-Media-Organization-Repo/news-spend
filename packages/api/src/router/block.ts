@@ -9,6 +9,26 @@ import { createRateLimitMiddleware } from "../lib/ratelimit";
 const blockRateLimit = () =>
   createRateLimitMiddleware({ maxRequests: 10, window: 60_000 });
 
+/**
+ * A unique index on (blocker, blocked) makes a duplicate block a database
+ * error rather than something to guard against in application code. Postgres
+ * reports it as 23505; the adapter may surface it wrapped, so the code is
+ * matched anywhere in the error rather than at a fixed path.
+ */
+function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const candidate = error as { code?: unknown; cause?: unknown };
+  if (candidate.code === "23505") {
+    return true;
+  }
+  if (candidate.cause) {
+    return isUniqueViolation(candidate.cause);
+  }
+  return /duplicate key value|23505/i.test(String((error as Error).message));
+}
+
 const blockUser = protectedNoGuestProcedure
   .use(blockRateLimit())
   .input(z.object({ userId: z.string() }))
@@ -21,29 +41,18 @@ const blockUser = protectedNoGuestProcedure
       });
     }
 
-    const userDoc = await payload.findByID({
-      collection: "users",
-      id: user.id,
-      depth: 0,
-    });
-
-    const blockedUsers: string[] = Array.isArray(userDoc.blockedUsers)
-      ? (userDoc.blockedUsers as string[])
-      : [];
-
-    if (blockedUsers.includes(input.userId)) {
-      return { success: true, alreadyBlocked: true };
+    try {
+      await payload.create({
+        collection: "userBlocks",
+        data: { blocker: user.id, blocked: input.userId },
+      });
+    } catch (error) {
+      // Already blocked — treat as success so a double tap is harmless.
+      if (isUniqueViolation(error)) {
+        return { success: true, alreadyBlocked: true };
+      }
+      throw error;
     }
-
-    const updatedBlockedUsers = [...blockedUsers, input.userId];
-
-    await payload.update({
-      collection: "users",
-      id: user.id,
-      data: {
-        blockedUsers: updatedBlockedUsers,
-      },
-    });
 
     await payload.create({
       collection: "contentReports",
@@ -65,31 +74,19 @@ const unblockUser = protectedNoGuestProcedure
   .handler(async ({ input, context }) => {
     const { user, payload } = context;
 
-    const userDoc = await payload.findByID({
-      collection: "users",
-      id: user.id,
-      depth: 0,
-    });
-
-    const blockedUsers: string[] = Array.isArray(userDoc.blockedUsers)
-      ? (userDoc.blockedUsers as string[])
-      : [];
-
-    const updatedBlockedUsers = blockedUsers.filter(
-      (id) => id !== input.userId
-    );
-
-    if (updatedBlockedUsers.length === blockedUsers.length) {
-      return { success: true, notBlocked: true };
-    }
-
-    await payload.update({
-      collection: "users",
-      id: user.id,
-      data: {
-        blockedUsers: updatedBlockedUsers,
+    const deleted = await payload.delete({
+      collection: "userBlocks",
+      where: {
+        and: [
+          { blocker: { equals: user.id } },
+          { blocked: { equals: input.userId } },
+        ],
       },
     });
+
+    if (deleted.docs.length === 0) {
+      return { success: true, notBlocked: true };
+    }
 
     return { success: true };
   });
@@ -98,33 +95,35 @@ const getBlockedUsers = protectedNoGuestProcedure.handler(
   async ({ context }) => {
     const { user, payload } = context;
 
-    const userDoc = await payload.findByID({
-      collection: "users",
-      id: user.id,
-      depth: 0,
-    });
-
-    const blockedUserIds: string[] = Array.isArray(userDoc.blockedUsers)
-      ? (userDoc.blockedUsers as string[])
-      : [];
-
-    if (blockedUserIds.length === 0) {
-      return { blockedUsers: [] as { id: string; username: string }[] };
-    }
-
-    const blockedUsersDocs = await payload.find({
-      collection: "users",
-      where: {
-        id: { in: blockedUserIds },
+    const blocks = await payload.find({
+      collection: "userBlocks",
+      where: { blocker: { equals: user.id } },
+      select: {
+        blocked: true,
+        createdAt: true,
       },
-      depth: 0,
+      sort: "-createdAt",
+      depth: 1,
       limit: 500,
     });
 
-    const blockedUsers = blockedUsersDocs.docs.map((u) => ({
-      id: u.id as string,
-      username: (u as Record<string, unknown>).username as string,
-    }));
+    const blockedUsers = blocks.docs
+      .map((doc) => {
+        const blocked = doc.blocked;
+        if (!blocked || typeof blocked !== "object") {
+          return null;
+        }
+        const { id, username } = blocked;
+        if (!id) {
+          return null;
+        }
+        return {
+          id,
+          username: username ?? "",
+          blockedAt: (doc as { createdAt?: string }).createdAt ?? null,
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
     return { blockedUsers };
   }

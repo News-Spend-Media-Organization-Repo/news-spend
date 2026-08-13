@@ -237,8 +237,6 @@ const getComment = publicProcedure
   });
 
 const addComment = protectedNoGuestProcedure
-  // window is milliseconds — this previously passed 60, i.e. a 60ms window,
-  // which allowed effectively unlimited comments.
   .use(createRateLimitMiddleware({ maxRequests: 10, window: 60_000 }))
   .input(CommentInput)
   .handler(async ({ input: comment, context }) => {

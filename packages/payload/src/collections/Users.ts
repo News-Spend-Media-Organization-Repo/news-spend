@@ -37,6 +37,11 @@ export const Users: CollectionConfig = {
           sql`DELETE FROM survey_rels WHERE users_id = ${id}`,
           sql`DELETE FROM lottery_rels WHERE users_id = ${id}`,
           sql`DELETE FROM comments_rels WHERE users_id = ${id}`,
+          // Both directions: rows where this user did the blocking, and rows
+          // where they were the one blocked. Both columns are NOT NULL with an
+          // ON DELETE SET NULL foreign key, so leaving either behind makes the
+          // user delete fail outright.
+          sql`DELETE FROM user_blocks WHERE blocker_id = ${id} OR blocked_id = ${id}`,
         ];
         try {
           await Promise.all(statements.map((stmt) => drizzle.execute(stmt)));
@@ -200,16 +205,5 @@ export const Users: CollectionConfig = {
         description: "Custom user attributes for advanced segmentation",
       },
     },
-    {
-      name: "blockedUsers",
-      type: "relationship",
-      relationTo: "users",
-      hasMany: true,
-      admin: { hidden: true },
-    },
-    // `reportedComments` (a JSON array of comment ids) was removed: it
-    // duplicated contentReports, had no index or referential integrity, and
-    // grew without bound on a single row. "Comments I reported" is now derived
-    // from contentReports at read time.
   ],
 };

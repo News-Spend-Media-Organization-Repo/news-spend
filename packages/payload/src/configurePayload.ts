@@ -60,6 +60,7 @@ import {
   WitnessReport,
 } from "./collections";
 import Admins from "./collections/Admins";
+import UserBlocks from "./collections/UserBlocks";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
@@ -156,6 +157,7 @@ const baseConfig: Config = {
     // Stores,
     Survey,
     TicketPurchaseLog,
+    UserBlocks,
     Users,
     Verification,
     WitnessReport,
