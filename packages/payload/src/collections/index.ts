@@ -13,6 +13,7 @@ export {
   GiveawayEngagements,
   GiveawayPoolSnapshots,
   GiveawayPrizes,
+  GiveawayReportDeliveries,
   Giveaways,
   GiveawayStreaks,
   GiveawayTickets,

@@ -32,6 +32,55 @@ export const Giveaways: CollectionConfig = {
   access: {
     read: () => true,
   },
+  endpoints: [
+    {
+      /**
+       * Resend the Winner Report (spec §21, "provide Resend Winner Report
+       * button in CMS").
+       *
+       * A resend is recorded as its own delivery rather than overwriting the
+       * original, so the log always answers "when did the report first go
+       * out, and how many times has it been sent since?".
+       */
+      path: "/:id/resend-winner-report",
+      method: "post",
+      handler: async (req) => {
+        const user = req.user;
+
+        // The report carries winners' names, emails and phone numbers, so
+        // sending it is deliberately the narrowest role.
+        if (user?.collection !== "admins" || user?.role !== "super-admin") {
+          return Response.json(
+            { message: "Only a Super Admin can send the Winner Report." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id as string | undefined;
+        if (!id) {
+          return Response.json(
+            { message: "Missing giveaway id." },
+            { status: 400 }
+          );
+        }
+
+        const { sendWinnerReport } = await import(
+          "../../lib/giveaway/sendWinnerReport"
+        );
+
+        const result = await sendWinnerReport(req.payload, id, {
+          kind: "resend",
+          requestedBy: user.email ?? String(user.id),
+        });
+
+        if (result.sent) {
+          return Response.json({ message: "Winner Report sent." });
+        }
+
+        return Response.json({ message: result.message }, { status: 409 });
+      },
+    },
+  ],
   hooks: {
     beforeValidate: [
       async ({ req, data, originalDoc, operation }) => {
@@ -169,7 +218,7 @@ export const Giveaways: CollectionConfig = {
       defaultValue: 1,
       admin: {
         description:
-          "The smallest number of tickets a user may buy at once (spec §. This is a purchase floor, not a tier requirement.",
+          "The smallest number of tickets a user may buy at once (spec §1). This is a purchase floor, not a tier requirement.",
       },
       validate: (value: number | null | undefined) => {
         if (value === null || value === undefined) {
@@ -345,6 +394,17 @@ export const Giveaways: CollectionConfig = {
         position: "sidebar",
         condition: (data) =>
           data?.status === "failed" || data?.status === "interrupted",
+      },
+    },
+    {
+      name: "resendWinnerReport",
+      type: "ui",
+      label: "Winner Report",
+      admin: {
+        components: {
+          Field:
+            "@news-spend-media/payload/components/ResendWinnerReport#ResendWinnerReport",
+        },
       },
     },
     {

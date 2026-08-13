@@ -5,6 +5,7 @@ export { GiveawayDrawAttempts } from "./GiveawayDrawAttempts";
 export { GiveawayEngagements } from "./GiveawayEngagements";
 export { GiveawayPoolSnapshots } from "./GiveawayPoolSnapshots";
 export { GiveawayPrizes } from "./GiveawayPrizes";
+export { GiveawayReportDeliveries } from "./GiveawayReportDeliveries";
 export { GiveawayStreaks } from "./GiveawayStreaks";
 export { Giveaways } from "./Giveaways";
 export { GiveawayTickets } from "./GiveawayTickets";

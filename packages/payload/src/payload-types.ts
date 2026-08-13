@@ -84,6 +84,7 @@ export interface Config {
     'giveaway-engagements': GiveawayEngagement;
     'giveaway-pool-snapshots': GiveawayPoolSnapshot;
     'giveaway-prizes': GiveawayPrize;
+    'giveaway-report-deliveries': GiveawayReportDelivery;
     giveaways: Giveaway;
     'giveaway-streaks': GiveawayStreak;
     'giveaway-tickets': GiveawayTicket;
@@ -135,6 +136,7 @@ export interface Config {
     'giveaway-engagements': GiveawayEngagementsSelect<false> | GiveawayEngagementsSelect<true>;
     'giveaway-pool-snapshots': GiveawayPoolSnapshotsSelect<false> | GiveawayPoolSnapshotsSelect<true>;
     'giveaway-prizes': GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
+    'giveaway-report-deliveries': GiveawayReportDeliveriesSelect<false> | GiveawayReportDeliveriesSelect<true>;
     giveaways: GiveawaysSelect<false> | GiveawaysSelect<true>;
     'giveaway-streaks': GiveawayStreaksSelect<false> | GiveawayStreaksSelect<true>;
     'giveaway-tickets': GiveawayTicketsSelect<false> | GiveawayTicketsSelect<true>;
@@ -1483,6 +1485,56 @@ export interface PrizeCatalogue {
   createdAt: string;
 }
 /**
+ * Every attempt to email a Winner Report. The original is sent automatically when a draw completes; resends are recorded alongside it.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-report-deliveries".
+ */
+export interface GiveawayReportDelivery {
+  id: string;
+  giveaway: string | Giveaway;
+  /**
+   * There is at most one original per draw. Everything else is a resend.
+   */
+  kind: 'original' | 'resend';
+  status: 'pending' | 'sent' | 'failed';
+  recipient: string;
+  subject: string;
+  attachmentFileName?: string | null;
+  /**
+   * Winners listed in the attachment when it was sent.
+   */
+  winnerCount?: number | null;
+  /**
+   * Delivery attempts made for this row, including automatic retries.
+   */
+  attempts: number;
+  /**
+   * The mail provider's id, for tracing a delivery.
+   */
+  providerMessageId?: string | null;
+  /**
+   * The last failure, if this delivery did not succeed.
+   */
+  error?: string | null;
+  /**
+   * Who asked for a resend. Empty for the original.
+   */
+  requestedBy?: string | null;
+  sentAt?: string | null;
+  createdAtIso: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Consecutive-giveaway qualification counters. Persist across giveaways by design.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2470,6 +2522,10 @@ export interface PayloadLockedDocument {
         value: string | GiveawayPrize;
       } | null)
     | ({
+        relationTo: 'giveaway-report-deliveries';
+        value: string | GiveawayReportDelivery;
+      } | null)
+    | ({
         relationTo: 'giveaways';
         value: string | Giveaway;
       } | null)
@@ -2869,6 +2925,29 @@ export interface GiveawayPrizesSelect<T extends boolean = true> {
   maxUnits?: T;
   unitsAwarded?: T;
   unitsRemaining?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-report-deliveries_select".
+ */
+export interface GiveawayReportDeliveriesSelect<T extends boolean = true> {
+  giveaway?: T;
+  kind?: T;
+  status?: T;
+  recipient?: T;
+  subject?: T;
+  attachmentFileName?: T;
+  winnerCount?: T;
+  attempts?: T;
+  providerMessageId?: T;
+  error?: T;
+  requestedBy?: T;
+  sentAt?: T;
+  createdAtIso?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

@@ -26,6 +26,7 @@ import {
   type UserDrawHistory,
 } from "./fairness";
 import { createRng, generateSeed, weightedPick } from "./random";
+import { type ReportSender, sendWinnerReport } from "./sendWinnerReport";
 
 export class GiveawayEngineError extends Error {
   constructor(
@@ -181,8 +182,19 @@ export type RunDrawOptions = {
 export class GiveawayEngine {
   private readonly payload: BasePayload;
 
-  constructor(payload: BasePayload) {
+  /**
+   * How the §21 Winner Report is delivered. Injectable so a draw can be run
+   * in a test without reaching for a mail provider, and so the provider can
+   * be swapped without touching the engine.
+   */
+  private readonly reportSender?: ReportSender;
+
+  constructor(
+    payload: BasePayload,
+    options: { reportSender?: ReportSender } = {}
+  ) {
     this.payload = payload;
+    this.reportSender = options.reportSender;
   }
 
   async runDraw(
@@ -435,13 +447,31 @@ export class GiveawayEngine {
       executionId: ctx.executionId,
     });
 
-    // Checkpoint 12 — the audit trail for this draw is complete. Checkpoint 13,
-    // winner report generation, is reached by the §21 reporting job, which is
-    // deliberately outside the draw: a mail failure must not interrupt a draw
-    // that has already awarded its prizes correctly.
+    // Checkpoint 12 — the audit trail for this draw is complete.
     await this.checkpoint(ctx, "audit_completed");
 
     await this.closeAttempt(ctx, "completed");
+
+    /**
+     * Checkpoint 13 — the Winner Report (spec §21).
+     *
+     * Deliberately the last thing, and deliberately outside everything that
+     * can fail the draw. `sendWinnerReport` never throws and a failure leaves
+     * a delivery row to retry from, so an unreachable mail provider cannot
+     * interrupt a draw that has already awarded its prizes correctly — which
+     * is exactly what §21 requires.
+     *
+     * The checkpoint is only reached if the report actually went out, so an
+     * unsent report stays visible rather than being papered over.
+     */
+    const report = await sendWinnerReport(this.payload, ctx.giveawayId, {
+      kind: "original",
+      send: this.reportSender,
+    });
+
+    if (report.sent) {
+      await this.checkpoint(ctx, "winner_report_generated");
+    }
   }
 
   /**
