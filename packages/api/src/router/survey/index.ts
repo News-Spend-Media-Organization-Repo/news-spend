@@ -1,5 +1,4 @@
 import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
-import { ORPCError } from "@orpc/client";
 import z from "zod";
 
 import { protectedProcedure } from "../../index";
@@ -21,7 +20,7 @@ const awardGoogleFormPoints = protectedProcedure
   })
   .input(AwardGoogleFormInputSchema)
   .output(z.any())
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     try {
       const { gFormId, userId } = input;
       const { payload } = context;
@@ -39,7 +38,7 @@ const awardGoogleFormPoints = protectedProcedure
       const survey = gForm.docs[0];
 
       if (!survey) {
-        throw new ORPCError("NOT_FOUND", {
+        throw errors.NOT_FOUND({
           message: "Survey not found",
         });
       }

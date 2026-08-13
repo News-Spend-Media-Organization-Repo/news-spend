@@ -1,5 +1,4 @@
 import { auth } from "@news-spend-media/auth";
-import { ORPCError } from "@orpc/client";
 import z from "zod";
 
 import { protectedNoGuestProcedure, protectedProcedure } from "..";
@@ -11,7 +10,7 @@ const changePassword = protectedNoGuestProcedure
       newPassword: z.string().min(6).max(100),
     })
   )
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { user, payload } = context;
     const { oldPassword, newPassword } = input;
 
@@ -21,7 +20,7 @@ const changePassword = protectedNoGuestProcedure
     });
 
     if (!userCheck) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "User not found",
       });
     }
@@ -42,7 +41,7 @@ const updateProfile = protectedNoGuestProcedure
       })
       .catchall(z.any())
   )
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const {
       payload,
       user: { id: userId },
@@ -57,7 +56,7 @@ const updateProfile = protectedNoGuestProcedure
     });
 
     if (!user) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "User not found",
       });
     }
@@ -85,8 +84,7 @@ const updateProfile = protectedNoGuestProcedure
     const zodError = new z.ZodError(customErr);
 
     if (customErr.length > 0) {
-      throw new ORPCError("INPUT_VALIDATION_FAILED", {
-        status: 422,
+      throw errors.INPUT_VALIDATION_FAILED({
         message: "Invalid input",
         cause: zodError,
         data: z.flattenError(zodError),
@@ -199,7 +197,7 @@ const deletePushToken = protectedProcedure
     };
   });
 
-const me = protectedProcedure.handler(async ({ context }) => {
+const me = protectedProcedure.handler(async ({ context, errors }) => {
   const {
     payload,
     user: { id: userId },
@@ -210,7 +208,7 @@ const me = protectedProcedure.handler(async ({ context }) => {
   });
 
   if (!user) {
-    throw new ORPCError("NOT_FOUND", {
+    throw errors.NOT_FOUND({
       message: "User not found",
     });
   }

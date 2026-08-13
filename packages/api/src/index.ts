@@ -2,6 +2,7 @@ import { os } from "@orpc/server";
 import * as Sentry from "@sentry/node";
 
 import type { Context } from "./context";
+import { commonErrors } from "./errors";
 import { rateLimitMiddleware } from "./lib/ratelimit";
 import {
   optionalAuth,
@@ -17,15 +18,6 @@ export const sentryMiddleware = os.middleware(async ({ next }) => {
     throw error;
   }
 });
-
-const commonErrors = {
-  BAD_REQUEST: { message: "Bad request" },
-  UNAUTHORIZED: { message: "Unauthorized" },
-  FORBIDDEN: { message: "Forbidden" },
-  NOT_FOUND: { message: "Resource not found" },
-  CONFLICT: { message: "Conflict" },
-  INTERNAL_SERVER_ERROR: { message: "Internal server error" },
-};
 
 export const basicProcedure = os
   .$context<Context>()

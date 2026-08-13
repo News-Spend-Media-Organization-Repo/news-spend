@@ -13,7 +13,7 @@ const getTweetById = publicProcedure
     summary: "Get tweet by ID",
     description: "Fetch a tweet by its ID from Twitter",
   })
-  .handler(async ({ input }) => {
+  .handler(async ({ input, errors }) => {
     try {
       const tweet = await getTweet(input.id);
 
@@ -22,7 +22,7 @@ const getTweetById = publicProcedure
       if (error instanceof ORPCError) {
         throw error;
       }
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message:
           error instanceof Error ? error.message : "Failed to fetch tweet",
       });

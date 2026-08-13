@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/client";
 import z from "zod";
 
 import { protectedNoGuestProcedure } from "../index";
@@ -32,11 +31,11 @@ function isUniqueViolation(error: unknown): boolean {
 const blockUser = protectedNoGuestProcedure
   .use(blockRateLimit())
   .input(z.object({ userId: z.string() }))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { user, payload } = context;
 
     if (input.userId === user.id) {
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message: "You cannot block yourself",
       });
     }

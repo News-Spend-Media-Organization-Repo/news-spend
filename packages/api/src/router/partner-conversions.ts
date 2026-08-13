@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import { ORPCError } from "@orpc/client";
 import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
@@ -13,7 +12,7 @@ const trackClickInput = z.object({
 // Track a click on CPA content
 export const trackClick = protectedNoGuestProcedure
   .input(trackClickInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
 
     // Get PartnerContent with partner info
@@ -24,14 +23,14 @@ export const trackClick = protectedNoGuestProcedure
     });
 
     if (!content) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Partner content not found",
       });
     }
 
     // Get partner ID from content
     if (!content.partner) {
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message: "Partner content has no associated partner",
       });
     }
@@ -91,7 +90,7 @@ export const handleWebhook = publicProcedure
       "Webhook endpoint for partners to confirm CPA conversions. Call this when a user completes a task (install, purchase, etc.).",
   })
   .input(webhookInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload } = context;
 
     // Find the conversion by clickId
@@ -106,7 +105,7 @@ export const handleWebhook = publicProcedure
 
     const conversion = conversions.docs[0];
     if (!conversion) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Click ID not found",
       });
     }

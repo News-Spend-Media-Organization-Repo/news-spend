@@ -1,5 +1,4 @@
 import type { Media } from "@news-spend-media/payload/types";
-import { ORPCError } from "@orpc/client";
 import z from "zod";
 import { zfd } from "zod-form-data";
 
@@ -21,7 +20,7 @@ const create = rateLimitedPublicProcedure
     path: "/report/create",
   })
   .input(ReportInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload } = context;
     // upload files
     const { files, ...rest } = input;
@@ -57,7 +56,7 @@ const create = rateLimitedPublicProcedure
         console.log(error);
         // @ts-expect-error
         await payload.db.rollbackTransaction(transactionID);
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        throw errors.INTERNAL_SERVER_ERROR({
           message: "Failed to upload files",
         });
       }

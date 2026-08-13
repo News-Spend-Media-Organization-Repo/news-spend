@@ -1,6 +1,5 @@
 import { lottery_winners } from "@news-spend-media/payload/payload-generated-schema";
 import type { Media } from "@news-spend-media/payload/types";
-import { ORPCError } from "@orpc/client";
 import { and, eq, ne } from "@payloadcms/db-postgres/drizzle";
 import { subWeeks } from "date-fns";
 import z from "zod";
@@ -116,7 +115,7 @@ const getReward = protectedProcedure.handler(async ({ context }) => {
 
 const claimReward = protectedProcedure
   .input(z.object({ winnerId: z.string() }))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
 
     // Fetch winner to get prize info
@@ -130,7 +129,7 @@ const claimReward = protectedProcedure
       typeof winner.user === "string" ? winner.user : winner.user.id;
 
     if (!winner || lotteryWinnerId !== user.id) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Winner not found",
       });
     }
@@ -154,7 +153,7 @@ const claimReward = protectedProcedure
       .returning();
 
     if (claimedRows.length === 0) {
-      throw new ORPCError("CONFLICT", {
+      throw errors.CONFLICT({
         message: "Reward already claimed",
       });
     }
@@ -182,7 +181,7 @@ const claimReward = protectedProcedure
 
 const verifyIdentity = protectedNoGuestProcedure
   .input(verifyIdentityInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
     const ongoingVerification = await payload.find({
       collection: "identity-verification",
@@ -255,7 +254,7 @@ const verifyIdentity = protectedNoGuestProcedure
       ]);
 
       if (!(files[0] && files[1])) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        throw errors.INTERNAL_SERVER_ERROR({
           message: "File upload failed",
         });
       }

@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 
 import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
-import { ORPCError } from "@orpc/client";
 import type { BasePayload } from "payload";
 import z from "zod";
 
@@ -115,7 +114,7 @@ export const rapidoPostbackHandler = publicProcedure
     })
   )
   .output(z.union([z.object({ success: z.number() })]))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     console.log("Received Rapido postback:", input);
     const {
       endUserId,
@@ -128,13 +127,13 @@ export const rapidoPostbackHandler = publicProcedure
     const { payload } = context;
 
     if (!RAPIDO_API_KEY) {
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message: "Rapido not configured",
       });
     }
 
     if (!RAPIDO_SECURE_HASH) {
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message: "Rapido secure hash not configured",
       });
     }
@@ -224,7 +223,7 @@ export const theoremPostbackHandler = publicProcedure
       z.object({ error: z.string() }),
     ])
   )
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     console.log("Received Theorem postback:", input);
     const {
       reward,
@@ -241,7 +240,7 @@ export const theoremPostbackHandler = publicProcedure
     const { payload } = context;
 
     if (!THEOREM_API_KEY) {
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message: "Theorem not configured",
       });
     }

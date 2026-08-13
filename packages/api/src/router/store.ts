@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/client";
 import type { Payload } from "payload";
 import z from "zod";
 
@@ -185,7 +184,7 @@ const popular = publicProcedure
 
 const one = publicProcedure
   .input(z.object({ slug: z.string() }))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload } = context;
     const result = await payload.find({
       collection: "partners",
@@ -207,7 +206,7 @@ const one = publicProcedure
     });
 
     if (result.docs.length === 0) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Store not found",
       });
     }

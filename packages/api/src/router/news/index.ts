@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/client";
 import type { Where } from "payload";
 import z from "zod";
 
@@ -165,10 +164,10 @@ const recordView = publicProcedure
   .input(
     z.object({ newsId: z.string().optional(), slug: z.string().optional() })
   )
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user, request } = context;
     if (!(input.newsId || input.slug)) {
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message: "newsId or slug is required to record view",
       });
     }
@@ -190,7 +189,7 @@ const recordView = publicProcedure
     });
     const doc = news.docs[0];
     if (!doc) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "News not found",
       });
     }
@@ -320,7 +319,7 @@ const one = publicProcedure
       type: z.string().optional().default("article"),
     })
   )
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
     const where: Where = {
       slug: { equals: input.slug },
@@ -338,7 +337,7 @@ const one = publicProcedure
       // draft: false,
     });
     if (!news.docs.length) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "News not found",
       });
     }

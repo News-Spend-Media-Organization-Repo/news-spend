@@ -4,7 +4,6 @@ import {
   enum_partner_content_status,
   enum_partner_content_type,
 } from "@news-spend-media/payload/payload-generated-schema";
-import { ORPCError } from "@orpc/client";
 import type { SelectType, TransformCollectionWithSelect, Where } from "payload";
 import z from "zod";
 
@@ -47,14 +46,14 @@ export const allPartnerContent = publicProcedure.handler(
 
 export const partnerContentById = publicProcedure
   .input(byIdInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload } = context;
     const result = await payload.findByID({
       collection: "partner-content",
       id: input.id,
     });
     if (!result) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: `Partner content with id ${input.id} not found`,
       });
     }

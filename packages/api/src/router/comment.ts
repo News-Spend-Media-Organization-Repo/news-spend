@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/client";
 import type { Payload, Where } from "payload";
 import z from "zod";
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
@@ -179,7 +178,7 @@ const allComments = publicProcedure
 
 const getComment = publicProcedure
   .input(z.string())
-  .handler(async ({ input: commentId, context }) => {
+  .handler(async ({ input: commentId, context, errors }) => {
     const { payload, user } = context;
     const doc = await payload.findByID({
       collection: "comments",
@@ -193,7 +192,7 @@ const getComment = publicProcedure
       doc?.moderationStatus === "hidden" ||
       doc?.moderationStatus === "removed"
     ) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -210,7 +209,7 @@ const getComment = publicProcedure
         ]);
 
         if (blocked || reported) {
-          throw new ORPCError("NOT_FOUND", {
+          throw errors.NOT_FOUND({
             message: "Comment not found",
           });
         }
@@ -239,7 +238,7 @@ const getComment = publicProcedure
 const addComment = protectedNoGuestProcedure
   .use(createRateLimitMiddleware({ maxRequests: 10, window: 60_000 }))
   .input(CommentInput)
-  .handler(async ({ input: comment, context }) => {
+  .handler(async ({ input: comment, context, errors }) => {
     const { payload, user } = context;
 
     const screening = screenText(comment.text);
@@ -254,7 +253,7 @@ const addComment = protectedNoGuestProcedure
         "Comment rejected by content filter"
       );
       await recordFilterRejection(payload, user.id, screening, "a new comment");
-      throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
+      throw errors.BAD_REQUEST({ message: CONTENT_FILTER_MESSAGE });
     }
 
     const newComment = await payload.create({
@@ -274,7 +273,7 @@ const addComment = protectedNoGuestProcedure
 const DELETE_WINDOW_MS = 15 * 60 * 1000;
 const updateComment = protectedNoGuestProcedure
   .input(updateCommentInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
 
     const comment = await payload.findByID({
@@ -284,7 +283,7 @@ const updateComment = protectedNoGuestProcedure
     });
 
     if (!comment) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -293,7 +292,7 @@ const updateComment = protectedNoGuestProcedure
       typeof comment.user === "string" ? comment.user : comment.user.id;
 
     if (commentUser !== user.id) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -302,7 +301,7 @@ const updateComment = protectedNoGuestProcedure
     const elapsed = Date.now() - createdAt;
 
     if (elapsed >= DELETE_WINDOW_MS) {
-      throw new ORPCError("FORBIDDEN", {
+      throw errors.FORBIDDEN({
         message: "Delete window has expired",
         data: { expiredAt: createdAt + DELETE_WINDOW_MS },
       });
@@ -327,7 +326,7 @@ const updateComment = protectedNoGuestProcedure
         screening,
         "a comment edit"
       );
-      throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
+      throw errors.BAD_REQUEST({ message: CONTENT_FILTER_MESSAGE });
     }
 
     const updatedComment = await payload.update({
@@ -350,7 +349,7 @@ const updateComment = protectedNoGuestProcedure
 
 const deleteComment = protectedNoGuestProcedure
   .input(z.string())
-  .handler(async ({ input: commentId, context }) => {
+  .handler(async ({ input: commentId, context, errors }) => {
     const { payload, user } = context;
 
     const comment = await payload.findByID({
@@ -360,7 +359,7 @@ const deleteComment = protectedNoGuestProcedure
     });
 
     if (!comment) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -369,7 +368,7 @@ const deleteComment = protectedNoGuestProcedure
       typeof comment.user === "string" ? comment.user : comment.user.id;
 
     if (commentUser !== user.id) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
