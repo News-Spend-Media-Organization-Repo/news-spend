@@ -91,8 +91,16 @@ const unblockUser = protectedNoGuestProcedure
     return { success: true };
   });
 
-const getBlockedUsers = protectedNoGuestProcedure.handler(
-  async ({ context }) => {
+const getBlockedUsersInput = z.object({
+  page: z.number().min(1).nullish().default(1),
+  limit: z.number().min(1).max(100).nullish().default(20),
+});
+
+export type GetBlockedUsersInput = z.infer<typeof getBlockedUsersInput>;
+
+const getBlockedUsers = protectedNoGuestProcedure
+  .input(getBlockedUsersInput)
+  .handler(async ({ input, context }) => {
     const { user, payload } = context;
 
     const blocks = await payload.find({
@@ -104,7 +112,8 @@ const getBlockedUsers = protectedNoGuestProcedure.handler(
       },
       sort: "-createdAt",
       depth: 1,
-      limit: 500,
+      limit: input.limit ?? 20,
+      page: input.page ?? 1,
     });
 
     const blockedUsers = blocks.docs
@@ -125,9 +134,17 @@ const getBlockedUsers = protectedNoGuestProcedure.handler(
       })
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
-    return { blockedUsers };
-  }
-);
+    return {
+      blockedUsers,
+      // `nextPage` is what the client's infinite-query pattern reads as its
+      // cursor; the rest is for rendering counts and empty states.
+      page: blocks.page ?? 1,
+      nextPage: blocks.hasNextPage ? blocks.nextPage : undefined,
+      hasNextPage: blocks.hasNextPage,
+      totalDocs: blocks.totalDocs,
+      totalPages: blocks.totalPages,
+    };
+  });
 
 export const blockRouter = {
   blockUser,
