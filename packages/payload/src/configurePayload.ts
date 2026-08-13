@@ -27,6 +27,13 @@ import {
   Comments,
   ContentReport,
   Feedback,
+  GiveawayAuditLog,
+  GiveawayEngagements,
+  GiveawayPrizes,
+  GiveawayStreaks,
+  Giveaways,
+  GiveawayTickets,
+  GiveawayWinners,
   IdentityVerification,
   Lotteries,
   LotteryTickets,
@@ -40,6 +47,7 @@ import {
   PartnerContent,
   PartnerConversions,
   Partners,
+  PrizeCatalogue,
   PromotionMedia,
   PushTokens,
   Reactions,
@@ -52,6 +60,7 @@ import {
   WitnessReport,
 } from "./collections";
 import Admins from "./collections/Admins";
+import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
@@ -63,6 +72,7 @@ import { processLotteryTask } from "./tasks/processLottery";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
+import { sendUrgentModerationAlertTask } from "./tasks/sendUrgentModerationAlert";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -103,7 +113,7 @@ const baseConfig: Config = {
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  globals: [NewsCategory],
+  globals: [NewsCategory, ModerationSettings],
   collections: [
     Account,
     Activities,
@@ -115,6 +125,16 @@ const baseConfig: Config = {
     ContentReport,
     Feedback,
     // Games,
+    // --- Giveaway draw engine (spec-compliant; supersedes Lottery* above) ---
+    GiveawayAuditLog,
+    GiveawayEngagements,
+    GiveawayPrizes,
+    Giveaways,
+    GiveawayStreaks,
+    GiveawayTickets,
+    GiveawayWinners,
+    PrizeCatalogue,
+    // --- Legacy lottery: retained read-only for audit until cutover ---
     IdentityVerification,
     Lotteries,
     LotteryTickets,
@@ -148,6 +168,7 @@ const baseConfig: Config = {
       sendScheduledNotificationTask,
       sendCommentLikeNotificationTask,
       sendModerationDigestTask,
+      sendUrgentModerationAlertTask,
       checkPushReceiptsTask,
       processLotteryTask,
       cleanupAnonymousUsersTask,

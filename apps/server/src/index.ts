@@ -1,6 +1,6 @@
-import "dotenv/config";
 import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
+import { widgetHandler } from "@news-spend-media/api/router/widgets/handler";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
 // import { LoggingHandlerPlugin } from "@orpc/experimental-pino";
@@ -11,7 +11,6 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
@@ -78,13 +77,16 @@ async function handleApi(req: Request) {
   const context = await createContext({ request: req });
   const result = await apiHandler.handle(req, { prefix: "/api", context });
   if (result.matched) {
+    // new Headers(...) rather than Object.fromEntries(...entries()), which
+    // collapses repeated headers — auth responses can carry several Set-Cookie
+    const headers = new Headers(result.response.headers);
+    for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
+      headers.set(key, value);
+    }
     return new Response(result.response.body, {
       status: result.response.status,
       statusText: result.response.statusText,
-      headers: {
-        ...Object.fromEntries(result.response.headers.entries()),
-        ...getCorsHeaders(origin),
-      },
+      headers,
     });
   }
   return new Response("Not Found", { status: 404 });
@@ -111,13 +113,14 @@ async function handleRpc(req: Request) {
   const context = await createContext({ request: req });
   const result = await rpcHandler.handle(req, { prefix: "/rpc", context });
   if (result.matched) {
+    const headers = new Headers(result.response.headers);
+    for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
+      headers.set(key, value);
+    }
     return new Response(result.response.body, {
       status: result.response.status,
       statusText: result.response.statusText,
-      headers: {
-        ...Object.fromEntries(result.response.headers.entries()),
-        ...getCorsHeaders(origin),
-      },
+      headers,
     });
   }
   return new Response("Not Found", { status: 404 });
@@ -143,16 +146,65 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
+/**
+ * Attach CORS headers to a Response, mutating it in place where possible.
+ *
+ * Constructing `new Response(res.body, ...)` just to add headers re-wraps the
+ * body stream on every request; mutating the existing headers avoids that.
+ * Responses from Response.redirect() carry an immutable header guard, so fall
+ * back to re-wrapping for those.
+ */
+function withCors(response: Response, origin: string | null): Response {
+  const cors = getCorsHeaders(origin);
+
+  try {
+    for (const [key, value] of Object.entries(cors)) {
+      response.headers.set(key, value);
+    }
+    return response;
+  } catch {
+    const headers = new Headers(response.headers);
+    for (const [key, value] of Object.entries(cors)) {
+      headers.set(key, value);
+    }
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+}
+
+/**
+ * Credential scanners sweep for dotfiles (.env, .git/config, .ssh/id_rsa,
+ * .claude.json, ...). Nothing here serves files, but an /api/-prefixed probe
+ * would otherwise reach createContext and cost a session lookup to 404.
+ * .well-known is exempt — it is a real path better-auth can serve under.
+ */
+function isDotfileProbe(pathname: string): boolean {
+  return pathname
+    .split("/")
+    .some((segment) => segment.startsWith(".") && segment !== ".well-known");
+}
+
 const port = Number(process.env.PORT) || 9000;
 
 function logRequest(req: Request) {
-  const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+  const now = new Date();
+  const isoTimePart = now.toISOString().split("T")[1];
+  const timestamp = isoTimePart
+    ? isoTimePart.split(".")[0]
+    : now.toTimeString().split(" ")[0];
   const msg = `${timestamp} -> ${req.method} ${new URL(req.url).pathname}`;
   logger.info(msg);
 }
 
 function logResponse(req: Request, status: number, elapsed: number) {
-  const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+  const now = new Date();
+  const isoTimePart = now.toISOString().split("T")[1];
+  const timestamp = isoTimePart
+    ? isoTimePart.split(".")[0]
+    : now.toTimeString().split(" ")[0];
   const arrow = status >= 400 ? "<" : "<-";
   const msg = `${timestamp} ${arrow} ${req.method} ${new URL(req.url).pathname} ${status} ${elapsed}ms`;
   if (status >= 500) {
@@ -167,13 +219,27 @@ function logResponse(req: Request, status: number, elapsed: number) {
 const staticRoutes = {
   "/": () => new Response("OK"),
 
-  "/health": () =>
-    Response.json({
+  "/health": () => {
+    const mem = process.memoryUsage();
+    const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+
+    return Response.json({
       status: "ok",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || "development",
-    }),
+      // rss climbing while heapUsed stays flat means the growth is native
+      // (allocator/runtime) rather than anything the JS heap is holding —
+      // that distinction is what tells us whether a memory issue is ours
+      memory: {
+        rssMb: mb(mem.rss),
+        heapTotalMb: mb(mem.heapTotal),
+        heapUsedMb: mb(mem.heapUsed),
+        externalMb: mb(mem.external),
+        arrayBuffersMb: mb(mem.arrayBuffers),
+      },
+    });
+  },
 
   "/account-deletion": () =>
     new Response(AccountDeletionPage(), {
@@ -207,6 +273,13 @@ const server = Bun.serve({
       });
     }
 
+    if (isDotfileProbe(url.pathname)) {
+      // not logged as a request/response pair: these arrive in bursts of
+      // ~200 and drown the real traffic out of the deploy logs
+      logger.debug({ path: url.pathname }, "Blocked dotfile probe");
+      return new Response("Not Found", { status: 404 });
+    }
+
     const staticHandler =
       staticRoutes[url.pathname as keyof typeof staticRoutes];
     if (staticHandler) {
@@ -229,11 +302,7 @@ const server = Bun.serve({
             })
           : req;
         const authResponse = await auth.handler(authRequest);
-        const corsResponse = new Response(authResponse.body, authResponse);
-        for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
-          corsResponse.headers.set(key, value);
-        }
-        return corsResponse;
+        return withCors(authResponse, origin);
       };
 
       return handler().then((res) => {
@@ -245,6 +314,14 @@ const server = Bun.serve({
     if (url.pathname === "/rpc" || url.pathname.startsWith("/rpc/")) {
       logRequest(req);
       return handleRpc(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    if (url.pathname === "/api/widgets") {
+      logRequest(req);
+      return widgetHandler(req).then((res) => {
         logResponse(req, res.status, Date.now() - start);
         return res;
       });
@@ -273,6 +350,36 @@ appLogger.info(
   { port: server.port, hostname: server.hostname },
   "Server is running"
 );
+
+// Periodic memory sample. Railway graphs RSS only, which cannot distinguish
+// native/allocator retention from the JS heap holding objects — the split is
+// what says whether a memory problem is ours. uptimeH is included so a restart
+// shows up in the series instead of having to be inferred from a reset counter.
+const MEMORY_SAMPLE_INTERVAL_MS = Number(
+  process.env.MEMORY_SAMPLE_INTERVAL_MS ?? 15 * 60 * 1000
+);
+
+if (MEMORY_SAMPLE_INTERVAL_MS > 0) {
+  const sampleMemory = () => {
+    const mem = process.memoryUsage();
+    const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+
+    logger.info(
+      {
+        rssMb: mb(mem.rss),
+        heapUsedMb: mb(mem.heapUsed),
+        heapTotalMb: mb(mem.heapTotal),
+        externalMb: mb(mem.external),
+        arrayBuffersMb: mb(mem.arrayBuffers),
+        uptimeH: Number((process.uptime() / 3600).toFixed(2)),
+      },
+      "memory sample"
+    );
+  };
+
+  sampleMemory(); // t=0, so the series has a baseline for this process
+  setInterval(sampleMemory, MEMORY_SAMPLE_INTERVAL_MS).unref();
+}
 
 // initialize redis and cron jobs (best-effort)
 try {

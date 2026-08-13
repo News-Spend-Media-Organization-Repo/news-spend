@@ -1,6 +1,6 @@
 {
   "name": "@news-spend-media/native",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
   "main": "index.ts",
   "scripts": {
@@ -58,6 +58,8 @@
     "@swmansion/react-native-detour": "^2.3.0",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-query-persist-client": "^5.90.22",
+    "@use-voltra/android-client": "^2.1.1",
+    "@use-voltra/ios-client": "^2.1.1",
     "better-auth": "catalog:",
     "date-fns": "^4.1.0",
     "expo": "~57.0.8",

@@ -6,6 +6,16 @@ export { default as Categories } from "./Categories";
 export { default as Comments } from "./Comments";
 export { ContentReport } from "./ContentReport";
 export { default as Feedback } from "./Feedback";
+export {
+  GiveawayAuditLog,
+  GiveawayEngagements,
+  GiveawayPrizes,
+  Giveaways,
+  GiveawayStreaks,
+  GiveawayTickets,
+  GiveawayWinners,
+  PrizeCatalogue,
+} from "./giveaway";
 export { default as IdentityVerification } from "./IdentityVerification";
 export { default as Lotteries } from "./Lotteries";
 export { LotteryTickets } from "./LotteryTickets";

@@ -13,6 +13,7 @@ import { detourConfig } from "#/lib/detour";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { useUpdates } from "#/lib/UpdatesProvider";
 import { authState } from "#/state/auth";
+import { scheduleDailyDigest } from "#/widgets";
 
 type Props = {
   children: React.ReactNode;
@@ -37,6 +38,10 @@ export const Provider = ({ children }: Props) => {
   useEffect(() => {
     newsAnalyticsClient.start(() => authState.user?.id);
     return () => newsAnalyticsClient.stop();
+  }, []);
+
+  useEffect(() => {
+    scheduleDailyDigest();
   }, []);
 
   return (

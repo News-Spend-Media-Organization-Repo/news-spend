@@ -34,7 +34,11 @@ const Welcome = () => {
             },
           }}
           className="bg-p-50"
-          onPress={() => navigation.navigate("SignIn", {})}
+          onPress={() =>
+            navigation.navigate("TOS", {
+              goto: "SignIn",
+            })
+          }
         >
           <Button.Label className="text-p-500">Sign In</Button.Label>
         </Button>

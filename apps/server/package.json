@@ -21,6 +21,7 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-kit": "^0.31.10",
+    "react": "^19.2.8",
     "ssh2": "^1.16.0",
     "zod": "catalog:"
   },

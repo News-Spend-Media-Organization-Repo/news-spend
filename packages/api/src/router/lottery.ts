@@ -1,4 +1,3 @@
-import logger from "@news-spend-media/logger";
 import { lottery_winners } from "@news-spend-media/payload/payload-generated-schema";
 import type { Media } from "@news-spend-media/payload/types";
 import { ORPCError } from "@orpc/client";
@@ -308,20 +307,18 @@ const identityStatus = protectedNoGuestProcedure.handler(
   }
 );
 
-const processLottery = publicProcedure.handler(async ({ context }) => {
-  const { payload } = context;
-
-  logger.info("Manually triggering lottery processing task");
-
-  await payload.jobs.queue({
-    task: "processLottery",
-    input: {},
-  });
-
-  return {
-    message: "Lottery processing task queued",
-  };
-});
+/**
+ * `processLottery` used to live here as an unauthenticated procedure: anyone
+ * who could reach the API could trigger the draw. It was removed rather than
+ * protected, because oRPC procedures authenticate app users, not CMS admins —
+ * the strongest available guard would still have meant "any signed-in user can
+ * run the draw".
+ *
+ * Manual triggering is now POST /api/lottery/:id/run-draw, which is restricted
+ * to Super Admins and backed by the "Run draw now" button on the lottery. The
+ * scheduled path is unchanged: the cron in apps/server queues the
+ * `processLottery` job directly.
+ */
 
 export const lotteryRouter = {
   all,
@@ -332,5 +329,4 @@ export const lotteryRouter = {
   claimReward,
   verifyIdentity,
   identityStatus,
-  processLottery,
 };

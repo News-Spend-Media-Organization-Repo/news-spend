@@ -49,7 +49,6 @@ export function CommentOptionSheet({
     typeof comment.user === "object" ? comment.user.username : "";
 
   const isOwner = auth.session?.user?.id === commentUserId;
-  const isGuest = !auth.user || auth.user.isAnonymous;
 
   return (
     <BottomSheet isOpen={open} onOpenChange={onOpenChange}>
@@ -72,7 +71,7 @@ export function CommentOptionSheet({
                 />
               </>
             )}
-            {!isOwner && !isGuest && (
+            {!isOwner && (
               <>
                 {onBlock && (
                   <SheetRow
