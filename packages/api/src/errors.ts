@@ -13,6 +13,7 @@ export const commonErrors = {
   FORBIDDEN: { message: "Forbidden" },
   NOT_FOUND: { message: "Resource not found" },
   CONFLICT: { message: "Conflict" },
+  TOO_MANY_REQUESTS: { message: "Too many requests", status: 429 },
   INPUT_VALIDATION_FAILED: { message: "Invalid input", status: 422 },
   INTERNAL_SERVER_ERROR: { message: "Internal server error" },
 };
