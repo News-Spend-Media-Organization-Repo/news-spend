@@ -1918,7 +1918,7 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
     const original = payload.update;
     payload.update = async (args: Row) => {
       const result = await original(args);
-      if (args.collection === "giveaway-prizes") {
+      if (args.collection === "giveaway-prizes" && prizes[0]) {
         prizes[0].unitsAwarded = 99;
       }
       return result;
@@ -2027,7 +2027,7 @@ describe("budget reserve (administrator setting, not in the spec)", () => {
     });
 
     // A previous attempt already awarded 3 of the 4 units the reserve allows.
-    fake.prizes[0].unitsAwarded = 3;
+    (fake.prizes[0] as Row).unitsAwarded = 3;
     fake.seed(
       "giveaway-winners",
       ["u0", "u1", "u2"].map((user, i) => ({

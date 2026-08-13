@@ -73,6 +73,7 @@ export const Giveaways: CollectionConfig = {
             "tier1WinnerPercentage",
             "tier2WinnerPercentage",
             "tier3WinnerPercentage",
+            "minTicketsRequired",
             "budgetUtilizationPct",
             "maxBudgetCapNaira",
             "startDate",
@@ -157,6 +158,28 @@ export const Giveaways: CollectionConfig = {
       required: true,
       min: 0,
       defaultValue: 50,
+      admin: { description: "Points charged per ticket." },
+    },
+    {
+      name: "minTicketsRequired",
+      label: "Minimum tickets per purchase",
+      type: "number",
+      required: true,
+      min: 1,
+      defaultValue: 1,
+      admin: {
+        description:
+          "The smallest number of tickets a user may buy at once (spec §. This is a purchase floor, not a tier requirement.",
+      },
+      validate: (value: number | null | undefined) => {
+        if (value === null || value === undefined) {
+          return "A minimum is required. Use 1 for no restriction.";
+        }
+        if (!Number.isInteger(value) || value < 1) {
+          return "Must be a whole number of at least 1.";
+        }
+        return true;
+      },
     },
     {
       type: "collapsible",

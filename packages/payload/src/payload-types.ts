@@ -922,7 +922,14 @@ export interface Giveaway {
    * When the countdown ends and the draw becomes eligible to run.
    */
   endDate: string;
+  /**
+   * Points charged per ticket.
+   */
   ticketPrice: number;
+  /**
+   * The smallest number of tickets a user may buy at once (spec §1). This is a purchase floor, not a tier requirement.
+   */
+  minTicketsRequired: number;
   /**
    * 0 disables this tier. Maximum 100.
    */
@@ -2877,6 +2884,7 @@ export interface GiveawaysSelect<T extends boolean = true> {
   startDate?: T;
   endDate?: T;
   ticketPrice?: T;
+  minTicketsRequired?: T;
   tier1WinnerPercentage?: T;
   tier2WinnerPercentage?: T;
   tier3WinnerPercentage?: T;
