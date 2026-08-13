@@ -70,6 +70,10 @@
     "lint": {
       "dependsOn": ["^topo"]
     },
+    "test": {
+      "dependsOn": ["^topo"],
+      "outputs": []
+    },
     "storybook": {
       "cache": true,
       "persistent": true

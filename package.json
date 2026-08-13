@@ -21,6 +21,7 @@
     "lint": "bun x biome lint .",
     "lint:fix": "bun x biome check --write .",
     "typecheck": "bun --filter @news-spend-media/cms typecheck",
+    "test": "turbo test",
     "check": "ultracite check",
     "fix": "ultracite fix",
     "prepare": "test -z \"$EAS_BUILD\" && lefthook install || echo 'Skipping lefthook'"
