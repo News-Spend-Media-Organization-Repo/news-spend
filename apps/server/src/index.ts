@@ -412,6 +412,13 @@ try {
       // noop
     }
   });
+  import("@news-spend-media/api/jobs/giveaway").then((m) => {
+    try {
+      m.startGiveawayJob();
+    } catch {
+      // noop
+    }
+  });
 } catch {
   // noop
 }

@@ -200,6 +200,7 @@ export interface Config {
       sendUrgentModerationAlert: TaskSendUrgentModerationAlert;
       checkPushReceipts: TaskCheckPushReceipts;
       processLottery: TaskProcessLottery;
+      processGiveaway: TaskProcessGiveaway;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
       deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
@@ -2396,6 +2397,7 @@ export interface PayloadJob {
           | 'sendUrgentModerationAlert'
           | 'checkPushReceipts'
           | 'processLottery'
+          | 'processGiveaway'
           | 'cleanupAnonymousUsers'
           | 'generateVideoThumbnail'
           | 'deleteVideoThumbTemp'
@@ -2441,6 +2443,7 @@ export interface PayloadJob {
         | 'sendUrgentModerationAlert'
         | 'checkPushReceipts'
         | 'processLottery'
+        | 'processGiveaway'
         | 'cleanupAnonymousUsers'
         | 'generateVideoThumbnail'
         | 'deleteVideoThumbTemp'
@@ -3948,6 +3951,18 @@ export interface TaskProcessLottery {
   output: {
     processedExpired?: number | null;
     createdNew?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskProcessGiveaway".
+ */
+export interface TaskProcessGiveaway {
+  input?: unknown;
+  output: {
+    drawn?: number | null;
+    reportsRetried?: number | null;
+    reportsSent?: number | null;
   };
 }
 /**

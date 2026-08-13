@@ -6,10 +6,15 @@ import {
   PRIZE_TIERS,
   type PrizeTier,
 } from "@news-spend-media/payload/collections/giveaway";
+import { loadDrawHistories } from "@news-spend-media/payload/lib/giveaway/drawHistory";
 import {
   evaluateEligibility,
   type Participation,
 } from "@news-spend-media/payload/lib/giveaway/eligibility";
+import {
+  evaluateFairness,
+  type UserDrawHistory,
+} from "@news-spend-media/payload/lib/giveaway/fairness";
 import {
   activities,
   users,
@@ -176,14 +181,60 @@ async function loadParticipation(
   return participation;
 }
 
-/** Per-tier standing, shaped for the participation screen. */
-function summariseTiers(participation: Participation) {
+const NO_HISTORY: UserDrawHistory = { outcomes: [] };
+
+/**
+ * A user's participation this round together with their history, which is
+ * everything the tier summary needs. Both write endpoints echo the caller's
+ * new standing, so they load the same pair the progress endpoint does — a
+ * summary that omitted the cooldowns would contradict it.
+ */
+async function loadStanding(
+  payload: BasePayload,
+  giveaway: Giveaway,
+  userId: string
+) {
+  const [participation, histories] = await Promise.all([
+    loadParticipation(payload, giveaway.id, userId),
+    loadDrawHistories(payload, { before: giveaway.endDate, userId }),
+  ]);
+
+  return { participation, history: histories.get(userId) };
+}
+
+/**
+ * Per-tier standing, shaped for the participation screen.
+ *
+ * Two separate questions are answered per tier, and keeping them apart matters
+ * for what the app can honestly say. `requirementsMet` is whether the user has
+ * done enough this round — the thing they can act on. `canWin` also accounts
+ * for the §22 fairness cooldowns, which no amount of buying or boosting will
+ * change: a recent Tier 1 winner is barred from Tier 1 whatever they do.
+ *
+ * Collapsing the two would mean either promising a tier the draw will exclude
+ * them from, or showing an unmet requirement they cannot fix.
+ */
+function summariseTiers(
+  participation: Participation,
+  history: UserDrawHistory = NO_HISTORY
+) {
   return PRIZE_TIERS.map((tier) => {
-    const verdict = evaluateEligibility(tier, participation);
+    const fairness = evaluateFairness(tier, history);
+    const loyaltyWaiver = fairness.eligible && fairness.loyaltyWaiver;
+    const verdict = evaluateEligibility(tier, participation, loyaltyWaiver);
+
     return {
       tier,
-      eligible: verdict.eligible,
+      /** Has this user done enough this round? */
+      requirementsMet: verdict.eligible,
+      /** Will the draw actually consider them? Requirements *and* cooldowns. */
+      canWin: verdict.eligible && fairness.eligible,
       path: verdict.eligible ? verdict.path : null,
+      cooldown: fairness.eligible
+        ? null
+        : { rule: fairness.rule, reason: fairness.reason },
+      /** §22.4 — the Featured Offer requirement is waived this round. */
+      loyaltyWaiver,
       requirements: {
         primary: PRIMARY_ELIGIBILITY[tier],
         consecutive: CONSECUTIVE_ELIGIBILITY[tier],
@@ -228,16 +279,19 @@ const current = publicProcedure.handler(async ({ context }) => {
  * What the signed-in user has done in the open giveaway, and where that
  * leaves them for each tier.
  *
- * NOTE — this reports eligibility only. A user serving a §22 cooldown can be
- * eligible here and still be excluded from the draw. Surfacing that needs the
- * user's history across previous giveaways, which the draw engine
- * reconstructs at draw time; until that is exposed, the app should not
- * promise a tier on the strength of this response alone.
+ * The fairness cooldowns are read from the same history reconstruction the
+ * draw itself uses, so what the app shows and what the draw does cannot drift
+ * apart — there is one implementation, not two.
  */
 const progress = protectedProcedure.handler(async ({ context, errors }) => {
   const { payload, user } = context;
   const giveaway = await openGiveaway(payload, errors);
-  const participation = await loadParticipation(payload, giveaway.id, user.id);
+
+  const { participation, history } = await loadStanding(
+    payload,
+    giveaway,
+    user.id
+  );
 
   return {
     giveawayId: giveaway.id,
@@ -249,7 +303,7 @@ const progress = protectedProcedure.handler(async ({ context, errors }) => {
       boosts: participation.boosts,
       featuredOffers: participation.featuredOffers,
     },
-    tiers: summariseTiers(participation),
+    tiers: summariseTiers(participation, history),
   };
 });
 
@@ -345,9 +399,9 @@ const buyTickets = protectedNoGuestProcedure
         },
       });
 
-      const participation = await loadParticipation(
+      const { participation, history } = await loadStanding(
         payload,
-        giveaway.id,
+        giveaway,
         user.id
       );
 
@@ -356,7 +410,7 @@ const buyTickets = protectedNoGuestProcedure
         quantity,
         pointsSpent: cost,
         validTickets: participation.validTickets,
-        tiers: summariseTiers(participation),
+        tiers: summariseTiers(participation, history),
       };
     } catch (error) {
       // The points are already gone. Put them back rather than leave the user
@@ -486,9 +540,9 @@ const recordEngagement = protectedNoGuestProcedure
       },
     });
 
-    const participation = await loadParticipation(
+    const { participation, history } = await loadStanding(
       payload,
-      giveaway.id,
+      giveaway,
       user.id
     );
 
@@ -497,7 +551,7 @@ const recordEngagement = protectedNoGuestProcedure
       type,
       boosts: participation.boosts,
       featuredOffers: participation.featuredOffers,
-      tiers: summariseTiers(participation),
+      tiers: summariseTiers(participation, history),
     };
   });
 

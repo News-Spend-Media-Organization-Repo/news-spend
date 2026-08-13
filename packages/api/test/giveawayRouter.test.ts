@@ -35,6 +35,9 @@ function createContext({
   streaks = [],
   content = null,
   points = 10_000,
+  priorGiveaways = [],
+  priorWinners = [],
+  priorTickets = [],
   onCreate,
 }: {
   giveaway?: Row | null;
@@ -43,16 +46,21 @@ function createContext({
   streaks?: Row[];
   content?: Row | null;
   points?: number;
+  /** Completed giveaways behind this one, for the §22 cooldown history. */
+  priorGiveaways?: Row[];
+  priorWinners?: Row[];
+  priorTickets?: Row[];
   onCreate?: (collection: string) => void;
 } = {}) {
   const ledger: number[] = points ? [points] : [];
   const created: Record<string, Row[]> = {};
 
   const collections: Record<string, Row[]> = {
-    giveaways: giveaway ? [giveaway] : [],
-    "giveaway-tickets": tickets,
+    giveaways: [...(giveaway ? [giveaway] : []), ...priorGiveaways],
+    "giveaway-tickets": [...tickets, ...priorTickets],
     "giveaway-engagements": engagements,
     "giveaway-streaks": streaks,
+    "giveaway-winners": priorWinners,
   };
 
   const balance = () => ledger.reduce((sum, n) => sum + n, 0);
@@ -132,6 +140,12 @@ function matchesWhere(row: Row, where: Row | undefined): boolean {
         : actual;
     if (clause?.equals !== undefined) {
       return String(key) === String(clause.equals);
+    }
+    if (Array.isArray(clause?.in)) {
+      return clause.in.some((v: unknown) => String(v) === String(key));
+    }
+    if (clause?.less_than !== undefined) {
+      return String(key) < String(clause.less_than);
     }
     return true;
   });
@@ -489,7 +503,12 @@ describe("giveaway.progress (spec §11)", () => {
       boosts: 3,
       featuredOffers: 1,
     });
-    expect(tier1).toMatchObject({ eligible: true, path: "primary" });
+    expect(tier1).toMatchObject({
+      requirementsMet: true,
+      canWin: true,
+      path: "primary",
+      cooldown: null,
+    });
   });
 
   it("reports Tier 1 as out of reach when a boost is missing", async () => {
@@ -517,8 +536,165 @@ describe("giveaway.progress (spec §11)", () => {
       context: ctx,
     });
 
-    expect(result.tiers.find((t) => t.tier === "tier1")?.eligible).toBe(false);
+    expect(result.tiers.find((t) => t.tier === "tier1")?.requirementsMet).toBe(
+      false
+    );
     // One ticket is all Tier 3 asks for.
-    expect(result.tiers.find((t) => t.tier === "tier3")?.eligible).toBe(true);
+    expect(result.tiers.find((t) => t.tier === "tier3")?.requirementsMet).toBe(
+      true
+    );
+  });
+});
+
+describe("giveaway.progress cooldowns (spec §22)", () => {
+  /** A completed giveaway that ended before the open one. */
+  const lastRound = {
+    id: "g0",
+    name: "Week 32",
+    status: "completed",
+    endDate: new Date(Date.now() - 7 * 24 * HOUR).toISOString(),
+  };
+
+  function tierOneReady(extra: Row = {}) {
+    return {
+      tickets: [ticket({ quantity: 10 })],
+      engagements: [
+        {
+          id: "e1",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+        },
+        {
+          id: "e2",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+        },
+        {
+          id: "e3",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+        },
+        {
+          id: "e4",
+          giveaway: "g1",
+          user: "u1",
+          type: "featured_offer",
+          completionStatus: "completed",
+        },
+      ],
+      ...extra,
+    };
+  }
+
+  it("separates what the user can fix from what they cannot", async () => {
+    const { ctx } = createContext(
+      tierOneReady({
+        priorGiveaways: [lastRound],
+        priorTickets: [
+          {
+            id: "pt0",
+            giveaway: "g0",
+            user: "u1",
+            quantity: 5,
+            status: "valid",
+          },
+        ],
+        // Won Tier 1 last round, so Tier 1 is barred for four draws (§22.2).
+        priorWinners: [
+          { id: "pw0", giveaway: "g0", user: "u1", tier: "tier1" },
+        ],
+      })
+    );
+
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
+    });
+
+    const tier1 = result.tiers.find((t) => t.tier === "tier1");
+
+    // They have done everything asked of them this round — and still cannot
+    // win Tier 1, which is exactly the distinction the app needs to show.
+    expect(tier1?.requirementsMet).toBe(true);
+    expect(tier1?.canWin).toBe(false);
+    expect(tier1?.cooldown?.rule).toBe("§22.1");
+
+    // Tier 3 is untouched by the high-tier cooldowns.
+    expect(result.tiers.find((t) => t.tier === "tier3")?.canWin).toBe(true);
+  });
+
+  it("reports no cooldown for a user with no history", async () => {
+    const { ctx } = createContext(tierOneReady());
+
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
+    });
+
+    for (const tier of result.tiers) {
+      expect(tier.cooldown).toBe(null);
+    }
+    expect(result.tiers.find((t) => t.tier === "tier1")?.canWin).toBe(true);
+  });
+
+  it("waives the Featured Offer requirement for a loyal user (§22.4)", async () => {
+    const rounds = [4, 3, 2, 1].map((n) => ({
+      id: `g-${n}`,
+      name: `Round ${n}`,
+      status: "completed",
+      endDate: new Date(Date.now() - n * 7 * 24 * HOUR).toISOString(),
+    }));
+
+    const { ctx } = createContext({
+      // Ten tickets and three boosts, but no Featured Offer this round.
+      tickets: [ticket({ quantity: 10 })],
+      engagements: [
+        {
+          id: "e1",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+        },
+        {
+          id: "e2",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+        },
+        {
+          id: "e3",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+        },
+      ],
+      priorGiveaways: rounds,
+      // Took part in four consecutive rounds and won nothing.
+      priorTickets: rounds.map((round, i) => ({
+        id: `pt${i}`,
+        giveaway: round.id,
+        user: "u1",
+        quantity: 5,
+        status: "valid",
+      })),
+      priorWinners: [],
+    });
+
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
+    });
+
+    const tier1 = result.tiers.find((t) => t.tier === "tier1");
+    expect(tier1?.loyaltyWaiver).toBe(true);
+    // The waiver is what carries them over the line without the offer.
+    expect(tier1?.requirementsMet).toBe(true);
+    expect(tier1?.canWin).toBe(true);
   });
 });

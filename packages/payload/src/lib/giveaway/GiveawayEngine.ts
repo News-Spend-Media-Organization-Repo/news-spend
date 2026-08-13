@@ -5,7 +5,6 @@ import {
   checkpointIndex,
   type DrawAttemptOutcome,
   type DrawCheckpoint,
-  FAIRNESS_LOOKBACK_DRAWS,
   type GiveawayStatus,
   IN_FLIGHT_GIVEAWAY_STATUSES,
   type PrizeTier,
@@ -14,17 +13,14 @@ import {
   TIER_PROCESSING_ORDER,
 } from "../../collections/giveaway/constants";
 import type { Giveaway } from "../../payload-types";
+import { loadDrawHistories } from "./drawHistory";
 import {
   evaluateEligibility,
   maxTierWinners,
   nextStreakValue,
   type Participation,
 } from "./eligibility";
-import {
-  type DrawOutcome,
-  evaluateFairness,
-  type UserDrawHistory,
-} from "./fairness";
+import { evaluateFairness, type UserDrawHistory } from "./fairness";
 import { createRng, generateSeed, weightedPick } from "./random";
 import { type ReportSender, sendWinnerReport } from "./sendWinnerReport";
 
@@ -808,7 +804,9 @@ export class GiveawayEngine {
       }
     }
 
-    const histories = await this.loadDrawHistories(giveaway);
+    const histories = await loadDrawHistories(this.payload, {
+      before: giveaway.endDate,
+    });
 
     // Total Valid Participants: unique users holding at least one valid ticket,
     // captured once and held constant for the whole draw (spec §3). A resume
@@ -1790,100 +1788,6 @@ export class GiveawayEngine {
     applyStreaks(participation, streaks.docs, giveawayId);
 
     return { participation, ticketEntries };
-  }
-
-  /**
-   * Reconstruct what each user did in the previous completed giveaways, most
-   * recent first (spec §22).
-   *
-   * Only giveaways that reached `completed` are included. That is what makes
-   * §11's streak exceptions fall out for free — a round that was cancelled,
-   * never published or invalidated never reaches `completed`, so it is absent
-   * from the sequence rather than counting as a round the user missed.
-   *
-   * Nothing is stored: cooldowns and the loyalty waiver are derived from the
-   * winner and ticket records that already exist, so there are no counters to
-   * drift out of step with reality.
-   */
-  private async loadDrawHistories(
-    giveaway: Giveaway
-  ): Promise<Map<UserKey, UserDrawHistory>> {
-    const priorGiveaways = await this.payload.find({
-      collection: "giveaways",
-      where: {
-        and: [
-          { status: { equals: "completed" } },
-          { endDate: { less_than: giveaway.endDate } },
-        ],
-      },
-      sort: "-endDate",
-      limit: FAIRNESS_LOOKBACK_DRAWS,
-      pagination: false,
-      depth: 0,
-    });
-
-    const histories = new Map<UserKey, UserDrawHistory>();
-    if (priorGiveaways.docs.length === 0) {
-      return histories;
-    }
-
-    const priorIds = priorGiveaways.docs.map((g) => g.id);
-
-    const [winners, tickets] = await Promise.all([
-      this.payload.find({
-        collection: "giveaway-winners",
-        where: { giveaway: { in: priorIds } },
-        pagination: false,
-        depth: 0,
-      }),
-      this.payload.find({
-        collection: "giveaway-tickets",
-        where: {
-          and: [
-            { giveaway: { in: priorIds } },
-            { status: { equals: "valid" } },
-          ],
-        },
-        pagination: false,
-        depth: 0,
-      }),
-    ]);
-
-    // `${giveawayId}:${userKey}` -> tier won / took part
-    const wonAt = new Map<string, PrizeTier>();
-    for (const winner of winners.docs) {
-      const userKey = relationKey(winner.user);
-      const giveawayKey = relationKey(winner.giveaway);
-      if (userKey && giveawayKey) {
-        wonAt.set(`${giveawayKey}:${userKey}`, winner.tier as PrizeTier);
-      }
-    }
-
-    const tookPart = new Set<string>();
-    const everySeenUser = new Set<UserKey>();
-    for (const ticket of tickets.docs) {
-      const userKey = relationKey(ticket.user);
-      const giveawayKey = relationKey(ticket.giveaway);
-      if (userKey && giveawayKey && (ticket.quantity ?? 0) > 0) {
-        tookPart.add(`${giveawayKey}:${userKey}`);
-        everySeenUser.add(userKey);
-      }
-    }
-
-    for (const userKey of everySeenUser) {
-      const outcomes: DrawOutcome[] = priorGiveaways.docs.map((prior) => {
-        const key = `${prior.id}:${userKey}`;
-        const won = wonAt.get(key);
-        if (won) {
-          return won;
-        }
-        return tookPart.has(key) ? "participated_no_win" : null;
-      });
-
-      histories.set(userKey, { outcomes });
-    }
-
-    return histories;
   }
 
   /**
