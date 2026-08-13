@@ -1,6 +1,7 @@
 export * from "./constants";
 export { GiveawayAccountFlags } from "./GiveawayAccountFlags";
 export { GiveawayAuditLog } from "./GiveawayAuditLog";
+export { GiveawayDrawAttempts } from "./GiveawayDrawAttempts";
 export { GiveawayEngagements } from "./GiveawayEngagements";
 export { GiveawayPoolSnapshots } from "./GiveawayPoolSnapshots";
 export { GiveawayPrizes } from "./GiveawayPrizes";

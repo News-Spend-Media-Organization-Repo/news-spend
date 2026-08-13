@@ -9,6 +9,7 @@ export { default as Feedback } from "./Feedback";
 export {
   GiveawayAccountFlags,
   GiveawayAuditLog,
+  GiveawayDrawAttempts,
   GiveawayEngagements,
   GiveawayPoolSnapshots,
   GiveawayPrizes,

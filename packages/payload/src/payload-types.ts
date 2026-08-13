@@ -80,6 +80,7 @@ export interface Config {
     feedback: Feedback;
     'giveaway-account-flags': GiveawayAccountFlag;
     'giveaway-audit-log': GiveawayAuditLog;
+    'giveaway-draw-attempts': GiveawayDrawAttempt;
     'giveaway-engagements': GiveawayEngagement;
     'giveaway-pool-snapshots': GiveawayPoolSnapshot;
     'giveaway-prizes': GiveawayPrize;
@@ -130,6 +131,7 @@ export interface Config {
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
     'giveaway-account-flags': GiveawayAccountFlagsSelect<false> | GiveawayAccountFlagsSelect<true>;
     'giveaway-audit-log': GiveawayAuditLogSelect<false> | GiveawayAuditLogSelect<true>;
+    'giveaway-draw-attempts': GiveawayDrawAttemptsSelect<false> | GiveawayDrawAttemptsSelect<true>;
     'giveaway-engagements': GiveawayEngagementsSelect<false> | GiveawayEngagementsSelect<true>;
     'giveaway-pool-snapshots': GiveawayPoolSnapshotsSelect<false> | GiveawayPoolSnapshotsSelect<true>;
     'giveaway-prizes': GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
@@ -855,6 +857,10 @@ export interface GiveawayAuditLog {
     | 'participants_snapshot'
     | 'candidate_pool_built'
     | 'candidate_pool_locked'
+    | 'checkpoint_reached'
+    | 'draw_interrupted'
+    | 'resumption_authorized'
+    | 'giveaway_cancelled'
     | 'winner_disqualified'
     | 'replacement_selected'
     | 'winner_held_ticket_invalid'
@@ -928,7 +934,18 @@ export interface Giveaway {
    * 0 disables this tier. Maximum 100.
    */
   tier3WinnerPercentage: number;
-  status: 'draft' | 'active' | 'drawing' | 'completed' | 'failed';
+  status:
+    | 'draft'
+    | 'active'
+    | 'ready'
+    | 'pool_building'
+    | 'pool_locked'
+    | 'draw_in_progress'
+    | 'interrupted'
+    | 'resumption_authorized'
+    | 'completed'
+    | 'failed'
+    | 'cancelled';
   /**
    * Unique users holding at least one valid ticket, captured once when the draw begins. Constant for the whole draw.
    */
@@ -937,10 +954,108 @@ export interface Giveaway {
    * Cryptographic seed used for this draw. Enables replay for audit.
    */
   drawSeed?: string | null;
+  /**
+   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (§19).
+   */
+  drawExecutionId?: string | null;
+  /**
+   * The last material step the draw completed. A resumption continues from the next one (§19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * The most recent execution attempt.
+   */
+  currentAttempt?: (string | null) | GiveawayDrawAttempt;
+  resumptionAuthorizedBy?: string | null;
+  resumptionAuthorizedAt?: string | null;
   drawStartedAt?: string | null;
   drawCompletedAt?: string | null;
   drawError?: string | null;
   winnerReportSentAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every execution of a draw, including authorized resumptions. All attempts at one draw share an Execution ID.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-draw-attempts".
+ */
+export interface GiveawayDrawAttempt {
+  id: string;
+  giveaway: string | Giveaway;
+  /**
+   * Shared by every attempt at the same draw. Unchanged across resumptions.
+   */
+  executionId: string;
+  /**
+   * 1 for the original run, incrementing for each resumption.
+   */
+  attemptNumber: number;
+  kind: 'initial' | 'resumption';
+  /**
+   * The attempt this one continues.
+   */
+  resumes?: (string | null) | GiveawayDrawAttempt;
+  /**
+   * The draw seed. A resumption reuses the original — a fresh seed would change the winners of the tiers that had not yet run.
+   */
+  seed: string;
+  outcome: 'running' | 'completed' | 'interrupted' | 'failed';
+  /**
+   * The last material step this attempt completed (§19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * Who authorized this resumption. Empty for an initial run, which needs no authorization.
+   */
+  authorizedBy?: string | null;
+  /**
+   * Why the attempt stopped, if it did not complete.
+   */
+  error?: string | null;
+  startedAt: string;
+  endedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -2319,6 +2434,10 @@ export interface PayloadLockedDocument {
         value: string | GiveawayAuditLog;
       } | null)
     | ({
+        relationTo: 'giveaway-draw-attempts';
+        value: string | GiveawayDrawAttempt;
+      } | null)
+    | ({
         relationTo: 'giveaway-engagements';
         value: string | GiveawayEngagement;
       } | null)
@@ -2666,6 +2785,28 @@ export interface GiveawayAuditLogSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-draw-attempts_select".
+ */
+export interface GiveawayDrawAttemptsSelect<T extends boolean = true> {
+  giveaway?: T;
+  executionId?: T;
+  attemptNumber?: T;
+  kind?: T;
+  resumes?: T;
+  seed?: T;
+  outcome?: T;
+  lastCheckpoint?: T;
+  authorizedBy?: T;
+  error?: T;
+  startedAt?: T;
+  endedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-engagements_select".
  */
 export interface GiveawayEngagementsSelect<T extends boolean = true> {
@@ -2729,6 +2870,11 @@ export interface GiveawaysSelect<T extends boolean = true> {
   status?: T;
   totalValidParticipants?: T;
   drawSeed?: T;
+  drawExecutionId?: T;
+  lastCheckpoint?: T;
+  currentAttempt?: T;
+  resumptionAuthorizedBy?: T;
+  resumptionAuthorizedAt?: T;
   drawStartedAt?: T;
   drawCompletedAt?: T;
   drawError?: T;

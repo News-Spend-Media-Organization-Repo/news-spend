@@ -2,6 +2,7 @@ import { addWeeks, startOfWeek } from "date-fns";
 import { type CollectionConfig, ValidationError } from "payload";
 
 import {
+  DRAW_CHECKPOINT_OPTIONS,
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
   LOCKED_GIVEAWAY_STATUSES,
@@ -198,6 +199,59 @@ export const Giveaways: CollectionConfig = {
       },
     },
     {
+      name: "drawExecutionId",
+      type: "text",
+      index: true,
+      admin: {
+        readOnly: true,
+        position: "sidebar",
+        description:
+          "Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (§19).",
+      },
+    },
+    {
+      name: "lastCheckpoint",
+      type: "select",
+      options: [...DRAW_CHECKPOINT_OPTIONS],
+      admin: {
+        readOnly: true,
+        position: "sidebar",
+        description:
+          "The last material step the draw completed. A resumption continues from the next one (§19).",
+      },
+    },
+    {
+      name: "currentAttempt",
+      type: "relationship",
+      relationTo: "giveaway-draw-attempts",
+      admin: {
+        readOnly: true,
+        position: "sidebar",
+        description: "The most recent execution attempt.",
+      },
+    },
+    {
+      name: "resumptionAuthorizedBy",
+      type: "text",
+      admin: {
+        readOnly: true,
+        position: "sidebar",
+        condition: (data) =>
+          data?.status === "resumption_authorized" ||
+          data?.status === "interrupted",
+      },
+    },
+    {
+      name: "resumptionAuthorizedAt",
+      type: "date",
+      admin: {
+        readOnly: true,
+        position: "sidebar",
+        date: { pickerAppearance: "dayAndTime" },
+        condition: (data) => Boolean(data?.resumptionAuthorizedBy),
+      },
+    },
+    {
       name: "drawStartedAt",
       type: "date",
       admin: {
@@ -221,7 +275,8 @@ export const Giveaways: CollectionConfig = {
       admin: {
         readOnly: true,
         position: "sidebar",
-        condition: (data) => data?.status === "failed",
+        condition: (data) =>
+          data?.status === "failed" || data?.status === "interrupted",
       },
     },
     {
