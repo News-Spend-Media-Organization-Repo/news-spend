@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
+import { openapi } from "@orpc/openapi";
 import type { BasePayload } from "payload";
 import z from "zod";
 
@@ -89,14 +90,16 @@ async function awardPointsForProvider({
 }
 
 export const rapidoPostbackHandler = publicProcedure
-  .route({
-    method: "GET",
-    path: "/survey/rapido/postback",
-    tags: ["survey", "rapido"],
-    summary: "RapidoReach postback endpoint",
-    description:
-      "Receives survey conversion notifications from RapidoReach. See docs: https://docs.rapidoreach.com/docs/v2/api/callbacks",
-  })
+  .meta(
+    openapi({
+      method: "GET",
+      path: "/survey/rapido/postback",
+      tags: ["survey", "rapido"],
+      summary: "RapidoReach postback endpoint",
+      description:
+        "Receives survey conversion notifications from RapidoReach. See docs: https://docs.rapidoreach.com/docs/v2/api/callbacks",
+    })
+  )
   .input(
     z.object({
       cmd: z.string().optional(),
@@ -190,13 +193,16 @@ export const rapidoPostbackHandler = publicProcedure
   });
 
 export const theoremPostbackHandler = publicProcedure
-  .route({
-    method: "GET",
-    path: "/survey/theorem/postback",
-    tags: ["survey", "theorem"],
-    summary: "TheoremReach postback endpoint",
-    description: "Receives survey conversion notifications from TheoremReach.",
-  })
+  .meta(
+    openapi({
+      method: "GET",
+      path: "/survey/theorem/postback",
+      tags: ["survey", "theorem"],
+      summary: "TheoremReach postback endpoint",
+      description:
+        "Receives survey conversion notifications from TheoremReach.",
+    })
+  )
   .input(
     z.object({
       reward: z.coerce.number(),

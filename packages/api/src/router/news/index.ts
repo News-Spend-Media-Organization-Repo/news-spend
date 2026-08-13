@@ -1,3 +1,4 @@
+import { openapi } from "@orpc/openapi";
 import type { Where } from "payload";
 import z from "zod";
 
@@ -219,9 +220,9 @@ const recordView = publicProcedure
       const { getRedis } = await import("../../lib/redis");
       const r = getRedis();
       // set key only if not exists
-      // ioredis returns 'OK' when set, null when not set
+      // Bun returns 'OK' when set, null when not set
       // use EX and NX to atomically check-and-set
-      const res = await r.set(dedupeKey, "1", "EX", ttl, "NX");
+      const res = await r.set(dedupeKey, "1", "EX", String(ttl), "NX");
       if (res === null) {
         // already viewed recently — do not increment
         incremented = false;
@@ -508,12 +509,14 @@ const dislike = protectedProcedure
   });
 
 const categories = publicProcedure
-  .route({
-    method: "GET",
-    path: "/news/categories",
-    tags: ["news"],
-    summary: "Get all news categories",
-  })
+  .meta(
+    openapi({
+      method: "GET",
+      path: "/news/categories",
+      tags: ["news"],
+      summary: "Get all news categories",
+    })
+  )
   .handler(async ({ context }) => {
     const { payload } = context;
     const result = await payload.findGlobal({

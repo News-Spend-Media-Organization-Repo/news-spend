@@ -1,4 +1,4 @@
-import { isDefinedError } from "@orpc/client";
+import { isInferableError } from "@orpc/client";
 import { useRoute } from "@react-navigation/native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -95,7 +95,7 @@ function useLikeComment(newsId: string, parentId?: string) {
 
       // Rollback on error
       onError: (error, variable, context) => {
-        if (isDefinedError(error)) {
+        if (isInferableError(error)) {
           if (context?.previousComment) {
             queryClient.setQueryData(
               orpc.comments.one.queryKey({ input: variable }),

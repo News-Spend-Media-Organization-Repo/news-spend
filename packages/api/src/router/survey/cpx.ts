@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 
 import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
-import { createORPCErrorConstructorMap } from "@orpc/server";
+import { createORPCErrorConstructorMap } from "@orpc/contract";
+import { openapi } from "@orpc/openapi";
 import type { BasePayload } from "payload";
 
 import { commonErrors } from "../../errors";
@@ -283,14 +284,16 @@ export const cpxRouter = {
   ),
 
   postback: publicProcedure
-    .route({
-      method: "GET",
-      path: "/survey/cpx/postback",
-      tags: ["survey", "cpx"],
-      summary: "CPX Research postback endpoint (GET)",
-      description:
-        "Receives survey conversion notifications from CPX Research.",
-    })
+    .meta(
+      openapi({
+        method: "GET",
+        path: "/survey/cpx/postback",
+        tags: ["survey", "cpx"],
+        summary: "CPX Research postback endpoint (GET)",
+        description:
+          "Receives survey conversion notifications from CPX Research.",
+      })
+    )
     .input(CPXPostBackInputSchema)
     .handler(({ input, context }) => {
       console.log("Received CPX postback (GET):", input);

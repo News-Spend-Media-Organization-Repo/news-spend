@@ -38,7 +38,7 @@
     "@news-spend-media/payload": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
-    "@orpc/openapi-client": "catalog:",
+    "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/tanstack-query": "catalog:",
     "@react-native-async-storage/async-storage": "2.2.0",

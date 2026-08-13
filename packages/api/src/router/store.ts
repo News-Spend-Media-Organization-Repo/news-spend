@@ -47,7 +47,7 @@ async function incrementPopularityScore(
       collection: "partners",
       id: storeId,
       data: {
-        popularityScore: Number.parseFloat(newScore),
+        popularityScore: newScore,
       },
     });
   } catch (error) {

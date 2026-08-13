@@ -1,4 +1,5 @@
 import { auth } from "@news-spend-media/auth";
+import { openapi } from "@orpc/openapi";
 import z from "zod";
 
 import { protectedNoGuestProcedure, protectedProcedure } from "..";
@@ -169,12 +170,14 @@ const createPushToken = protectedProcedure
   });
 
 const deletePushToken = protectedProcedure
-  .route({
-    method: "POST",
-    path: "/account/delete-push-token",
-    summary: "Delete push token",
-    tags: ["account"],
-  })
+  .meta(
+    openapi({
+      method: "POST",
+      path: "/account/delete-push-token",
+      summary: "Delete push token",
+      tags: ["account"],
+    })
+  )
   .input(
     z.object({
       token: z.string().optional(),

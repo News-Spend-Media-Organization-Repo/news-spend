@@ -1,5 +1,5 @@
 import type { Category, NewsCategory } from "@news-spend-media/payload/types";
-import { isDefinedError } from "@orpc/client";
+import { isInferableError } from "@orpc/client";
 import { useRoute } from "@react-navigation/native";
 import {
   type InfiniteData,
@@ -22,7 +22,7 @@ export default function useNews(slug: string, type?: "article" | "video") {
         type: type ?? "article",
       },
       retry: (failureCount, error) => {
-        if (isDefinedError(error) && error?.code === "NOT_FOUND") {
+        if (isInferableError(error) && error?.code === "NOT_FOUND") {
           return false;
         }
         return failureCount < 3;

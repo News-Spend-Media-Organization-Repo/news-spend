@@ -1,6 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { Admin } from "@news-spend-media/payload/types";
-import { isDefinedError } from "@orpc/client";
+import { isInferableError } from "@orpc/client";
 import {
   CommonActions,
   useNavigation,
@@ -217,7 +217,7 @@ function Live() {
   const isNotFoundError =
     isFetchedAfterMount &&
     isError &&
-    isDefinedError(error) &&
+    isInferableError(error) &&
     error.code === "NOT_FOUND";
   useEffect(() => {
     if (isNotFoundError) {

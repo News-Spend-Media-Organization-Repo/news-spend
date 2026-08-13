@@ -1,4 +1,4 @@
-import { isDefinedError } from "@orpc/client";
+import { ORPCError } from "@orpc/client";
 import * as Sentry from "@sentry/react-native";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 
@@ -7,13 +7,13 @@ export const queryClient = new QueryClient({
     onError: (error, query) => {
       console.log(error, query.queryKey);
 
-      if (error?.data?.httpStatus === 401) {
+      if (error instanceof ORPCError && error.data?.httpStatus === 401) {
         Sentry.captureMessage("Session expired after retries");
         console.log("🚀 ~ Query error 401 after retries, logging out");
         import("#/state/auth").then(({ logout }) => logout());
       }
-      if (isDefinedError(error)) {
-        console.error(error?.message);
+      if (error instanceof ORPCError && error.inferable) {
+        console.error(error.message);
       }
     },
   }),
@@ -21,13 +21,13 @@ export const queryClient = new QueryClient({
     onError: (error) => {
       console.log(error);
 
-      if (error?.data?.httpStatus === 401) {
+      if (error instanceof ORPCError && error.data?.httpStatus === 401) {
         Sentry.captureMessage("Session expired after retries", {});
         console.log("🚀 ~ Mutation error 401 after retries, logging out");
         import("#/state/auth").then(({ logout }) => logout());
       }
-      if (isDefinedError(error)) {
-        console.error(error?.message);
+      if (error instanceof ORPCError && error.inferable) {
+        console.error(error.message);
       }
     },
   }),

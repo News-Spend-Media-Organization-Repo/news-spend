@@ -1,5 +1,5 @@
 import { Galeria } from "@nandorojo/galeria";
-import { isDefinedError } from "@orpc/client";
+import { isInferableError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { format } from "date-fns";
 import { Separator } from "heroui-native";
@@ -65,7 +65,7 @@ const SingleNews = () => {
 
   // Redirect on NOT_FOUND
   useEffect(() => {
-    if (isError && isDefinedError(error) && error?.code === "NOT_FOUND") {
+    if (isError && isInferableError(error) && error?.code === "NOT_FOUND") {
       navigation.replace("NotFound");
     }
   }, [isError, error, navigation.replace]);

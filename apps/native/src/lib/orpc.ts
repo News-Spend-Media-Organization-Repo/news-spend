@@ -7,9 +7,9 @@ import {
   ClientRetryPlugin,
   type ClientRetryPluginContext,
 } from "@orpc/client/plugins";
-import type { ContractRouterClient } from "@orpc/contract";
-import type { JsonifiedClient } from "@orpc/openapi-client";
-import { OpenAPILink } from "@orpc/openapi-client/fetch";
+import type { RouterContractClient } from "@orpc/contract";
+import type { JsonifiedClient } from "@orpc/openapi";
+import { OpenAPILink } from "@orpc/openapi/fetch";
 import type {
   InferRouterInputs,
   InferRouterOutputs,
@@ -35,7 +35,8 @@ const retryPlugin = new ClientRetryPlugin<ORPCClientContext>({
 });
 
 const link = new RPCLink<ORPCClientContext>({
-  url: `${url}/rpc`,
+  origin: url,
+  url: "/rpc",
   headers: () => {
     const headers = new Map<string, string>();
     const cookies = authClient.getCookie();
@@ -54,7 +55,7 @@ const link = new RPCLink<ORPCClientContext>({
         },
       ],
       mode: __DEV__ ? "buffered" : "streaming",
-      exclude: ({ path }) => ["publisher/onMessage"].includes(path.join("/")),
+      filter: ({ path }) => !["publisher/onMessage"].includes(path.join("/")),
     }),
   ],
 });
@@ -62,7 +63,8 @@ const link = new RPCLink<ORPCClientContext>({
 const openapiLink = new OpenAPILink<ORPCClientContext>(
   contract as unknown as typeof router,
   {
-    url: `${url}/api`,
+    origin: url,
+    url: "/api",
     headers: () => {
       const headers = new Map<string, string>();
       const cookies = authClient.getCookie();
@@ -78,8 +80,7 @@ const openapiLink = new OpenAPILink<ORPCClientContext>(
 export const client: RouterClient<typeof router, ORPCClientContext> =
   createORPCClient(link);
 export const openapiClient: JsonifiedClient<
-  // @ts-expect-error
-  ContractRouterClient<typeof contract>
+  RouterContractClient<typeof contract>
 > = createORPCClient(openapiLink);
 
 export const orpc = createTanstackQueryUtils(client);

@@ -3,14 +3,15 @@ import { router } from "@news-spend-media/api/router/index";
 import { widgetHandler } from "@news-spend-media/api/router/widgets/handler";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
-// import { LoggingHandlerPlugin } from "@orpc/experimental-pino";
-import { RatelimitHandlerPlugin } from "@orpc/experimental-ratelimit";
+import { OpenAPIGenerator } from "@orpc/openapi";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
-import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
+import { OpenAPIReferenceHandlerPlugin } from "@orpc/openapi/plugins";
+// import { PinoHandlerPlugin } from "@orpc/pino";
+import { RateLimitHandlerPlugin } from "@orpc/ratelimit";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
-import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
+import { ZodToJsonSchemaConverter } from "@orpc/zod";
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
@@ -44,25 +45,30 @@ servers.push({
   description: "Development",
 });
 
+export const openAPISpec = await new OpenAPIGenerator({
+  converters: [new ZodToJsonSchemaConverter()],
+}).generate(router, {
+  base: {
+    servers,
+    info: {
+      title: "News Spend Media API",
+      version: "1.0.0",
+    },
+  },
+});
+
 export const apiHandler = new OpenAPIHandler(router, {
   plugins: [
     new BatchHandlerPlugin(),
-    new RatelimitHandlerPlugin(),
-    // new LoggingHandlerPlugin({
+    new RateLimitHandlerPlugin(),
+    // new PinoHandlerPlugin({
     //   logger,
     //   logRequestResponse: true,
     // }),
-    new OpenAPIReferencePlugin({
-      docsProvider: "scalar",
+    new OpenAPIReferenceHandlerPlugin({
+      provider: "scalar",
       docsTitle: "OpenAPI Documentation",
-      schemaConverters: [new ZodToJsonSchemaConverter()],
-      specGenerateOptions: {
-        servers,
-        info: {
-          title: "News Spend Media API",
-          version: "1.0.0",
-        },
-      },
+      spec: openAPISpec,
     }),
   ],
   interceptors: [
@@ -95,8 +101,8 @@ async function handleApi(req: Request) {
 export const rpcHandler = new RPCHandler(router, {
   plugins: [
     new BatchHandlerPlugin(),
-    new RatelimitHandlerPlugin(),
-    // new LoggingHandlerPlugin({
+    new RateLimitHandlerPlugin(),
+    // new PinoHandlerPlugin({
     //   logger,
     //   logRequestResponse: true,
     // }),

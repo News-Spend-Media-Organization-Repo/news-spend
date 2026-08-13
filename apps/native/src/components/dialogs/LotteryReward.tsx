@@ -1,4 +1,4 @@
-import { isDefinedError } from "@orpc/client";
+import { isInferableError } from "@orpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog } from "heroui-native";
 import { StarIcon } from "phosphor-react-native";
@@ -96,7 +96,7 @@ export default memo(function LotteryReward() {
         // already succeeded once (e.g. a retry after a lost response) and
         // this is a duplicate, not a genuine failure. Treat it the same
         // as a success instead of surfacing an error toast.
-        if (isDefinedError(error) && error.code === "CONFLICT") {
+        if (isInferableError(error) && error.code === "CONFLICT") {
           applyClaimSuccessSideEffects();
           return;
         }

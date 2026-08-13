@@ -1,4 +1,5 @@
 import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
+import { openapi } from "@orpc/openapi";
 import z from "zod";
 
 import { protectedProcedure } from "../../index";
@@ -12,12 +13,14 @@ import {
 import { AwardGoogleFormInputSchema } from "./schemas";
 
 const awardGoogleFormPoints = protectedProcedure
-  .route({
-    method: "POST",
-    path: "/survey/gFormAwardPoint",
-    summary: "Award point for google forms",
-    tags: ["survey"],
-  })
+  .meta(
+    openapi({
+      method: "POST",
+      path: "/survey/gFormAwardPoint",
+      summary: "Award point for google forms",
+      tags: ["survey"],
+    })
+  )
   .input(AwardGoogleFormInputSchema)
   .output(z.any())
   .handler(async ({ input, context, errors }) => {

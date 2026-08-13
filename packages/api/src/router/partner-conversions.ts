@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { openapi } from "@orpc/openapi";
 import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
@@ -81,14 +82,16 @@ const webhookInput = z.object({
 
 // Webhook for partner to confirm conversions
 export const handleWebhook = publicProcedure
-  .route({
-    method: "POST",
-    path: "/partner-conversions/webhook",
-    tags: ["Partner Conversions"],
-    summary: "Partner Conversion Webhook",
-    description:
-      "Webhook endpoint for partners to confirm CPA conversions. Call this when a user completes a task (install, purchase, etc.).",
-  })
+  .meta(
+    openapi({
+      method: "POST",
+      path: "/partner-conversions/webhook",
+      tags: ["Partner Conversions"],
+      summary: "Partner Conversion Webhook",
+      description:
+        "Webhook endpoint for partners to confirm CPA conversions. Call this when a user completes a task (install, purchase, etc.).",
+    })
+  )
   .input(webhookInput)
   .handler(async ({ input, context, errors }) => {
     const { payload } = context;

@@ -2,7 +2,7 @@ import {
   enum_activities_action,
   enum_activities_type,
 } from "@news-spend-media/payload/payload-generated-schema";
-import { createORPCErrorConstructorMap } from "@orpc/server";
+import { createORPCErrorConstructorMap } from "@orpc/contract";
 import { isSameDay } from "date-fns";
 import z from "zod";
 

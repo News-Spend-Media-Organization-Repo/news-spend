@@ -1,4 +1,5 @@
 import type { Media } from "@news-spend-media/payload/types";
+import { openapi } from "@orpc/openapi";
 import z from "zod";
 import { zfd } from "zod-form-data";
 
@@ -15,10 +16,12 @@ const ReportInput = zfd.formData({
 export type ReportInputType = z.infer<typeof ReportInput>;
 
 const create = rateLimitedPublicProcedure
-  .route({
-    method: "POST",
-    path: "/report/create",
-  })
+  .meta(
+    openapi({
+      method: "POST",
+      path: "/report/create",
+    })
+  )
   .input(ReportInput)
   .handler(async ({ input, context, errors }) => {
     const { payload } = context;
@@ -45,7 +48,6 @@ const create = rateLimitedPublicProcedure
                 name: file.name,
                 size: file.size,
               },
-              // @ts-expect-error
               req: { transactionID },
             });
 
@@ -54,7 +56,6 @@ const create = rateLimitedPublicProcedure
         );
       } catch (error) {
         console.log(error);
-        // @ts-expect-error
         await payload.db.rollbackTransaction(transactionID);
         throw errors.INTERNAL_SERVER_ERROR({
           message: "Failed to upload files",
@@ -69,15 +70,12 @@ const create = rateLimitedPublicProcedure
           ...rest,
           files: filesToUpload.map((file) => file.id),
         },
-        // @ts-expect-error
         req: { transactionID },
       });
 
-      // @ts-expect-error
       await payload.db.commitTransaction(transactionID);
       return response;
     } catch (error) {
-      // @ts-expect-error
       await payload.db.rollbackTransaction(transactionID);
       throw error;
     }
