@@ -1,6 +1,7 @@
 import type { BasePayload } from "payload";
 import {
   type AuditEventType,
+  FAIRNESS_LOOKBACK_DRAWS,
   type GiveawayStatus,
   LOCKED_GIVEAWAY_STATUSES,
   type PrizeTier,
@@ -13,6 +14,11 @@ import {
   nextStreakValue,
   type Participation,
 } from "./eligibility";
+import {
+  type DrawOutcome,
+  evaluateFairness,
+  type UserDrawHistory,
+} from "./fairness";
 import { createRng, generateSeed, weightedPick } from "./random";
 
 export class GiveawayEngineError extends Error {
@@ -321,6 +327,28 @@ export class GiveawayEngine {
     const { participation, ticketEntries } =
       await this.loadParticipation(giveawayId);
 
+    /**
+     * Disqualified and duplicate accounts come out before anything else, so
+     * they are absent from Total Valid Participants too (§22.5, §22.6) — they
+     * were never legitimate participants, and leaving them in the denominator
+     * would inflate every tier's winner cap.
+     */
+    const accountFlags = await this.loadAccountFlags();
+    for (const userKey of accountFlags.excluded) {
+      if (participation.delete(userKey) && !(dryRun || resume)) {
+        await this.audit(
+          giveawayId,
+          "account_excluded",
+          `Account excluded from the draw: ${accountFlags.reasons.get(userKey) ?? "flagged"}`,
+          { reason: accountFlags.reasons.get(userKey) },
+          undefined,
+          userKey
+        );
+      }
+    }
+
+    const histories = await this.loadDrawHistories(giveaway);
+
     // Total Valid Participants: unique users holding at least one valid ticket,
     // captured once and held constant for the whole draw (spec §3). A resume
     // reuses the original snapshot rather than recounting — tickets may have
@@ -398,6 +426,8 @@ export class GiveawayEngine {
         ticketEntries,
         prizePool,
         winnersSoFar,
+        histories,
+        heldForReview: accountFlags.heldForReview,
       });
       tiers.push(outcome);
     }
@@ -427,6 +457,8 @@ export class GiveawayEngine {
     ticketEntries: TicketEntry[];
     prizePool: PoolPrize[];
     winnersSoFar: Set<UserKey>;
+    histories: Map<UserKey, UserDrawHistory>;
+    heldForReview: Set<UserKey>;
   }): Promise<TierOutcome> {
     const {
       giveawayId,
@@ -439,10 +471,14 @@ export class GiveawayEngine {
       ticketEntries,
       prizePool,
       winnersSoFar,
+      histories,
+      heldForReview,
     } = args;
 
-    // Step 1 — Build the candidate pool (spec §12).
-    const candidates = buildCandidatePool(tier, participation, winnersSoFar);
+    // Step 1 — Build the candidate pool (spec §12), applying the fairness
+    // rules of §22 alongside the tier eligibility thresholds of §11.
+    const { candidates, fairnessExclusions, loyaltyWaivers } =
+      buildCandidatePool(tier, participation, winnersSoFar, histories);
 
     const tierPrizes = prizePool.filter((prize) => prize.tier === tier);
     const unitsAvailable = tierPrizes.reduce(
@@ -486,6 +522,26 @@ export class GiveawayEngine {
         },
         tier
       );
+
+      for (const [rule, count] of fairnessExclusions) {
+        await this.audit(
+          giveawayId,
+          "fairness_exclusion",
+          `${rule} barred ${count} user(s) from ${tier}`,
+          { tier, rule, count },
+          tier
+        );
+      }
+
+      if (loyaltyWaivers.size > 0) {
+        await this.audit(
+          giveawayId,
+          "loyalty_waiver_applied",
+          `Featured Offer requirement waived for ${loyaltyWaivers.size} loyal user(s) in ${tier}`,
+          { tier, count: loyaltyWaivers.size },
+          tier
+        );
+      }
     }
 
     if (effectiveCap === 0) {
@@ -546,6 +602,7 @@ export class GiveawayEngine {
           entry,
           prize,
           participation: participation.get(entry.userKey),
+          heldForReview: heldForReview.has(entry.userKey),
         });
       }
     }
@@ -633,12 +690,14 @@ export class GiveawayEngine {
     entry,
     prize,
     participation,
+    heldForReview,
   }: {
     giveawayId: string;
     tier: PrizeTier;
     entry: TicketEntry;
     prize: PoolPrize;
     participation: Participation | undefined;
+    heldForReview: boolean;
   }) {
     await this.payload.create({
       collection: "giveaway-winners",
@@ -654,7 +713,11 @@ export class GiveawayEngine {
         featuredOfferCount: participation?.featuredOffers ?? 0,
         selectedAt: new Date().toISOString(),
         claimStatus: "unclaimed",
-        fulfilmentStatus: "pending",
+        // A flagged account still wins — only the payout waits (§22.8).
+        fulfilmentStatus: heldForReview ? "on_hold" : "pending",
+        reviewNote: heldForReview
+          ? "Account flagged as suspicious. Fulfilment held pending administrator review; the draw result stands."
+          : undefined,
       },
     });
 
@@ -718,6 +781,149 @@ export class GiveawayEngine {
     applyStreaks(participation, streaks.docs, giveawayId);
 
     return { participation, ticketEntries };
+  }
+
+  /**
+   * Reconstruct what each user did in the previous completed giveaways, most
+   * recent first (spec §22).
+   *
+   * Only giveaways that reached `completed` are included. That is what makes
+   * §11's streak exceptions fall out for free — a round that was cancelled,
+   * never published or invalidated never reaches `completed`, so it is absent
+   * from the sequence rather than counting as a round the user missed.
+   *
+   * Nothing is stored: cooldowns and the loyalty waiver are derived from the
+   * winner and ticket records that already exist, so there are no counters to
+   * drift out of step with reality.
+   */
+  private async loadDrawHistories(
+    giveaway: Giveaway
+  ): Promise<Map<UserKey, UserDrawHistory>> {
+    const priorGiveaways = await this.payload.find({
+      collection: "giveaways",
+      where: {
+        and: [
+          { status: { equals: "completed" } },
+          { endDate: { less_than: giveaway.endDate } },
+        ],
+      },
+      sort: "-endDate",
+      limit: FAIRNESS_LOOKBACK_DRAWS,
+      pagination: false,
+      depth: 0,
+    });
+
+    const histories = new Map<UserKey, UserDrawHistory>();
+    if (priorGiveaways.docs.length === 0) {
+      return histories;
+    }
+
+    const priorIds = priorGiveaways.docs.map((g) => g.id);
+
+    const [winners, tickets] = await Promise.all([
+      this.payload.find({
+        collection: "giveaway-winners",
+        where: { giveaway: { in: priorIds } },
+        pagination: false,
+        depth: 0,
+      }),
+      this.payload.find({
+        collection: "giveaway-tickets",
+        where: {
+          and: [
+            { giveaway: { in: priorIds } },
+            { status: { equals: "valid" } },
+          ],
+        },
+        pagination: false,
+        depth: 0,
+      }),
+    ]);
+
+    // `${giveawayId}:${userKey}` -> tier won / took part
+    const wonAt = new Map<string, PrizeTier>();
+    for (const winner of winners.docs) {
+      const userKey = relationKey(winner.user);
+      const giveawayKey = relationKey(winner.giveaway);
+      if (userKey && giveawayKey) {
+        wonAt.set(`${giveawayKey}:${userKey}`, winner.tier as PrizeTier);
+      }
+    }
+
+    const tookPart = new Set<string>();
+    const everySeenUser = new Set<UserKey>();
+    for (const ticket of tickets.docs) {
+      const userKey = relationKey(ticket.user);
+      const giveawayKey = relationKey(ticket.giveaway);
+      if (userKey && giveawayKey && (ticket.quantity ?? 0) > 0) {
+        tookPart.add(`${giveawayKey}:${userKey}`);
+        everySeenUser.add(userKey);
+      }
+    }
+
+    for (const userKey of everySeenUser) {
+      const outcomes: DrawOutcome[] = priorGiveaways.docs.map((prior) => {
+        const key = `${prior.id}:${userKey}`;
+        const won = wonAt.get(key);
+        if (won) {
+          return won;
+        }
+        return tookPart.has(key) ? "participated_no_win" : null;
+      });
+
+      histories.set(userKey, { outcomes });
+    }
+
+    return histories;
+  }
+
+  /**
+   * Accounts excluded from the draw entirely (spec §22.5, §22.6), and those
+   * whose winnings must be held for review (§22.7, §22.8).
+   */
+  private async loadAccountFlags(): Promise<{
+    excluded: Set<UserKey>;
+    heldForReview: Set<UserKey>;
+    reasons: Map<UserKey, string>;
+  }> {
+    const flags = await this.payload.find({
+      collection: "giveaway-account-flags",
+      pagination: false,
+      depth: 0,
+    });
+
+    const excluded = new Set<UserKey>();
+    const heldForReview = new Set<UserKey>();
+    const reasons = new Map<UserKey, string>();
+
+    for (const flag of flags.docs) {
+      const userKey = relationKey(flag.user);
+      if (!userKey) {
+        continue;
+      }
+
+      // A duplicate-account group is excluded regardless of trust status: the
+      // whole cluster comes out of the pool (§22.6).
+      if (flag.trustStatus === "disqualified" || flag.duplicateAccountGroup) {
+        excluded.add(userKey);
+        reasons.set(
+          userKey,
+          flag.duplicateAccountGroup
+            ? `Duplicate account group "${flag.duplicateAccountGroup}"`
+            : (flag.reason ?? "Disqualified")
+        );
+        continue;
+      }
+
+      // Suspicion never removes anyone from the draw — the specification is
+      // explicit that it must not alter the selection. It only holds the prize.
+      if (flag.trustStatus === "suspicious") {
+        heldForReview.add(userKey);
+        reasons.set(userKey, flag.reason ?? "Flagged for review");
+      }
+    }
+
+    return { excluded, heldForReview, reasons };
   }
 
   /** The three queries backing participation aggregation. */
@@ -1075,22 +1281,63 @@ function applyStreaks(
   }
 }
 
+const EMPTY_HISTORY: UserDrawHistory = { outcomes: [] };
+
 /**
- * Users who satisfy the tier's eligibility rules and have not already won
- * (spec §12 step 1, §13).
+ * Users who may compete for this tier (spec §12 step 1).
+ *
+ * Three gates, in order: they must not already hold a prize from this giveaway
+ * (§13); they must clear the fairness cooldowns (§22.1–22.3); and they must
+ * meet the tier's eligibility thresholds (§11) — relaxed by the loyalty waiver
+ * where §22.4 grants one.
+ *
+ * Fairness is checked before eligibility so the exclusion reported is the
+ * meaningful one: telling an administrator a user is serving a Tier 1 cooldown
+ * is more use than telling them the user is short of a Featured Offer.
  */
 function buildCandidatePool(
   tier: PrizeTier,
   participation: Map<UserKey, Participation>,
-  winnersSoFar: Set<UserKey>
-): Set<UserKey> {
+  winnersSoFar: Set<UserKey>,
+  histories: Map<UserKey, UserDrawHistory>
+): {
+  candidates: Set<UserKey>;
+  /** Count of users barred by each §22 rule, for the audit log. */
+  fairnessExclusions: Map<string, number>;
+  loyaltyWaivers: Set<UserKey>;
+} {
   const candidates = new Set<UserKey>();
+  const fairnessExclusions = new Map<string, number>();
+  const loyaltyWaivers = new Set<UserKey>();
+
   for (const [userKey, p] of participation) {
-    if (!winnersSoFar.has(userKey) && evaluateEligibility(tier, p).eligible) {
+    if (winnersSoFar.has(userKey)) {
+      continue;
+    }
+
+    const verdict = evaluateFairness(
+      tier,
+      histories.get(userKey) ?? EMPTY_HISTORY
+    );
+
+    if (!verdict.eligible) {
+      fairnessExclusions.set(
+        verdict.rule,
+        (fairnessExclusions.get(verdict.rule) ?? 0) + 1
+      );
+      continue;
+    }
+
+    if (verdict.loyaltyWaiver) {
+      loyaltyWaivers.add(userKey);
+    }
+
+    if (evaluateEligibility(tier, p, verdict.loyaltyWaiver).eligible) {
       candidates.add(userKey);
     }
   }
-  return candidates;
+
+  return { candidates, fairnessExclusions, loyaltyWaivers };
 }
 
 /** Normalise a Payload relationship value to a comparable key. */

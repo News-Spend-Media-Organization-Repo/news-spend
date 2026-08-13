@@ -1,4 +1,5 @@
 export * from "./constants";
+export { GiveawayAccountFlags } from "./GiveawayAccountFlags";
 export { GiveawayAuditLog } from "./GiveawayAuditLog";
 export { GiveawayEngagements } from "./GiveawayEngagements";
 export { GiveawayPrizes } from "./GiveawayPrizes";

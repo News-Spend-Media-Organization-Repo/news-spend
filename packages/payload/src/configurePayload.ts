@@ -27,6 +27,7 @@ import {
   Comments,
   ContentReport,
   Feedback,
+  GiveawayAccountFlags,
   GiveawayAuditLog,
   GiveawayEngagements,
   GiveawayPrizes,
@@ -127,6 +128,7 @@ const baseConfig: Config = {
     Feedback,
     // Games,
     // --- Giveaway draw engine (spec-compliant; supersedes Lottery* above) ---
+    GiveawayAccountFlags,
     GiveawayAuditLog,
     GiveawayEngagements,
     GiveawayPrizes,

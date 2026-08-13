@@ -50,6 +50,57 @@ export const CONSECUTIVE_ELIGIBILITY: Record<
 
 export const CONSECUTIVE_GIVEAWAYS_REQUIRED = 4;
 
+/**
+ * Fairness and anti-abuse rules (spec §22, and §20 rules 16–19).
+ *
+ * These are platform rules, not per-giveaway settings — the specification
+ * states them unconditionally, so there is deliberately no toggle to disable
+ * them. Use a dry run to see their effect without committing a draw.
+ */
+
+/** §22.1 — a Tier 1 or Tier 2 win bars both tiers for this many draws. */
+export const HIGH_TIER_COOLDOWN_DRAWS = 1;
+
+/** §22.2 — a Tier 1 win bars Tier 1 for this many subsequent draws. */
+export const TIER1_COOLDOWN_DRAWS = 4;
+
+/** §22.3 — winning Tier 1 this many draws running triggers a suspension. */
+export const MAX_CONSECUTIVE_TIER1_WINS = 2;
+
+/** §22.3 — length of that suspension, in draws. */
+export const TIER1_SUSPENSION_DRAWS = 2;
+
+/** §22.4 — participating this many draws running with no prize earns a waiver. */
+export const LOYALTY_WAIVER_AFTER_DRAWS = 4;
+
+/**
+ * How many previously completed giveaways the draw needs to look back over.
+ *
+ * Every rule above resolves within this window: the Tier 1 cooldown and the
+ * loyalty waiver both reach four draws back, and the consecutive-win rules
+ * reach less. A win older than this is simply out of cooldown, which is the
+ * correct outcome — so there is no need to load more history.
+ */
+export const FAIRNESS_LOOKBACK_DRAWS = Math.max(
+  TIER1_COOLDOWN_DRAWS,
+  LOYALTY_WAIVER_AFTER_DRAWS,
+  MAX_CONSECUTIVE_TIER1_WINS + TIER1_SUSPENSION_DRAWS
+);
+
+/** Account-level trust states used by §22.5–22.8. */
+export const ACCOUNT_TRUST_STATUSES = [
+  "ok",
+  "suspicious",
+  "disqualified",
+] as const;
+export type AccountTrustStatus = (typeof ACCOUNT_TRUST_STATUSES)[number];
+
+export const ACCOUNT_TRUST_STATUS_OPTIONS = [
+  { label: "OK", value: "ok" },
+  { label: "Suspicious — winners held for review", value: "suspicious" },
+  { label: "Disqualified — excluded from draws", value: "disqualified" },
+] as const;
+
 /** Ticket states. Only `valid` participates in the draw (spec §6). */
 export const TICKET_STATUSES = [
   "valid",
@@ -139,6 +190,10 @@ export const AUDIT_EVENT_TYPES = [
   "featured_offer_completion",
   "participants_snapshot",
   "candidate_pool_built",
+  "account_excluded",
+  "fairness_exclusion",
+  "loyalty_waiver_applied",
+  "winner_held_for_review",
   "winner_selected",
   "prize_allocated",
   "prize_exhausted",

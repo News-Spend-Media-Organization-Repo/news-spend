@@ -78,6 +78,7 @@ export interface Config {
     comments: Comment;
     contentReports: ContentReport;
     feedback: Feedback;
+    'giveaway-account-flags': GiveawayAccountFlag;
     'giveaway-audit-log': GiveawayAuditLog;
     'giveaway-engagements': GiveawayEngagement;
     'giveaway-prizes': GiveawayPrize;
@@ -126,6 +127,7 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     contentReports: ContentReportsSelect<false> | ContentReportsSelect<true>;
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
+    'giveaway-account-flags': GiveawayAccountFlagsSelect<false> | GiveawayAccountFlagsSelect<true>;
     'giveaway-audit-log': GiveawayAuditLogSelect<false> | GiveawayAuditLogSelect<true>;
     'giveaway-engagements': GiveawayEngagementsSelect<false> | GiveawayEngagementsSelect<true>;
     'giveaway-prizes': GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
@@ -798,6 +800,43 @@ export interface Feedback {
   createdAt: string;
 }
 /**
+ * Accounts excluded from draws or held for review. An account with no row here is treated as trusted.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-account-flags".
+ */
+export interface GiveawayAccountFlag {
+  id: string;
+  user: string | User;
+  /**
+   * Disqualified accounts are removed from the pool. Suspicious accounts still take part, but any prize they win is held for review.
+   */
+  trustStatus: 'ok' | 'suspicious' | 'disqualified';
+  /**
+   * Identifier shared by accounts judged to belong to the same person. Every account in a group is excluded from the pool (§22.6).
+   */
+  duplicateAccountGroup?: string | null;
+  /**
+   * Why this account was flagged. Included in the audit log.
+   */
+  reason?: string | null;
+  flaggedAt: string;
+  /**
+   * Administrator who last reviewed this account.
+   */
+  reviewedBy?: (string | null) | Admin;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Append-only. Records cannot be edited or deleted.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -813,6 +852,10 @@ export interface GiveawayAuditLog {
     | 'featured_offer_completion'
     | 'participants_snapshot'
     | 'candidate_pool_built'
+    | 'account_excluded'
+    | 'fairness_exclusion'
+    | 'loyalty_waiver_applied'
+    | 'winner_held_for_review'
     | 'winner_selected'
     | 'prize_allocated'
     | 'prize_exhausted'
@@ -1361,7 +1404,14 @@ export interface GiveawayWinner {
   claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited';
   claimedAt?: string | null;
   claimDeadline?: string | null;
-  fulfilmentStatus: 'pending' | 'in_progress' | 'fulfilled' | 'cancelled';
+  /**
+   * Set to On Hold automatically when the winner's account is flagged as suspicious (§22.7, §22.8). The win itself always stands — a review never reruns the draw.
+   */
+  fulfilmentStatus: 'pending' | 'on_hold' | 'in_progress' | 'fulfilled' | 'cancelled';
+  /**
+   * Why this prize was held for review, recorded at selection time.
+   */
+  reviewNote?: string | null;
   fulfilledAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
@@ -2208,6 +2258,10 @@ export interface PayloadLockedDocument {
         value: string | Feedback;
       } | null)
     | ({
+        relationTo: 'giveaway-account-flags';
+        value: string | GiveawayAccountFlag;
+      } | null)
+    | ({
         relationTo: 'giveaway-audit-log';
         value: string | GiveawayAuditLog;
       } | null)
@@ -2522,6 +2576,22 @@ export interface FeedbackSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-account-flags_select".
+ */
+export interface GiveawayAccountFlagsSelect<T extends boolean = true> {
+  user?: T;
+  trustStatus?: T;
+  duplicateAccountGroup?: T;
+  reason?: T;
+  flaggedAt?: T;
+  reviewedBy?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-audit-log_select".
  */
 export interface GiveawayAuditLogSelect<T extends boolean = true> {
@@ -2648,6 +2718,7 @@ export interface GiveawayWinnersSelect<T extends boolean = true> {
   claimedAt?: T;
   claimDeadline?: T;
   fulfilmentStatus?: T;
+  reviewNote?: T;
   fulfilledAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;

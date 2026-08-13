@@ -23,6 +23,13 @@ type FakeData = {
   offers?: Row[];
   prizes?: Row[];
   streaks?: Row[];
+  /** Previously completed giveaways, for the §22 fairness history. */
+  priorGiveaways?: Row[];
+  /** Winner rows from those prior giveaways. */
+  priorWinners?: Row[];
+  /** Ticket rows from those prior giveaways, i.e. who took part. */
+  priorTickets?: Row[];
+  accountFlags?: Row[];
 };
 
 /**
@@ -54,7 +61,18 @@ function createFakePayload(data: FakeData = {}) {
     ],
     "giveaway-prizes": prizes,
     "giveaway-streaks": data.streaks ?? [],
+    giveaways: data.priorGiveaways ?? [],
+    "giveaway-winners": data.priorWinners ?? [],
+    "giveaway-account-flags": data.accountFlags ?? [],
   };
+
+  // Prior-giveaway tickets share the collection with this giveaway's tickets.
+  if (data.priorTickets?.length) {
+    collections["giveaway-tickets"] = [
+      ...collections["giveaway-tickets"],
+      ...data.priorTickets,
+    ];
+  }
 
   const payload: any = {
     logger: { error: () => undefined, info: () => undefined },
@@ -117,16 +135,23 @@ function matchesWhere(row: Row, where: Row | undefined): boolean {
     return where.and.every((clause: Row) => matchesWhere(row, clause));
   }
   return Object.entries(where).every(([field, condition]) => {
-    const expected = (condition as Row)?.equals;
-    if (expected === undefined) {
-      return true;
-    }
+    const clause = condition as Row;
     const actual = row[field];
     const key =
       actual && typeof actual === "object" && "id" in actual
         ? (actual as Row).id
         : actual;
-    return String(key) === String(expected);
+
+    if (clause?.equals !== undefined) {
+      return String(key) === String(clause.equals);
+    }
+    if (Array.isArray(clause?.in)) {
+      return clause.in.some((v: unknown) => String(v) === String(key));
+    }
+    if (clause?.less_than !== undefined) {
+      return String(key) < String(clause.less_than);
+    }
+    return true;
   });
 }
 
@@ -1039,6 +1064,267 @@ describe("GiveawayEngine.runDraw", () => {
       expect(winner.prizeName).toBe("Laptop");
       expect(winner.claimStatus).toBe("unclaimed");
     }
+  });
+});
+
+describe("fairness and anti-abuse in a real draw (spec §22)", () => {
+  /** A completed giveaway that ended `daysAgo` days back. */
+  const priorGiveaway = (id: string, daysAgo: number) => ({
+    id,
+    status: "completed",
+    endDate: new Date(Date.now() - daysAgo * 864e5).toISOString(),
+  });
+
+  it("bars last draw's Tier 1 winner from Tier 1 and Tier 2, but not Tier 3", async () => {
+    // Everyone qualifies for all three tiers, so any exclusion is fairness.
+    const { ticketRows, boostRows, offerRows } = participants(20, {
+      tickets: 10,
+      boosts: 3,
+      offers: 1,
+    });
+
+    const { payload } = createFakePayload({
+      giveaway: {
+        // All zero: pool sizes are still computed, but nobody wins, so no one
+        // is removed between tiers. That isolates the fairness exclusion from
+        // the one-prize-per-user rule.
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets: ticketRows,
+      boosts: boostRows,
+      offers: offerRows,
+      prizes: [
+        prizeRow("p1", "tier1", 50),
+        prizeRow("p2", "tier2", 50),
+        prizeRow("p3", "tier3", 50),
+      ],
+      priorGiveaways: [priorGiveaway("g0", 14)],
+      // u0 won Tier 1 in the previous giveaway.
+      priorWinners: [{ id: "w0", giveaway: "g0", user: "u0", tier: "tier1" }],
+      priorTickets: [
+        { id: "pt0", giveaway: "g0", user: "u0", quantity: 5, status: "valid" },
+      ],
+    });
+
+    const result = await new GiveawayEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    const pool = (tier: string) =>
+      result.tiers.find((t) => t.tier === tier)?.candidatePoolSize;
+
+    // 19 of 20 for the high tiers — u0 is serving §22.1 and §22.2.
+    expect(pool("tier1")).toBe(19);
+    expect(pool("tier2")).toBe(19);
+
+    // Tier 3 stays fully open: the spec is explicit that a high-tier winner
+    // may still win Tier 3 during the cooldown.
+    expect(pool("tier3")).toBe(20);
+  });
+
+  it("keeps last draw's Tier 1 winner out of the high tiers when they do run", async () => {
+    const { ticketRows, boostRows, offerRows } = participants(20, {
+      tickets: 10,
+      boosts: 3,
+      offers: 1,
+    });
+
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 100,
+        tier2WinnerPercentage: 100,
+        tier3WinnerPercentage: 0,
+      },
+      tickets: ticketRows,
+      boosts: boostRows,
+      offers: offerRows,
+      prizes: [prizeRow("p1", "tier1", 50), prizeRow("p2", "tier2", 50)],
+      priorGiveaways: [priorGiveaway("g0", 14)],
+      priorWinners: [{ id: "w0", giveaway: "g0", user: "u0", tier: "tier1" }],
+      priorTickets: [
+        { id: "pt0", giveaway: "g0", user: "u0", quantity: 5, status: "valid" },
+      ],
+    });
+
+    const result = await new GiveawayEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    const winners = result.tiers.flatMap((t) =>
+      t.winners.map((w) => w.userKey)
+    );
+    expect(winners).not.toContain("u0");
+    expect(winners).toHaveLength(19);
+  });
+
+  it("waives the Featured Offer for a user who has gone four draws without a prize", async () => {
+    // "loyal" meets Tier 1's ticket and boost bars but has NO featured offer,
+    // so only the §22.4 waiver can put them in the pool.
+    const tickets = [
+      {
+        id: "t0",
+        user: "loyal",
+        giveaway: "g1",
+        quantity: 10,
+        status: "valid",
+      },
+    ];
+    const boosts = [1, 2, 3].map((n) => ({
+      id: `b${n}`,
+      user: "loyal",
+      giveaway: "g1",
+      completionStatus: "completed",
+    }));
+
+    const priorIds = ["g0", "g-1", "g-2", "g-3"];
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 100,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets,
+      boosts,
+      prizes: [prizeRow("p1", "tier1", 5)],
+      priorGiveaways: priorIds.map((id, i) => priorGiveaway(id, (i + 1) * 14)),
+      priorWinners: [],
+      // Took part in all four, won nothing.
+      priorTickets: priorIds.map((gid, i) => ({
+        id: `pt${i}`,
+        giveaway: gid,
+        user: "loyal",
+        quantity: 3,
+        status: "valid",
+      })),
+    });
+
+    const result = await new GiveawayEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    expect(
+      result.tiers.find((t) => t.tier === "tier1")?.candidatePoolSize
+    ).toBe(1);
+  });
+
+  it("does not waive the Featured Offer when a draw was sat out", async () => {
+    const tickets = [
+      {
+        id: "t0",
+        user: "gappy",
+        giveaway: "g1",
+        quantity: 10,
+        status: "valid",
+      },
+    ];
+    const boosts = [1, 2, 3].map((n) => ({
+      id: `b${n}`,
+      user: "gappy",
+      giveaway: "g1",
+      completionStatus: "completed",
+    }));
+
+    const priorIds = ["g0", "g-1", "g-2", "g-3"];
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 100,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets,
+      boosts,
+      prizes: [prizeRow("p1", "tier1", 5)],
+      priorGiveaways: priorIds.map((id, i) => priorGiveaway(id, (i + 1) * 14)),
+      // Sat out "g-1", so there is no run of four.
+      priorTickets: ["g0", "g-2", "g-3"].map((gid, i) => ({
+        id: `pt${i}`,
+        giveaway: gid,
+        user: "gappy",
+        quantity: 3,
+        status: "valid",
+      })),
+    });
+
+    const result = await new GiveawayEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    expect(
+      result.tiers.find((t) => t.tier === "tier1")?.candidatePoolSize
+    ).toBe(0);
+  });
+
+  it("excludes a disqualified account from the pool and from the participant count", async () => {
+    const { ticketRows } = participants(10);
+
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 100,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 50)],
+      accountFlags: [
+        { id: "f1", user: "u0", trustStatus: "disqualified", reason: "Bots" },
+        {
+          id: "f2",
+          user: "u1",
+          trustStatus: "ok",
+          duplicateAccountGroup: "DUP-1",
+        },
+      ],
+    });
+
+    const result = await new GiveawayEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    // Both come out of the denominator, not just the pool.
+    expect(result.totalValidParticipants).toBe(8);
+
+    const winners = result.tiers.flatMap((t) =>
+      t.winners.map((w) => w.userKey)
+    );
+    expect(winners).not.toContain("u0");
+    expect(winners).not.toContain("u1");
+  });
+
+  it("lets a suspicious account win, but holds the prize for review", async () => {
+    const { ticketRows } = participants(3);
+
+    const { payload, created } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 100,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 10)],
+      accountFlags: [
+        {
+          id: "f1",
+          user: "u0",
+          trustStatus: "suspicious",
+          reason: "Unusual purchase pattern",
+        },
+      ],
+    });
+
+    const result = await new GiveawayEngine(payload).runDraw("g1");
+
+    // Suspicion must never alter the selection (§22.8) — u0 still competes.
+    expect(result.totalValidParticipants).toBe(3);
+
+    const rows = created["giveaway-winners"] ?? [];
+    const flagged = rows.find((r) => r.user === "u0");
+    const clean = rows.find((r) => r.user !== "u0");
+
+    expect(flagged?.fulfilmentStatus).toBe("on_hold");
+    expect(flagged?.reviewNote).toContain("review");
+    expect(clean?.fulfilmentStatus).toBe("pending");
   });
 });
 

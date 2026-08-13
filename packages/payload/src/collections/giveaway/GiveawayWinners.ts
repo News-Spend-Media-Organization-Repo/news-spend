@@ -153,10 +153,24 @@ export const GiveawayWinners: CollectionConfig = {
       index: true,
       options: [
         { label: "Pending", value: "pending" },
+        { label: "On Hold — manual review", value: "on_hold" },
         { label: "In Progress", value: "in_progress" },
         { label: "Fulfilled", value: "fulfilled" },
         { label: "Cancelled", value: "cancelled" },
       ],
+      admin: {
+        description:
+          "Set to On Hold automatically when the winner's account is flagged as suspicious (§22.7, §22.8). The win itself always stands — a review never reruns the draw.",
+      },
+    },
+    {
+      name: "reviewNote",
+      type: "textarea",
+      admin: {
+        readOnly: true,
+        description:
+          "Why this prize was held for review, recorded at selection time.",
+      },
     },
     {
       name: "fulfilledAt",

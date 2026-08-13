@@ -7,6 +7,7 @@ export { default as Comments } from "./Comments";
 export { ContentReport } from "./ContentReport";
 export { default as Feedback } from "./Feedback";
 export {
+  GiveawayAccountFlags,
   GiveawayAuditLog,
   GiveawayEngagements,
   GiveawayPrizes,
