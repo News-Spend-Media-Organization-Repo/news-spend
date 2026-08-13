@@ -73,6 +73,8 @@ export const Giveaways: CollectionConfig = {
             "tier1WinnerPercentage",
             "tier2WinnerPercentage",
             "tier3WinnerPercentage",
+            "budgetUtilizationPct",
+            "maxBudgetCapNaira",
             "startDate",
             "endDate",
           ] as const;
@@ -167,6 +169,49 @@ export const Giveaways: CollectionConfig = {
         winnerPercentageField("tier1WinnerPercentage", "Tier 1 (%)", 0.1),
         winnerPercentageField("tier2WinnerPercentage", "Tier 2 (%)", 0.5),
         winnerPercentageField("tier3WinnerPercentage", "Tier 3 (%)", 5),
+      ],
+    },
+    {
+      type: "collapsible",
+      label: "Budget Reserve",
+      admin: {
+        description:
+          "Optional spending limits. Both are inert at their defaults, so a giveaway behaves exactly as the specification describes unless these are deliberately changed.",
+      },
+      fields: [
+        {
+          name: "budgetUtilizationPct",
+          label: "Maximum budget utilisation (%)",
+          type: "number",
+          required: true,
+          min: 1,
+          max: 100,
+          defaultValue: 100,
+          admin: {
+            step: 1,
+            description:
+              "The share of stocked prize units this draw may award. 100 means the Maximum Units figures are the only ceiling; 85 would hold 15% of the stock back for later giveaways.",
+          },
+          validate: (value: number | null | undefined) => {
+            if (value === null || value === undefined) {
+              return "A utilisation percentage is required.";
+            }
+            if (!Number.isFinite(value) || value <= 0 || value > 100) {
+              return "Must be greater than 0 and at most 100.";
+            }
+            return true;
+          },
+        },
+        {
+          name: "maxBudgetCapNaira",
+          label: "Hard spend cap (₦)",
+          type: "number",
+          min: 0,
+          admin: {
+            description:
+              "Total retail value this draw may award. Leave empty for no monetary cap. Every prize in the pool must have a Value (₦) for this to be usable.",
+          },
+        },
       ],
     },
     {

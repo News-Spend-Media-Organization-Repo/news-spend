@@ -1951,6 +1951,106 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
   });
 });
 
+describe("budget reserve (administrator setting, not in the spec)", () => {
+  /** 100 participants, tier 3 at 10% → 10 winners before any budget limit. */
+  function tenPercentOfHundred(giveaway: Row = {}, prizes?: Row[]) {
+    return createFakePayload({
+      giveaway: {
+        totalValidParticipants: 100,
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 10,
+        ...giveaway,
+      },
+      tickets: participants(100).ticketRows,
+      prizes: prizes ?? [prizeRow("p3", "tier3", 40)],
+    });
+  }
+
+  it("awards the full stock when utilisation is left at its default", async () => {
+    const { payload } = tenPercentOfHundred();
+
+    const result = await new GiveawayEngine(payload).runDraw("g1");
+
+    // Nothing is held back: the percentage cap is the only ceiling, exactly as
+    // §9 describes.
+    expect(result.totalWinners).toBe(10);
+  });
+
+  it("holds stock back when utilisation is reduced", async () => {
+    const { payload, created } = tenPercentOfHundred({
+      budgetUtilizationPct: 10,
+    });
+
+    const result = await new GiveawayEngine(payload).runDraw("g1");
+
+    // 10% of 40 units = 4, below the 10 the percentage cap would allow.
+    expect(result.totalWinners).toBe(4);
+
+    const events = (created["giveaway-audit-log"] ?? []).map(
+      (e) => e.eventType
+    );
+    expect(events).toContain("budget_limit_reached");
+  });
+
+  it("stops once the monetary cap cannot cover another prize", async () => {
+    const { payload } = tenPercentOfHundred({ maxBudgetCapNaira: 25_000 }, [
+      {
+        ...prizeRow("p3", "tier3", 40),
+        prize: { id: "cat-p3", name: "prize-p3", valueNaira: 10_000 },
+      },
+    ]);
+
+    const result = await new GiveawayEngine(payload).runDraw("g1");
+
+    // ₦25,000 buys two ₦10,000 prizes; the third would overspend.
+    expect(result.totalWinners).toBe(2);
+  });
+
+  it("refuses to draw with a monetary cap over unpriced prizes", async () => {
+    const { payload } = tenPercentOfHundred({ maxBudgetCapNaira: 25_000 });
+
+    const { valid, errors } = await new GiveawayEngine(payload).validateDraw(
+      "g1"
+    );
+
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/no Value \(₦\)/);
+  });
+
+  it("counts an interrupted attempt's spend against the budget", async () => {
+    const fake = tenPercentOfHundred({
+      status: "interrupted",
+      drawSeed: "original-seed",
+      lastCheckpoint: "tier2_prizes_allocated",
+      budgetUtilizationPct: 10,
+    });
+
+    // A previous attempt already awarded 3 of the 4 units the reserve allows.
+    fake.prizes[0].unitsAwarded = 3;
+    fake.seed(
+      "giveaway-winners",
+      ["u0", "u1", "u2"].map((user, i) => ({
+        id: `w${i}`,
+        giveaway: "g1",
+        user,
+        tier: "tier3",
+        prize: "cat-p3",
+        prizeName: "prize-p3",
+        winningTicket: `t${i}`,
+      }))
+    );
+
+    const engine = new GiveawayEngine(fake.payload);
+    await engine.authorizeResumption("g1", { authorizedBy: "admin" });
+    const result = await engine.runDraw("g1", { resume: true });
+
+    // One unit of budget left, so exactly one more winner — not another four.
+    expect((fake.created["giveaway-winners"] ?? []).length).toBe(1);
+    expect(result.totalWinners).toBe(4);
+  });
+});
+
 describe("draw state machine (spec §19)", () => {
   function readyToDraw() {
     return createFakePayload({

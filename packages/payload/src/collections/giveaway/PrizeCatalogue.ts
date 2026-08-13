@@ -111,6 +111,22 @@ export const PrizeCatalogue: CollectionConfig = {
       type: "textarea",
     },
     {
+      name: "valueNaira",
+      label: "Value (₦)",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Retail value of one unit. Only required if a giveaway sets a monetary budget cap; otherwise it is for reporting.",
+      },
+      validate: (value: number | null | undefined) => {
+        if (value !== null && value !== undefined && value < 0) {
+          return "Cannot be negative.";
+        }
+        return true;
+      },
+    },
+    {
       name: "image",
       type: "upload",
       relationTo: "media",

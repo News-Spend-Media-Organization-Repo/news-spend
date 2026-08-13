@@ -64,16 +64,20 @@ function leadingRun(
  * yet elapsed: a run of wins ending 1 or 2 draws ago is still serving it, a run
  * ending 3 draws ago has finished.
  *
- * NOTE — §22.3 is currently unreachable, and that is a defect in the
- * specification rather than in this code. §22.2 bars Tier 1 for four draws
- * after any Tier 1 win, so a user cannot win Tier 1 in two consecutive draws
- * for §22.3 to react to. The worked examples contradict each other outright:
- * §22.3's example shows a user winning Tier 1 in Draw 1 and again in Draw 2,
- * which §22.2 forbids, and restores eligibility at Draw 5 where §22.2 would
- * bar until Draw 6.
+ * NOTE — §22.3 is unreachable as the specification stands, and that is a
+ * defect in the specification rather than in this code. §22.2 bars Tier 1 for
+ * four draws after any Tier 1 win, so a user cannot win Tier 1 in two
+ * consecutive draws for §22.3 to react to. The worked examples contradict each
+ * other outright: §22.3's shows a user winning Tier 1 in Draw 1 and again in
+ * Draw 2, which §22.2 forbids, and restores eligibility at Draw 5 where §22.2
+ * would bar until Draw 6.
  *
- * The rule is implemented anyway, so that shortening or removing the §22.2
- * cooldown brings it into force without further work.
+ * DECISION, pending the specification's author: §22.2 governs. It is the
+ * stricter of the two, its own worked example is self-consistent, and treating
+ * it as authoritative fails safe — a user barred for four draws is a smaller
+ * problem than one who wins Tier 1 twice running because the looser rule was
+ * chosen. §22.3 stays implemented as a backstop, so that shortening or
+ * removing the §22.2 cooldown brings it into force with no further work.
  */
 function isUnderTier1Suspension(history: UserDrawHistory): boolean {
   const { outcomes } = history;

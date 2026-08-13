@@ -338,6 +338,7 @@ export const AUDIT_EVENT_TYPES = [
   "winner_selected",
   "prize_allocated",
   "prize_exhausted",
+  "budget_limit_reached",
   "tier_completed",
   "draw_started",
   "draw_resumed",

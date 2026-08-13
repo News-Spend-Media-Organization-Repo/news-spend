@@ -871,6 +871,7 @@ export interface GiveawayAuditLog {
     | 'winner_selected'
     | 'prize_allocated'
     | 'prize_exhausted'
+    | 'budget_limit_reached'
     | 'tier_completed'
     | 'draw_started'
     | 'draw_resumed'
@@ -934,6 +935,14 @@ export interface Giveaway {
    * 0 disables this tier. Maximum 100.
    */
   tier3WinnerPercentage: number;
+  /**
+   * The share of stocked prize units this draw may award. 100 means the Maximum Units figures are the only ceiling; 85 would hold 15% of the stock back for later giveaways.
+   */
+  budgetUtilizationPct: number;
+  /**
+   * Total retail value this draw may award. Leave empty for no monetary cap. Every prize in the pool must have a Value (₦) for this to be usable.
+   */
+  maxBudgetCapNaira?: number | null;
   status:
     | 'draft'
     | 'active'
@@ -1446,6 +1455,10 @@ export interface PrizeCatalogue {
    */
   tier: 'tier1' | 'tier2' | 'tier3';
   description?: string | null;
+  /**
+   * Retail value of one unit. Only required if a giveaway sets a monetary budget cap; otherwise it is for reporting.
+   */
+  valueNaira?: number | null;
   image?: (string | null) | Media;
   /**
    * Inactive prizes cannot be added to new giveaways. Existing giveaways are unaffected.
@@ -2867,6 +2880,8 @@ export interface GiveawaysSelect<T extends boolean = true> {
   tier1WinnerPercentage?: T;
   tier2WinnerPercentage?: T;
   tier3WinnerPercentage?: T;
+  budgetUtilizationPct?: T;
+  maxBudgetCapNaira?: T;
   status?: T;
   totalValidParticipants?: T;
   drawSeed?: T;
@@ -2954,6 +2969,7 @@ export interface PrizeCatalogueSelect<T extends boolean = true> {
   name?: T;
   tier?: T;
   description?: T;
+  valueNaira?: T;
   image?: T;
   active?: T;
   createdBy?: T;

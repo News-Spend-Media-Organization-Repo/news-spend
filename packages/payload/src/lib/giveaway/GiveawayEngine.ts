@@ -55,6 +55,30 @@ type PoolPrize = {
   tier: PrizeTier;
   maxUnits: number;
   unitsAwarded: number;
+  /** Retail value of one unit, for the monetary budget cap. 0 if unpriced. */
+  valueNaira: number;
+};
+
+/**
+ * Optional spending limits for the whole draw.
+ *
+ * Neither appears in the specification — they come from the administrator's
+ * side of the product, where holding some stock back for the next giveaway is
+ * a normal thing to want. Both default to unlimited, so a giveaway behaves
+ * exactly as §5 and §9 describe unless somebody deliberately changes them.
+ *
+ * They are applied *before* selection, as a reduction to what a tier may award,
+ * rather than by truncating the winner list afterwards. Selecting winners and
+ * then discovering there is no budget to pay them is the one outcome worth
+ * ruling out entirely.
+ */
+type DrawBudget = {
+  /** Prize units still awardable across the whole giveaway. */
+  unitsRemaining: number;
+  /** Naira still spendable across the whole giveaway. */
+  cashRemaining: number;
+  /** Whether either limit is actually in force. */
+  limited: boolean;
 };
 
 /** A persisted consecutive-giveaway counter, indexed for the draw. */
@@ -681,6 +705,25 @@ export class GiveawayEngine {
       }
     }
 
+    // A monetary cap is meaningless if the prizes it is meant to bound have no
+    // price on them — it would silently treat every prize as free.
+    if (
+      typeof giveaway.maxBudgetCapNaira === "number" &&
+      prizeRows.docs.length > 0
+    ) {
+      const unpriced = (await this.loadPrizePool(giveawayId)).filter(
+        (prize) => !prize.valueNaira
+      );
+
+      if (unpriced.length > 0) {
+        errors.push(
+          `A monetary budget cap is set, but ${unpriced.length} prize(s) have no Value (₦): ${unpriced
+            .map((prize) => prize.prizeName)
+            .join(", ")}.`
+        );
+      }
+    }
+
     // Every enabled tier must have both a percentage and a non-empty pool.
     for (const tier of TIER_PROCESSING_ORDER) {
       const percentage = this.tierPercentage(giveaway, tier);
@@ -781,6 +824,7 @@ export class GiveawayEngine {
     const tiers = await this.runTiers({
       ctx,
       giveaway,
+      budget: this.loadBudget(giveaway, prizePool),
       totalValidParticipants,
       participation,
       ticketEntries,
@@ -826,6 +870,7 @@ export class GiveawayEngine {
   private async runTiers(args: {
     ctx: RunContext;
     giveaway: Giveaway;
+    budget: DrawBudget;
     totalValidParticipants: number;
     participation: Map<UserKey, Participation>;
     ticketEntries: TicketEntry[];
@@ -874,6 +919,7 @@ export class GiveawayEngine {
           winnersSoFar: args.winnersSoFar,
           histories: args.histories,
           heldForReview: args.heldForReview,
+          budget: args.budget,
           // A tier interrupted part-way through has winners on record but no
           // completion marker. They count against this tier's cap, or a
           // resumed draw would award the full percentage a second time (§9).
@@ -958,6 +1004,7 @@ export class GiveawayEngine {
     histories: Map<UserKey, UserDrawHistory>;
     heldForReview: Set<UserKey>;
     priorWinners: TierOutcome["winners"];
+    budget: DrawBudget;
   }): Promise<TierOutcome> {
     const {
       ctx,
@@ -971,8 +1018,9 @@ export class GiveawayEngine {
       histories,
       heldForReview,
       priorWinners,
+      budget,
     } = args;
-    const { giveawayId, seed, dryRun } = ctx;
+    const { giveawayId, dryRun } = ctx;
 
     // Step 1 — Build the candidate pool (spec §12), applying the fairness
     // rules of §22 alongside the tier eligibility thresholds of §11.
@@ -1002,7 +1050,10 @@ export class GiveawayEngine {
     const effectiveCap = Math.min(
       remainingAllowance,
       unitsAvailable,
-      candidates.size
+      candidates.size,
+      // Infinite unless a budget reserve is configured, so this is normally
+      // not a constraint at all.
+      budget.unitsRemaining
     );
 
     const outcome: TierOutcome = {
@@ -1029,6 +1080,26 @@ export class GiveawayEngine {
         },
         tier
       );
+
+      // Say so plainly when a reserve, rather than the spec's own rules, is
+      // what limited this tier — otherwise the shortfall looks inexplicable.
+      if (
+        budget.limited &&
+        budget.unitsRemaining < Math.min(remainingAllowance, unitsAvailable)
+      ) {
+        await this.audit(
+          giveawayId,
+          "budget_limit_reached",
+          `${tier} limited to ${effectiveCap} winners by the budget reserve, not by its winner percentage or prize stock`,
+          {
+            tier,
+            budgetUnitsRemaining: budget.unitsRemaining,
+            remainingAllowance,
+            unitsAvailable,
+          },
+          tier
+        );
+      }
 
       for (const [rule, count] of fairnessExclusions) {
         await this.audit(
@@ -1085,20 +1156,66 @@ export class GiveawayEngine {
 
     await this.setStatus(ctx, "draw_in_progress");
 
+    await this.drawWinners({
+      ctx,
+      tier,
+      effectiveCap,
+      entries: pooledEntries,
+      tierPrizes,
+      budget,
+      outcome,
+      winnersSoFar,
+      participation,
+      heldForReview,
+    });
+
+    await this.completeTier(ctx, tier, outcome);
+
+    return outcome;
+  }
+
+  /**
+   * Steps 2 and 3 of §12: draw a winner, then allocate them a prize.
+   *
+   * The two are interleaved rather than run as separate passes. Allocating
+   * immediately keeps unit accounting exact when a prize runs out partway
+   * through a tier, and guarantees no winner is ever left holding a selection
+   * with nothing behind it — the winner is only recorded once a prize is
+   * certain to be available for them.
+   */
+  private async drawWinners(args: {
+    ctx: RunContext;
+    tier: PrizeTier;
+    effectiveCap: number;
+    entries: TicketEntry[];
+    tierPrizes: PoolPrize[];
+    budget: DrawBudget;
+    outcome: TierOutcome;
+    winnersSoFar: Set<UserKey>;
+    participation: Map<UserKey, Participation>;
+    heldForReview: Set<UserKey>;
+  }) {
+    const {
+      ctx,
+      tier,
+      effectiveCap,
+      entries,
+      tierPrizes,
+      budget,
+      outcome,
+      winnersSoFar,
+      participation,
+      heldForReview,
+    } = args;
+    const { giveawayId, seed, dryRun } = ctx;
+
     const selectionRng = createRng(seed, `winners:${tier}`);
     const allocationRng = createRng(seed, `prizes:${tier}`);
-
-    // The locked pool is exactly the set the draw may pick from.
-    const eligibleEntries = pooledEntries;
-
-    // Step 2 & 3 — Select a winner, then immediately allocate a prize to them.
-    // Interleaving the two keeps unit accounting exact when a prize runs out
-    // partway through, and guarantees no winner is left without a prize.
     const excluded = new Set<UserKey>();
 
     for (let i = 0; i < effectiveCap; i += 1) {
       const entry = weightedPick(
-        eligibleEntries,
+        entries,
         (candidate) =>
           excluded.has(candidate.userKey) ? 0 : candidate.quantity,
         selectionRng
@@ -1110,16 +1227,23 @@ export class GiveawayEngine {
 
       const prize = weightedPick(
         tierPrizes,
-        (candidate) => candidate.maxUnits - candidate.unitsAwarded,
+        (candidate) =>
+          // A prize the remaining budget cannot cover is out of the drum for
+          // this pick, the same as one with no units left.
+          candidate.valueNaira > budget.cashRemaining
+            ? 0
+            : candidate.maxUnits - candidate.unitsAwarded,
         allocationRng
       );
 
       if (!prize) {
-        // All units in this tier are exhausted; winner selection stops (§15).
+        await this.reportAllocationStop(ctx, tier, tierPrizes, budget);
         break;
       }
 
       prize.unitsAwarded += 1;
+      budget.unitsRemaining -= 1;
+      budget.cashRemaining -= prize.valueNaira;
       excluded.add(entry.userKey);
       winnersSoFar.add(entry.userKey);
 
@@ -1141,10 +1265,37 @@ export class GiveawayEngine {
         });
       }
     }
+  }
 
-    await this.completeTier(ctx, tier, outcome);
+  /**
+   * Explain why a tier stopped allocating before reaching its cap.
+   *
+   * Running out of prize units is ordinary and already covered by
+   * `prize_exhausted`. Stopping because the money ran out while stock remains
+   * is not, and is worth saying plainly — otherwise the shortfall looks like
+   * a bug in the draw.
+   */
+  private async reportAllocationStop(
+    ctx: RunContext,
+    tier: PrizeTier,
+    tierPrizes: PoolPrize[],
+    budget: DrawBudget
+  ) {
+    const stockedButUnaffordable = tierPrizes.some(
+      (candidate) =>
+        candidate.maxUnits - candidate.unitsAwarded > 0 &&
+        candidate.valueNaira > budget.cashRemaining
+    );
 
-    return outcome;
+    if (stockedButUnaffordable && !ctx.dryRun) {
+      await this.audit(
+        ctx.giveawayId,
+        "budget_limit_reached",
+        `${tier} stopped early: the remaining budget (₦${budget.cashRemaining}) cannot cover any prize still in stock`,
+        { tier, cashRemaining: budget.cashRemaining },
+        tier
+      );
+    }
   }
 
   /**
@@ -1799,6 +1950,10 @@ export class GiveawayEngine {
     return rows.docs.map((row) => {
       const prize = row.prize;
       const prizeId = relationKey(prize);
+      const priced =
+        typeof prize === "object" && prize !== null && "valueNaira" in prize
+          ? Number(prize.valueNaira)
+          : Number.NaN;
       return {
         rowId: row.id,
         prizeId: prizeId ?? row.id,
@@ -1809,8 +1964,51 @@ export class GiveawayEngine {
         tier: row.tier as PrizeTier,
         maxUnits: row.maxUnits ?? 0,
         unitsAwarded: row.unitsAwarded ?? 0,
+        valueNaira: Number.isFinite(priced) ? priced : 0,
       };
     });
+  }
+
+  /**
+   * Work out what this draw may still spend (budget reserve, not in the spec).
+   *
+   * Both limits count what has already been awarded, so a resumed draw
+   * inherits the correct remaining budget: `unitsAwarded` on each prize row is
+   * already the record of every earlier attempt.
+   */
+  private loadBudget(giveaway: Giveaway, prizePool: PoolPrize[]): DrawBudget {
+    const pct = giveaway.budgetUtilizationPct ?? 100;
+    const cashCap = giveaway.maxBudgetCapNaira;
+
+    const stockedUnits = prizePool.reduce(
+      (sum, prize) => sum + prize.maxUnits,
+      0
+    );
+    const usedUnits = prizePool.reduce(
+      (sum, prize) => sum + prize.unitsAwarded,
+      0
+    );
+    const usedCash = prizePool.reduce(
+      (sum, prize) => sum + prize.unitsAwarded * prize.valueNaira,
+      0
+    );
+
+    const unitsRemaining =
+      pct >= 100
+        ? Number.POSITIVE_INFINITY
+        : Math.max(0, Math.floor((stockedUnits * pct) / 100) - usedUnits);
+
+    const cashRemaining =
+      typeof cashCap === "number" && cashCap >= 0
+        ? Math.max(0, cashCap - usedCash)
+        : Number.POSITIVE_INFINITY;
+
+    return {
+      unitsRemaining,
+      cashRemaining,
+      limited:
+        Number.isFinite(unitsRemaining) || Number.isFinite(cashRemaining),
+    };
   }
 
   /**
