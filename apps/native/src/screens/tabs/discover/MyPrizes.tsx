@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { ScreenHeader } from "#/components";
+import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
@@ -180,7 +181,17 @@ const MyPrizes = () => {
 
   return (
     <Screen>
-      <ScreenHeader title="My Prizes" />
+      <ScreenHeader
+        right={
+          <Text
+            className="text-white"
+            onPress={() => navigation.navigate("BuyTickets")}
+          >
+            Buy tickets
+          </Text>
+        }
+        title="My Prizes"
+      />
 
       <FlatList
         contentContainerClassName="gap-2 px-4 pb-8"
@@ -196,6 +207,12 @@ const MyPrizes = () => {
               Buy a ticket to enter the current giveaway. Anything you win will
               appear here.
             </Text>
+            <Button
+              className="mt-2"
+              onPress={() => navigation.navigate("BuyTickets")}
+            >
+              <Button.Label>Buy tickets</Button.Label>
+            </Button>
           </View>
         }
         ListFooterComponent={
