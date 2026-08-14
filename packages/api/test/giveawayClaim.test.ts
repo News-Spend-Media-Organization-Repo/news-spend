@@ -196,14 +196,17 @@ describe("giveaway.winnings", () => {
     expect(rows.find((r) => r.id === "w1")?.needs).toEqual({
       phone: true,
       address: false,
+      verification: false,
     });
     expect(rows.find((r) => r.id === "w2")?.needs).toEqual({
       phone: false,
       address: true,
+      verification: false,
     });
     expect(rows.find((r) => r.id === "w3")?.needs).toEqual({
       phone: false,
       address: false,
+      verification: false,
     });
   });
 
@@ -408,6 +411,100 @@ describe("giveaway.claimPrize (spec §21)", () => {
     );
 
     // §22.8 — claiming is the winner's act, releasing is the administrator's.
+    expect(result.underReview).toBe(true);
+    expect(collections["giveaway-winners"]?.[0]?.fulfilmentStatus).toBe(
+      "on_hold"
+    );
+  });
+
+  it("secures the claim but withholds a prize needing verification", async () => {
+    const { ctx, collections } = createContext({
+      winners: [
+        winnerRow({
+          prize: prize({
+            fulfilmentType: "physical",
+            requiresVerification: true,
+          }),
+          prizeName: "PlayStation Console",
+        }),
+      ],
+    });
+
+    const result = await call(
+      giveawayRouter.claimPrize,
+      {
+        winnerId: "w1",
+        recipientName: "Ada Obi",
+        shippingAddress: "12 Marina Road, Lagos Island, Lagos",
+      },
+      { context: ctx }
+    );
+
+    // The claim itself lands immediately — that is what stops the 14-day
+    // clock. Only the dispatch waits on identity.
+    expect(result.claimStatus).toBe("claimed");
+    expect(result.awaitingVerification).toBe(true);
+    expect(collections["giveaway-winners"]?.[0]).toMatchObject({
+      claimStatus: "claimed",
+      fulfilmentStatus: "awaiting_verification",
+    });
+    expect(result.message).toMatch(/no rush/);
+  });
+
+  it("never settles a points prize instantly when verification is required", async () => {
+    const { ctx, points, collections } = createContext({
+      winners: [
+        winnerRow({
+          prize: prize({
+            fulfilmentType: "points",
+            pointsAmount: 5000,
+            requiresVerification: true,
+          }),
+          prizeName: "5,000 Points",
+        }),
+      ],
+    });
+
+    const result = await call(
+      giveawayRouter.claimPrize,
+      { winnerId: "w1" },
+      { context: ctx }
+    );
+
+    // Crediting first and verifying later would hand over the prize before the
+    // check that was supposed to gate it.
+    expect(points).toEqual([]);
+    expect(result.pointsCredited).toBe(0);
+    expect(collections["giveaway-winners"]?.[0]?.fulfilmentStatus).toBe(
+      "awaiting_verification"
+    );
+  });
+
+  it("keeps a held prize held even when it also needs verification", async () => {
+    const { ctx, collections } = createContext({
+      winners: [
+        winnerRow({
+          fulfilmentStatus: "on_hold",
+          prize: prize({
+            fulfilmentType: "physical",
+            requiresVerification: true,
+          }),
+        }),
+      ],
+    });
+
+    const result = await call(
+      giveawayRouter.claimPrize,
+      {
+        winnerId: "w1",
+        recipientName: "Ada Obi",
+        shippingAddress: "12 Marina Road, Lagos Island, Lagos",
+      },
+      { context: ctx }
+    );
+
+    // An administrator review outranks a verification prompt — telling the
+    // winner to verify would imply that is all that stands in the way.
     expect(result.underReview).toBe(true);
     expect(collections["giveaway-winners"]?.[0]?.fulfilmentStatus).toBe(
       "on_hold"

@@ -163,6 +163,17 @@ export const PrizeCatalogue: CollectionConfig = {
       },
     },
     {
+      name: "requiresVerification",
+      label: "Requires identity verification before dispatch",
+      type: "checkbox",
+      defaultValue: false,
+      index: true,
+      admin: {
+        description:
+          "The winner can still claim immediately — this only gates delivery. Use it for high-value items, not for airtime or points.",
+      },
+    },
+    {
       name: "image",
       type: "upload",
       relationTo: "media",

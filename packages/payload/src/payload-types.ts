@@ -1477,6 +1477,10 @@ export interface PrizeCatalogue {
    * Retail value of one unit. Only required if a giveaway sets a monetary budget cap; otherwise it is for reporting.
    */
   valueNaira?: number | null;
+  /**
+   * The winner can still claim immediately — this only gates delivery. Use it for high-value items, not for airtime or points.
+   */
+  requiresVerification?: boolean | null;
   image?: (string | null) | Media;
   /**
    * Inactive prizes cannot be added to new giveaways. Existing giveaways are unaffected.
@@ -1660,9 +1664,9 @@ export interface GiveawayWinner {
    */
   claimAddress?: string | null;
   /**
-   * Set to On Hold automatically when the winner's account is flagged as suspicious (§22.7, §22.8). The win itself always stands — a review never reruns the draw.
+   * On Hold is set automatically when the winner's account is flagged as suspicious (§22.7, §22.8) — the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.
    */
-  fulfilmentStatus: 'pending' | 'on_hold' | 'in_progress' | 'fulfilled' | 'cancelled';
+  fulfilmentStatus: 'pending' | 'awaiting_verification' | 'on_hold' | 'in_progress' | 'fulfilled' | 'cancelled';
   /**
    * Why this prize was held for review, recorded at selection time.
    */
@@ -3088,6 +3092,7 @@ export interface PrizeCatalogueSelect<T extends boolean = true> {
   fulfilmentType?: T;
   pointsAmount?: T;
   valueNaira?: T;
+  requiresVerification?: T;
   image?: T;
   active?: T;
   createdBy?: T;

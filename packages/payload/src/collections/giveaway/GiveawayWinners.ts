@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 
-import { PRIZE_TIER_OPTIONS } from "./constants";
+import { FULFILMENT_STATUS_OPTIONS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
  * Winner records (spec §12, §13, §21).
@@ -180,16 +180,10 @@ export const GiveawayWinners: CollectionConfig = {
       required: true,
       defaultValue: "pending",
       index: true,
-      options: [
-        { label: "Pending", value: "pending" },
-        { label: "On Hold — manual review", value: "on_hold" },
-        { label: "In Progress", value: "in_progress" },
-        { label: "Fulfilled", value: "fulfilled" },
-        { label: "Cancelled", value: "cancelled" },
-      ],
+      options: [...FULFILMENT_STATUS_OPTIONS],
       admin: {
         description:
-          "Set to On Hold automatically when the winner's account is flagged as suspicious (§22.7, §22.8). The win itself always stands — a review never reruns the draw.",
+          "On Hold is set automatically when the winner's account is flagged as suspicious (§22.7, §22.8) — the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.",
       },
     },
     {

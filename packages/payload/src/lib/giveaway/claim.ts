@@ -3,6 +3,7 @@ import type { BasePayload } from "payload";
 import {
   ADDRESS_FULFILMENT_TYPES,
   CLAIM_WINDOW_DAYS,
+  type FulfilmentStatus,
   type FulfilmentType,
   PHONE_FULFILMENT_TYPES,
 } from "../../collections/giveaway/constants";
@@ -70,18 +71,46 @@ export function claimWindowFor(
 }
 
 /** What the winner must supply for this kind of prize. */
-export function claimRequirements(type: FulfilmentType): {
+export function claimRequirements(
+  type: FulfilmentType,
+  { requiresVerification = false }: { requiresVerification?: boolean } = {}
+): {
   needsPhone: boolean;
   needsAddress: boolean;
+  needsVerification: boolean;
   instant: boolean;
 } {
   return {
     needsPhone: PHONE_FULFILMENT_TYPES.includes(type),
     needsAddress: ADDRESS_FULFILMENT_TYPES.includes(type),
+    needsVerification: requiresVerification,
     // Points are the only prize the platform can settle by itself the instant
-    // it is claimed; everything else waits on a provider or a person.
-    instant: type === "points",
+    // it is claimed; everything else waits on a provider or a person. A prize
+    // gated on verification is never instant, whatever its type.
+    instant: type === "points" && !requiresVerification,
   };
+}
+
+/**
+ * The fulfilment state a prize enters the moment it is claimed.
+ *
+ * Verification deliberately gates delivery, not the claim itself. Claiming is
+ * what stops the fourteen-day clock, so requiring identity first would mean a
+ * winner who cannot finish verification in time loses a prize they legitimately
+ * won. This way the claim is secured immediately and the dispatch waits.
+ */
+export function fulfilmentStateAfterClaim(
+  requirements: ReturnType<typeof claimRequirements>,
+  currentStatus: string | null | undefined
+): FulfilmentStatus | null {
+  // A held prize stays held: releasing it is the administrator's call (§22.8).
+  if (currentStatus === "on_hold") {
+    return null;
+  }
+  if (requirements.needsVerification) {
+    return "awaiting_verification";
+  }
+  return requirements.instant ? "fulfilled" : "pending";
 }
 
 /**

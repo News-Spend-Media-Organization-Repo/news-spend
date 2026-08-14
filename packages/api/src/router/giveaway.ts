@@ -10,6 +10,7 @@ import {
 import {
   claimRequirements,
   claimWindowFor,
+  fulfilmentStateAfterClaim,
   hasLaterGiveaway,
 } from "@news-spend-media/payload/lib/giveaway/claim";
 import { loadDrawHistories } from "@news-spend-media/payload/lib/giveaway/drawHistory";
@@ -597,7 +598,9 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
   const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
   const fulfilmentType = (prizeDoc?.fulfilmentType ??
     "physical") as FulfilmentType;
-  const requirements = claimRequirements(fulfilmentType);
+  const requirements = claimRequirements(fulfilmentType, {
+    requiresVerification: Boolean(prizeDoc?.requiresVerification),
+  });
 
   return {
     id: String(winner.id),
@@ -618,9 +621,15 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
      * must say so rather than promise delivery.
      */
     underReview: winner.fulfilmentStatus === "on_hold",
+    /**
+     * The winner has an identity step left before this can be dispatched.
+     * Distinct from `underReview`, where there is nothing for them to do.
+     */
+    awaitingVerification: winner.fulfilmentStatus === "awaiting_verification",
     needs: {
       phone: requirements.needsPhone,
       address: requirements.needsAddress,
+      verification: requirements.needsVerification,
     },
   };
 }
@@ -722,6 +731,23 @@ async function assertClaimable(
   }
 }
 
+/** What to tell the winner, given where their prize has landed. */
+function claimMessage(
+  next: ReturnType<typeof fulfilmentStateAfterClaim>,
+  pointsAmount: number
+): string {
+  if (next === null) {
+    return "Claimed. This prize is under review and will be released once checks are complete.";
+  }
+  if (next === "awaiting_verification") {
+    return "Claimed and secured. Verify your identity to receive it — there is no rush, your prize is held for you.";
+  }
+  if (next === "fulfilled") {
+    return `Claimed. ${pointsAmount} points have been added to your balance.`;
+  }
+  return "Claimed. We'll be in touch about delivery.";
+}
+
 /** The details this kind of prize cannot be delivered without. */
 function assertDetailsSupplied(
   requirements: ReturnType<typeof claimRequirements>,
@@ -790,12 +816,18 @@ const claimPrize = protectedNoGuestProcedure
     const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
     const fulfilmentType = (prizeDoc?.fulfilmentType ??
       "physical") as FulfilmentType;
-    const requirements = claimRequirements(fulfilmentType);
+    const requirements = claimRequirements(fulfilmentType, {
+      requiresVerification: Boolean(prizeDoc?.requiresVerification),
+    });
 
     assertDetailsSupplied(requirements, input, errors);
 
     const claimedAt = new Date().toISOString();
     const pointsAmount = Number(prizeDoc?.pointsAmount ?? 0);
+    const nextFulfilment = fulfilmentStateAfterClaim(
+      requirements,
+      winner.fulfilmentStatus as string | null
+    );
 
     /**
      * A points prize is settled here and now. The credit is written before the
@@ -821,13 +853,7 @@ const claimPrize = protectedNoGuestProcedure
         claimPhone: input.phoneNumber,
         claimRecipientName: input.recipientName,
         claimAddress: input.shippingAddress,
-        // A held prize stays held: claiming is the winner's act, releasing it
-        // is the administrator's (§22.8).
-        ...(winner.fulfilmentStatus === "on_hold"
-          ? {}
-          : {
-              fulfilmentStatus: requirements.instant ? "fulfilled" : "pending",
-            }),
+        ...(nextFulfilment ? { fulfilmentStatus: nextFulfilment } : {}),
       },
     });
 
@@ -835,14 +861,11 @@ const claimPrize = protectedNoGuestProcedure
       id: String(updated.id),
       claimStatus: "claimed" as const,
       fulfilmentType,
+      fulfilmentStatus: nextFulfilment ?? "on_hold",
       pointsCredited: requirements.instant ? pointsAmount : 0,
       underReview: winner.fulfilmentStatus === "on_hold",
-      message:
-        winner.fulfilmentStatus === "on_hold"
-          ? "Claimed. This prize is under review and will be released once checks are complete."
-          : requirements.instant
-            ? `Claimed. ${pointsAmount} points have been added to your balance.`
-            : "Claimed. We'll be in touch about delivery.",
+      awaitingVerification: nextFulfilment === "awaiting_verification",
+      message: claimMessage(nextFulfilment, pointsAmount),
     };
   });
 

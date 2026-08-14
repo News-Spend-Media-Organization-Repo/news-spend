@@ -25,9 +25,11 @@ import ShopDetails from "#/features/tabs/shop/screens/ShopDetails";
 import SurveyWebView from "#/screens/common/SurveyWebView";
 import NotFound from "#/screens/NotFound";
 import BoostLuck from "#/screens/tabs/discover/BoostLuck";
+import ClaimPrize from "#/screens/tabs/discover/ClaimPrize";
 import GetTicket from "#/screens/tabs/discover/GetTicket";
 import LotteryRules from "#/screens/tabs/discover/LotteryRules";
 import LuckyAppWall from "#/screens/tabs/discover/LuckyAppWall";
+import MyPrizes from "#/screens/tabs/discover/MyPrizes";
 import PlayLottery from "#/screens/tabs/discover/PlayLottery";
 import CommentReplies from "#/screens/tabs/home/comments/CommentReply";
 import Comments from "#/screens/tabs/home/comments/Comments";
@@ -269,6 +271,24 @@ export const sharedScreens = {
     screen: LuckyAppWall,
     linking: {
       path: "lucky-app-wall",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  MyPrizes: createNativeStackScreen({
+    screen: MyPrizes,
+    linking: {
+      path: "my-prizes",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  ClaimPrize: createNativeStackScreen({
+    screen: ClaimPrize,
+    linking: {
+      path: "claim-prize/:winnerId",
     },
     options: {
       headerShown: false,

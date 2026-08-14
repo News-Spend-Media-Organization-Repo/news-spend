@@ -403,3 +403,40 @@ export const ADDRESS_FULFILMENT_TYPES: readonly FulfilmentType[] = ["physical"];
  * successor is running. See `claimWindowClosed`.
  */
 export const CLAIM_WINDOW_DAYS = 14;
+
+/**
+ * Where a prize has got to on its way to the winner.
+ *
+ * `on_hold` and `awaiting_verification` both stop a dispatch, but they mean
+ * opposite things and the app has to say different words for each: on_hold is
+ * *we* are reviewing you (§22.8) and there is nothing to do; awaiting
+ * verification is *you* have a step left.
+ */
+export const FULFILMENT_STATUSES = [
+  "pending",
+  "awaiting_verification",
+  "on_hold",
+  "in_progress",
+  "fulfilled",
+  "cancelled",
+] as const;
+export type FulfilmentStatus = (typeof FULFILMENT_STATUSES)[number];
+
+export const FULFILMENT_STATUS_OPTIONS = [
+  { label: "Pending", value: "pending" },
+  {
+    label: "Awaiting Verification — the winner has a step left",
+    value: "awaiting_verification",
+  },
+  { label: "On Hold — manual review", value: "on_hold" },
+  { label: "In Progress", value: "in_progress" },
+  { label: "Fulfilled", value: "fulfilled" },
+  { label: "Cancelled", value: "cancelled" },
+] as const;
+
+/** Fulfilment states in which nothing is dispatched. */
+export const BLOCKED_FULFILMENT_STATUSES: readonly FulfilmentStatus[] = [
+  "awaiting_verification",
+  "on_hold",
+  "cancelled",
+];

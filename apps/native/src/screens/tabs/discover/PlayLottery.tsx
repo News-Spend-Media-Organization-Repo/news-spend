@@ -167,9 +167,9 @@ const PlayLottery = () => {
         right={
           <Text
             className="text-white"
-            onPress={() => navigation.navigate("LotteryRules")}
+            onPress={() => navigation.navigate("MyPrizes")}
           >
-            Rules
+            My Prizes
           </Text>
         }
         title="Giveaway"
