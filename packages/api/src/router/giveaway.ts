@@ -11,7 +11,8 @@ import {
   claimRequirements,
   claimWindowFor,
   fulfilmentStateAfterClaim,
-  hasLaterGiveaway,
+  isSuperseded,
+  latestGiveawayStart,
 } from "@news-spend-media/payload/lib/giveaway/claim";
 import { loadDrawHistories } from "@news-spend-media/payload/lib/giveaway/drawHistory";
 import {
@@ -640,48 +641,99 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
  * Includes closed and expired ones — a winner who missed a deadline should see
  * that they did, not find the prize silently gone.
  */
-const winnings = protectedProcedure.handler(async ({ context }) => {
-  const { payload, user } = context;
+const WINNINGS_PAGE_SIZE = 20;
 
-  const winners = await payload.find({
-    collection: "giveaway-winners",
-    where: { user: { equals: user.id } },
-    sort: "-selectedAt",
-    pagination: false,
-    depth: 1,
+export const WinningsInput = z.object({
+  page: z.number().int().min(1).max(500).default(1),
+  limit: z.number().int().min(1).max(50).default(WINNINGS_PAGE_SIZE),
+});
+
+/**
+ * Turn a winner row into the shape the app renders, resolving its claim
+ * window against the newest giveaway.
+ */
+function winningFrom(winner: Row, latestStart: string | null) {
+  const giveaway = winner.giveaway as Row | string | null;
+  const giveawayDoc =
+    typeof giveaway === "object" && giveaway !== null ? giveaway : null;
+
+  return toWinning(
+    winner,
+    claimWindowFor(winner, {
+      laterGiveawayExists: isSuperseded(
+        giveawayDoc?.startDate as string | undefined,
+        latestStart
+      ),
+    })
+  );
+}
+
+/**
+ * Every prize this user has won, newest first, a page at a time.
+ *
+ * Paginated because this list only ever grows: a regular player accumulates a
+ * winner row every round they place in, and fetching all of them to render the
+ * first screenful gets slower for exactly the people who use the app most.
+ *
+ * Includes closed and expired prizes — a winner who missed a deadline should
+ * see that they did, not find the prize silently gone.
+ */
+const winnings = protectedProcedure
+  .input(WinningsInput)
+  .handler(async ({ input, context }) => {
+    const { payload, user } = context;
+
+    const [winners, latestStart] = await Promise.all([
+      payload.find({
+        collection: "giveaway-winners",
+        where: { user: { equals: user.id } },
+        sort: "-selectedAt",
+        page: input.page,
+        limit: input.limit,
+        depth: 1,
+      }),
+      latestGiveawayStart(payload),
+    ]);
+
+    return {
+      items: winners.docs.map((winner) =>
+        winningFrom(winner as Row, latestStart)
+      ),
+      page: winners.page ?? input.page,
+      hasMore: Boolean(winners.hasNextPage),
+      totalPrizes: winners.totalDocs ?? 0,
+    };
   });
 
-  // One supersession lookup per giveaway, not per prize.
-  const superseded = new Map<string, boolean>();
-  const rows = [];
+export const WinningInput = z.object({ winnerId: z.string().min(1) });
 
-  for (const winner of winners.docs) {
-    const giveaway = winner.giveaway as Row | string | null;
-    const giveawayDoc =
-      typeof giveaway === "object" && giveaway !== null ? giveaway : null;
-    const giveawayId = String(giveawayDoc?.id ?? giveaway);
+/**
+ * One prize by id.
+ *
+ * The claim screen needs this rather than searching the list: once the list is
+ * paged, a prize deep enough in someone's history is simply not in the page
+ * the app happens to be holding.
+ */
+const winning = protectedProcedure
+  .input(WinningInput)
+  .handler(async ({ input, context, errors }) => {
+    const { payload, user } = context;
 
-    if (!superseded.has(giveawayId)) {
-      superseded.set(
-        giveawayId,
-        giveawayDoc?.startDate
-          ? await hasLaterGiveaway(payload, giveawayDoc.startDate as string)
-          : false
-      );
+    const winner = await payload
+      .findByID({
+        collection: "giveaway-winners",
+        id: input.winnerId,
+        depth: 1,
+      })
+      .catch(() => null);
+
+    // Never leak the existence of someone else's prize.
+    if (!winner || relationId(winner.user) !== user.id) {
+      throw errors.NOT_FOUND({ message: "That prize could not be found." });
     }
 
-    rows.push(
-      toWinning(
-        winner as Row,
-        claimWindowFor(winner as Row, {
-          laterGiveawayExists: superseded.get(giveawayId) ?? false,
-        })
-      )
-    );
-  }
-
-  return rows;
-});
+    return winningFrom(winner as Row, await latestGiveawayStart(payload));
+  });
 
 export const ClaimPrizeInput = z.object({
   winnerId: z.string().min(1),
@@ -721,9 +773,10 @@ async function assertClaimable(
     typeof giveaway === "object" && giveaway !== null ? giveaway : null;
 
   const window = claimWindowFor(winner, {
-    laterGiveawayExists: giveawayDoc?.startDate
-      ? await hasLaterGiveaway(payload, giveawayDoc.startDate as string)
-      : false,
+    laterGiveawayExists: isSuperseded(
+      giveawayDoc?.startDate as string | undefined,
+      await latestGiveawayStart(payload)
+    ),
   });
 
   if (!window.open) {
@@ -875,5 +928,6 @@ export const giveawayRouter = {
   buyTickets,
   recordEngagement,
   winnings,
+  winning,
   claimPrize,
 };

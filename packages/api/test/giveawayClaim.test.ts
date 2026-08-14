@@ -77,11 +77,30 @@ function createContext({
     },
     findByID: async ({ collection, id }: Row) =>
       collections[collection]?.find((row) => row.id === id) ?? null,
-    find: async ({ collection, where }: Row) => {
-      const docs = (collections[collection] ?? []).filter((row) =>
+    find: async ({ collection, where, sort, limit, page }: Row) => {
+      let docs = (collections[collection] ?? []).filter((row) =>
         matchesWhere(row, where)
       );
-      return { docs, totalDocs: docs.length };
+      if (sort) {
+        const desc = sort.startsWith("-");
+        const key = desc ? sort.slice(1) : sort;
+        docs = [...docs].sort((a, b) =>
+          desc
+            ? String(b[key]).localeCompare(String(a[key]))
+            : String(a[key]).localeCompare(String(b[key]))
+        );
+      }
+      const totalDocs = docs.length;
+      const size = limit ?? totalDocs;
+      const current = page ?? 1;
+      const start = (current - 1) * size;
+      docs = docs.slice(start, start + size);
+      return {
+        docs,
+        totalDocs,
+        page: current,
+        hasNextPage: start + size < totalDocs,
+      };
     },
     update: async ({ collection, id, data }: Row) => {
       const row = collections[collection]?.find((item) => item.id === id);
@@ -189,9 +208,11 @@ describe("giveaway.winnings", () => {
       ],
     });
 
-    const rows = await call(giveawayRouter.winnings, undefined, {
-      context: ctx,
-    });
+    const { items: rows } = await call(
+      giveawayRouter.winnings,
+      {},
+      { context: ctx }
+    );
 
     expect(rows.find((r) => r.id === "w1")?.needs).toEqual({
       phone: true,
@@ -221,9 +242,8 @@ describe("giveaway.winnings", () => {
       ],
     });
 
-    const [row] = await call(giveawayRouter.winnings, undefined, {
-      context: ctx,
-    });
+    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
+    const row = items[0];
 
     // A winner who missed the deadline should see that they did, rather than
     // find the prize silently gone.
@@ -236,11 +256,34 @@ describe("giveaway.winnings", () => {
       winners: [winnerRow({ fulfilmentStatus: "on_hold" })],
     });
 
-    const [row] = await call(giveawayRouter.winnings, undefined, {
-      context: ctx,
-    });
+    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
+    const row = items[0];
 
     expect(row?.underReview).toBe(true);
+  });
+
+  it("pages rather than returning every prize at once", async () => {
+    const { ctx } = createContext({
+      winners: Array.from({ length: 25 }, (_, i) =>
+        winnerRow({ id: `w${i}`, prizeName: `Prize ${i}` })
+      ),
+    });
+
+    const first = await call(giveawayRouter.winnings, {}, { context: ctx });
+
+    // A list that only ever grows must not be fetched whole to draw one screen.
+    expect(first.items).toHaveLength(20);
+    expect(first.hasMore).toBe(true);
+    expect(first.totalPrizes).toBe(25);
+
+    const second = await call(
+      giveawayRouter.winnings,
+      { page: 2 },
+      { context: ctx }
+    );
+
+    expect(second.items).toHaveLength(5);
+    expect(second.hasMore).toBe(false);
   });
 
   it("does not list another user's prize", async () => {
@@ -248,9 +291,51 @@ describe("giveaway.winnings", () => {
       winners: [winnerRow({ user: "someone-else" })],
     });
 
-    const rows = await call(giveawayRouter.winnings, undefined, {
-      context: ctx,
+    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
+
+    expect(items).toHaveLength(0);
+  });
+
+  it("fetches one prize by id, without scanning the list", async () => {
+    const { ctx } = createContext({
+      winners: Array.from({ length: 25 }, (_, i) =>
+        winnerRow({ id: `w${i}`, prizeName: `Prize ${i}` })
+      ),
     });
+
+    // Deliberately a prize past the first page — the claim screen has to reach
+    // it even though the app is only holding page one.
+    const row = await call(
+      giveawayRouter.winning,
+      { winnerId: "w24" },
+      { context: ctx }
+    );
+
+    expect(row.prizeName).toBe("Prize 24");
+  });
+
+  it("refuses to fetch another user's prize by id", async () => {
+    const { ctx } = createContext({
+      winners: [winnerRow({ user: "someone-else" })],
+    });
+
+    const error = await captureError(
+      call(giveawayRouter.winning, { winnerId: "w1" }, { context: ctx })
+    );
+
+    expect(error.code).toBe("NOT_FOUND");
+  });
+
+  it("unused placeholder", async () => {
+    const { ctx } = createContext({
+      winners: [winnerRow({ user: "someone-else" })],
+    });
+
+    const { items: rows } = await call(
+      giveawayRouter.winnings,
+      {},
+      { context: ctx }
+    );
 
     expect(rows).toHaveLength(0);
   });
@@ -527,6 +612,91 @@ describe("giveaway.claimPrize (spec §21)", () => {
     // Deliberately NOT_FOUND rather than FORBIDDEN — a stranger's prize should
     // not be confirmed to exist.
     expect(error.code).toBe("NOT_FOUND");
+  });
+});
+
+describe("supersession lookups scale flat", () => {
+  /** Counts reads per collection so query growth is visible to a test. */
+  function countingContext(winners: Row[], giveaways: Row[]) {
+    const base = createContext({ winners, giveaways });
+    const reads: Record<string, number> = {};
+    const original = base.payload.find;
+    base.payload.find = async (args: Row) => {
+      reads[args.collection] = (reads[args.collection] ?? 0) + 1;
+      return original(args);
+    };
+    return { ...base, reads };
+  }
+
+  it("asks about giveaways once, however many prizes are listed", async () => {
+    const giveaways = Array.from({ length: 12 }, (_, i) => ({
+      id: `g${i}`,
+      name: `Round ${i}`,
+      status: "completed",
+      startDate: new Date(Date.now() - (40 - i) * DAY).toISOString(),
+      endDate: new Date(Date.now() - (30 - i) * DAY).toISOString(),
+    }));
+    const winners = giveaways.map((g, i) =>
+      winnerRow({ id: `w${i}`, giveaway: g, prizeName: `Prize ${i}` })
+    );
+
+    const { ctx, reads } = countingContext(winners, giveaways);
+    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
+
+    expect(items).toHaveLength(12);
+    // Twelve prizes across twelve different giveaways still costs one
+    // giveaway lookup — asking for the newest start date answers "has this
+    // been superseded?" for every prize at once.
+    expect(reads.giveaways).toBe(1);
+  });
+
+  it("asks once while expiring a batch too", async () => {
+    const giveaways = Array.from({ length: 8 }, (_, i) => ({
+      id: `g${i}`,
+      name: `Round ${i}`,
+      status: "completed",
+      startDate: new Date(Date.now() - (60 - i) * DAY).toISOString(),
+      endDate: new Date(Date.now() - (50 - i) * DAY).toISOString(),
+    }));
+    const stale = new Date(Date.now() - 40 * DAY).toISOString();
+    const winners = giveaways.map((g, i) =>
+      winnerRow({
+        id: `w${i}`,
+        giveaway: g,
+        selectedAt: stale,
+        claimDeadline: claimDeadlineFor(stale),
+      })
+    );
+
+    const { payload, reads } = countingContext(winners, giveaways);
+    const expired = await expireLapsedClaims(payload);
+
+    expect(expired).toBe(8);
+    expect(reads.giveaways).toBe(1);
+  });
+
+  it("expires at most one batch per pass", async () => {
+    const stale = new Date(Date.now() - 40 * DAY).toISOString();
+    const { payload, collections } = createContext({
+      winners: Array.from({ length: 30 }, (_, i) =>
+        winnerRow({
+          id: `w${i}`,
+          selectedAt: stale,
+          claimDeadline: claimDeadlineFor(stale),
+        })
+      ),
+    });
+
+    // An unbounded sweep would grow with the platform forever. Whatever is
+    // left over is picked up on the next hourly pass.
+    expect(await expireLapsedClaims(payload, { limit: 10 })).toBe(10);
+    expect(
+      collections["giveaway-winners"]?.filter(
+        (w) => w.claimStatus === "expired"
+      )
+    ).toHaveLength(10);
+
+    expect(await expireLapsedClaims(payload, { limit: 10 })).toBe(10);
   });
 });
 

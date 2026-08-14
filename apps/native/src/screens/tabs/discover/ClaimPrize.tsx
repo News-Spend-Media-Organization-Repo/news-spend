@@ -39,15 +39,28 @@ const ClaimPrize = () => {
     mode: "onChange",
   });
 
-  const { data, isPending } = useQuery(orpc.giveaway.winnings.queryOptions());
-
-  const prize = (data ?? []).find((row) => row.id === winnerId);
+  /**
+   * Fetched by id rather than found in the list. Once the list is paged, a
+   * prize far enough back in someone's history simply is not in the page the
+   * app happens to be holding.
+   */
+  const { data: prize, isPending } = useQuery(
+    orpc.giveaway.winning.queryOptions({
+      input: { winnerId: winnerId ?? "" },
+      enabled: Boolean(winnerId),
+    })
+  );
 
   const claim = useMutation(
     orpc.giveaway.claimPrize.mutationOptions({
       onSuccess: (result) => {
         toast.success("Prize claimed!", { description: result.message });
-        queryClient.invalidateQueries(orpc.giveaway.winnings.queryOptions());
+        queryClient.invalidateQueries({
+          queryKey: orpc.giveaway.winnings.key(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.giveaway.winning.key(),
+        });
 
         if (result.pointsCredited > 0) {
           queryClient.invalidateQueries(
@@ -67,7 +80,12 @@ const ClaimPrize = () => {
         // giveaway starting is enough to do it — so the list has to be
         // refetched rather than left showing a claim button that cannot work.
         if (isInferableError(error) && error.code === "CONFLICT") {
-          queryClient.invalidateQueries(orpc.giveaway.winnings.queryOptions());
+          queryClient.invalidateQueries({
+            queryKey: orpc.giveaway.winnings.key(),
+          });
+          queryClient.invalidateQueries({
+            queryKey: orpc.giveaway.winning.key(),
+          });
         }
         toast.error(
           isInferableError(error)

@@ -114,50 +114,84 @@ export function fulfilmentStateAfterClaim(
 }
 
 /**
- * Whether any giveaway has started after the one a prize came from.
+ * When the most recent giveaway started, or null if none has.
  *
  * "Started" means it exists and has left `draft` — an active giveaway has
  * superseded its predecessor even if its own draw has not run yet.
+ *
+ * This replaces a per-prize "is there anything later than me?" query. Asking
+ * once for the newest start date answers that question for every prize at the
+ * same time, so a list of any length costs one lookup rather than one per
+ * giveaway the reader has ever won in.
  */
-export async function hasLaterGiveaway(
-  payload: BasePayload,
-  giveawayStartDate: string
-): Promise<boolean> {
-  const later = await payload.find({
+export async function latestGiveawayStart(
+  payload: BasePayload
+): Promise<string | null> {
+  const latest = await payload.find({
     collection: "giveaways",
     where: {
       and: [
-        { startDate: { greater_than: giveawayStartDate } },
         { status: { not_equals: "draft" } },
         { status: { not_equals: "cancelled" } },
       ],
     },
+    sort: "-startDate",
     limit: 1,
     pagination: false,
     depth: 0,
   });
 
-  return later.docs.length > 0;
+  return (latest.docs[0]?.startDate as string | undefined) ?? null;
 }
 
+/** Whether a prize's giveaway has been superseded by a later one. */
+export function isSuperseded(
+  giveawayStartDate: string | null | undefined,
+  latestStart: string | null
+): boolean {
+  if (!(giveawayStartDate && latestStart)) {
+    return false;
+  }
+  return (
+    new Date(latestStart).getTime() > new Date(giveawayStartDate).getTime()
+  );
+}
+
+/** How many winners one `expireLapsedClaims` pass will look at. */
+const EXPIRY_BATCH_SIZE = 200;
+
 /**
- * Mark every unclaimed prize whose window has closed as `expired` (§21).
+ * Mark unclaimed prizes whose window has closed as `expired` (§21).
  *
  * Runs from the scheduled task. Expiry is deliberately a stored state rather
  * than something derived on read: an expired prize is a business event that
  * reports and fulfilment both need to see, and deriving it would mean every
  * reader reimplementing the same two rules.
  *
+ * Bounded to a batch per pass. A round can produce hundreds of winners, and an
+ * unbounded sweep would grow with the platform forever while holding every row
+ * in memory. Running hourly, a batch of this size clears far more than a round
+ * can generate, and anything left over is simply picked up an hour later.
+ *
+ * Both lookups it needs — the newest giveaway, and the start dates of the
+ * giveaways involved — are fetched once up front, so the cost does not scale
+ * with the number of winners.
+ *
  * Fulfilment is cancelled alongside the claim, because an unclaimed prize that
  * has expired must not still be sitting in someone's dispatch queue.
  */
 export async function expireLapsedClaims(
   payload: BasePayload,
-  { now = new Date() }: { now?: Date } = {}
+  {
+    now = new Date(),
+    limit = EXPIRY_BATCH_SIZE,
+  }: { now?: Date; limit?: number } = {}
 ): Promise<number> {
   const unclaimed = await payload.find({
     collection: "giveaway-winners",
     where: { claimStatus: { equals: "unclaimed" } },
+    sort: "selectedAt",
+    limit,
     pagination: false,
     depth: 1,
   });
@@ -166,31 +200,18 @@ export async function expireLapsedClaims(
     return 0;
   }
 
-  // One lookup per giveaway rather than per winner.
-  const supersededByGiveaway = new Map<string, boolean>();
+  const latestStart = await latestGiveawayStart(payload);
   let expired = 0;
 
   for (const winner of unclaimed.docs) {
     const giveaway = winner.giveaway;
-    const giveawayId =
+    const startDate =
       typeof giveaway === "object" && giveaway !== null
-        ? String(giveaway.id)
-        : String(giveaway);
-
-    if (!supersededByGiveaway.has(giveawayId)) {
-      const startDate =
-        typeof giveaway === "object" && giveaway !== null
-          ? (giveaway.startDate as string)
-          : null;
-
-      supersededByGiveaway.set(
-        giveawayId,
-        startDate ? await hasLaterGiveaway(payload, startDate) : false
-      );
-    }
+        ? (giveaway.startDate as string)
+        : null;
 
     const window = claimWindowFor(winner, {
-      laterGiveawayExists: supersededByGiveaway.get(giveawayId) ?? false,
+      laterGiveawayExists: isSuperseded(startDate, latestStart),
       now,
     });
 

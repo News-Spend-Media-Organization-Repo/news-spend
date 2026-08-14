@@ -1,12 +1,12 @@
 import { useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Card, PressableFeedback } from "heroui-native";
 import { GiftIcon } from "phosphor-react-native";
 import {
   ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   View,
 } from "react-native";
 
@@ -87,78 +87,113 @@ const TONE_CLASS: Record<string, string> = {
  */
 const MyPrizes = () => {
   const navigation = useNavigation("MyPrizes");
-  const { data, isPending, refetch, isRefetching } = useQuery(
-    orpc.giveaway.winnings.queryOptions()
+
+  /**
+   * Paged rather than fetched whole. This list only grows — a regular player
+   * gains a row every round they place in — so loading all of it to render the
+   * first screenful would get slowest for the people who play most.
+   */
+  const {
+    data,
+    isPending,
+    refetch,
+    isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery(
+    orpc.giveaway.winnings.infiniteOptions({
+      input: (page: number | undefined) => ({ page: page ?? 1 }),
+      initialPageParam: 1,
+      getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+    })
   );
 
-  const prizes = (data ?? []) as Winning[];
+  const prizes = (data?.pages.flatMap((p) => p.items) ?? []) as Winning[];
+
+  if (isPending) {
+    return (
+      <Screen>
+        <ScreenHeader title="My Prizes" />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
       <ScreenHeader title="My Prizes" />
 
-      {isPending ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerClassName="gap-3 px-4 pb-8"
-          refreshControl={
-            <RefreshControl onRefresh={refetch} refreshing={isRefetching} />
-          }
-        >
-          {prizes.length === 0 && (
-            <View className="items-center gap-2 px-6 py-16">
-              <Icon color="#94a3b8" name={GiftIcon} size={40} />
-              <Text className="text-center font-semibold text-lg">
-                No prizes yet
-              </Text>
-              <Text className="text-center text-subtle-text">
-                Buy a ticket to enter the current giveaway. Anything you win
-                will appear here.
-              </Text>
+      <FlatList
+        contentContainerClassName="gap-3 px-4 pb-8"
+        data={prizes}
+        keyExtractor={(prize) => prize.id}
+        ListEmptyComponent={
+          <View className="items-center gap-2 px-6 py-16">
+            <Icon color="#94a3b8" name={GiftIcon} size={40} />
+            <Text className="text-center font-semibold text-lg">
+              No prizes yet
+            </Text>
+            <Text className="text-center text-subtle-text">
+              Buy a ticket to enter the current giveaway. Anything you win will
+              appear here.
+            </Text>
+          </View>
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View className="py-4">
+              <ActivityIndicator />
             </View>
-          )}
+          ) : null
+        }
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.4}
+        refreshControl={
+          <RefreshControl onRefresh={refetch} refreshing={isRefetching} />
+        }
+        renderItem={({ item: prize }) => {
+          const status = statusLine(prize);
+          const actionable = prize.claimable || prize.awaitingVerification;
 
-          {prizes.map((prize) => {
-            const status = statusLine(prize);
-            const actionable = prize.claimable || prize.awaitingVerification;
-
-            return (
-              <PressableFeedback
-                key={prize.id}
-                onPress={() => {
-                  if (!actionable) {
-                    return;
-                  }
-                  navigation.navigate("ClaimPrize", { winnerId: prize.id });
-                }}
-              >
-                <Card className={actionable ? "" : "opacity-60"}>
-                  <Card.Body className="gap-1">
-                    <View className="flex-row items-center justify-between gap-2">
-                      <Text className="flex-1 font-semibold text-base">
-                        {prize.prizeName}
-                      </Text>
-                      {prize.claimable && (
-                        <View className="rounded-full bg-p-500 px-2.5 py-0.5">
-                          <Text className="font-semibold text-white text-xs">
-                            Claim
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text className={`text-sm ${TONE_CLASS[status.tone]}`}>
-                      {status.label}
+          return (
+            <PressableFeedback
+              onPress={() => {
+                if (!actionable) {
+                  return;
+                }
+                navigation.navigate("ClaimPrize", { winnerId: prize.id });
+              }}
+            >
+              <Card className={actionable ? "" : "opacity-60"}>
+                <Card.Body className="gap-1">
+                  <View className="flex-row items-center justify-between gap-2">
+                    <Text className="flex-1 font-semibold text-base">
+                      {prize.prizeName}
                     </Text>
-                  </Card.Body>
-                </Card>
-              </PressableFeedback>
-            );
-          })}
-        </ScrollView>
-      )}
+                    {prize.claimable && (
+                      <View className="rounded-full bg-p-500 px-2.5 py-0.5">
+                        <Text className="font-semibold text-white text-xs">
+                          Claim
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text className={`text-sm ${TONE_CLASS[status.tone]}`}>
+                    {status.label}
+                  </Text>
+                </Card.Body>
+              </Card>
+            </PressableFeedback>
+          );
+        }}
+      />
     </Screen>
   );
 };
