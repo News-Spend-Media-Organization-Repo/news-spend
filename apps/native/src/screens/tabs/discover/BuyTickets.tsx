@@ -2,7 +2,7 @@ import { isInferableError } from "@orpc/client";
 import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
-import { Card, PressableFeedback } from "heroui-native";
+import { Card, cn, PressableFeedback } from "heroui-native";
 import { MinusCircleIcon, PlusCircleIcon } from "phosphor-react-native";
 import { useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
@@ -86,7 +86,10 @@ function TierProgress({
           <View className="flex-row flex-wrap gap-x-4 gap-y-1">
             {parts.map((p) => (
               <Text
-                className={`text-xs ${p.has >= p.needs ? "text-green-600" : "text-subtle-text"}`}
+                className={cn(
+                  "text-xs",
+                  p.has >= p.needs ? "text-green-600" : "text-subtle-text"
+                )}
                 key={p.label}
               >
                 {Math.min(p.has, p.needs)}/{p.needs} {p.label}
@@ -171,7 +174,10 @@ function PurchaseCard({
         <View className="items-center gap-0.5">
           <Text className="font-semibold">{cost} points</Text>
           <Text
-            className={`text-xs ${canAfford ? "text-subtle-text" : "text-danger"}`}
+            className={cn(
+              "text-xs",
+              canAfford ? "text-subtle-text" : "text-danger"
+            )}
           >
             You have {balance} points
           </Text>

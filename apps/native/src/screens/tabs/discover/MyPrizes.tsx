@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { Card, PressableFeedback } from "heroui-native";
+import { Card, cn, PressableFeedback } from "heroui-native";
 import { GiftIcon } from "phosphor-react-native";
 import {
   ActivityIndicator,
@@ -96,15 +96,14 @@ function PrizeCard({
 
   return (
     <PressableFeedback onPress={actionable ? onPress : undefined}>
-      <Card className={actionable ? "" : "opacity-60"}>
-        <Card.Body className={compact ? "gap-0.5 py-2.5" : "gap-1"}>
+      <Card className={cn(!actionable && "opacity-60")}>
+        <Card.Body className={cn("gap-1", compact && "gap-0.5 py-2.5")}>
           <View className="flex-row items-center justify-between gap-2">
             <Text
-              className={
-                compact
-                  ? "flex-1 font-medium text-sm"
-                  : "flex-1 font-semibold text-base"
-              }
+              className={cn(
+                "flex-1 font-semibold text-base",
+                compact && "font-medium text-sm"
+              )}
             >
               {prize.prizeName}
             </Text>
@@ -115,7 +114,11 @@ function PrizeCard({
             )}
           </View>
           <Text
-            className={`${compact ? "text-xs" : "text-sm"} ${TONE_CLASS[status.tone]}`}
+            className={cn(
+              "text-sm",
+              compact && "text-xs",
+              TONE_CLASS[status.tone]
+            )}
           >
             {status.label}
           </Text>
