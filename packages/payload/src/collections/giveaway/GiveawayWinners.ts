@@ -143,7 +143,35 @@ export const GiveawayWinners: CollectionConfig = {
       type: "date",
       admin: {
         position: "sidebar",
+        readOnly: true,
         date: { pickerAppearance: "dayAndTime" },
+        description:
+          "14 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.",
+      },
+    },
+    {
+      name: "claimPhone",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description:
+          "Number the winner nominated for airtime or data, captured at claim time.",
+      },
+    },
+    {
+      name: "claimRecipientName",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description: "Who the courier should hand a physical prize to.",
+      },
+    },
+    {
+      name: "claimAddress",
+      type: "textarea",
+      admin: {
+        readOnly: true,
+        description: "Delivery address, captured at claim time.",
       },
     },
     {

@@ -13,6 +13,7 @@ import {
   TIER_PROCESSING_ORDER,
 } from "../../collections/giveaway/constants";
 import type { Giveaway } from "../../payload-types";
+import { claimDeadlineFor } from "./claim";
 import { loadDrawHistories } from "./drawHistory";
 import {
   evaluateEligibility,
@@ -1610,6 +1611,7 @@ export class GiveawayEngine {
         boostCount: 0,
         featuredOfferCount: 0,
         selectedAt: new Date().toISOString(),
+        claimDeadline: claimDeadlineFor(new Date()),
         claimStatus: "unclaimed",
         fulfilmentStatus: "pending",
         replaces: winnerId,
@@ -1719,6 +1721,7 @@ export class GiveawayEngine {
         boostCount: participation?.boosts ?? 0,
         featuredOfferCount: participation?.featuredOffers ?? 0,
         selectedAt: new Date().toISOString(),
+        claimDeadline: claimDeadlineFor(new Date()),
         claimStatus: "unclaimed",
         // A flagged account still wins — only the payout waits (§22.8).
         fulfilmentStatus: heldForReview ? "on_hold" : "pending",

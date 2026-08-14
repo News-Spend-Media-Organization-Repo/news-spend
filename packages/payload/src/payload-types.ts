@@ -1466,6 +1466,14 @@ export interface PrizeCatalogue {
   tier: 'tier1' | 'tier2' | 'tier3';
   description?: string | null;
   /**
+   * Drives the whole claim flow: what the app asks the winner for, and whether fulfilment is automatic or arranged by hand.
+   */
+  fulfilmentType: 'points' | 'airtime' | 'data' | 'gift_card' | 'physical' | 'experience';
+  /**
+   * Credited to the winner the moment they claim. Required for a points prize.
+   */
+  pointsAmount?: number | null;
+  /**
    * Retail value of one unit. Only required if a giveaway sets a monetary budget cap; otherwise it is for reporting.
    */
   valueNaira?: number | null;
@@ -1635,7 +1643,22 @@ export interface GiveawayWinner {
   selectedAt: string;
   claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited' | 'disqualified';
   claimedAt?: string | null;
+  /**
+   * 14 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
+   */
   claimDeadline?: string | null;
+  /**
+   * Number the winner nominated for airtime or data, captured at claim time.
+   */
+  claimPhone?: string | null;
+  /**
+   * Who the courier should hand a physical prize to.
+   */
+  claimRecipientName?: string | null;
+  /**
+   * Delivery address, captured at claim time.
+   */
+  claimAddress?: string | null;
   /**
    * Set to On Hold automatically when the winner's account is flagged as suspicious (§22.7, §22.8). The win itself always stands — a review never reruns the draw.
    */
@@ -3040,6 +3063,9 @@ export interface GiveawayWinnersSelect<T extends boolean = true> {
   claimStatus?: T;
   claimedAt?: T;
   claimDeadline?: T;
+  claimPhone?: T;
+  claimRecipientName?: T;
+  claimAddress?: T;
   fulfilmentStatus?: T;
   reviewNote?: T;
   fulfilledAt?: T;
@@ -3059,6 +3085,8 @@ export interface PrizeCatalogueSelect<T extends boolean = true> {
   name?: T;
   tier?: T;
   description?: T;
+  fulfilmentType?: T;
+  pointsAmount?: T;
   valueNaira?: T;
   image?: T;
   active?: T;
@@ -3961,6 +3989,7 @@ export interface TaskProcessGiveaway {
   input?: unknown;
   output: {
     drawn?: number | null;
+    claimsExpired?: number | null;
     reportsRetried?: number | null;
     reportsSent?: number | null;
   };

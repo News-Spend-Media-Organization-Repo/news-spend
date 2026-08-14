@@ -253,7 +253,9 @@ describe("processGiveaway task", () => {
     expect(output.reportsRetried).toBe(1);
     // No mail provider is configured in a test, so the send fails again — the
     // point is that the task picked it up and did not throw.
-    expect(collections["giveaway-report-deliveries"]?.[0]?.status).toBe("failed");
+    expect(collections["giveaway-report-deliveries"]?.[0]?.status).toBe(
+      "failed"
+    );
   });
 
   it("reports nothing to do on an idle run", async () => {
@@ -261,6 +263,11 @@ describe("processGiveaway task", () => {
 
     const { output } = await runTask(payload);
 
-    expect(output).toEqual({ drawn: 0, reportsRetried: 0, reportsSent: 0 });
+    expect(output).toEqual({
+      drawn: 0,
+      claimsExpired: 0,
+      reportsRetried: 0,
+      reportsSent: 0,
+    });
   });
 });

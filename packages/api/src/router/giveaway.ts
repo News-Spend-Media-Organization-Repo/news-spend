@@ -2,10 +2,16 @@ import {
   CONSECUTIVE_ELIGIBILITY,
   CONSECUTIVE_GIVEAWAYS_REQUIRED,
   type EngagementType,
+  type FulfilmentType,
   PRIMARY_ELIGIBILITY,
   PRIZE_TIERS,
   type PrizeTier,
 } from "@news-spend-media/payload/collections/giveaway";
+import {
+  claimRequirements,
+  claimWindowFor,
+  hasLaterGiveaway,
+} from "@news-spend-media/payload/lib/giveaway/claim";
 import { loadDrawHistories } from "@news-spend-media/payload/lib/giveaway/drawHistory";
 import {
   evaluateEligibility,
@@ -37,6 +43,19 @@ import { createRateLimitMiddleware } from "../lib/ratelimit";
  * value is worth rejecting outright rather than reasoning about.
  */
 const MAX_TICKETS_PER_PURCHASE = 1000;
+
+type Row = Record<string, any>;
+
+/** Normalise a Payload relationship value to a comparable id. */
+function relationId(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "object" && "id" in value) {
+    return String((value as { id: unknown }).id);
+  }
+  return String(value);
+}
 
 /**
  * Which app surfaces produce which kind of engagement (spec §7, §8).
@@ -71,9 +90,24 @@ const purchaseRateLimit = createRateLimitMiddleware({
   window: 60_000,
 });
 
+/**
+ * Claiming gets its own budget. It shares nothing with buying: a winner
+ * claiming three prizes in a row must not be throttled because they also
+ * bought tickets a moment earlier, and the two have quite different natural
+ * rates.
+ */
+const claimRateLimit = createRateLimitMiddleware({
+  maxRequests: 20,
+  window: 60_000,
+});
+
 type ErrorFactory = {
   NOT_FOUND: (args: { message: string }) => Error;
   CONFLICT: (args: { message: string }) => Error;
+};
+
+type ClaimErrorFactory = ErrorFactory & {
+  BAD_REQUEST: (args: { message: string }) => Error;
 };
 
 /**
@@ -555,9 +589,268 @@ const recordEngagement = protectedNoGuestProcedure
     };
   });
 
+// --- Claiming prizes (spec §21) ---
+
+/** Shape one winner row for the app, with everything the claim screen needs. */
+function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
+  const prize = winner.prize as Row | string | null;
+  const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
+  const fulfilmentType = (prizeDoc?.fulfilmentType ??
+    "physical") as FulfilmentType;
+  const requirements = claimRequirements(fulfilmentType);
+
+  return {
+    id: String(winner.id),
+    tier: winner.tier as string,
+    prizeName: String(winner.prizeName ?? ""),
+    prizeImage: prizeDoc?.image ?? null,
+    fulfilmentType,
+    claimStatus: winner.claimStatus as string,
+    fulfilmentStatus: winner.fulfilmentStatus as string,
+    claimDeadline: (winner.claimDeadline as string | null) ?? null,
+    selectedAt: (winner.selectedAt as string | null) ?? null,
+    /** True only when the user can act on it right now. */
+    claimable: winner.claimStatus === "unclaimed" && window.open,
+    closedReason: window.open ? null : window.reason,
+    closedMessage: window.open ? null : window.message,
+    /**
+     * §22.7/§22.8 — the win stands, but the payout waits on a review. The app
+     * must say so rather than promise delivery.
+     */
+    underReview: winner.fulfilmentStatus === "on_hold",
+    needs: {
+      phone: requirements.needsPhone,
+      address: requirements.needsAddress,
+    },
+  };
+}
+
+/**
+ * Every prize this user has won, newest first.
+ *
+ * Includes closed and expired ones — a winner who missed a deadline should see
+ * that they did, not find the prize silently gone.
+ */
+const winnings = protectedProcedure.handler(async ({ context }) => {
+  const { payload, user } = context;
+
+  const winners = await payload.find({
+    collection: "giveaway-winners",
+    where: { user: { equals: user.id } },
+    sort: "-selectedAt",
+    pagination: false,
+    depth: 1,
+  });
+
+  // One supersession lookup per giveaway, not per prize.
+  const superseded = new Map<string, boolean>();
+  const rows = [];
+
+  for (const winner of winners.docs) {
+    const giveaway = winner.giveaway as Row | string | null;
+    const giveawayDoc =
+      typeof giveaway === "object" && giveaway !== null ? giveaway : null;
+    const giveawayId = String(giveawayDoc?.id ?? giveaway);
+
+    if (!superseded.has(giveawayId)) {
+      superseded.set(
+        giveawayId,
+        giveawayDoc?.startDate
+          ? await hasLaterGiveaway(payload, giveawayDoc.startDate as string)
+          : false
+      );
+    }
+
+    rows.push(
+      toWinning(
+        winner as Row,
+        claimWindowFor(winner as Row, {
+          laterGiveawayExists: superseded.get(giveawayId) ?? false,
+        })
+      )
+    );
+  }
+
+  return rows;
+});
+
+export const ClaimPrizeInput = z.object({
+  winnerId: z.string().min(1),
+  /** Required for airtime and data. */
+  phoneNumber: z
+    .string()
+    .trim()
+    .min(7, "That does not look like a phone number.")
+    .max(20)
+    .optional(),
+  /** Required for physical prizes. */
+  recipientName: z.string().trim().min(2).max(120).optional(),
+  shippingAddress: z.string().trim().min(10).max(500).optional(),
+});
+
+/**
+ * Everything that can stop a claim before details are even collected: the
+ * prize's own status, and whether its window is still open.
+ */
+async function assertClaimable(
+  payload: BasePayload,
+  winner: Row,
+  errors: ClaimErrorFactory
+) {
+  if (winner.claimStatus === "claimed") {
+    throw errors.CONFLICT({ message: "You have already claimed this prize." });
+  }
+
+  if (winner.claimStatus !== "unclaimed") {
+    throw errors.CONFLICT({
+      message: `This prize can no longer be claimed (${winner.claimStatus}).`,
+    });
+  }
+
+  const giveaway = winner.giveaway as Row | string | null;
+  const giveawayDoc =
+    typeof giveaway === "object" && giveaway !== null ? giveaway : null;
+
+  const window = claimWindowFor(winner, {
+    laterGiveawayExists: giveawayDoc?.startDate
+      ? await hasLaterGiveaway(payload, giveawayDoc.startDate as string)
+      : false,
+  });
+
+  if (!window.open) {
+    throw errors.CONFLICT({ message: window.message });
+  }
+}
+
+/** The details this kind of prize cannot be delivered without. */
+function assertDetailsSupplied(
+  requirements: ReturnType<typeof claimRequirements>,
+  input: {
+    phoneNumber?: string;
+    shippingAddress?: string;
+    recipientName?: string;
+  },
+  errors: ClaimErrorFactory
+) {
+  if (requirements.needsPhone && !input.phoneNumber) {
+    throw errors.BAD_REQUEST({
+      message: "A phone number is needed to send this prize.",
+    });
+  }
+
+  if (
+    requirements.needsAddress &&
+    !(input.shippingAddress && input.recipientName)
+  ) {
+    throw errors.BAD_REQUEST({
+      message: "A delivery address and recipient name are needed.",
+    });
+  }
+}
+
+/**
+ * Claim a prize (spec §21).
+ *
+ * What the winner has to supply depends entirely on how the prize is
+ * delivered, which is why the catalogue carries a fulfilment type: airtime
+ * needs a number, a refrigerator needs an address, and points need nothing at
+ * all because the account is already the destination.
+ *
+ * Points settle immediately — the credit and the claim are written together,
+ * so there is no window in which a prize reads as claimed but unpaid.
+ * Everything else moves to `pending` for a provider or a person to fulfil.
+ */
+const claimPrize = protectedNoGuestProcedure
+  .use(claimRateLimit)
+  .input(ClaimPrizeInput)
+  .handler(async ({ input, context, errors }) => {
+    const { payload, user } = context;
+
+    const winner = await payload
+      .findByID({
+        collection: "giveaway-winners",
+        id: input.winnerId,
+        depth: 1,
+      })
+      .catch(() => null);
+
+    if (!winner) {
+      throw errors.NOT_FOUND({ message: "That prize could not be found." });
+    }
+
+    // Never leak the existence of someone else's prize.
+    const ownerId = relationId(winner.user);
+    if (ownerId !== user.id) {
+      throw errors.NOT_FOUND({ message: "That prize could not be found." });
+    }
+
+    await assertClaimable(payload, winner as Row, errors);
+
+    const prize = winner.prize as Row | string | null;
+    const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
+    const fulfilmentType = (prizeDoc?.fulfilmentType ??
+      "physical") as FulfilmentType;
+    const requirements = claimRequirements(fulfilmentType);
+
+    assertDetailsSupplied(requirements, input, errors);
+
+    const claimedAt = new Date().toISOString();
+    const pointsAmount = Number(prizeDoc?.pointsAmount ?? 0);
+
+    /**
+     * A points prize is settled here and now. The credit is written before the
+     * claim is recorded, so a failure leaves the prize unclaimed and
+     * retryable — the reverse order would mark it claimed with nothing paid.
+     */
+    if (requirements.instant && pointsAmount > 0) {
+      await payload.db.drizzle.insert(activities).values({
+        user: user.id,
+        type: "point",
+        action: "lottery",
+        point: pointsAmount,
+        description: `Giveaway prize — ${winner.prizeName}`,
+      });
+    }
+
+    const updated = await payload.update({
+      collection: "giveaway-winners",
+      id: winner.id,
+      data: {
+        claimStatus: "claimed",
+        claimedAt,
+        claimPhone: input.phoneNumber,
+        claimRecipientName: input.recipientName,
+        claimAddress: input.shippingAddress,
+        // A held prize stays held: claiming is the winner's act, releasing it
+        // is the administrator's (§22.8).
+        ...(winner.fulfilmentStatus === "on_hold"
+          ? {}
+          : {
+              fulfilmentStatus: requirements.instant ? "fulfilled" : "pending",
+            }),
+      },
+    });
+
+    return {
+      id: String(updated.id),
+      claimStatus: "claimed" as const,
+      fulfilmentType,
+      pointsCredited: requirements.instant ? pointsAmount : 0,
+      underReview: winner.fulfilmentStatus === "on_hold",
+      message:
+        winner.fulfilmentStatus === "on_hold"
+          ? "Claimed. This prize is under review and will be released once checks are complete."
+          : requirements.instant
+            ? `Claimed. ${pointsAmount} points have been added to your balance.`
+            : "Claimed. We'll be in touch about delivery.",
+    };
+  });
+
 export const giveawayRouter = {
   current,
   progress,
   buyTickets,
   recordEngagement,
+  winnings,
+  claimPrize,
 };

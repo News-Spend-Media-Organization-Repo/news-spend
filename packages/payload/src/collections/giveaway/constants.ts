@@ -358,3 +358,48 @@ export const AUDIT_EVENT_TYPE_OPTIONS = AUDIT_EVENT_TYPES.map((value) => ({
 }));
 
 export const WINNER_REPORT_RECIPIENT = "reward@newsspend.com";
+
+/**
+ * How a prize actually reaches its winner.
+ *
+ * The claim flow branches entirely on this: points land instantly, airtime and
+ * data go to a phone number, physical goods need an address, and experiences
+ * are arranged by hand. Without it the app cannot tell a ₦500 airtime top-up
+ * from a refrigerator, and both would have to ask for the same details.
+ */
+export const FULFILMENT_TYPES = [
+  "points",
+  "airtime",
+  "data",
+  "gift_card",
+  "physical",
+  "experience",
+] as const;
+export type FulfilmentType = (typeof FULFILMENT_TYPES)[number];
+
+export const FULFILMENT_TYPE_OPTIONS = [
+  { label: "Reward Points — credited instantly", value: "points" },
+  { label: "Airtime — sent to a phone number", value: "airtime" },
+  { label: "Data — sent to a phone number", value: "data" },
+  { label: "Gift Card — code issued to the winner", value: "gift_card" },
+  { label: "Physical Item — delivered to an address", value: "physical" },
+  { label: "Experience / Voucher — arranged manually", value: "experience" },
+] as const;
+
+/** Fulfilment types that need a phone number from the winner. */
+export const PHONE_FULFILMENT_TYPES: readonly FulfilmentType[] = [
+  "airtime",
+  "data",
+];
+
+/** Fulfilment types that need a delivery address. */
+export const ADDRESS_FULFILMENT_TYPES: readonly FulfilmentType[] = ["physical"];
+
+/**
+ * How long a winner has to claim (§21, settled with the app owner).
+ *
+ * The window also closes the moment the next giveaway starts, whichever comes
+ * first — a prize from a giveaway that is over cannot be claimed once its
+ * successor is running. See `claimWindowClosed`.
+ */
+export const CLAIM_WINDOW_DAYS = 14;

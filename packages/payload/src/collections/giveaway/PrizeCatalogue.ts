@@ -1,6 +1,6 @@
 import { type CollectionConfig, ValidationError } from "payload";
 
-import { PRIZE_TIER_OPTIONS } from "./constants";
+import { FULFILMENT_TYPE_OPTIONS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
  * Master Prize Catalogue (spec §2).
@@ -109,6 +109,42 @@ export const PrizeCatalogue: CollectionConfig = {
     {
       name: "description",
       type: "textarea",
+    },
+    {
+      name: "fulfilmentType",
+      label: "How is this delivered?",
+      type: "select",
+      required: true,
+      index: true,
+      defaultValue: "physical",
+      options: [...FULFILMENT_TYPE_OPTIONS],
+      admin: {
+        description:
+          "Drives the whole claim flow: what the app asks the winner for, and whether fulfilment is automatic or arranged by hand.",
+      },
+    },
+    {
+      name: "pointsAmount",
+      label: "Points awarded",
+      type: "number",
+      min: 1,
+      admin: {
+        condition: (data) => data?.fulfilmentType === "points",
+        description:
+          "Credited to the winner the moment they claim. Required for a points prize.",
+      },
+      validate: (value: number | null | undefined, { siblingData }: any) => {
+        if (siblingData?.fulfilmentType !== "points") {
+          return true;
+        }
+        if (value === null || value === undefined) {
+          return "A points prize needs an amount.";
+        }
+        if (!Number.isInteger(value) || value < 1) {
+          return "Must be a whole number of at least 1.";
+        }
+        return true;
+      },
     },
     {
       name: "valueNaira",
