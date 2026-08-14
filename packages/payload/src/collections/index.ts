@@ -11,6 +11,7 @@ export {
   GiveawayAuditLog,
   GiveawayDrawAttempts,
   GiveawayEngagements,
+  GiveawayFulfilmentAttempts,
   GiveawayPoolSnapshots,
   GiveawayPrizes,
   GiveawayReportDeliveries,

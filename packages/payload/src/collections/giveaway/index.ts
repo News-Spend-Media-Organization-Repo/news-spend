@@ -3,6 +3,7 @@ export { GiveawayAccountFlags } from "./GiveawayAccountFlags";
 export { GiveawayAuditLog } from "./GiveawayAuditLog";
 export { GiveawayDrawAttempts } from "./GiveawayDrawAttempts";
 export { GiveawayEngagements } from "./GiveawayEngagements";
+export { GiveawayFulfilmentAttempts } from "./GiveawayFulfilmentAttempts";
 export { GiveawayPoolSnapshots } from "./GiveawayPoolSnapshots";
 export { GiveawayPrizes } from "./GiveawayPrizes";
 export { GiveawayReportDeliveries } from "./GiveawayReportDeliveries";

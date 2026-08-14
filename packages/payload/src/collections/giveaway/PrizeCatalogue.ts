@@ -174,6 +174,37 @@ export const PrizeCatalogue: CollectionConfig = {
       },
     },
     {
+      name: "reloadlyLocalAmount",
+      label: "Reloadly amount (local currency)",
+      type: "number",
+      min: 0,
+      admin: {
+        condition: (data) =>
+          data?.fulfilmentType === "airtime" || data?.fulfilmentType === "data",
+        description:
+          "What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) for airtime if left empty — required for data, where the amount is a specific network bundle, not a free amount.",
+      },
+    },
+    {
+      name: "reloadlyOperatorId",
+      label: "Reloadly operator",
+      type: "number",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "data",
+        description:
+          "The specific network bundle this prize sends (e.g. MTN Nigeria Data). Data plans are fixed, network-specific bundles — ₦600 buys a different plan on every network — so this cannot be auto-detected from the winner's phone number the way airtime can. Look the id up from Reloadly's operator list.",
+      },
+      validate: (value: number | null | undefined, { siblingData }: any) => {
+        if (siblingData?.fulfilmentType !== "data") {
+          return true;
+        }
+        if (value === null || value === undefined) {
+          return "A data prize needs a Reloadly operator id — the amount alone does not identify a bundle.";
+        }
+        return true;
+      },
+    },
+    {
       name: "image",
       type: "upload",
       relationTo: "media",

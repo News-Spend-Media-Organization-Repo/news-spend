@@ -1,6 +1,7 @@
 import type { BasePayload, TaskConfig } from "payload";
 
 import { expireLapsedClaims } from "../lib/giveaway/claim";
+import { fulfilPendingPrizes } from "../lib/giveaway/fulfilPrizes";
 import { GiveawayEngine } from "../lib/giveaway/GiveawayEngine";
 import { retryFailedWinnerReports } from "../lib/giveaway/sendWinnerReport";
 
@@ -66,12 +67,13 @@ async function drawEndedGiveaways(payload: BasePayload): Promise<number> {
  * Payload job task: processGiveaway
  *
  * 1. Draws any active giveaway that has passed its end date.
- * 2. Expires prizes whose claim window has closed (spec §21).
- * 3. Retries Winner Report emails that previously failed (spec §21).
+ * 2. Pays out claimed airtime and data prizes through Reloadly (spec §15).
+ * 3. Expires prizes whose claim window has closed (spec §21).
+ * 4. Retries Winner Report emails that previously failed (spec §21).
  *
  * Queued hourly, so a run missed because the database was unreachable is
  * retried an hour later rather than never — the failure mode that left a
- * lottery round undrawn with paid-for tickets. Both steps are repeat-safe.
+ * lottery round undrawn with paid-for tickets. All four steps are repeat-safe.
  *
  * Unlike the lottery task, this does NOT create the next giveaway. A giveaway
  * is only meaningful once an administrator has chosen its prize pool and unit
@@ -83,6 +85,8 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
   slug: "processGiveaway",
   outputSchema: [
     { name: "drawn", type: "number" },
+    { name: "prizesFulfilled", type: "number" },
+    { name: "prizesFailed", type: "number" },
     { name: "claimsExpired", type: "number" },
     { name: "reportsRetried", type: "number" },
     { name: "reportsSent", type: "number" },
@@ -92,8 +96,15 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
     const { payload } = req;
 
     const drawn = await drawEndedGiveaways(payload);
+    const fulfilment = await fulfilPendingPrizes(payload);
     const claimsExpired = await expireLapsedClaims(payload);
     const reports = await retryFailedWinnerReports(payload);
+
+    if (fulfilment.attempted > 0) {
+      payload.logger.info(
+        `[giveaway] fulfilment: ${fulfilment.sent} sent, ${fulfilment.failed} failed, ${fulfilment.skipped} skipped`
+      );
+    }
 
     if (claimsExpired > 0) {
       payload.logger.info(
@@ -110,6 +121,8 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
     return {
       output: {
         drawn,
+        prizesFulfilled: fulfilment.sent,
+        prizesFailed: fulfilment.failed,
         claimsExpired,
         reportsRetried: reports.retried,
         reportsSent: reports.sent,
