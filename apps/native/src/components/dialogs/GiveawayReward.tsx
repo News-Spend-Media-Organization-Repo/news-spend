@@ -35,7 +35,7 @@ export default memo(function GiveawayReward() {
   const user = session?.user;
 
   const { data } = useQuery(
-    orpc.giveaway.winnings.queryOptions({ enabled: Boolean(user) })
+    orpc.giveaway.actionable.queryOptions({ enabled: Boolean(user) })
   );
 
   const unclaimed = (data ?? []).filter((prize) => prize.claimable);

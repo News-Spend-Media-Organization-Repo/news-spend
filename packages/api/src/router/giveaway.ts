@@ -636,19 +636,6 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
 }
 
 /**
- * Every prize this user has won, newest first.
- *
- * Includes closed and expired ones — a winner who missed a deadline should see
- * that they did, not find the prize silently gone.
- */
-const WINNINGS_PAGE_SIZE = 20;
-
-export const WinningsInput = z.object({
-  page: z.number().int().min(1).max(500).default(1),
-  limit: z.number().int().min(1).max(50).default(WINNINGS_PAGE_SIZE),
-});
-
-/**
  * Turn a winner row into the shape the app renders, resolving its claim
  * window against the newest giveaway.
  */
@@ -669,24 +656,87 @@ function winningFrom(winner: Row, latestStart: string | null) {
 }
 
 /**
- * Every prize this user has won, newest first, a page at a time.
+ * A prize's own claim window bounds how long it can stay unresolved — 14
+ * days, or until the next giveaway starts — so the count of prizes genuinely
+ * waiting on this user is naturally small. It never needs a page.
  *
- * Paginated because this list only ever grows: a regular player accumulates a
- * winner row every round they place in, and fetching all of them to render the
- * first screenful gets slower for exactly the people who use the app most.
- *
- * Includes closed and expired prizes — a winner who missed a deadline should
- * see that they did, not find the prize silently gone.
+ * This is the same pair `toWinning` derives `claimable` and
+ * `awaitingVerification` from, kept here as a `where` clause so the query does
+ * the filtering rather than the client.
  */
-const winnings = protectedProcedure
-  .input(WinningsInput)
+const ACTIONABLE_WHERE: Where = {
+  or: [
+    { claimStatus: { equals: "unclaimed" } },
+    { fulfilmentStatus: { equals: "awaiting_verification" } },
+  ],
+};
+
+/**
+ * A defensive ceiling on `actionable`, not a real one.
+ *
+ * The claim window is what actually bounds this list to a handful of rows.
+ * The limit only guards against the hourly expiry sweep having stopped
+ * running — it should never be the thing doing the bounding.
+ */
+const ACTIONABLE_CEILING = 100;
+
+/**
+ * Every prize still waiting on this user: unclaimed within its window, or
+ * claimed but pending the one-time identity check (spec §21).
+ *
+ * Deliberately unpaged. Unlike the full history, this list cannot grow
+ * without bound — a prize leaves it the moment it is claimed (unless it also
+ * needs verification) or its window closes — so there is nothing here for
+ * pagination to protect against.
+ */
+const actionable = protectedProcedure.handler(async ({ context }) => {
+  const { payload, user } = context;
+
+  const [winners, latestStart] = await Promise.all([
+    payload.find({
+      collection: "giveaway-winners",
+      where: { and: [{ user: { equals: user.id } }, ACTIONABLE_WHERE] },
+      sort: "-selectedAt",
+      limit: ACTIONABLE_CEILING,
+      pagination: false,
+      depth: 1,
+    }),
+    latestGiveawayStart(payload),
+  ]);
+
+  return winners.docs.map((winner) => winningFrom(winner as Row, latestStart));
+});
+
+const HISTORY_PAGE_SIZE = 20;
+
+export const HistoryInput = z.object({
+  page: z.number().int().min(1).max(500).default(1),
+  limit: z.number().int().min(1).max(50).default(HISTORY_PAGE_SIZE),
+});
+
+/**
+ * Everything else this user has won, newest first, a page at a time —
+ * claimed, expired, disqualified, all of it.
+ *
+ * This is the list that only ever grows, so it is the one that is paged.
+ * Excludes whatever `actionable` already covers, by the same two conditions,
+ * so a prize is never listed in both places at once.
+ */
+const history = protectedProcedure
+  .input(HistoryInput)
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
 
     const [winners, latestStart] = await Promise.all([
       payload.find({
         collection: "giveaway-winners",
-        where: { user: { equals: user.id } },
+        where: {
+          and: [
+            { user: { equals: user.id } },
+            { claimStatus: { not_equals: "unclaimed" } },
+            { fulfilmentStatus: { not_equals: "awaiting_verification" } },
+          ],
+        },
         sort: "-selectedAt",
         page: input.page,
         limit: input.limit,
@@ -927,7 +977,8 @@ export const giveawayRouter = {
   progress,
   buyTickets,
   recordEngagement,
-  winnings,
+  actionable,
+  history,
   winning,
   claimPrize,
 };

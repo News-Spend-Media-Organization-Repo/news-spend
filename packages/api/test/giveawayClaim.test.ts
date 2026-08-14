@@ -126,6 +126,9 @@ function matchesWhere(row: Row, where: Row | undefined): boolean {
   if (Array.isArray(where.and)) {
     return where.and.every((clause: Row) => matchesWhere(row, clause));
   }
+  if (Array.isArray(where.or)) {
+    return where.or.some((clause: Row) => matchesWhere(row, clause));
+  }
   return Object.entries(where).every(([field, condition]) => {
     const clause = condition as Row;
     const actual = row[field];
@@ -190,7 +193,7 @@ describe("claimWindowFor (spec §21)", () => {
   });
 });
 
-describe("giveaway.winnings", () => {
+describe("giveaway.actionable", () => {
   it("lists prizes with what each one still needs", async () => {
     const { ctx } = createContext({
       winners: [
@@ -208,11 +211,9 @@ describe("giveaway.winnings", () => {
       ],
     });
 
-    const { items: rows } = await call(
-      giveawayRouter.winnings,
-      {},
-      { context: ctx }
-    );
+    const rows = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
 
     expect(rows.find((r) => r.id === "w1")?.needs).toEqual({
       phone: true,
@@ -231,7 +232,10 @@ describe("giveaway.winnings", () => {
     });
   });
 
-  it("still shows an expired prize, marked closed", async () => {
+  it("still shows a prize the sweep has not yet caught, marked closed", async () => {
+    // Storage still says "unclaimed" — only the hourly sweep flips it to
+    // "expired" — so this genuinely belongs here until that runs. The window
+    // being closed is what the app has to show, not the raw claimStatus.
     const selectedAt = new Date(Date.now() - 30 * DAY).toISOString();
     const { ctx } = createContext({
       winners: [
@@ -242,11 +246,10 @@ describe("giveaway.winnings", () => {
       ],
     });
 
-    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
-    const row = items[0];
+    const [row] = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
 
-    // A winner who missed the deadline should see that they did, rather than
-    // find the prize silently gone.
     expect(row?.claimable).toBe(false);
     expect(row?.closedReason).toBe("expired");
   });
@@ -256,20 +259,90 @@ describe("giveaway.winnings", () => {
       winners: [winnerRow({ fulfilmentStatus: "on_hold" })],
     });
 
-    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
-    const row = items[0];
+    const [row] = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
 
     expect(row?.underReview).toBe(true);
   });
 
-  it("pages rather than returning every prize at once", async () => {
+  it("includes a claimed prize still waiting on verification", async () => {
+    const { ctx } = createContext({
+      winners: [
+        winnerRow({
+          claimStatus: "claimed",
+          fulfilmentStatus: "awaiting_verification",
+        }),
+      ],
+    });
+
+    const [row] = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
+
+    expect(row?.awaitingVerification).toBe(true);
+  });
+
+  it("excludes a prize that has already resolved", async () => {
+    const { ctx } = createContext({
+      winners: [
+        winnerRow({ claimStatus: "claimed", fulfilmentStatus: "fulfilled" }),
+      ],
+    });
+
+    const rows = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
+
+    // Fulfilled prizes belong to history, not the unpaged actionable list —
+    // otherwise this list would grow the same way history does.
+    expect(rows).toHaveLength(0);
+  });
+
+  it("is never paged, however many prizes qualify", async () => {
     const { ctx } = createContext({
       winners: Array.from({ length: 25 }, (_, i) =>
         winnerRow({ id: `w${i}`, prizeName: `Prize ${i}` })
       ),
     });
 
-    const first = await call(giveawayRouter.winnings, {}, { context: ctx });
+    const rows = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
+
+    expect(rows).toHaveLength(25);
+  });
+
+  it("does not list another user's prize", async () => {
+    const { ctx } = createContext({
+      winners: [winnerRow({ user: "someone-else" })],
+    });
+
+    const rows = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
+
+    expect(rows).toHaveLength(0);
+  });
+});
+
+describe("giveaway.history", () => {
+  function resolved(overrides: Row = {}): Row {
+    return winnerRow({
+      claimStatus: "claimed",
+      fulfilmentStatus: "fulfilled",
+      ...overrides,
+    });
+  }
+
+  it("pages rather than returning every prize at once", async () => {
+    const { ctx } = createContext({
+      winners: Array.from({ length: 25 }, (_, i) =>
+        resolved({ id: `w${i}`, prizeName: `Prize ${i}` })
+      ),
+    });
+
+    const first = await call(giveawayRouter.history, {}, { context: ctx });
 
     // A list that only ever grows must not be fetched whole to draw one screen.
     expect(first.items).toHaveLength(20);
@@ -277,7 +350,7 @@ describe("giveaway.winnings", () => {
     expect(first.totalPrizes).toBe(25);
 
     const second = await call(
-      giveawayRouter.winnings,
+      giveawayRouter.history,
       { page: 2 },
       { context: ctx }
     );
@@ -286,25 +359,46 @@ describe("giveaway.winnings", () => {
     expect(second.hasMore).toBe(false);
   });
 
-  it("does not list another user's prize", async () => {
+  it("excludes a prize actionable already covers", async () => {
     const { ctx } = createContext({
-      winners: [winnerRow({ user: "someone-else" })],
+      winners: [
+        winnerRow({ id: "w1" }),
+        resolved({ id: "w2" }),
+        winnerRow({
+          id: "w3",
+          claimStatus: "claimed",
+          fulfilmentStatus: "awaiting_verification",
+        }),
+      ],
     });
 
-    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
+    const { items } = await call(giveawayRouter.history, {}, { context: ctx });
+
+    // Otherwise a prize would appear in both lists at once.
+    expect(items.map((r) => r.id)).toEqual(["w2"]);
+  });
+
+  it("does not list another user's prize", async () => {
+    const { ctx } = createContext({
+      winners: [resolved({ user: "someone-else" })],
+    });
+
+    const { items } = await call(giveawayRouter.history, {}, { context: ctx });
 
     expect(items).toHaveLength(0);
   });
+});
 
-  it("fetches one prize by id, without scanning the list", async () => {
+describe("giveaway.winning", () => {
+  it("fetches one prize by id, without scanning any list", async () => {
     const { ctx } = createContext({
       winners: Array.from({ length: 25 }, (_, i) =>
         winnerRow({ id: `w${i}`, prizeName: `Prize ${i}` })
       ),
     });
 
-    // Deliberately a prize past the first page — the claim screen has to reach
-    // it even though the app is only holding page one.
+    // Deliberately a prize past the first page of history — the claim screen
+    // has to reach it even though the app is only holding page one.
     const row = await call(
       giveawayRouter.winning,
       { winnerId: "w24" },
@@ -324,20 +418,6 @@ describe("giveaway.winnings", () => {
     );
 
     expect(error.code).toBe("NOT_FOUND");
-  });
-
-  it("unused placeholder", async () => {
-    const { ctx } = createContext({
-      winners: [winnerRow({ user: "someone-else" })],
-    });
-
-    const { items: rows } = await call(
-      giveawayRouter.winnings,
-      {},
-      { context: ctx }
-    );
-
-    expect(rows).toHaveLength(0);
   });
 });
 
@@ -641,7 +721,9 @@ describe("supersession lookups scale flat", () => {
     );
 
     const { ctx, reads } = countingContext(winners, giveaways);
-    const { items } = await call(giveawayRouter.winnings, {}, { context: ctx });
+    const items = await call(giveawayRouter.actionable, undefined, {
+      context: ctx,
+    });
 
     expect(items).toHaveLength(12);
     // Twelve prizes across twelve different giveaways still costs one

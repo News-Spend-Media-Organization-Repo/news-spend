@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { formatDistanceToNowStrict } from "date-fns";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { format, formatDistanceToNowStrict } from "date-fns";
 import { Card, PressableFeedback } from "heroui-native";
 import { GiftIcon } from "phosphor-react-native";
 import {
@@ -28,6 +28,7 @@ type Winning = {
   underReview: boolean;
   awaitingVerification: boolean;
   claimDeadline: string | null;
+  selectedAt: string | null;
 };
 
 /**
@@ -66,7 +67,10 @@ function statusLine(prize: Winning): { label: string; tone: string } {
     return { label: "Verify your identity to receive this", tone: "urgent" };
   }
   if (prize.claimStatus === "claimed") {
-    return { label: "Claimed — on its way", tone: "good" };
+    const on = prize.selectedAt
+      ? ` · ${format(new Date(prize.selectedAt), "d MMM")}`
+      : "";
+    return { label: `Claimed${on}`, tone: "good" };
   }
   return { label: prize.claimStatus, tone: "muted" };
 }
@@ -77,39 +81,85 @@ const TONE_CLASS: Record<string, string> = {
   muted: "text-subtle-text",
 };
 
+function PrizeCard({
+  prize,
+  compact,
+  onPress,
+}: {
+  prize: Winning;
+  compact?: boolean;
+  onPress: () => void;
+}) {
+  const status = statusLine(prize);
+  const actionable = prize.claimable || prize.awaitingVerification;
+
+  return (
+    <PressableFeedback onPress={actionable ? onPress : undefined}>
+      <Card className={actionable ? "" : "opacity-60"}>
+        <Card.Body className={compact ? "gap-0.5 py-2.5" : "gap-1"}>
+          <View className="flex-row items-center justify-between gap-2">
+            <Text
+              className={
+                compact
+                  ? "flex-1 font-medium text-sm"
+                  : "flex-1 font-semibold text-base"
+              }
+            >
+              {prize.prizeName}
+            </Text>
+            {prize.claimable && (
+              <View className="rounded-full bg-p-500 px-2.5 py-0.5">
+                <Text className="font-semibold text-white text-xs">Claim</Text>
+              </View>
+            )}
+          </View>
+          <Text
+            className={`${compact ? "text-xs" : "text-sm"} ${TONE_CLASS[status.tone]}`}
+          >
+            {status.label}
+          </Text>
+        </Card.Body>
+      </Card>
+    </PressableFeedback>
+  );
+}
+
 /**
  * Everything this user has won, and what is left to do about it.
  *
+ * Split into two lists rather than one, because they behave differently.
+ * "Needs You" is bounded by each prize's own claim window — fourteen days, or
+ * until the next giveaway starts — so it can never grow past a handful and is
+ * fetched whole. "History" is everything that has already resolved, which
+ * only ever grows, so it is the one that is paged.
+ *
  * This screen exists because a win used to live only inside a transient
- * dialog: dismiss it and there was nowhere to go. With a claim window that
- * closes after fourteen days — or the moment the next giveaway starts — a
- * prize with no permanent home is a prize people lose.
+ * dialog: dismiss it and there was nowhere to go. With a window that closes
+ * on its own, a prize with no permanent home is a prize people lose.
  */
 const MyPrizes = () => {
   const navigation = useNavigation("MyPrizes");
 
-  /**
-   * Paged rather than fetched whole. This list only grows — a regular player
-   * gains a row every round they place in — so loading all of it to render the
-   * first screenful would get slowest for the people who play most.
-   */
+  const needsYou = useQuery(orpc.giveaway.actionable.queryOptions());
+
   const {
     data,
-    isPending,
+    isPending: isHistoryPending,
     refetch,
     isRefetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery(
-    orpc.giveaway.winnings.infiniteOptions({
+    orpc.giveaway.history.infiniteOptions({
       input: (page: number | undefined) => ({ page: page ?? 1 }),
       initialPageParam: 1,
       getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
     })
   );
 
-  const prizes = (data?.pages.flatMap((p) => p.items) ?? []) as Winning[];
+  const history = (data?.pages.flatMap((p) => p.items) ?? []) as Winning[];
+  const isPending = needsYou.isPending || isHistoryPending;
 
   if (isPending) {
     return (
@@ -122,13 +172,19 @@ const MyPrizes = () => {
     );
   }
 
+  const openClaim = (prize: Winning) =>
+    navigation.navigate("ClaimPrize", { winnerId: prize.id });
+
+  const actionablePrizes = (needsYou.data ?? []) as Winning[];
+  const isEmpty = actionablePrizes.length === 0 && history.length === 0;
+
   return (
     <Screen>
       <ScreenHeader title="My Prizes" />
 
       <FlatList
-        contentContainerClassName="gap-3 px-4 pb-8"
-        data={prizes}
+        contentContainerClassName="gap-2 px-4 pb-8"
+        data={isEmpty ? [] : history}
         keyExtractor={(prize) => prize.id}
         ListEmptyComponent={
           <View className="items-center gap-2 px-6 py-16">
@@ -149,6 +205,42 @@ const MyPrizes = () => {
             </View>
           ) : null
         }
+        ListHeaderComponent={
+          isEmpty ? null : (
+            <View className="gap-2">
+              {actionablePrizes.length > 0 && (
+                <View className="gap-2 pb-4">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="font-semibold text-subtle-text text-xs tracking-wide">
+                      NEEDS YOU
+                    </Text>
+                    <View className="rounded-full bg-p-500 px-2 py-0.5">
+                      <Text className="font-semibold text-white text-xs">
+                        {actionablePrizes.length}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-subtle-text text-xs">
+                    Never more than a handful — the window closes 14 days after
+                    you win, or when the next giveaway starts.
+                  </Text>
+                  {actionablePrizes.map((prize) => (
+                    <PrizeCard
+                      key={prize.id}
+                      onPress={() => openClaim(prize)}
+                      prize={prize}
+                    />
+                  ))}
+                </View>
+              )}
+              {history.length > 0 && (
+                <Text className="font-semibold text-subtle-text text-xs tracking-wide">
+                  HISTORY
+                </Text>
+              )}
+            </View>
+          )
+        }
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
@@ -156,43 +248,17 @@ const MyPrizes = () => {
         }}
         onEndReachedThreshold={0.4}
         refreshControl={
-          <RefreshControl onRefresh={refetch} refreshing={isRefetching} />
+          <RefreshControl
+            onRefresh={() => {
+              needsYou.refetch();
+              refetch();
+            }}
+            refreshing={isRefetching || needsYou.isRefetching}
+          />
         }
-        renderItem={({ item: prize }) => {
-          const status = statusLine(prize);
-          const actionable = prize.claimable || prize.awaitingVerification;
-
-          return (
-            <PressableFeedback
-              onPress={() => {
-                if (!actionable) {
-                  return;
-                }
-                navigation.navigate("ClaimPrize", { winnerId: prize.id });
-              }}
-            >
-              <Card className={actionable ? "" : "opacity-60"}>
-                <Card.Body className="gap-1">
-                  <View className="flex-row items-center justify-between gap-2">
-                    <Text className="flex-1 font-semibold text-base">
-                      {prize.prizeName}
-                    </Text>
-                    {prize.claimable && (
-                      <View className="rounded-full bg-p-500 px-2.5 py-0.5">
-                        <Text className="font-semibold text-white text-xs">
-                          Claim
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className={`text-sm ${TONE_CLASS[status.tone]}`}>
-                    {status.label}
-                  </Text>
-                </Card.Body>
-              </Card>
-            </PressableFeedback>
-          );
-        }}
+        renderItem={({ item: prize }) => (
+          <PrizeCard compact onPress={() => openClaim(prize)} prize={prize} />
+        )}
       />
     </Screen>
   );

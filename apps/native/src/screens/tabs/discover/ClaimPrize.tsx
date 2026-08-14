@@ -56,7 +56,10 @@ const ClaimPrize = () => {
       onSuccess: (result) => {
         toast.success("Prize claimed!", { description: result.message });
         queryClient.invalidateQueries({
-          queryKey: orpc.giveaway.winnings.key(),
+          queryKey: orpc.giveaway.actionable.key(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.giveaway.history.key(),
         });
         queryClient.invalidateQueries({
           queryKey: orpc.giveaway.winning.key(),
@@ -81,7 +84,10 @@ const ClaimPrize = () => {
         // refetched rather than left showing a claim button that cannot work.
         if (isInferableError(error) && error.code === "CONFLICT") {
           queryClient.invalidateQueries({
-            queryKey: orpc.giveaway.winnings.key(),
+            queryKey: orpc.giveaway.actionable.key(),
+          });
+          queryClient.invalidateQueries({
+            queryKey: orpc.giveaway.history.key(),
           });
           queryClient.invalidateQueries({
             queryKey: orpc.giveaway.winning.key(),
