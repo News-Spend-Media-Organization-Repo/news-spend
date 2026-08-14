@@ -541,6 +541,18 @@ export interface User {
   username: string;
   wish: string;
   phone: string;
+  /**
+   * Required to take part in giveaways — prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.
+   */
+  dateOfBirth?: string | null;
+  /**
+   * ISO country code the user selected. A display signal only — it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.
+   */
+  country?: string | null;
+  /**
+   * Country from the identity document, once verified. This is the version anyone has actually checked, so it outranks the self-reported one wherever the answer has consequences.
+   */
+  verifiedCountry?: string | null;
   _verified: boolean;
   isAnonymous?: boolean | null;
   dailyRead: DailyRead;
@@ -3626,6 +3638,9 @@ export interface UsersSelect<T extends boolean = true> {
   username?: T;
   wish?: T;
   phone?: T;
+  dateOfBirth?: T;
+  country?: T;
+  verifiedCountry?: T;
   _verified?: T;
   isAnonymous?: T;
   dailyRead?: T;

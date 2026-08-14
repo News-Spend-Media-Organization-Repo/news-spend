@@ -405,6 +405,27 @@ export const ADDRESS_FULFILMENT_TYPES: readonly FulfilmentType[] = ["physical"];
 export const CLAIM_WINDOW_DAYS = 14;
 
 /**
+ * Minimum age to take part in a giveaway.
+ *
+ * A compliance requirement rather than a product setting: promotions with
+ * prizes of real value are age-restricted in Nigeria and in every other
+ * jurisdiction this could expand to, so it is deliberately not configurable
+ * per giveaway.
+ */
+export const MINIMUM_PARTICIPANT_AGE = 18;
+
+/**
+ * Where the platform currently operates.
+ *
+ * Nigeria is the only market today, so this is the assumed country for anyone
+ * who has not said otherwise. It is a named constant rather than an inline
+ * "NG" so that the places making a country assumption are greppable on the
+ * day a second market is added — expansion is a legal question per country
+ * before it is a technical one.
+ */
+export const DEFAULT_GIVEAWAY_COUNTRY = "NG";
+
+/**
  * Where a prize has got to on its way to the winner.
  *
  * `on_hold` and `awaiting_verification` both stop a dispatch, but they mean

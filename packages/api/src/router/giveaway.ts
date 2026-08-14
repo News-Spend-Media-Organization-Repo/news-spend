@@ -23,6 +23,7 @@ import {
   evaluateFairness,
   type UserDrawHistory,
 } from "@news-spend-media/payload/lib/giveaway/fairness";
+import { evaluateParticipant } from "@news-spend-media/payload/lib/giveaway/participantEligibility";
 import {
   activities,
   users,
@@ -154,6 +155,40 @@ async function openGiveaway(
   }
 
   return giveaway;
+}
+
+/**
+ * Refuse a purchase from someone too young to take part.
+ *
+ * Checked here rather than only at signup, for two reasons: someone who
+ * signed up under age becomes eligible on their birthday with no action
+ * needed, and someone who lied at signup is caught again at the point where
+ * it actually matters — money changing hands for a chance at a prize.
+ *
+ * Deliberately FORBIDDEN rather than BAD_REQUEST. This is not a malformed
+ * request the caller can fix by sending different input; the account itself
+ * is not permitted to do this yet.
+ */
+async function assertOldEnough(
+  payload: BasePayload,
+  userId: string,
+  errors: ClaimErrorFactory & {
+    FORBIDDEN: (args: { message: string }) => Error;
+  }
+) {
+  const user = await payload.findByID({
+    collection: "users",
+    id: userId,
+    depth: 0,
+  });
+
+  const verdict = evaluateParticipant({
+    dateOfBirth: user?.dateOfBirth ?? null,
+  });
+
+  if (!verdict.eligible) {
+    throw errors.FORBIDDEN({ message: verdict.message });
+  }
 }
 
 /**
@@ -323,17 +358,28 @@ const progress = protectedProcedure.handler(async ({ context, errors }) => {
   const { payload, user } = context;
   const giveaway = await openGiveaway(payload, errors);
 
-  const { participation, history } = await loadStanding(
-    payload,
-    giveaway,
-    user.id
-  );
+  const [{ participation, history }, account] = await Promise.all([
+    loadStanding(payload, giveaway, user.id),
+    payload.findByID({ collection: "users", id: user.id, depth: 0 }),
+  ]);
+
+  const participant = evaluateParticipant({
+    dateOfBirth: account?.dateOfBirth ?? null,
+  });
 
   return {
     giveawayId: giveaway.id,
     endDate: giveaway.endDate,
     ticketPrice: giveaway.ticketPrice,
     minTicketsRequired: giveaway.minTicketsRequired ?? 1,
+    /**
+     * Whether this account may take part at all, so the app can explain the
+     * block up front rather than letting someone pick a quantity and only
+     * then be refused at purchase.
+     */
+    canParticipate: participant.eligible,
+    blockedReason: participant.eligible ? null : participant.reason,
+    blockedMessage: participant.eligible ? null : participant.message,
     participation: {
       validTickets: participation.validTickets,
       boosts: participation.boosts,
@@ -379,6 +425,7 @@ const buyTickets = protectedNoGuestProcedure
     const db = payload.db.drizzle;
 
     const giveaway = await openGiveaway(payload, errors);
+    await assertOldEnough(payload, user.id, errors);
 
     const minimum = giveaway.minTicketsRequired ?? 1;
     if (quantity < minimum) {

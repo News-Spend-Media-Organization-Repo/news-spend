@@ -10,6 +10,9 @@ const user = { id: "u1", isAnonymous: false, username: "tester" };
 
 const HOUR = 3_600_000;
 
+/** Comfortably over 18, so the age gate is not what a test is measuring. */
+const ADULT_DOB = new Date(Date.now() - 30 * 365 * 24 * HOUR).toISOString();
+
 function openGiveaway(overrides: Row = {}): Row {
   return {
     id: "g1",
@@ -35,6 +38,8 @@ function createContext({
   streaks = [],
   content = null,
   points = 10_000,
+  dateOfBirth = ADULT_DOB,
+  userId = user.id,
   priorGiveaways = [],
   priorWinners = [],
   priorTickets = [],
@@ -46,6 +51,13 @@ function createContext({
   streaks?: Row[];
   content?: Row | null;
   points?: number;
+  /** null models an account that predates the date-of-birth field. */
+  dateOfBirth?: string | null;
+  /**
+   * The rate limiter buckets per user, so a test making purchase calls needs
+   * its own identity or it spends the budget of the tests around it.
+   */
+  userId?: string;
   /** Completed giveaways behind this one, for the §22 cooldown history. */
   priorGiveaways?: Row[];
   priorWinners?: Row[];
@@ -102,6 +114,9 @@ function createContext({
       if (collection === "partner-content") {
         return content && content.id === id ? content : null;
       }
+      if (collection === "users") {
+        return { id, dateOfBirth };
+      }
       return collections[collection]?.find((row) => row.id === id) ?? null;
     },
     create: async ({ collection, data }: Row) => {
@@ -117,7 +132,7 @@ function createContext({
   };
 
   return {
-    ctx: mockContext({ user: user as never, payload }),
+    ctx: mockContext({ user: { ...user, id: userId } as never, payload }),
     created,
     ledger,
     balance,
@@ -317,6 +332,80 @@ describe("giveaway.buyTickets (spec §6)", () => {
     await expect(
       call(giveawayRouter.buyTickets, { quantity: -10 }, { context: ctx })
     ).rejects.toThrow();
+  });
+});
+
+describe("age gate on participation", () => {
+  it("refuses a purchase from an account with no date of birth", async () => {
+    const { ctx, created } = createContext({
+      dateOfBirth: null,
+      userId: "age-none",
+    });
+
+    const error = await captureError(
+      call(giveawayRouter.buyTickets, { quantity: 1 }, { context: ctx })
+    );
+
+    // FORBIDDEN, not BAD_REQUEST — nothing about the request is malformed,
+    // the account simply may not do this.
+    expect(error.code).toBe("FORBIDDEN");
+    expect(error.message).toMatch(/date of birth/);
+    expect(created["giveaway-tickets"]).toBeUndefined();
+  });
+
+  it("refuses a purchase from someone under 18", async () => {
+    const { ctx, created } = createContext({
+      dateOfBirth: new Date(Date.now() - 16 * 365 * 24 * HOUR).toISOString(),
+      userId: "age-under",
+    });
+
+    const error = await captureError(
+      call(giveawayRouter.buyTickets, { quantity: 1 }, { context: ctx })
+    );
+
+    expect(error.code).toBe("FORBIDDEN");
+    expect(error.message).toMatch(/18 or older/);
+    expect(created["giveaway-tickets"]).toBeUndefined();
+  });
+
+  it("allows someone who has since turned 18", async () => {
+    // Signed up under age; the birthday has now passed. Recomputing from the
+    // date of birth each time is what lets them in without any intervention.
+    const { ctx, created } = createContext({
+      dateOfBirth: new Date(
+        Date.now() - 18 * 365.25 * 24 * HOUR - 24 * HOUR
+      ).toISOString(),
+      userId: "age-just-turned",
+    });
+
+    await call(giveawayRouter.buyTickets, { quantity: 1 }, { context: ctx });
+
+    expect(created["giveaway-tickets"]).toHaveLength(1);
+  });
+
+  it("reports the block on progress so the app can explain it up front", async () => {
+    const { ctx } = createContext({
+      dateOfBirth: null,
+      userId: "age-progress-blocked",
+    });
+
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
+    });
+
+    expect(result.canParticipate).toBe(false);
+    expect(result.blockedReason).toBe("no_date_of_birth");
+  });
+
+  it("reports no block for an adult", async () => {
+    const { ctx } = createContext();
+
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
+    });
+
+    expect(result.canParticipate).toBe(true);
+    expect(result.blockedReason).toBe(null);
   });
 });
 

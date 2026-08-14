@@ -13,6 +13,19 @@ const authedUser = { id: "user-1", isAnonymous: false, username: "tester" };
 const guestUser = { id: "guest-1", isAnonymous: true, username: "guest" };
 
 const NOW = new Date();
+
+/**
+ * Over 18, so the age gate on purchases is not what these tests measure.
+ * Buying a ticket requires it — prizes of real value are age-restricted.
+ */
+function adult(overrides: Doc = {}): Doc {
+  return {
+    id: "user-1",
+    dateOfBirth: new Date("1995-01-01").toISOString(),
+    ...overrides,
+  };
+}
+
 const PAST = new Date(NOW.getTime() - 86_400_000).toISOString();
 const FUTURE = new Date(NOW.getTime() + 86_400_000 * 30).toISOString();
 const FAR_FUTURE = new Date(NOW.getTime() + 86_400_000 * 60).toISOString();
@@ -273,6 +286,7 @@ describe("giveaway.buyTickets", () => {
     const payload = createFakePayload({
       collections: {
         giveaways: [giveaway({ minTicketsRequired: 5 })],
+        users: [adult()],
       },
     });
     const ctx = mockContext({ user: authedUser as never, payload });
@@ -290,7 +304,10 @@ describe("giveaway.buyTickets", () => {
   it("throws BAD_REQUEST when the user has insufficient points", async () => {
     const drizzle = createDrizzleMock(10);
     const basePayload = createFakePayload({
-      collections: { giveaways: [giveaway({ ticketPrice: 5 })] },
+      collections: {
+        giveaways: [giveaway({ ticketPrice: 5 })],
+        users: [adult()],
+      },
     });
     const payload = {
       ...basePayload,
@@ -314,6 +331,7 @@ describe("giveaway.buyTickets", () => {
     const basePayload = createFakePayload({
       collections: {
         giveaways: [giveaway({ ticketPrice: 5 })],
+        users: [adult()],
         "giveaway-tickets": [],
         "giveaway-engagements": [],
         "giveaway-streaks": [],
@@ -363,11 +381,14 @@ describe("giveaway.buyTickets", () => {
   });
 
   it("rate limits after 10 purchases in a minute", async () => {
+    // Its own id so this test spends its own rate-limit budget, not the
+    // budget of the purchase tests above it.
     const user = { id: `rl-${Date.now()}`, isAnonymous: false, username: "rl" };
     const drizzle = createDrizzleMock(100_000);
     const basePayload = createFakePayload({
       collections: {
         giveaways: [giveaway({ ticketPrice: 1 })],
+        users: [adult({ id: user.id })],
         "giveaway-tickets": [],
         "giveaway-engagements": [],
         "giveaway-streaks": [],

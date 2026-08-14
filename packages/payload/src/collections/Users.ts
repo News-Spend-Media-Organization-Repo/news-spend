@@ -111,6 +111,35 @@ export const Users: CollectionConfig = {
       required: true,
     },
     {
+      name: "dateOfBirth",
+      type: "date",
+      index: true,
+      admin: {
+        date: { pickerAppearance: "dayOnly" },
+        description:
+          "Required to take part in giveaways — prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.",
+      },
+    },
+    {
+      name: "country",
+      type: "text",
+      index: true,
+      admin: {
+        description:
+          "ISO country code the user selected. A display signal only — it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.",
+      },
+    },
+    {
+      name: "verifiedCountry",
+      type: "text",
+      index: true,
+      admin: {
+        readOnly: true,
+        description:
+          "Country from the identity document, once verified. This is the version anyone has actually checked, so it outranks the self-reported one wherever the answer has consequences.",
+      },
+    },
+    {
       name: "_verified",
       type: "checkbox",
       required: true,
