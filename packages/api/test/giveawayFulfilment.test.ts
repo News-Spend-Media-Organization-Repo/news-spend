@@ -162,7 +162,7 @@ describe("fulfilPendingPrizes", () => {
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
   });
 
-  it("holds a data prize with no configured operator, not a guess", async () => {
+  it("holds a data prize with no plans configured for any network", async () => {
     const { payload, collections } = createFakePayload({
       winners: [
         winnerRow({
@@ -170,7 +170,7 @@ describe("fulfilPendingPrizes", () => {
             id: "cat-3",
             fulfilmentType: "data",
             valueNaira: 600,
-            reloadlyOperatorId: null,
+            reloadlyDataPlans: [],
           },
         }),
       ],
@@ -182,33 +182,83 @@ describe("fulfilPendingPrizes", () => {
     // ₦600 buys a different plan on every network — the amount alone cannot
     // pick the bundle, so this must never be inferred.
     expect(summary.skipped).toBe(1);
-    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
   });
 
-  it("sends a data prize once an operator is configured", async () => {
+  it("holds a data prize when the winner's network has no configured plan", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [
+        winnerRow({
+          prize: {
+            id: "cat-5",
+            fulfilmentType: "data",
+            // Only MTN is configured for this prize.
+            reloadlyDataPlans: [
+              {
+                network: "mtn",
+                reloadlyOperatorId: 345,
+                reloadlyLocalAmount: 600,
+              },
+            ],
+          },
+        }),
+      ],
+    });
+    // The winner's number turns out to be on Airtel, not MTN.
+    const client = fakeClient({
+      detectOperator: async () => ({ operatorId: 342, name: "Airtel Nigeria" }),
+      topup: async () => ({}),
+    });
+
+    const summary = await fulfilPendingPrizes(payload, { client });
+
+    // Sending the MTN bundle to an Airtel SIM would not deliver — an MTN
+    // bundle is provisioned by MTN for MTN's own subscribers, the same way a
+    // Vodafone bundle does nothing on an EE phone.
+    expect(summary.skipped).toBe(1);
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
+    expect(collections["giveaway-winners"][0].reviewNote).toContain(
+      "Airtel Nigeria"
+    );
+  });
+
+  it("sends the plan matching the winner's actual detected network", async () => {
     const { payload, created } = createFakePayload({
       winners: [
         winnerRow({
           prize: {
             id: "cat-4",
             fulfilmentType: "data",
-            reloadlyLocalAmount: 600,
-            reloadlyOperatorId: 345,
+            reloadlyDataPlans: [
+              {
+                network: "mtn",
+                reloadlyOperatorId: 345,
+                reloadlyLocalAmount: 600,
+              },
+              {
+                network: "airtel",
+                reloadlyOperatorId: 646,
+                reloadlyLocalAmount: 599.91,
+              },
+            ],
           },
         }),
       ],
     });
     const client = fakeClient({
+      detectOperator: async () => ({ operatorId: 342, name: "Airtel Nigeria" }),
       topup: async (args) => {
-        expect(args.operatorId).toBe(345);
-        return { transactionId: 1, operatorName: "MTN Nigeria Data" };
+        // The Airtel row, not the MTN one that happens to be listed first.
+        expect(args.operatorId).toBe(646);
+        expect(args.localAmount).toBe(599.91);
+        return { transactionId: 1, operatorName: "Airtel Nigeria Data" };
       },
     });
 
     const summary = await fulfilPendingPrizes(payload, { client });
 
     expect(summary.sent).toBe(1);
-    expect(created["giveaway-fulfilment-attempts"]?.[0].operatorId).toBe(345);
+    expect(created["giveaway-fulfilment-attempts"]?.[0].operatorId).toBe(646);
   });
 
   it("holds a prize the provider permanently rejects", async () => {

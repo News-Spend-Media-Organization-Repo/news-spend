@@ -1542,13 +1542,26 @@ export interface PrizeCatalogue {
    */
   requiresVerification?: boolean | null;
   /**
-   * What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) for airtime if left empty — required for data, where the amount is a specific network bundle, not a free amount.
+   * What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number and this is the only field a person needs to set.
    */
   reloadlyLocalAmount?: number | null;
   /**
-   * The specific network bundle this prize sends (e.g. MTN Nigeria Data). Data plans are fixed, network-specific bundles — ₦600 buys a different plan on every network — so this cannot be auto-detected from the winner's phone number the way airtime can. Look the id up from Reloadly's operator list.
+   * A data bundle is provisioned by one specific network for that network's own SIMs — an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.
    */
-  reloadlyOperatorId?: number | null;
+  reloadlyDataPlans?:
+    | {
+        network: 'mtn' | 'airtel' | 'glo' | 't2';
+        /**
+         * This network's "…Data" operator, not its airtime one — look it up from Reloadly's operator list.
+         */
+        reloadlyOperatorId: number;
+        /**
+         * The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount — check the operator's own plan list rather than assuming Value (₦) applies.
+         */
+        reloadlyLocalAmount: number;
+        id?: string | null;
+      }[]
+    | null;
   image?: (string | null) | Media;
   /**
    * Inactive prizes cannot be added to new giveaways. Existing giveaways are unaffected.
@@ -3185,7 +3198,14 @@ export interface PrizeCatalogueSelect<T extends boolean = true> {
   valueNaira?: T;
   requiresVerification?: T;
   reloadlyLocalAmount?: T;
-  reloadlyOperatorId?: T;
+  reloadlyDataPlans?:
+    | T
+    | {
+        network?: T;
+        reloadlyOperatorId?: T;
+        reloadlyLocalAmount?: T;
+        id?: T;
+      };
   image?: T;
   active?: T;
   createdBy?: T;

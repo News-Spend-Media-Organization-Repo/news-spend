@@ -126,6 +126,22 @@ function defaultClient(payload: BasePayload): ReloadlyClient | null {
 
 type Outcome = "sent" | "failed" | "skipped";
 
+/**
+ * The prize cannot be sent as configured, and no amount of retrying changes
+ * that — held immediately rather than run through the provider's retry
+ * classification, which has nothing to say about a decision made entirely on
+ * this side.
+ */
+class UnresolvablePlanError extends Error {}
+
+/** Reloadly's ids for the airtime operator of each Nigerian network. */
+const AIRTIME_OPERATOR_TO_NETWORK: Record<number, string> = {
+  341: "mtn",
+  342: "airtel",
+  344: "glo",
+  340: "t2",
+};
+
 async function fulfilOne(
   payload: BasePayload,
   client: ReloadlyClient,
@@ -163,42 +179,18 @@ async function fulfilOne(
     return "skipped";
   }
 
-  /**
-   * A data prize needs a specific bundle, not an amount. Networks sell fixed
-   * plans whose descriptions do not map onto a prize name — ₦600 buys "2.5GB
-   * 2-Day" on one network and something else on another — so the operator and
-   * amount have to be chosen by a person and stored on the prize. Until they
-   * are, the prize waits rather than guessing.
-   */
-  const configuredOperator = prize?.reloadlyOperatorId as number | undefined;
   const isData = prize?.fulfilmentType === "data";
-
-  if (isData && !configuredOperator) {
-    await record({
-      outcome: "skipped",
-      error: "data prize has no Reloadly bundle configured",
-    });
-    return "skipped";
-  }
-
-  const localAmount = Number(
-    prize?.reloadlyLocalAmount ?? prize?.valueNaira ?? 0
-  );
-
-  if (!(localAmount > 0)) {
-    await hold(payload, winnerId, "Prize has no value to send.");
-    await record({ outcome: "skipped", error: "no amount" });
-    return "skipped";
-  }
+  let localAmount = 0;
 
   try {
-    const operator = configuredOperator
-      ? { operatorId: configuredOperator, name: "" }
-      : await client.detectOperator(phone, DEFAULT_GIVEAWAY_COUNTRY);
+    const plan = isData
+      ? await resolveDataPlan(client, prize, phone)
+      : await resolveAirtimeTopup(client, prize, phone);
+    localAmount = plan.localAmount;
 
     const result = await client.topup({
-      operatorId: operator.operatorId,
-      localAmount,
+      operatorId: plan.operatorId,
+      localAmount: plan.localAmount,
       phone,
       countryCode: DEFAULT_GIVEAWAY_COUNTRY,
       customIdentifier: winnerId,
@@ -216,15 +208,87 @@ async function fulfilOne(
     await record({
       outcome: "sent",
       providerTransactionId: String(result.transactionId ?? ""),
-      operatorId: operator.operatorId,
-      operatorName: result.operatorName ?? operator.name,
-      localAmount,
+      operatorId: plan.operatorId,
+      operatorName: result.operatorName ?? "",
+      localAmount: plan.localAmount,
     });
 
     return "sent";
   } catch (error) {
+    if (error instanceof UnresolvablePlanError) {
+      await hold(payload, winnerId, error.message);
+      await record({ outcome: "skipped", error: error.message });
+      return "skipped";
+    }
+
     return await handleFailure(payload, winnerId, error, record, localAmount);
   }
+}
+
+/**
+ * Airtime needs only an amount configured by a person — the network itself is
+ * detected from the winner's phone number at send time, since airtime (unlike
+ * data) is not locked to a specific carrier's own SIMs the same way.
+ */
+async function resolveAirtimeTopup(
+  client: ReloadlyClient,
+  prize: Record<string, any>,
+  phone: string
+): Promise<{ operatorId: number; localAmount: number }> {
+  const localAmount = Number(
+    prize?.reloadlyLocalAmount ?? prize?.valueNaira ?? 0
+  );
+
+  if (!(localAmount > 0)) {
+    throw new UnresolvablePlanError("Prize has no value to send.");
+  }
+
+  const detected = await client.detectOperator(phone, DEFAULT_GIVEAWAY_COUNTRY);
+  return { operatorId: detected.operatorId, localAmount };
+}
+
+/**
+ * Match the winner's actual network to a data plan configured for it.
+ *
+ * A data bundle is provisioned by one specific network for that network's own
+ * SIMs — an MTN bundle does nothing for an Airtel winner. So the winner's real
+ * network is detected from their phone number, exactly as for airtime, and
+ * then looked up against the rows a person configured on the prize. A network
+ * with no configured row is held for review rather than sent a different
+ * network's bundle, which would either silently fail or deliver nothing.
+ */
+async function resolveDataPlan(
+  client: ReloadlyClient,
+  prize: Record<string, any>,
+  phone: string
+): Promise<{ operatorId: number; operatorName: string; localAmount: number }> {
+  const plans = (prize?.reloadlyDataPlans ?? []) as {
+    network: string;
+    reloadlyOperatorId: number;
+    reloadlyLocalAmount: number;
+  }[];
+
+  if (plans.length === 0) {
+    throw new UnresolvablePlanError(
+      "Data prize has no Reloadly plans configured for any network."
+    );
+  }
+
+  const detected = await client.detectOperator(phone, DEFAULT_GIVEAWAY_COUNTRY);
+  const network = AIRTIME_OPERATOR_TO_NETWORK[detected.operatorId];
+  const plan = network ? plans.find((p) => p.network === network) : undefined;
+
+  if (!plan) {
+    throw new UnresolvablePlanError(
+      `No data plan configured for the winner's network (${detected.name}).`
+    );
+  }
+
+  return {
+    operatorId: plan.reloadlyOperatorId,
+    operatorName: detected.name,
+    localAmount: plan.reloadlyLocalAmount,
+  };
 }
 
 async function handleFailure(

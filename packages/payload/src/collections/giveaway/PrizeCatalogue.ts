@@ -179,30 +179,54 @@ export const PrizeCatalogue: CollectionConfig = {
       type: "number",
       min: 0,
       admin: {
-        condition: (data) =>
-          data?.fulfilmentType === "airtime" || data?.fulfilmentType === "data",
+        condition: (data) => data?.fulfilmentType === "airtime",
         description:
-          "What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) for airtime if left empty — required for data, where the amount is a specific network bundle, not a free amount.",
+          "What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number and this is the only field a person needs to set.",
       },
     },
     {
-      name: "reloadlyOperatorId",
-      label: "Reloadly operator",
-      type: "number",
+      name: "reloadlyDataPlans",
+      label: "Reloadly data plans, one per network",
+      type: "array",
       admin: {
         condition: (data) => data?.fulfilmentType === "data",
         description:
-          "The specific network bundle this prize sends (e.g. MTN Nigeria Data). Data plans are fixed, network-specific bundles — ₦600 buys a different plan on every network — so this cannot be auto-detected from the winner's phone number the way airtime can. Look the id up from Reloadly's operator list.",
+          "A data bundle is provisioned by one specific network for that network's own SIMs — an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.",
       },
-      validate: (value: number | null | undefined, { siblingData }: any) => {
-        if (siblingData?.fulfilmentType !== "data") {
-          return true;
-        }
-        if (value === null || value === undefined) {
-          return "A data prize needs a Reloadly operator id — the amount alone does not identify a bundle.";
-        }
-        return true;
-      },
+      fields: [
+        {
+          name: "network",
+          type: "select",
+          required: true,
+          options: [
+            { label: "MTN Nigeria", value: "mtn" },
+            { label: "Airtel Nigeria", value: "airtel" },
+            { label: "Glo Nigeria", value: "glo" },
+            { label: "9mobile / T2 Nigeria", value: "t2" },
+          ],
+        },
+        {
+          name: "reloadlyOperatorId",
+          label: "Reloadly operator id",
+          type: "number",
+          required: true,
+          admin: {
+            description:
+              "This network's \"…Data\" operator, not its airtime one — look it up from Reloadly's operator list.",
+          },
+        },
+        {
+          name: "reloadlyLocalAmount",
+          label: "Amount (local currency)",
+          type: "number",
+          required: true,
+          min: 0,
+          admin: {
+            description:
+              "The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount — check the operator's own plan list rather than assuming Value (₦) applies.",
+          },
+        },
+      ],
     },
     {
       name: "image",
