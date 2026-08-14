@@ -48,7 +48,7 @@ function toNewsItem(doc: News): NewsItem {
  */
 export async function fetchTrendingForWidget(
   payload: Payload,
-  limit = 3,
+  limit = 3
 ): Promise<NewsItem[]> {
   let cachedResult: NewsItem[] | null = null;
 
@@ -105,7 +105,7 @@ export async function fetchTrendingForWidget(
  */
 export async function fetchDigestForWidget(
   payload: Payload,
-  limit = 4,
+  limit = 4
 ): Promise<DigestData> {
   const now = new Date();
   const greeting = greetingForHour(now.getHours());
