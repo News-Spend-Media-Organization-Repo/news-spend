@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 import { Spinner } from "heroui-native";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
 import { View } from "react-native";
@@ -8,6 +9,7 @@ import { z } from "zod";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import FormTextInput from "#/components/heroui/text-input";
+import { Text } from "#/components/ui";
 import { useForgotPassword, useUpdateProfile, useUser } from "#/hooks/auth";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { queryClient } from "#/lib/tanstackQuery";
@@ -185,6 +187,26 @@ function Profile() {
                 name="wish"
                 placeholder={user?.wish ?? ""}
               />
+              {user?.dateOfBirth && (
+                <View className="gap-1">
+                  <Text className="font-medium text-sm">Date of Birth</Text>
+                  <View className="rounded-xl bg-gray-100 px-4 py-3">
+                    <Text className="text-subtle-text">
+                      {format(new Date(user.dateOfBirth), "d MMMM yyyy")}
+                    </Text>
+                  </View>
+                  {/*
+                   * Shown but not editable. Age decides whether someone may
+                   * take part in a giveaway, so a birth date the holder can
+                   * rewrite is not a check — it is a prompt they answer again
+                   * after being refused.
+                   */}
+                  <Text className="text-subtle-text text-xs">
+                    Used to confirm you're over 18. Contact support if this is
+                    wrong.
+                  </Text>
+                </View>
+              )}
               <View className="gap-2">
                 <Button
                   isDisabled={updateProfileMutation.isPending || !isDirty}

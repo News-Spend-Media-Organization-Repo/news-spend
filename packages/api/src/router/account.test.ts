@@ -399,3 +399,161 @@ describe("accountRouter.me", () => {
     expect(result).toMatchObject({ id: "user-1", username: "tester" });
   });
 });
+
+// ---------------------------------------------------------------------------
+// setDateOfBirth
+// ---------------------------------------------------------------------------
+describe("accountRouter.setDateOfBirth", () => {
+  const validDob = { dateOfBirth: "1995-06-15" };
+
+  it("rejects a guest", async () => {
+    const error = await expectError(
+      call(accountRouter.setDateOfBirth, validDob, {
+        context: mockContext({ user: guestUser as never }),
+      })
+    );
+
+    expect(error.code).toBe("FORBIDDEN");
+  });
+
+  it("stores a date of birth when none is set", async () => {
+    const payload = createFakePayload({
+      collections: { users: [{ id: "user-1", username: "tester" }] },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(accountRouter.setDateOfBirth, validDob, {
+      context: ctx,
+    });
+
+    expect(result.dateOfBirth).toBe("1995-06-15T00:00:00.000Z");
+  });
+
+  it("refuses to overwrite one already on record", async () => {
+    const payload = createFakePayload({
+      collections: {
+        users: [
+          {
+            id: "user-1",
+            username: "tester",
+            dateOfBirth: "2010-01-01T00:00:00.000Z",
+          },
+        ],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const error = await expectError(
+      call(accountRouter.setDateOfBirth, validDob, { context: ctx })
+    );
+
+    // Write-once is the whole point: a birth date its holder can rewrite is
+    // not an age check, it is a prompt they answer again after being refused.
+    expect(error.code).toBe("CONFLICT");
+    expect(error.message).toMatch(/already on record/);
+  });
+
+  it("stores an under-age date rather than refusing it", async () => {
+    const payload = createFakePayload({
+      collections: { users: [{ id: "user-1", username: "tester" }] },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const recent = new Date();
+    recent.setFullYear(recent.getFullYear() - 12);
+    const dateOfBirth = recent.toISOString().slice(0, 10);
+
+    // Refusing here would let someone retry until a date was accepted, which
+    // teaches them the threshold and leaves nothing on record. The purchase
+    // gate is what refuses them, consistently, until the date itself changes.
+    const result = await call(
+      accountRouter.setDateOfBirth,
+      { dateOfBirth },
+      { context: ctx }
+    );
+
+    expect(result.dateOfBirth).toStartWith(dateOfBirth);
+  });
+
+  it("rejects a future date", async () => {
+    const payload = createFakePayload({
+      collections: { users: [{ id: "user-1" }] },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const error = await expectError(
+      call(
+        accountRouter.setDateOfBirth,
+        { dateOfBirth: "2099-01-01" },
+        { context: ctx }
+      )
+    );
+
+    expect(error.code).toBe("BAD_REQUEST");
+    expect(error.message).toMatch(/cannot be in the future/);
+  });
+
+  it("rejects an implausibly old date", async () => {
+    const payload = createFakePayload({
+      collections: { users: [{ id: "user-1" }] },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const error = await expectError(
+      call(
+        accountRouter.setDateOfBirth,
+        { dateOfBirth: "1850-01-01" },
+        { context: ctx }
+      )
+    );
+
+    expect(error.code).toBe("BAD_REQUEST");
+  });
+
+  it("rejects a malformed date", async () => {
+    const ctx = mockContext({ user: authedUser as never });
+
+    await expect(
+      call(
+        accountRouter.setDateOfBirth,
+        { dateOfBirth: "15/06/1995" },
+        { context: ctx }
+      )
+    ).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateProfile — protected fields
+// ---------------------------------------------------------------------------
+describe("accountRouter.updateProfile protected fields", () => {
+  it("silently drops dateOfBirth and verifiedCountry", async () => {
+    const payload = createFakePayload({
+      collections: { users: [{ id: "user-1", username: "tester" }] },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    await call(
+      accountRouter.updateProfile,
+      {
+        username: "tester",
+        name: "Tester",
+        dateOfBirth: "2010-01-01",
+        verifiedCountry: "GB",
+      } as never,
+      { context: ctx }
+    );
+
+    // The input is a catchall, so without the guard these would flow straight
+    // through to the user record and defeat both the age gate and the
+    // verified-country check.
+    const body = updateUserMock.mock.calls[0]?.[0]?.body as Record<
+      string,
+      unknown
+    >;
+    expect(body).toBeDefined();
+    expect(body.dateOfBirth).toBeUndefined();
+    expect(body.verifiedCountry).toBeUndefined();
+    expect(body.name).toBe("Tester");
+  });
+});

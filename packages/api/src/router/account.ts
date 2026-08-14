@@ -32,6 +32,17 @@ const changePassword = protectedNoGuestProcedure
     };
   });
 
+/**
+ * Fields this endpoint must never write, whatever the client sends.
+ *
+ * The input is a `catchall`, so anything extra flows straight through to the
+ * user record. That is fine for ordinary profile fields and wrong for these:
+ * a date of birth the holder can edit is not an age check, it is a formality
+ * someone re-types after being refused, and a self-asserted verified country
+ * would defeat the point of verifying it.
+ */
+const PROTECTED_PROFILE_FIELDS = ["dateOfBirth", "verifiedCountry"] as const;
+
 const updateProfile = protectedNoGuestProcedure
   .input(
     z
@@ -49,7 +60,11 @@ const updateProfile = protectedNoGuestProcedure
     } = context;
     const customErr: z.core.$ZodIssue[] = [];
 
-    const { username, ...rest } = input;
+    const { username, ...passthrough } = input;
+    const rest = { ...passthrough };
+    for (const field of PROTECTED_PROFILE_FIELDS) {
+      delete rest[field];
+    }
 
     const user = await payload.findByID({
       collection: "users",
@@ -112,6 +127,85 @@ const updateProfile = protectedNoGuestProcedure
     });
 
     return userUpdate;
+  });
+
+/**
+ * The oldest birth date worth accepting. Anything earlier is a typo, not a
+ * user.
+ */
+const MAX_PLAUSIBLE_AGE_YEARS = 120;
+
+export const SetDateOfBirthInput = z.object({
+  /** `YYYY-MM-DD`. A calendar day, deliberately not a timestamp. */
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the date picker to choose a date."),
+});
+
+/**
+ * Record a date of birth, once.
+ *
+ * Write-once by design. Age gates giveaway participation, so a birth date the
+ * holder can rewrite is not a check — it is a prompt someone answers again
+ * after being refused. A genuine mistype is a support correction, made by an
+ * administrator in the CMS, the same way a bank does not let you edit your
+ * own date of birth after it has been used for anything.
+ *
+ * This deliberately does not reject an under-age date. Refusing to store it
+ * would let someone retry until they found a date that was accepted, which
+ * teaches them the threshold and leaves nothing on record. Storing it means
+ * the age gate at purchase can refuse them consistently, and keep refusing
+ * them, until the date itself makes them eligible.
+ */
+const setDateOfBirth = protectedNoGuestProcedure
+  .input(SetDateOfBirthInput)
+  .handler(async ({ input, context, errors }) => {
+    const {
+      payload,
+      user: { id: userId },
+    } = context;
+
+    const parsed = new Date(`${input.dateOfBirth}T00:00:00.000Z`);
+    if (Number.isNaN(parsed.getTime())) {
+      throw errors.BAD_REQUEST({ message: "That is not a real date." });
+    }
+
+    const now = new Date();
+    const oldest = new Date(now);
+    oldest.setUTCFullYear(oldest.getUTCFullYear() - MAX_PLAUSIBLE_AGE_YEARS);
+
+    if (parsed > now) {
+      throw errors.BAD_REQUEST({
+        message: "A date of birth cannot be in the future.",
+      });
+    }
+
+    if (parsed < oldest) {
+      throw errors.BAD_REQUEST({
+        message: "Please check the year — that date is not plausible.",
+      });
+    }
+
+    const user = await payload.findByID({ collection: "users", id: userId });
+
+    if (!user) {
+      throw errors.NOT_FOUND({ message: "User not found" });
+    }
+
+    if (user.dateOfBirth) {
+      throw errors.CONFLICT({
+        message:
+          "Your date of birth is already on record and cannot be changed here. Contact support if it is wrong.",
+      });
+    }
+
+    await payload.update({
+      collection: "users",
+      id: userId,
+      data: { dateOfBirth: parsed.toISOString() },
+    });
+
+    return { dateOfBirth: parsed.toISOString() };
   });
 
 const createPushToken = protectedProcedure
@@ -221,6 +315,7 @@ const me = protectedProcedure.handler(async ({ context, errors }) => {
 
 export const accountRouter = {
   updateProfile,
+  setDateOfBirth,
   changePassword,
   createPushToken,
   deletePushToken,
