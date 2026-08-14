@@ -83,7 +83,7 @@ describe("report.create", () => {
     const originalCreate = payload.create;
     payload.create = (args: Parameters<typeof originalCreate>[0]) => {
       if (args.collection === "media") {
-        throw new Error("S3 upload failed");
+        throw new Error("Media upload failed");
       }
       return originalCreate(args);
     };

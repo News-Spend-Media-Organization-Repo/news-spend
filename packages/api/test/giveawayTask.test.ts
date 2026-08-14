@@ -265,6 +265,8 @@ describe("processGiveaway task", () => {
 
     expect(output).toEqual({
       drawn: 0,
+      prizesFulfilled: 0,
+      prizesFailed: 0,
       claimsExpired: 0,
       reportsRetried: 0,
       reportsSent: 0,

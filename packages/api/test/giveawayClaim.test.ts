@@ -14,13 +14,24 @@ type Row = Record<string, any>;
 const DAY = 24 * 60 * 60 * 1000;
 const user = { id: "u1", isAnonymous: false, username: "tester" };
 
+/**
+ * One clock for the whole fixture. `pastGiveaway` is stamped twice per test —
+ * once inside `winnerRow` and once as `createContext`'s default `giveaways`
+ * seed — and two live `Date.now()` calls can straddle a millisecond tick under
+ * CPU contention, making the second giveaway read as "superseded" by the first
+ * (claim.ts `isSuperseded`: latestStart > giveawayStartDate). Freezing the
+ * clock makes the two stamps identical, so a fresh giveaway is never mistaken
+ * for a later one.
+ */
+const FIXTURE_NOW = Date.now();
+
 function pastGiveaway(overrides: Row = {}): Row {
   return {
     id: "g1",
     name: "Week 33",
     status: "completed",
-    startDate: new Date(Date.now() - 20 * DAY).toISOString(),
-    endDate: new Date(Date.now() - 6 * DAY).toISOString(),
+    startDate: new Date(FIXTURE_NOW - 20 * DAY).toISOString(),
+    endDate: new Date(FIXTURE_NOW - 6 * DAY).toISOString(),
     ...overrides,
   };
 }
