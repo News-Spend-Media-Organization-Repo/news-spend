@@ -3,7 +3,6 @@ import type { Media } from "@news-spend-media/payload/types";
 import { and, eq, ne } from "@payloadcms/db-postgres/drizzle";
 import { subWeeks } from "date-fns";
 import z from "zod";
-import { zfd } from "zod-form-data";
 
 import {
   protectedNoGuestProcedure,
@@ -28,21 +27,28 @@ const LotteryCreateInput = z.object({
 export type LotteryCreateInput = z.infer<typeof LotteryCreateInput>;
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const verifyIdentityInput = zfd.formData({
-  firstName: zfd.text(z.string().trim().min(3)),
-  lastName: zfd.text(z.string().trim().min(3)),
-  email: zfd.text(z.string().email()),
-  phoneNumber: zfd.text(
-    z.string().trim().regex(/^\d+$/, "Invalid phone number")
-  ),
-  shippingAddress: zfd.text(z.string().trim().min(3)),
-  "governmentId.front": zfd
+/**
+ * See the note in `report.ts`: `zod-form-data` is a Zod 3 library and threw
+ * during Zod 4 contract introspection, killing the server at startup. Plain
+ * Zod 4 with `z.file()` does the same job.
+ *
+ * This whole flow goes when the lottery does — it is the ID-upload form the
+ * provider-hosted verification replaces — but it must not crash the server in
+ * the meantime.
+ */
+const verifyIdentityInput = z.object({
+  firstName: z.string().trim().min(3),
+  lastName: z.string().trim().min(3),
+  email: z.email(),
+  phoneNumber: z.string().trim().regex(/^\d+$/, "Invalid phone number"),
+  shippingAddress: z.string().trim().min(3),
+  "governmentId.front": z
     .file()
     .refine(
       (file) => file && file.size <= MAX_FILE_SIZE,
       "File size must be less than 5MB"
     ),
-  "governmentId.back": zfd
+  "governmentId.back": z
     .file()
     .refine(
       (file) => file && file.size <= MAX_FILE_SIZE,

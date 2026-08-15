@@ -46,8 +46,7 @@
     "radio-browser-api": "^6.0.3",
     "react": "catalog:",
     "react-tweet": "^3.3.0",
-    "zod": "catalog:",
-    "zod-form-data": "^3.0.1"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@news-spend-media/config": "workspace:*",
