@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 
+import { ADMIN_GROUP_RECORDS } from "./constants";
+
 /**
  * The email log for Winner Report deliveries (spec §21).
  *
@@ -17,7 +19,7 @@ export const GiveawayReportDeliveries: CollectionConfig = {
   slug: "giveaway-report-deliveries",
   labels: { singular: "Report Delivery", plural: "Report Deliveries" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "subject",
     defaultColumns: [
       "giveaway",

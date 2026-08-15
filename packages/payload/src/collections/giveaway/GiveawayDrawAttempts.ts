@@ -1,6 +1,7 @@
 import type { CollectionConfig } from "payload";
 
 import {
+  ADMIN_GROUP_RECORDS,
   DRAW_ATTEMPT_OUTCOME_OPTIONS,
   DRAW_CHECKPOINT_OPTIONS,
 } from "./constants";
@@ -25,7 +26,7 @@ export const GiveawayDrawAttempts: CollectionConfig = {
   slug: "giveaway-draw-attempts",
   labels: { singular: "Draw Attempt", plural: "Draw Attempts" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "id",
     defaultColumns: [
       "giveaway",

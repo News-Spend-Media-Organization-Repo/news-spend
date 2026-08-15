@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 
-import { TICKET_STATUS_OPTIONS } from "./constants";
+import { ADMIN_GROUP_RECORDS, TICKET_STATUS_OPTIONS } from "./constants";
 
 /**
  * Ticket purchases (spec §6).
@@ -13,7 +13,7 @@ import { TICKET_STATUS_OPTIONS } from "./constants";
 export const GiveawayTickets: CollectionConfig = {
   slug: "giveaway-tickets",
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "id",
     defaultColumns: ["giveaway", "user", "quantity", "status", "purchasedAt"],
   },

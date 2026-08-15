@@ -1,6 +1,10 @@
 import { type CollectionConfig, ValidationError } from "payload";
 
-import { LOCKED_GIVEAWAY_STATUSES, PRIZE_TIER_OPTIONS } from "./constants";
+import {
+  ADMIN_GROUP,
+  LOCKED_GIVEAWAY_STATUSES,
+  PRIZE_TIER_OPTIONS,
+} from "./constants";
 
 /**
  * Prize Pool and Maximum Units for a single giveaway (spec §4, §5).
@@ -12,7 +16,7 @@ import { LOCKED_GIVEAWAY_STATUSES, PRIZE_TIER_OPTIONS } from "./constants";
 export const GiveawayPrizes: CollectionConfig = {
   slug: "giveaway-prizes",
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP,
     useAsTitle: "id",
     defaultColumns: [
       "giveaway",

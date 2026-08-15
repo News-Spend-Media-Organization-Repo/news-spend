@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 
+import { ADMIN_GROUP_RECORDS } from "./constants";
+
 /**
  * Every attempt to deliver a prize through a provider (spec §15).
  *
@@ -17,7 +19,7 @@ export const GiveawayFulfilmentAttempts: CollectionConfig = {
   slug: "giveaway-fulfilment-attempts",
   labels: { singular: "Fulfilment Attempt", plural: "Fulfilment Attempts" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "id",
     defaultColumns: [
       "winner",

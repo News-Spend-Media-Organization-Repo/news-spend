@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 
-import { PRIZE_TIER_OPTIONS } from "./constants";
+import { ADMIN_GROUP_RECORDS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
  * The locked candidate pool for one tier of one giveaway (spec §12).
@@ -23,7 +23,7 @@ export const GiveawayPoolSnapshots: CollectionConfig = {
   slug: "giveaway-pool-snapshots",
   labels: { singular: "Pool Snapshot", plural: "Pool Snapshots" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "id",
     defaultColumns: ["giveaway", "tier", "candidateCount", "lockedAt"],
     description:

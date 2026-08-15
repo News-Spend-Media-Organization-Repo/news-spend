@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 
-import { ACCOUNT_TRUST_STATUS_OPTIONS } from "./constants";
+import { ACCOUNT_TRUST_STATUS_OPTIONS, ADMIN_GROUP } from "./constants";
 
 /**
  * Account-level trust flags for the giveaway (spec §22.5–22.8).
@@ -27,7 +27,7 @@ export const GiveawayAccountFlags: CollectionConfig = {
   slug: "giveaway-account-flags",
   labels: { singular: "Account Flag", plural: "Account Flags" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP,
     useAsTitle: "id",
     defaultColumns: [
       "user",

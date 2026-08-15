@@ -2,6 +2,7 @@ import { addWeeks, startOfWeek } from "date-fns";
 import { type CollectionConfig, ValidationError } from "payload";
 
 import {
+  ADMIN_GROUP,
   DRAW_CHECKPOINT_OPTIONS,
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
@@ -19,7 +20,7 @@ import {
 export const Giveaways: CollectionConfig = {
   slug: "giveaways",
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP,
     useAsTitle: "name",
     defaultColumns: [
       "name",

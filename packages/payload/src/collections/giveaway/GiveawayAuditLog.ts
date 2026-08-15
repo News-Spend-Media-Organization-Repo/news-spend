@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 
-import { AUDIT_EVENT_TYPE_OPTIONS } from "./constants";
+import { ADMIN_GROUP_RECORDS, AUDIT_EVENT_TYPE_OPTIONS } from "./constants";
 
 /**
  * Immutable audit log for all giveaway activity (spec §17, §18).
@@ -12,7 +12,7 @@ export const GiveawayAuditLog: CollectionConfig = {
   slug: "giveaway-audit-log",
   labels: { singular: "Audit Record", plural: "Audit Log" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "eventType",
     defaultColumns: ["giveaway", "eventType", "user", "createdAt"],
     description: "Append-only. Records cannot be edited or deleted.",

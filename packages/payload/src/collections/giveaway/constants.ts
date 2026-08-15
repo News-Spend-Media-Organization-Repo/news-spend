@@ -5,6 +5,20 @@
  * NOT configurable by the giveaway administrator (spec §1, §7, §8, §11).
  */
 
+/**
+ * Admin sidebar grouping.
+ *
+ * The engine needs thirteen collections, but an administrator only ever
+ * creates or edits five of them. The rest are written by the draw and
+ * fulfilment code and read only when something needs explaining. Splitting the
+ * two apart keeps the sidebar showing the giveaway you run, rather than
+ * implying a pool snapshot is something you fill in by hand.
+ */
+export const ADMIN_GROUP = "Giveaway";
+
+/** Machine-written collections: consulted during an investigation, not run. */
+export const ADMIN_GROUP_RECORDS = "Giveaway records";
+
 export const PRIZE_TIERS = ["tier1", "tier2", "tier3"] as const;
 export type PrizeTier = (typeof PRIZE_TIERS)[number];
 

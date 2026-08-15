@@ -1,6 +1,10 @@
 import { type CollectionConfig, ValidationError } from "payload";
 
-import { FULFILMENT_TYPE_OPTIONS, PRIZE_TIER_OPTIONS } from "./constants";
+import {
+  ADMIN_GROUP,
+  FULFILMENT_TYPE_OPTIONS,
+  PRIZE_TIER_OPTIONS,
+} from "./constants";
 
 /**
  * Master Prize Catalogue (spec §2).
@@ -13,7 +17,7 @@ import { FULFILMENT_TYPE_OPTIONS, PRIZE_TIER_OPTIONS } from "./constants";
 export const PrizeCatalogue: CollectionConfig = {
   slug: "prize-catalogue",
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP,
     useAsTitle: "name",
     defaultColumns: ["name", "tier", "active", "updatedAt"],
     description:

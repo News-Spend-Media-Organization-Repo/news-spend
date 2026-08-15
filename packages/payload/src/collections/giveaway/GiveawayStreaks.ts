@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 
-import { PRIZE_TIER_OPTIONS } from "./constants";
+import { ADMIN_GROUP_RECORDS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
  * Consecutive Giveaway Eligibility counters (spec §11).
@@ -15,7 +15,7 @@ export const GiveawayStreaks: CollectionConfig = {
   slug: "giveaway-streaks",
   labels: { singular: "Giveaway Streak", plural: "Giveaway Streaks" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "id",
     defaultColumns: [
       "user",

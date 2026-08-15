@@ -1,6 +1,10 @@
 import type { CollectionConfig } from "payload";
 
-import { FULFILMENT_STATUS_OPTIONS, PRIZE_TIER_OPTIONS } from "./constants";
+import {
+  ADMIN_GROUP,
+  FULFILMENT_STATUS_OPTIONS,
+  PRIZE_TIER_OPTIONS,
+} from "./constants";
 
 /**
  * Winner records (spec §12, §13, §21).
@@ -12,7 +16,7 @@ import { FULFILMENT_STATUS_OPTIONS, PRIZE_TIER_OPTIONS } from "./constants";
 export const GiveawayWinners: CollectionConfig = {
   slug: "giveaway-winners",
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP,
     useAsTitle: "id",
     defaultColumns: [
       "giveaway",
