@@ -39,6 +39,7 @@ import {
   Giveaways,
   GiveawayTickets,
   GiveawayWinners,
+  IdentityChecks,
   IdentityVerification,
   Lotteries,
   LotteryTickets,
@@ -145,6 +146,7 @@ const baseConfig: Config = {
     GiveawayStreaks,
     GiveawayTickets,
     GiveawayWinners,
+    IdentityChecks,
     PrizeCatalogue,
     // --- Legacy lottery: retained read-only for audit until cutover ---
     IdentityVerification,

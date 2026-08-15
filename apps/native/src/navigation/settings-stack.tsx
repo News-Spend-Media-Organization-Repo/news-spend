@@ -27,6 +27,7 @@ const ROUTE_TITLES = {
   RateApp: "Rate App",
   ShareApp: "Share App",
   Socials: "Follow Us",
+  IdentityVerification: "Verify Identity",
   VerifyIdentity: "Verify Identity",
 } as const;
 

@@ -20,6 +20,7 @@ import { reportRouter } from "./report";
 import { storeRouter } from "./store";
 import { surveyRouter } from "./survey";
 import { tweetRouter } from "./tweet";
+import { verificationRouter } from "./verification";
 
 export const router = {
   account: accountRouter,
@@ -43,6 +44,7 @@ export const router = {
   report: reportRouter,
   store: storeRouter,
   survey: surveyRouter,
+  verification: verificationRouter,
   tweet: tweetRouter,
 };
 

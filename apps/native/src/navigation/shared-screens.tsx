@@ -7,6 +7,7 @@ import BlockedUsers from "#/features/tabs/settings/screens/blocked-users";
 import CommunityGuidelines from "#/features/tabs/settings/screens/community-guidelines";
 import DataManager from "#/features/tabs/settings/screens/data-manager";
 import DeleteAccount from "#/features/tabs/settings/screens/delete-account";
+import IdentityVerification from "#/features/tabs/settings/screens/identity-verification";
 import LegalAgreement from "#/features/tabs/settings/screens/legal";
 import Notifications from "#/features/tabs/settings/screens/notification";
 import Profile from "#/features/tabs/settings/screens/profile";
@@ -184,6 +185,12 @@ export const sharedScreens = {
     screen: VerifyIdentity,
     linking: {
       path: "verify-identity",
+    },
+  }),
+  IdentityVerification: createNativeStackScreen({
+    screen: IdentityVerification,
+    linking: {
+      path: "identity-verification",
     },
   }),
   Advertise: createNativeStackScreen({

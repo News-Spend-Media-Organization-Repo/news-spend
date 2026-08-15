@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
+import type { MigrateDownArgs, MigrateUpArgs, sql } from '@payloadcms/db-postgres'
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -44,7 +44,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "giveaway_account_flags_rels" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"order" integer,
@@ -52,7 +52,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"path" varchar NOT NULL,
   	"admins_id" uuid
   );
-  
+
   CREATE TABLE "giveaway_draw_attempts" (
   	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   	"giveaway_id" uuid NOT NULL,
@@ -70,7 +70,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "giveaway_draw_attempts_rels" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"order" integer,
@@ -78,7 +78,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"path" varchar NOT NULL,
   	"admins_id" uuid
   );
-  
+
   CREATE TABLE "giveaway_fulfilment_attempts" (
   	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   	"winner_id" uuid NOT NULL,
@@ -96,7 +96,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "giveaway_fulfilment_attempts_rels" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"order" integer,
@@ -104,7 +104,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"path" varchar NOT NULL,
   	"admins_id" uuid
   );
-  
+
   CREATE TABLE "giveaway_pool_snapshots" (
   	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   	"giveaway_id" uuid NOT NULL,
@@ -115,7 +115,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "giveaway_pool_snapshots_rels" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"order" integer,
@@ -123,7 +123,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"path" varchar NOT NULL,
   	"admins_id" uuid
   );
-  
+
   CREATE TABLE "giveaway_report_deliveries" (
   	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   	"giveaway_id" uuid NOT NULL,
@@ -142,7 +142,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "giveaway_report_deliveries_rels" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"order" integer,
@@ -150,7 +150,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"path" varchar NOT NULL,
   	"admins_id" uuid
   );
-  
+
   CREATE TABLE "prize_catalogue_reloadly_data_plans" (
   	"_order" integer NOT NULL,
   	"_parent_id" uuid NOT NULL,
@@ -159,7 +159,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"reloadly_operator_id" numeric,
   	"reloadly_local_amount" numeric
   );
-  
+
   CREATE TABLE "user_blocks" (
   	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   	"blocker_id" uuid NOT NULL,
@@ -167,7 +167,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "user_blocks_rels" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"order" integer,
@@ -175,9 +175,9 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"path" varchar NOT NULL,
   	"admins_id" uuid
   );
-  
+
   ALTER TABLE "users_rels" DROP CONSTRAINT "users_rels_users_fk";
-  
+
   ALTER TABLE "giveaways" ALTER COLUMN "status" SET DATA TYPE text;
   ALTER TABLE "giveaways" ALTER COLUMN "status" SET DEFAULT 'draft'::text;
   DROP TYPE "public"."enum_giveaways_status";
@@ -354,21 +354,21 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "user_blocks" CASCADE;
   DROP TABLE "user_blocks_rels" CASCADE;
   ALTER TABLE "giveaways" DROP CONSTRAINT "giveaways_current_attempt_id_giveaway_draw_attempts_id_fk";
-  
+
   ALTER TABLE "giveaway_winners" DROP CONSTRAINT "giveaway_winners_replaces_id_giveaway_winners_id_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_giveaway_account_flags_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_giveaway_draw_attempts_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_giveaway_fulfilment_attempt_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_giveaway_pool_snapshots_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_giveaway_report_deliveries_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_user_blocks_fk";
-  
+
   ALTER TABLE "giveaway_audit_log" ALTER COLUMN "event_type" SET DATA TYPE text;
   DROP TYPE "public"."enum_giveaway_audit_log_event_type";
   CREATE TYPE "public"."enum_giveaway_audit_log_event_type" AS ENUM('ticket_purchase', 'ticket_status_change', 'boost_completion', 'featured_offer_completion', 'participants_snapshot', 'candidate_pool_built', 'winner_selected', 'prize_allocated', 'prize_exhausted', 'tier_completed', 'draw_started', 'draw_resumed', 'draw_completed', 'draw_error', 'winner_report_sent', 'claim_status_change');

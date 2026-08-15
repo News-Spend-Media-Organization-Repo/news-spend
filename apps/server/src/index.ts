@@ -1,5 +1,6 @@
 import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
+import { diditWebhookHandler } from "@news-spend-media/api/router/verification/webhook";
 import { widgetHandler } from "@news-spend-media/api/router/widgets/handler";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
@@ -320,6 +321,16 @@ const server = Bun.serve({
     if (url.pathname === "/rpc" || url.pathname.startsWith("/rpc/")) {
       logRequest(req);
       return handleRpc(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    // Ahead of the /api/ catch-all: the signature is computed over the exact
+    // body Didit sent, so this must not pass through the oRPC handler first.
+    if (url.pathname === "/api/verification/didit") {
+      logRequest(req);
+      return diditWebhookHandler(req).then((res) => {
         logResponse(req, res.status, Date.now() - start);
         return res;
       });

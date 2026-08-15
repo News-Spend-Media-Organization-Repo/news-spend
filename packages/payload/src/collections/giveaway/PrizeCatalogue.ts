@@ -1,5 +1,7 @@
 import { type CollectionConfig, ValidationError } from "payload";
 
+import { isIdentityProviderConfigured } from "../../lib/giveaway/didit";
+
 import {
   ADMIN_GROUP,
   FULFILMENT_TYPE_OPTIONS,
@@ -174,7 +176,17 @@ export const PrizeCatalogue: CollectionConfig = {
       index: true,
       admin: {
         description:
-          "The winner can still claim immediately — this only gates delivery. Use it for high-value items, not for airtime or points.",
+          "The winner can still claim immediately — this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.",
+      },
+      validate: (value: boolean | null | undefined) => {
+        // Without a provider this checkbox does not gate anything — it parks
+        // the winner in `awaiting_verification` with no way out, which is
+        // worse than not gating at all. Refusing here is the only warning an
+        // administrator gets, since the box itself looks harmless.
+        if (value && !isIdentityProviderConfigured()) {
+          return "No identity verification provider is configured, so a winner of this prize could never complete verification and the prize would never be dispatched. Configure Didit first.";
+        }
+        return true;
       },
     },
     {

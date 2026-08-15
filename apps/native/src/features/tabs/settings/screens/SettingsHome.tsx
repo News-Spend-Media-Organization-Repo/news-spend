@@ -91,7 +91,10 @@ const settingsItems: SettingsItem[] = [
   {
     title: "Verify Identity",
     icon: IdentificationCardIcon,
-    screen: "VerifyIdentity",
+    // The provider-hosted flow, not the old upload form. That screen is still
+    // registered and reachable by deep link until the lottery that uses it
+    // goes, but nothing points people at it any more.
+    screen: "IdentityVerification",
     authRequired: true,
   },
   { title: "Contact us", icon: PhoneCallIcon, screen: "Support" },

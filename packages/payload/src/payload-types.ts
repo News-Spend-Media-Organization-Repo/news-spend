@@ -90,6 +90,7 @@ export interface Config {
     'giveaway-streaks': GiveawayStreak;
     'giveaway-tickets': GiveawayTicket;
     'giveaway-winners': GiveawayWinner;
+    'identity-checks': IdentityCheck;
     'prize-catalogue': PrizeCatalogue;
     'identity-verification': IdentityVerification;
     lottery: Lottery;
@@ -143,6 +144,7 @@ export interface Config {
     'giveaway-streaks': GiveawayStreaksSelect<false> | GiveawayStreaksSelect<true>;
     'giveaway-tickets': GiveawayTicketsSelect<false> | GiveawayTicketsSelect<true>;
     'giveaway-winners': GiveawayWinnersSelect<false> | GiveawayWinnersSelect<true>;
+    'identity-checks': IdentityChecksSelect<false> | IdentityChecksSelect<true>;
     'prize-catalogue': PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
     'identity-verification': IdentityVerificationSelect<false> | IdentityVerificationSelect<true>;
     lottery: LotterySelect<false> | LotterySelect<true>;
@@ -1538,7 +1540,7 @@ export interface PrizeCatalogue {
    */
   valueNaira?: number | null;
   /**
-   * The winner can still claim immediately — this only gates delivery. Use it for high-value items, not for airtime or points.
+   * The winner can still claim immediately — this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
    */
   requiresVerification?: boolean | null;
   /**
@@ -1759,6 +1761,47 @@ export interface GiveawayStreak {
    */
   lastEvaluatedGiveaway?: (string | null) | Giveaway;
   lastQualifiedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Identity decisions from the verification provider. No documents are stored here — the provider holds those.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity-checks".
+ */
+export interface IdentityCheck {
+  id: string;
+  /**
+   * The person this decision is about.
+   */
+  user: string | User;
+  provider: 'didit';
+  /**
+   * Unique so a replayed webhook updates the existing row instead of creating a second decision for the same session.
+   */
+  sessionId: string;
+  /**
+   * Only Approved releases a prize. In Review means the provider wants a human to look, and nothing is dispatched meanwhile.
+   */
+  status: 'Not Started' | 'In Progress' | 'In Review' | 'Approved' | 'Declined' | 'Abandoned' | 'Expired';
+  /**
+   * When a final decision landed, as opposed to a progress update.
+   */
+  decidedAt?: string | null;
+  lastWebhookAt?: string | null;
+  /**
+   * Anything a person needs to know — a declined reason, or why a decision was overridden.
+   */
+  note?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -2654,6 +2697,10 @@ export interface PayloadLockedDocument {
         value: string | GiveawayWinner;
       } | null)
     | ({
+        relationTo: 'identity-checks';
+        value: string | IdentityCheck;
+      } | null)
+    | ({
         relationTo: 'prize-catalogue';
         value: string | PrizeCatalogue;
       } | null)
@@ -3180,6 +3227,23 @@ export interface GiveawayWinnersSelect<T extends boolean = true> {
   replaces?: T;
   disqualifiedAt?: T;
   disqualificationReason?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity-checks_select".
+ */
+export interface IdentityChecksSelect<T extends boolean = true> {
+  user?: T;
+  provider?: T;
+  sessionId?: T;
+  status?: T;
+  decidedAt?: T;
+  lastWebhookAt?: T;
+  note?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

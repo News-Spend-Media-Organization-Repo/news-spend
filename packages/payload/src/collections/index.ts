@@ -19,6 +19,7 @@ export {
   Giveaways,
   GiveawayTickets,
   GiveawayWinners,
+  IdentityChecks,
   PrizeCatalogue,
 } from "./giveaway";
 export { default as IdentityVerification } from "./IdentityVerification";

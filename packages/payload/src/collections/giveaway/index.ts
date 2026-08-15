@@ -11,4 +11,5 @@ export { GiveawayStreaks } from "./GiveawayStreaks";
 export { Giveaways } from "./Giveaways";
 export { GiveawayTickets } from "./GiveawayTickets";
 export { GiveawayWinners } from "./GiveawayWinners";
+export { IdentityChecks } from "./IdentityChecks";
 export { PrizeCatalogue } from "./PrizeCatalogue";
