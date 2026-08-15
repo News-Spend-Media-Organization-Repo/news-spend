@@ -24,7 +24,7 @@
     "@news-spend-media/db": "workspace:*",
     "@news-spend-media/logger": "workspace:*",
     "@news-spend-media/payload": "workspace:*",
-    "@orpc/bun": "^2.0.0-beta.27",
+    "@orpc/bun": "2.0.0-beta.28",
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
     "@orpc/openapi": "catalog:",

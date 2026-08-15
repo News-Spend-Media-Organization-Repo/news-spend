@@ -3,9 +3,8 @@ import type { router } from "@news-spend-media/api/router/index";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import {
-  BatchLinkPlugin,
-  ClientRetryPlugin,
-  type ClientRetryPluginContext,
+  RetryLinkPlugin,
+  type RetryLinkPluginContext,
 } from "@orpc/client/plugins";
 import type { RouterContractClient } from "@orpc/contract";
 import type { JsonifiedClient } from "@orpc/openapi";
@@ -22,11 +21,11 @@ import { isNetworkError } from "#/utils/isNetworkError";
 
 import { authClient } from "./authClient";
 
-interface ORPCClientContext extends ClientRetryPluginContext {}
+interface ORPCClientContext extends RetryLinkPluginContext {}
 
 const url = getBaseUrl();
 
-const retryPlugin = new ClientRetryPlugin<ORPCClientContext>({
+const retryPlugin = new RetryLinkPlugin<ORPCClientContext>({
   default: {
     retry: 3,
     retryDelay: 1000, // 1 second base delay
@@ -45,19 +44,7 @@ const link = new RPCLink<ORPCClientContext>({
     }
     return Object.fromEntries(headers);
   },
-  plugins: [
-    retryPlugin,
-    new BatchLinkPlugin({
-      groups: [
-        {
-          condition: (_options) => true,
-          context: {},
-        },
-      ],
-      mode: __DEV__ ? "buffered" : "streaming",
-      filter: ({ path }) => !["publisher/onMessage"].includes(path.join("/")),
-    }),
-  ],
+  plugins: [retryPlugin],
 });
 
 const openapiLink = new OpenAPILink<ORPCClientContext>(
