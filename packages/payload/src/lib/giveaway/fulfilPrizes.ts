@@ -134,13 +134,40 @@ type Outcome = "sent" | "failed" | "skipped";
  */
 class UnresolvablePlanError extends Error {}
 
-/** Reloadly's ids for the airtime operator of each Nigerian network. */
-const AIRTIME_OPERATOR_TO_NETWORK: Record<number, string> = {
-  341: "mtn",
-  342: "airtel",
-  344: "glo",
-  340: "t2",
-};
+/**
+ * Which network a detected operator belongs to, matched on its name.
+ *
+ * Deliberately not matched on `operatorId`. Reloadly's sandbox and live
+ * catalogues are separate lists and an id that means "MTN Nigeria" in one is
+ * not promised to mean anything in the other — so an id-based map silently
+ * stops working the day the environment switches, and if an id happens to be
+ * reused for a different network it resolves to the wrong one and sends an MTN
+ * bundle to an Airtel SIM. The operator's name survives that switch.
+ *
+ * Matching a distinctive word rather than the full name, because the same
+ * network appears as "MTN Nigeria" for airtime and "MTN Nigeria Data" for
+ * bundles, and 9mobile still trades under its older names in some listings.
+ */
+const NETWORK_PATTERNS: { network: string; pattern: RegExp }[] = [
+  { network: "mtn", pattern: /\bmtn\b/i },
+  { network: "airtel", pattern: /\bairtel\b/i },
+  { network: "glo", pattern: /\bglo\b/i },
+  { network: "t2", pattern: /\b(t2|9\s*mobile|etisalat)\b/i },
+];
+
+/** The network family of a detected operator, or null if unrecognised. */
+function networkOf(operatorName: string | undefined | null): string | null {
+  if (!operatorName) {
+    return null;
+  }
+  const matches = NETWORK_PATTERNS.filter((entry) =>
+    entry.pattern.test(operatorName)
+  );
+
+  // Two matches means the name is ambiguous and picking either would be a
+  // guess about somebody's payout. Treat it as unrecognised and hold.
+  return matches.length === 1 ? matches[0].network : null;
+}
 
 async function fulfilOne(
   payload: BasePayload,
@@ -275,7 +302,7 @@ async function resolveDataPlan(
   }
 
   const detected = await client.detectOperator(phone, DEFAULT_GIVEAWAY_COUNTRY);
-  const network = AIRTIME_OPERATOR_TO_NETWORK[detected.operatorId];
+  const network = networkOf(detected.name);
   const plan = network ? plans.find((p) => p.network === network) : undefined;
 
   if (!plan) {

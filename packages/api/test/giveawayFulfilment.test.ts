@@ -261,6 +261,108 @@ describe("fulfilPendingPrizes", () => {
     expect(created["giveaway-fulfilment-attempts"]?.[0].operatorId).toBe(646);
   });
 
+  it("matches the network by name, not by operator id", async () => {
+    const { payload, created } = createFakePayload({
+      winners: [
+        winnerRow({
+          prize: {
+            id: "cat-6",
+            fulfilmentType: "data",
+            reloadlyDataPlans: [
+              {
+                network: "glo",
+                reloadlyOperatorId: 647,
+                reloadlyLocalAmount: 1000,
+              },
+            ],
+          },
+        }),
+      ],
+    });
+    // The id is deliberately one that means nothing to us — this is what a
+    // switch from Reloadly's sandbox catalogue to the live one looks like.
+    // Keying off the id would leave every data prize unroutable; the name
+    // still identifies the network.
+    const client = fakeClient({
+      detectOperator: async () => ({ operatorId: 99_999, name: "Glo Nigeria" }),
+      topup: async (args) => {
+        expect(args.operatorId).toBe(647);
+        return { transactionId: 7 };
+      },
+    });
+
+    const summary = await fulfilPendingPrizes(payload, { client });
+
+    expect(summary.sent).toBe(1);
+    expect(created["giveaway-fulfilment-attempts"]?.[0].operatorId).toBe(647);
+  });
+
+  it("recognises a network from its data operator name", async () => {
+    const { payload } = createFakePayload({
+      winners: [
+        winnerRow({
+          prize: {
+            id: "cat-7",
+            fulfilmentType: "data",
+            reloadlyDataPlans: [
+              {
+                network: "t2",
+                reloadlyOperatorId: 645,
+                reloadlyLocalAmount: 1000,
+              },
+            ],
+          },
+        }),
+      ],
+    });
+    // 9mobile trades under several names across Reloadly's listings.
+    const client = fakeClient({
+      detectOperator: async () => ({
+        operatorId: 1,
+        name: "T2 Mobile Nigeria Data",
+      }),
+      topup: async () => ({ transactionId: 8 }),
+    });
+
+    const summary = await fulfilPendingPrizes(payload, { client });
+
+    expect(summary.sent).toBe(1);
+  });
+
+  it("holds rather than guessing when the operator name is unrecognised", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [
+        winnerRow({
+          prize: {
+            id: "cat-8",
+            fulfilmentType: "data",
+            reloadlyDataPlans: [
+              {
+                network: "mtn",
+                reloadlyOperatorId: 345,
+                reloadlyLocalAmount: 600,
+              },
+            ],
+          },
+        }),
+      ],
+    });
+    const client = fakeClient({
+      detectOperator: async () => ({
+        operatorId: 500,
+        name: "Some New Network",
+      }),
+      topup: async () => {
+        throw new Error("must not send to an unrecognised network");
+      },
+    });
+
+    const summary = await fulfilPendingPrizes(payload, { client });
+
+    expect(summary.skipped).toBe(1);
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
+  });
+
   it("holds a prize the provider permanently rejects", async () => {
     const { payload, collections, created } = createFakePayload({
       winners: [winnerRow()],
