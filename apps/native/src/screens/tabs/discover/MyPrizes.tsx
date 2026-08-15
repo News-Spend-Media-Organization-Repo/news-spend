@@ -1,17 +1,18 @@
+import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { Card, cn, PressableFeedback } from "heroui-native";
-import { GiftIcon } from "phosphor-react-native";
 import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  View,
-} from "react-native";
-
+  CaretRightIcon,
+  CoinsIcon,
+  DeviceMobileIcon,
+  GiftIcon,
+  PackageIcon,
+  TicketIcon,
+} from "phosphor-react-native";
+import { ActivityIndicator, RefreshControl, View } from "react-native";
 import { ScreenHeader } from "#/components";
-import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
@@ -82,6 +83,35 @@ const TONE_CLASS: Record<string, string> = {
   muted: "text-subtle-text",
 };
 
+/**
+ * An icon per kind of prize, so a list of names reads as a list of things.
+ *
+ * Airtime and data share the phone: the distinction that matters to somebody
+ * scanning this list is "it arrives on my line", not which of the two it is —
+ * the name already says that.
+ */
+const PRIZE_ICON: Record<string, typeof GiftIcon> = {
+  points: CoinsIcon,
+  airtime: DeviceMobileIcon,
+  data: DeviceMobileIcon,
+  gift_card: GiftIcon,
+  physical: PackageIcon,
+  experience: TicketIcon,
+};
+
+/** The icon well's colouring, which carries the same meaning as the status. */
+const WELL_CLASS: Record<string, string> = {
+  urgent: "bg-p-500/10",
+  good: "bg-green-600/10",
+  muted: "bg-muted/30",
+};
+
+const WELL_ICON_CLASS: Record<string, string> = {
+  urgent: "text-p-500",
+  good: "text-green-600",
+  muted: "text-subtle-text",
+};
+
 function PrizeCard({
   prize,
   compact,
@@ -93,35 +123,72 @@ function PrizeCard({
 }) {
   const status = statusLine(prize);
   const actionable = prize.claimable || prize.awaitingVerification;
+  const PrizeIcon = PRIZE_ICON[prize.fulfilmentType] ?? GiftIcon;
 
   return (
     <PressableFeedback onPress={actionable ? onPress : undefined}>
-      <Card className={cn(!actionable && "opacity-60")}>
-        <Card.Body className={cn("gap-1", compact && "gap-0.5 py-2.5")}>
-          <View className="flex-row items-center justify-between gap-2">
+      {/* A claimable prize gets a coloured border. It is the only thing here
+          on a clock, and a row of identical cards gives no clue which one
+          that is. */}
+      <Card
+        className={cn(
+          prize.claimable ? "border-s-400" : "border-gray-400",
+          "rounded-xl border"
+        )}
+        // variant="transparent"
+      >
+        <Card.Body
+          className={cn(
+            "flex-row items-center gap-3",
+            compact && "gap-2.5 py-2.5"
+          )}
+        >
+          <View
+            className={cn(
+              "items-center justify-center rounded-xl",
+              compact ? "size-9" : "size-11",
+              WELL_CLASS[status.tone]
+            )}
+          >
+            <Icon
+              className={WELL_ICON_CLASS[status.tone]}
+              name={PrizeIcon}
+              size={compact ? 17 : 21}
+            />
+          </View>
+
+          <View className="flex-1 gap-0.5">
             <Text
               className={cn(
-                "flex-1 font-semibold text-base",
-                compact && "font-medium text-sm"
+                "font-semibold text-base",
+                compact && "text-sm",
+                // A closed or invalid prize greys out entirely rather than
+                // being dimmed as a whole card, so the ones still worth
+                // reading stay at full contrast next to it.
+                status.tone === "muted" && "text-subtle-text"
               )}
             >
               {prize.prizeName}
             </Text>
-            {prize.claimable && (
-              <View className="rounded-full bg-p-500 px-2.5 py-0.5">
-                <Text className="font-semibold text-white text-xs">Claim</Text>
-              </View>
-            )}
+            <Text
+              className={cn("text-xs", TONE_CLASS[status.tone])}
+              numberOfLines={2}
+            >
+              {status.label}
+            </Text>
           </View>
-          <Text
-            className={cn(
-              "text-sm",
-              compact && "text-xs",
-              TONE_CLASS[status.tone]
-            )}
-          >
-            {status.label}
-          </Text>
+
+          {prize.claimable ? (
+            <View className="rounded-full bg-s-400 px-3 py-1">
+              <Text className="font-semibold text-white text-xs">Claim</Text>
+            </View>
+          ) : prize.awaitingVerification ? (
+            <Icon
+              className="text-subtle-text"
+              name={CaretRightIcon}
+              size={18}
+            />
+          ) : null}
         </Card.Body>
       </Card>
     </PressableFeedback>
@@ -176,28 +243,26 @@ const MyPrizes = () => {
     );
   }
 
+  /**
+   * A prize awaiting verification has already been claimed — the clock is
+   * stopped and there is nothing left to claim. Sending it to ClaimPrize
+   * would ask the winner to repeat a step they have finished; what it is
+   * actually waiting on is their identity.
+   */
   const openClaim = (prize: Winning) =>
-    navigation.navigate("ClaimPrize", { winnerId: prize.id });
+    prize.awaitingVerification
+      ? navigation.navigate("IdentityVerification")
+      : navigation.navigate("ClaimPrize", { winnerId: prize.id });
 
   const actionablePrizes = (needsYou.data ?? []) as Winning[];
   const isEmpty = actionablePrizes.length === 0 && history.length === 0;
 
   return (
-    <Screen>
-      <ScreenHeader
-        right={
-          <Text
-            className="text-white"
-            onPress={() => navigation.navigate("BuyTickets")}
-          >
-            Buy tickets
-          </Text>
-        }
-        title="My Prizes"
-      />
+    <Screen systemBarStyle="light">
+      <ScreenHeader title="My Prizes" />
 
-      <FlatList
-        contentContainerClassName="gap-2 px-4 pb-8"
+      <LegendList
+        contentContainerClassName="gap-2 px-4 py-8"
         data={isEmpty ? [] : history}
         keyExtractor={(prize) => prize.id}
         ListEmptyComponent={
@@ -210,12 +275,6 @@ const MyPrizes = () => {
               Buy a ticket to enter the current giveaway. Anything you win will
               appear here.
             </Text>
-            <Button
-              className="mt-2"
-              onPress={() => navigation.navigate("BuyTickets")}
-            >
-              <Button.Label>Buy tickets</Button.Label>
-            </Button>
           </View>
         }
         ListFooterComponent={
@@ -234,14 +293,14 @@ const MyPrizes = () => {
                     <Text className="font-semibold text-subtle-text text-xs tracking-wide">
                       NEEDS YOU
                     </Text>
-                    <View className="rounded-full bg-p-500 px-2 py-0.5">
+                    <View className="rounded-full bg-s-500 px-2 py-0.5">
                       <Text className="font-semibold text-white text-xs">
                         {actionablePrizes.length}
                       </Text>
                     </View>
                   </View>
                   <Text className="text-subtle-text text-xs">
-                    Never more than a handful — the window closes 14 days after
+                    Never more than a handful - the window closes 14 days after
                     you win, or when the next giveaway starts.
                   </Text>
                   {actionablePrizes.map((prize) => (

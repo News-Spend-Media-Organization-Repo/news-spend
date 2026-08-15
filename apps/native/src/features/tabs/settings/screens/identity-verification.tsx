@@ -6,7 +6,7 @@ import { CheckCircleIcon, ShieldCheckIcon } from "phosphor-react-native";
 import { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
 import { toast } from "sonner-native";
-
+import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
@@ -29,6 +29,20 @@ import { orpc } from "#/lib/orpc";
 /** How long to keep asking after the browser closes, before giving up. */
 const POLL_ATTEMPTS = 6;
 const POLL_INTERVAL_MS = 2500;
+
+/**
+ * What the configured workflow actually does, in order.
+ *
+ * The design also listed a NIN/BVN cross-check, which the published Free KYC
+ * workflow does not perform — it is OCR, liveness and face match only. Naming
+ * a check we do not run would be a promise about somebody's identity data that
+ * we cannot keep, so it is left out until the workflow includes it.
+ */
+const VERIFICATION_STEPS = [
+  "Scan a government ID",
+  "Take a liveness selfie",
+  "We match the two and get a yes or no",
+] as const;
 
 export default function IdentityVerification() {
   const queryClient = useQueryClient();
@@ -107,53 +121,79 @@ export default function IdentityVerification() {
   }, [start, queryClient, pollForDecision]);
 
   return (
-    <Screen>
-      <View className="flex-1 gap-6 px-4 pt-6">
-        <View className="items-center gap-3 pt-6">
+    <Screen systemBarStyle="light">
+      <ScreenHeader title="Verify Identity" />
+      <View className="flex-1 items-center justify-center gap-4 px-5 pb-8">
+        <View
+          className={cn(
+            "size-16 items-center justify-center rounded-full",
+            verified ? "bg-success/15" : "bg-p-500/10"
+          )}
+        >
           <Icon
-            className={cn(verified ? "text-success" : "text-foreground")}
+            className={cn(verified ? "text-success" : "text-p-500")}
             name={verified ? CheckCircleIcon : ShieldCheckIcon}
-            size={56}
+            size={30}
           />
-          <Text className="text-center font-semibold text-2xl">
-            {verified ? "You're verified" : "Verify your identity"}
-          </Text>
-          <Text className="text-center text-muted-foreground">
-            {verified
-              ? "Nothing else to do. This carries over to every prize you win."
-              : "Some prizes need us to check you're you before we send them. It takes a couple of minutes and you'll only ever do it once."}
-          </Text>
         </View>
 
+        <Text className="text-center font-semibold text-xl">
+          {verified ? "You're verified" : "One quick check to receive this"}
+        </Text>
+
+        <Text className="text-center text-muted-foreground text-sm leading-5">
+          {verified
+            ? "Nothing else to do. This carries over to every prize you win."
+            : "Your prize is already claimed and waiting. Scan an ID and take a quick selfie — about a minute, and you'll only ever do this once."}
+        </Text>
+
         {!verified && (
-          <View className="gap-2 rounded-2xl bg-muted/40 p-4">
-            <Text className="font-medium">What happens</Text>
-            <Text className="text-muted-foreground text-sm">
-              You'll photograph an ID and take a selfie in our verification
-              partner's secure flow. Your documents go to them, not to us — we
-              only receive the yes or no.
-            </Text>
-          </View>
+          <>
+            <View className="w-full gap-2 pt-1">
+              {VERIFICATION_STEPS.map((step, index) => (
+                <View className="flex-row items-center gap-2.5" key={step}>
+                  <View className="size-5.5 items-center justify-center rounded-full border border-border">
+                    <Text className="font-semibold text-subtle-text text-xs">
+                      {index + 1}
+                    </Text>
+                  </View>
+                  <Text className="text-muted-foreground text-xs">{step}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View className="w-full rounded-xl bg-muted/20 p-3">
+              <Text className="text-subtle-text text-xs leading-4">
+                Handled by Didit. NewsSpend keeps only the pass or fail result,
+                never the document image.
+              </Text>
+            </View>
+          </>
         )}
 
-        <View className="mt-auto pb-8">
-          {verified ? null : available ? (
-            <Button
-              isDisabled={start.isPending || checking || status.isLoading}
-              onPress={onStart}
-            >
+        {/* The CTA is outlined rather than solid: it hands the person off to a
+            third party to photograph their ID, which is worth presenting as a
+            considered step rather than the loudest thing on screen. */}
+        {verified ? null : available ? (
+          <Button
+            className="mt-1 w-full border border-p-500 bg-transparent"
+            isDisabled={start.isPending || checking || status.isLoading}
+            onPress={onStart}
+            variant="secondary"
+          >
+            <Button.Label className="font-semibold text-p-500">
               {checking
                 ? "Checking…"
                 : start.isPending
                   ? "Opening…"
                   : "Start verification"}
-            </Button>
-          ) : (
-            <Text className="text-center text-muted-foreground text-sm">
-              Verification isn't available right now. Please check back shortly.
-            </Text>
-          )}
-        </View>
+            </Button.Label>
+          </Button>
+        ) : (
+          <Text className="text-center text-muted-foreground text-sm">
+            Verification isn't available right now. Please check back shortly.
+          </Text>
+        )}
       </View>
     </Screen>
   );

@@ -18,7 +18,6 @@ import {
   ChartLineIcon,
   HardDrivesIcon,
   IdentificationBadgeIcon,
-  IdentificationCardIcon,
   LockKeyIcon,
   PhoneCallIcon,
   ShareIcon,
@@ -88,15 +87,11 @@ const settingsItems: SettingsItem[] = [
     screen: "DataManager",
     authRequired: true,
   },
-  {
-    title: "Verify Identity",
-    icon: IdentificationCardIcon,
-    // The provider-hosted flow, not the old upload form. That screen is still
-    // registered and reachable by deep link until the lottery that uses it
-    // goes, but nothing points people at it any more.
-    screen: "IdentityVerification",
-    authRequired: true,
-  },
+  // Identity verification is deliberately absent. It is reached from the
+  // prize that needs it (see MyPrizes), never browsed to: every check costs
+  // real money at the provider, and no prize currently requires one. A
+  // standing menu entry would invite people to hand over an ID document —
+  // and have us pay to inspect it — for nothing.
   { title: "Contact us", icon: PhoneCallIcon, screen: "Support" },
   {
     title: "Legal Agreement",

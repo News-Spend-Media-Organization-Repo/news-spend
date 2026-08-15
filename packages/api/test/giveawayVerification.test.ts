@@ -269,3 +269,26 @@ describe("recordDecision with an unknown user", () => {
     expect(collections["identity-checks"]).toHaveLength(0);
   });
 });
+
+describe("startVerification when a session already exists", () => {
+  it("does not insert a second row for the same provider session", async () => {
+    const { payload, collections } = createFakePayload({
+      checks: [
+        { id: "c1", user: "u1", sessionId: "sess_same", status: "Not Started" },
+      ],
+    });
+    // Didit returns the session already open for this vendor_data rather than
+    // minting a new one, so a second tap yields the same id. `sessionId` is
+    // unique, so a blind insert throws and the person loses the flow.
+    const client = fakeClient({
+      sessionId: "sess_same",
+      url: "https://v/1",
+      token: "tok",
+    });
+
+    const session = await startVerification(payload, "u1", { client });
+
+    expect(session.sessionId).toBe("sess_same");
+    expect(collections["identity-checks"]).toHaveLength(1);
+  });
+});

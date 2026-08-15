@@ -48,15 +48,32 @@ export async function startVerification(
 
   const session = await resolved.createSession(userId);
 
-  await payload.create({
+  /**
+   * The provider hands back the session already open for this `vendor_data`
+   * rather than minting a second one, so the same id arrives again whenever
+   * somebody taps start twice. `sessionId` is unique here — deliberately, so a
+   * replayed webhook updates one row instead of forking a person's history —
+   * which makes a blind insert throw and lose them the flow entirely.
+   */
+  const existing = await payload.find({
     collection: "identity-checks",
-    data: {
-      user: userId,
-      provider: "didit",
-      sessionId: session.sessionId,
-      status: "Not Started",
-    },
+    where: { sessionId: { equals: session.sessionId } },
+    limit: 1,
+    pagination: false,
+    depth: 0,
   });
+
+  if (!existing.docs[0]) {
+    await payload.create({
+      collection: "identity-checks",
+      data: {
+        user: userId,
+        provider: "didit",
+        sessionId: session.sessionId,
+        status: "Not Started",
+      },
+    });
+  }
 
   return session;
 }
