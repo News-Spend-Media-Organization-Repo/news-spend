@@ -55,7 +55,7 @@ export function DialogWithAd({
     queryKey,
   });
   const lotteryTicketMutation = useMutation(
-    orpc.lotteryTicket.create.mutationOptions()
+    orpc.giveaway.buyTickets.mutationOptions()
   );
   const [serverError, setServerError] = useState<string | null>(null);
   const navigation = useNavigation("GetTicket");
@@ -81,7 +81,7 @@ export function DialogWithAd({
     setServerError(null);
     lotteryTicketMutation.mutate(
       {
-        num_of_tickets: purchasedTickets,
+        quantity: purchasedTickets,
       },
       {
         onSuccess: () => {
@@ -91,38 +91,26 @@ export function DialogWithAd({
             }`,
           });
 
+          /**
+           * Points, the tier ladder and the entrant list all move on a
+           * purchase. Refetching rather than patching a cached count: the
+           * server decides how many tickets were actually valid, and the
+           * tier a purchase unlocks is its answer to give, not ours.
+           */
           queryClient.invalidateQueries(
             orpc.activity.totalPoints.queryOptions()
           );
           queryClient.invalidateQueries({
-            queryKey: orpc.lotteryTicket.getByUser.queryKey(),
+            queryKey: orpc.giveaway.progress.queryKey(),
           });
-
-          queryClient.setQueryData(
-            orpc.lotteryTicket.getByUser.key(),
-            (previousPoints) => {
-              if (previousPoints) {
-                return {
-                  ...previousPoints,
-                  lottery_tickets: {
-                    ...previousPoints.lottery_tickets,
-                    count:
-                      Number(previousPoints.lottery_tickets.count) +
-                      purchasedTickets,
-                  },
-                };
-              }
-
-              return {
-                lottery_tickets: {
-                  count: purchasedTickets,
-                },
-              };
-            }
-          );
+          queryClient.invalidateQueries({
+            queryKey: orpc.giveaway.participants.queryKey(),
+          });
         },
-        onError: ({ data, message }) => {
-          setServerError("Sorry, something went wrong.");
+        onError: ({ message }) => {
+          // The API explains refusals in terms a winner can act on — an empty
+          // giveaway, too few points — so show it rather than a generic line.
+          setServerError(message || "Sorry, something went wrong.");
         },
       }
     );

@@ -48,28 +48,23 @@ const PlayLottery = () => {
   const { user } = useSnapshot(authState);
   const isLoggedInNonGuest = !!user && !user.isAnonymous;
 
-  const [
-    lotteryTicketQuery,
-    purchaseLogQuery,
-    currentLotteryQuery,
-    myTicketQuery,
-  ] = useQueries({
+  /**
+   * The giveaway engine, not the lottery this screen was built for.
+   *
+   * One participants call replaces the three lottery ticket queries: it
+   * returns the entrant count and the recent entrants together, because both
+   * come from the same fold over valid tickets and asking twice would count
+   * the same rows twice.
+   */
+  const [currentGiveawayQuery, participantsQuery] = useQueries({
     queries: [
-      orpc.lotteryTicket.get.queryOptions({
-        refetchInterval: 50_000,
-        enabled: isFocused,
-      }),
-      orpc.lotteryTicket.purchaseLog.queryOptions({
-        refetchInterval: 50_000,
-        enabled: isFocused,
-      }),
-      orpc.lottery.current.queryOptions({
+      orpc.giveaway.current.queryOptions({
         refetchInterval: 60_000,
         enabled: isFocused,
       }),
-      orpc.lotteryTicket.getByUser.queryOptions({
+      orpc.giveaway.participants.queryOptions({
         refetchInterval: 50_000,
-        enabled: isFocused && isLoggedInNonGuest,
+        enabled: isFocused,
       }),
     ],
   });
@@ -85,8 +80,8 @@ const PlayLottery = () => {
     }, [])
   );
 
-  const currentLottery = currentLotteryQuery.data;
-  const isLoading = currentLotteryQuery.isLoading;
+  const currentLottery = currentGiveawayQuery.data;
+  const isLoading = currentGiveawayQuery.isLoading;
   const endDate = currentLottery?.endDate
     ? new Date(currentLottery.endDate)
     : null;
@@ -122,23 +117,7 @@ const PlayLottery = () => {
       : "No Active Giveaway";
 
   const participants =
-    purchaseLogQuery.data?.slice(0, MAX_PARTICIPANTS_SHOWN) ?? [];
-  const myTicket = myTicketQuery.data;
-  const isCurrentUserListed = participants.some(
-    (item: any) => item.users?.id === user?.id
-  );
-
-  if (user?.id && myTicket && !isCurrentUserListed) {
-    const selfEntry = {
-      lottery_tickets: myTicket.lottery_tickets,
-      users: { id: user.id, username: user.username ?? user.name },
-    };
-    participants.splice(
-      Math.min(participants.length, MAX_PARTICIPANTS_SHOWN - 1),
-      1,
-      selfEntry
-    );
-  }
+    participantsQuery.data?.recent?.slice(0, MAX_PARTICIPANTS_SHOWN) ?? [];
 
   const onTestLuckPress = () => {
     if (!hasActiveLottery) {
@@ -207,7 +186,7 @@ const PlayLottery = () => {
           <Text className="text-xl">
             Total Participants:{" "}
             <Text className="font-bold text-s-500">
-              {lotteryTicketQuery.data?.length ?? 0}
+              {participantsQuery.data?.total ?? 0}
             </Text>
           </Text>
         </View>
@@ -234,16 +213,12 @@ const PlayLottery = () => {
         contentContainerClassName="pb-24"
         showsVerticalScrollIndicator={false}
       >
-        {participants.map((item: any) => (
-          <View
-            className="border-gray-100 border-b"
-            key={item.lottery_tickets?.id}
-          >
+        {participants.map((item) => (
+          <View className="border-gray-100 border-b" key={item.username}>
             <View className="flex-row justify-between gap-1 p-2">
-              <Text className="text-p-400">User: {item.users?.username}</Text>
+              <Text className="text-p-400">User: {item.username}</Text>
               <Text className="text-s-400">
-                entered {item.lottery_tickets?.count} ticket
-                {+(item.lottery_tickets?.count ?? 0) > 1 ? "s" : ""}
+                entered {item.tickets} ticket{item.tickets > 1 ? "s" : ""}
               </Text>
             </View>
           </View>

@@ -26,7 +26,6 @@ import ShopDetails from "#/features/tabs/shop/screens/ShopDetails";
 import SurveyWebView from "#/screens/common/SurveyWebView";
 import NotFound from "#/screens/NotFound";
 import BoostLuck from "#/screens/tabs/discover/BoostLuck";
-import BuyTickets from "#/screens/tabs/discover/BuyTickets";
 import ClaimPrize from "#/screens/tabs/discover/ClaimPrize";
 import GetTicket from "#/screens/tabs/discover/GetTicket";
 import LotteryRules from "#/screens/tabs/discover/LotteryRules";
@@ -279,15 +278,6 @@ export const sharedScreens = {
     screen: LuckyAppWall,
     linking: {
       path: "lucky-app-wall",
-    },
-    options: {
-      headerShown: false,
-    },
-  }),
-  BuyTickets: createNativeStackScreen({
-    screen: BuyTickets,
-    linking: {
-      path: "buy-tickets",
     },
     options: {
       headerShown: false,

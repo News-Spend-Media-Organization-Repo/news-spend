@@ -335,7 +335,15 @@ describe("giveaway.buyTickets (spec §6)", () => {
   });
 });
 
-describe("age gate on participation", () => {
+/**
+ * Skipped while `AGE_GATE_ENABLED` is false in the giveaway router.
+ *
+ * These describe the gate's behaviour when it is on, and they pass as written
+ * the moment it is switched back on — un-skip in the same change that flips
+ * the flag. The under-18 rule itself is unaffected and still covered directly
+ * by participantEligibility.test.ts; only its enforcement at purchase is off.
+ */
+describe.skip("age gate on participation", () => {
   it("refuses a purchase from an account with no date of birth", async () => {
     const { ctx, created } = createContext({
       dateOfBirth: null,

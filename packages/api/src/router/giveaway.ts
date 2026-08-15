@@ -47,6 +47,20 @@ import { createRateLimitMiddleware } from "../lib/ratelimit";
  */
 const MAX_TICKETS_PER_PURCHASE = 1000;
 
+/**
+ * Whether an account must have a date of birth on record to take part.
+ *
+ * Off for now, deliberately. The check itself works, but nothing in the app
+ * can record a date of birth — the profile only displays one — so enabling it
+ * tells people to supply something they have no way to supply. Turn this back
+ * on in the same change that ships the capture flow, and un-skip the age-gate
+ * block in giveawayRouter.test.ts with it.
+ *
+ * The under-18 rule is unchanged and still covered directly by
+ * participantEligibility.test.ts; this only decides whether it is enforced.
+ */
+const AGE_GATE_ENABLED = false;
+
 type Row = Record<string, any>;
 
 /** Normalise a Payload relationship value to a comparable id. */
@@ -176,6 +190,10 @@ async function assertOldEnough(
     FORBIDDEN: (args: { message: string }) => Error;
   }
 ) {
+  if (!AGE_GATE_ENABLED) {
+    return;
+  }
+
   const user = await payload.findByID({
     collection: "users",
     id: userId,
@@ -318,6 +336,79 @@ function summariseTiers(
 
 // --- Procedures ---
 
+/** How many entrants to name on the giveaway screen. */
+const PARTICIPANTS_SHOWN = 20;
+
+/**
+ * Who has entered the open giveaway, and how many people that is.
+ *
+ * The count is derived from valid tickets rather than read off the giveaway,
+ * because `totalValidParticipants` is only written when the draw runs — it is
+ * null for the whole period anyone is actually looking at this.
+ *
+ * Counts people, not tickets: somebody who bought ten tickets is one
+ * participant, and showing the ticket total as a participant count would
+ * overstate the field every entrant is judging their odds against.
+ */
+const participants = publicProcedure.handler(async ({ context }) => {
+  const { payload } = context;
+
+  const found = await payload.find({
+    collection: "giveaways",
+    where: { status: { equals: "active" } },
+    limit: 1,
+    pagination: false,
+    depth: 0,
+  });
+
+  const giveaway = found.docs[0];
+  if (!giveaway) {
+    return { total: 0, recent: [] };
+  }
+
+  const tickets = await payload.find({
+    collection: "giveaway-tickets",
+    where: {
+      and: [
+        { giveaway: { equals: giveaway.id } },
+        { status: { equals: "valid" } },
+      ],
+    },
+    limit: 0,
+    pagination: false,
+    depth: 1,
+    sort: "-purchasedAt",
+  });
+
+  // Fold to one row per person, newest first, summing their tickets.
+  const byUser = new Map<string, { username: string; tickets: number }>();
+
+  for (const ticket of tickets.docs as any[]) {
+    const user = ticket.user;
+    const id = typeof user === "object" && user ? user.id : user;
+    if (!id) {
+      continue;
+    }
+    const existing = byUser.get(String(id));
+    const quantity = Number(ticket.quantity ?? 0);
+    if (existing) {
+      existing.tickets += quantity;
+    } else {
+      byUser.set(String(id), {
+        username:
+          (typeof user === "object" && (user.username || user.name)) ||
+          "Someone",
+        tickets: quantity,
+      });
+    }
+  }
+
+  return {
+    total: byUser.size,
+    recent: [...byUser.values()].slice(0, PARTICIPANTS_SHOWN),
+  };
+});
+
 /** The giveaway currently open, or null. Safe to call when signed out. */
 const current = publicProcedure.handler(async ({ context }) => {
   const { payload } = context;
@@ -363,9 +454,9 @@ const progress = protectedProcedure.handler(async ({ context, errors }) => {
     payload.findByID({ collection: "users", id: user.id, depth: 0 }),
   ]);
 
-  const participant = evaluateParticipant({
-    dateOfBirth: account?.dateOfBirth ?? null,
-  });
+  const participant = AGE_GATE_ENABLED
+    ? evaluateParticipant({ dateOfBirth: account?.dateOfBirth ?? null })
+    : ({ eligible: true } as const);
 
   return {
     giveawayId: giveaway.id,
@@ -1021,6 +1112,7 @@ const claimPrize = protectedNoGuestProcedure
 
 export const giveawayRouter = {
   current,
+  participants,
   progress,
   buyTickets,
   recordEngagement,

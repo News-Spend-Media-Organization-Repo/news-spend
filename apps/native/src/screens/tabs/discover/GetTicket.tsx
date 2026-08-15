@@ -26,8 +26,9 @@ const GetTicket = () => {
   const incrementIntervalRef = useRef<NodeJS.Timeout>();
 
   const totalPoints = useQuery(orpc.activity.totalPoints.queryOptions());
+  // The giveaway engine, not the lottery this screen was built for.
   const { data: currentLottery, isPending: isLotteryPending } = useQuery(
-    orpc.lottery.current.queryOptions()
+    orpc.giveaway.current.queryOptions()
   );
   const hasActiveLottery = !isLotteryPending && Boolean(currentLottery);
 
@@ -59,7 +60,7 @@ const GetTicket = () => {
     }
     if (
       (totalPoints?.data ?? 0) >=
-      value * (currentLottery?.ticketPrice ?? 50)
+      value * (currentLottery?.ticketPrice ?? 0)
     ) {
       setOpen(true);
     } else {
@@ -181,7 +182,7 @@ const GetTicket = () => {
                 {isLotteryPending || hasActiveLottery ? (
                   <Text className="text-p-400">
                     Required points:{" "}
-                    {value * (currentLottery?.ticketPrice ?? 50)} points
+                    {value * (currentLottery?.ticketPrice ?? 0)} points
                   </Text>
                 ) : (
                   <Text className="text-danger">
@@ -193,9 +194,13 @@ const GetTicket = () => {
           </Card>
         </View>
 
+        {/* The price is per giveaway and set by an administrator, so it is
+            read rather than stated — the copy said 50 while the giveaway
+            charged 100, which is the sort of thing people notice only after
+            their points have gone. */}
         <Text className="mt-2 text-[15px] text-p-50">
-          Each Giveaway Ticket costs 50 Dream Points. The more tickets you hold,
-          the greater your chance of winning.
+          Each Giveaway Ticket costs {currentLottery?.ticketPrice ?? 0} Dream
+          Points. The more tickets you hold, the greater your chance of winning.
         </Text>
       </View>
 
