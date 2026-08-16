@@ -12,7 +12,12 @@ export const SENTRY_DSN =
 export const SENTRY_ENVIRONMENT =
   process.env.NEXT_PUBLIC_APP_ENV || process.env.APP_ENV || "local";
 
-export const SENTRY_RELEASE = process.env.RAILWAY_GIT_COMMIT_SHA;
+// Next only inlines NEXT_PUBLIC_* into the browser bundle, so the bare Railway
+// variable resolves on the server but comes out undefined on the client. The
+// Dockerfile maps the commit SHA onto the public name for that reason; without
+// it, client-side events arrive with no release attached.
+export const SENTRY_RELEASE =
+  process.env.NEXT_PUBLIC_SENTRY_RELEASE || process.env.RAILWAY_GIT_COMMIT_SHA;
 
 const isProduction = SENTRY_ENVIRONMENT === "production";
 

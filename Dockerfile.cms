@@ -21,6 +21,9 @@ ARG NEXT_PUBLIC_APP_ENV
 ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
 ARG RAILWAY_GIT_COMMIT_SHA
 ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
+# Same value under a NEXT_PUBLIC_ name so it survives into the browser bundle,
+# which is the only way client-side events get tagged with a release.
+ENV NEXT_PUBLIC_SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 
 RUN apt-get update && apt-get -yqq --no-install-recommends install \
     build-essential \
