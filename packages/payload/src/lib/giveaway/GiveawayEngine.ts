@@ -22,6 +22,7 @@ import {
   type Participation,
 } from "./eligibility";
 import { evaluateFairness, type UserDrawHistory } from "./fairness";
+import { notifyDrawCompleted } from "./notifyDrawCompleted";
 import { createRng, generateSeed, weightedPick } from "./random";
 import { type ReportSender, sendWinnerReport } from "./sendWinnerReport";
 
@@ -469,6 +470,17 @@ export class GiveawayEngine {
     if (report.sent) {
       await this.checkpoint(ctx, "winner_report_generated");
     }
+
+    /**
+     * Tell the participants, on the same terms as the report: last, and unable
+     * to fail the draw.
+     *
+     * Here rather than in the scheduled task, because a draw now has three
+     * ways to complete — the hourly sweep, the manual button, and a resumption
+     * — and the lottery's habit of calling its notification from each entry
+     * point is how one of them ends up forgotten.
+     */
+    await notifyDrawCompleted(this.payload, ctx.giveawayId);
   }
 
   /**

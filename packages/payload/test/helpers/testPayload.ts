@@ -194,6 +194,9 @@ export async function resetGiveawayTables(payload: BasePayload): Promise<void> {
     "giveaway_prizes",
     "giveaways",
     "prize_catalogue",
+    // The draw notifies its participants, so a test that counts them must not
+    // inherit rows from the one before.
+    "notifications",
   ];
 
   await payload.db.drizzle.execute(

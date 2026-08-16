@@ -172,6 +172,26 @@ describe("giveaway draw, against a real database", () => {
       depth: 0,
     });
     expect(prizeRow.unitsAwarded).toBe(1);
+
+    /**
+     * Every participant is told the draw happened — the same audience the
+     * reveal has. The message must not name the outcome, or the sealed card
+     * it opens with has nothing left to reveal.
+     */
+    const notifications = await payload.find({
+      collection: "notifications",
+      pagination: false,
+      depth: 0,
+    });
+    expect(notifications.docs).toHaveLength(1);
+
+    const notification = notifications.docs[0];
+    expect(notification.specificUsers).toHaveLength(1);
+
+    const text = `${notification.title} ${notification.body}`.toLowerCase();
+    for (const spoiler of ["won", "winner", "congratulations", "prize"]) {
+      expect(text).not.toContain(spoiler);
+    }
   }, 120_000);
 
   test("still refuses an administrator editing the pool mid-draw", async () => {
