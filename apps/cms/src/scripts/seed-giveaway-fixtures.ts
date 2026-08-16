@@ -69,15 +69,23 @@ type CatalogueEntry = {
   valueNaira?: number;
 };
 
-/**
- * Deliberately tier 3 only.
- *
- * Tiers 1 and 2 need boosts and featured offers to be reachable, so seeding
- * prizes there would create a pool the draw can never award from until the
- * partner content below has actually been engaged with. Add them once the
- * engagement surfaces are exercised.
- */
 const CATALOGUE: CatalogueEntry[] = [
+  {
+    /**
+     * Tier 1 is only reachable with 10 tickets, 3 boosts and a Featured Offer
+     * (§11), so this prize is unawardable until the partner content below has
+     * actually been engaged with. Points rather than a physical item on
+     * purpose: the tier is about eligibility, and a physical claim would add
+     * an address step and possibly identity verification to a test that is not
+     * about either.
+     */
+    name: "5,000 Dream Points",
+    tier: "tier1",
+    fulfilmentType: "points",
+    description: "The high-tier prize. Credited on claim.",
+    pointsAmount: 5000,
+    valueNaira: 5000,
+  },
   {
     name: "500 Dream Points",
     tier: "tier3",
@@ -118,6 +126,12 @@ type PartnerItem = {
  * is only to make the engagement surfaces reachable.
  */
 const PARTNER_CONTENT: PartnerItem[] = [
+  /**
+   * Three separate Connect Brands items, because a Boost is recorded against
+   * the item watched and the engine refuses the same one twice — three boosts
+   * has to mean three different advertisements, not one watched three times.
+   * Tier 1 needs all three (§11), so a single item caps everyone at tier 3.
+   */
   {
     title: "Sponsor spot — Connect Brands",
     placement: "connect-brand-video",
@@ -125,6 +139,22 @@ const PARTNER_CONTENT: PartnerItem[] = [
     condition: "Watch to the end to boost your entries",
     points: 10,
     why: "Earns Boosts (§7) and is what the reveal plays before an outcome.",
+  },
+  {
+    title: "Sponsor spot — Connect Brands 2",
+    placement: "connect-brand-video",
+    type: "video",
+    condition: "Watch to the end to boost your entries",
+    points: 10,
+    why: "Second distinct Boost item — three are needed for Tier 1.",
+  },
+  {
+    title: "Sponsor spot — Connect Brands 3",
+    placement: "connect-brand-video",
+    type: "video",
+    condition: "Watch to the end to boost your entries",
+    points: 10,
+    why: "Third distinct Boost item — three are needed for Tier 1.",
   },
   {
     title: "Sponsor offer — Lucky App Wall",
