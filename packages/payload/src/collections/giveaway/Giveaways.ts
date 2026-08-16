@@ -36,6 +36,98 @@ export const Giveaways: CollectionConfig = {
   endpoints: [
     {
       /**
+       * Run — or resume — this giveaway's draw by hand.
+       *
+       * The hourly sweep is the normal path and remains so. This exists for the
+       * two cases it cannot serve: a draw that must run early or be re-run
+       * after a failure, and a draw an administrator has authorized to resume
+       * (§19) — the sweep only ever selects `active` giveaways, so without this
+       * a resumption would never execute at all.
+       *
+       * Every rule about *whether* a draw may run stays in the engine's own
+       * validation rather than being restated here, so the button, the sweep
+       * and this endpoint can never disagree about it.
+       */
+      path: "/:id/run-draw",
+      method: "post",
+      handler: async (req) => {
+        const user = req.user;
+
+        // A draw awards real prizes and cannot be undone, so this is
+        // deliberately the narrowest role.
+        if (user?.collection !== "admins" || user?.role !== "super-admin") {
+          return Response.json(
+            { message: "Only a Super Admin can run a draw." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id as string | undefined;
+        if (!id) {
+          return Response.json(
+            { message: "Missing giveaway id." },
+            { status: 400 }
+          );
+        }
+
+        const body = req.json
+          ? ((await req.json()) as { resume?: boolean })
+          : {};
+        const resume = body.resume === true;
+
+        const { GiveawayEngine, GiveawayEngineError } = await import(
+          "../../lib/giveaway/GiveawayEngine"
+        );
+
+        try {
+          const result = await new GiveawayEngine(req.payload).runDraw(id, {
+            resume,
+          });
+
+          return Response.json({
+            message: `Draw complete — ${result.totalWinners} winner${
+              result.totalWinners === 1 ? "" : "s"
+            } from ${result.totalValidParticipants} participant${
+              result.totalValidParticipants === 1 ? "" : "s"
+            }.`,
+            totalWinners: result.totalWinners,
+            totalValidParticipants: result.totalValidParticipants,
+            executionId: result.executionId,
+          });
+        } catch (error) {
+          /**
+           * A refused draw is an ordinary answer, not a fault: the countdown
+           * has not ended, prizes are unconfigured, a draw is already running.
+           * The engine phrases each of those for an administrator, so its
+           * message is returned verbatim as a 409 rather than being flattened
+           * into a generic failure.
+           */
+          if (error instanceof GiveawayEngineError) {
+            req.payload.logger.warn(
+              { giveawayId: id, code: error.code, resume },
+              "[giveaway] manual draw refused"
+            );
+            return Response.json(
+              { message: error.message, code: error.code },
+              { status: 409 }
+            );
+          }
+
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
+          req.payload.logger.error(
+            { err: error, giveawayId: id, resume },
+            "[giveaway] manual draw failed"
+          );
+          return Response.json(
+            { message: `Draw failed: ${message}` },
+            { status: 500 }
+          );
+        }
+      },
+    },
+    {
+      /**
        * Resend the Winner Report (spec §21, "provide Resend Winner Report
        * button in CMS").
        *
@@ -395,6 +487,17 @@ export const Giveaways: CollectionConfig = {
         position: "sidebar",
         condition: (data) =>
           data?.status === "failed" || data?.status === "interrupted",
+      },
+    },
+    {
+      name: "runDraw",
+      type: "ui",
+      label: "Draw",
+      admin: {
+        components: {
+          Field:
+            "@news-spend-media/payload/components/RunGiveawayDraw#RunGiveawayDraw",
+        },
       },
     },
     {
