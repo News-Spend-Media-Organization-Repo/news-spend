@@ -6,10 +6,10 @@ import { Dialog } from "heroui-native";
 import { CakeIcon } from "phosphor-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, View } from "react-native";
-import { toast } from "sonner-native";
 
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
+import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { Text } from "../ui";

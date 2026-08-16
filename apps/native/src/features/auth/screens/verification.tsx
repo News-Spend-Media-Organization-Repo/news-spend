@@ -4,11 +4,11 @@ import { ArrowLeftIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useKeyboardState } from "react-native-keyboard-controller";
-import { toast } from "sonner-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { useSendOtp, useVerifyOTP } from "../hooks/useOTP";
 
 export default function Verification() {

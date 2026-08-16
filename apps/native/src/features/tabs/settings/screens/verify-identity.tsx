@@ -15,7 +15,6 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { toast } from "sonner-native";
 import { z } from "zod";
 
 import { Button } from "#/components/heroui/button";
@@ -23,6 +22,7 @@ import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import FormTextInput from "#/components/heroui/text-input";
+import { toast } from "#/components/heroui/toast";
 import useUser from "#/hooks/useUser";
 import { openapi, orpc } from "#/lib/orpc";
 

@@ -5,7 +5,7 @@ import { Dialog } from "heroui-native/dialog";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { View } from "react-native";
-import { toast } from "sonner-native";
+import { toast } from "#/components/heroui/toast";
 import { authClient } from "#/lib/authClient";
 import { hydrateAuth } from "#/state/auth";
 import { Button } from "./button";

@@ -8,11 +8,11 @@ import {
   type TextInput,
   View,
 } from "react-native";
-import { toast } from "sonner-native";
 import { useSnapshot } from "valtio";
 
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import useUpdateComment from "#/hooks/comments/useUpdateComment";
 import { useCreateComment } from "#/hooks/news";
 import { useKeyboardDismiss } from "#/hooks/use-keyboard-dismiss";

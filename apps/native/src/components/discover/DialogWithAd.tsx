@@ -18,11 +18,11 @@ import {
   NativeAssetType,
   NativeMediaView,
 } from "react-native-google-mobile-ads";
-import { toast } from "sonner-native";
 
 import { Button } from "#/components/heroui/button";
 import { Image } from "#/components/heroui/image";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";

@@ -4,13 +4,13 @@ import { differenceInDays, differenceInHours } from "date-fns";
 import { Card } from "heroui-native";
 import { CoinsIcon } from "phosphor-react-native";
 import { View } from "react-native";
-import { toast } from "sonner-native";
 
 import { ScreenHeader } from "#/components";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { useFocusBackHandler } from "#/hooks/useBackHandler";
 import { orpc } from "#/lib/orpc";
 

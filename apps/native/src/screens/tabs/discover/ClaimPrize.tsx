@@ -4,13 +4,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native";
 import { FormProvider, useForm } from "react-hook-form";
 import { ActivityIndicator, ScrollView, View } from "react-native";
-import { toast } from "sonner-native";
 
 import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import FormTextInput from "#/components/heroui/text-input";
+import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 

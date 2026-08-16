@@ -12,7 +12,6 @@ import {
   KeyboardAwareScrollView,
   KeyboardController,
 } from "react-native-keyboard-controller";
-import { toast } from "sonner-native";
 import * as z from "zod";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
@@ -20,6 +19,7 @@ import { FormSelectField } from "#/components/heroui/select";
 import { StandardItem } from "#/components/heroui/select-item";
 import { Text } from "#/components/heroui/text";
 import FormInput from "#/components/heroui/text-input";
+import { toast } from "#/components/heroui/toast";
 import useSignUp from "../hooks/useSignUp";
 
 const schema = z.object({

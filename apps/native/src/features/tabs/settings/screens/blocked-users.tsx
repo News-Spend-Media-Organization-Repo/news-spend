@@ -6,11 +6,11 @@ import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { ListGroup, Separator, Spinner } from "heroui-native";
 import { useCallback, useMemo } from "react";
 import { Alert, View } from "react-native";
-import { toast } from "sonner-native";
 
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 

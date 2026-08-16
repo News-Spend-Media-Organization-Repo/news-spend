@@ -5,12 +5,12 @@ import { cn } from "heroui-native";
 import { CheckCircleIcon, ShieldCheckIcon } from "phosphor-react-native";
 import { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
-import { toast } from "sonner-native";
 import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 
 /**

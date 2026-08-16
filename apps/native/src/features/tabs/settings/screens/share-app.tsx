@@ -15,11 +15,11 @@ import {
 import { useMemo } from "react";
 import { Linking, Platform, ScrollView, View } from "react-native";
 import Share, { type Social } from "react-native-share";
-import { toast } from "sonner-native";
 
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import useAddActivity from "#/hooks/point/useAddActivity";
 import { authState } from "#/state/auth";
 

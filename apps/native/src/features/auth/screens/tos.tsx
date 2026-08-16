@@ -3,10 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { Checkbox, ControlField, LinkButton } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
-import { toast } from "sonner-native";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { authClient } from "#/lib/authClient";
 import { hydrateAuth } from "#/state/auth";
 

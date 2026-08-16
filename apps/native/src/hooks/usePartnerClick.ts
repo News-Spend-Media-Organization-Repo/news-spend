@@ -2,8 +2,8 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Linking, Platform } from "react-native";
-import { toast } from "sonner-native";
 
+import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 import { navigate } from "#/navigation/navigationUtils";
 

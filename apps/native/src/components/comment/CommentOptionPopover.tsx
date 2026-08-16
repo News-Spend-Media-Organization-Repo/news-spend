@@ -3,10 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { DotsThreeVerticalIcon } from "phosphor-react-native";
 import React from "react";
 import { Alert } from "react-native";
-import { toast } from "sonner-native";
 
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
+import { toast } from "#/components/heroui/toast";
 import CommentOptionSheet from "#/components/sheets/CommentOptionSheet";
 import PostReportSheet from "#/components/sheets/PostReportSheet";
 import type { RouterOutputs } from "#/lib/orpc";

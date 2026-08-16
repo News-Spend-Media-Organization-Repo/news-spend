@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
-import { toast } from "sonner-native";
+import { toast } from "#/components/heroui/toast";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
 import { useReadingTracker } from "#/hooks/news/useNewsTracker";

@@ -24,6 +24,7 @@ import Support from "#/features/tabs/settings/screens/support/support";
 import VerifyIdentity from "#/features/tabs/settings/screens/verify-identity";
 import ShopDetails from "#/features/tabs/shop/screens/ShopDetails";
 import InAppBrowser from "#/screens/common/InAppBrowser";
+import ToastLab from "#/screens/dev/ToastLab";
 import NotFound from "#/screens/NotFound";
 import BoostLuck from "#/screens/tabs/discover/BoostLuck";
 import ClaimPrize from "#/screens/tabs/discover/ClaimPrize";
@@ -329,6 +330,17 @@ export const sharedScreens = {
       headerShown: false,
     },
   }),
+  // Bench for the HeroUI toast wrapper. Dev builds only — `news-spend://toast-lab`.
+  ...(__DEV__
+    ? {
+        ToastLab: createNativeStackScreen({
+          screen: ToastLab,
+          linking: {
+            path: "toast-lab",
+          },
+        }),
+      }
+    : {}),
   NotFound: createNativeStackScreen({
     screen: NotFound,
     linking: {

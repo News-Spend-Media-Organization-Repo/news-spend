@@ -1,7 +1,7 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner-native";
 
+import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
 
