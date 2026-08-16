@@ -45,12 +45,13 @@ function winnerRow(overrides: Row = {}): Row {
  */
 function createContext({
   giveaways = [completedGiveaway()],
-  tickets = 3,
+  tickets = [{ id: "t1", quantity: 3 }],
   winners = [],
   seen = null,
 }: Partial<{
   giveaways: Row[];
-  tickets: number;
+  /** Rows, so a single purchase of several tickets can be distinguished. */
+  tickets: Row[];
   winners: Row[];
   seen: string | null;
 }> = {}) {
@@ -77,13 +78,13 @@ function createContext({
       if (collection === "giveaway-winners") {
         return { docs: winners, totalDocs: winners.length };
       }
+      if (collection === "giveaway-tickets") {
+        return { docs: tickets, totalDocs: tickets.length };
+      }
       return { docs: [], totalDocs: 0 };
     },
     findByID: async ({ collection, id }: Row) =>
       collection === "users" ? { id, lastGiveawayResultSeen: seen } : null,
-    count: async ({ collection }: Row) => ({
-      totalDocs: collection === "giveaway-tickets" ? tickets : 0,
-    }),
     update: async ({ collection, id, data }: Row) => {
       updates.push({ collection, id, ...data });
       return { id, ...data };
@@ -127,10 +128,27 @@ describe("giveaway.lastResult", () => {
     });
   });
 
+  it("counts entries by quantity, not by purchase", async () => {
+    // One purchase of ten tickets is ten entries. Reporting the row count
+    // would understate someone's own stake back to them.
+    const { ctx } = createContext({
+      tickets: [
+        { id: "t1", quantity: 10 },
+        { id: "t2", quantity: 2 },
+      ],
+    });
+
+    const result: any = await call(giveawayRouter.lastResult, undefined, {
+      context: ctx,
+    });
+
+    expect(result.tickets).toBe(12);
+  });
+
   it("says nothing to someone who never entered", async () => {
     // A draw only speaks to the people it drew from. Telling a non-entrant
     // they did not win is announcing the outcome of something they sat out.
-    const { ctx } = createContext({ tickets: 0 });
+    const { ctx } = createContext({ tickets: [] });
 
     expect(
       await call(giveawayRouter.lastResult, undefined, { context: ctx })

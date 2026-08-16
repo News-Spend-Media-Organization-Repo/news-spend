@@ -1170,7 +1170,7 @@ const lastResult = protectedProcedure.handler(async ({ context }) => {
   }
 
   const [tickets, winners] = await Promise.all([
-    payload.count({
+    payload.find({
       collection: "giveaway-tickets",
       where: {
         and: [
@@ -1179,6 +1179,8 @@ const lastResult = protectedProcedure.handler(async ({ context }) => {
           { status: { equals: "valid" } },
         ],
       },
+      pagination: false,
+      depth: 0,
     }),
     payload.find({
       collection: "giveaway-winners",
@@ -1197,9 +1199,20 @@ const lastResult = protectedProcedure.handler(async ({ context }) => {
 
   // A draw only speaks to the people it drew from. Someone who never bought a
   // ticket is not owed the news that they did not win.
-  if (tickets.totalDocs === 0) {
+  if (tickets.docs.length === 0) {
     return null;
   }
+
+  /**
+   * Summed by quantity, not counted by row — the same rule §6 applies
+   * everywhere else. One purchase of ten tickets is ten entries, and telling
+   * that person they entered with one would understate their own stake back
+   * to them.
+   */
+  const ticketCount = tickets.docs.reduce(
+    (sum, row) => sum + Number((row as Row).quantity ?? 0),
+    0
+  );
 
   const latestStart = await latestGiveawayStart(payload);
   const prizes = winners.docs.map((winner) =>
@@ -1213,7 +1226,7 @@ const lastResult = protectedProcedure.handler(async ({ context }) => {
     won: prizes.length > 0,
     prizes,
     /** The user's own stake in the draw, for the reveal to show. */
-    tickets: tickets.totalDocs,
+    tickets: ticketCount,
     /**
      * Captured on the giveaway when the pool locked, so it is the number the
      * draw actually ran against rather than a count taken later.
