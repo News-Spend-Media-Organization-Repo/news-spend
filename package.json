@@ -80,6 +80,7 @@
   },
   "private": true,
   "overrides": {
+    "@sentry/bun": "9.47.1",
     "@sentry/core": "9.47.1",
     "@sentry/nextjs": "9.47.1",
     "@sentry/node": "9.47.1",

@@ -13,6 +13,7 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod";
+import * as Sentry from "@sentry/bun";
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
@@ -359,6 +360,10 @@ const server = Bun.serve({
 
   error(error) {
     logger.error({ err: error }, "Server error");
+    // Last line of defence: anything that escapes fetch() lands here, including
+    // the routes that never touch oRPC's sentryMiddleware (auth, webhooks,
+    // widgets, static pages).
+    Sentry.captureException(error);
     return new Response("Internal Server Error", { status: 500 });
   },
 });
@@ -442,6 +447,12 @@ async function gracefulShutdown() {
   } catch {
     // redis may not have been initialized
   }
+
+  // Railway SIGTERMs on every deploy; without this the events buffered for the
+  // crash that prompted the restart are lost with the process.
+  await Sentry.flush(2000).catch(() => {
+    // nothing useful to do if the transport is already gone
+  });
 }
 
 process.on("SIGINT", async () => {
