@@ -36,6 +36,25 @@ function createFakePayload({
       warn: () => undefined,
       error: () => undefined,
     },
+    /**
+     * The winner-report retry claims a delivery with a conditional UPDATE
+     * before sending, so a fake without this reports nothing to retry.
+     */
+    db: {
+      drizzle: {
+        execute: async () => {
+          const claimable = (
+            collections["giveaway-report-deliveries"] ?? []
+          ).filter((row) => row.status === "failed");
+
+          for (const row of claimable) {
+            row.status = "pending";
+          }
+
+          return { rows: claimable.map((row) => ({ id: row.id })) };
+        },
+      },
+    },
     findByID: async ({ collection, id }: Row) =>
       collections[collection]?.find((row) => row.id === id) ?? null,
     find: async ({ collection, where }: Row) => {

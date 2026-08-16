@@ -74,6 +74,38 @@ function createFakePayload({
 
   const payload: any = {
     logger: { error: () => undefined, warn: () => undefined },
+    /**
+     * The retry sweep claims a delivery with a conditional UPDATE before
+     * sending it, so a fake without this returns "claimed nothing" and the
+     * sweep correctly does nothing at all.
+     *
+     * Modelled rather than stubbed away: the claim only hands the row to one
+     * caller, which is the whole point of it, so this flips the row to
+     * `pending` exactly as Postgres would and returns nothing when another
+     * caller got there first.
+     */
+    db: {
+      drizzle: {
+        execute: async (query: unknown) => {
+          const text = String((query as { queryChunks?: unknown })?.queryChunks
+            ? JSON.stringify((query as Row).queryChunks)
+            : query);
+
+          if (!text.includes("giveaway_report_deliveries")) {
+            return { rows: [] };
+          }
+
+          const claimable = (collections["giveaway-report-deliveries"] ?? [])
+            .filter((row) => row.status === "failed");
+
+          for (const row of claimable) {
+            row.status = "pending";
+          }
+
+          return { rows: claimable.map((row) => ({ id: row.id })) };
+        },
+      },
+    },
     findByID: async ({ collection, id }: Row) => {
       if (collection === "giveaways") {
         return doc && doc.id === id ? doc : null;

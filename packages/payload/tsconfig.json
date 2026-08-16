@@ -20,6 +20,12 @@
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
     "strictNullChecks": true
   },
-  "exclude": ["node_modules", "src/payload.types.ts", ".next"],
+  // `test` holds the integration tests. They build fixture rows through the
+  // Local API, and Payload's generated create types demand every required
+  // field including ones the collection defaults — satisfying them means
+  // spelling out defaults in every fixture, which buries what a test is
+  // actually setting. They are executed by `test:integration`, which is where
+  // a real mistake in them surfaces.
+  "exclude": ["node_modules", "src/payload.types.ts", ".next", "test"],
   "extends": "@news-spend-media/config/tsconfig.base.json"
 }

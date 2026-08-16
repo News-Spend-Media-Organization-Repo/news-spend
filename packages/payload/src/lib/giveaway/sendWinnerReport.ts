@@ -1,3 +1,4 @@
+import { sql } from "@payloadcms/db-postgres/drizzle";
 import type { BasePayload } from "payload";
 
 import {
@@ -251,12 +252,19 @@ export async function retryFailedWinnerReports(
   });
 
   let sent = 0;
+  let retried = 0;
 
   for (const delivery of failed.docs) {
     const giveawayId = relationId(delivery.giveaway);
     if (!giveawayId) {
       continue;
     }
+
+    if (!(await claimForRetry(payload, String(delivery.id)))) {
+      continue;
+    }
+
+    retried += 1;
 
     const result = await sendWinnerReport(payload, giveawayId, {
       kind: delivery.kind as "original" | "resend",
@@ -270,7 +278,48 @@ export async function retryFailedWinnerReports(
     }
   }
 
-  return { retried: failed.docs.length, sent };
+  return { retried, sent };
+}
+
+/**
+ * Take exclusive ownership of a failed delivery before retrying it.
+ *
+ * Reading the failed rows and sending them is not enough on its own, because
+ * the job queue runs in more than one process: `jobs.autoRun` lives in the
+ * shared config, so the CMS and the API server each sweep, and a rolling
+ * deploy briefly doubles that again. Every runner read the same failed row and
+ * every one of them sent it — one draw's report went to a real inbox four
+ * times in the same millisecond, carrying winners' names, emails and phone
+ * numbers each time.
+ *
+ * The claim is a single conditional UPDATE rather than a read-then-write:
+ * Postgres serialises the row, so exactly one runner sees a row come back and
+ * the rest move on. `pending` is the claimed state — it is what the delivery
+ * was before it failed, and `attemptDelivery` moves it to `sent` or back to
+ * `failed`, so a runner that dies mid-send leaves the row eligible again on
+ * the next sweep rather than stuck.
+ */
+async function claimForRetry(
+  payload: BasePayload,
+  deliveryId: string
+): Promise<boolean> {
+  try {
+    const claimed = await payload.db.drizzle.execute(
+      sql`UPDATE giveaway_report_deliveries
+          SET status = 'pending', updated_at = now()
+          WHERE id = ${deliveryId} AND status = 'failed'
+          RETURNING id`
+    );
+
+    const rows = (claimed as { rows?: unknown[] })?.rows ?? claimed;
+    return Array.isArray(rows) ? rows.length > 0 : Boolean(rows);
+  } catch (error) {
+    payload.logger.error(
+      { err: error, deliveryId },
+      "[giveaway] could not claim a winner report for retry"
+    );
+    return false;
+  }
 }
 
 async function findOriginalDelivery(
