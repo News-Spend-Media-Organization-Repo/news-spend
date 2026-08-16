@@ -90,7 +90,7 @@ const communityGuidelinesContent = [
   {
     title: "Contact",
     description:
-      "For questions about these guidelines or to report a concern, email us at support@newsspendmedia.com or use the Support section in Settings.",
+      "For questions about these guidelines or to report a concern, email us at support@newsspend.com or use the Support section in Settings.",
     bullets: [],
   },
 ];

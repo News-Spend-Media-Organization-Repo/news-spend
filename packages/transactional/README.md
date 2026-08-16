@@ -94,7 +94,7 @@ import WelcomeEmail from "@news-spend-media/transactional/emails/welcome";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 await resend.emails.send({
-  from: "noreply@newsspendmedia.com",
+  from: "noreply@newsspend.com",
   to: "user@example.com",
   subject: "Welcome aboard!",
   react: WelcomeEmail({ name: "John Doe" }),
@@ -115,7 +115,7 @@ const transporter = nodemailer.createTransport({
 const html = await render(WelcomeEmail({ name: "John Doe" }));
 
 await transporter.sendMail({
-  from: "noreply@newsspendmedia.com",
+  from: "noreply@newsspend.com",
   to: "user@example.com",
   subject: "Welcome aboard!",
   html,

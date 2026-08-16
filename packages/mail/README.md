@@ -29,8 +29,8 @@ Add these to your `.env` file:
 ```env
 # Required
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-SMTP_USER_FROM=noreply@newsspendmedia.com
-APP_URL=https://newsspendmedia.com
+SMTP_USER_FROM=noreply@newsspend.com
+APP_URL=https://newsspend.com
 ```
 
 ## Usage
