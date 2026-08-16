@@ -47,7 +47,7 @@ is to test the collections exactly as they are configured right now.
 default them. Bun loads `.env` from the working directory before any test code
 runs, and `packages/payload/.env` holds a live Resend key. An earlier version of
 this helper used `||=`, left the real key in place, and sent three §21 Winner
-Reports to `reward@newsspend.com` from a test run.
+Reports to `rewards@newsspend.com` from a test run.
 
 The Winner Report does **not** go through Payload's email adapter. It uses
 `packages/mail` directly, whose from address comes from `SMTP_USER_FROM` and

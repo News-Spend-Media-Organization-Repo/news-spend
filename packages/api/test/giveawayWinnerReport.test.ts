@@ -355,7 +355,7 @@ describe("sendWinnerReport (spec §21 sending rules)", () => {
 
     expect(result.sent).toBe(true);
     expect(sender.sent).toHaveLength(1);
-    expect(sender.sent[0]?.to).toBe("reward@newsspend.com");
+    expect(sender.sent[0]?.to).toBe("rewards@newsspend.com");
     expect(sender.sent[0]?.attachment.filename).toContain(
       "NewsSpend_Winner_Report_"
     );

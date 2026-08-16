@@ -242,7 +242,7 @@ describe("processGiveaway task", () => {
           giveaway: "g1",
           kind: "original",
           status: "failed",
-          recipient: "reward@newsspend.com",
+          recipient: "rewards@newsspend.com",
           attempts: 3,
         },
       ],

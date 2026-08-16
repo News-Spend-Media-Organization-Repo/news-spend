@@ -371,7 +371,7 @@ export const AUDIT_EVENT_TYPE_OPTIONS = AUDIT_EVENT_TYPES.map((value) => ({
   value,
 }));
 
-export const WINNER_REPORT_RECIPIENT = "reward@newsspend.com";
+export const WINNER_REPORT_RECIPIENT = "rewards@newsspend.com";
 
 /**
  * How a prize actually reaches its winner.

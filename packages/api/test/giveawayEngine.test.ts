@@ -2129,7 +2129,7 @@ describe("draw state machine (spec §19)", () => {
     await makeEngine(payload, sender.send).runDraw("g1");
 
     expect(sender.sent).toHaveLength(1);
-    expect(sender.sent[0]?.to).toBe("reward@newsspend.com");
+    expect(sender.sent[0]?.to).toBe("rewards@newsspend.com");
     expect(sender.sent[0]?.attachment.filename).toEndWith(".csv");
   });
 
