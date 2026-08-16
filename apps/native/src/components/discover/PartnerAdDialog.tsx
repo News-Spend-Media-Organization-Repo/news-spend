@@ -1,7 +1,13 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { Dialog, PressableFeedback } from "heroui-native";
 import { XIcon } from "phosphor-react-native";
-import { type ReactNode, useCallback, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   Linking,
@@ -40,6 +46,13 @@ export type PartnerAdDialogProps = {
   hideTrigger?: boolean;
   /** When false, doesn't navigate to LuckyAppWall when ads unavailable (default: true) */
   fallbackToAppWall?: boolean;
+  /**
+   * Pin the rotation to one kind of advertisement instead of sampling it.
+   *
+   * For callers that must know in advance whether an ad can be shown — the
+   * giveaway reveal sequences itself around the answer.
+   */
+  preferAdType?: "custom" | "native";
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -59,16 +72,30 @@ export function PartnerAdDialog({
   onOpen,
   hideTrigger = false,
   fallbackToAppWall = true,
+  preferAdType,
 }: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
 
+  // ── Ad resolution ────────────────────────────────────────────────────────────
+  const { ad, adType, isLoading, refetchAd, cycleAdType } = usePartnerAd({
+    forceType: preferAdType,
+  });
+
   // ── Dialog open state ────────────────────────────────────────────────────────
   const [internalOpen, setInternalOpen] = useState(false);
-  const isOpen = externalOpen ?? internalOpen;
-  const setIsOpen = externalSetOpen ?? setInternalOpen;
 
-  // ── Ad resolution ────────────────────────────────────────────────────────────
-  const { ad, adType, refetchAd, cycleAdType } = usePartnerAd();
+  /**
+   * Whether there is actually something to render.
+   *
+   * The trigger path checks this inside `handleOpenChange` before opening. An
+   * external `open` never goes through that path, so a caller that sets it
+   * while the rotation is on a Google ad — or before any partner item has
+   * loaded — used to get a modal with nothing in it. The check lives here,
+   * where both paths meet.
+   */
+  const showable = adType === "custom" && Boolean(ad);
+  const isOpen = (externalOpen ?? internalOpen) && showable;
+  const setIsOpen = externalSetOpen ?? setInternalOpen;
 
   /**
    * The completed ad is handed to the caller, not just the fact of completion.
@@ -109,6 +136,27 @@ export function PartnerAdDialog({
     cycleAdType();
     onClose?.();
   }, [setIsOpen, resetCountdown, refetchAd, cycleAdType, onClose]);
+
+  /**
+   * Hand control straight back when opened from outside with nothing to show.
+   *
+   * A caller that sets `open` is waiting on `onClose` to know the ad is done.
+   * Without this it would wait forever on a dialog that is never going to
+   * appear. Waits out `isLoading` first, so a slow fetch is not mistaken for
+   * an empty one, and fires once per open so `refetchAd` cannot re-trigger it.
+   */
+  const handedBack = useRef(false);
+  useEffect(() => {
+    if (!externalOpen) {
+      handedBack.current = false;
+      return;
+    }
+    if (showable || isLoading || handedBack.current) {
+      return;
+    }
+    handedBack.current = true;
+    handleDidClose();
+  }, [externalOpen, showable, isLoading, handleDidClose]);
 
   const handleClose = useCallback(() => {
     if (adType === "custom" && countdown > 0) {

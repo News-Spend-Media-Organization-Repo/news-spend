@@ -234,5 +234,28 @@ export const Users: CollectionConfig = {
         description: "Custom user attributes for advanced segmentation",
       },
     },
+    /**
+     * The last completed giveaway whose result this user has been shown.
+     *
+     * A single pointer rather than a row per giveaway, because the reveal only
+     * ever concerns the most recent completed draw: someone who misses one
+     * giveaway's result should see the next one, not a backlog. Moving the
+     * pointer forward retires every older result at once.
+     *
+     * On the user rather than in its own collection so that "have they seen
+     * it" survives a reinstall and agrees across devices — a "you didn't win"
+     * message must be said once and never repeated.
+     */
+    {
+      name: "lastGiveawayResultSeen",
+      type: "relationship",
+      relationTo: "giveaways",
+      index: true,
+      admin: {
+        readOnly: true,
+        description:
+          "Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.",
+      },
+    },
   ],
 };

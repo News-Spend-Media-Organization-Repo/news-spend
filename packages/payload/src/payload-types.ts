@@ -587,6 +587,10 @@ export interface User {
     | number
     | boolean
     | null;
+  /**
+   * Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.
+   */
+  lastGiveawayResultSeen?: (string | null) | Giveaway;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -602,6 +606,180 @@ export interface DailyRead {
   count?: number;
   updatedAt?: string;
   [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaways".
+ */
+export interface Giveaway {
+  id: string;
+  name: string;
+  description?: string | null;
+  startDate: string;
+  /**
+   * When the countdown ends and the draw becomes eligible to run.
+   */
+  endDate: string;
+  /**
+   * Points charged per ticket.
+   */
+  ticketPrice: number;
+  /**
+   * The smallest number of tickets a user may buy at once (spec §1). This is a purchase floor, not a tier requirement.
+   */
+  minTicketsRequired: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier1WinnerPercentage: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier2WinnerPercentage: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier3WinnerPercentage: number;
+  /**
+   * The share of stocked prize units this draw may award. 100 means the Maximum Units figures are the only ceiling; 85 would hold 15% of the stock back for later giveaways.
+   */
+  budgetUtilizationPct: number;
+  /**
+   * Total retail value this draw may award. Leave empty for no monetary cap. Every prize in the pool must have a Value (₦) for this to be usable.
+   */
+  maxBudgetCapNaira?: number | null;
+  status:
+    | 'draft'
+    | 'active'
+    | 'ready'
+    | 'pool_building'
+    | 'pool_locked'
+    | 'draw_in_progress'
+    | 'interrupted'
+    | 'resumption_authorized'
+    | 'completed'
+    | 'failed'
+    | 'cancelled';
+  /**
+   * Unique users holding at least one valid ticket, captured once when the draw begins. Constant for the whole draw.
+   */
+  totalValidParticipants?: number | null;
+  /**
+   * Cryptographic seed used for this draw. Enables replay for audit.
+   */
+  drawSeed?: string | null;
+  /**
+   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (§19).
+   */
+  drawExecutionId?: string | null;
+  /**
+   * The last material step the draw completed. A resumption continues from the next one (§19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * The most recent execution attempt.
+   */
+  currentAttempt?: (string | null) | GiveawayDrawAttempt;
+  resumptionAuthorizedBy?: string | null;
+  resumptionAuthorizedAt?: string | null;
+  drawStartedAt?: string | null;
+  drawCompletedAt?: string | null;
+  drawError?: string | null;
+  winnerReportSentAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every execution of a draw, including authorized resumptions. All attempts at one draw share an Execution ID.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-draw-attempts".
+ */
+export interface GiveawayDrawAttempt {
+  id: string;
+  giveaway: string | Giveaway;
+  /**
+   * Shared by every attempt at the same draw. Unchanged across resumptions.
+   */
+  executionId: string;
+  /**
+   * 1 for the original run, incrementing for each resumption.
+   */
+  attemptNumber: number;
+  kind: 'initial' | 'resumption';
+  /**
+   * The attempt this one continues.
+   */
+  resumes?: (string | null) | GiveawayDrawAttempt;
+  /**
+   * The draw seed. A resumption reuses the original — a fresh seed would change the winners of the tiers that had not yet run.
+   */
+  seed: string;
+  outcome: 'running' | 'completed' | 'interrupted' | 'failed';
+  /**
+   * The last material step this attempt completed (§19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * Who authorized this resumption. Empty for an initial run, which needs no authorization.
+   */
+  authorizedBy?: string | null;
+  /**
+   * Why the attempt stopped, if it did not complete.
+   */
+  error?: string | null;
+  startedAt: string;
+  endedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -917,180 +1095,6 @@ export interface GiveawayAuditLog {
     | boolean
     | null;
   occurredAt: string;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "giveaways".
- */
-export interface Giveaway {
-  id: string;
-  name: string;
-  description?: string | null;
-  startDate: string;
-  /**
-   * When the countdown ends and the draw becomes eligible to run.
-   */
-  endDate: string;
-  /**
-   * Points charged per ticket.
-   */
-  ticketPrice: number;
-  /**
-   * The smallest number of tickets a user may buy at once (spec §1). This is a purchase floor, not a tier requirement.
-   */
-  minTicketsRequired: number;
-  /**
-   * 0 disables this tier. Maximum 100.
-   */
-  tier1WinnerPercentage: number;
-  /**
-   * 0 disables this tier. Maximum 100.
-   */
-  tier2WinnerPercentage: number;
-  /**
-   * 0 disables this tier. Maximum 100.
-   */
-  tier3WinnerPercentage: number;
-  /**
-   * The share of stocked prize units this draw may award. 100 means the Maximum Units figures are the only ceiling; 85 would hold 15% of the stock back for later giveaways.
-   */
-  budgetUtilizationPct: number;
-  /**
-   * Total retail value this draw may award. Leave empty for no monetary cap. Every prize in the pool must have a Value (₦) for this to be usable.
-   */
-  maxBudgetCapNaira?: number | null;
-  status:
-    | 'draft'
-    | 'active'
-    | 'ready'
-    | 'pool_building'
-    | 'pool_locked'
-    | 'draw_in_progress'
-    | 'interrupted'
-    | 'resumption_authorized'
-    | 'completed'
-    | 'failed'
-    | 'cancelled';
-  /**
-   * Unique users holding at least one valid ticket, captured once when the draw begins. Constant for the whole draw.
-   */
-  totalValidParticipants?: number | null;
-  /**
-   * Cryptographic seed used for this draw. Enables replay for audit.
-   */
-  drawSeed?: string | null;
-  /**
-   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (§19).
-   */
-  drawExecutionId?: string | null;
-  /**
-   * The last material step the draw completed. A resumption continues from the next one (§19).
-   */
-  lastCheckpoint?:
-    | (
-        | 'config_validated'
-        | 'pool_generated'
-        | 'pool_locked'
-        | 'tier1_winners_selected'
-        | 'tier1_prizes_allocated'
-        | 'tier2_winners_selected'
-        | 'tier2_prizes_allocated'
-        | 'tier3_winners_selected'
-        | 'tier3_prizes_allocated'
-        | 'final_validation'
-        | 'result_confirmed'
-        | 'audit_completed'
-        | 'winner_report_generated'
-      )
-    | null;
-  /**
-   * The most recent execution attempt.
-   */
-  currentAttempt?: (string | null) | GiveawayDrawAttempt;
-  resumptionAuthorizedBy?: string | null;
-  resumptionAuthorizedAt?: string | null;
-  drawStartedAt?: string | null;
-  drawCompletedAt?: string | null;
-  drawError?: string | null;
-  winnerReportSentAt?: string | null;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Every execution of a draw, including authorized resumptions. All attempts at one draw share an Execution ID.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "giveaway-draw-attempts".
- */
-export interface GiveawayDrawAttempt {
-  id: string;
-  giveaway: string | Giveaway;
-  /**
-   * Shared by every attempt at the same draw. Unchanged across resumptions.
-   */
-  executionId: string;
-  /**
-   * 1 for the original run, incrementing for each resumption.
-   */
-  attemptNumber: number;
-  kind: 'initial' | 'resumption';
-  /**
-   * The attempt this one continues.
-   */
-  resumes?: (string | null) | GiveawayDrawAttempt;
-  /**
-   * The draw seed. A resumption reuses the original — a fresh seed would change the winners of the tiers that had not yet run.
-   */
-  seed: string;
-  outcome: 'running' | 'completed' | 'interrupted' | 'failed';
-  /**
-   * The last material step this attempt completed (§19).
-   */
-  lastCheckpoint?:
-    | (
-        | 'config_validated'
-        | 'pool_generated'
-        | 'pool_locked'
-        | 'tier1_winners_selected'
-        | 'tier1_prizes_allocated'
-        | 'tier2_winners_selected'
-        | 'tier2_prizes_allocated'
-        | 'tier3_winners_selected'
-        | 'tier3_prizes_allocated'
-        | 'final_validation'
-        | 'result_confirmed'
-        | 'audit_completed'
-        | 'winner_report_generated'
-      )
-    | null;
-  /**
-   * Who authorized this resumption. Empty for an initial run, which needs no authorization.
-   */
-  authorizedBy?: string | null;
-  /**
-   * Why the attempt stopped, if it did not complete.
-   */
-  error?: string | null;
-  startedAt: string;
-  endedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -3812,6 +3816,7 @@ export interface UsersSelect<T extends boolean = true> {
   notificationPreferences?: T;
   lastActive?: T;
   customAttributes?: T;
+  lastGiveawayResultSeen?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

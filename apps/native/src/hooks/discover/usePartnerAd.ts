@@ -18,9 +18,24 @@ function pickAdType(): AdType {
   return Math.random() < 0.4 ? "custom" : "native";
 }
 
-export function usePartnerAd(): UsePartnerAdReturn {
+type UsePartnerAdOptions = {
+  /**
+   * Pin the rotation to one kind of advertisement.
+   *
+   * For callers that need a predictable outcome rather than a fair share of
+   * inventory — the giveaway reveal has to know whether an ad can be shown
+   * before it decides how to sequence itself, and a Google ad it cannot
+   * attribute or time is no use to it.
+   */
+  forceType?: AdType;
+};
+
+export function usePartnerAd({
+  forceType,
+}: UsePartnerAdOptions = {}): UsePartnerAdReturn {
   const id = useId();
-  const [adType, setAdType] = useState<AdType>(pickAdType);
+  const [rotatingType, setRotatingType] = useState<AdType>(pickAdType);
+  const adType = forceType ?? rotatingType;
 
   const queryOptions = orpc.partnerContent.getOne.queryOptions({
     input: { placement: ["connect-brands-tab", "connect-brand-video"] },
@@ -37,7 +52,12 @@ export function usePartnerAd(): UsePartnerAdReturn {
   };
 
   const cycleAdType = () => {
-    setAdType(pickAdType());
+    // A pinned caller stays pinned — re-rolling here would quietly undo it on
+    // the first close.
+    if (forceType) {
+      return;
+    }
+    setRotatingType(pickAdType());
   };
 
   return {

@@ -1110,6 +1110,152 @@ const claimPrize = protectedNoGuestProcedure
     };
   });
 
+// --- Revealing the outcome of a draw ---
+
+/**
+ * The most recently completed giveaway, or null if none has ever been drawn.
+ *
+ * Sorted by when the draw finished rather than when the giveaway started,
+ * because a giveaway that was interrupted and resumed can complete after one
+ * that started later — and it is the completion that the reveal announces.
+ */
+async function lastCompletedGiveaway(payload: BasePayload) {
+  const found = await payload.find({
+    collection: "giveaways",
+    where: {
+      and: [
+        { status: { equals: "completed" } },
+        { drawCompletedAt: { exists: true } },
+      ],
+    },
+    sort: "-drawCompletedAt",
+    limit: 1,
+    pagination: false,
+    depth: 0,
+  });
+
+  return (found.docs[0] as Row | undefined) ?? null;
+}
+
+/**
+ * The result of the last draw this user took part in, if they have not been
+ * shown it yet.
+ *
+ * Returns null far more often than not, and every null is an ordinary case:
+ * no draw has happened, this user did not enter it, or they have already seen
+ * the result. The app treats all three the same way — show nothing.
+ *
+ * Unlike `actionable`, this answers for losers too. A draw that says nothing
+ * to the people who did not win reads as though their entry was never
+ * counted, so the reveal covers everyone who held a valid ticket.
+ */
+const lastResult = protectedProcedure.handler(async ({ context }) => {
+  const { payload, user } = context;
+
+  const giveaway = await lastCompletedGiveaway(payload);
+  if (!giveaway) {
+    return null;
+  }
+
+  const giveawayId = String(giveaway.id);
+
+  // Already acknowledged. Checked before the ticket lookup because this is the
+  // common case for anyone opening the app twice.
+  const seen = await payload
+    .findByID({ collection: "users", id: user.id, depth: 0 })
+    .catch(() => null);
+
+  if (seen && relationId(seen.lastGiveawayResultSeen) === giveawayId) {
+    return null;
+  }
+
+  const [tickets, winners] = await Promise.all([
+    payload.count({
+      collection: "giveaway-tickets",
+      where: {
+        and: [
+          { giveaway: { equals: giveawayId } },
+          { user: { equals: user.id } },
+          { status: { equals: "valid" } },
+        ],
+      },
+    }),
+    payload.find({
+      collection: "giveaway-winners",
+      where: {
+        and: [
+          { giveaway: { equals: giveawayId } },
+          { user: { equals: user.id } },
+        ],
+      },
+      sort: "-selectedAt",
+      limit: ACTIONABLE_CEILING,
+      pagination: false,
+      depth: 1,
+    }),
+  ]);
+
+  // A draw only speaks to the people it drew from. Someone who never bought a
+  // ticket is not owed the news that they did not win.
+  if (tickets.totalDocs === 0) {
+    return null;
+  }
+
+  const latestStart = await latestGiveawayStart(payload);
+  const prizes = winners.docs.map((winner) =>
+    winningFrom(winner as Row, latestStart)
+  );
+
+  return {
+    giveawayId,
+    giveawayName: String(giveaway.name ?? "the Giveaway"),
+    drawCompletedAt: (giveaway.drawCompletedAt as string | null) ?? null,
+    won: prizes.length > 0,
+    prizes,
+    /** The user's own stake in the draw, for the reveal to show. */
+    tickets: tickets.totalDocs,
+    /**
+     * Captured on the giveaway when the pool locked, so it is the number the
+     * draw actually ran against rather than a count taken later.
+     */
+    totalParticipants: (giveaway.totalValidParticipants as number | null) ?? 0,
+  };
+});
+
+export const AcknowledgeResultInput = z.object({
+  giveawayId: z.string().min(1),
+});
+
+/**
+ * Record that this user has seen a draw's result, so it is never shown again.
+ *
+ * Idempotent, and deliberately forgiving about which giveaway is named: the
+ * pointer only ever moves to the giveaway the app was actually told about, so
+ * a stale client acknowledging an older result cannot rewind a newer one it
+ * has not seen.
+ */
+const acknowledgeResult = protectedProcedure
+  .input(AcknowledgeResultInput)
+  .handler(async ({ input, context }) => {
+    const { payload, user } = context;
+
+    const giveaway = await lastCompletedGiveaway(payload);
+
+    // Only the current reveal can be acknowledged. Anything else is a client
+    // working from a result that has since been superseded.
+    if (!giveaway || String(giveaway.id) !== input.giveawayId) {
+      return { acknowledged: false };
+    }
+
+    await payload.update({
+      collection: "users",
+      id: user.id,
+      data: { lastGiveawayResultSeen: input.giveawayId },
+    });
+
+    return { acknowledged: true };
+  });
+
 export const giveawayRouter = {
   current,
   participants,
@@ -1120,4 +1266,6 @@ export const giveawayRouter = {
   history,
   winning,
   claimPrize,
+  lastResult,
+  acknowledgeResult,
 };
