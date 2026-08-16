@@ -1735,6 +1735,10 @@ export class GiveawayEngine {
       collection: "giveaway-prizes",
       id: prize.rowId,
       data: { unitsAwarded: prize.unitsAwarded },
+      // The pool is locked to administrators for the whole draw (§5), and this
+      // write happens in the middle of one. The flag distinguishes the engine
+      // recording an allocation from a person editing the pool.
+      context: { giveawayEngine: true },
     });
 
     const unitsRemaining = prize.maxUnits - prize.unitsAwarded;

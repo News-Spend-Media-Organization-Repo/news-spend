@@ -48,8 +48,21 @@ export const GiveawayPrizes: CollectionConfig = {
           depth: 0,
         });
 
-        // Max Units is editable until the countdown ends, then locked (spec §5).
-        if (giveaway && LOCKED_GIVEAWAY_STATUSES.includes(giveaway.status)) {
+        /**
+         * Max Units is editable until the countdown ends, then locked (§5).
+         *
+         * The lock is aimed at people: it stops an administrator changing the
+         * pool out from under a draw. The draw itself must still record what
+         * it awarded, and it does so while the giveaway is
+         * `draw_in_progress` — one of the locked statuses. Without the engine
+         * exemption below, the lock stops the engine one write after the first
+         * winner is created, and no draw can ever complete.
+         */
+        if (
+          giveaway &&
+          LOCKED_GIVEAWAY_STATUSES.includes(giveaway.status) &&
+          !req.context?.giveawayEngine
+        ) {
           throw new ValidationError({
             collection: "giveaway-prizes",
             errors: [
