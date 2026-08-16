@@ -119,6 +119,17 @@ type PartnerItem = {
 };
 
 /**
+ * Where a seeded item sends someone who taps it.
+ *
+ * Not optional in practice: `usePartnerClick` reads the store links, falls
+ * back to the website, and returns silently when there is none — so an item
+ * seeded without a link is simply dead to the touch, with no error and no
+ * toast. The first seeded app-wall offer was exactly that, and looked like a
+ * broken button rather than missing data.
+ */
+const SEED_LINK = "https://newsspend.com";
+
+/**
  * Partner content cannot be conjured from nothing: `media` is a required
  * upload and `partner` a required relationship, so this reuses whatever the
  * environment already has rather than inventing a creative. A seeded ad with a
@@ -282,6 +293,7 @@ async function main() {
         points: item.points,
         partner: partnerId,
         media: mediaId,
+        links: { website: SEED_LINK },
         // Draft content is invisible to the app, which would leave the
         // surfaces exactly as empty as before.
         status: "active",
