@@ -49,6 +49,22 @@ runs, and `packages/payload/.env` holds a live Resend key. An earlier version of
 this helper used `||=`, left the real key in place, and sent three §21 Winner
 Reports to `reward@newsspend.com` from a test run.
 
-Tests that touch the Winner Report should also inject a `reportSender` into
-`GiveawayEngine`, as `giveawayDraw.int.test.ts` does. The stubbed key is the
-outer guard; the injected sender is the one that states the intent.
+The Winner Report does **not** go through Payload's email adapter. It uses
+`packages/mail` directly, whose from address comes from `SMTP_USER_FROM` and
+whose key is read lazily from `RESEND_API_KEY` on first send. Both are stubbed.
+
+Three things stop a test mailing a real inbox, in order of how much they matter:
+
+1. **The overwrite.** `RESEND_API_KEY` and `SMTP_USER_FROM` are replaced, not
+   defaulted. This is what actually prevents a send.
+2. **The injected sender.** Draws pass a no-op `reportSender` to
+   `GiveawayEngine`, so tests never reach the send path at all.
+3. **A loud failure if both are bypassed.** Resend rejects the stub key with a
+   401 and `sendGiveawayWinnerReport` throws rather than swallowing it.
+   `mailsafety.int.test.ts` asserts this, so the last line of defence is itself
+   tested.
+
+`assertNoLiveMailKey` runs *after* the config import, which is the only point
+where a transitive `.env` re-read could undo the stub. It is deliberately not
+called straight after `stubEnv` — there it would only re-read the assignment
+above it and could never fail. It is a narrow check, not the main protection.

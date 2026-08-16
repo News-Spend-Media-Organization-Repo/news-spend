@@ -26,6 +26,35 @@ import type { BasePayload } from "payload";
  */
 const REQUIRED_DB_NAME = "newsspend_test";
 
+/** The only Resend key these tests may run with. Rejected by Resend by design. */
+const TEST_RESEND_KEY = "re_test_not_a_real_key";
+
+/**
+ * Refuse to continue if a live mail credential survived the stub.
+ *
+ * Deliberately called AFTER the Payload config has been imported, not straight
+ * after `stubEnv`. Called there it would only re-read the assignment two lines
+ * above and could never fail; the window worth checking is module
+ * initialisation, where a transitive import can re-read `.env` — which is where
+ * the live key lives — and undo the stub before anything sends.
+ *
+ * This is the third line of defence, not the first. The overwrite is what
+ * prevents a send, the injected `reportSender` keeps tests off that path
+ * entirely, and a bypass still fails loudly because Resend rejects the stub key
+ * with a 401 (see `mailsafety.int.test.ts`, which asserts exactly that).
+ */
+function assertNoLiveMailKey(): void {
+  const key = process.env.RESEND_API_KEY;
+
+  if (key !== TEST_RESEND_KEY) {
+    throw new Error(
+      `Refusing to run: RESEND_API_KEY is "${key?.slice(0, 7) ?? "unset"}…", not the test key. ` +
+        "Something re-read the environment during config import. A live key here " +
+        "can mail the Winner Report to a real inbox — see test/README.md."
+    );
+  }
+}
+
 function connectionString(): string {
   const uri = process.env.TEST_DATABASE_URI;
 
@@ -85,9 +114,17 @@ async function ensureDatabase(uri: string): Promise<void> {
 function stubEnv(uri: string): void {
   process.env.DATABASE_URI = uri;
   process.env.PAYLOAD_SECRET = "integration-test-secret";
-  process.env.RESEND_API_KEY = "re_test_not_a_real_key";
+  process.env.RESEND_API_KEY = TEST_RESEND_KEY;
   process.env.RESEND_DEFAULT_FROM_ADDRESS = "test@example.invalid";
   process.env.RESEND_DEFAULT_FROM_NAME = "Integration Test";
+  /**
+   * The Winner Report does not use Payload's email adapter at all — it goes
+   * through `packages/mail`, whose from address is built from SMTP_USER_FROM
+   * and defaults to a real newsspend.com address. Stubbed so no test process
+   * ever holds the production sender, even though a rejected key already stops
+   * the send.
+   */
+  process.env.SMTP_USER_FROM = "test@example.invalid";
   process.env.SFTP_HOST = "sftp.example.invalid";
   process.env.SFTP_USERNAME = "test";
   process.env.SFTP_PASSWORD = "test";
@@ -119,6 +156,9 @@ export async function getTestPayload(): Promise<BasePayload> {
   // is constructed.
   const { getPayload } = await import("payload");
   const { default: config } = await import("../../src/payload.config");
+
+  // Import is the one place the stub could be undone, so check it here.
+  assertNoLiveMailKey();
 
   instance = await getPayload({ config });
   return instance;
