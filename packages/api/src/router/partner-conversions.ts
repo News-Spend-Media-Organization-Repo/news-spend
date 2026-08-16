@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { recordFeaturedOffer } from "@news-spend-media/payload/lib/giveaway/featuredOffer";
 
 import { openapi } from "@orpc/openapi";
 import z from "zod";
@@ -175,6 +176,33 @@ export const handleWebhook = publicProcedure
           awardedAt: new Date().toISOString(),
         },
       });
+    }
+
+    /**
+     * A confirmed conversion on an app-wall item is a Featured Offer (§8).
+     *
+     * Recorded here rather than when the link was tapped, because §8 counts
+     * completions and a tap is only an intention — otherwise Tier 1 would be
+     * reachable by opening an offer and immediately closing it.
+     *
+     * Deliberately after the payout and deliberately incapable of throwing:
+     * the partner has already been answered and the points already credited,
+     * so a giveaway that is closed or an offer already counted must not turn a
+     * settled conversion into a failure.
+     */
+    if (input.status === "success") {
+      const userId =
+        typeof conversion.user === "string"
+          ? conversion.user
+          : conversion.user.id;
+      const contentId =
+        typeof conversion.content === "string"
+          ? conversion.content
+          : conversion.content?.id;
+
+      if (contentId) {
+        await recordFeaturedOffer(payload, { userId, contentId });
+      }
     }
 
     return {

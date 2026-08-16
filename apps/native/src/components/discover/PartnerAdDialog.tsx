@@ -1,3 +1,4 @@
+import type { PartnerContent } from "@news-spend-media/payload/types";
 import { Dialog, PressableFeedback } from "heroui-native";
 import { XIcon } from "phosphor-react-native";
 import { type ReactNode, useCallback, useState } from "react";
@@ -24,7 +25,8 @@ import { PartnerAdContent } from "./partner-ad-content";
 export type PartnerAdDialogProps = {
   open?: boolean;
   setOpen?: (open: boolean) => void;
-  onCountdownComplete?: () => void;
+  /** Receives the partner item watched, or undefined for a Google ad. */
+  onCountdownComplete?: (ad?: PartnerContent) => void;
   countdownDuration?: number;
   showAdLabel?: boolean;
   children?: ReactNode;
@@ -68,16 +70,24 @@ export function PartnerAdDialog({
   // ── Ad resolution ────────────────────────────────────────────────────────────
   const { ad, adType, refetchAd, cycleAdType } = usePartnerAd();
 
-  // ── Countdown (only active for custom ads while dialog is open) ──────────────
+  /**
+   * The completed ad is handed to the caller, not just the fact of completion.
+   *
+   * A giveaway Boost is recorded against the specific partner item watched —
+   * three boosts means three different items, and the engine refuses a repeat
+   * — so a caller that only learns "an ad finished" has nothing to record.
+   * A Google ad has no partner-content record, so it reports `undefined` and
+   * the caller decides what that is worth.
+   */
   const { countdown, reset: resetCountdown } = useAdCountdown({
     duration: countdownDuration,
     enabled: isOpen && adType === "custom",
-    onComplete: onCountdownComplete,
+    onComplete: () => onCountdownComplete?.(ad),
   });
 
   // ── Google ad ────────────────────────────────────────────────────────────────
   const googleAd = useGoogleAd({
-    onRewarded: onCountdownComplete,
+    onRewarded: () => onCountdownComplete?.(undefined),
     onClosed: cycleAdType,
   });
 
