@@ -19,6 +19,10 @@ const dsn = process.env.SENTRY_DSN || FALLBACK_DSN;
 const environment =
   process.env.APP_ENV || process.env.NODE_ENV || "development";
 const isProduction = environment === "production";
+// Anything deployed reports; only a developer's own machine stays silent. Gating
+// on `isProduction` instead would leave staging — where changes are actually
+// exercised before release — reporting nothing.
+const isLocal = environment === "development" || environment === "local";
 
 // Tracing every request is affordable at current volume but is the first thing
 // to turn down if the quota gets tight — hence the env override.
@@ -29,8 +33,8 @@ const tracesSampleRate = Number(
 Sentry.init({
   dsn,
   // Off in local development unless explicitly opted in, so day-to-day work
-  // does not pollute the production issue stream.
-  enabled: isProduction || process.env.SENTRY_ENABLED === "true",
+  // does not pollute the deployed issue streams.
+  enabled: !isLocal || process.env.SENTRY_ENABLED === "true",
   environment,
   release: process.env.RAILWAY_GIT_COMMIT_SHA,
   sendDefaultPii: true,
