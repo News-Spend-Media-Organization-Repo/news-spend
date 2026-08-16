@@ -61,7 +61,7 @@ export function SurveyTab() {
       }
 
       if (offer.url) {
-        navigation.navigate("SurveyWebView", {
+        navigation.navigate("InAppBrowser", {
           url: offer.url,
           title: offer.title,
         });

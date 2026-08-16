@@ -23,7 +23,7 @@ import Feedback from "#/features/tabs/settings/screens/support/feedback";
 import Support from "#/features/tabs/settings/screens/support/support";
 import VerifyIdentity from "#/features/tabs/settings/screens/verify-identity";
 import ShopDetails from "#/features/tabs/shop/screens/ShopDetails";
-import SurveyWebView from "#/screens/common/SurveyWebView";
+import InAppBrowser from "#/screens/common/InAppBrowser";
 import NotFound from "#/screens/NotFound";
 import BoostLuck from "#/screens/tabs/discover/BoostLuck";
 import ClaimPrize from "#/screens/tabs/discover/ClaimPrize";
@@ -310,8 +310,18 @@ export const sharedScreens = {
       headerShown: false,
     },
   }),
+  InAppBrowser: createNativeStackScreen({
+    screen: InAppBrowser,
+    linking: {
+      path: "browser",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  // Kept so the `survey` deep link and any cached navigation state keep working.
   SurveyWebView: createNativeStackScreen({
-    screen: SurveyWebView,
+    screen: InAppBrowser,
     linking: {
       path: "survey",
     },

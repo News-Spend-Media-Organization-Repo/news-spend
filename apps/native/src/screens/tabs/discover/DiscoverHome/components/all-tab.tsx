@@ -186,10 +186,11 @@ const onItemClick = (gameUrl?: string, title?: string) => {
     return;
   }
   if (gameUrl) {
-    navigationRef.navigate("SurveyWebView" as any, {
+    navigationRef.navigate("InAppBrowser" as any, {
       url: gameUrl,
       type: "game",
       title,
+      hideHeader: true,
     });
   }
 };
@@ -201,7 +202,7 @@ const handleStartSurvey = (surveyUrl?: string) => {
     return;
   }
   if (surveyUrl) {
-    navigationRef.navigate("SurveyWebView" as any, { url: surveyUrl });
+    navigationRef.navigate("InAppBrowser" as any, { url: surveyUrl });
   }
 };
 

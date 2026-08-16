@@ -5,6 +5,7 @@ import { Linking, Platform } from "react-native";
 import { toast } from "sonner-native";
 
 import { orpc } from "#/lib/orpc";
+import { navigate } from "#/navigation/navigationUtils";
 
 export function usePartnerClick() {
   const trackClickMutation = useMutation(
@@ -22,17 +23,19 @@ export function usePartnerClick() {
       partner?.integrationMethod === "webhook" ||
       partner?.integrationMethod === "postback";
 
-    let url = Platform.select({
+    // Store links have to leave the app — the App Store / Play Store cannot
+    // render in a WebView. Website links stay in the in-app browser.
+    const storeUrl = Platform.select({
       ios: item.links?.iosAppStore,
       android: item.links?.androidPlayStore,
     });
-    if (!url) {
-      url = item.links?.website;
-    }
+    let url = storeUrl ?? item.links?.website;
 
     if (!url) {
       return;
     }
+
+    const isStoreLink = Boolean(storeUrl);
 
     if (isCPA) {
       setLoadingItemId(item.id);
@@ -59,7 +62,17 @@ export function usePartnerClick() {
       }
     }
 
-    Linking.openURL(url);
+    if (isStoreLink) {
+      Linking.openURL(url);
+      return;
+    }
+
+    navigate("InAppBrowser", {
+      url,
+      title: item.title,
+      // Only warn about losing points when points are actually on the line.
+      confirmOnLeave: isCPA,
+    });
   };
 
   const isLoading = (itemId: string) => loadingItemId === itemId;
