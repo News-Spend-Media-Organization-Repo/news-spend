@@ -128,6 +128,63 @@ export const Giveaways: CollectionConfig = {
     },
     {
       /**
+       * Authorize a stopped draw to resume (§19).
+       *
+       * The status alone is what the engine checks, so an administrator can
+       * reach `resumption_authorized` by editing the select — and that is how
+       * it was done before this existed. It works, and it records nothing: no
+       * name, no timestamp, no audit entry, because the stamping lives in
+       * `authorizeResumption` rather than in the field.
+       *
+       * §19 exists so a draw can be defended afterwards. "Someone changed a
+       * dropdown" is the wrong answer to who allowed prizes to be awarded, so
+       * this routes the same decision through the engine, which records it.
+       */
+      path: "/:id/authorize-resumption",
+      method: "post",
+      handler: async (req) => {
+        const user = req.user;
+
+        if (user?.collection !== "admins" || user?.role !== "super-admin") {
+          return Response.json(
+            { message: "Only a Super Admin can authorize a resumption." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id as string | undefined;
+        if (!id) {
+          return Response.json(
+            { message: "Missing giveaway id." },
+            { status: 400 }
+          );
+        }
+
+        const body = req.json ? ((await req.json()) as { note?: string }) : {};
+
+        const { GiveawayEngine } = await import(
+          "../../lib/giveaway/GiveawayEngine"
+        );
+
+        const result = await new GiveawayEngine(
+          req.payload
+        ).authorizeResumption(id, {
+          // Identifies the person in the audit log and on the attempt.
+          authorizedBy: user.email ?? String(user.id),
+          note: body.note,
+        });
+
+        if (result.authorized) {
+          return Response.json({
+            message: result.message ?? "Resumption authorized.",
+          });
+        }
+
+        return Response.json({ message: result.message }, { status: 409 });
+      },
+    },
+    {
+      /**
        * Resend the Winner Report (spec §21, "provide Resend Winner Report
        * button in CMS").
        *

@@ -21,6 +21,7 @@ import { useState } from "react";
 export const RunGiveawayDraw: UIFieldClientComponent = () => {
   const { id, savedDocumentData } = useDocumentInfo();
   const [running, setRunning] = useState(false);
+  const [authorizing, setAuthorizing] = useState(false);
 
   // Read live form values so the button reacts before a save, falling back to
   // what is stored.
@@ -38,6 +39,53 @@ export const RunGiveawayDraw: UIFieldClientComponent = () => {
   const drawCompletedAt = savedDocumentData?.drawCompletedAt as
     | string
     | undefined;
+  const lastCheckpoint = savedDocumentData?.lastCheckpoint as
+    | string
+    | undefined;
+
+  const isResumption = resolvedStatus === "resumption_authorized";
+
+  /**
+   * Both handlers are declared before the state branches below, because those
+   * branches return early and hooks may not run conditionally.
+   */
+  const post = async (
+    path: string,
+    body: Record<string, unknown>,
+    setBusy: (busy: boolean) => void
+  ) => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/giveaways/${id}/${path}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const payload = (await res.json()) as { message?: string };
+
+      if (res.ok) {
+        toast.success(payload.message ?? "Done.");
+        // Status, winners and the checkpoint all changed server-side.
+        window.location.reload();
+        return;
+      }
+
+      toast.error(payload.message ?? `Request failed (${res.status}).`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not reach the server."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runDraw = () => post("run-draw", { resume: isResumption }, setRunning);
+
+  const authorizeResumption = () =>
+    post("authorize-resumption", {}, setAuthorizing);
 
   if (!id) {
     return (
@@ -83,21 +131,37 @@ export const RunGiveawayDraw: UIFieldClientComponent = () => {
 
   /**
    * §19 — a stopped draw is not restartable, only resumable, and only once an
-   * administrator has authorized it. Offering a button here would invite
-   * exactly the restart the specification forbids, because a restart would
-   * re-draw tiers that already have winners.
+   * administrator has authorized it. So this offers authorization, never a
+   * restart: restarting would re-draw tiers that already have winners.
+   *
+   * It goes through the endpoint rather than setting the status field directly
+   * because the engine stamps who authorized it and when, and writes the audit
+   * entry §19 asks for. Editing the select reaches the same status and records
+   * none of that.
    */
   if (resolvedStatus && ["interrupted", "failed"].includes(resolvedStatus)) {
     return (
-      <p className="field-description">
-        This draw stopped part-way through ({resolvedStatus}). Set the status to
-        “Resumption Authorized” to continue it from its last checkpoint — it
-        cannot be restarted, or the tiers already drawn would be drawn again.
-      </p>
+      <div className="field-type">
+        <p className="field-description">
+          This draw stopped part-way through ({resolvedStatus})
+          {lastCheckpoint ? `, after ${lastCheckpoint}` : ""}. Authorizing it
+          continues from that checkpoint — it cannot be restarted, or the tiers
+          already drawn would be drawn again.
+        </p>
+        <Button
+          buttonStyle="secondary"
+          disabled={authorizing}
+          onClick={authorizeResumption}
+          size="medium"
+        >
+          {authorizing ? "Authorizing…" : "Authorize resumption"}
+        </Button>
+        <p className="field-description">
+          Recorded against your account in the audit log.
+        </p>
+      </div>
     );
   }
-
-  const isResumption = resolvedStatus === "resumption_authorized";
 
   if (!isResumption && resolvedStatus !== "active") {
     return (
@@ -122,35 +186,6 @@ export const RunGiveawayDraw: UIFieldClientComponent = () => {
       </p>
     );
   }
-
-  const runDraw = async () => {
-    setRunning(true);
-    try {
-      const res = await fetch(`/api/giveaways/${id}/run-draw`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume: isResumption }),
-      });
-
-      const body = (await res.json()) as { message?: string };
-
-      if (res.ok) {
-        toast.success(body.message ?? "Draw complete.");
-        // Status, winners and the checkpoint all changed server-side.
-        window.location.reload();
-        return;
-      }
-
-      toast.error(body.message ?? `Draw failed (${res.status}).`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not reach the server."
-      );
-    } finally {
-      setRunning(false);
-    }
-  };
 
   return (
     <div className="field-type">
