@@ -5,7 +5,9 @@ import {
 import type { Activity } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { addDays, subDays } from "date-fns";
-import { Select, Separator, Spinner } from "heroui-native";
+import { Select } from "heroui-native/select";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
 import React, { useCallback, useState } from "react";
 import { View } from "react-native";
 import { DateRangePicker } from "#/components/heroui/date-range-picker";

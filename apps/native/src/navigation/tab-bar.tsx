@@ -4,7 +4,7 @@ import {
   getFocusedRouteNameFromRoute,
   useLinkBuilder,
 } from "@react-navigation/native";
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { memo, useCallback, useEffect } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { View } from "react-native";

@@ -1,4 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Suspense } from "react";
 import { Text, View } from "react-native";
 
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
@@ -9,6 +10,9 @@ import { sharedScreens } from "./shared-screens";
 export default createNativeStackNavigator({
   layout: ({ children }) => (
     <NavigatorErrorBoundary>{children}</NavigatorErrorBoundary>
+  ),
+  screenLayout: ({ children }) => (
+    <Suspense fallback={<View style={{ flex: 1 }} />}>{children}</Suspense>
   ),
   screens: {
     LiveHome: {

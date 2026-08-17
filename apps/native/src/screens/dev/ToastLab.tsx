@@ -1,4 +1,4 @@
-import { Toast } from "heroui-native";
+import { Toast } from "heroui-native/toast";
 import { View } from "react-native";
 
 import { Button } from "#/components/heroui/button";

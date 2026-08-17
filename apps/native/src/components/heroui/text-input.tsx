@@ -1,4 +1,4 @@
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { Description } from "heroui-native/description";
 import { FieldError } from "heroui-native/field-error";
 import { Input } from "heroui-native/input";

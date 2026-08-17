@@ -1,6 +1,6 @@
 import { isInferableError } from "@orpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Dialog } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
 import { StarIcon } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";

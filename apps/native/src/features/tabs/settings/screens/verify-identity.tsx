@@ -3,7 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { FieldError } from "heroui-native/field-error";
 import { ListGroup } from "heroui-native/list-group";

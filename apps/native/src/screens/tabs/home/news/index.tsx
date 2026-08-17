@@ -2,7 +2,7 @@ import { Galeria } from "@nandorojo/galeria";
 import { isInferableError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { format } from "date-fns";
-import { Separator } from "heroui-native";
+import { Separator } from "heroui-native/separator";
 import { SkeletonGroup } from "heroui-native/skeleton-group";
 import { ArrowLeftIcon, UserIcon } from "phosphor-react-native";
 import { useEffect } from "react";

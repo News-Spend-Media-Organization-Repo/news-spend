@@ -6,7 +6,8 @@ import {
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Separator, Spinner } from "heroui-native";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
 import type { ComponentRef, JSX, RefObject } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { View } from "react-native";

@@ -1,16 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import * as Application from "expo-application";
-import {
-  Avatar,
-  Card,
-  cn,
-  ListGroup,
-  PressableFeedback,
-  Separator,
-  Spinner,
-  useThemeColor,
-} from "heroui-native";
+import { Avatar } from "heroui-native/avatar";
+import { Card } from "heroui-native/card";
+import { cn } from "heroui-native/utils";
+import { ListGroup } from "heroui-native/list-group";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
+import { useThemeColor } from "heroui-native/hooks";
 import {
   ArrowClockwiseIcon,
   ArticleIcon,

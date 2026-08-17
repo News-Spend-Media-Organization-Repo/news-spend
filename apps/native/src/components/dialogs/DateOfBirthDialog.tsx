@@ -2,7 +2,7 @@ import { isInferableError } from "@orpc/client";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Dialog } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
 import { CakeIcon } from "phosphor-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, View } from "react-native";

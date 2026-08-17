@@ -1,5 +1,5 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { BottomSheet } from "heroui-native";
+import { BottomSheet } from "heroui-native/bottom-sheet";
 import { CaretRightIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";

@@ -1,5 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
-import { cn, PressableFeedback } from "heroui-native";
+import { cn } from "heroui-native/utils";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { ArrowLeftIcon } from "phosphor-react-native";
 import type { ReactNode } from "react";
 import { View } from "react-native";

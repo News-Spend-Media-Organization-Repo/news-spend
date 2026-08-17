@@ -9,7 +9,7 @@ import {
   differenceInHours,
   differenceInMinutes,
 } from "date-fns";
-import { LinkButton } from "heroui-native";
+import { LinkButton } from "heroui-native/link-button";
 import { useCallback, useState } from "react";
 import { Platform, ScrollView, View } from "react-native";
 import { useSnapshot } from "valtio";

@@ -1,7 +1,8 @@
 import type { LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { cn, PressableFeedback } from "heroui-native";
+import { cn } from "heroui-native/utils";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { useCallback, useMemo } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";

@@ -1,5 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { InputOTP, REGEXP_ONLY_DIGITS, Spinner } from "heroui-native";
+import { InputOTP, REGEXP_ONLY_DIGITS } from "heroui-native/input-otp";
+import { Spinner } from "heroui-native/spinner";
 import { ArrowLeftIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";

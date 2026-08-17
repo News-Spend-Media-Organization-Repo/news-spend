@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Dialog } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
 import {
   SealQuestionIcon,
   TicketIcon,

@@ -1,4 +1,4 @@
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type LayoutChangeEvent,

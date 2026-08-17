@@ -1,5 +1,5 @@
 import * as Updates from "expo-updates";
-import { Dialog } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 

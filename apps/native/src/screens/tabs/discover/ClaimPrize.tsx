@@ -1,7 +1,7 @@
 import { isInferableError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Card } from "heroui-native";
+import { Card } from "heroui-native/card";
 import { FormProvider, useForm } from "react-hook-form";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 

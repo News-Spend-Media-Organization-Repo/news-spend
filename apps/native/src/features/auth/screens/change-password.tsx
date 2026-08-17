@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Spinner } from "heroui-native";
+import { Spinner } from "heroui-native/spinner";
 import { ArrowLeftIcon } from "phosphor-react-native";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
 import { Keyboard, Pressable, View } from "react-native";

@@ -1,6 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
-import { Checkbox, ControlField, Spinner } from "heroui-native";
+import { Checkbox } from "heroui-native/checkbox";
+import { ControlField } from "heroui-native/control-field";
+import { Spinner } from "heroui-native/spinner";
 import {
   Controller,
   FormProvider,

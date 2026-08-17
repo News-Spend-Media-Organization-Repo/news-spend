@@ -1,7 +1,8 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { startOfWeek } from "date-fns";
-import { Card, PressableFeedback } from "heroui-native";
+import { Card } from "heroui-native/card";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { MinusCircleIcon, PlusCircleIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";

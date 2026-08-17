@@ -1,5 +1,6 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { Dialog, PressableFeedback } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { XIcon } from "phosphor-react-native";
 import {
   type ReactNode,

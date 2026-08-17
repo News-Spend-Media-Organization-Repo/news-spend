@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { Spinner } from "heroui-native";
+import { Spinner } from "heroui-native/spinner";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";

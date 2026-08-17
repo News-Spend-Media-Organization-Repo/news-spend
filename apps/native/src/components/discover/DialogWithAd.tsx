@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Dialog } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
 import { XIcon } from "phosphor-react-native";
 import { useEffect, useId, useRef, useState } from "react";
 import {

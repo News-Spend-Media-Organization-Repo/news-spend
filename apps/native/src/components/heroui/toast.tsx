@@ -1,15 +1,8 @@
-import type {
-  ToastActionProps,
-  ToastComponentProps,
-  ToastShowOptions,
-} from "heroui-native";
-import {
-  cn,
-  Toast as HeroUIToast,
-  Spinner,
-  useThemeColor,
-  useToast,
-} from "heroui-native";
+import type { ToastActionProps, ToastComponentProps, ToastShowOptions } from "heroui-native/toast";
+import { cn } from "heroui-native/utils";
+import { Toast as HeroUIToast, useToast } from "heroui-native/toast";
+import { Spinner } from "heroui-native/spinner";
+import { useThemeColor } from "heroui-native/hooks";
 import type { Icon } from "phosphor-react-native";
 import {
   BellIcon,

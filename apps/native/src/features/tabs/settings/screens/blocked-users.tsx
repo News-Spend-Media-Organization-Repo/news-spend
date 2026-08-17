@@ -3,7 +3,9 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
-import { ListGroup, Separator, Spinner } from "heroui-native";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
 import { useCallback, useMemo } from "react";
 import { Alert, View } from "react-native";
 

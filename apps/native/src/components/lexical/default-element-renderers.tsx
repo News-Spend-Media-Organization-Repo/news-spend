@@ -1,5 +1,5 @@
 import { Galeria } from "@nandorojo/galeria";
-import { Separator } from "heroui-native";
+import { Separator } from "heroui-native/separator";
 import { Linking, View } from "react-native";
 import { tv } from "tailwind-variants";
 import { Image } from "#/components/ui";

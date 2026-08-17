@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { CheckCircleIcon, ShieldCheckIcon } from "phosphor-react-native";
 import { useCallback, useRef, useState } from "react";
 import { View } from "react-native";

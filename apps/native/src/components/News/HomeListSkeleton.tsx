@@ -1,4 +1,4 @@
-import { SkeletonGroup } from "heroui-native";
+import { SkeletonGroup } from "heroui-native/skeleton-group";
 import { ScrollView, useWindowDimensions, View } from "react-native";
 
 export default function HomeListSkeleton() {

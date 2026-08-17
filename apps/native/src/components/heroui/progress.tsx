@@ -31,7 +31,7 @@
  * </ProgressBar>
  */
 
-import { cn } from "heroui-native"; // re-exports clsx + twMerge
+import { cn } from "heroui-native/utils"; // re-exports clsx + twMerge
 import React, {
   createContext,
   type ReactNode,

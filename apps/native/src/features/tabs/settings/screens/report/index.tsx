@@ -2,14 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
 import { File as ExpoFile } from "expo-file-system";
-import {
-  Checkbox,
-  ControlField,
-  FieldError,
-  Label,
-  LinkButton,
-  Spinner,
-} from "heroui-native";
+import { Checkbox } from "heroui-native/checkbox";
+import { ControlField } from "heroui-native/control-field";
+import { FieldError } from "heroui-native/field-error";
+import { Label } from "heroui-native/label";
+import { LinkButton } from "heroui-native/link-button";
+import { Spinner } from "heroui-native/spinner";
 import { useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { View } from "react-native";

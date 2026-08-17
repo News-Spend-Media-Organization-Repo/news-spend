@@ -2,7 +2,9 @@ import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { Card, cn, PressableFeedback } from "heroui-native";
+import { Card } from "heroui-native/card";
+import { cn } from "heroui-native/utils";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import {
   CaretRightIcon,
   CoinsIcon,

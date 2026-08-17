@@ -1,6 +1,8 @@
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { BottomSheet, ListGroup, Separator } from "heroui-native";
+import { BottomSheet } from "heroui-native/bottom-sheet";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
 import { FileArrowUpIcon, XIcon } from "phosphor-react-native";
 import { Alert, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

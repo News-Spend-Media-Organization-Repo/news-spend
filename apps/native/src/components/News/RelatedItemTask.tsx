@@ -1,5 +1,5 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { Chip } from "heroui-native";
+import { Chip } from "heroui-native/chip";
 import {
   Linking,
   Platform,

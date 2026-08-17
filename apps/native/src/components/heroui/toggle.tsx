@@ -31,7 +31,9 @@
  * </ToggleButton>
  */
 
-import { PressableFeedback, Separator, useThemeColor } from "heroui-native";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { Separator } from "heroui-native/separator";
+import { useThemeColor } from "heroui-native/hooks";
 import type React from "react";
 import {
   Children,

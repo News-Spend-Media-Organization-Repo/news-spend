@@ -1,5 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { InputGroup, Separator } from "heroui-native";
+import { InputGroup } from "heroui-native/input-group";
+import { Separator } from "heroui-native/separator";
 import { PaperPlaneTiltIcon, XIcon } from "phosphor-react-native";
 import { type RefObject, useCallback } from "react";
 import {

@@ -1,6 +1,6 @@
 import type { News } from "@news-spend-media/api/router/news/content-builders";
 import { useNavigation } from "@react-navigation/native";
-import { Card } from "heroui-native";
+import { Card } from "heroui-native/card";
 import { Pressable, useWindowDimensions } from "react-native";
 import { Image } from "#/components/heroui/image";
 import { Text } from "#/components/heroui/text";

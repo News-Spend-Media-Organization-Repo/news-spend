@@ -1,4 +1,4 @@
-import { Accordion, AccordionLayoutTransition } from "heroui-native";
+import { Accordion, AccordionLayoutTransition } from "heroui-native/accordion";
 import { ScrollView } from "react-native";
 
 import { Screen } from "#/components/heroui/screen";
