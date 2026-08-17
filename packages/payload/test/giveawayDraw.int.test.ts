@@ -192,6 +192,16 @@ describe("giveaway draw, against a real database", () => {
     for (const spoiler of ["won", "winner", "congratulations", "prize"]) {
       expect(text).not.toContain(spoiler);
     }
+
+    /**
+     * Against the real collection, because both of these are the kind of
+     * default that a fake cannot disagree with. `targetType` defaults to "all"
+     * and would have reached every user on the platform; an unpublished row is
+     * silently never sent, which is how two draws' notifications came to sit
+     * in the database with `sentAt` null and nothing to explain it.
+     */
+    expect(notification.targetType).toBe("specific");
+    expect(notification._status).toBe("published");
   }, 120_000);
 
   test("still refuses an administrator editing the pool mid-draw", async () => {

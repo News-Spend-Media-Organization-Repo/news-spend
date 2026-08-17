@@ -42,6 +42,29 @@ describe("notifyDrawCompleted", () => {
     expect(created[0].specificUsers).toEqual(["u1", "u2"]);
   });
 
+  it("targets the entrants rather than the whole platform", async () => {
+    // `targetType` defaults to "all", and `specificUsers` is only read when it
+    // is "specific". Without this the notification reaches every user on the
+    // platform — on staging that was one person, in production everybody.
+    const { payload, created } = createFakePayload();
+
+    await notifyDrawCompleted(payload, "g1");
+
+    expect(created[0].targetType).toBe("specific");
+  });
+
+  it("publishes it, or nothing is ever sent", async () => {
+    // The collection has drafts enabled and the send hook returns early on
+    // anything unpublished. Two draws' notifications sat in the database as
+    // drafts with `sentAt` null and no error to explain it.
+    const { payload, created } = createFakePayload();
+
+    await notifyDrawCompleted(payload, "g1");
+
+    expect(created[0]._status).toBe("published");
+    expect(created[0].deliveryAction).toBe("send-now");
+  });
+
   it("says nothing about the outcome", async () => {
     // The reveal opens with a sealed card and shows the result after an
     // advertisement. A notification that named a winner or a prize would give

@@ -65,9 +65,25 @@ export async function notifyDrawCompleted(
     await payload.create({
       collection: "notifications",
       data: {
+        /**
+         * Both of these are load-bearing, and neither is obvious.
+         *
+         * `targetType` defaults to "all", and `specificUsers` is only consulted
+         * when it is "specific" — so without this the notification goes to
+         * every user on the platform rather than the people who entered.
+         *
+         * `_status` matters because the collection has drafts enabled and the
+         * send hook returns early on anything unpublished. Created without it,
+         * the row is a draft that never sends and never errors: two draws'
+         * notifications sat in the database with `sentAt` null and nothing to
+         * indicate why.
+         */
+        targetType: "specific",
+        _status: "published",
         specificUsers: userIds,
         title: `${giveaway?.name ?? "The giveaway"} has been drawn`,
         body: "Open the app to see how it went.",
+        deliveryAction: "send-now",
         priority: "high",
         sound: true,
         data: {
