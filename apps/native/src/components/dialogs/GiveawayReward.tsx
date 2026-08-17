@@ -16,6 +16,7 @@ import { orpc } from "#/lib/orpc";
 import { navigate } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
 import { Text } from "../ui";
+import { sealedCardStake } from "./othersInDraw";
 
 /** Long enough not to fight the app's own startup, short enough to be seen. */
 const ANNOUNCE_DELAY_MS = 5000;
@@ -229,12 +230,7 @@ export default memo(function GiveawayReward() {
                   {result.giveawayName} has been drawn
                 </Text>
                 <Text className="text-center text-subtle-text">
-                  You entered with {result.tickets} ticket
-                  {result.tickets === 1 ? "" : "s"}
-                  {result.totalParticipants > 0
-                    ? `, alongside ${result.totalParticipants.toLocaleString()} others`
-                    : ""}
-                  . Ready to see how it went?
+                  {`${sealedCardStake(result.tickets, result.totalParticipants)} Ready to see how it went?`}
                 </Text>
               </View>
             ) : (
