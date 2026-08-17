@@ -87,6 +87,27 @@ const CATALOGUE: CatalogueEntry[] = [
     valueNaira: 5000,
   },
   {
+    /**
+     * Tier 2 exists here only so a seeded giveaway can start at all. The draw
+     * refuses to run when any tier with a percentage above zero has an empty
+     * pool, and the defaults enable all three — so a catalogue without a tier 2
+     * entry produced a giveaway that could never be drawn:
+     *
+     *   Draw cannot start: tier2 is enabled (0.5%) but its Prize Pool is empty.
+     *
+     * Points rather than airtime or data on purpose. Tier 2's own reachability
+     * (§11) is what the seeded content is for; the fulfilment paths are already
+     * covered by the tier 3 entries below, and a second Reloadly prize would
+     * only spend credit proving the same thing twice.
+     */
+    name: "1,500 Dream Points",
+    tier: "tier2",
+    fulfilmentType: "points",
+    description: "The mid-tier prize. Credited on claim.",
+    pointsAmount: 1500,
+    valueNaira: 1500,
+  },
+  {
     name: "500 Dream Points",
     tier: "tier3",
     fulfilmentType: "points",
@@ -216,7 +237,17 @@ async function main() {
 
   // --- Master Prize Catalogue -------------------------------------------
 
-  const prizeIds = new Map<string, string>();
+  /**
+   * Keyed by name, carrying the tier as well as the id. A prize may only enter
+   * a pool under the tier it holds in the catalogue (§4), and the hook enforces
+   * that — so the pool below has to read each entry's own tier rather than
+   * assume one. It once assumed tier 3 and the tier 1 prize made the seed fail
+   * half-way, leaving an active giveaway with an empty pool behind it.
+   */
+  const prizeIds = new Map<
+    string,
+    { id: string; tier: CatalogueEntry["tier"] }
+  >();
 
   for (const entry of CATALOGUE) {
     const existing = await payload.find({
@@ -228,7 +259,10 @@ async function main() {
     });
 
     if (existing.docs[0]) {
-      prizeIds.set(entry.name, String(existing.docs[0].id));
+      prizeIds.set(entry.name, {
+        id: String(existing.docs[0].id),
+        tier: entry.tier,
+      });
       console.log(`  exists   prize      ${entry.name}`);
       continue;
     }
@@ -242,7 +276,7 @@ async function main() {
       collection: "prize-catalogue",
       data: { ...entry, active: true },
     });
-    prizeIds.set(entry.name, String(created.id));
+    prizeIds.set(entry.name, { id: String(created.id), tier: entry.tier });
     console.log(`  created  prize      ${entry.name}`);
   }
 
@@ -331,9 +365,72 @@ async function main() {
     });
 
     if (active.docs[0]) {
-      console.log(
-        `\n  exists   giveaway   "${active.docs[0].name}" is already active — skipping.`
+      /**
+       * An active giveaway is left alone except for its pool, which is topped
+       * up with any catalogue prize missing from it.
+       *
+       * This is a repair path, and both of the things it repairs happened for
+       * real. A run that failed part-way through left an active giveaway with
+       * an empty pool; and a catalogue that gained a tier 2 prize afterwards
+       * left the giveaway unable to start, because the draw refuses any
+       * enabled tier whose pool is empty. Neither could be fixed by re-running,
+       * since the whole branch was skipped whenever a giveaway was active.
+       *
+       * Safe to do while live: §5 locks the pool from `pool_building` onwards,
+       * and `active` is deliberately outside that set, so this cannot disturb a
+       * draw that has begun. Existing rows are never touched — only gaps are
+       * filled — so units already awarded are left as they are.
+       */
+      const giveaway = active.docs[0];
+      const pool = await payload.find({
+        collection: "giveaway-prizes",
+        where: { giveaway: { equals: giveaway.id } },
+        pagination: false,
+        depth: 0,
+      });
+
+      const pooled = new Set(
+        pool.docs.map((row) =>
+          typeof row.prize === "string" ? row.prize : String(row.prize?.id)
+        )
       );
+      const missing = [...prizeIds].filter(([, prize]) => !pooled.has(prize.id));
+
+      console.log(
+        `\n  exists   giveaway   "${giveaway.name}" is already active — leaving its configuration alone.`
+      );
+
+      if (missing.length === 0) {
+        console.log(`  ok       pool       all ${pooled.size} prizes present`);
+        /**
+         * A dry run only knows the prizes that already exist, so a catalogue
+         * entry it is about to create cannot be reported as a pool gap yet —
+         * it has no id to compare against. Say so, rather than let "all
+         * present" read as "nothing left to do".
+         */
+        if (!WRITE && prizeIds.size < CATALOGUE.length) {
+          console.log(
+            `           pool       (prizes created above would be added too)`
+          );
+        }
+      }
+
+      for (const [name, prize] of missing) {
+        if (!WRITE) {
+          console.log(`  add      pool       ${name} ×5 (${prize.tier})`);
+          continue;
+        }
+        await payload.create({
+          collection: "giveaway-prizes",
+          data: {
+            giveaway: giveaway.id,
+            prize: prize.id,
+            tier: prize.tier,
+            maxUnits: 5,
+          },
+        });
+        console.log(`  added    pool       ${name} ×5 (${prize.tier})`);
+      }
     } else if (WRITE) {
       const now = Date.now();
       const giveaway = await payload.create({
@@ -358,22 +455,24 @@ async function main() {
         },
       });
 
-      for (const [name, prizeId] of prizeIds) {
+      for (const [name, prize] of prizeIds) {
         await payload.create({
           collection: "giveaway-prizes",
           data: {
             giveaway: giveaway.id,
-            prize: prizeId,
-            tier: "tier3",
+            prize: prize.id,
+            tier: prize.tier,
             maxUnits: 5,
           },
         });
-        console.log(`  created  pool       ${name} ×5`);
+        console.log(`  created  pool       ${name} ×5 (${prize.tier})`);
       }
 
       console.log(`\n  created  giveaway   ${giveaway.name}`);
     } else {
-      console.log("\n  create   giveaway   with the seeded prizes at tier 3");
+      console.log(
+        "\n  create   giveaway   with the seeded prizes at their catalogue tiers"
+      );
     }
   }
 
