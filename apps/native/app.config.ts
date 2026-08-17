@@ -8,6 +8,11 @@ const APP_VARIANT = process.env.APP_VARIANT as
   | "production";
 const _APP_ENV = process.env.APP_ENV as "local" | "preview" | "production";
 
+// Urgency of the update being published. Only ever "mandatory" when the
+// publisher says so explicitly, so a forgotten env var fails open (optional).
+const UPDATE_PRIORITY =
+  process.env.UPDATE_PRIORITY === "mandatory" ? "mandatory" : "optional";
+
 const PACKAGE_NAME = "com.newsspend.app"; // Base package name
 const VERSION = pkg.version;
 // const VERSION_CODE = 28;
@@ -131,6 +136,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId: "f652bbae-90d7-4074-b356-70438f948249",
       },
+      // An update carries its own urgency. `eas update` bakes this config into
+      // the manifest it publishes, so the client reads the value off the
+      // incoming update — before downloading it, and without the running build
+      // needing to have known about it. Publish a forced one with:
+      //   UPDATE_PRIORITY=mandatory eas update --branch production
+      updatePriority: UPDATE_PRIORITY,
     },
   };
 };

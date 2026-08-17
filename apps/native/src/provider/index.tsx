@@ -52,7 +52,7 @@ const config: HeroUINativeConfig = {
 export const Provider = ({ children }: Props) => {
   useListeningTimeSync();
   usePushNotification();
-  const { UpdateModalComponent } = useUpdates();
+  const { updateSheet } = useUpdates();
 
   useEffect(() => {
     newsAnalyticsClient.start(() => authState.user?.id);
@@ -77,7 +77,7 @@ export const Provider = ({ children }: Props) => {
                   }}
                 >
                   {children}
-                  <UpdateModalComponent />
+                  {updateSheet}
                 </IconContext.Provider>
               </ErrorBoundary>
               <ToastBridge />
