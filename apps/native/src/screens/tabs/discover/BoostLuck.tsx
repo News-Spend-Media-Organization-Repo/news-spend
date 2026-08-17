@@ -167,10 +167,22 @@ const BoostLuck = () => {
         <View className="gap-4">
           <Text className="text-center">Our sponsors wish you good luck.</Text>
 
+          {/*
+            Pinned to in-house content, because this is the one surface whose
+            purpose is earning a Boost.
+
+            The rotation is otherwise 40% partner / 60% Google, and a Google ad
+            cannot earn a Boost at all — it has no partner-content record for
+            the engine to attribute one to, so it is refused. Left sampling,
+            roughly three in five attempts here spent fifteen seconds to earn
+            nothing, or bounced the person to the Lucky App Wall instead. The
+            Google inventory still runs everywhere else.
+          */}
           <PartnerAdDialog
             asChild
             onCountdownComplete={onCountdownComplete}
             onOpen={onDialogOpen}
+            preferAdType="custom"
           >
             <Button className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
               <CoinsIcon color="white" size={20} />
