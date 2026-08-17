@@ -185,3 +185,17 @@ Pre-commit: runs `bun x biome check --write` on staged files, auto-stages fixes.
 4. Edge cases and boundary conditions
 5. UX/accessibility beyond linting rules
 6. Performance implications of algorithmic choices
+
+## Agent skills
+
+### Issue tracker
+
+Issues, specs, and tickets live as GitHub issues (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles, each label string equal to its name: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context: `CONTEXT-MAP.md` at the root points at per-context `CONTEXT.md` files (`apps/cms`, `apps/server`, `apps/native`), with `docs/adr/` at the root for system-wide decisions. See `docs/agents/domain.md`.
