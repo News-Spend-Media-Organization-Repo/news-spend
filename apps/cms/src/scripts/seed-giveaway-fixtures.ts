@@ -107,6 +107,23 @@ const CATALOGUE: CatalogueEntry[] = [
     reloadlyLocalAmount: 500,
     valueNaira: 500,
   },
+  {
+    /**
+     * Named exactly "2GB Data" because `seed-reloadly-data-plans` matches
+     * catalogue entries by name — without that name the plans have nothing to
+     * attach to.
+     *
+     * No `reloadlyLocalAmount` here, unlike airtime. Data is sold as fixed
+     * SKUs, so the amount comes from the per-network plan rows that script
+     * writes; a network with no row holds the prize for review rather than
+     * sending a bundle that would not deliver.
+     */
+    name: "2GB Data",
+    tier: "tier3",
+    fulfilmentType: "data",
+    description: "A 2GB bundle, sent on the winner's own network.",
+    valueNaira: 600,
+  },
 ];
 
 type PartnerItem = {
