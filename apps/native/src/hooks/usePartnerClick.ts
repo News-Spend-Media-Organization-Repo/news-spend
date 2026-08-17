@@ -70,8 +70,22 @@ export function usePartnerClick() {
     navigate("InAppBrowser", {
       url,
       title: item.title,
-      // Only warn about losing points when points are actually on the line.
-      confirmOnLeave: isCPA,
+      /**
+       * No warning on the way out, for a CPA offer least of all.
+       *
+       * Nothing is forfeited by leaving: the click was recorded the moment it
+       * was tapped, and the reward — points, and the Featured Offer that
+       * counts towards Tier 1 — arrives when the partner confirms the
+       * conversion on its webhook. That happens whether this screen is open or
+       * not.
+       *
+       * Warning otherwise argues against the step some offers require. An
+       * "install this app" offer is completed by leaving for the store, so
+       * telling someone they are about to lose their reward is both untrue and
+       * pointed at the wrong action. A game still warns — leaving one really
+       * does abandon it — and that lives on the game's own navigation.
+       */
+      confirmOnLeave: false,
     });
   };
 
