@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Dialog } from "heroui-native/dialog";
+import { BottomSheet } from "heroui-native/bottom-sheet";
 import {
   SealQuestionIcon,
   TicketIcon,
@@ -155,43 +155,49 @@ export default memo(function GiveawayReward() {
     const more = unclaimed.length - 1;
 
     return (
-      <Dialog isOpen={open} onOpenChange={setOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay />
-          <Dialog.Content className="w-[95%]">
-            <Dialog.Close className="absolute top-1 right-2" variant="ghost" />
+      <BottomSheet isOpen={open} onOpenChange={setOpen}>
+        <BottomSheet.Portal>
+          <BottomSheet.Overlay />
+          {/* A reminder is dismissible by every means — it recurs until the
+              prize is claimed, so losing it costs nothing. */}
+          <BottomSheet.Content enableDynamicSizing enablePanDownToClose>
+            <View className="gap-4 px-5 pt-2 pb-8">
+              <View className="items-center gap-2">
+                <Icon
+                  color="#00223d"
+                  name={TrophyIcon}
+                  size={48}
+                  weight="fill"
+                />
+                <Text className="text-center font-semibold text-lg">
+                  Congratulations!
+                </Text>
+                <Text className="text-center text-subtle-text">
+                  You won {reminder.prizeName} in the Giveaway.
+                  {more > 0
+                    ? ` And ${more} other prize${more === 1 ? "" : "s"}.`
+                    : ""}
+                </Text>
+              </View>
 
-            <View className="items-center gap-2">
-              <Icon color="#00223d" name={TrophyIcon} size={48} weight="fill" />
-              <Text className="text-center font-semibold text-lg">
-                Congratulations!
-              </Text>
-              <Text className="text-center text-subtle-text">
-                You won {reminder.prizeName} in the Giveaway.
-                {more > 0
-                  ? ` And ${more} other prize${more === 1 ? "" : "s"}.`
-                  : ""}
+              <Button
+                onPress={() => {
+                  close();
+                  navigate("MyPrizes");
+                }}
+              >
+                <Button.Label>
+                  {more > 0 ? "View my prizes" : "Claim your prize"}
+                </Button.Label>
+              </Button>
+
+              <Text className="text-center text-subtle-text text-xs">
+                Your prizes are always waiting under My Prizes.
               </Text>
             </View>
-
-            <Button
-              className="mt-4"
-              onPress={() => {
-                close();
-                navigate("MyPrizes");
-              }}
-            >
-              <Button.Label>
-                {more > 0 ? "View my prizes" : "Claim your prize"}
-              </Button.Label>
-            </Button>
-
-            <Text className="mt-2 text-center text-subtle-text text-xs">
-              Your prizes are always waiting under My Prizes.
-            </Text>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
     );
   }
 
@@ -205,87 +211,89 @@ export default memo(function GiveawayReward() {
 
   return (
     <>
-      <Dialog isOpen={open && phase !== "ad"} onOpenChange={setOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay />
-          <Dialog.Content className="w-[95%]">
-            {/* No dismissing a sealed result — leaving it half-opened would
-                strand it, since the reveal only ever happens once. */}
-            {phase === "revealed" ? (
-              <Dialog.Close
-                className="absolute top-1 right-2"
-                variant="ghost"
-              />
-            ) : null}
+      <BottomSheet isOpen={open && phase !== "ad"} onOpenChange={setOpen}>
+        <BottomSheet.Portal>
+          {/*
+            A sealed result cannot be dismissed by any route — not the handle,
+            not the backdrop. The reveal happens once ever, so a card swiped
+            away half-opened would strand it for good. A dialog refused this
+            for free; a sheet has to be told, since swiping down is its
+            natural gesture.
+          */}
+          <BottomSheet.Overlay isCloseOnPress={phase === "revealed"} />
+          <BottomSheet.Content
+            enableDynamicSizing
+            enablePanDownToClose={phase === "revealed"}
+          >
+            <View className="gap-4 px-5 pt-2 pb-8">
+              {phase === "sealed" ? (
+                <View className="items-center gap-2">
+                  <Icon
+                    color="#00223d"
+                    name={SealQuestionIcon}
+                    size={48}
+                    weight="fill"
+                  />
+                  <Text className="text-center font-semibold text-lg">
+                    {result.giveawayName} has been drawn
+                  </Text>
+                  <Text className="text-center text-subtle-text">
+                    {`${sealedCardStake(result.tickets, result.totalParticipants)} Ready to see how it went?`}
+                  </Text>
+                </View>
+              ) : (
+                <View className="items-center gap-2">
+                  <Icon
+                    color="#00223d"
+                    name={won ? TrophyIcon : TicketIcon}
+                    size={48}
+                    weight="fill"
+                  />
+                  <Text className="text-center font-semibold text-lg">
+                    {won ? "Congratulations!" : "Not this time"}
+                  </Text>
+                  <Text className="text-center text-subtle-text">
+                    {won
+                      ? `You won ${headline?.prizeName} in ${result.giveawayName}.${
+                          more > 0
+                            ? ` And ${more} other prize${more === 1 ? "" : "s"}.`
+                            : ""
+                        }`
+                      : "Your entry was counted in the draw — it just wasn't your name this time. The next giveaway is a fresh start."}
+                  </Text>
+                </View>
+              )}
 
-            {phase === "sealed" ? (
-              <View className="items-center gap-2">
-                <Icon
-                  color="#00223d"
-                  name={SealQuestionIcon}
-                  size={48}
-                  weight="fill"
-                />
-                <Text className="text-center font-semibold text-lg">
-                  {result.giveawayName} has been drawn
-                </Text>
-                <Text className="text-center text-subtle-text">
-                  {`${sealedCardStake(result.tickets, result.totalParticipants)} Ready to see how it went?`}
-                </Text>
-              </View>
-            ) : (
-              <View className="items-center gap-2">
-                <Icon
-                  color="#00223d"
-                  name={won ? TrophyIcon : TicketIcon}
-                  size={48}
-                  weight="fill"
-                />
-                <Text className="text-center font-semibold text-lg">
-                  {won ? "Congratulations!" : "Not this time"}
-                </Text>
-                <Text className="text-center text-subtle-text">
-                  {won
-                    ? `You won ${headline?.prizeName} in ${result.giveawayName}.${
-                        more > 0
-                          ? ` And ${more} other prize${more === 1 ? "" : "s"}.`
-                          : ""
-                      }`
-                    : "Your entry was counted in the draw — it just wasn't your name this time. The next giveaway is a fresh start."}
-                </Text>
-              </View>
-            )}
+              {phase === "sealed" ? (
+                <Button onPress={startAd}>
+                  <Button.Label>Reveal my result</Button.Label>
+                </Button>
+              ) : (
+                <Button
+                  onPress={() => {
+                    close();
+                    navigate(won ? "MyPrizes" : "GetTicket");
+                  }}
+                >
+                  <Button.Label>
+                    {won
+                      ? more > 0
+                        ? "View my prizes"
+                        : "Claim your prize"
+                      : "Enter the next giveaway"}
+                  </Button.Label>
+                </Button>
+              )}
 
-            {phase === "sealed" ? (
-              <Button className="mt-4" onPress={startAd}>
-                <Button.Label>Reveal my result</Button.Label>
-              </Button>
-            ) : (
-              <Button
-                className="mt-4"
-                onPress={() => {
-                  close();
-                  navigate(won ? "MyPrizes" : "GetTicket");
-                }}
-              >
-                <Button.Label>
-                  {won
-                    ? more > 0
-                      ? "View my prizes"
-                      : "Claim your prize"
-                    : "Enter the next giveaway"}
-                </Button.Label>
-              </Button>
-            )}
-
-            {phase === "revealed" && won ? (
-              <Text className="mt-2 text-center text-subtle-text text-xs">
-                Your prizes are always waiting under My Prizes.
-              </Text>
-            ) : null}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
+              {phase === "revealed" && won ? (
+                <Text className="text-center text-subtle-text text-xs">
+                  Your prizes are always waiting under My Prizes.
+                </Text>
+              ) : null}
+            </View>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
 
       {/* Controlled, and never allowed to send anyone to the app wall — a
           detour mid-reveal would abandon the result on a different screen. */}
