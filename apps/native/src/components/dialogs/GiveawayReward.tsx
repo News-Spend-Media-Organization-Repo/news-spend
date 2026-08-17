@@ -67,6 +67,23 @@ export default memo(function GiveawayReward() {
   );
 
   /**
+   * Whether there is anything to enter yet.
+   *
+   * A draw is only ever revealed once the giveaway that produced it has
+   * completed, and the next one is created by hand rather than automatically —
+   * so at the exact moment this sheet is on screen there is usually NO open
+   * giveaway, and often will not be for some time.
+   *
+   * "Enter the next giveaway" led straight to `GetTicket` regardless, which
+   * without an open giveaway is a purchase screen with a placeholder name, a
+   * price of zero and a disabled button. Offering that to somebody who has
+   * just been told they lost is the worst possible moment for a dead end.
+   */
+  const { data: openGiveaway } = useQuery(
+    orpc.giveaway.current.queryOptions({ enabled: Boolean(user) })
+  );
+
+  /**
    * Acknowledging deliberately does not invalidate `lastResult`.
    *
    * The reveal is on screen when this fires, and refetching would replace the
@@ -272,7 +289,12 @@ export default memo(function GiveawayReward() {
                 <Button
                   onPress={() => {
                     close();
-                    navigate(won ? "MyPrizes" : "GetTicket");
+                    if (won) {
+                      navigate("MyPrizes");
+                    } else if (openGiveaway) {
+                      navigate("GetTicket");
+                    }
+                    // No open giveaway: closing IS the action. Nowhere to go.
                   }}
                 >
                   <Button.Label>
@@ -280,7 +302,9 @@ export default memo(function GiveawayReward() {
                       ? more > 0
                         ? "View my prizes"
                         : "Claim your prize"
-                      : "Enter the next giveaway"}
+                      : openGiveaway
+                        ? "Enter the next giveaway"
+                        : "Done"}
                   </Button.Label>
                 </Button>
               )}
