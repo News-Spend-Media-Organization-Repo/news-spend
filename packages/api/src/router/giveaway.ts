@@ -923,6 +923,98 @@ const winning = protectedProcedure
     return winningFrom(winner as Row, await latestGiveawayStart(payload));
   });
 
+/**
+ * Everything a winner might want to know about one prize, after the fact.
+ *
+ * Separate from `winning`, which the claim screen uses and which deliberately
+ * returns only what is needed to decide *what to ask for*. This is the record
+ * of what happened: which giveaway produced it, what it was, and — for airtime
+ * and data, the two that leave the platform — the number it was sent to and
+ * what the provider said. Someone whose top-up has not arrived needs to see
+ * the number that was actually used, which is otherwise only in the CMS.
+ */
+const prizeDetails = protectedProcedure
+  .input(WinningInput)
+  .handler(async ({ input, context, errors }) => {
+    const { payload, user } = context;
+
+    const winner = await payload
+      .findByID({
+        collection: "giveaway-winners",
+        id: input.winnerId,
+        depth: 1,
+      })
+      .catch(() => null);
+
+    // Never leak the existence of someone else's prize.
+    if (!winner || relationId(winner.user) !== user.id) {
+      throw errors.NOT_FOUND({ message: "That prize could not be found." });
+    }
+
+    const base = winningFrom(winner as Row, await latestGiveawayStart(payload));
+
+    const giveaway = (winner as Row).giveaway as Row | string | null;
+    const giveawayDoc =
+      typeof giveaway === "object" && giveaway !== null ? giveaway : null;
+
+    const prize = (winner as Row).prize as Row | string | null;
+    const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
+
+    /**
+     * The dispatch record, for the fulfilment types that actually dispatch.
+     * Latest attempt only: a retry supersedes the one before it, and a winner
+     * reading this wants the current state, not a history.
+     */
+    const attempts =
+      base.fulfilmentType === "airtime" || base.fulfilmentType === "data"
+        ? await payload.find({
+            collection: "giveaway-fulfilment-attempts",
+            where: { winner: { equals: input.winnerId } },
+            sort: "-attemptedAt",
+            limit: 1,
+            pagination: false,
+            depth: 0,
+          })
+        : null;
+
+    const attempt = attempts?.docs[0] as Row | undefined;
+
+    return {
+      ...base,
+      giveawayName: String(giveawayDoc?.name ?? "Giveaway"),
+      giveawayEndedAt: (giveawayDoc?.endDate as string | null) ?? null,
+      drawnAt: (giveawayDoc?.drawCompletedAt as string | null) ?? null,
+      prizeDescription: (prizeDoc?.description as string | null) ?? null,
+      /** Only meaningful for a points prize; null keeps the app from guessing. */
+      pointsAmount: (prizeDoc?.pointsAmount as number | null) ?? null,
+      claimedAt: ((winner as Row).claimedAt as string | null) ?? null,
+      fulfilledAt: ((winner as Row).fulfilledAt as string | null) ?? null,
+      /**
+       * What the winner supplied at claim time. Their own details, returned to
+       * them — a top-up that went to a mistyped number is otherwise impossible
+       * for them to diagnose.
+       */
+      sentTo: ((winner as Row).claimPhone as string | null) ?? null,
+      recipientName:
+        ((winner as Row).claimRecipientName as string | null) ?? null,
+      shippingAddress: ((winner as Row).claimAddress as string | null) ?? null,
+      /** §22.7/§22.8 — why a payout is being held, in the winner's own words. */
+      reviewNote: ((winner as Row).reviewNote as string | null) ?? null,
+      dispatch: attempt
+        ? {
+            outcome: String(attempt.outcome ?? ""),
+            network: (attempt.operatorName as string | null) ?? null,
+            amount: (attempt.localAmount as number | null) ?? null,
+            sentTo: (attempt.recipientPhone as string | null) ?? null,
+            reference: (attempt.providerTransactionId as string | null) ?? null,
+            attemptedAt: (attempt.attemptedAt as string | null) ?? null,
+            /** The provider's own words when it refused. */
+            error: (attempt.error as string | null) ?? null,
+          }
+        : null,
+    };
+  });
+
 export const ClaimPrizeInput = z.object({
   winnerId: z.string().min(1),
   /** Required for airtime and data. */
@@ -1278,6 +1370,7 @@ export const giveawayRouter = {
   actionable,
   history,
   winning,
+  prizeDetails,
   claimPrize,
   lastResult,
   acknowledgeResult,

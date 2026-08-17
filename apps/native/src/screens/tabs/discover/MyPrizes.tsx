@@ -3,8 +3,8 @@ import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { Card } from "heroui-native/card";
-import { cn } from "heroui-native/utils";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { cn } from "heroui-native/utils";
 import {
   CaretRightIcon,
   CoinsIcon,
@@ -124,11 +124,10 @@ function PrizeCard({
   onPress: () => void;
 }) {
   const status = statusLine(prize);
-  const actionable = prize.claimable || prize.awaitingVerification;
   const PrizeIcon = PRIZE_ICON[prize.fulfilmentType] ?? GiftIcon;
 
   return (
-    <PressableFeedback onPress={actionable ? onPress : undefined}>
+    <PressableFeedback onPress={onPress}>
       {/* A claimable prize gets a coloured border. It is the only thing here
           on a clock, and a row of identical cards gives no clue which one
           that is. */}
@@ -180,17 +179,19 @@ function PrizeCard({
             </Text>
           </View>
 
+          {/* Every card opens something now — the claimable one its claim, the
+              rest their record — so every card carries an affordance. */}
           {prize.claimable ? (
             <View className="rounded-full bg-s-400 px-3 py-1">
               <Text className="font-semibold text-white text-xs">Claim</Text>
             </View>
-          ) : prize.awaitingVerification ? (
+          ) : (
             <Icon
               className="text-subtle-text"
               name={CaretRightIcon}
               size={18}
             />
-          ) : null}
+          )}
         </Card.Body>
       </Card>
     </PressableFeedback>
@@ -256,6 +257,19 @@ const MyPrizes = () => {
       ? navigation.navigate("IdentityVerification")
       : navigation.navigate("ClaimPrize", { winnerId: prize.id });
 
+  /**
+   * A prize with something to do opens that thing; everything else opens its
+   * record.
+   *
+   * Claiming stays one tap — it is the only part on a clock. A finished prize
+   * used to be inert here, which left a winner whose airtime had not arrived
+   * with "fulfilled" and no way to see the number it was sent to.
+   */
+  const openPrize = (prize: Winning) =>
+    prize.claimable || prize.awaitingVerification
+      ? openClaim(prize)
+      : navigation.navigate("PrizeDetails", { winnerId: prize.id });
+
   const actionablePrizes = (needsYou.data ?? []) as Winning[];
   const isEmpty = actionablePrizes.length === 0 && history.length === 0;
 
@@ -308,7 +322,7 @@ const MyPrizes = () => {
                   {actionablePrizes.map((prize) => (
                     <PrizeCard
                       key={prize.id}
-                      onPress={() => openClaim(prize)}
+                      onPress={() => openPrize(prize)}
                       prize={prize}
                     />
                   ))}
@@ -338,7 +352,7 @@ const MyPrizes = () => {
           />
         }
         renderItem={({ item: prize }) => (
-          <PrizeCard compact onPress={() => openClaim(prize)} prize={prize} />
+          <PrizeCard compact onPress={() => openPrize(prize)} prize={prize} />
         )}
       />
     </Screen>

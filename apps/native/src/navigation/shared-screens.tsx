@@ -77,6 +77,7 @@ const InAppBrowser = lazy(() => import("#/screens/common/InAppBrowser"));
 const ToastLab = lazy(() => import("#/screens/dev/ToastLab"));
 const BoostLuck = lazy(() => import("#/screens/tabs/discover/BoostLuck"));
 const ClaimPrize = lazy(() => import("#/screens/tabs/discover/ClaimPrize"));
+const PrizeDetails = lazy(() => import("#/screens/tabs/discover/PrizeDetails"));
 const GetTicket = lazy(() => import("#/screens/tabs/discover/GetTicket"));
 const LotteryRules = lazy(() => import("#/screens/tabs/discover/LotteryRules"));
 const LuckyAppWall = lazy(() => import("#/screens/tabs/discover/LuckyAppWall"));
@@ -352,6 +353,15 @@ export const sharedScreens = {
     screen: ClaimPrize,
     linking: {
       path: "claim-prize/:winnerId",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  PrizeDetails: createNativeStackScreen({
+    screen: PrizeDetails,
+    linking: {
+      path: "prize/:winnerId",
     },
     options: {
       headerShown: false,
