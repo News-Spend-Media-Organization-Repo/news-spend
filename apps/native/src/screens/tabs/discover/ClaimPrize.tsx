@@ -3,7 +3,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native/card";
 import { FormProvider, useForm } from "react-hook-form";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 
 import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
@@ -137,16 +137,45 @@ const ClaimPrize = () => {
         values.recipientName.trim().length < 2));
 
   const submit = form.handleSubmit((data) => {
-    claim.mutate({
-      winnerId: prize.id,
-      phoneNumber: prize.needs.phone ? data.phoneNumber.trim() : undefined,
-      recipientName: prize.needs.address
-        ? data.recipientName.trim()
-        : undefined,
-      shippingAddress: prize.needs.address
-        ? data.shippingAddress.trim()
-        : undefined,
-    });
+    const phoneNumber = prize.needs.phone ? data.phoneNumber.trim() : undefined;
+
+    const send = () =>
+      claim.mutate({
+        winnerId: prize.id,
+        phoneNumber,
+        recipientName: prize.needs.address
+          ? data.recipientName.trim()
+          : undefined,
+        shippingAddress: prize.needs.address
+          ? data.shippingAddress.trim()
+          : undefined,
+      });
+
+    /**
+     * Read the number back before sending anything to it.
+     *
+     * Airtime and data go straight to whatever number is typed here, and the
+     * provider has no idea it was meant for someone else — a transposed digit
+     * tops up a stranger, and there is no way to pull it back. A claim can
+     * also only be made once, so the mistake is not recoverable in the app
+     * either.
+     *
+     * Only for the phone, deliberately. A wrong postal address is fixable by
+     * whoever ships the item; a wrong phone number is not fixable by anyone.
+     */
+    if (!phoneNumber) {
+      send();
+      return;
+    }
+
+    Alert.alert(
+      "Send to this number?",
+      `${prize.prizeName} will be sent to ${phoneNumber}. This cannot be undone, and a prize can only be claimed once.`,
+      [
+        { text: "Check again", style: "cancel" },
+        { text: "Yes, send it", onPress: send },
+      ]
+    );
   });
 
   return (
