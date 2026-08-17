@@ -201,7 +201,19 @@ export function PartnerAdDialog({
         return;
       }
 
-      // No ad available yet → LuckyAppWall fallback.
+      /**
+       * Still fetching is not the same as nothing to show.
+       *
+       * This used to treat both as "no ad" and send the person to the Lucky
+       * App Wall, so tapping before the query settled navigated them away from
+       * the screen they had just chosen. Doing nothing for the moment it takes
+       * to load is a far smaller cost than moving them somewhere else.
+       */
+      if (isLoading) {
+        return;
+      }
+
+      // Genuinely nothing to show → LuckyAppWall fallback.
       if (!ad) {
         if (fallbackToAppWall) {
           navigate("LuckyAppWall");
@@ -211,7 +223,16 @@ export function PartnerAdDialog({
 
       setIsOpen(true);
     },
-    [onOpen, adType, googleAd, ad, fallbackToAppWall, setIsOpen, handleClose]
+    [
+      onOpen,
+      adType,
+      googleAd,
+      ad,
+      isLoading,
+      fallbackToAppWall,
+      setIsOpen,
+      handleClose,
+    ]
   );
 
   const handleAdClick = useCallback(() => {
