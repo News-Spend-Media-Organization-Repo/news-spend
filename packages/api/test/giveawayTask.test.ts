@@ -289,8 +289,6 @@ describe("processGiveaway task", () => {
       claimsExpired: 0,
       reportsRetried: 0,
       reportsSent: 0,
-      // Nothing has been drawn, so there is no giveaway to succeed.
-      openedNext: 0,
     });
   });
 });
