@@ -39,7 +39,21 @@ export function usePartnerAd({
 
   const queryOptions = orpc.partnerContent.getOne.queryOptions({
     input: { placement: ["connect-brands-tab", "connect-brand-video"] },
-    staleTime: Number.POSITIVE_INFINITY,
+    /**
+     * Short, never infinite.
+     *
+     * This was `Infinity`, and the query cache is persisted to MMKV with a
+     * 24-hour `gcTime`, so whatever the first call returned was kept and never
+     * questioned — including a `null` from before any Connect Brands content
+     * existed. The app then believed there were no ads, sent everyone to the
+     * Lucky App Wall instead, and kept doing so across restarts and even an
+     * EAS update, because an update replaces JavaScript and not stored data.
+     * Only a reinstall cleared it.
+     *
+     * An advertisement is the last thing that should be cached indefinitely:
+     * inventory is added, campaigns end, and rotation is the point.
+     */
+    staleTime: 60_000,
   });
 
   const query = useQuery({
