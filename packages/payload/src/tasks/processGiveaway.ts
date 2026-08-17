@@ -1,6 +1,7 @@
 import type { BasePayload, TaskConfig } from "payload";
 
 import { expireLapsedClaims } from "../lib/giveaway/claim";
+import { createNextGiveaway } from "../lib/giveaway/createNextGiveaway";
 import { fulfilPendingPrizes } from "../lib/giveaway/fulfilPrizes";
 import { GiveawayEngine } from "../lib/giveaway/GiveawayEngine";
 import { retryFailedWinnerReports } from "../lib/giveaway/sendWinnerReport";
@@ -71,15 +72,18 @@ async function drawEndedGiveaways(payload: BasePayload): Promise<number> {
  * 3. Expires prizes whose claim window has closed (spec §21).
  * 4. Retries Winner Report emails that previously failed (spec §21).
  *
+ * 5. Opens the next giveaway once the previous one has been drawn.
+ *
  * Queued hourly, so a run missed because the database was unreachable is
  * retried an hour later rather than never — the failure mode that left a
- * lottery round undrawn with paid-for tickets. All four steps are repeat-safe.
+ * lottery round undrawn with paid-for tickets. Every step is repeat-safe.
  *
- * Unlike the lottery task, this does NOT create the next giveaway. A giveaway
- * is only meaningful once an administrator has chosen its prize pool and unit
- * counts, and an automatically created empty one would be worse than none:
- * it would take the single `active` slot and start selling tickets for prizes
- * nobody had picked.
+ * Step 5 is safe to automate only because it carries the previous giveaway's
+ * prize pool forward. An empty giveaway would be worse than none: it would
+ * take the single `active` slot and sell tickets for prizes nobody had chosen.
+ * Unlike the lottery, which opened its next round on a fixed fortnightly
+ * calendar, this chains off completion — a giveaway's window is set per
+ * giveaway, so there is no calendar to anchor to.
  */
 export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
   slug: "processGiveaway",
@@ -90,6 +94,7 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
     { name: "claimsExpired", type: "number" },
     { name: "reportsRetried", type: "number" },
     { name: "reportsSent", type: "number" },
+    { name: "openedNext", type: "number" },
   ],
   retries: 2,
   handler: async ({ req }) => {
@@ -99,6 +104,10 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
     const fulfilment = await fulfilPendingPrizes(payload);
     const claimsExpired = await expireLapsedClaims(payload);
     const reports = await retryFailedWinnerReports(payload);
+
+    // Last, so the draw above has freed the single `active` slot before this
+    // looks for it.
+    const next = await createNextGiveaway(payload);
 
     if (fulfilment.attempted > 0) {
       payload.logger.info(
@@ -126,6 +135,7 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
         claimsExpired,
         reportsRetried: reports.retried,
         reportsSent: reports.sent,
+        openedNext: next.created ? 1 : 0,
       },
     };
   },
