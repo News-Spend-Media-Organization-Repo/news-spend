@@ -1,9 +1,9 @@
 /**
- * Reloadly top-ups client (spec §15).
+ * Reloadly top-ups client (spec 15).
  *
  * Only the airtime/data product is covered. Reloadly scopes an access token to
- * one product — a token minted for gift cards is rejected by the top-ups API
- * and vice versa — so adding gift cards later means a second audience and a
+ * one product (a token minted for gift cards is rejected by the top-ups API
+ * and vice versa), so adding gift cards later means a second audience and a
  * second cached token, not another call on this client.
  */
 

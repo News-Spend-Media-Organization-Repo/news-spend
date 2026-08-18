@@ -27,8 +27,8 @@ export const CreateLotteryTicketInput = z.object({
    * Must be a positive whole number.
    *
    * This was a bare `z.number()`, which accepted negatives and decimals. A
-   * negative quantity inverted the debit below — `-(-10 * 50)` credits 500
-   * points — so a purchase of minus ten tickets minted points and reduced the
+   * negative quantity inverted the debit below: `-(-10 * 50)` credits 500
+   * points, so a purchase of minus ten tickets minted points and reduced the
    * caller's ticket count.
    */
   num_of_tickets: z
@@ -82,7 +82,7 @@ const create = protectedNoGuestProcedure
      * for different users do not contend.
      *
      * The debit is committed before the tickets are granted. If granting then
-     * fails the points are refunded below — the reverse order would hand out
+     * fails the points are refunded below: the reverse order would hand out
      * tickets that were never paid for.
      */
     await db.transaction(async (tx) => {
@@ -167,7 +167,7 @@ const create = protectedNoGuestProcedure
           type: "point",
           action: "ticketPurchase",
           point: cost,
-          description: "Refund — giveaway ticket purchase failed",
+          description: "Refund: giveaway ticket purchase failed",
         })
         .catch((refundError) => {
           payload.logger.error(

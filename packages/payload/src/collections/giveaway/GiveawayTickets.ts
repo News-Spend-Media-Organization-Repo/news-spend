@@ -3,9 +3,9 @@ import type { CollectionConfig } from "payload";
 import { ADMIN_GROUP_RECORDS, TICKET_STATUS_OPTIONS } from "./constants";
 
 /**
- * Ticket purchases (spec §6).
+ * Ticket purchases (spec 6).
  *
- * One row per purchase, not per user — a user who buys 5 tickets on day 1 and 5
+ * One row per purchase, not per user: a user who buys 5 tickets on day 1 and 5
  * more on day 3 has two rows totalling 10. Aggregation across the active
  * giveaway period is what determines tier eligibility; each individual valid
  * ticket is one independent entry in the random draw.
@@ -119,12 +119,12 @@ export const GiveawayTickets: CollectionConfig = {
     afterChange: [
       /**
        * Hold any prize won on a ticket that has just been invalidated
-       * (spec §12, post-draw refund or fraud event).
+       * (spec 12, post-draw refund or fraud event).
        *
        * The specification's sequence is: hold the record, prevent fulfilment,
        * record the reason, then require an administrator to review before the
        * winner is disqualified and a replacement drawn. This hook does the
-       * first three automatically — the refund itself is the trigger — and
+       * first three automatically (the refund itself is the trigger) and
        * deliberately stops short of disqualifying anyone, because that is the
        * administrator's decision and it forfeits someone's prize.
        */
@@ -157,7 +157,7 @@ export const GiveawayTickets: CollectionConfig = {
             id: winner.id,
             data: {
               fulfilmentStatus: "on_hold",
-              reviewNote: `The winning ticket was marked "${doc.status}" after the draw. Fulfilment is held pending administrator review (§12).`,
+              reviewNote: `The winning ticket was marked "${doc.status}" after the draw. Fulfilment is held pending administrator review (12).`,
             },
           });
 

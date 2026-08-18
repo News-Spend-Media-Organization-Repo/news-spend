@@ -176,7 +176,7 @@ function recordingSender() {
   };
 }
 
-describe("buildWinnerReport (spec §21)", () => {
+describe("buildWinnerReport (spec 21)", () => {
   it("counts winners by tier and excludes disqualified ones from the total", async () => {
     const { payload } = createFakePayload({
       winners: [
@@ -218,19 +218,19 @@ describe("buildWinnerReport (spec §21)", () => {
           id: "a3",
           giveaway: "g1",
           eventType: "fairness_exclusion",
-          detail: { rule: "§22.2", count: 7 },
+          detail: { rule: "22.2", count: 7 },
         },
         {
           id: "a4",
           giveaway: "g1",
           eventType: "fairness_exclusion",
-          detail: { rule: "§22.2", count: 3 },
+          detail: { rule: "22.2", count: 3 },
         },
         {
           id: "a5",
           giveaway: "g1",
           eventType: "fairness_exclusion",
-          detail: { rule: "§22.1", count: 2 },
+          detail: { rule: "22.1", count: 2 },
         },
         {
           id: "a6",
@@ -248,8 +248,8 @@ describe("buildWinnerReport (spec §21)", () => {
     expect(report.antiAbuse.loyaltyWaivers).toBe(4);
     // Same rule across two events is one total, ordered by size.
     expect(report.antiAbuse.fairnessExclusions).toEqual([
-      { rule: "§22.2", count: 10 },
-      { rule: "§22.1", count: 2 },
+      { rule: "22.2", count: 10 },
+      { rule: "22.1", count: 2 },
     ]);
   });
 
@@ -271,7 +271,7 @@ describe("buildWinnerReport (spec §21)", () => {
   });
 });
 
-describe("renderWinnerReportCsv (spec §21)", () => {
+describe("renderWinnerReportCsv (spec 21)", () => {
   it("includes the hold and fairness indicators for every winner", async () => {
     const { payload } = createFakePayload({
       winners: [
@@ -338,7 +338,7 @@ describe("renderWinnerReportCsv (spec §21)", () => {
   });
 });
 
-describe("renderWinnerReportHtml (spec §21)", () => {
+describe("renderWinnerReportHtml (spec 21)", () => {
   it("carries every figure the body must contain", async () => {
     const { payload } = createFakePayload({
       winners: [winnerRow({ tier: "tier1" })],
@@ -374,7 +374,7 @@ describe("renderWinnerReportHtml (spec §21)", () => {
   });
 });
 
-describe("sendWinnerReport (spec §21 sending rules)", () => {
+describe("sendWinnerReport (spec 21 sending rules)", () => {
   it("sends the report and records the delivery", async () => {
     const { payload, doc, created } = createFakePayload({
       winners: [winnerRow()],
@@ -497,7 +497,7 @@ describe("sendWinnerReport (spec §21 sending rules)", () => {
       attempts: 2,
       error: "provider unavailable",
     });
-    // The draw itself is left alone — a mail failure never invalidates it.
+    // The draw itself is left alone: a mail failure never invalidates it.
     expect(doc?.status).toBe("completed");
     expect(doc?.winnerReportSentAt).toBeUndefined();
   });
@@ -516,7 +516,7 @@ describe("sendWinnerReport (spec §21 sending rules)", () => {
     const retry = await sendWinnerReport(payload, "g1", { send: sender.send });
 
     expect(retry.sent).toBe(true);
-    // One original, ever — its attempt count simply carries on.
+    // One original, ever: its attempt count simply carries on.
     expect(created["giveaway-report-deliveries"]).toHaveLength(1);
     expect(created["giveaway-report-deliveries"]?.[0]).toMatchObject({
       kind: "original",
@@ -526,7 +526,7 @@ describe("sendWinnerReport (spec §21 sending rules)", () => {
   });
 });
 
-describe("retryFailedWinnerReports (spec §21)", () => {
+describe("retryFailedWinnerReports (spec 21)", () => {
   it("picks up failed deliveries and sends them", async () => {
     const { payload, created } = createFakePayload({ winners: [winnerRow()] });
 

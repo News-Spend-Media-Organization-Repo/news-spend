@@ -8,17 +8,17 @@ import type { DrawOutcome, UserDrawHistory } from "./fairness";
 
 /**
  * Reconstruct what each user did in the previous completed giveaways, most
- * recent first (spec §22).
+ * recent first (spec 22).
  *
  * Only giveaways that reached `completed` are included. That is what makes
- * §11's streak exceptions fall out for free — a round that was cancelled,
+ * Section 11's streak exceptions fall out for free: a round that was cancelled,
  * never published or invalidated never reaches `completed`, so it is absent
  * from the sequence rather than counting as a round the user missed.
  *
  * Nothing is stored: cooldowns and the loyalty waiver are derived from the
  * winner and ticket records that already exist, so there are no counters to
  * drift out of step with reality. That also means the draw and the app agree
- * by construction — both call this, rather than one of them keeping its own
+ * by construction: both call this, rather than one of them keeping its own
  * tally.
  *
  * Pass `userId` to load one person's history. The app needs exactly that when
@@ -93,8 +93,8 @@ export async function loadDrawHistories(
   }
 
   /**
-   * A user who won but holds no valid ticket in that round — because it was
-   * refunded afterwards — still has a win to serve a cooldown for, so they
+   * A user who won but holds no valid ticket in that round (because it was
+   * refunded afterwards) still has a win to serve a cooldown for, so they
    * belong in the sequence too.
    */
   for (const winner of winners.docs) {

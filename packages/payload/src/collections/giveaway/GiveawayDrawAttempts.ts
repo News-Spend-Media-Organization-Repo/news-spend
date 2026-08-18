@@ -7,7 +7,7 @@ import {
 } from "./constants";
 
 /**
- * One execution attempt of a draw (spec §19).
+ * One execution attempt of a draw (spec 19).
  *
  * The specification requires a resumed draw to use "the same draw execution ID"
  * while creating "a linked resumption-attempt ID". That is what this collection
@@ -102,7 +102,7 @@ export const GiveawayDrawAttempts: CollectionConfig = {
       admin: {
         readOnly: true,
         description:
-          "The draw seed. A resumption reuses the original — a fresh seed would change the winners of the tiers that had not yet run.",
+          "The draw seed. A resumption reuses the original, because a fresh seed would change the winners of the tiers that had not yet run.",
       },
     },
     {
@@ -119,7 +119,7 @@ export const GiveawayDrawAttempts: CollectionConfig = {
       options: [...DRAW_CHECKPOINT_OPTIONS],
       admin: {
         readOnly: true,
-        description: "The last material step this attempt completed (§19).",
+        description: "The last material step this attempt completed (19).",
       },
     },
     {

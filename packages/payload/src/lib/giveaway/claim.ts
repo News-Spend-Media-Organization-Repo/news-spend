@@ -27,7 +27,7 @@ export type ClaimWindow =
  * Two independent closers, and the earlier one wins. The fourteen days are the
  * ordinary deadline. The other is the rule the app owner settled: once a
  * later giveaway exists, prizes from earlier ones are closed regardless of
- * how much of the fortnight is left — a giveaway that has been superseded is
+ * how much of the fortnight is left. A giveaway that has been superseded is
  * finished, and leaving its prizes claimable would let unclaimed stock trail
  * across rounds indefinitely.
  *
@@ -49,7 +49,7 @@ export function claimWindowFor(
       open: false,
       reason: "superseded",
       message:
-        "This prize can no longer be claimed — a new giveaway has already started.",
+        "This prize can no longer be claimed: a new giveaway has already started.",
     };
   }
 
@@ -103,7 +103,7 @@ export function fulfilmentStateAfterClaim(
   requirements: ReturnType<typeof claimRequirements>,
   currentStatus: string | null | undefined
 ): FulfilmentStatus | null {
-  // A held prize stays held: releasing it is the administrator's call (§22.8).
+  // A held prize stays held: releasing it is the administrator's call (22.8).
   if (currentStatus === "on_hold") {
     return null;
   }
@@ -116,7 +116,7 @@ export function fulfilmentStateAfterClaim(
 /**
  * When the most recent giveaway started, or null if none has.
  *
- * "Started" means it exists and has left `draft` — an active giveaway has
+ * "Started" means it exists and has left `draft`. An active giveaway has
  * superseded its predecessor even if its own draw has not run yet.
  *
  * This replaces a per-prize "is there anything later than me?" query. Asking
@@ -161,7 +161,7 @@ export function isSuperseded(
 const EXPIRY_BATCH_SIZE = 200;
 
 /**
- * Mark unclaimed prizes whose window has closed as `expired` (§21).
+ * Mark unclaimed prizes whose window has closed as `expired` (21).
  *
  * Runs from the scheduled task. Expiry is deliberately a stored state rather
  * than something derived on read: an expired prize is a business event that
@@ -173,8 +173,8 @@ const EXPIRY_BATCH_SIZE = 200;
  * in memory. Running hourly, a batch of this size clears far more than a round
  * can generate, and anything left over is simply picked up an hour later.
  *
- * Both lookups it needs — the newest giveaway, and the start dates of the
- * giveaways involved — are fetched once up front, so the cost does not scale
+ * Both lookups it needs (the newest giveaway, and the start dates of the
+ * giveaways involved) are fetched once up front, so the cost does not scale
  * with the number of winners.
  *
  * Fulfilment is cancelled alongside the claim, because an unclaimed prize that

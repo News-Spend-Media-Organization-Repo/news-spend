@@ -7,7 +7,7 @@ import {
 } from "./constants";
 
 /**
- * Prize Pool and Maximum Units for a single giveaway (spec §4, §5).
+ * Prize Pool and Maximum Units for a single giveaway (spec 4, 5).
  *
  * One row per prize selected for a giveaway. Only prizes represented here may
  * be awarded; a prize in the Master Prize Catalogue that has not been selected
@@ -49,12 +49,12 @@ export const GiveawayPrizes: CollectionConfig = {
         });
 
         /**
-         * Max Units is editable until the countdown ends, then locked (§5).
+         * Max Units is editable until the countdown ends, then locked (5).
          *
          * The lock is aimed at people: it stops an administrator changing the
          * pool out from under a draw. The draw itself must still record what
          * it awarded, and it does so while the giveaway is
-         * `draw_in_progress` — one of the locked statuses. Without the engine
+         * `draw_in_progress`, one of the locked statuses. Without the engine
          * exemption below, the lock stops the engine one write after the first
          * winner is created, and no draw can ever complete.
          */
@@ -89,8 +89,8 @@ export const GiveawayPrizes: CollectionConfig = {
           });
         }
 
-        // A prize may only be selected under the tier assigned to it in the
-        // Master Prize Catalogue (spec §4).
+         // A prize may only be selected under the tier assigned to it in the
+         // Master Prize Catalogue (spec 4).
         if (data?.tier && data.tier !== prize.tier) {
           throw new ValidationError({
             collection: "giveaway-prizes",
@@ -187,7 +187,7 @@ export const GiveawayPrizes: CollectionConfig = {
           return "Maximum Units is required for every selected prize.";
         }
         if (!Number.isInteger(value)) {
-          return "Must be a whole number — decimals are not permitted.";
+          return "Must be a whole number. Decimals are not permitted.";
         }
         if (value < 1) {
           return "Must be at least 1. Remove the prize instead of setting it to zero.";

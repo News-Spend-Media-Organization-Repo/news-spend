@@ -3,8 +3,8 @@ import crypto from "node:crypto";
 /**
  * Seeded random number generation for giveaway draws.
  *
- * The spec requires secure random selection (§1) and a fully auditable draw
- * (§17, §18). Those pull in opposite directions: `crypto.randomBytes` alone is
+ * The spec requires secure random selection (1) and a fully auditable draw
+ * (17, 18). Those pull in opposite directions: `crypto.randomBytes` alone is
  * secure but leaves no way to prove after the fact that a draw was run
  * honestly. So a draw draws one seed from the CSPRNG, records it on the
  * giveaway, and derives every subsequent decision deterministically from it.
@@ -109,7 +109,7 @@ export function weightedPick<T>(
     }
   }
 
-  // Floating point drift only — fall back to the last positively weighted item.
+  // Floating point drift only; fall back to the last positively weighted item.
   for (let i = items.length - 1; i >= 0; i -= 1) {
     const item = items[i];
     if (item !== undefined && weightOf(item) > 0) {

@@ -25,7 +25,7 @@ export type EligibilityResult = {
 };
 
 /**
- * Determine whether a user qualifies for a tier (spec §11).
+ * Determine whether a user qualifies for a tier (spec 11).
  *
  * A user qualifies through either the Primary Eligibility Path or the
  * Consecutive Giveaway Eligibility Path; meeting either is sufficient.
@@ -34,7 +34,7 @@ export function evaluateEligibility(
   tier: PrizeTier,
   participation: Participation,
   /**
-   * §22.4 loyalty waiver. Waives the Featured Offer requirement only — the
+   * 22.4 loyalty waiver. Waives the Featured Offer requirement only: the
    * ticket and Boost Your Luck requirements still apply in full, and the
    * waiver applies to Tier 1 alone.
    */
@@ -75,7 +75,7 @@ export function evaluateEligibility(
 }
 
 /**
- * The streak value to persist after this giveaway (spec §11): incremented when
+ * The streak value to persist after this giveaway (spec 11): incremented when
  * the user met the tier's consecutive bar, reset to zero on any miss.
  */
 export function nextStreakValue(
@@ -96,7 +96,7 @@ export function nextStreakValue(
 }
 
 /**
- * Maximum winners for a tier (spec §3).
+ * Maximum winners for a tier (spec 3).
  *
  * Always rounded down. The percentage is applied to Total Valid Participants,
  * which is never filtered by tier eligibility and never reduced as higher tiers

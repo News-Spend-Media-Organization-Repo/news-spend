@@ -3,10 +3,10 @@ import type { CollectionConfig } from "payload";
 import { ADMIN_GROUP_RECORDS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
- * Consecutive Giveaway Eligibility counters (spec §11).
+ * Consecutive Giveaway Eligibility counters (spec 11).
  *
  * Ticket, boost and featured-offer aggregates reset after every draw, but the
- * consecutive-giveaway streak must survive that reset — otherwise it could
+ * consecutive-giveaway streak must survive that reset, otherwise it could
  * never reach the required four. This collection holds that surviving state:
  * one row per user per tier, incremented when the user meets the tier's
  * consecutive bar for a giveaway and reset to zero the moment they miss it.

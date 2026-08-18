@@ -19,7 +19,7 @@ const DEFAULT_BASE_URL = "https://verification.didit.me";
 const SIGNATURE_TOLERANCE_SECONDS = 300;
 
 /**
- * Didit's decision values. `Approved` is the only one that releases a prize —
+ * Didit's decision values. `Approved` is the only one that releases a prize:
  * everything else either needs more time or needs a person.
  */
 export const DIDIT_APPROVED = "Approved";
@@ -57,7 +57,7 @@ export type DiditSession = {
    *
    * The app is deliberately given a token rather than a workflow id. The SDK
    * can create its own session from a workflow id plus a `vendorData` string,
-   * but `vendorData` is what we attribute the approval to — letting the client
+   * but `vendorData` is what we attribute the approval to: letting the client
    * choose it would let somebody pass another person's user id and have the
    * verification land on that account. Created here, it comes from the
    * authenticated session and the app never sees a value it could change.
@@ -247,7 +247,7 @@ export type DiditWebhookHeaders = {
  * Whether a webhook genuinely came from Didit.
  *
  * Didit sends three signatures. We check the `simple` one, which is computed
- * over four named fields rather than over the JSON body — the other two hash
+ * over four named fields rather than over the JSON body. The other two hash
  * a re-encoded body, and any difference in float formatting or key order
  * between their serialiser and ours makes a valid webhook look forged. Since
  * the fields it covers (`session_id`, `status`, `created_at`) are exactly the

@@ -18,7 +18,7 @@ export const Users: CollectionConfig = {
         // Wipe every child collection that holds a NOT NULL FK to users before
         // the user row goes away. The companion migration
         // (20260621_130000_fix_user_news_cascade) flips these FKs to CASCADE,
-        // so this hook is belt-and-braces — it makes the cleanup auditable
+        // so this hook is belt-and-braces; it makes the cleanup auditable
         // and covers hasMany junction tables.
         const statements: ReturnType<typeof sql>[] = [
           sql`DELETE FROM push_tokens WHERE user_id = ${id}`,
@@ -117,7 +117,7 @@ export const Users: CollectionConfig = {
       admin: {
         date: { pickerAppearance: "dayOnly" },
         description:
-          "Required to take part in giveaways — prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.",
+          "Required to take part in giveaways, as prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.",
       },
     },
     {
@@ -126,7 +126,7 @@ export const Users: CollectionConfig = {
       index: true,
       admin: {
         description:
-          "ISO country code the user selected. A display signal only — it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.",
+          "ISO country code the user selected. A display signal only; it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.",
       },
     },
     {
@@ -243,7 +243,7 @@ export const Users: CollectionConfig = {
      * pointer forward retires every older result at once.
      *
      * On the user rather than in its own collection so that "have they seen
-     * it" survives a reinstall and agrees across devices — a "you didn't win"
+     * it" survives a reinstall and agrees across devices. A "you didn't win"
      * message must be said once and never repeated.
      */
     {

@@ -3,7 +3,7 @@ import type { BasePayload } from "payload";
 import { DIDIT_APPROVED, DiditClient, diditConfigFromEnv } from "./didit";
 
 /**
- * Identity verification state for one person (spec §16).
+ * Identity verification state for one person (spec 16).
  *
  * Verification is per user rather than per prize: the question is "is this the
  * person they say they are", and the answer does not change between one prize
@@ -31,7 +31,7 @@ export async function isUserVerified(
  * Start a verification session, reusing one that is already open.
  *
  * A person who backgrounds the app mid-flow and comes back should land in the
- * session they started, not a second one — two open sessions for the same user
+ * session they started, not a second one. Two open sessions for the same user
  * means two decisions racing, and whichever webhook arrives last wins.
  */
 export async function startVerification(
@@ -51,9 +51,9 @@ export async function startVerification(
   /**
    * The provider hands back the session already open for this `vendor_data`
    * rather than minting a second one, so the same id arrives again whenever
-   * somebody taps start twice. `sessionId` is unique here — deliberately, so a
-   * replayed webhook updates one row instead of forking a person's history —
-   * which makes a blind insert throw and lose them the flow entirely.
+   * somebody taps start twice. `sessionId` is unique here, deliberately, so a
+   * replayed webhook updates one row instead of forking a person's history. A
+   * blind insert would throw and lose them the flow entirely.
    */
   const existing = await payload.find({
     collection: "identity-checks",
@@ -81,7 +81,7 @@ export async function startVerification(
 /**
  * Apply a provider decision, and release anything it was holding up.
  *
- * Called by the webhook once a payload's signature has been checked — never
+ * Called by the webhook once a payload's signature has been checked, never
  * with an unverified body, since an approval here is what lets a prize leave
  * the building.
  */
@@ -95,7 +95,7 @@ export async function recordDecision(
 ): Promise<{ released: number; unknownUser?: true }> {
   /**
    * `vendor_data` is whatever was on the session, and a session can outlive
-   * the account it was opened for — or carry a value from testing that was
+   * the account it was opened for, or carry a value from testing that was
    * never a user id at all. Writing it straight to a uuid column throws, and
    * because the caller answers 5xx on a throw, the provider would retry a
    * decision that can never succeed for as long as it keeps retrying.
@@ -103,7 +103,7 @@ export async function recordDecision(
   if (!(await userExists(payload, userId))) {
     payload.logger.warn(
       { sessionId, userId, status },
-      "[verification] decision for an unknown user — acknowledged, not stored"
+      "[verification] decision for an unknown user: acknowledged, not stored"
     );
     return { released: 0, unknownUser: true };
   }
@@ -130,7 +130,7 @@ export async function recordDecision(
       data,
     });
   } else {
-    // A decision for a session we have no record of still matters — losing it
+    // A decision for a session we have no record of still matters. Losing it
     // would strand a winner who did everything asked of them.
     await payload.create({
       collection: "identity-checks",
@@ -175,8 +175,8 @@ async function userExists(
 /**
  * Move this user's prizes out of `awaiting_verification` now they are verified.
  *
- * Only that state is touched. A prize `on_hold` stays held — that is an
- * administrator's decision and identity has nothing to say about it (§22.8).
+ * Only that state is touched. A prize `on_hold` stays held, because that is an
+ * administrator's decision and identity has nothing to say about it (22.8).
  */
 async function releaseHeldPrizes(
   payload: BasePayload,

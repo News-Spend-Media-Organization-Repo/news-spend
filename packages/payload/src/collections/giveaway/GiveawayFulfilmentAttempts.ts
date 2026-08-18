@@ -3,7 +3,7 @@ import type { CollectionConfig } from "payload";
 import { ADMIN_GROUP_RECORDS } from "./constants";
 
 /**
- * Every attempt to deliver a prize through a provider (spec §15).
+ * Every attempt to deliver a prize through a provider (spec 15).
  *
  * Money leaves the platform here, so the record has to answer three questions
  * without anyone guessing: was this paid, how many times did we try, and what
@@ -29,7 +29,7 @@ export const GiveawayFulfilmentAttempts: CollectionConfig = {
       "attemptedAt",
     ],
     description:
-      "Provider payouts for airtime and data prizes. Append-only — the record of what was actually sent.",
+      "Provider payouts for airtime and data prizes. Append-only: the record of what was actually sent.",
   },
   access: {
     read: () => true,
@@ -59,8 +59,8 @@ export const GiveawayFulfilmentAttempts: CollectionConfig = {
       type: "select",
       required: true,
       options: [
-        { label: "Sandbox — simulated", value: "sandbox" },
-        { label: "Live — real money", value: "live" },
+        { label: "Sandbox: simulated", value: "sandbox" },
+        { label: "Live: real money", value: "live" },
       ],
       admin: {
         description:
@@ -75,12 +75,12 @@ export const GiveawayFulfilmentAttempts: CollectionConfig = {
       options: [
         { label: "Sent", value: "sent" },
         {
-          label: "Already sent — provider recognised a repeat",
+          label: "Already sent: provider recognised a repeat",
           value: "already_sent",
         },
-        { label: "Failed — worth retrying", value: "retryable_failure" },
-        { label: "Failed — will not succeed", value: "permanent_failure" },
-        { label: "Skipped — not configured", value: "skipped" },
+        { label: "Failed: worth retrying", value: "retryable_failure" },
+        { label: "Failed: will not succeed", value: "permanent_failure" },
+        { label: "Skipped: not configured", value: "skipped" },
       ],
     },
     {
