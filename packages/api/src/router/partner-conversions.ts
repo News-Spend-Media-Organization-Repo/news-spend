@@ -2,9 +2,11 @@ import { randomUUID } from "node:crypto";
 import { recordFeaturedOffer } from "@news-spend-media/payload/lib/giveaway/featuredOffer";
 
 import { openapi } from "@orpc/openapi";
+import type { BasePayload } from "payload";
 import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
+import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
 
 // Input schema for tracking a click
 const trackClickInput = z.object({
@@ -45,7 +47,7 @@ export const trackClick = protectedNoGuestProcedure
     const clickId = `clk_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
     // Create conversion record
-    await payload.create({
+    const created = await payload.create({
       collection: "partner-conversions",
       data: {
         user: user.id,
@@ -66,6 +68,40 @@ export const trackClick = protectedNoGuestProcedure
 
     const redirectUrl = content.links?.website || partner?.websiteUrl;
 
+    /**
+     * Settle the conversion here, for a partner who cannot post back yet.
+     *
+     * §8 counts completions rather than intentions, and a tap is only an
+     * intention — that is why a Featured Offer normally waits for the
+     * partner's confirmation. But a partner with no working postback will
+     * never send one, so every offer of theirs is uncompletable, and Tier 1
+     * and Tier 2 are then unreachable for everybody: both require a Featured
+     * Offer, and only Tier 1 has a waiver, after four barren draws.
+     *
+     * So this is a deliberate, temporary and NARROW relaxation: per partner,
+     * off by default, and described in the CMS in terms of what it costs. Not
+     * a global switch, because a global switch is the one nobody remembers to
+     * turn off — this stops applying the moment that partner's record is
+     * corrected.
+     *
+     * Never throws. The person has tapped a link and is waiting on a
+     * redirect; a bookkeeping failure must not strand them on a spinner.
+     */
+    if (partner?.awardOnClick) {
+      try {
+        await settleConversion(payload, {
+          conversion: created,
+          content,
+          partnerOrderId: `click:${clickId}`,
+        });
+      } catch (error) {
+        payload.logger.error(
+          { err: error, clickId },
+          "[partner] could not settle an award-on-click conversion"
+        );
+      }
+    }
+
     return {
       clickId,
       redirectUrl,
@@ -80,6 +116,88 @@ const webhookInput = z.object({
   partnerOrderId: z.string().optional(),
   metadata: z.record(z.string(), z.string()).optional(),
 });
+
+/**
+ * Turn a click into a completed, paid-for conversion.
+ *
+ * One implementation for both ways a conversion can settle — a verified
+ * partner postback, and the award-on-click relaxation for a partner who
+ * cannot post back yet. They award the same points and record the same
+ * Featured Offer because they mean the same thing; two copies would be two
+ * things to keep in step.
+ *
+ * Returns the points credited.
+ */
+async function settleConversion(
+  payload: BasePayload,
+  {
+    conversion,
+    content,
+    partnerOrderId,
+  }: {
+    conversion: Record<string, any>;
+    content: Record<string, any> | null;
+    partnerOrderId?: string;
+  }
+): Promise<number> {
+  const pointsToAward = Number(content?.points ?? 0);
+
+  await payload.update({
+    collection: "partner-conversions",
+    id: conversion.id,
+    data: {
+      status: "converted",
+      partnerOrderId,
+      convertedAt: new Date().toISOString(),
+    },
+  });
+
+  const userId =
+    typeof conversion.user === "string"
+      ? conversion.user
+      : conversion.user?.id;
+
+  if (pointsToAward > 0 && userId) {
+    await payload.create({
+      collection: "activities",
+      data: {
+        user: userId,
+        type: "point",
+        action: "partnerContentTask",
+        point: pointsToAward,
+        description: `Completed task: ${content?.title || "Partner task"}`,
+      },
+    });
+
+    await payload.update({
+      collection: "partner-conversions",
+      id: conversion.id,
+      data: {
+        status: "awarded",
+        pointsAwarded: pointsToAward,
+        awardedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * A settled conversion on an app-wall item is a Featured Offer (§8).
+   *
+   * Deliberately last and deliberately incapable of throwing: the points are
+   * already credited, so a giveaway that is closed, or an offer already
+   * counted, must not turn a settled conversion into a failure.
+   */
+  const contentId =
+    typeof conversion.content === "string"
+      ? conversion.content
+      : conversion.content?.id;
+
+  if (contentId && userId) {
+    await recordFeaturedOffer(payload, { userId, contentId });
+  }
+
+  return pointsToAward;
+}
 
 // Webhook for partner to confirm conversions
 export const handleWebhook = publicProcedure
@@ -114,6 +232,44 @@ export const handleWebhook = publicProcedure
       });
     }
 
+    /**
+     * Prove the postback came from the partner before acting on it.
+     *
+     * The partner is identified by the click, not by anything the caller
+     * says, so a forged request cannot choose whose secret it is checked
+     * against. Verified before any write: the whole point is that an
+     * unsigned call changes nothing.
+     */
+    const partnerRef = conversion.partner;
+    const partnerDoc =
+      typeof partnerRef === "object" && partnerRef !== null
+        ? partnerRef
+        : await payload
+            .findByID({ collection: "partners", id: String(partnerRef) })
+            .catch(() => null);
+
+    const verdict = verifyPartnerSignature({
+      headers: {
+        signature: context.headers?.get("x-signature") ?? null,
+        timestamp: context.headers?.get("x-timestamp") ?? null,
+      },
+      secret: String(partnerDoc?.webhookSecret ?? ""),
+      clickId: input.clickId,
+      status: input.status,
+    });
+
+    if (!verdict.valid) {
+      payload.logger.warn(
+        { clickId: input.clickId, reason: verdict.reason },
+        "[partner] rejected an unverified conversion postback"
+      );
+      // Deliberately not saying which check failed — that is a tuning guide
+      // for anyone probing it. The partner's own logs have the detail.
+      throw errors.UNAUTHORIZED({
+        message: "This conversion could not be verified.",
+      });
+    }
+
     // Check if already converted
     if (conversion.status === "converted" || conversion.status === "awarded") {
       return {
@@ -134,82 +290,36 @@ export const handleWebhook = publicProcedure
       id: contentId,
     });
 
-    const pointsToAward = content?.points || 0;
-
-    // Update conversion status
-    await payload.update({
-      collection: "partner-conversions",
-      id: conversion.id,
-      data: {
-        status: input.status === "success" ? "converted" : "failed",
-        partnerOrderId: input.partnerOrderId,
-        convertedAt: new Date().toISOString(),
-      },
-    });
-
-    // If successful, award points
-    if (input.status === "success" && pointsToAward > 0) {
-      const userId =
-        typeof conversion.user === "string"
-          ? conversion.user
-          : conversion.user.id;
-
-      // Create activity for points
-      await payload.create({
-        collection: "activities",
-        data: {
-          user: userId,
-          type: "point",
-          action: "partnerContentTask",
-          point: pointsToAward,
-          description: `Completed task: ${content?.title || "Partner task"}`,
-        },
-      });
-
-      // Update conversion to awarded
+    if (input.status !== "success") {
       await payload.update({
         collection: "partner-conversions",
         id: conversion.id,
         data: {
-          status: "awarded",
-          pointsAwarded: pointsToAward,
-          awardedAt: new Date().toISOString(),
+          status: "failed",
+          partnerOrderId: input.partnerOrderId,
+          convertedAt: new Date().toISOString(),
         },
       });
+
+      return {
+        success: true,
+        clickId: input.clickId,
+        status: "failed" as const,
+        pointsAwarded: 0,
+      };
     }
 
-    /**
-     * A confirmed conversion on an app-wall item is a Featured Offer (§8).
-     *
-     * Recorded here rather than when the link was tapped, because §8 counts
-     * completions and a tap is only an intention — otherwise Tier 1 would be
-     * reachable by opening an offer and immediately closing it.
-     *
-     * Deliberately after the payout and deliberately incapable of throwing:
-     * the partner has already been answered and the points already credited,
-     * so a giveaway that is closed or an offer already counted must not turn a
-     * settled conversion into a failure.
-     */
-    if (input.status === "success") {
-      const userId =
-        typeof conversion.user === "string"
-          ? conversion.user
-          : conversion.user.id;
-      const contentId =
-        typeof conversion.content === "string"
-          ? conversion.content
-          : conversion.content?.id;
-
-      if (contentId) {
-        await recordFeaturedOffer(payload, { userId, contentId });
-      }
-    }
+    const pointsToAward = await settleConversion(payload, {
+      conversion,
+      content,
+      partnerOrderId: input.partnerOrderId,
+    });
 
     return {
       success: true,
       clickId: input.clickId,
-      status: input.status === "success" ? "converted" : "failed",
-      pointsAwarded: input.status === "success" ? pointsToAward : 0,
+      status: "converted" as const,
+      pointsAwarded: pointsToAward,
     };
   });
 

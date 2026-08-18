@@ -395,6 +395,10 @@ export interface Partner {
    */
   webhookSecret?: string | null;
   /**
+   * ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.
+   */
+  awardOnClick?: boolean | null;
+  /**
    * API key for partner authentication
    */
   apiKey?: string | null;
@@ -3661,6 +3665,7 @@ export interface PartnersSelect<T extends boolean = true> {
   integrationMethod?: T;
   webhookUrl?: T;
   webhookSecret?: T;
+  awardOnClick?: T;
   apiKey?: T;
   createdBy?: T;
   lastModifiedBy?: T;

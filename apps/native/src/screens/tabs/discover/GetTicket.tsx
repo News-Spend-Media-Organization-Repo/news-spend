@@ -13,6 +13,7 @@ import { DialogWithAd } from "#/components/discover/DialogWithAd";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 
@@ -35,7 +36,8 @@ const GetTicket = () => {
 
   // Preload native ad on mount
   useEffect(() => {
-    NativeAd.createForAdRequest(adUnits.native)
+    initializeAdsWhenPermitted()
+      .then(() => NativeAd.createForAdRequest(adUnits.native))
       .then(setPreloadedNativeAd)
       .catch(() => {
         // Silently fail - dialog will show custom ad fallback

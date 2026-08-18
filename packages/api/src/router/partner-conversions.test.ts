@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { describe, expect, it } from "bun:test";
 import { call } from "@orpc/server";
 
@@ -7,6 +8,7 @@ import {
   expectError,
   mockContext,
 } from "../test-utils";
+import { canonicalString } from "../lib/partnerWebhookSignature";
 import { partnerConversionRouter } from "./partner-conversions";
 
 const authedUser = { id: "user-1", isAnonymous: false, username: "tester" };
@@ -38,12 +40,31 @@ function conversion(overrides: Doc = {}): Doc {
   };
 }
 
+const WEBHOOK_SECRET = "test-partner-secret";
+
 function partner(overrides: Doc = {}): Doc {
   return {
     id: "p1",
     websiteUrl: "https://example.com",
+    webhookSecret: WEBHOOK_SECRET,
     ...overrides,
   };
+}
+
+/**
+ * Headers a partner would send. The postback is signed now, so a test that
+ * calls it unsigned is testing the rejection, not the behaviour.
+ */
+function signedHeaders({
+  clickId = "clk_abc1234567890123",
+  status = "success",
+  secret = WEBHOOK_SECRET,
+}: { clickId?: string; status?: string; secret?: string } = {}): Headers {
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = createHmac("sha256", secret)
+    .update(canonicalString({ timestamp, clickId, status }), "utf-8")
+    .digest("hex");
+  return new Headers({ "x-signature": signature, "x-timestamp": timestamp });
 }
 
 // ---- trackClick ----
@@ -219,9 +240,9 @@ describe("partnerConversionRouter.trackClick", () => {
 describe("partnerConversionRouter.webhook", () => {
   it("throws NOT_FOUND when clickId does not exist", async () => {
     const payload = createFakePayload({
-      collections: { "partner-conversions": [] },
+      collections: { "partner-conversions": [], partners: [partner()] },
     });
-    const ctx = mockContext({ payload });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
 
     const error = await expectError(
       call(
@@ -241,9 +262,10 @@ describe("partnerConversionRouter.webhook", () => {
     const payload = createFakePayload({
       collections: {
         "partner-conversions": [conversion({ status: "converted" })],
+        partners: [partner()],
       },
     });
-    const ctx = mockContext({ payload });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
 
     const result = await call(
       partnerConversionRouter.webhook,
@@ -267,9 +289,10 @@ describe("partnerConversionRouter.webhook", () => {
     const payload = createFakePayload({
       collections: {
         "partner-conversions": [conversion({ status: "awarded" })],
+        partners: [partner()],
       },
     });
-    const ctx = mockContext({ payload });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
 
     const result = await call(
       partnerConversionRouter.webhook,
@@ -292,10 +315,11 @@ describe("partnerConversionRouter.webhook", () => {
     const payload = createFakePayload({
       collections: {
         "partner-conversions": [conversion()],
+        partners: [partner()],
         "partner-content": [partnerContent({ points: 50 })],
       },
     });
-    const ctx = mockContext({ payload });
+    const ctx = mockContext({ payload, headers: signedHeaders({ status: "failed" }) });
 
     const result = await call(
       partnerConversionRouter.webhook,
@@ -325,12 +349,13 @@ describe("partnerConversionRouter.webhook", () => {
     const payload = createFakePayload({
       collections: {
         "partner-conversions": [conversion()],
+        partners: [partner()],
         "partner-content": [
           partnerContent({ points: 50, title: "Install App" }),
         ],
       },
     });
-    const ctx = mockContext({ payload });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
 
     const result = await call(
       partnerConversionRouter.webhook,
@@ -362,10 +387,11 @@ describe("partnerConversionRouter.webhook", () => {
     const payload = createFakePayload({
       collections: {
         "partner-conversions": [conversion()],
+        partners: [partner()],
         "partner-content": [partnerContent({ points: 0 })],
       },
     });
-    const ctx = mockContext({ payload });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
 
     const result = await call(
       partnerConversionRouter.webhook,
@@ -386,10 +412,11 @@ describe("partnerConversionRouter.webhook", () => {
     const payload = createFakePayload({
       collections: {
         "partner-conversions": [conversion({ content: "pc1" })],
+        partners: [partner()],
         "partner-content": [partnerContent({ points: 10 })],
       },
     });
-    const ctx = mockContext({ payload });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
 
     const result = await call(
       partnerConversionRouter.webhook,
@@ -399,5 +426,161 @@ describe("partnerConversionRouter.webhook", () => {
 
     expect(result.status).toBe("converted");
     expect(result.pointsAwarded).toBe(10);
+  });
+});
+
+
+describe("partnerConversionRouter.webhook — verification", () => {
+  it("refuses an unsigned postback", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const error = await expectError(
+      call(
+        partnerConversionRouter.webhook,
+        { clickId: "clk_abc1234567890123", status: "success" },
+        { context: ctx }
+      )
+    );
+
+    // The state this shipped in: clickId is handed to the app, so anyone
+    // could post their own back and award themselves points and the Featured
+    // Offer that gates Tier 1 and Tier 2.
+    expect(error).toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("writes nothing when verification fails", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    await expectError(
+      call(
+        partnerConversionRouter.webhook,
+        { clickId: "clk_abc1234567890123", status: "success" },
+        { context: ctx }
+      )
+    );
+
+    const writes = payload.calls.filter(
+      (c) => c.op === "create" || c.op === "update"
+    );
+    expect(writes).toHaveLength(0);
+  });
+
+  it("refuses a signature made with another partner's secret", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+      },
+    });
+    const ctx = mockContext({
+      payload,
+      headers: signedHeaders({ secret: "some-other-partners-secret" }),
+    });
+
+    const error = await expectError(
+      call(
+        partnerConversionRouter.webhook,
+        { clickId: "clk_abc1234567890123", status: "success" },
+        { context: ctx }
+      )
+    );
+
+    expect(error).toMatchObject({ code: "UNAUTHORIZED" });
+  });
+});
+
+describe("partnerConversionRouter.trackClick — award on click", () => {
+  function clickPayload(partnerOverrides: Doc = {}) {
+    return createFakePayload({
+      collections: {
+        "partner-content": [
+          partnerContent({ id: "pc1", points: 50, partner: "p1" }),
+        ],
+        partners: [partner(partnerOverrides)],
+        "partner-conversions": [],
+        activities: [],
+        giveaways: [],
+        "giveaway-engagements": [],
+      },
+    });
+  }
+
+  it("leaves a click as only a click by default", async () => {
+    const payload = clickPayload();
+    const ctx = mockContext({ payload, user: { id: "user-1" } as never });
+
+    await call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1" },
+      { context: ctx }
+    );
+
+    // §8 counts completions, not intentions. Without a partner saying so, a
+    // tap stays a tap.
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("settles the conversion when the partner cannot post back", async () => {
+    const payload = clickPayload({ awardOnClick: true });
+    const ctx = mockContext({ payload, user: { id: "user-1" } as never });
+
+    await call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1" },
+      { context: ctx }
+    );
+
+    const conv = payload.docs("partner-conversions")[0];
+    expect(conv?.status).toBe("awarded");
+    expect(conv?.pointsAwarded).toBe(50);
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("still redirects when settling the click fails", async () => {
+    // The person is waiting on a redirect; bookkeeping must not strand them.
+    const payload = clickPayload({ awardOnClick: true });
+
+    /**
+     * Break the points write specifically. An earlier version of this test
+     * called a `failOn` helper that does not exist, and the optional chaining
+     * meant it asserted against a perfectly healthy payload — green, and
+     * proving nothing.
+     */
+    const realCreate = payload.create.bind(payload);
+    payload.create = (async (args: any) => {
+      if (args?.collection === "activities") {
+        throw new Error("activities is unavailable");
+      }
+      return realCreate(args);
+    }) as typeof payload.create;
+
+    const ctx = mockContext({ payload, user: { id: "user-1" } as never });
+
+    const result = await call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1" },
+      { context: ctx }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.redirectUrl).toBeTruthy();
+    // The click is still on record even though the award could not complete.
+    expect(payload.docs("partner-conversions")).toHaveLength(1);
   });
 });

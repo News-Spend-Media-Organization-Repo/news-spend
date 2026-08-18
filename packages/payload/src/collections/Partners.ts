@@ -168,6 +168,17 @@ export const Partners: CollectionConfig = {
           },
         },
         {
+          name: "awardOnClick",
+          label: "Count a click as a completed conversion",
+          type: "checkbox",
+          defaultValue: false,
+          index: true,
+          admin: {
+            description:
+              "ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.",
+          },
+        },
+        {
           name: "apiKey",
           type: "text",
           admin: {

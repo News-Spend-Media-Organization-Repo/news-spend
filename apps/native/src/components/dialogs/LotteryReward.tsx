@@ -9,6 +9,7 @@ import { useSnapshot } from "valtio";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
 import { toast } from "#/components/heroui/toast";
+import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
@@ -143,7 +144,11 @@ export default memo(function LotteryReward() {
       timeoutRef.current = setTimeout(() => {
         setDialogOpen(true);
       }, 5000);
-      load();
+      initializeAdsWhenPermitted()
+        .then(load)
+        .catch((error) => {
+          console.warn("Rewarded ad load skipped", error);
+        });
 
       return () => {
         if (timeoutRef.current) {
