@@ -89,11 +89,39 @@ export const trackClick = protectedNoGuestProcedure
      */
     if (partner?.awardOnClick) {
       try {
-        await settleConversion(payload, {
-          conversion: created,
-          content,
-          partnerOrderId: `click:${clickId}`,
+        /**
+         * Once per person per offer, ever.
+         *
+         * `trackClick` deliberately records every tap — that is what click
+         * tracking is — so nothing stops the same offer being opened fifty
+         * times. Under a real postback that is harmless, because the partner
+         * confirms one genuine action; with award-on-click there is no such
+         * bound, and each tap would credit the points again.
+         *
+         * Points buy giveaway tickets, so an uncapped version of this is not
+         * a points leak but an unlimited supply of draw entries. The Featured
+         * Offer itself was already safe — `recordFeaturedOffer` refuses a
+         * repeat — which is exactly why this gap would have been easy to miss:
+         * eligibility looked correct while the points quietly multiplied.
+         */
+        const settled = await payload.count({
+          collection: "partner-conversions",
+          where: {
+            and: [
+              { user: { equals: user.id } },
+              { content: { equals: input.partnerContentId } },
+              { status: { in: ["converted", "awarded"] } },
+            ],
+          },
         });
+
+        if (settled.totalDocs === 0) {
+          await settleConversion(payload, {
+            conversion: created,
+            content,
+            partnerOrderId: `click:${clickId}`,
+          });
+        }
       } catch (error) {
         payload.logger.error(
           { err: error, clickId },

@@ -583,4 +583,41 @@ describe("partnerConversionRouter.trackClick — award on click", () => {
     // The click is still on record even though the award could not complete.
     expect(payload.docs("partner-conversions")).toHaveLength(1);
   });
+
+  it("credits an offer once however many times it is opened", async () => {
+    const payload = clickPayload({ awardOnClick: true });
+    const ctx = mockContext({ payload, user: { id: "user-1" } as never });
+
+    for (let i = 0; i < 4; i += 1) {
+      await call(
+        partnerConversionRouter.trackClick,
+        { partnerContentId: "pc1" },
+        { context: ctx }
+      );
+    }
+
+    // Every tap is still recorded — that is what click tracking is — but only
+    // the first one pays. Points buy giveaway tickets, so an uncapped version
+    // of this is an unlimited supply of draw entries.
+    expect(payload.docs("partner-conversions")).toHaveLength(4);
+    expect(payload.docs("activities")).toHaveLength(1);
+    expect(payload.docs("activities")[0]?.point).toBe(50);
+  });
+
+  it("does not stop a different person earning the same offer", async () => {
+    const payload = clickPayload({ awardOnClick: true });
+
+    await call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1" },
+      { context: mockContext({ payload, user: { id: "user-1" } as never }) }
+    );
+    await call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1" },
+      { context: mockContext({ payload, user: { id: "user-2" } as never }) }
+    );
+
+    expect(payload.docs("activities")).toHaveLength(2);
+  });
 });
