@@ -28,17 +28,30 @@ type UsePartnerAdOptions = {
    * attribute or time is no use to it.
    */
   forceType?: AdType;
+  /**
+   * Serving this advertisement so a Boost can be earned from it.
+   *
+   * Makes the server skip items whose Boost this person has already earned in
+   * the open giveaway. Without it the pick is uniform over the whole
+   * placement, so a repeat costs the viewer a full advertisement before
+   * `recordEngagement` refuses it as already completed.
+   */
+  forBoost?: boolean;
 };
 
 export function usePartnerAd({
   forceType,
+  forBoost = false,
 }: UsePartnerAdOptions = {}): UsePartnerAdReturn {
   const id = useId();
   const [rotatingType, setRotatingType] = useState<AdType>(pickAdType);
   const adType = forceType ?? rotatingType;
 
   const queryOptions = orpc.partnerContent.getOne.queryOptions({
-    input: { placement: ["connect-brands-tab", "connect-brand-video"] },
+    input: {
+      placement: ["connect-brands-tab", "connect-brand-video"],
+      forBoost,
+    },
     /**
      * Short, never infinite.
      *

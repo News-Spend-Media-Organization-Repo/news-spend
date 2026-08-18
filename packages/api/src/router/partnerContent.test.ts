@@ -380,3 +380,126 @@ describe("partnerContentRouter.random", () => {
     expect(findCall?.args.limit).toBe(5);
   });
 });
+
+describe("partnerContentRouter.getOne — Boost exclusion", () => {
+  function boostPayload(engagements: Doc[]) {
+    return createFakePayload({
+      collections: {
+        "partner-content": [
+          content({ id: "a", status: "active" }),
+          content({ id: "b", status: "active" }),
+        ],
+        giveaways: [{ id: "g1", status: "active" }],
+        "giveaway-engagements": engagements,
+      },
+    });
+  }
+
+  it("skips an item whose Boost this person already earned", async () => {
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      const payload = boostPayload([
+        {
+          id: "e1",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+          content: "a",
+        },
+      ]);
+      const ctx = mockContext({ payload, user: { id: "u1" } as never });
+
+      const result = await call(
+        partnerContentRouter.getOne,
+        { forBoost: true },
+        { context: ctx }
+      );
+
+      // Math.random() = 0 would otherwise pick "a". Watching that ad again
+      // earns nothing — recordEngagement refuses it as already completed.
+      expect(result?.id).toBe("b");
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
+  it("does not narrow the inventory when the ad is not for a Boost", async () => {
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      const payload = boostPayload([
+        {
+          id: "e1",
+          giveaway: "g1",
+          user: "u1",
+          type: "boost",
+          completionStatus: "completed",
+          content: "a",
+        },
+      ]);
+      const ctx = mockContext({ payload, user: { id: "u1" } as never });
+
+      const result = await call(
+        partnerContentRouter.getOne,
+        {},
+        { context: ctx }
+      );
+
+      // The reveal plays an advertisement for suspense, not for credit, and
+      // has no reason to shrink its inventory.
+      expect(result?.id).toBe("a");
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
+  it("ignores another person's Boosts", async () => {
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      const payload = boostPayload([
+        {
+          id: "e1",
+          giveaway: "g1",
+          user: "someone-else",
+          type: "boost",
+          completionStatus: "completed",
+          content: "a",
+        },
+      ]);
+      const ctx = mockContext({ payload, user: { id: "u1" } as never });
+
+      const result = await call(
+        partnerContentRouter.getOne,
+        { forBoost: true },
+        { context: ctx }
+      );
+
+      expect(result?.id).toBe("a");
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
+  it("still serves an ad when nobody is signed in", async () => {
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      const payload = boostPayload([]);
+      const ctx = mockContext({ payload });
+
+      const result = await call(
+        partnerContentRouter.getOne,
+        { forBoost: true },
+        { context: ctx }
+      );
+
+      // A refinement of which ad to show, never a reason to show none.
+      expect(result?.id).toBe("a");
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+});

@@ -29,6 +29,21 @@ const GetOneInput = z.object({
   type: z.array(TypeEnum).optional(),
   adSize: AdSizeEnum.optional(),
   video: z.boolean().optional().default(false),
+  /**
+   * Serving an advertisement whose Boost has already been earned.
+   *
+   * Selection is a uniform random pick over everything matching the
+   * placement, which knows nothing about what this person has already done.
+   * With a handful of Connect Brands items and a Boost cap of three, that
+   * means repeats are not an edge case: after one Boost, one attempt in three
+   * serves the same item back, and the person watches the whole advertisement
+   * before `recordEngagement` refuses it as already completed.
+   *
+   * Set from the Boost surface so the exclusion applies where a repeat is
+   * wasted effort, and nowhere else — the reveal plays an advertisement for
+   * suspense, not for credit, and has no reason to narrow its inventory.
+   */
+  forBoost: z.boolean().optional().default(false),
 });
 
 const byIdInput = z.object({ id: z.string() });
@@ -103,6 +118,55 @@ export const getOnePartnerContent = publicProcedure
     }
     if (input.adSize) {
       where.adSize = { equals: input.adSize };
+    }
+
+    /**
+     * Drop anything this person has already earned a Boost from in the open
+     * giveaway. Done here rather than in the app because it is the same rule
+     * `recordEngagement` enforces, and a client-side version could only ever
+     * be a second, drifting copy of it.
+     *
+     * Silent when there is no open giveaway or nobody signed in: this is a
+     * refinement of which advertisement to show, never a reason not to show
+     * one.
+     */
+    if (input.forBoost && context.user) {
+      const open = await payload.find({
+        collection: "giveaways",
+        where: { status: { equals: "active" } },
+        limit: 1,
+        pagination: false,
+        depth: 0,
+      });
+
+      const giveawayId = open.docs[0]?.id;
+      if (giveawayId) {
+        const done = await payload.find({
+          collection: "giveaway-engagements",
+          where: {
+            and: [
+              { giveaway: { equals: giveawayId } },
+              { user: { equals: context.user.id } },
+              { type: { equals: "boost" } },
+              { completionStatus: { equals: "completed" } },
+            ],
+          },
+          pagination: false,
+          depth: 0,
+        });
+
+        const spent = done.docs
+          .map((row) =>
+            typeof row.content === "string"
+              ? row.content
+              : String((row.content as { id?: string } | null)?.id)
+          )
+          .filter(Boolean);
+
+        if (spent.length > 0) {
+          where.id = { not_in: spent };
+        }
+      }
     }
 
     const result = await payload.find({

@@ -180,6 +180,9 @@ const BoostLuck = () => {
           */}
           <PartnerAdDialog
             asChild
+            // Skip anything whose Boost is already earned — a repeat here
+            // costs a full advertisement and is then refused.
+            forBoost
             onCountdownComplete={onCountdownComplete}
             onOpen={onDialogOpen}
             preferAdType="custom"

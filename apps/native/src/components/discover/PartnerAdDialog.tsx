@@ -54,6 +54,8 @@ export type PartnerAdDialogProps = {
    * giveaway reveal sequences itself around the answer.
    */
   preferAdType?: "custom" | "native";
+  /** Serving this so a Boost can be earned — see `usePartnerAd`. */
+  forBoost?: boolean;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -74,11 +76,13 @@ export function PartnerAdDialog({
   hideTrigger = false,
   fallbackToAppWall = true,
   preferAdType,
+  forBoost,
 }: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
 
   // ── Ad resolution ────────────────────────────────────────────────────────────
   const { ad, adType, isLoading, refetchAd, cycleAdType } = usePartnerAd({
+    forBoost,
     forceType: preferAdType,
   });
 
