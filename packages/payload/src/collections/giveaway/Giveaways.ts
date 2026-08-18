@@ -48,6 +48,69 @@ export const Giveaways: CollectionConfig = {
        * validation rather than being restated here, so the button, the sweep
        * and this endpoint can never disagree about it.
        */
+      /**
+       * What could this giveaway award, at a given number of participants?
+       *
+       * Read-only and unauthenticated by nothing — it writes nothing, starts
+       * nothing and touches no winner. Available to any admin rather than
+       * super-admins alone, because the whole point is that it should be
+       * consulted freely while a pool is being decided, and a check people
+       * need permission for is a check they skip.
+       */
+      path: "/:id/simulate",
+      method: "post",
+      handler: async (req) => {
+        if (!req.user || req.user.collection !== "admins") {
+          return Response.json(
+            { message: "Admins only." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id as string | undefined;
+        if (!id) {
+          return Response.json(
+            { message: "Missing giveaway id." },
+            { status: 400 }
+          );
+        }
+
+        const body = req.json
+          ? ((await req.json()) as {
+              participants?: number;
+              eligible?: Record<string, number>;
+            })
+          : {};
+
+        const participants = Number(body.participants ?? 0);
+        if (!Number.isFinite(participants) || participants < 0) {
+          return Response.json(
+            { message: "participants must be a number of 0 or more." },
+            { status: 400 }
+          );
+        }
+
+        const { simulateDraw } = await import("../../lib/giveaway/simulateDraw");
+
+        try {
+          const result = await simulateDraw(req.payload, id, {
+            participants,
+            eligible: body.eligible as never,
+          });
+          return Response.json(result);
+        } catch (error) {
+          req.payload.logger.error(
+            { err: error, giveawayId: id },
+            "[giveaway] simulation failed"
+          );
+          return Response.json(
+            { message: "Could not simulate this giveaway." },
+            { status: 500 }
+          );
+        }
+      },
+    },
+    {
       path: "/:id/run-draw",
       method: "post",
       handler: async (req) => {

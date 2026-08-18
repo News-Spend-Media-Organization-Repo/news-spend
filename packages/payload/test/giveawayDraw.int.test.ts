@@ -240,6 +240,56 @@ describe("giveaway draw, against a real database", () => {
     expect(prizeRow.unitsAwarded).toBe(1);
   }, 120_000);
 
+  test("never awards a catalogue prize that was not selected for the draw", async () => {
+    const { giveawayId } = await createDrawableGiveaway({
+      participants: 3,
+      maxUnits: 3,
+    });
+
+    /**
+     * A second prize at the same tier, active in the Master Prize Catalogue
+     * and deliberately NOT added to this giveaway's pool.
+     *
+     * This is the guarantee an operator is relying on when they leave an
+     * expensive item out of a draw they cannot fund: not selecting it has to
+     * mean it cannot be won, whatever the draw does. §4 says so; nothing
+     * proved it until now.
+     */
+    const unpooled = await payload.create({
+      collection: "prize-catalogue",
+      data: {
+        name: `Generator ${Date.now()}`,
+        tier: "tier3",
+        fulfilmentType: "physical",
+        valueNaira: 450_000,
+        active: true,
+      },
+    });
+
+    const result = await engine().runDraw(giveawayId);
+
+    // Everyone wins — tier 3 is at 100% with units for all of them — so if the
+    // unpooled prize were reachable at all, this is the draw that would reach
+    // it.
+    expect(result.totalWinners).toBe(3);
+
+    const winners = await payload.find({
+      collection: "giveaway-winners",
+      where: { giveaway: { equals: giveawayId } },
+      pagination: false,
+      depth: 0,
+    });
+
+    const awarded = winners.docs.map((winner) =>
+      typeof winner.prize === "string"
+        ? winner.prize
+        : String((winner.prize as { id?: string } | null)?.id)
+    );
+
+    expect(awarded).not.toContain(String(unpooled.id));
+    expect(new Set(awarded).size).toBe(1);
+  }, 120_000);
+
   test("refuses to draw the same giveaway twice", async () => {
     const { giveawayId } = await createDrawableGiveaway();
     const drawEngine = engine();
