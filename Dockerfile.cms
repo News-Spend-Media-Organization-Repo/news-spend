@@ -4,6 +4,27 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
+# Source map upload happens at build time. Without the token the Sentry webpack
+# plugin skips uploading rather than failing, so the build still succeeds —
+# stack traces in Sentry are just left minified.
+ARG SENTRY_AUTH_TOKEN
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
+ARG SENTRY_ORG
+ENV SENTRY_ORG=$SENTRY_ORG
+ARG SENTRY_PROJECT
+ENV SENTRY_PROJECT=$SENTRY_PROJECT
+
+# Inlined into the client bundle, so they must be present during `next build`.
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_APP_ENV
+ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
+# Same value under a NEXT_PUBLIC_ name so it survives into the browser bundle,
+# which is the only way client-side events get tagged with a release.
+ENV NEXT_PUBLIC_SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
+
 RUN apt-get update && apt-get -yqq --no-install-recommends install \
     build-essential \
     python3 \

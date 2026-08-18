@@ -1,5 +1,5 @@
 import type { RewardTaskItem } from "@news-spend-media/api/router/news/content-builders";
-import { Chip } from "heroui-native";
+import { Chip } from "heroui-native/chip";
 import { Linking, Platform, Pressable, View } from "react-native";
 import { getImageData } from "#/utils/getImageData";
 import { Image } from "../heroui/image";

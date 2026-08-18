@@ -7,13 +7,19 @@ export { default as Comments } from "./Comments";
 export { ContentReport } from "./ContentReport";
 export { default as Feedback } from "./Feedback";
 export {
+  GiveawayAccountFlags,
   GiveawayAuditLog,
+  GiveawayDrawAttempts,
   GiveawayEngagements,
+  GiveawayFulfilmentAttempts,
+  GiveawayPoolSnapshots,
   GiveawayPrizes,
-  Giveaways,
+  GiveawayReportDeliveries,
   GiveawayStreaks,
+  Giveaways,
   GiveawayTickets,
   GiveawayWinners,
+  IdentityChecks,
   PrizeCatalogue,
 } from "./giveaway";
 export { default as IdentityVerification } from "./IdentityVerification";

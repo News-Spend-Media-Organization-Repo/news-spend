@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { formatDistanceToNow } from "date-fns";
-import { Chip, cn } from "heroui-native";
+import { Chip } from "heroui-native/chip";
+import { cn } from "heroui-native/utils";
 import { ClockIcon, PlayIcon } from "phosphor-react-native";
 import { Pressable, View } from "react-native";
 import type { RouterOutputs } from "#/lib/orpc";

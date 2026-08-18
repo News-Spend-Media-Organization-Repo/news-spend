@@ -2,8 +2,10 @@ import {
   createNativeStackNavigator,
   type NativeStackHeaderProps,
 } from "@react-navigation/native-stack";
-import { PressableFeedback } from "heroui-native";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { XIcon } from "phosphor-react-native";
+import { Suspense } from "react";
+import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
 import { Icon } from "#/components/heroui/icon";
 import ScreenHeader from "#/components/ScreenHeader";
@@ -27,6 +29,7 @@ const ROUTE_TITLES = {
   RateApp: "Rate App",
   ShareApp: "Share App",
   Socials: "Follow Us",
+  IdentityVerification: "Verify Identity",
   VerifyIdentity: "Verify Identity",
 } as const;
 
@@ -45,6 +48,9 @@ const screenHeader = ({ route }: NativeStackHeaderProps) => {
 export default createNativeStackNavigator({
   layout: ({ children, state, descriptors, navigation }) => (
     <NavigatorErrorBoundary>{children}</NavigatorErrorBoundary>
+  ),
+  screenLayout: ({ children }) => (
+    <Suspense fallback={<View style={{ flex: 1 }} />}>{children}</Suspense>
   ),
   screens: {
     SettingsHome: {

@@ -8,7 +8,9 @@ const ACCENT = t.accentTrending;
 /** Fills the widget so text sits on a known surface rather than the system container. */
 function Surface({ children }: { children: ReactNode }) {
   return (
-    <V.ZStack style={{ flex: 1, backgroundColor: t.surface }}>{children}</V.ZStack>
+    <V.ZStack style={{ flex: 1, backgroundColor: t.surface }}>
+      {children}
+    </V.ZStack>
   );
 }
 

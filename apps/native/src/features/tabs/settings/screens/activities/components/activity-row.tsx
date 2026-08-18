@@ -1,6 +1,7 @@
 import type { Activity } from "@news-spend-media/payload/types";
 import { format } from "date-fns";
-import { cn, PressableFeedback } from "heroui-native";
+import { cn } from "heroui-native/utils";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import React from "react";
 import { View } from "react-native";
 import { Icon } from "#/components/heroui/icon";

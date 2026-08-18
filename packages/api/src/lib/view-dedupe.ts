@@ -7,7 +7,7 @@ export async function tryMarkView(
     return true; // no redis => optimistic increment
   }
   try {
-    // ioredis: set with NX returns 'OK' if set, null if not set
+    // Bun redis: set with NX returns 'OK' if set, null if not set
     // support both callback signatures
     const res = await redisClient.set(key, "1", "EX", ttlSeconds, "NX");
     if (res === null) {

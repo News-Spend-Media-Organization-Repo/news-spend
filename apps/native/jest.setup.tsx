@@ -40,13 +40,16 @@ jest.mock("phosphor-react-native", () => {
   };
 });
 
-// sonner-native — toast notifications
-jest.mock("sonner-native", () => ({
-  toast: {
-    error: jest.fn(),
-    success: jest.fn(),
-    info: jest.fn(),
-    warning: jest.fn(),
-  },
-  Toaster: () => null,
-}));
+// #/components/heroui/toast — toast notifications
+jest.mock("#/components/heroui/toast", () => {
+  const toast = jest.fn();
+  toast.show = jest.fn();
+  toast.error = jest.fn();
+  toast.success = jest.fn();
+  toast.info = jest.fn();
+  toast.warning = jest.fn();
+  toast.loading = jest.fn();
+  toast.custom = jest.fn();
+  toast.dismiss = jest.fn();
+  return { toast, ToastBridge: () => null };
+});

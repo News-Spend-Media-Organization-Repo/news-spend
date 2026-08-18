@@ -1,4 +1,4 @@
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { tv } from "tailwind-variants";
 import { Text } from "../ui";
 import type { RenderMark } from "./types";

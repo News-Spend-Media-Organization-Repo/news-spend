@@ -1,4 +1,4 @@
-import { Skeleton } from "heroui-native";
+import { Skeleton } from "heroui-native/skeleton";
 import { useWindowDimensions } from "react-native";
 
 const VideoNewsItemPlaceholder = () => {

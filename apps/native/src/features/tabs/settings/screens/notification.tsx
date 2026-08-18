@@ -1,13 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
-import { Spinner } from "heroui-native";
+import { Spinner } from "heroui-native/spinner";
 import { ListGroup } from "heroui-native/list-group";
 import { Separator } from "heroui-native/separator";
 import { Switch } from "heroui-native/switch";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
-import { toast } from "sonner-native";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { useUser } from "#/hooks/auth";
 import { userQueryOptions } from "#/hooks/auth/useUser";
 import { orpc, type RouterInputs } from "#/lib/orpc";

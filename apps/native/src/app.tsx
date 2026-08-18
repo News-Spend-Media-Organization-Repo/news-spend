@@ -9,13 +9,14 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { AppMetrics, Observe, ObserveRoot } from "expo-observe";
 import { ObserveNavigationProvider } from "expo-observe/integrations/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
-import { useCallback, useEffect } from "react";
-import mobileAds from "react-native-google-mobile-ads";
+import { useCallback, useEffect, useRef } from "react";
 import { Uniwind } from "uniwind";
 import { useSnapshot } from "valtio";
 import AppOpenAd from "./components/Ads/AppOpenAd";
+import GiveawayReward from "./components/dialogs/GiveawayReward";
 import LotteryReward from "./components/dialogs/LotteryReward";
 import useCachedResources from "./hooks/useCachedResources";
+import { initializeAdsWhenPermitted } from "./lib/adsInit";
 import { initSentry } from "./lib/sentry";
 import { queryClient } from "./lib/tanstackQuery";
 import { Navigation } from "./navigation";
@@ -26,7 +27,6 @@ import {
   useNavigationPersistence,
 } from "./navigation/navigationUtils";
 import { Provider } from "./provider";
-import { preloadAds } from "./state/adManager";
 import { authState, hydrateAuth } from "./state/auth";
 import { createMMKVPersister } from "./utils/clientPersister";
 import { storage } from "./utils/storage";
@@ -40,15 +40,8 @@ SplashScreen.setOptions({
   fade: true,
 });
 
-mobileAds()
-  .initialize()
-  .then((_adapterStatuses) => {
-    // Initialization complete!
-  });
-
 initSentry();
 hydrateAuth();
-preloadAds(["news-click-ads", "discover-tab"]);
 
 const persister = createMMKVPersister();
 
@@ -82,6 +75,21 @@ export function App() {
   const { loadingComplete } = useCachedResources();
 
   const authStatus = useSnapshot(authState).status;
+
+  // Request App Tracking Transparency (iOS) and only then initialize the
+  // Mobile Ads SDK + preload ads, so no tracking data is collected before
+  // the user has had a chance to consent.
+  const adsInitiatedRef = useRef(false);
+
+  useEffect(() => {
+    if (adsInitiatedRef.current) {
+      return;
+    }
+    adsInitiatedRef.current = true;
+    initializeAdsWhenPermitted().catch((error) => {
+      console.warn("Ad initialization failed", error);
+    });
+  }, []);
 
   const hideSplash = useCallback(async () => {
     await SplashScreen.hideAsync();
@@ -127,6 +135,7 @@ export function App() {
           />
         </ObserveNavigationProvider>
         <LotteryReward />
+        <GiveawayReward />
 
         <AppOpenAd />
       </Provider>

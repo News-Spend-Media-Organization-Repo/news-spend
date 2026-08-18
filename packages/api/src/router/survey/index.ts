@@ -1,5 +1,5 @@
 import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
-import { ORPCError } from "@orpc/client";
+import { openapi } from "@orpc/openapi";
 import z from "zod";
 
 import { protectedProcedure } from "../../index";
@@ -13,15 +13,17 @@ import {
 import { AwardGoogleFormInputSchema } from "./schemas";
 
 const awardGoogleFormPoints = protectedProcedure
-  .route({
-    method: "POST",
-    path: "/survey/gFormAwardPoint",
-    summary: "Award point for google forms",
-    tags: ["survey"],
-  })
+  .meta(
+    openapi({
+      method: "POST",
+      path: "/survey/gFormAwardPoint",
+      summary: "Award point for google forms",
+      tags: ["survey"],
+    })
+  )
   .input(AwardGoogleFormInputSchema)
   .output(z.any())
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     try {
       const { gFormId, userId } = input;
       const { payload } = context;
@@ -39,7 +41,7 @@ const awardGoogleFormPoints = protectedProcedure
       const survey = gForm.docs[0];
 
       if (!survey) {
-        throw new ORPCError("NOT_FOUND", {
+        throw errors.NOT_FOUND({
           message: "Survey not found",
         });
       }

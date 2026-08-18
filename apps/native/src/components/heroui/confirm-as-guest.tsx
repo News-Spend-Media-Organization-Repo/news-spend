@@ -1,11 +1,13 @@
 import { useNavigation } from "@react-navigation/core";
 import { useMutation } from "@tanstack/react-query";
-import { Checkbox, ControlField, LinkButton } from "heroui-native";
+import { Checkbox } from "heroui-native/checkbox";
+import { ControlField } from "heroui-native/control-field";
+import { LinkButton } from "heroui-native/link-button";
 import { Dialog } from "heroui-native/dialog";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { View } from "react-native";
-import { toast } from "sonner-native";
+import { toast } from "#/components/heroui/toast";
 import { authClient } from "#/lib/authClient";
 import { hydrateAuth } from "#/state/auth";
 import { Button } from "./button";

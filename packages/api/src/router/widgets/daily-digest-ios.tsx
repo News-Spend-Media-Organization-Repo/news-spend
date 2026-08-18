@@ -9,7 +9,9 @@ const ACCENT = t.accentDigest;
 /** Fills the widget so text sits on a known surface rather than the system container. */
 function Surface({ children }: { children: ReactNode }) {
   return (
-    <V.ZStack style={{ flex: 1, backgroundColor: t.surface }}>{children}</V.ZStack>
+    <V.ZStack style={{ flex: 1, backgroundColor: t.surface }}>
+      {children}
+    </V.ZStack>
   );
 }
 
@@ -74,7 +76,10 @@ function SecondaryItem({ item }: { item: NewsItem }) {
     <V.Link destination={newsDeepLink(item)}>
       {/* Single line by design: a clean ellipsis reads better than two ragged
           clamped lines, and buys the lead story room to breathe. */}
-      <V.Text numberOfLines={1} style={{ fontSize: 13, color: t.textSecondary }}>
+      <V.Text
+        numberOfLines={1}
+        style={{ fontSize: 13, color: t.textSecondary }}
+      >
         {item.title}
       </V.Text>
     </V.Link>

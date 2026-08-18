@@ -47,26 +47,10 @@ export const createPostReport = protectedNoGuestProcedure
       },
     });
 
-    if (relationTo === "comments") {
-      const currentUser = await payload.findByID({
-        collection: "users",
-        id: user.id,
-        depth: 0,
-      });
-      const reportedComments: string[] = Array.isArray(
-        currentUser.reportedComments
-      )
-        ? (currentUser.reportedComments as string[])
-        : [];
-      if (!reportedComments.includes(reportedItem)) {
-        await payload.update({
-          collection: "users",
-          id: user.id,
-          data: { reportedComments: [...reportedComments, reportedItem] },
-        });
-      }
-    }
-
+    // No denormalized copy is kept on the user. "Comments I reported" is
+    // derived from contentReports at read time — see comment/moderation-filters
+    // — so there is nothing to drift when a report is dismissed or a comment
+    // is deleted.
     return response;
   });
 

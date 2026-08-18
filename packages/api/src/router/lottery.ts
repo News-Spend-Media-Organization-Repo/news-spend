@@ -1,10 +1,8 @@
 import { lottery_winners } from "@news-spend-media/payload/payload-generated-schema";
 import type { Media } from "@news-spend-media/payload/types";
-import { ORPCError } from "@orpc/client";
 import { and, eq, ne } from "@payloadcms/db-postgres/drizzle";
 import { subWeeks } from "date-fns";
 import z from "zod";
-import { zfd } from "zod-form-data";
 
 import {
   protectedNoGuestProcedure,
@@ -29,21 +27,28 @@ const LotteryCreateInput = z.object({
 export type LotteryCreateInput = z.infer<typeof LotteryCreateInput>;
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const verifyIdentityInput = zfd.formData({
-  firstName: zfd.text(z.string().trim().min(3)),
-  lastName: zfd.text(z.string().trim().min(3)),
-  email: zfd.text(z.string().email()),
-  phoneNumber: zfd.text(
-    z.string().trim().regex(/^\d+$/, "Invalid phone number")
-  ),
-  shippingAddress: zfd.text(z.string().trim().min(3)),
-  "governmentId.front": zfd
+/**
+ * See the note in `report.ts`: `zod-form-data` is a Zod 3 library and threw
+ * during Zod 4 contract introspection, killing the server at startup. Plain
+ * Zod 4 with `z.file()` does the same job.
+ *
+ * This whole flow goes when the lottery does — it is the ID-upload form the
+ * provider-hosted verification replaces — but it must not crash the server in
+ * the meantime.
+ */
+const verifyIdentityInput = z.object({
+  firstName: z.string().trim().min(3),
+  lastName: z.string().trim().min(3),
+  email: z.email(),
+  phoneNumber: z.string().trim().regex(/^\d+$/, "Invalid phone number"),
+  shippingAddress: z.string().trim().min(3),
+  "governmentId.front": z
     .file()
     .refine(
       (file) => file && file.size <= MAX_FILE_SIZE,
       "File size must be less than 5MB"
     ),
-  "governmentId.back": zfd
+  "governmentId.back": z
     .file()
     .refine(
       (file) => file && file.size <= MAX_FILE_SIZE,
@@ -116,7 +121,7 @@ const getReward = protectedProcedure.handler(async ({ context }) => {
 
 const claimReward = protectedProcedure
   .input(z.object({ winnerId: z.string() }))
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
 
     // Fetch winner to get prize info
@@ -130,7 +135,7 @@ const claimReward = protectedProcedure
       typeof winner.user === "string" ? winner.user : winner.user.id;
 
     if (!winner || lotteryWinnerId !== user.id) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Winner not found",
       });
     }
@@ -154,7 +159,7 @@ const claimReward = protectedProcedure
       .returning();
 
     if (claimedRows.length === 0) {
-      throw new ORPCError("CONFLICT", {
+      throw errors.CONFLICT({
         message: "Reward already claimed",
       });
     }
@@ -182,7 +187,7 @@ const claimReward = protectedProcedure
 
 const verifyIdentity = protectedNoGuestProcedure
   .input(verifyIdentityInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
     const ongoingVerification = await payload.find({
       collection: "identity-verification",
@@ -255,7 +260,7 @@ const verifyIdentity = protectedNoGuestProcedure
       ]);
 
       if (!(files[0] && files[1])) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        throw errors.INTERNAL_SERVER_ERROR({
           message: "File upload failed",
         });
       }

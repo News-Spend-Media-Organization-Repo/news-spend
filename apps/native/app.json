@@ -245,7 +245,7 @@
         {
           "androidAppId": "ca-app-pub-3654282727219827~3509263491",
           "iosAppId": "ca-app-pub-3654282727219827~2761369599",
-          "delayAppMeasurementInit": false,
+          "delayAppMeasurementInit": true,
           "optimizeInitialization": true,
           "optimizeAdLoading": true,
           "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
@@ -300,6 +300,12 @@
             "3rd42ekr43.skadnetwork",
             "3qcr597p9d.skadnetwork"
           ]
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This identifier will be used to deliver personalized ads to you."
         }
       ]
     ],

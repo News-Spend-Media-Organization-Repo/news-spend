@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Chip } from "heroui-native";
+import { Card } from "heroui-native/card";
+import { Chip } from "heroui-native/chip";
 import { useCallback } from "react";
 import { Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
@@ -61,7 +62,7 @@ export function SurveyTab() {
       }
 
       if (offer.url) {
-        navigation.navigate("SurveyWebView", {
+        navigation.navigate("InAppBrowser", {
           url: offer.url,
           title: offer.title,
         });

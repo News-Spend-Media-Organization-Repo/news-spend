@@ -42,7 +42,7 @@ const privacyPolicyContent = [
     bullets: [
       "You can opt out of receiving marketing communications from us by clicking the unsubscribe link in any email you receive from us.",
       "You can manage your device permissions to control what information the App can access.",
-      "You can delete your account and all of your associated information at any time by contacting us at support@newsspendmedia.com",
+      "You can delete your account and all of your associated information at any time by contacting us at support@newsspend.com",
     ],
   },
   {
@@ -69,7 +69,7 @@ const privacyPolicyContent = [
   {
     title: "8. Contact",
     description:
-      "If you have any questions about this privacy policy, please contact us at support@newsspendmedia.com",
+      "If you have any questions about this privacy policy, please contact us at support@newsspend.com",
     bullets: [],
   },
 ];

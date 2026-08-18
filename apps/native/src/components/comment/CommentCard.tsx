@@ -1,6 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { formatDistance } from "date-fns";
-import { Separator } from "heroui-native";
+import { Separator } from "heroui-native/separator";
 import {
   ArrowBendUpLeftIcon,
   ChatIcon,

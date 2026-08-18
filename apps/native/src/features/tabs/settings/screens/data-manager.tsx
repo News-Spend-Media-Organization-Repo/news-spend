@@ -1,5 +1,5 @@
 import { Directory, Paths } from "expo-file-system";
-import { Spinner } from "heroui-native";
+import { Spinner } from "heroui-native/spinner";
 import { ListGroup } from "heroui-native/list-group";
 import { Separator } from "heroui-native/separator";
 import { Switch } from "heroui-native/switch";

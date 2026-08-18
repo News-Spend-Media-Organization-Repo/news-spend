@@ -1,6 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { Admin } from "@news-spend-media/payload/types";
-import { isDefinedError } from "@orpc/client";
+import { isInferableError } from "@orpc/client";
 import {
   CommonActions,
   useNavigation,
@@ -15,13 +15,13 @@ import { UserIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
-import { toast } from "sonner-native";
 import { useSnapshot } from "valtio";
 import CommentCard from "#/components/comment/CommentCard";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import useGetComments from "#/hooks/comments/useGetComments";
 import { useDislikeNews, useLikeNews, useNews } from "#/hooks/news";
@@ -217,7 +217,7 @@ function Live() {
   const isNotFoundError =
     isFetchedAfterMount &&
     isError &&
-    isDefinedError(error) &&
+    isInferableError(error) &&
     error.code === "NOT_FOUND";
   useEffect(() => {
     if (isNotFoundError) {

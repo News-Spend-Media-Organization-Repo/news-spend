@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRewardedInterstitialAd } from "react-native-google-mobile-ads";
 
+import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 
 type UseGoogleAdOptions = {
@@ -27,7 +28,19 @@ export function useGoogleAd({
     useRewardedInterstitialAd(adUnits.rewardedInterstitial);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    initializeAdsWhenPermitted()
+      .then(() => {
+        if (!cancelled) {
+          load();
+        }
+      })
+      .catch((error) => {
+        console.warn("Ad initialization failed", error);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   useEffect(() => {

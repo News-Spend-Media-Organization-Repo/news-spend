@@ -1,6 +1,10 @@
 import type { CollectionConfig } from "payload";
 
-import { PRIZE_TIER_OPTIONS } from "./constants";
+import {
+  ADMIN_GROUP,
+  FULFILMENT_STATUS_OPTIONS,
+  PRIZE_TIER_OPTIONS,
+} from "./constants";
 
 /**
  * Winner records (spec §12, §13, §21).
@@ -12,7 +16,7 @@ import { PRIZE_TIER_OPTIONS } from "./constants";
 export const GiveawayWinners: CollectionConfig = {
   slug: "giveaway-winners",
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP,
     useAsTitle: "id",
     defaultColumns: [
       "giveaway",
@@ -127,6 +131,7 @@ export const GiveawayWinners: CollectionConfig = {
         { label: "Claimed", value: "claimed" },
         { label: "Expired", value: "expired" },
         { label: "Forfeited", value: "forfeited" },
+        { label: "Disqualified", value: "disqualified" },
       ],
     },
     {
@@ -142,7 +147,35 @@ export const GiveawayWinners: CollectionConfig = {
       type: "date",
       admin: {
         position: "sidebar",
+        readOnly: true,
         date: { pickerAppearance: "dayAndTime" },
+        description:
+          "14 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.",
+      },
+    },
+    {
+      name: "claimPhone",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description:
+          "Number the winner nominated for airtime or data, captured at claim time.",
+      },
+    },
+    {
+      name: "claimRecipientName",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description: "Who the courier should hand a physical prize to.",
+      },
+    },
+    {
+      name: "claimAddress",
+      type: "textarea",
+      admin: {
+        readOnly: true,
+        description: "Delivery address, captured at claim time.",
       },
     },
     {
@@ -151,12 +184,20 @@ export const GiveawayWinners: CollectionConfig = {
       required: true,
       defaultValue: "pending",
       index: true,
-      options: [
-        { label: "Pending", value: "pending" },
-        { label: "In Progress", value: "in_progress" },
-        { label: "Fulfilled", value: "fulfilled" },
-        { label: "Cancelled", value: "cancelled" },
-      ],
+      options: [...FULFILMENT_STATUS_OPTIONS],
+      admin: {
+        description:
+          "On Hold is set automatically when the winner's account is flagged as suspicious (§22.7, §22.8) — the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.",
+      },
+    },
+    {
+      name: "reviewNote",
+      type: "textarea",
+      admin: {
+        readOnly: true,
+        description:
+          "Why this prize was held for review, recorded at selection time.",
+      },
     },
     {
       name: "fulfilledAt",
@@ -164,6 +205,35 @@ export const GiveawayWinners: CollectionConfig = {
       admin: {
         position: "sidebar",
         date: { pickerAppearance: "dayAndTime" },
+      },
+    },
+    {
+      name: "replaces",
+      type: "relationship",
+      relationTo: "giveaway-winners",
+      index: true,
+      admin: {
+        readOnly: true,
+        description:
+          "Set when this record replaces a disqualified winner (§12). The original is kept rather than deleted, so the audit trail stays intact.",
+      },
+    },
+    {
+      name: "disqualifiedAt",
+      type: "date",
+      admin: {
+        position: "sidebar",
+        readOnly: true,
+        date: { pickerAppearance: "dayAndTime" },
+      },
+    },
+    {
+      name: "disqualificationReason",
+      type: "textarea",
+      admin: {
+        readOnly: true,
+        description:
+          "Why this winner was disqualified — recorded before any replacement is drawn.",
       },
     },
   ],

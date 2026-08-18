@@ -35,7 +35,7 @@
     "@payloadcms/plugin-sentry": "catalog:",
     "@payloadcms/plugin-seo": "catalog:",
     "@payloadcms/richtext-lexical": "catalog:",
-    "@sentry/node": "^9",
+    "@sentry/nextjs": "^9",
     "autoprefixer": "^10.4.27",
     "babel-plugin-react-compiler": "^0.0.0",
     "cross-env": "^7.0.3",

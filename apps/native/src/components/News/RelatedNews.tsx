@@ -4,7 +4,7 @@ import {
 } from "@legendapp/list/react-native";
 import type { News, PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
-import { Chip } from "heroui-native";
+import { Chip } from "heroui-native/chip";
 import { memo, useCallback } from "react";
 import {
   Pressable,

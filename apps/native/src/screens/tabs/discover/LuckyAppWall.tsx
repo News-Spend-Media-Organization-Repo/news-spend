@@ -6,12 +6,13 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { ActivityIndicator, Linking, Platform, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 import { ScreenHeader } from "#/components";
 import { Image } from "#/components/heroui/image";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
@@ -46,21 +47,20 @@ function LuckyAppWall() {
     refetchByUser();
   }, [refetchByUser]);
 
-  const handleClick = useCallback((item: PartnerContent) => {
-    let url = Platform.select({
-      ios: item.links?.iosAppStore,
-      android: item.links?.androidPlayStore,
-    });
-    if (!url) {
-      url = item.links?.website;
-    }
-
-    if (!url) {
-      return;
-    }
-
-    Linking.openURL(url);
-  }, []);
+  /**
+   * The shared hook, not a local opener.
+   *
+   * This screen used to call `Linking.openURL` directly, which meant the one
+   * surface that produces Featured Offers (§8) recorded nothing when an offer
+   * was opened. §8 counts partner-confirmed conversions, a conversion needs a
+   * click id, and a click id only exists if `trackClick` ran — so no Featured
+   * Offer could ever be earned, and Tier 1 and Tier 2, which both require one,
+   * were unreachable for everybody.
+   *
+   * Every other partner surface — the all, books and apps tabs — already uses
+   * this hook. This one was the exception.
+   */
+  const { handleClick } = usePartnerClick();
 
   const renderAppItem = ({
     item,

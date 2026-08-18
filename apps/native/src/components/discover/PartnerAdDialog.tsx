@@ -1,6 +1,14 @@
-import { Dialog, PressableFeedback } from "heroui-native";
+import type { PartnerContent } from "@news-spend-media/payload/types";
+import { Dialog } from "heroui-native/dialog";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { XIcon } from "phosphor-react-native";
-import { type ReactNode, useCallback, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   Linking,
@@ -24,7 +32,8 @@ import { PartnerAdContent } from "./partner-ad-content";
 export type PartnerAdDialogProps = {
   open?: boolean;
   setOpen?: (open: boolean) => void;
-  onCountdownComplete?: () => void;
+  /** Receives the partner item watched, or undefined for a Google ad. */
+  onCountdownComplete?: (ad?: PartnerContent) => void;
   countdownDuration?: number;
   showAdLabel?: boolean;
   children?: ReactNode;
@@ -38,6 +47,15 @@ export type PartnerAdDialogProps = {
   hideTrigger?: boolean;
   /** When false, doesn't navigate to LuckyAppWall when ads unavailable (default: true) */
   fallbackToAppWall?: boolean;
+  /**
+   * Pin the rotation to one kind of advertisement instead of sampling it.
+   *
+   * For callers that must know in advance whether an ad can be shown — the
+   * giveaway reveal sequences itself around the answer.
+   */
+  preferAdType?: "custom" | "native";
+  /** Serving this so a Boost can be earned — see `usePartnerAd`. */
+  forBoost?: boolean;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -57,27 +75,51 @@ export function PartnerAdDialog({
   onOpen,
   hideTrigger = false,
   fallbackToAppWall = true,
+  preferAdType,
+  forBoost,
 }: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
 
+  // ── Ad resolution ────────────────────────────────────────────────────────────
+  const { ad, adType, isLoading, refetchAd, cycleAdType } = usePartnerAd({
+    forBoost,
+    forceType: preferAdType,
+  });
+
   // ── Dialog open state ────────────────────────────────────────────────────────
   const [internalOpen, setInternalOpen] = useState(false);
-  const isOpen = externalOpen ?? internalOpen;
+
+  /**
+   * Whether there is actually something to render.
+   *
+   * The trigger path checks this inside `handleOpenChange` before opening. An
+   * external `open` never goes through that path, so a caller that sets it
+   * while the rotation is on a Google ad — or before any partner item has
+   * loaded — used to get a modal with nothing in it. The check lives here,
+   * where both paths meet.
+   */
+  const showable = adType === "custom" && Boolean(ad);
+  const isOpen = (externalOpen ?? internalOpen) && showable;
   const setIsOpen = externalSetOpen ?? setInternalOpen;
 
-  // ── Ad resolution ────────────────────────────────────────────────────────────
-  const { ad, adType, refetchAd, cycleAdType } = usePartnerAd();
-
-  // ── Countdown (only active for custom ads while dialog is open) ──────────────
+  /**
+   * The completed ad is handed to the caller, not just the fact of completion.
+   *
+   * A giveaway Boost is recorded against the specific partner item watched —
+   * three boosts means three different items, and the engine refuses a repeat
+   * — so a caller that only learns "an ad finished" has nothing to record.
+   * A Google ad has no partner-content record, so it reports `undefined` and
+   * the caller decides what that is worth.
+   */
   const { countdown, reset: resetCountdown } = useAdCountdown({
     duration: countdownDuration,
     enabled: isOpen && adType === "custom",
-    onComplete: onCountdownComplete,
+    onComplete: () => onCountdownComplete?.(ad),
   });
 
   // ── Google ad ────────────────────────────────────────────────────────────────
   const googleAd = useGoogleAd({
-    onRewarded: onCountdownComplete,
+    onRewarded: () => onCountdownComplete?.(undefined),
     onClosed: cycleAdType,
   });
 
@@ -99,6 +141,27 @@ export function PartnerAdDialog({
     cycleAdType();
     onClose?.();
   }, [setIsOpen, resetCountdown, refetchAd, cycleAdType, onClose]);
+
+  /**
+   * Hand control straight back when opened from outside with nothing to show.
+   *
+   * A caller that sets `open` is waiting on `onClose` to know the ad is done.
+   * Without this it would wait forever on a dialog that is never going to
+   * appear. Waits out `isLoading` first, so a slow fetch is not mistaken for
+   * an empty one, and fires once per open so `refetchAd` cannot re-trigger it.
+   */
+  const handedBack = useRef(false);
+  useEffect(() => {
+    if (!externalOpen) {
+      handedBack.current = false;
+      return;
+    }
+    if (showable || isLoading || handedBack.current) {
+      return;
+    }
+    handedBack.current = true;
+    handleDidClose();
+  }, [externalOpen, showable, isLoading, handleDidClose]);
 
   const handleClose = useCallback(() => {
     if (adType === "custom" && countdown > 0) {
@@ -142,7 +205,19 @@ export function PartnerAdDialog({
         return;
       }
 
-      // No ad available yet → LuckyAppWall fallback.
+      /**
+       * Still fetching is not the same as nothing to show.
+       *
+       * This used to treat both as "no ad" and send the person to the Lucky
+       * App Wall, so tapping before the query settled navigated them away from
+       * the screen they had just chosen. Doing nothing for the moment it takes
+       * to load is a far smaller cost than moving them somewhere else.
+       */
+      if (isLoading) {
+        return;
+      }
+
+      // Genuinely nothing to show → LuckyAppWall fallback.
       if (!ad) {
         if (fallbackToAppWall) {
           navigate("LuckyAppWall");
@@ -152,7 +227,16 @@ export function PartnerAdDialog({
 
       setIsOpen(true);
     },
-    [onOpen, adType, googleAd, ad, fallbackToAppWall, setIsOpen, handleClose]
+    [
+      onOpen,
+      adType,
+      googleAd,
+      ad,
+      isLoading,
+      fallbackToAppWall,
+      setIsOpen,
+      handleClose,
+    ]
   );
 
   const handleAdClick = useCallback(() => {

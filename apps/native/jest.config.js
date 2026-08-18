@@ -6,6 +6,9 @@ module.exports = {
     "^react-native-keyboard-controller$":
       "react-native-keyboard-controller/jest",
     "^heroui-native$": "<rootDir>/src/__mocks__/heroui-native.tsx",
-    "^heroui-native/(.*)$": "<rootDir>/src/__mocks__/heroui-native/$1.tsx",
+    "^heroui-native/(.*)$": [
+      "<rootDir>/src/__mocks__/heroui-native/$1.tsx",
+      "<rootDir>/src/__mocks__/heroui-native.tsx",
+    ],
   },
 };

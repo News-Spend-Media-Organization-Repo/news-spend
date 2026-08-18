@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { useMMKVObject } from "react-native-mmkv";
-import { toast } from "sonner-native";
 
+import { toast } from "#/components/heroui/toast";
 import useAddActivity from "#/hooks/point/useAddActivity";
 import { authState } from "#/state/auth";
 

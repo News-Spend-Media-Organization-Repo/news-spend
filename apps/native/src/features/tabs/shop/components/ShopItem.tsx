@@ -1,7 +1,8 @@
 import type { Partner } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
-import { Card, Separator } from "heroui-native";
+import { Card } from "heroui-native/card";
+import { Separator } from "heroui-native/separator";
 import { HeartIcon } from "phosphor-react-native";
 import { Pressable, View } from "react-native";
 import { Button } from "#/components/heroui/button";

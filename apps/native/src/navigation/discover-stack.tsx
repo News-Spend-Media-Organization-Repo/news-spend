@@ -1,4 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Suspense } from "react";
 import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
 import { Text } from "#/components/heroui/text";
@@ -18,6 +19,9 @@ function DiscoverHeader() {
 export default createNativeStackNavigator({
   layout: ({ children, state, descriptors, navigation }) => (
     <NavigatorErrorBoundary>{children}</NavigatorErrorBoundary>
+  ),
+  screenLayout: ({ children }) => (
+    <Suspense fallback={<View style={{ flex: 1 }} />}>{children}</Suspense>
   ),
   screens: {
     DiscoverHome: {

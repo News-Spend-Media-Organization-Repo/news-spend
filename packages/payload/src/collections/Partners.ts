@@ -168,6 +168,17 @@ export const Partners: CollectionConfig = {
           },
         },
         {
+          name: "awardOnClick",
+          label: "Count a click as a completed conversion",
+          type: "checkbox",
+          defaultValue: false,
+          index: true,
+          admin: {
+            description:
+              "ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.",
+          },
+        },
+        {
           name: "apiKey",
           type: "text",
           admin: {
@@ -220,12 +231,20 @@ export const Partners: CollectionConfig = {
             "https://api.news-spend-media.com";
           const webhookUrl = `${baseUrl}/api/partner-conversions/webhook/${doc.id}`;
 
+          /**
+           * `req` is passed so this runs inside the transaction that created
+           * the partner. Without it the update opens its own connection, which
+           * cannot see the uncommitted row, and every attempt to create a
+           * webhook or postback partner fails with "Not Found" — the create is
+           * rolled back and the partner never exists.
+           */
           await req.payload.update({
             collection: "partners",
             id: doc.id,
             data: {
               webhookUrl,
             },
+            req,
           });
         }
       },

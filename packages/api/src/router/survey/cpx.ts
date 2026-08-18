@@ -1,9 +1,11 @@
 import crypto from "node:crypto";
 
 import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
-import { ORPCError } from "@orpc/client";
+import { createORPCErrorConstructorMap } from "@orpc/contract";
+import { openapi } from "@orpc/openapi";
 import type { BasePayload } from "payload";
 
+import { commonErrors } from "../../errors";
 import { protectedProcedure, publicProcedure } from "../../index";
 import {
   CPX_APP_ID,
@@ -17,6 +19,11 @@ import {
   getUserCountryCode,
   getUserIpAddress,
 } from "./utils";
+
+// `processCPXPostback` runs outside a procedure handler context, so it cannot
+// use the `errors` factory oRPC injects there. Build the same factories from
+// the shared error map so thrown errors stay defined/inferable on the wire.
+const errors = createORPCErrorConstructorMap(commonErrors);
 
 async function awardPoints({
   input,
@@ -138,7 +145,7 @@ export async function processCPXPostback(input: {
 
   if (secure_hash !== expectedHash) {
     console.error("Invalid secure hash in CPX postback");
-    throw new ORPCError("BAD_REQUEST", {
+    throw errors.BAD_REQUEST({
       message: "Invalid secure hash",
     });
   }
@@ -150,7 +157,7 @@ export async function processCPXPostback(input: {
 
   if (!user) {
     console.error(`User not found: ${user_id}`);
-    throw new ORPCError("NOT_FOUND", {
+    throw errors.NOT_FOUND({
       message: "User not found",
     });
   }
@@ -222,7 +229,7 @@ export async function processCPXPostback(input: {
 
 export const cpxRouter = {
   getSurveys: protectedProcedure.handler(
-    async ({ context }): Promise<CPXSurvey[]> => {
+    async ({ context, errors }): Promise<CPXSurvey[]> => {
       const { user, request } = context;
 
       if (!user) {
@@ -257,7 +264,7 @@ export const cpxRouter = {
         const cpxResponse = await fetch(url);
 
         if (!cpxResponse.ok) {
-          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          throw errors.INTERNAL_SERVER_ERROR({
             message: "Failed to fetch surveys from CPX",
           });
         }
@@ -269,7 +276,7 @@ export const cpxRouter = {
         return validatedData?.surveys || [];
       } catch (error) {
         console.error("Error fetching CPX surveys:", error);
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        throw errors.INTERNAL_SERVER_ERROR({
           message: "Failed to fetch surveys",
         });
       }
@@ -277,14 +284,16 @@ export const cpxRouter = {
   ),
 
   postback: publicProcedure
-    .route({
-      method: "GET",
-      path: "/survey/cpx/postback",
-      tags: ["survey", "cpx"],
-      summary: "CPX Research postback endpoint (GET)",
-      description:
-        "Receives survey conversion notifications from CPX Research.",
-    })
+    .meta(
+      openapi({
+        method: "GET",
+        path: "/survey/cpx/postback",
+        tags: ["survey", "cpx"],
+        summary: "CPX Research postback endpoint (GET)",
+        description:
+          "Receives survey conversion notifications from CPX Research.",
+      })
+    )
     .input(CPXPostBackInputSchema)
     .handler(({ input, context }) => {
       console.log("Received CPX postback (GET):", input);

@@ -118,7 +118,10 @@ export async function sendWitnessReportEmail(
     });
     logger.info({ to, title, name }, "Witness report email sent successfully");
   } catch (error) {
-    logger.error({ error, to, title: params.title }, "Failed to send witness report email");
+    logger.error(
+      { error, to, title: params.title },
+      "Failed to send witness report email"
+    );
   }
 }
 
@@ -161,4 +164,46 @@ export async function sendContentReportEmail(
       "Failed to send content report email"
     );
   }
+}
+
+type WinnerReportEmailParams = {
+  to: string | string[];
+  subject: string;
+  html: string;
+  attachment: { filename: string; content: string };
+};
+
+/**
+ * Email a giveaway Winner Report with its CSV attached (spec §21).
+ *
+ * Unlike the other senders here, this one rethrows. The caller keeps a
+ * delivery log and retries, so it has to be able to tell a send that worked
+ * from one that did not — swallowing the error would record a success that
+ * never happened.
+ */
+export async function sendGiveawayWinnerReport(
+  params: WinnerReportEmailParams
+): Promise<{ id: string | null }> {
+  const { to, subject, html, attachment } = params;
+
+  const { data, error } = await resend.emails.send({
+    from: DEFAULT_FROM_EMAIL,
+    to,
+    subject,
+    html,
+    attachments: [
+      {
+        filename: attachment.filename,
+        content: Buffer.from(attachment.content, "utf-8").toString("base64"),
+      },
+    ],
+  });
+
+  if (error) {
+    logger.error({ error, to, subject }, "Failed to send winner report email");
+    throw new Error(error.message ?? "Winner report email failed to send");
+  }
+
+  logger.info({ to, subject, id: data?.id }, "Winner report email sent");
+  return { id: data?.id ?? null };
 }

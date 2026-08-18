@@ -78,13 +78,19 @@ export interface Config {
     comments: Comment;
     contentReports: ContentReport;
     feedback: Feedback;
+    'giveaway-account-flags': GiveawayAccountFlag;
     'giveaway-audit-log': GiveawayAuditLog;
+    'giveaway-draw-attempts': GiveawayDrawAttempt;
     'giveaway-engagements': GiveawayEngagement;
+    'giveaway-fulfilment-attempts': GiveawayFulfilmentAttempt;
+    'giveaway-pool-snapshots': GiveawayPoolSnapshot;
     'giveaway-prizes': GiveawayPrize;
+    'giveaway-report-deliveries': GiveawayReportDelivery;
     giveaways: Giveaway;
     'giveaway-streaks': GiveawayStreak;
     'giveaway-tickets': GiveawayTicket;
     'giveaway-winners': GiveawayWinner;
+    'identity-checks': IdentityCheck;
     'prize-catalogue': PrizeCatalogue;
     'identity-verification': IdentityVerification;
     lottery: Lottery;
@@ -106,6 +112,7 @@ export interface Config {
     'shop-analytics': ShopAnalytic;
     survey: Survey;
     'ticket-purchase-log': TicketPurchaseLog;
+    userBlocks: UserBlock;
     users: User;
     verifications: Verification;
     'witness-reports': WitnessReport;
@@ -125,13 +132,19 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     contentReports: ContentReportsSelect<false> | ContentReportsSelect<true>;
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
+    'giveaway-account-flags': GiveawayAccountFlagsSelect<false> | GiveawayAccountFlagsSelect<true>;
     'giveaway-audit-log': GiveawayAuditLogSelect<false> | GiveawayAuditLogSelect<true>;
+    'giveaway-draw-attempts': GiveawayDrawAttemptsSelect<false> | GiveawayDrawAttemptsSelect<true>;
     'giveaway-engagements': GiveawayEngagementsSelect<false> | GiveawayEngagementsSelect<true>;
+    'giveaway-fulfilment-attempts': GiveawayFulfilmentAttemptsSelect<false> | GiveawayFulfilmentAttemptsSelect<true>;
+    'giveaway-pool-snapshots': GiveawayPoolSnapshotsSelect<false> | GiveawayPoolSnapshotsSelect<true>;
     'giveaway-prizes': GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
+    'giveaway-report-deliveries': GiveawayReportDeliveriesSelect<false> | GiveawayReportDeliveriesSelect<true>;
     giveaways: GiveawaysSelect<false> | GiveawaysSelect<true>;
     'giveaway-streaks': GiveawayStreaksSelect<false> | GiveawayStreaksSelect<true>;
     'giveaway-tickets': GiveawayTicketsSelect<false> | GiveawayTicketsSelect<true>;
     'giveaway-winners': GiveawayWinnersSelect<false> | GiveawayWinnersSelect<true>;
+    'identity-checks': IdentityChecksSelect<false> | IdentityChecksSelect<true>;
     'prize-catalogue': PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
     'identity-verification': IdentityVerificationSelect<false> | IdentityVerificationSelect<true>;
     lottery: LotterySelect<false> | LotterySelect<true>;
@@ -153,6 +166,7 @@ export interface Config {
     'shop-analytics': ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
     'ticket-purchase-log': TicketPurchaseLogSelect<false> | TicketPurchaseLogSelect<true>;
+    userBlocks: UserBlocksSelect<false> | UserBlocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
     'witness-reports': WitnessReportsSelect<false> | WitnessReportsSelect<true>;
@@ -190,6 +204,7 @@ export interface Config {
       sendUrgentModerationAlert: TaskSendUrgentModerationAlert;
       checkPushReceipts: TaskCheckPushReceipts;
       processLottery: TaskProcessLottery;
+      processGiveaway: TaskProcessGiveaway;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
       deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
@@ -380,6 +395,10 @@ export interface Partner {
    */
   webhookSecret?: string | null;
   /**
+   * ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.
+   */
+  awardOnClick?: boolean | null;
+  /**
    * API key for partner authentication
    */
   apiKey?: string | null;
@@ -530,6 +549,18 @@ export interface User {
   username: string;
   wish: string;
   phone: string;
+  /**
+   * Required to take part in giveaways — prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.
+   */
+  dateOfBirth?: string | null;
+  /**
+   * ISO country code the user selected. A display signal only — it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.
+   */
+  country?: string | null;
+  /**
+   * Country from the identity document, once verified. This is the version anyone has actually checked, so it outranks the self-reported one wherever the answer has consequences.
+   */
+  verifiedCountry?: string | null;
   _verified: boolean;
   isAnonymous?: boolean | null;
   dailyRead: DailyRead;
@@ -560,16 +591,10 @@ export interface User {
     | number
     | boolean
     | null;
-  blockedUsers?: (string | User)[] | null;
-  reportedComments?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  /**
+   * Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.
+   */
+  lastGiveawayResultSeen?: (string | null) | Giveaway;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -585,6 +610,180 @@ export interface DailyRead {
   count?: number;
   updatedAt?: string;
   [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaways".
+ */
+export interface Giveaway {
+  id: string;
+  name: string;
+  description?: string | null;
+  startDate: string;
+  /**
+   * When the countdown ends and the draw becomes eligible to run.
+   */
+  endDate: string;
+  /**
+   * Points charged per ticket.
+   */
+  ticketPrice: number;
+  /**
+   * The smallest number of tickets a user may buy at once (spec §1). This is a purchase floor, not a tier requirement.
+   */
+  minTicketsRequired: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier1WinnerPercentage: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier2WinnerPercentage: number;
+  /**
+   * 0 disables this tier. Maximum 100.
+   */
+  tier3WinnerPercentage: number;
+  /**
+   * The share of stocked prize units this draw may award. 100 means the Maximum Units figures are the only ceiling; 85 would hold 15% of the stock back for later giveaways.
+   */
+  budgetUtilizationPct: number;
+  /**
+   * Total retail value this draw may award. Leave empty for no monetary cap. Every prize in the pool must have a Value (₦) for this to be usable.
+   */
+  maxBudgetCapNaira?: number | null;
+  status:
+    | 'draft'
+    | 'active'
+    | 'ready'
+    | 'pool_building'
+    | 'pool_locked'
+    | 'draw_in_progress'
+    | 'interrupted'
+    | 'resumption_authorized'
+    | 'completed'
+    | 'failed'
+    | 'cancelled';
+  /**
+   * Unique users holding at least one valid ticket, captured once when the draw begins. Constant for the whole draw.
+   */
+  totalValidParticipants?: number | null;
+  /**
+   * Cryptographic seed used for this draw. Enables replay for audit.
+   */
+  drawSeed?: string | null;
+  /**
+   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (§19).
+   */
+  drawExecutionId?: string | null;
+  /**
+   * The last material step the draw completed. A resumption continues from the next one (§19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * The most recent execution attempt.
+   */
+  currentAttempt?: (string | null) | GiveawayDrawAttempt;
+  resumptionAuthorizedBy?: string | null;
+  resumptionAuthorizedAt?: string | null;
+  drawStartedAt?: string | null;
+  drawCompletedAt?: string | null;
+  drawError?: string | null;
+  winnerReportSentAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every execution of a draw, including authorized resumptions. All attempts at one draw share an Execution ID.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-draw-attempts".
+ */
+export interface GiveawayDrawAttempt {
+  id: string;
+  giveaway: string | Giveaway;
+  /**
+   * Shared by every attempt at the same draw. Unchanged across resumptions.
+   */
+  executionId: string;
+  /**
+   * 1 for the original run, incrementing for each resumption.
+   */
+  attemptNumber: number;
+  kind: 'initial' | 'resumption';
+  /**
+   * The attempt this one continues.
+   */
+  resumes?: (string | null) | GiveawayDrawAttempt;
+  /**
+   * The draw seed. A resumption reuses the original — a fresh seed would change the winners of the tiers that had not yet run.
+   */
+  seed: string;
+  outcome: 'running' | 'completed' | 'interrupted' | 'failed';
+  /**
+   * The last material step this attempt completed (§19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * Who authorized this resumption. Empty for an initial run, which needs no authorization.
+   */
+  authorizedBy?: string | null;
+  /**
+   * Why the attempt stopped, if it did not complete.
+   */
+  error?: string | null;
+  startedAt: string;
+  endedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -806,6 +1005,43 @@ export interface Feedback {
   createdAt: string;
 }
 /**
+ * Accounts excluded from draws or held for review. An account with no row here is treated as trusted.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-account-flags".
+ */
+export interface GiveawayAccountFlag {
+  id: string;
+  user: string | User;
+  /**
+   * Disqualified accounts are removed from the pool. Suspicious accounts still take part, but any prize they win is held for review.
+   */
+  trustStatus: 'ok' | 'suspicious' | 'disqualified';
+  /**
+   * Identifier shared by accounts judged to belong to the same person. Every account in a group is excluded from the pool (§22.6).
+   */
+  duplicateAccountGroup?: string | null;
+  /**
+   * Why this account was flagged. Included in the audit log.
+   */
+  reason?: string | null;
+  flaggedAt: string;
+  /**
+   * Administrator who last reviewed this account.
+   */
+  reviewedBy?: (string | null) | Admin;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Append-only. Records cannot be edited or deleted.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -821,9 +1057,22 @@ export interface GiveawayAuditLog {
     | 'featured_offer_completion'
     | 'participants_snapshot'
     | 'candidate_pool_built'
+    | 'candidate_pool_locked'
+    | 'checkpoint_reached'
+    | 'draw_interrupted'
+    | 'resumption_authorized'
+    | 'giveaway_cancelled'
+    | 'winner_disqualified'
+    | 'replacement_selected'
+    | 'winner_held_ticket_invalid'
+    | 'account_excluded'
+    | 'fairness_exclusion'
+    | 'loyalty_waiver_applied'
+    | 'winner_held_for_review'
     | 'winner_selected'
     | 'prize_allocated'
     | 'prize_exhausted'
+    | 'budget_limit_reached'
     | 'tier_completed'
     | 'draw_started'
     | 'draw_resumed'
@@ -850,56 +1099,6 @@ export interface GiveawayAuditLog {
     | boolean
     | null;
   occurredAt: string;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "giveaways".
- */
-export interface Giveaway {
-  id: string;
-  name: string;
-  description?: string | null;
-  startDate: string;
-  /**
-   * When the countdown ends and the draw becomes eligible to run.
-   */
-  endDate: string;
-  ticketPrice: number;
-  /**
-   * 0 disables this tier. Maximum 100.
-   */
-  tier1WinnerPercentage: number;
-  /**
-   * 0 disables this tier. Maximum 100.
-   */
-  tier2WinnerPercentage: number;
-  /**
-   * 0 disables this tier. Maximum 100.
-   */
-  tier3WinnerPercentage: number;
-  status: 'draft' | 'active' | 'drawing' | 'completed' | 'failed';
-  /**
-   * Unique users holding at least one valid ticket, captured once when the draw begins. Constant for the whole draw.
-   */
-  totalValidParticipants?: number | null;
-  /**
-   * Cryptographic seed used for this draw. Enables replay for audit.
-   */
-  drawSeed?: string | null;
-  drawStartedAt?: string | null;
-  drawCompletedAt?: string | null;
-  drawError?: string | null;
-  winnerReportSentAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -1199,31 +1398,115 @@ export interface PartnerConversion {
   createdAt: string;
 }
 /**
- * The prizes selected for a giveaway, and how many units of each may be awarded.
+ * Provider payouts for airtime and data prizes. Append-only — the record of what was actually sent.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "giveaway-prizes".
+ * via the `definition` "giveaway-fulfilment-attempts".
  */
-export interface GiveawayPrize {
+export interface GiveawayFulfilmentAttempt {
+  id: string;
+  winner: string | GiveawayWinner;
+  provider: 'reloadly';
+  /**
+   * Which environment this ran against. A sandbox payout delivered nothing, however successful it looks.
+   */
+  environment: 'sandbox' | 'live';
+  outcome: 'sent' | 'already_sent' | 'retryable_failure' | 'permanent_failure' | 'skipped';
+  /**
+   * The idempotency key sent to the provider. Repeating it is what stops a double payment.
+   */
+  providerReference?: string | null;
+  providerTransactionId?: string | null;
+  /**
+   * Network the top-up was sent to, as the provider knows it.
+   */
+  operatorId?: number | null;
+  operatorName?: string | null;
+  /**
+   * Amount in the recipient's own currency, as promised.
+   */
+  localAmount?: number | null;
+  recipientPhone?: string | null;
+  error?: string | null;
+  attemptedAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-winners".
+ */
+export interface GiveawayWinner {
   id: string;
   giveaway: string | Giveaway;
-  prize: string | PrizeCatalogue;
-  /**
-   * Inherited from the Master Prize Catalogue.
-   */
+  user: string | User;
   tier: 'tier1' | 'tier2' | 'tier3';
   /**
-   * Maximum units of this prize that may be awarded. Positive whole numbers only.
+   * Reference to the Master Prize Catalogue entry.
    */
-  maxUnits: number;
+  prize: string | PrizeCatalogue;
   /**
-   * Incremented by the draw engine as prizes are allocated.
+   * Prize name captured at allocation time, so reports stay accurate if the catalogue is later renamed.
    */
-  unitsAwarded: number;
+  prizeName: string;
   /**
-   * Maximum Units − Units Awarded.
+   * The specific ticket entry drawn for this winner.
    */
-  unitsRemaining?: number | null;
+  winningTicket: string | GiveawayTicket;
+  /**
+   * Total valid tickets this user held when the draw began.
+   */
+  validTicketCount: number;
+  /**
+   * Successful Boost Your Luck interactions during the giveaway.
+   */
+  boostCount: number;
+  featuredOfferCount: number;
+  selectedAt: string;
+  claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited' | 'disqualified';
+  claimedAt?: string | null;
+  /**
+   * 14 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
+   */
+  claimDeadline?: string | null;
+  /**
+   * Number the winner nominated for airtime or data, captured at claim time.
+   */
+  claimPhone?: string | null;
+  /**
+   * Who the courier should hand a physical prize to.
+   */
+  claimRecipientName?: string | null;
+  /**
+   * Delivery address, captured at claim time.
+   */
+  claimAddress?: string | null;
+  /**
+   * On Hold is set automatically when the winner's account is flagged as suspicious (§22.7, §22.8) — the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.
+   */
+  fulfilmentStatus: 'pending' | 'awaiting_verification' | 'on_hold' | 'in_progress' | 'fulfilled' | 'cancelled';
+  /**
+   * Why this prize was held for review, recorded at selection time.
+   */
+  reviewNote?: string | null;
+  fulfilledAt?: string | null;
+  /**
+   * Set when this record replaces a disqualified winner (§12). The original is kept rather than deleted, so the audit trail stays intact.
+   */
+  replaces?: (string | null) | GiveawayWinner;
+  disqualifiedAt?: string | null;
+  /**
+   * Why this winner was disqualified — recorded before any replacement is drawn.
+   */
+  disqualificationReason?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -1252,41 +1535,48 @@ export interface PrizeCatalogue {
    */
   tier: 'tier1' | 'tier2' | 'tier3';
   description?: string | null;
+  /**
+   * Drives the whole claim flow: what the app asks the winner for, and whether fulfilment is automatic or arranged by hand.
+   */
+  fulfilmentType: 'points' | 'airtime' | 'data' | 'gift_card' | 'physical' | 'experience';
+  /**
+   * Credited to the winner the moment they claim. Required for a points prize.
+   */
+  pointsAmount?: number | null;
+  /**
+   * Retail value of one unit. Only required if a giveaway sets a monetary budget cap; otherwise it is for reporting.
+   */
+  valueNaira?: number | null;
+  /**
+   * The winner can still claim immediately — this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
+   */
+  requiresVerification?: boolean | null;
+  /**
+   * What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number and this is the only field a person needs to set.
+   */
+  reloadlyLocalAmount?: number | null;
+  /**
+   * A data bundle is provisioned by one specific network for that network's own SIMs — an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.
+   */
+  reloadlyDataPlans?:
+    | {
+        network: 'mtn' | 'airtel' | 'glo' | 't2';
+        /**
+         * This network's "…Data" operator, not its airtime one — look it up from Reloadly's operator list.
+         */
+        reloadlyOperatorId: number;
+        /**
+         * The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount — check the operator's own plan list rather than assuming Value (₦) applies.
+         */
+        reloadlyLocalAmount: number;
+        id?: string | null;
+      }[]
+    | null;
   image?: (string | null) | Media;
   /**
    * Inactive prizes cannot be added to new giveaways. Existing giveaways are unaffected.
    */
   active?: boolean | null;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Consecutive-giveaway qualification counters. Persist across giveaways by design.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "giveaway-streaks".
- */
-export interface GiveawayStreak {
-  id: string;
-  user: string | User;
-  tier: 'tier1' | 'tier2' | 'tier3';
-  /**
-   * Consecutive giveaways in which the user met this tier's consecutive bar. Reset to 0 on any miss.
-   */
-  consecutiveCount: number;
-  /**
-   * Guards against double-counting if a draw is re-run for the same giveaway.
-   */
-  lastEvaluatedGiveaway?: (string | null) | Giveaway;
-  lastQualifiedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -1336,41 +1626,190 @@ export interface GiveawayTicket {
   createdAt: string;
 }
 /**
+ * The candidate pool as locked at draw time. Replacement winners are drawn from here.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "giveaway-winners".
+ * via the `definition` "giveaway-pool-snapshots".
  */
-export interface GiveawayWinner {
+export interface GiveawayPoolSnapshot {
   id: string;
   giveaway: string | Giveaway;
+  tier: 'tier1' | 'tier2' | 'tier3';
+  /**
+   * Distinct users eligible for this tier when it was locked.
+   */
+  candidateCount: number;
+  /**
+   * One entry per valid ticket purchase: { ticketId, userKey, quantity }. Preserves the ticket weighting the draw used.
+   */
+  entries:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lockedAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The prizes selected for a giveaway, and how many units of each may be awarded.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-prizes".
+ */
+export interface GiveawayPrize {
+  id: string;
+  giveaway: string | Giveaway;
+  prize: string | PrizeCatalogue;
+  /**
+   * Inherited from the Master Prize Catalogue.
+   */
+  tier: 'tier1' | 'tier2' | 'tier3';
+  /**
+   * Maximum units of this prize that may be awarded. Positive whole numbers only.
+   */
+  maxUnits: number;
+  /**
+   * Incremented by the draw engine as prizes are allocated.
+   */
+  unitsAwarded: number;
+  /**
+   * Maximum Units − Units Awarded.
+   */
+  unitsRemaining?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every attempt to email a Winner Report. The original is sent automatically when a draw completes; resends are recorded alongside it.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-report-deliveries".
+ */
+export interface GiveawayReportDelivery {
+  id: string;
+  giveaway: string | Giveaway;
+  /**
+   * There is at most one original per draw. Everything else is a resend.
+   */
+  kind: 'original' | 'resend';
+  status: 'pending' | 'sent' | 'failed';
+  recipient: string;
+  subject: string;
+  attachmentFileName?: string | null;
+  /**
+   * Winners listed in the attachment when it was sent.
+   */
+  winnerCount?: number | null;
+  /**
+   * Delivery attempts made for this row, including automatic retries.
+   */
+  attempts: number;
+  /**
+   * The mail provider's id, for tracing a delivery.
+   */
+  providerMessageId?: string | null;
+  /**
+   * The last failure, if this delivery did not succeed.
+   */
+  error?: string | null;
+  /**
+   * Who asked for a resend. Empty for the original.
+   */
+  requestedBy?: string | null;
+  sentAt?: string | null;
+  createdAtIso: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Consecutive-giveaway qualification counters. Persist across giveaways by design.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-streaks".
+ */
+export interface GiveawayStreak {
+  id: string;
   user: string | User;
   tier: 'tier1' | 'tier2' | 'tier3';
   /**
-   * Reference to the Master Prize Catalogue entry.
+   * Consecutive giveaways in which the user met this tier's consecutive bar. Reset to 0 on any miss.
    */
-  prize: string | PrizeCatalogue;
+  consecutiveCount: number;
   /**
-   * Prize name captured at allocation time, so reports stay accurate if the catalogue is later renamed.
+   * Guards against double-counting if a draw is re-run for the same giveaway.
    */
-  prizeName: string;
+  lastEvaluatedGiveaway?: (string | null) | Giveaway;
+  lastQualifiedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Identity decisions from the verification provider. No documents are stored here — the provider holds those.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity-checks".
+ */
+export interface IdentityCheck {
+  id: string;
   /**
-   * The specific ticket entry drawn for this winner.
+   * The person this decision is about.
    */
-  winningTicket: string | GiveawayTicket;
+  user: string | User;
+  provider: 'didit';
   /**
-   * Total valid tickets this user held when the draw began.
+   * Unique so a replayed webhook updates the existing row instead of creating a second decision for the same session.
    */
-  validTicketCount: number;
+  sessionId: string;
   /**
-   * Successful Boost Your Luck interactions during the giveaway.
+   * Only Approved releases a prize. In Review means the provider wants a human to look, and nothing is dispatched meanwhile.
    */
-  boostCount: number;
-  featuredOfferCount: number;
-  selectedAt: string;
-  claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited';
-  claimedAt?: string | null;
-  claimDeadline?: string | null;
-  fulfilmentStatus: 'pending' | 'in_progress' | 'fulfilled' | 'cancelled';
-  fulfilledAt?: string | null;
+  status: 'Not Started' | 'In Progress' | 'In Review' | 'Approved' | 'Declined' | 'Abandoned' | 'Expired';
+  /**
+   * When a final decision landed, as opposed to a progress update.
+   */
+  decidedAt?: string | null;
+  lastWebhookAt?: string | null;
+  /**
+   * Anything a person needs to know — a declined reason, or why a decision was overridden.
+   */
+  note?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -1923,6 +2362,33 @@ export interface TicketPurchaseLog {
   createdAt: string;
 }
 /**
+ * Users blocked by other users. Created from the app; blocking also files a Content Report so moderators are notified.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "userBlocks".
+ */
+export interface UserBlock {
+  id: string;
+  /**
+   * The user who initiated the block.
+   */
+  blocker: string | User;
+  /**
+   * The user whose content is hidden as a result.
+   */
+  blocked: string | User;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "verifications".
  */
@@ -2087,6 +2553,7 @@ export interface PayloadJob {
           | 'sendUrgentModerationAlert'
           | 'checkPushReceipts'
           | 'processLottery'
+          | 'processGiveaway'
           | 'cleanupAnonymousUsers'
           | 'generateVideoThumbnail'
           | 'deleteVideoThumbTemp'
@@ -2132,6 +2599,7 @@ export interface PayloadJob {
         | 'sendUrgentModerationAlert'
         | 'checkPushReceipts'
         | 'processLottery'
+        | 'processGiveaway'
         | 'cleanupAnonymousUsers'
         | 'generateVideoThumbnail'
         | 'deleteVideoThumbTemp'
@@ -2189,16 +2657,36 @@ export interface PayloadLockedDocument {
         value: string | Feedback;
       } | null)
     | ({
+        relationTo: 'giveaway-account-flags';
+        value: string | GiveawayAccountFlag;
+      } | null)
+    | ({
         relationTo: 'giveaway-audit-log';
         value: string | GiveawayAuditLog;
+      } | null)
+    | ({
+        relationTo: 'giveaway-draw-attempts';
+        value: string | GiveawayDrawAttempt;
       } | null)
     | ({
         relationTo: 'giveaway-engagements';
         value: string | GiveawayEngagement;
       } | null)
     | ({
+        relationTo: 'giveaway-fulfilment-attempts';
+        value: string | GiveawayFulfilmentAttempt;
+      } | null)
+    | ({
+        relationTo: 'giveaway-pool-snapshots';
+        value: string | GiveawayPoolSnapshot;
+      } | null)
+    | ({
         relationTo: 'giveaway-prizes';
         value: string | GiveawayPrize;
+      } | null)
+    | ({
+        relationTo: 'giveaway-report-deliveries';
+        value: string | GiveawayReportDelivery;
       } | null)
     | ({
         relationTo: 'giveaways';
@@ -2215,6 +2703,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'giveaway-winners';
         value: string | GiveawayWinner;
+      } | null)
+    | ({
+        relationTo: 'identity-checks';
+        value: string | IdentityCheck;
       } | null)
     | ({
         relationTo: 'prize-catalogue';
@@ -2299,6 +2791,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'ticket-purchase-log';
         value: string | TicketPurchaseLog;
+      } | null)
+    | ({
+        relationTo: 'userBlocks';
+        value: string | UserBlock;
       } | null)
     | ({
         relationTo: 'users';
@@ -2499,6 +2995,22 @@ export interface FeedbackSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-account-flags_select".
+ */
+export interface GiveawayAccountFlagsSelect<T extends boolean = true> {
+  user?: T;
+  trustStatus?: T;
+  duplicateAccountGroup?: T;
+  reason?: T;
+  flaggedAt?: T;
+  reviewedBy?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-audit-log_select".
  */
 export interface GiveawayAuditLogSelect<T extends boolean = true> {
@@ -2509,6 +3021,28 @@ export interface GiveawayAuditLogSelect<T extends boolean = true> {
   message?: T;
   detail?: T;
   occurredAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-draw-attempts_select".
+ */
+export interface GiveawayDrawAttemptsSelect<T extends boolean = true> {
+  giveaway?: T;
+  executionId?: T;
+  attemptNumber?: T;
+  kind?: T;
+  resumes?: T;
+  seed?: T;
+  outcome?: T;
+  lastCheckpoint?: T;
+  authorizedBy?: T;
+  error?: T;
+  startedAt?: T;
+  endedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -2534,6 +3068,43 @@ export interface GiveawayEngagementsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-fulfilment-attempts_select".
+ */
+export interface GiveawayFulfilmentAttemptsSelect<T extends boolean = true> {
+  winner?: T;
+  provider?: T;
+  environment?: T;
+  outcome?: T;
+  providerReference?: T;
+  providerTransactionId?: T;
+  operatorId?: T;
+  operatorName?: T;
+  localAmount?: T;
+  recipientPhone?: T;
+  error?: T;
+  attemptedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-pool-snapshots_select".
+ */
+export interface GiveawayPoolSnapshotsSelect<T extends boolean = true> {
+  giveaway?: T;
+  tier?: T;
+  candidateCount?: T;
+  entries?: T;
+  lockedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-prizes_select".
  */
 export interface GiveawayPrizesSelect<T extends boolean = true> {
@@ -2550,6 +3121,29 @@ export interface GiveawayPrizesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "giveaway-report-deliveries_select".
+ */
+export interface GiveawayReportDeliveriesSelect<T extends boolean = true> {
+  giveaway?: T;
+  kind?: T;
+  status?: T;
+  recipient?: T;
+  subject?: T;
+  attachmentFileName?: T;
+  winnerCount?: T;
+  attempts?: T;
+  providerMessageId?: T;
+  error?: T;
+  requestedBy?: T;
+  sentAt?: T;
+  createdAtIso?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaways_select".
  */
 export interface GiveawaysSelect<T extends boolean = true> {
@@ -2558,12 +3152,20 @@ export interface GiveawaysSelect<T extends boolean = true> {
   startDate?: T;
   endDate?: T;
   ticketPrice?: T;
+  minTicketsRequired?: T;
   tier1WinnerPercentage?: T;
   tier2WinnerPercentage?: T;
   tier3WinnerPercentage?: T;
+  budgetUtilizationPct?: T;
+  maxBudgetCapNaira?: T;
   status?: T;
   totalValidParticipants?: T;
   drawSeed?: T;
+  drawExecutionId?: T;
+  lastCheckpoint?: T;
+  currentAttempt?: T;
+  resumptionAuthorizedBy?: T;
+  resumptionAuthorizedAt?: T;
   drawStartedAt?: T;
   drawCompletedAt?: T;
   drawError?: T;
@@ -2624,8 +3226,32 @@ export interface GiveawayWinnersSelect<T extends boolean = true> {
   claimStatus?: T;
   claimedAt?: T;
   claimDeadline?: T;
+  claimPhone?: T;
+  claimRecipientName?: T;
+  claimAddress?: T;
   fulfilmentStatus?: T;
+  reviewNote?: T;
   fulfilledAt?: T;
+  replaces?: T;
+  disqualifiedAt?: T;
+  disqualificationReason?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity-checks_select".
+ */
+export interface IdentityChecksSelect<T extends boolean = true> {
+  user?: T;
+  provider?: T;
+  sessionId?: T;
+  status?: T;
+  decidedAt?: T;
+  lastWebhookAt?: T;
+  note?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -2639,6 +3265,19 @@ export interface PrizeCatalogueSelect<T extends boolean = true> {
   name?: T;
   tier?: T;
   description?: T;
+  fulfilmentType?: T;
+  pointsAmount?: T;
+  valueNaira?: T;
+  requiresVerification?: T;
+  reloadlyLocalAmount?: T;
+  reloadlyDataPlans?:
+    | T
+    | {
+        network?: T;
+        reloadlyOperatorId?: T;
+        reloadlyLocalAmount?: T;
+        id?: T;
+      };
   image?: T;
   active?: T;
   createdBy?: T;
@@ -3026,6 +3665,7 @@ export interface PartnersSelect<T extends boolean = true> {
   integrationMethod?: T;
   webhookUrl?: T;
   webhookSecret?: T;
+  awardOnClick?: T;
   apiKey?: T;
   createdBy?: T;
   lastModifiedBy?: T;
@@ -3150,6 +3790,18 @@ export interface TicketPurchaseLogSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "userBlocks_select".
+ */
+export interface UserBlocksSelect<T extends boolean = true> {
+  blocker?: T;
+  blocked?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -3160,14 +3812,16 @@ export interface UsersSelect<T extends boolean = true> {
   username?: T;
   wish?: T;
   phone?: T;
+  dateOfBirth?: T;
+  country?: T;
+  verifiedCountry?: T;
   _verified?: T;
   isAnonymous?: T;
   dailyRead?: T;
   notificationPreferences?: T;
   lastActive?: T;
   customAttributes?: T;
-  blockedUsers?: T;
-  reportedComments?: T;
+  lastGiveawayResultSeen?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -3520,6 +4174,21 @@ export interface TaskProcessLottery {
   output: {
     processedExpired?: number | null;
     createdNew?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskProcessGiveaway".
+ */
+export interface TaskProcessGiveaway {
+  input?: unknown;
+  output: {
+    drawn?: number | null;
+    prizesFulfilled?: number | null;
+    prizesFailed?: number | null;
+    claimsExpired?: number | null;
+    reportsRetried?: number | null;
+    reportsSent?: number | null;
   };
 }
 /**

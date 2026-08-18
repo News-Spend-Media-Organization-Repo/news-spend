@@ -1,5 +1,5 @@
 import { useScrollToTop } from "@react-navigation/native";
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
   type LayoutChangeEvent,

@@ -5,7 +5,6 @@ import {
   users,
 } from "@news-spend-media/payload/payload-generated-schema";
 import type { LotteryTicket } from "@news-spend-media/payload/types";
-import { ORPCError } from "@orpc/client";
 import { and, desc, eq, sql } from "@payloadcms/db-postgres/drizzle";
 import z from "zod";
 
@@ -48,7 +47,7 @@ export type CreateLotteryTicketInput = z.infer<typeof CreateLotteryTicketInput>;
 
 const create = protectedNoGuestProcedure
   .input(CreateLotteryTicketInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { num_of_tickets } = input;
     const { user, payload } = context;
     const db = payload.db.drizzle;
@@ -60,7 +59,7 @@ const create = protectedNoGuestProcedure
     });
 
     if (currentLottery.totalDocs < 1) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "No active giveaway",
       });
     }
@@ -103,7 +102,7 @@ const create = protectedNoGuestProcedure
       const userPoints = balanceRows[0]?.totalPoints ?? 0;
 
       if (userPoints < cost) {
-        throw new ORPCError("BAD_REQUEST", {
+        throw errors.BAD_REQUEST({
           message: `Not enough points. ${num_of_tickets} ticket${num_of_tickets === 1 ? "" : "s"} costs ${cost} points and you have ${userPoints}.`,
         });
       }
@@ -220,35 +219,37 @@ const purchaseLog = publicProcedure.handler(async ({ context }) => {
   return result;
 });
 
-const boostLuck = protectedNoGuestProcedure.handler(async ({ context }) => {
-  const { user, payload } = context;
-  const drizzle = payload.db.drizzle;
-  const activeLottery = await payload.find({
-    collection: "lottery",
-    where: { isActive: { equals: true } },
-  });
-
-  const result = await drizzle
-    .update(lottery_tickets)
-    .set({
-      boostLuck: sql`${lottery_tickets.boostLuck} + 1`,
-    })
-    .where(
-      and(
-        eq(lottery_tickets.user, user.id),
-        eq(lottery_tickets.lottery, activeLottery.docs[0]?.id ?? "0")
-      )
-    )
-    .returning();
-
-  if (!result.length) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "No giveaway ticket found",
+const boostLuck = protectedNoGuestProcedure.handler(
+  async ({ context, errors }) => {
+    const { user, payload } = context;
+    const drizzle = payload.db.drizzle;
+    const activeLottery = await payload.find({
+      collection: "lottery",
+      where: { isActive: { equals: true } },
     });
-  }
 
-  return result;
-});
+    const result = await drizzle
+      .update(lottery_tickets)
+      .set({
+        boostLuck: sql`${lottery_tickets.boostLuck} + 1`,
+      })
+      .where(
+        and(
+          eq(lottery_tickets.user, user.id),
+          eq(lottery_tickets.lottery, activeLottery.docs[0]?.id ?? "0")
+        )
+      )
+      .returning();
+
+    if (!result.length) {
+      throw errors.NOT_FOUND({
+        message: "No giveaway ticket found",
+      });
+    }
+
+    return result;
+  }
+);
 
 export const lotteryTicketRouter = {
   create,

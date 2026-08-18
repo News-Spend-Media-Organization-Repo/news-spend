@@ -41,10 +41,11 @@ export function GamesTab() {
       }
 
       if (gameUrl) {
-        navigation.navigate("SurveyWebView" as any, {
+        navigation.navigate("InAppBrowser" as any, {
           url: gameUrl,
           type: "game",
           title,
+          hideHeader: true,
         });
       }
     },

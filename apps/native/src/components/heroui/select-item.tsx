@@ -1,4 +1,6 @@
-import { Checkbox, cn, Select } from "heroui-native";
+import { Checkbox } from "heroui-native/checkbox";
+import { cn } from "heroui-native/utils";
+import { Select } from "heroui-native/select";
 import { Text, View } from "react-native";
 import { Icon } from "./icon";
 

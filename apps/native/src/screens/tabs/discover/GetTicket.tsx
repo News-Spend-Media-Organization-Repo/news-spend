@@ -1,7 +1,8 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { startOfWeek } from "date-fns";
-import { Card, PressableFeedback } from "heroui-native";
+import { Card } from "heroui-native/card";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { MinusCircleIcon, PlusCircleIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
@@ -12,6 +13,7 @@ import { DialogWithAd } from "#/components/discover/DialogWithAd";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 
@@ -26,14 +28,16 @@ const GetTicket = () => {
   const incrementIntervalRef = useRef<NodeJS.Timeout>();
 
   const totalPoints = useQuery(orpc.activity.totalPoints.queryOptions());
+  // The giveaway engine, not the lottery this screen was built for.
   const { data: currentLottery, isPending: isLotteryPending } = useQuery(
-    orpc.lottery.current.queryOptions()
+    orpc.giveaway.current.queryOptions()
   );
   const hasActiveLottery = !isLotteryPending && Boolean(currentLottery);
 
   // Preload native ad on mount
   useEffect(() => {
-    NativeAd.createForAdRequest(adUnits.native)
+    initializeAdsWhenPermitted()
+      .then(() => NativeAd.createForAdRequest(adUnits.native))
       .then(setPreloadedNativeAd)
       .catch(() => {
         // Silently fail - dialog will show custom ad fallback
@@ -59,7 +63,7 @@ const GetTicket = () => {
     }
     if (
       (totalPoints?.data ?? 0) >=
-      value * (currentLottery?.ticketPrice ?? 50)
+      value * (currentLottery?.ticketPrice ?? 0)
     ) {
       setOpen(true);
     } else {
@@ -181,7 +185,7 @@ const GetTicket = () => {
                 {isLotteryPending || hasActiveLottery ? (
                   <Text className="text-p-400">
                     Required points:{" "}
-                    {value * (currentLottery?.ticketPrice ?? 50)} points
+                    {value * (currentLottery?.ticketPrice ?? 0)} points
                   </Text>
                 ) : (
                   <Text className="text-danger">
@@ -193,9 +197,13 @@ const GetTicket = () => {
           </Card>
         </View>
 
+        {/* The price is per giveaway and set by an administrator, so it is
+            read rather than stated — the copy said 50 while the giveaway
+            charged 100, which is the sort of thing people notice only after
+            their points have gone. */}
         <Text className="mt-2 text-[15px] text-p-50">
-          Each Giveaway Ticket costs 50 Dream Points. The more tickets you hold,
-          the greater your chance of winning.
+          Each Giveaway Ticket costs {currentLottery?.ticketPrice ?? 0} Dream
+          Points. The more tickets you hold, the greater your chance of winning.
         </Text>
       </View>
 

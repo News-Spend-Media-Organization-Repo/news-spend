@@ -1,4 +1,4 @@
-import { ORPCError } from "@orpc/client";
+import { openapi } from "@orpc/openapi";
 import type { Where } from "payload";
 import z from "zod";
 
@@ -165,10 +165,10 @@ const recordView = publicProcedure
   .input(
     z.object({ newsId: z.string().optional(), slug: z.string().optional() })
   )
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user, request } = context;
     if (!(input.newsId || input.slug)) {
-      throw new ORPCError("BAD_REQUEST", {
+      throw errors.BAD_REQUEST({
         message: "newsId or slug is required to record view",
       });
     }
@@ -190,7 +190,7 @@ const recordView = publicProcedure
     });
     const doc = news.docs[0];
     if (!doc) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "News not found",
       });
     }
@@ -220,9 +220,9 @@ const recordView = publicProcedure
       const { getRedis } = await import("../../lib/redis");
       const r = getRedis();
       // set key only if not exists
-      // ioredis returns 'OK' when set, null when not set
+      // Bun returns 'OK' when set, null when not set
       // use EX and NX to atomically check-and-set
-      const res = await r.set(dedupeKey, "1", "EX", ttl, "NX");
+      const res = await r.set(dedupeKey, "1", "EX", String(ttl), "NX");
       if (res === null) {
         // already viewed recently — do not increment
         incremented = false;
@@ -320,7 +320,7 @@ const one = publicProcedure
       type: z.string().optional().default("article"),
     })
   )
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
     const where: Where = {
       slug: { equals: input.slug },
@@ -338,7 +338,7 @@ const one = publicProcedure
       // draft: false,
     });
     if (!news.docs.length) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "News not found",
       });
     }
@@ -509,12 +509,14 @@ const dislike = protectedProcedure
   });
 
 const categories = publicProcedure
-  .route({
-    method: "GET",
-    path: "/news/categories",
-    tags: ["news"],
-    summary: "Get all news categories",
-  })
+  .meta(
+    openapi({
+      method: "GET",
+      path: "/news/categories",
+      tags: ["news"],
+      summary: "Get all news categories",
+    })
+  )
   .handler(async ({ context }) => {
     const { payload } = context;
     const result = await payload.findGlobal({

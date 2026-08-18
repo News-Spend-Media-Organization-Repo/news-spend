@@ -1,5 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { InputGroup, Separator } from "heroui-native";
+import { InputGroup } from "heroui-native/input-group";
+import { Separator } from "heroui-native/separator";
 import { PaperPlaneTiltIcon, XIcon } from "phosphor-react-native";
 import { type RefObject, useCallback } from "react";
 import {
@@ -8,11 +9,11 @@ import {
   type TextInput,
   View,
 } from "react-native";
-import { toast } from "sonner-native";
 import { useSnapshot } from "valtio";
 
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
 import useUpdateComment from "#/hooks/comments/useUpdateComment";
 import { useCreateComment } from "#/hooks/news";
 import { useKeyboardDismiss } from "#/hooks/use-keyboard-dismiss";
@@ -25,6 +26,7 @@ import {
   resetCommentState,
   setDraft,
 } from "#/state/commentState";
+import { apiErrorMessage } from "#/utils/apiErrorMessage";
 import { getUsername, isRefObject } from "#/utils/comment-utils";
 import { Button } from "./heroui/button";
 
@@ -161,6 +163,16 @@ export const CommentBox = ({
             inputRef.current?.blur();
           }
         },
+        onError: (err) => {
+          // The draft is deliberately left in the box so the author can edit
+          // and retry — a content-filter rejection asks them to revise.
+          toast.error("Comment not posted", {
+            description: apiErrorMessage(
+              err,
+              "Something went wrong. Please try again."
+            ),
+          });
+        },
       }
     );
   };
@@ -185,9 +197,11 @@ export const CommentBox = ({
         },
         onError: (err) => {
           toast.dismiss();
-          console.error(err);
-          toast.error("Something went wrong", {
-            description: "Comment could not be updated",
+          toast.error("Comment not updated", {
+            description: apiErrorMessage(
+              err,
+              "Comment could not be updated. Please try again."
+            ),
           });
         },
       }

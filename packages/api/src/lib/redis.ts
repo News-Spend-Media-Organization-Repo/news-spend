@@ -1,6 +1,6 @@
-import Redis from "ioredis";
+import { RedisClient } from "bun";
 
-let client: Redis | null = null;
+let client: RedisClient | null = null;
 
 export function getRedis() {
   if (client) {
@@ -10,20 +10,18 @@ export function getRedis() {
   if (!url) {
     throw new Error("REDIS_URL is not configured");
   }
-  client = new Redis(url);
-  client.on("error", (err) => {
-    // keep logging but do not crash the process
-    console.error("Redis error:", err);
-  });
+  // Bun's RedisClient rejects commands with errors instead of emitting
+  // unhandled "error" events, so no crash-on-error handler is needed.
+  client = new RedisClient(url);
   return client;
 }
 
-export async function disconnectRedis() {
+export function disconnectRedis() {
   if (!client) {
     return;
   }
   try {
-    await client.quit();
+    client.close();
   } catch {
     // ignore
   }

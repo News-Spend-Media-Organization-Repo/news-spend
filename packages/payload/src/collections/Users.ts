@@ -37,6 +37,11 @@ export const Users: CollectionConfig = {
           sql`DELETE FROM survey_rels WHERE users_id = ${id}`,
           sql`DELETE FROM lottery_rels WHERE users_id = ${id}`,
           sql`DELETE FROM comments_rels WHERE users_id = ${id}`,
+          // Both directions: rows where this user did the blocking, and rows
+          // where they were the one blocked. Both columns are NOT NULL with an
+          // ON DELETE SET NULL foreign key, so leaving either behind makes the
+          // user delete fail outright.
+          sql`DELETE FROM user_blocks WHERE blocker_id = ${id} OR blocked_id = ${id}`,
         ];
         try {
           await Promise.all(statements.map((stmt) => drizzle.execute(stmt)));
@@ -104,6 +109,35 @@ export const Users: CollectionConfig = {
       name: "phone",
       type: "text",
       required: true,
+    },
+    {
+      name: "dateOfBirth",
+      type: "date",
+      index: true,
+      admin: {
+        date: { pickerAppearance: "dayOnly" },
+        description:
+          "Required to take part in giveaways — prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.",
+      },
+    },
+    {
+      name: "country",
+      type: "text",
+      index: true,
+      admin: {
+        description:
+          "ISO country code the user selected. A display signal only — it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.",
+      },
+    },
+    {
+      name: "verifiedCountry",
+      type: "text",
+      index: true,
+      admin: {
+        readOnly: true,
+        description:
+          "Country from the identity document, once verified. This is the version anyone has actually checked, so it outranks the self-reported one wherever the answer has consequences.",
+      },
     },
     {
       name: "_verified",
@@ -200,18 +234,28 @@ export const Users: CollectionConfig = {
         description: "Custom user attributes for advanced segmentation",
       },
     },
+    /**
+     * The last completed giveaway whose result this user has been shown.
+     *
+     * A single pointer rather than a row per giveaway, because the reveal only
+     * ever concerns the most recent completed draw: someone who misses one
+     * giveaway's result should see the next one, not a backlog. Moving the
+     * pointer forward retires every older result at once.
+     *
+     * On the user rather than in its own collection so that "have they seen
+     * it" survives a reinstall and agrees across devices — a "you didn't win"
+     * message must be said once and never repeated.
+     */
     {
-      name: "blockedUsers",
+      name: "lastGiveawayResultSeen",
       type: "relationship",
-      relationTo: "users",
-      hasMany: true,
-      admin: { hidden: true },
-    },
-    {
-      name: "reportedComments",
-      type: "json",
-      admin: { hidden: true },
-      defaultValue: [],
+      relationTo: "giveaways",
+      index: true,
+      admin: {
+        readOnly: true,
+        description:
+          "Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.",
+      },
     },
   ],
 };

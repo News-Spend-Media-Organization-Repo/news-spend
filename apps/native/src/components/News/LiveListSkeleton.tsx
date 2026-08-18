@@ -1,4 +1,4 @@
-import { SkeletonGroup } from "heroui-native";
+import { SkeletonGroup } from "heroui-native/skeleton-group";
 import VideoNewsItemPlaceholder from "#/components/videoNews/VideoNewsItemPlaceholder";
 
 export default function LiveListSkeleton() {

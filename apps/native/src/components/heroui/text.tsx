@@ -1,4 +1,5 @@
-import { cn, useTextComponent } from "heroui-native";
+import { cn } from "heroui-native/utils";
+import { useTextComponent } from "heroui-native/hooks";
 import type React from "react";
 import { type Ref, useContext, useMemo } from "react";
 import {

@@ -1,12 +1,16 @@
 import { ErrorBoundary } from "@sentry/react-native";
 import { DetourProvider } from "@swmansion/react-native-detour";
-import { type HeroUINativeConfig, HeroUINativeProvider } from "heroui-native";
+import type { HeroUINativeConfig } from "heroui-native/provider";
+import { HeroUINativeProvider } from "heroui-native/provider";
 import { IconContext } from "phosphor-react-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
+import {
+  KeyboardAvoidingView,
+  KeyboardProvider,
+} from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Toaster } from "sonner-native";
+import { ToastBridge } from "#/components/heroui/toast";
 import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
@@ -19,6 +23,17 @@ type Props = {
   children: React.ReactNode;
 };
 
+const toastContentWrapper = (children: React.ReactNode) => (
+  <KeyboardAvoidingView
+    behavior="padding"
+    className="flex-1"
+    keyboardVerticalOffset={12}
+    pointerEvents="box-none"
+  >
+    {children}
+  </KeyboardAvoidingView>
+);
+
 const config: HeroUINativeConfig = {
   textProps: {
     allowFontScaling: true,
@@ -28,12 +43,16 @@ const config: HeroUINativeConfig = {
   devInfo: {
     stylingPrinciples: false,
   },
+  toast: {
+    insets: { left: 16, right: 16 },
+    contentWrapper: toastContentWrapper,
+  },
 };
 
 export const Provider = ({ children }: Props) => {
   useListeningTimeSync();
   usePushNotification();
-  const { UpdateModalComponent } = useUpdates();
+  const { updateSheet } = useUpdates();
 
   useEffect(() => {
     newsAnalyticsClient.start(() => authState.user?.id);
@@ -58,26 +77,12 @@ export const Provider = ({ children }: Props) => {
                   }}
                 >
                   {children}
-                  <UpdateModalComponent />
+                  {updateSheet}
                 </IconContext.Provider>
               </ErrorBoundary>
+              <ToastBridge />
             </HeroUINativeProvider>
           </KeyboardProvider>
-          <Toaster
-            autoWiggleOnUpdate="toast-change"
-            pauseWhenPageIsHidden
-            richColors
-            toastOptions={{
-              titleStyle: {
-                fontFamily: "Inter-SemiBold",
-                fontSize: 18,
-              },
-              descriptionStyle: {
-                fontFamily: "Inter-Regular",
-                fontSize: 16,
-              },
-            }}
-          />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </DetourProvider>

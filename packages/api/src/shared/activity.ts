@@ -2,11 +2,17 @@ import {
   enum_activities_action,
   enum_activities_type,
 } from "@news-spend-media/payload/payload-generated-schema";
-import { ORPCError } from "@orpc/client";
+import { createORPCErrorConstructorMap } from "@orpc/contract";
 import { isSameDay } from "date-fns";
 import z from "zod";
 
 import type { Context } from "../context";
+import { commonErrors } from "../errors";
+
+// `addActivity` runs outside a procedure's handler context, so it cannot use
+// the `errors` factory that oRPC injects there. Build the same factories from
+// the shared error map so thrown errors stay defined/inferable on the wire.
+const errors = createORPCErrorConstructorMap(commonErrors);
 
 const ActivityCreateInput = z.object({
   type: z.enum(enum_activities_type.enumValues).default("point"),
@@ -29,7 +35,7 @@ export async function addActivity(
 ) {
   const { user, payload } = ctx;
   if (!user) {
-    throw new ORPCError("UNAUTHORIZED");
+    throw errors.UNAUTHORIZED();
   }
 
   const { newsId, ...rest } = input;

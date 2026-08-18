@@ -1,13 +1,17 @@
+import { openapi } from "@orpc/openapi";
+
 import { publicProcedure } from "../index";
 
 export const getPromoMedia = publicProcedure
-  .route({
-    method: "GET",
-    path: "/ads/promo-media",
-    tags: ["Ads"],
-    summary: "Get promo media",
-    description: "Get promo media for the current user",
-  })
+  .meta(
+    openapi({
+      method: "GET",
+      path: "/ads/promo-media",
+      tags: ["Ads"],
+      summary: "Get promo media",
+      description: "Get promo media for the current user",
+    })
+  )
   .handler(async ({ context }) => {
     const { payload } = context;
     const ads = await payload.find({

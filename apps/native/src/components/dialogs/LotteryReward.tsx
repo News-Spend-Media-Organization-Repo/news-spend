@@ -1,14 +1,15 @@
-import { isDefinedError } from "@orpc/client";
+import { isInferableError } from "@orpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Dialog } from "heroui-native";
+import { Dialog } from "heroui-native/dialog";
 import { StarIcon } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useRewardedAd } from "react-native-google-mobile-ads";
-import { toast } from "sonner-native";
 import { useSnapshot } from "valtio";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
+import { toast } from "#/components/heroui/toast";
+import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
@@ -96,7 +97,7 @@ export default memo(function LotteryReward() {
         // already succeeded once (e.g. a retry after a lost response) and
         // this is a duplicate, not a genuine failure. Treat it the same
         // as a success instead of surfacing an error toast.
-        if (isDefinedError(error) && error.code === "CONFLICT") {
+        if (isInferableError(error) && error.code === "CONFLICT") {
           applyClaimSuccessSideEffects();
           return;
         }
@@ -143,7 +144,11 @@ export default memo(function LotteryReward() {
       timeoutRef.current = setTimeout(() => {
         setDialogOpen(true);
       }, 5000);
-      load();
+      initializeAdsWhenPermitted()
+        .then(load)
+        .catch((error) => {
+          console.warn("Rewarded ad load skipped", error);
+        });
 
       return () => {
         if (timeoutRef.current) {

@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
-import { LinkButton, Spinner } from "heroui-native";
+import { LinkButton } from "heroui-native/link-button";
+import { Spinner } from "heroui-native/spinner";
 import { useState } from "react";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
 import { Keyboard, View } from "react-native";
@@ -93,6 +94,22 @@ export default function SignIn() {
         <LinkButton onPress={() => navigation.navigate("SignUp")}>
           <LinkButton.Label className="font-bold text-primary text-sm">
             Register here
+          </LinkButton.Label>
+        </LinkButton>
+      </View>
+      <View className="mb-4 flex-row flex-wrap justify-center px-4">
+        <Text className="text-center text-gray-500 text-xs">
+          By signing in, you agree to our{" "}
+        </Text>
+        <LinkButton onPress={() => navigation.navigate("TermsOfUse")}>
+          <LinkButton.Label className="text-accent text-xs underline">
+            Terms of Use
+          </LinkButton.Label>
+        </LinkButton>
+        <Text className="text-center text-gray-500 text-xs"> and </Text>
+        <LinkButton onPress={() => navigation.navigate("PrivacyPolicy")}>
+          <LinkButton.Label className="text-accent text-xs underline">
+            Privacy Policy
           </LinkButton.Label>
         </LinkButton>
       </View>

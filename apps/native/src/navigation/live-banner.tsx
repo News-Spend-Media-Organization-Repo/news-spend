@@ -46,7 +46,7 @@ function LiveBanner({
   );
 
   const liveQuery = useQuery(
-    orpc.publisher.onMessage.experimental_liveOptions({
+    orpc.publisher.onMessage.liveOptions({
       input: { channel: "live-news" },
       retry: true,
       enabled: isEnabled,

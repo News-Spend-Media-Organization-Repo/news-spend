@@ -1,13 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
-import { Spinner } from "heroui-native";
-import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
+import { Checkbox } from "heroui-native/checkbox";
+import { ControlField } from "heroui-native/control-field";
+import { Spinner } from "heroui-native/spinner";
+import {
+  Controller,
+  FormProvider,
+  type SubmitHandler,
+  useForm,
+} from "react-hook-form";
 import { View } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardController,
 } from "react-native-keyboard-controller";
-import { toast } from "sonner-native";
 import * as z from "zod";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
@@ -15,6 +21,7 @@ import { FormSelectField } from "#/components/heroui/select";
 import { StandardItem } from "#/components/heroui/select-item";
 import { Text } from "#/components/heroui/text";
 import FormInput from "#/components/heroui/text-input";
+import { toast } from "#/components/heroui/toast";
 import useSignUp from "../hooks/useSignUp";
 
 const schema = z.object({
@@ -53,6 +60,12 @@ const schema = z.object({
     },
     "Select your wish"
   ),
+  agreeToTerms: z
+    .boolean("You must agree to the Terms of Use and Privacy Policy")
+    .refine(
+      (val) => val === true,
+      "You must agree to the Terms of Use and Privacy Policy"
+    ),
 });
 
 const defaultValues = {
@@ -178,6 +191,57 @@ export default function SignUp() {
                   <StandardItem isSelected={isSelected} label={option.label} />
                 )}
                 scrollable
+              />
+
+              <Controller
+                control={formMethods.control}
+                name="agreeToTerms"
+                render={({
+                  field: { onChange, value },
+                  fieldState: { error, invalid },
+                }) => (
+                  <ControlField
+                    className="flex-col items-start"
+                    isInvalid={invalid}
+                    isSelected={value}
+                    onSelectedChange={onChange}
+                  >
+                    <View className="flex-row items-center gap-2">
+                      <ControlField.Indicator>
+                        <Checkbox className="mt-0.5 rounded-sm border border-field-border" />
+                      </ControlField.Indicator>
+                      <View className="flex-1 flex-row flex-wrap">
+                        <Text className="text-sm">I agree to the </Text>
+                        <Button
+                          className="p-0"
+                          onPress={() => navigation.navigate("TermsOfUse")}
+                          size="sm"
+                          variant="ghost"
+                        >
+                          <Button.Label className="text-accent text-sm underline">
+                            Terms of Use
+                          </Button.Label>
+                        </Button>
+                        <Text className="text-sm"> and </Text>
+                        <Button
+                          className="p-0"
+                          onPress={() => navigation.navigate("PrivacyPolicy")}
+                          size="sm"
+                          variant="ghost"
+                        >
+                          <Button.Label className="text-accent text-sm underline">
+                            Privacy Policy
+                          </Button.Label>
+                        </Button>
+                      </View>
+                    </View>
+                    {error && (
+                      <Text className="ml-8 text-destructive text-sm">
+                        {error.message}
+                      </Text>
+                    )}
+                  </ControlField>
+                )}
               />
             </View>
           </FormProvider>

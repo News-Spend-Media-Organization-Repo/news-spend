@@ -1,5 +1,6 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
-import { Separator, Spinner } from "heroui-native";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
 import { memo, useCallback, useRef } from "react";
 import { View } from "react-native";
 import NewsItemAds from "#/components/Ads/NewsItemAd";

@@ -1,39 +1,100 @@
 import { createNativeStackScreen } from "@react-navigation/native-stack";
+import { lazy } from "react";
 
-import PrivacyPolicy from "#/features/auth/screens/privacy-policy";
-import TermOfUse from "#/features/auth/screens/term-of-use";
-import Activities from "#/features/tabs/settings/screens/activities";
-import BlockedUsers from "#/features/tabs/settings/screens/blocked-users";
-import DataManager from "#/features/tabs/settings/screens/data-manager";
-import DeleteAccount from "#/features/tabs/settings/screens/delete-account";
-import LegalAgreement from "#/features/tabs/settings/screens/legal";
-import Notifications from "#/features/tabs/settings/screens/notification";
-import Profile from "#/features/tabs/settings/screens/profile";
-import RateAppScreen from "#/features/tabs/settings/screens/rate-app";
-import Report from "#/features/tabs/settings/screens/report";
-import ShareApp from "#/features/tabs/settings/screens/share-app";
-import Socials from "#/features/tabs/settings/screens/socials";
-import Advertise from "#/features/tabs/settings/screens/support/advertise";
-import Call from "#/features/tabs/settings/screens/support/call";
-import Email from "#/features/tabs/settings/screens/support/email";
-import FAQs from "#/features/tabs/settings/screens/support/faqs";
-import Feedback from "#/features/tabs/settings/screens/support/feedback";
-import Support from "#/features/tabs/settings/screens/support/support";
-import VerifyIdentity from "#/features/tabs/settings/screens/verify-identity";
-import ShopDetails from "#/features/tabs/shop/screens/ShopDetails";
-import SurveyWebView from "#/screens/common/SurveyWebView";
 import NotFound from "#/screens/NotFound";
-import BoostLuck from "#/screens/tabs/discover/BoostLuck";
-import GetTicket from "#/screens/tabs/discover/GetTicket";
-import LotteryRules from "#/screens/tabs/discover/LotteryRules";
-import LuckyAppWall from "#/screens/tabs/discover/LuckyAppWall";
-import PlayLottery from "#/screens/tabs/discover/PlayLottery";
-import CommentReplies from "#/screens/tabs/home/comments/CommentReply";
-import Comments from "#/screens/tabs/home/comments/Comments";
-import SingleNews from "#/screens/tabs/home/news";
-import LiveCommentReply from "#/screens/tabs/live/comments/LiveCommentReply";
-import LiveComments from "#/screens/tabs/live/comments/LiveComments";
-import Live from "#/screens/tabs/live/Live";
+
+/**
+ * Non-initial screens are lazy-loaded so the heavy libraries they import
+ * (videos, lottery/prize flows, settings tooling) are only fetched and
+ * executed when the screen is first navigated to, keeping the startup bundle
+ * small.
+ *
+ * These MUST stay at module scope: declaring `lazy()` inside the navigator
+ * config makes screens unmount/remount on every render.
+ */
+const PrivacyPolicy = lazy(
+  () => import("#/features/auth/screens/privacy-policy")
+);
+const TermOfUse = lazy(() => import("#/features/auth/screens/term-of-use"));
+const Activities = lazy(
+  () => import("#/features/tabs/settings/screens/activities")
+);
+const BlockedUsers = lazy(
+  () => import("#/features/tabs/settings/screens/blocked-users")
+);
+const CommunityGuidelines = lazy(
+  () => import("#/features/tabs/settings/screens/community-guidelines")
+);
+const DataManager = lazy(
+  () => import("#/features/tabs/settings/screens/data-manager")
+);
+const DeleteAccount = lazy(
+  () => import("#/features/tabs/settings/screens/delete-account")
+);
+const IdentityVerification = lazy(
+  () => import("#/features/tabs/settings/screens/identity-verification")
+);
+const LegalAgreement = lazy(
+  () => import("#/features/tabs/settings/screens/legal")
+);
+const Notifications = lazy(
+  () => import("#/features/tabs/settings/screens/notification")
+);
+const Profile = lazy(() => import("#/features/tabs/settings/screens/profile"));
+const RateAppScreen = lazy(
+  () => import("#/features/tabs/settings/screens/rate-app")
+);
+const Report = lazy(() => import("#/features/tabs/settings/screens/report"));
+const ShareApp = lazy(
+  () => import("#/features/tabs/settings/screens/share-app")
+);
+const Socials = lazy(() => import("#/features/tabs/settings/screens/socials"));
+const Advertise = lazy(
+  () => import("#/features/tabs/settings/screens/support/advertise")
+);
+const Call = lazy(
+  () => import("#/features/tabs/settings/screens/support/call")
+);
+const Email = lazy(
+  () => import("#/features/tabs/settings/screens/support/email")
+);
+const FAQs = lazy(
+  () => import("#/features/tabs/settings/screens/support/faqs")
+);
+const Feedback = lazy(
+  () => import("#/features/tabs/settings/screens/support/feedback")
+);
+const Support = lazy(
+  () => import("#/features/tabs/settings/screens/support/support")
+);
+const VerifyIdentity = lazy(
+  () => import("#/features/tabs/settings/screens/verify-identity")
+);
+const ShopDetails = lazy(
+  () => import("#/features/tabs/shop/screens/ShopDetails")
+);
+const InAppBrowser = lazy(() => import("#/screens/common/InAppBrowser"));
+const ToastLab = lazy(() => import("#/screens/dev/ToastLab"));
+const BoostLuck = lazy(() => import("#/screens/tabs/discover/BoostLuck"));
+const ClaimPrize = lazy(() => import("#/screens/tabs/discover/ClaimPrize"));
+const PrizeDetails = lazy(() => import("#/screens/tabs/discover/PrizeDetails"));
+const GetTicket = lazy(() => import("#/screens/tabs/discover/GetTicket"));
+const LotteryRules = lazy(() => import("#/screens/tabs/discover/LotteryRules"));
+const LuckyAppWall = lazy(() => import("#/screens/tabs/discover/LuckyAppWall"));
+const MyPrizes = lazy(() => import("#/screens/tabs/discover/MyPrizes"));
+const PlayLottery = lazy(() => import("#/screens/tabs/discover/PlayLottery"));
+const CommentReplies = lazy(
+  () => import("#/screens/tabs/home/comments/CommentReply")
+);
+const Comments = lazy(() => import("#/screens/tabs/home/comments/Comments"));
+const SingleNews = lazy(() => import("#/screens/tabs/home/news"));
+const LiveCommentReply = lazy(
+  () => import("#/screens/tabs/live/comments/LiveCommentReply")
+);
+const LiveComments = lazy(
+  () => import("#/screens/tabs/live/comments/LiveComments")
+);
+const Live = lazy(() => import("#/screens/tabs/live/Live"));
 
 export const sharedScreens = {
   News: createNativeStackScreen({
@@ -182,6 +243,12 @@ export const sharedScreens = {
       path: "verify-identity",
     },
   }),
+  IdentityVerification: createNativeStackScreen({
+    screen: IdentityVerification,
+    linking: {
+      path: "identity-verification",
+    },
+  }),
   Advertise: createNativeStackScreen({
     screen: Advertise,
     linking: {
@@ -230,6 +297,12 @@ export const sharedScreens = {
       path: "privacy-policy",
     },
   }),
+  CommunityGuidelines: createNativeStackScreen({
+    screen: CommunityGuidelines,
+    linking: {
+      path: "community-guidelines",
+    },
+  }),
   // // Discover screens
   PlayLottery: createNativeStackScreen({
     screen: PlayLottery,
@@ -267,6 +340,33 @@ export const sharedScreens = {
       headerShown: false,
     },
   }),
+  MyPrizes: createNativeStackScreen({
+    screen: MyPrizes,
+    linking: {
+      path: "my-prizes",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  ClaimPrize: createNativeStackScreen({
+    screen: ClaimPrize,
+    linking: {
+      path: "claim-prize/:winnerId",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  PrizeDetails: createNativeStackScreen({
+    screen: PrizeDetails,
+    linking: {
+      path: "prize/:winnerId",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
   LotteryRules: createNativeStackScreen({
     screen: LotteryRules,
     linking: {
@@ -276,8 +376,18 @@ export const sharedScreens = {
       headerShown: false,
     },
   }),
+  InAppBrowser: createNativeStackScreen({
+    screen: InAppBrowser,
+    linking: {
+      path: "browser",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  // Kept so the `survey` deep link and any cached navigation state keep working.
   SurveyWebView: createNativeStackScreen({
-    screen: SurveyWebView,
+    screen: InAppBrowser,
     linking: {
       path: "survey",
     },
@@ -285,6 +395,17 @@ export const sharedScreens = {
       headerShown: false,
     },
   }),
+  // Bench for the HeroUI toast wrapper. Dev builds only — `news-spend://toast-lab`.
+  ...(__DEV__
+    ? {
+        ToastLab: createNativeStackScreen({
+          screen: ToastLab,
+          linking: {
+            path: "toast-lab",
+          },
+        }),
+      }
+    : {}),
   NotFound: createNativeStackScreen({
     screen: NotFound,
     linking: {

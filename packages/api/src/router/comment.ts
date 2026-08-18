@@ -1,9 +1,14 @@
-import { ORPCError } from "@orpc/client";
 import type { Payload, Where } from "payload";
 import z from "zod";
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { CONTENT_FILTER_MESSAGE, screenText } from "../lib/content-filter";
 import { createRateLimitMiddleware } from "../lib/ratelimit";
+import {
+  getBlockedUserIdsForNews,
+  getReportedCommentIdsForNews,
+  hasBlockedUser,
+  hasReportedComment,
+} from "./comment/moderation-filters";
 import {
   getCommentReactionCounts,
   getUserReactionForComment,
@@ -106,21 +111,14 @@ const allComments = publicProcedure
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
 
-    let blockedUserIds: string[] = [];
-    let reportedCommentIds: string[] = [];
-    if (user) {
-      const currentUser = await payload.findByID({
-        collection: "users",
-        id: user.id,
-        depth: 0,
-      });
-      blockedUserIds = Array.isArray(currentUser.blockedUsers)
-        ? (currentUser.blockedUsers as string[])
-        : [];
-      reportedCommentIds = Array.isArray(currentUser.reportedComments)
-        ? (currentUser.reportedComments as string[])
-        : [];
-    }
+    // Scoped to this article rather than the viewer's lifetime history, so the
+    // exclusion lists stay small however much they have blocked or reported.
+    const [blockedUserIds, reportedCommentIds] = user
+      ? await Promise.all([
+          getBlockedUserIdsForNews(payload, user.id, input.newsId),
+          getReportedCommentIdsForNews(payload, user.id, input.newsId),
+        ])
+      : [[], []];
 
     const baseWhere = {
       ...(input.parentId
@@ -180,7 +178,7 @@ const allComments = publicProcedure
 
 const getComment = publicProcedure
   .input(z.string())
-  .handler(async ({ input: commentId, context }) => {
+  .handler(async ({ input: commentId, context, errors }) => {
     const { payload, user } = context;
     const doc = await payload.findByID({
       collection: "comments",
@@ -194,7 +192,7 @@ const getComment = publicProcedure
       doc?.moderationStatus === "hidden" ||
       doc?.moderationStatus === "removed"
     ) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -203,25 +201,15 @@ const getComment = publicProcedure
       const commentUserId =
         typeof doc.user === "string" ? doc.user : doc.user?.id;
       if (commentUserId) {
-        const currentUser = await payload.findByID({
-          collection: "users",
-          id: user.id,
-          depth: 0,
-        });
-        const blockedUserIds: string[] = Array.isArray(currentUser.blockedUsers)
-          ? (currentUser.blockedUsers as string[])
-          : [];
-        const reportedCommentIds: string[] = Array.isArray(
-          currentUser.reportedComments
-        )
-          ? (currentUser.reportedComments as string[])
-          : [];
+        // Two targeted existence checks rather than loading the viewer's whole
+        // block list and report history to test a single comment.
+        const [blocked, reported] = await Promise.all([
+          hasBlockedUser(payload, user.id, commentUserId),
+          hasReportedComment(payload, user.id, commentId),
+        ]);
 
-        if (
-          blockedUserIds.includes(commentUserId) ||
-          reportedCommentIds.includes(commentId)
-        ) {
-          throw new ORPCError("NOT_FOUND", {
+        if (blocked || reported) {
+          throw errors.NOT_FOUND({
             message: "Comment not found",
           });
         }
@@ -248,11 +236,9 @@ const getComment = publicProcedure
   });
 
 const addComment = protectedNoGuestProcedure
-  // window is milliseconds — this previously passed 60, i.e. a 60ms window,
-  // which allowed effectively unlimited comments.
   .use(createRateLimitMiddleware({ maxRequests: 10, window: 60_000 }))
   .input(CommentInput)
-  .handler(async ({ input: comment, context }) => {
+  .handler(async ({ input: comment, context, errors }) => {
     const { payload, user } = context;
 
     const screening = screenText(comment.text);
@@ -267,7 +253,7 @@ const addComment = protectedNoGuestProcedure
         "Comment rejected by content filter"
       );
       await recordFilterRejection(payload, user.id, screening, "a new comment");
-      throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
+      throw errors.BAD_REQUEST({ message: CONTENT_FILTER_MESSAGE });
     }
 
     const newComment = await payload.create({
@@ -287,7 +273,7 @@ const addComment = protectedNoGuestProcedure
 const DELETE_WINDOW_MS = 15 * 60 * 1000;
 const updateComment = protectedNoGuestProcedure
   .input(updateCommentInput)
-  .handler(async ({ input, context }) => {
+  .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
 
     const comment = await payload.findByID({
@@ -297,7 +283,7 @@ const updateComment = protectedNoGuestProcedure
     });
 
     if (!comment) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -306,7 +292,7 @@ const updateComment = protectedNoGuestProcedure
       typeof comment.user === "string" ? comment.user : comment.user.id;
 
     if (commentUser !== user.id) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -315,7 +301,7 @@ const updateComment = protectedNoGuestProcedure
     const elapsed = Date.now() - createdAt;
 
     if (elapsed >= DELETE_WINDOW_MS) {
-      throw new ORPCError("FORBIDDEN", {
+      throw errors.FORBIDDEN({
         message: "Delete window has expired",
         data: { expiredAt: createdAt + DELETE_WINDOW_MS },
       });
@@ -340,7 +326,7 @@ const updateComment = protectedNoGuestProcedure
         screening,
         "a comment edit"
       );
-      throw new ORPCError("BAD_REQUEST", { message: CONTENT_FILTER_MESSAGE });
+      throw errors.BAD_REQUEST({ message: CONTENT_FILTER_MESSAGE });
     }
 
     const updatedComment = await payload.update({
@@ -363,7 +349,7 @@ const updateComment = protectedNoGuestProcedure
 
 const deleteComment = protectedNoGuestProcedure
   .input(z.string())
-  .handler(async ({ input: commentId, context }) => {
+  .handler(async ({ input: commentId, context, errors }) => {
     const { payload, user } = context;
 
     const comment = await payload.findByID({
@@ -373,7 +359,7 @@ const deleteComment = protectedNoGuestProcedure
     });
 
     if (!comment) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }
@@ -382,7 +368,7 @@ const deleteComment = protectedNoGuestProcedure
       typeof comment.user === "string" ? comment.user : comment.user.id;
 
     if (commentUser !== user.id) {
-      throw new ORPCError("NOT_FOUND", {
+      throw errors.NOT_FOUND({
         message: "Comment not found",
       });
     }

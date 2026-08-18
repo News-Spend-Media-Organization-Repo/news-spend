@@ -23,4 +23,4 @@ export const resend = new Proxy({} as Resend, {
   },
 });
 
-export const DEFAULT_FROM_EMAIL = `News Spend Media <${process.env.SMTP_USER_FROM ?? "noreply@newsspendmedia.com"}>`;
+export const DEFAULT_FROM_EMAIL = `News Spend Media <${process.env.SMTP_USER_FROM ?? "noreply@mail.newsspend.com"}>`;

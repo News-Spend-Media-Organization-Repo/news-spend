@@ -1,5 +1,5 @@
-import type { ButtonRootProps } from "heroui-native";
-import { Button as HeroUIButton } from "heroui-native";
+import type { ButtonRootProps } from "heroui-native/button";
+import { Button as HeroUIButton } from "heroui-native/button";
 import { useMemo } from "react";
 import { tv } from "tailwind-variants";
 

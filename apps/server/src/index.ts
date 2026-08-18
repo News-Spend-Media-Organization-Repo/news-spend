@@ -1,16 +1,19 @@
 import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
+import { diditWebhookHandler } from "@news-spend-media/api/router/verification/webhook";
 import { widgetHandler } from "@news-spend-media/api/router/widgets/handler";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
-// import { LoggingHandlerPlugin } from "@orpc/experimental-pino";
-import { RatelimitHandlerPlugin } from "@orpc/experimental-ratelimit";
+import { OpenAPIGenerator } from "@orpc/openapi";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
-import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
+import { OpenAPIReferenceHandlerPlugin } from "@orpc/openapi/plugins";
+// import { PinoHandlerPlugin } from "@orpc/pino";
+import { RateLimitHandlerPlugin } from "@orpc/ratelimit";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
-import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
+import { ZodToJsonSchemaConverter } from "@orpc/zod";
+import * as Sentry from "@sentry/bun";
 import { AccountDeletionPage } from "./pages/AccountDeletion";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
@@ -44,25 +47,30 @@ servers.push({
   description: "Development",
 });
 
+export const openAPISpec = await new OpenAPIGenerator({
+  converters: [new ZodToJsonSchemaConverter()],
+}).generate(router, {
+  base: {
+    servers,
+    info: {
+      title: "News Spend Media API",
+      version: "1.0.0",
+    },
+  },
+});
+
 export const apiHandler = new OpenAPIHandler(router, {
   plugins: [
     new BatchHandlerPlugin(),
-    new RatelimitHandlerPlugin(),
-    // new LoggingHandlerPlugin({
+    new RateLimitHandlerPlugin(),
+    // new PinoHandlerPlugin({
     //   logger,
     //   logRequestResponse: true,
     // }),
-    new OpenAPIReferencePlugin({
-      docsProvider: "scalar",
+    new OpenAPIReferenceHandlerPlugin({
+      provider: "scalar",
       docsTitle: "OpenAPI Documentation",
-      schemaConverters: [new ZodToJsonSchemaConverter()],
-      specGenerateOptions: {
-        servers,
-        info: {
-          title: "News Spend Media API",
-          version: "1.0.0",
-        },
-      },
+      spec: openAPISpec,
     }),
   ],
   interceptors: [
@@ -95,8 +103,8 @@ async function handleApi(req: Request) {
 export const rpcHandler = new RPCHandler(router, {
   plugins: [
     new BatchHandlerPlugin(),
-    new RatelimitHandlerPlugin(),
-    // new LoggingHandlerPlugin({
+    new RateLimitHandlerPlugin(),
+    // new PinoHandlerPlugin({
     //   logger,
     //   logRequestResponse: true,
     // }),
@@ -319,6 +327,16 @@ const server = Bun.serve({
       });
     }
 
+    // Ahead of the /api/ catch-all: the signature is computed over the exact
+    // body Didit sent, so this must not pass through the oRPC handler first.
+    if (url.pathname === "/api/verification/didit") {
+      logRequest(req);
+      return diditWebhookHandler(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
     if (url.pathname === "/api/widgets") {
       logRequest(req);
       return widgetHandler(req).then((res) => {
@@ -342,6 +360,10 @@ const server = Bun.serve({
 
   error(error) {
     logger.error({ err: error }, "Server error");
+    // Last line of defence: anything that escapes fetch() lands here, including
+    // the routes that never touch oRPC's sentryMiddleware (auth, webhooks,
+    // widgets, static pages).
+    Sentry.captureException(error);
     return new Response("Internal Server Error", { status: 500 });
   },
 });
@@ -406,6 +428,13 @@ try {
       // noop
     }
   });
+  import("@news-spend-media/api/jobs/giveaway").then((m) => {
+    try {
+      m.startGiveawayJob();
+    } catch {
+      // noop
+    }
+  });
 } catch {
   // noop
 }
@@ -418,6 +447,12 @@ async function gracefulShutdown() {
   } catch {
     // redis may not have been initialized
   }
+
+  // Railway SIGTERMs on every deploy; without this the events buffered for the
+  // crash that prompted the restart are lost with the process.
+  await Sentry.flush(2000).catch(() => {
+    // nothing useful to do if the transport is already gone
+  });
 }
 
 process.on("SIGINT", async () => {

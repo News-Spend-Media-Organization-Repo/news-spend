@@ -1,6 +1,7 @@
 import type { CollectionConfig } from "payload";
 
 import {
+  ADMIN_GROUP_RECORDS,
   COMPLETION_STATUS_OPTIONS,
   ENGAGEMENT_TYPE_OPTIONS,
 } from "./constants";
@@ -25,7 +26,7 @@ export const GiveawayEngagements: CollectionConfig = {
   slug: "giveaway-engagements",
   labels: { singular: "Engagement", plural: "Engagements" },
   admin: {
-    group: "Giveaway",
+    group: ADMIN_GROUP_RECORDS,
     useAsTitle: "id",
     defaultColumns: [
       "giveaway",

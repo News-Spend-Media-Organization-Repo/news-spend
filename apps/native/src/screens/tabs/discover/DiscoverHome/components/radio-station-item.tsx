@@ -1,5 +1,5 @@
 import { useAudioPlayerStatus } from "expo-audio";
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { PauseIcon, PlayIcon } from "phosphor-react-native";
 import type { Station } from "radio-browser-api";
 import { type ReactNode, useCallback, useRef } from "react";

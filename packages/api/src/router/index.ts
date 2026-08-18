@@ -4,6 +4,7 @@ import { adsRouter } from "./ads";
 import { blockRouter } from "./block";
 import { commentRouter } from "./comment";
 import { feedbackRouter } from "./feedback";
+import { giveawayRouter } from "./giveaway";
 import { lotteryRouter } from "./lottery";
 import { lotteryTicketRouter } from "./lotteryTicket";
 import { newsRouter } from "./news";
@@ -19,6 +20,7 @@ import { reportRouter } from "./report";
 import { storeRouter } from "./store";
 import { surveyRouter } from "./survey";
 import { tweetRouter } from "./tweet";
+import { verificationRouter } from "./verification";
 
 export const router = {
   account: accountRouter,
@@ -27,6 +29,7 @@ export const router = {
   ads: adsRouter,
   comments: commentRouter,
   feedback: feedbackRouter,
+  giveaway: giveawayRouter,
   lottery: lotteryRouter,
   lotteryTicket: lotteryTicketRouter,
   news: newsRouter,
@@ -41,6 +44,7 @@ export const router = {
   report: reportRouter,
   store: storeRouter,
   survey: surveyRouter,
+  verification: verificationRouter,
   tweet: tweetRouter,
 };
 

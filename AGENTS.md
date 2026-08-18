@@ -21,9 +21,10 @@ Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/
 | Build (CMS)            | `bun run build` (root) or `bun --filter @news-spend-media/cms build` |
 | Dev (CMS)              | `bun run dev` or `bun --filter @news-spend-media/cms dev`            |
 | Dev (Server)           | `bun --filter @news-spend-media/server dev`                          |
-| Test (API)             | `cd packages/api && bun x vitest run`                                |
-| Test (API, watch)      | `cd packages/api && bun x vitest`                                    |
-| Test (API, single file)| `cd packages/api && bun x vitest run path/to/file.test.ts`           |
+| Test (all packages)    | `bun run test` (turbo)                                               |
+| Test (API)             | `cd packages/api && bun test`                                        |
+| Test (API, watch)      | `cd packages/api && bun test --watch`                                |
+| Test (API, single file)| `cd packages/api && bun test path/to/file.test.ts`                   |
 | Test (Native)          | `cd apps/native && bun run test`                                     |
 | Test (Native, watch)   | `cd apps/native && bun run test:watch`                               |
 | Generate Payload types | `cd apps/cms && bun run generate:types`                              |
@@ -106,6 +107,26 @@ CMS tsconfig uses `~/*` path alias → `./src/*`.
 - Validation: Zod schemas
 - Context: `packages/api/src/context.ts`
 
+#### Testing routers
+
+Test procedures directly — no HTTP — per the [oRPC testing guide](https://v2.orpc.dev/docs/advanced/testing-and-mocking).
+Helpers live in `packages/api/src/test-utils.ts`; put the test next to the
+router as `<router>.test.ts`.
+
+```ts
+const payload = createFakePayload({ collections: { users: [{ id: "user-1" }] } });
+const ctx = mockContext({ user: { id: "user-1", isAnonymous: false } as never, payload });
+
+await call(myRouter.get, { id: "x" }, { context: ctx });     // one procedure
+const client = createTestClient(myRouter, ctx);              // whole router
+const error = await expectError(client.get({ id: "nope" })); // assert a rejection
+```
+
+`createFakePayload` is an in-memory Payload: seeded collections, real `where`
+filtering, sort and pagination, plus `payload.docs(slug)` and `payload.calls`
+for assertions. Middleware runs for real, so auth and rate limiting are
+testable; a schema failure surfaces as `BAD_REQUEST` / "Input validation failed".
+
 ### Payload CMS
 
 - Collections/fields/hooks in `packages/payload/src/`
@@ -120,7 +141,7 @@ apps/
   server/       # Bun HTTP server (orpc API, auth, health)
   native/       # React Native / Expo mobile app
 packages/
-  api/          # orpc router, procedures, middlewares (vitest tests here)
+  api/          # orpc router, procedures, middlewares (bun:test tests here)
   auth/         # Better Auth config
   config/       # Shared tsconfig bases
   db/           # Drizzle ORM schema + migrations
@@ -148,7 +169,7 @@ tooling/
 | Tailwind CSS        | Styling                         |
 | React Native / Expo | Mobile app                      |
 | Jest                | Native unit testing             |
-| Vitest              | Web/API unit testing            |
+| bun:test            | API unit testing                |
 | Turborepo           | Monorepo task orchestration     |
 | Sentry              | Error tracking                  |
 
@@ -164,3 +185,17 @@ Pre-commit: runs `bun x biome check --write` on staged files, auto-stages fixes.
 4. Edge cases and boundary conditions
 5. UX/accessibility beyond linting rules
 6. Performance implications of algorithmic choices
+
+## Agent skills
+
+### Issue tracker
+
+Issues, specs, and tickets live as GitHub issues (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles, each label string equal to its name: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context: `CONTEXT-MAP.md` at the root points at per-context `CONTEXT.md` files (`apps/cms`, `apps/server`, `apps/native`), with `docs/adr/` at the root for system-wide decisions. See `docs/agents/domain.md`.

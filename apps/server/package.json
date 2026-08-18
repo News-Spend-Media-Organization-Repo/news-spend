@@ -2,18 +2,19 @@
   "name": "@news-spend-media/server",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts"
+    "dev": "bun --preload ./instrument.ts --watch src/index.ts",
+    "start": "bun --preload ./instrument.ts src/index.ts"
   },
   "dependencies": {
     "@news-spend-media/api": "workspace:*",
     "@news-spend-media/auth": "workspace:*",
     "@news-spend-media/db": "workspace:*",
     "@news-spend-media/logger": "workspace:*",
-    "@orpc/experimental-pino": "catalog:",
-    "@orpc/experimental-ratelimit": "catalog:",
     "@orpc/openapi": "catalog:",
-    "@orpc/otel": "catalog:",
+    "@orpc/opentelemetry": "catalog:",
+    "@sentry/bun": "^9",
+    "@orpc/pino": "catalog:",
+    "@orpc/ratelimit": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/standard-server-fetch": "catalog:",
     "@orpc/zod": "catalog:",

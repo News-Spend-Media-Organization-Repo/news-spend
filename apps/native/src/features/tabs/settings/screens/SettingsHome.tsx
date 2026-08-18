@@ -1,16 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import * as Application from "expo-application";
-import {
-  Avatar,
-  Card,
-  cn,
-  ListGroup,
-  PressableFeedback,
-  Separator,
-  Spinner,
-  useThemeColor,
-} from "heroui-native";
+import { Avatar } from "heroui-native/avatar";
+import { Card } from "heroui-native/card";
+import { cn } from "heroui-native/utils";
+import { ListGroup } from "heroui-native/list-group";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
+import { useThemeColor } from "heroui-native/hooks";
 import {
   ArrowClockwiseIcon,
   ArticleIcon,
@@ -18,7 +16,6 @@ import {
   ChartLineIcon,
   HardDrivesIcon,
   IdentificationBadgeIcon,
-  IdentificationCardIcon,
   LockKeyIcon,
   PhoneCallIcon,
   ShareIcon,
@@ -88,12 +85,11 @@ const settingsItems: SettingsItem[] = [
     screen: "DataManager",
     authRequired: true,
   },
-  {
-    title: "Verify Identity",
-    icon: IdentificationCardIcon,
-    screen: "VerifyIdentity",
-    authRequired: true,
-  },
+  // Identity verification is deliberately absent. It is reached from the
+  // prize that needs it (see MyPrizes), never browsed to: every check costs
+  // real money at the provider, and no prize currently requires one. A
+  // standing menu entry would invite people to hand over an ID document —
+  // and have us pay to inspect it — for nothing.
   { title: "Contact us", icon: PhoneCallIcon, screen: "Support" },
   {
     title: "Legal Agreement",

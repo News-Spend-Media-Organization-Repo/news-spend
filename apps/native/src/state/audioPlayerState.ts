@@ -4,9 +4,9 @@ import {
   setAudioModeAsync,
 } from "expo-audio";
 import type { Station } from "radio-browser-api";
-import { toast } from "sonner-native";
 import { proxy, subscribe, useSnapshot } from "valtio";
 
+import { toast } from "#/components/heroui/toast";
 import { storage } from "#/utils/storage";
 
 const TIMER_THRESHOLD = 1800;

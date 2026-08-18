@@ -13,7 +13,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
-import { cn } from "heroui-native";
+import { cn } from "heroui-native/utils";
 import { CaretLeftIcon, CaretRightIcon } from "phosphor-react-native";
 import type React from "react";
 import { useState } from "react";

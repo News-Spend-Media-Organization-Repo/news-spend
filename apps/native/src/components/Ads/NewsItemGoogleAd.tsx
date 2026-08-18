@@ -14,6 +14,7 @@ import {
   NativeAsset,
   NativeAssetType,
 } from "react-native-google-mobile-ads";
+import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { getCachedAd, setCachedAd } from "#/utils/ad-cache";
 import { Image } from "../heroui/image";
@@ -74,9 +75,12 @@ const NewsItemGoogleAds = memo(
         loadAd();
       }, 10_000);
 
-      NativeAd.createForAdRequest(adUnits.native, {
-        adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_RIGHT,
-      })
+      initializeAdsWhenPermitted()
+        .then(() =>
+          NativeAd.createForAdRequest(adUnits.native, {
+            adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_RIGHT,
+          })
+        )
         .then((ad) => {
           clearTimeout(timeout);
           attemptsRef.current = 0;

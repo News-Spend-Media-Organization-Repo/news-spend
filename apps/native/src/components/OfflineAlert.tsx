@@ -1,10 +1,10 @@
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect, useRef } from "react";
-import { toast } from "sonner-native";
+import { toast } from "#/components/heroui/toast";
 
 const OfflineAlert = () => {
   const wasOffline = useRef(false);
-  const toastId = useRef<number | string>(0);
+  const toastId = useRef("");
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -14,7 +14,7 @@ const OfflineAlert = () => {
           "You are offline. Please check your internet connection.",
           {
             duration: Number.POSITIVE_INFINITY,
-            dismissible: false,
+            isSwipeable: false,
           }
         );
       } else if (wasOffline.current) {

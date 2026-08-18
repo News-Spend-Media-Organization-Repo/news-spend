@@ -4,7 +4,7 @@ import {
 } from "@legendapp/list/react-native";
 import type { News } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
-import { Card } from "heroui-native";
+import { Card } from "heroui-native/card";
 import { useCallback } from "react";
 import { Dimensions, Pressable, type ScrollViewProps } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";

@@ -4,13 +4,13 @@ import { Spinner } from "heroui-native/spinner";
 import { FormProvider, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { toast } from "sonner-native";
 import { useSnapshot } from "valtio";
 import { z } from "zod";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import FormTextInput from "#/components/heroui/text-input";
+import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 import { authState } from "#/state/auth";
 

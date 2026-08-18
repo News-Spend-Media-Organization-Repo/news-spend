@@ -27,13 +27,19 @@ import {
   Comments,
   ContentReport,
   Feedback,
+  GiveawayAccountFlags,
   GiveawayAuditLog,
+  GiveawayDrawAttempts,
   GiveawayEngagements,
+  GiveawayFulfilmentAttempts,
+  GiveawayPoolSnapshots,
   GiveawayPrizes,
+  GiveawayReportDeliveries,
   GiveawayStreaks,
   Giveaways,
   GiveawayTickets,
   GiveawayWinners,
+  IdentityChecks,
   IdentityVerification,
   Lotteries,
   LotteryTickets,
@@ -60,6 +66,7 @@ import {
   WitnessReport,
 } from "./collections";
 import Admins from "./collections/Admins";
+import UserBlocks from "./collections/UserBlocks";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
@@ -68,6 +75,7 @@ import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
+import { processGiveawayTask } from "./tasks/processGiveaway";
 import { processLotteryTask } from "./tasks/processLottery";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
@@ -126,13 +134,19 @@ const baseConfig: Config = {
     Feedback,
     // Games,
     // --- Giveaway draw engine (spec-compliant; supersedes Lottery* above) ---
+    GiveawayAccountFlags,
     GiveawayAuditLog,
+    GiveawayDrawAttempts,
     GiveawayEngagements,
+    GiveawayFulfilmentAttempts,
+    GiveawayPoolSnapshots,
     GiveawayPrizes,
+    GiveawayReportDeliveries,
     Giveaways,
     GiveawayStreaks,
     GiveawayTickets,
     GiveawayWinners,
+    IdentityChecks,
     PrizeCatalogue,
     // --- Legacy lottery: retained read-only for audit until cutover ---
     IdentityVerification,
@@ -156,6 +170,7 @@ const baseConfig: Config = {
     // Stores,
     Survey,
     TicketPurchaseLog,
+    UserBlocks,
     Users,
     Verification,
     WitnessReport,
@@ -171,6 +186,7 @@ const baseConfig: Config = {
       sendUrgentModerationAlertTask,
       checkPushReceiptsTask,
       processLotteryTask,
+      processGiveawayTask,
       cleanupAnonymousUsersTask,
       generateVideoThumbnailTask,
       deleteVideoThumbTempTask,

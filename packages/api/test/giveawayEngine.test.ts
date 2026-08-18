@@ -23,6 +23,13 @@ type FakeData = {
   offers?: Row[];
   prizes?: Row[];
   streaks?: Row[];
+  /** Previously completed giveaways, for the §22 fairness history. */
+  priorGiveaways?: Row[];
+  /** Winner rows from those prior giveaways. */
+  priorWinners?: Row[];
+  /** Ticket rows from those prior giveaways, i.e. who took part. */
+  priorTickets?: Row[];
+  accountFlags?: Row[];
 };
 
 /**
@@ -33,6 +40,7 @@ function createFakePayload(data: FakeData = {}) {
   const created: Record<string, Row[]> = {};
   const giveaway: Row = {
     id: "g1",
+    name: "Test Giveaway",
     status: "active",
     endDate: new Date(Date.now() - 60_000).toISOString(),
     tier1WinnerPercentage: 0.1,
@@ -54,10 +62,25 @@ function createFakePayload(data: FakeData = {}) {
     ],
     "giveaway-prizes": prizes,
     "giveaway-streaks": data.streaks ?? [],
+    giveaways: data.priorGiveaways ?? [],
+    "giveaway-winners": data.priorWinners ?? [],
+    "giveaway-account-flags": data.accountFlags ?? [],
   };
 
+  // Prior-giveaway tickets share the collection with this giveaway's tickets.
+  if (data.priorTickets?.length) {
+    collections["giveaway-tickets"] = [
+      ...collections["giveaway-tickets"],
+      ...data.priorTickets,
+    ];
+  }
+
   const payload: any = {
-    logger: { error: () => undefined, info: () => undefined },
+    logger: {
+      error: () => undefined,
+      info: () => undefined,
+      warn: () => undefined,
+    },
     findByID: async ({ collection, id }: Row) => {
       if (collection === "giveaways") {
         return giveaway.id === id ? giveaway : null;
@@ -76,6 +99,10 @@ function createFakePayload(data: FakeData = {}) {
         ...values,
       };
       created[collection] = [...(created[collection] ?? []), row];
+      // Newly written rows are visible to later reads, as they would be in a
+      // real database — the engine counts its own draw attempts, for one.
+      // `created` keeps the same object references, so updates show in both.
+      collections[collection] = [...(collections[collection] ?? []), row];
       return row;
     },
     update: async ({ collection, id, data: values }: Row) => {
@@ -117,16 +144,23 @@ function matchesWhere(row: Row, where: Row | undefined): boolean {
     return where.and.every((clause: Row) => matchesWhere(row, clause));
   }
   return Object.entries(where).every(([field, condition]) => {
-    const expected = (condition as Row)?.equals;
-    if (expected === undefined) {
-      return true;
-    }
+    const clause = condition as Row;
     const actual = row[field];
     const key =
       actual && typeof actual === "object" && "id" in actual
         ? (actual as Row).id
         : actual;
-    return String(key) === String(expected);
+
+    if (clause?.equals !== undefined) {
+      return String(key) === String(clause.equals);
+    }
+    if (Array.isArray(clause?.in)) {
+      return clause.in.some((v: unknown) => String(v) === String(key));
+    }
+    if (clause?.less_than !== undefined) {
+      return String(key) < String(clause.less_than);
+    }
+    return true;
   });
 }
 
@@ -167,6 +201,27 @@ function participants(
   }
 
   return { ticketRows, boostRows, offerRows };
+}
+
+/**
+ * A Winner Report sender that always succeeds. Passed to the engine so a draw
+ * in a test never reaches for a mail provider, and so §19's thirteenth
+ * checkpoint — which only closes when the report actually goes out — is
+ * reachable here.
+ */
+function stubReportSender() {
+  const sent: Row[] = [];
+  return {
+    sent,
+    send: async (message: Row) => {
+      sent.push(message);
+      return { id: `msg-${sent.length}` };
+    },
+  };
+}
+
+function makeEngine(payload: any, sender = stubReportSender().send) {
+  return new GiveawayEngine(payload, { reportSender: sender });
 }
 
 function prizeRow(
@@ -309,7 +364,7 @@ describe("streak persistence (spec §11)", () => {
       streaks,
     });
 
-    await new GiveawayEngine(payload).runDraw("g1");
+    await makeEngine(payload).runDraw("g1");
     return { streaks, created };
   }
 
@@ -375,7 +430,7 @@ describe("streak persistence (spec §11)", () => {
       streaks: rows,
     });
 
-    await new GiveawayEngine(payload).runDraw("g1");
+    await makeEngine(payload).runDraw("g1");
 
     // Existing tier1 row advances 2 -> 3 in place.
     expect(rows[0]?.consecutiveCount).toBe(3);
@@ -463,7 +518,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p3", "tier3", 1000)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -485,7 +540,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p3", "tier3", 7)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -521,7 +576,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p1", "tier1", 100)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -546,7 +601,7 @@ describe("GiveawayEngine.runDraw", () => {
       ],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -576,7 +631,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("a", "tier3", 3), prizeRow("b", "tier3", 4)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -612,7 +667,7 @@ describe("GiveawayEngine.runDraw", () => {
       ],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -646,7 +701,7 @@ describe("GiveawayEngine.runDraw", () => {
       ],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -679,7 +734,7 @@ describe("GiveawayEngine.runDraw", () => {
       ],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -735,7 +790,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p3", "tier3", 100)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -772,7 +827,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p1", "tier1", 5)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -806,7 +861,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p1", "tier1", 5)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
+    const result = await makeEngine(payload).runDraw("g1", {
       dryRun: true,
     });
 
@@ -842,7 +897,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p1", "tier1", 5)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1");
+    const result = await makeEngine(payload).runDraw("g1");
 
     expect(
       result.tiers.find((t) => t.tier === "tier1")?.candidatePoolSize
@@ -874,7 +929,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p1", "tier1", 5)],
     });
 
-    await new GiveawayEngine(payload).runDraw("g1");
+    await makeEngine(payload).runDraw("g1");
 
     const winner = (created["giveaway-winners"] ?? [])[0];
     expect(winner?.boostCount).toBe(3);
@@ -915,7 +970,7 @@ describe("GiveawayEngine.runDraw", () => {
         tickets,
         prizes: [prizeRow("p3", "tier3", 10)],
       });
-      const result = await new GiveawayEngine(payload).runDraw("g1", {
+      const result = await makeEngine(payload).runDraw("g1", {
         dryRun: true,
         seed: `seed-${run}`,
       });
@@ -972,7 +1027,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p3", "tier3", 10)],
     });
 
-    await new GiveawayEngine(payload).runDraw("g1", { dryRun: true });
+    await makeEngine(payload).runDraw("g1", { dryRun: true });
 
     expect(created["giveaway-winners"]).toBeUndefined();
     expect(created["giveaway-audit-log"]).toBeUndefined();
@@ -992,7 +1047,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p3", "tier3", 10)],
     });
 
-    const result = await new GiveawayEngine(payload).runDraw("g1");
+    const result = await makeEngine(payload).runDraw("g1");
 
     expect(result.totalWinners).toBe(5);
     expect(created["giveaway-winners"]).toHaveLength(5);
@@ -1029,7 +1084,7 @@ describe("GiveawayEngine.runDraw", () => {
       prizes: [prizeRow("p1", "tier1", 3, "Laptop")],
     });
 
-    await new GiveawayEngine(payload).runDraw("g1");
+    await makeEngine(payload).runDraw("g1");
 
     for (const winner of created["giveaway-winners"] ?? []) {
       expect(winner.winningTicket).toBeTruthy();
@@ -1042,10 +1097,440 @@ describe("GiveawayEngine.runDraw", () => {
   });
 });
 
-describe("resuming a failed draw (spec §19)", () => {
+describe("fairness and anti-abuse in a real draw (spec §22)", () => {
+  /** A completed giveaway that ended `daysAgo` days back. */
+  const priorGiveaway = (id: string, daysAgo: number) => ({
+    id,
+    status: "completed",
+    endDate: new Date(Date.now() - daysAgo * 864e5).toISOString(),
+  });
+
+  it("bars last draw's Tier 1 winner from Tier 1 and Tier 2, but not Tier 3", async () => {
+    // Everyone qualifies for all three tiers, so any exclusion is fairness.
+    const { ticketRows, boostRows, offerRows } = participants(20, {
+      tickets: 10,
+      boosts: 3,
+      offers: 1,
+    });
+
+    const { payload } = createFakePayload({
+      giveaway: {
+        // All zero: pool sizes are still computed, but nobody wins, so no one
+        // is removed between tiers. That isolates the fairness exclusion from
+        // the one-prize-per-user rule.
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets: ticketRows,
+      boosts: boostRows,
+      offers: offerRows,
+      prizes: [
+        prizeRow("p1", "tier1", 50),
+        prizeRow("p2", "tier2", 50),
+        prizeRow("p3", "tier3", 50),
+      ],
+      priorGiveaways: [priorGiveaway("g0", 14)],
+      // u0 won Tier 1 in the previous giveaway.
+      priorWinners: [{ id: "w0", giveaway: "g0", user: "u0", tier: "tier1" }],
+      priorTickets: [
+        { id: "pt0", giveaway: "g0", user: "u0", quantity: 5, status: "valid" },
+      ],
+    });
+
+    const result = await makeEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    const pool = (tier: string) =>
+      result.tiers.find((t) => t.tier === tier)?.candidatePoolSize;
+
+    // 19 of 20 for the high tiers — u0 is serving §22.1 and §22.2.
+    expect(pool("tier1")).toBe(19);
+    expect(pool("tier2")).toBe(19);
+
+    // Tier 3 stays fully open: the spec is explicit that a high-tier winner
+    // may still win Tier 3 during the cooldown.
+    expect(pool("tier3")).toBe(20);
+  });
+
+  it("keeps last draw's Tier 1 winner out of the high tiers when they do run", async () => {
+    const { ticketRows, boostRows, offerRows } = participants(20, {
+      tickets: 10,
+      boosts: 3,
+      offers: 1,
+    });
+
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 100,
+        tier2WinnerPercentage: 100,
+        tier3WinnerPercentage: 0,
+      },
+      tickets: ticketRows,
+      boosts: boostRows,
+      offers: offerRows,
+      prizes: [prizeRow("p1", "tier1", 50), prizeRow("p2", "tier2", 50)],
+      priorGiveaways: [priorGiveaway("g0", 14)],
+      priorWinners: [{ id: "w0", giveaway: "g0", user: "u0", tier: "tier1" }],
+      priorTickets: [
+        { id: "pt0", giveaway: "g0", user: "u0", quantity: 5, status: "valid" },
+      ],
+    });
+
+    const result = await makeEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    const winners = result.tiers.flatMap((t) =>
+      t.winners.map((w) => w.userKey)
+    );
+    expect(winners).not.toContain("u0");
+    expect(winners).toHaveLength(19);
+  });
+
+  it("waives the Featured Offer for a user who has gone four draws without a prize", async () => {
+    // "loyal" meets Tier 1's ticket and boost bars but has NO featured offer,
+    // so only the §22.4 waiver can put them in the pool.
+    const tickets = [
+      {
+        id: "t0",
+        user: "loyal",
+        giveaway: "g1",
+        quantity: 10,
+        status: "valid",
+      },
+    ];
+    const boosts = [1, 2, 3].map((n) => ({
+      id: `b${n}`,
+      user: "loyal",
+      giveaway: "g1",
+      completionStatus: "completed",
+    }));
+
+    const priorIds = ["g0", "g-1", "g-2", "g-3"];
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 100,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets,
+      boosts,
+      prizes: [prizeRow("p1", "tier1", 5)],
+      priorGiveaways: priorIds.map((id, i) => priorGiveaway(id, (i + 1) * 14)),
+      priorWinners: [],
+      // Took part in all four, won nothing.
+      priorTickets: priorIds.map((gid, i) => ({
+        id: `pt${i}`,
+        giveaway: gid,
+        user: "loyal",
+        quantity: 3,
+        status: "valid",
+      })),
+    });
+
+    const result = await makeEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    expect(
+      result.tiers.find((t) => t.tier === "tier1")?.candidatePoolSize
+    ).toBe(1);
+  });
+
+  it("does not waive the Featured Offer when a draw was sat out", async () => {
+    const tickets = [
+      {
+        id: "t0",
+        user: "gappy",
+        giveaway: "g1",
+        quantity: 10,
+        status: "valid",
+      },
+    ];
+    const boosts = [1, 2, 3].map((n) => ({
+      id: `b${n}`,
+      user: "gappy",
+      giveaway: "g1",
+      completionStatus: "completed",
+    }));
+
+    const priorIds = ["g0", "g-1", "g-2", "g-3"];
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 100,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets,
+      boosts,
+      prizes: [prizeRow("p1", "tier1", 5)],
+      priorGiveaways: priorIds.map((id, i) => priorGiveaway(id, (i + 1) * 14)),
+      // Sat out "g-1", so there is no run of four.
+      priorTickets: ["g0", "g-2", "g-3"].map((gid, i) => ({
+        id: `pt${i}`,
+        giveaway: gid,
+        user: "gappy",
+        quantity: 3,
+        status: "valid",
+      })),
+    });
+
+    const result = await makeEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    expect(
+      result.tiers.find((t) => t.tier === "tier1")?.candidatePoolSize
+    ).toBe(0);
+  });
+
+  it("excludes a disqualified account from the pool and from the participant count", async () => {
+    const { ticketRows } = participants(10);
+
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 100,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 50)],
+      accountFlags: [
+        { id: "f1", user: "u0", trustStatus: "disqualified", reason: "Bots" },
+        {
+          id: "f2",
+          user: "u1",
+          trustStatus: "ok",
+          duplicateAccountGroup: "DUP-1",
+        },
+      ],
+    });
+
+    const result = await makeEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    // Both come out of the denominator, not just the pool.
+    expect(result.totalValidParticipants).toBe(8);
+
+    const winners = result.tiers.flatMap((t) =>
+      t.winners.map((w) => w.userKey)
+    );
+    expect(winners).not.toContain("u0");
+    expect(winners).not.toContain("u1");
+  });
+
+  it("lets a suspicious account win, but holds the prize for review", async () => {
+    const { ticketRows } = participants(3);
+
+    const { payload, created } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 100,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 10)],
+      accountFlags: [
+        {
+          id: "f1",
+          user: "u0",
+          trustStatus: "suspicious",
+          reason: "Unusual purchase pattern",
+        },
+      ],
+    });
+
+    const result = await makeEngine(payload).runDraw("g1");
+
+    // Suspicion must never alter the selection (§22.8) — u0 still competes.
+    expect(result.totalValidParticipants).toBe(3);
+
+    const rows = created["giveaway-winners"] ?? [];
+    const flagged = rows.find((r) => r.user === "u0");
+    const clean = rows.find((r) => r.user !== "u0");
+
+    expect(flagged?.fulfilmentStatus).toBe("on_hold");
+    expect(flagged?.reviewNote).toContain("review");
+    expect(clean?.fulfilmentStatus).toBe("pending");
+  });
+});
+
+describe("pool lock and replacement winners (spec §12)", () => {
   /**
-   * A giveaway whose Tier 1 completed and awarded `tier1Winners`, then failed
-   * before Tier 2 — the state a mid-draw crash leaves behind.
+   * Runs a real Tier 3 draw over `count` participants producing exactly
+   * `maxUnits` winners. Tier 3 is set to 100% so the prize stock is what caps
+   * the winner count — deriving a percentage instead runs into floating point
+   * (a 1-in-6 share evaluates to 0.9999…, which floors to zero winners).
+   */
+  async function drawnGiveaway(count: number, maxUnits: number) {
+    const { ticketRows } = participants(count);
+    const fake = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 100,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", maxUnits)],
+    });
+
+    const result = await makeEngine(fake.payload).runDraw("g1");
+    return { ...fake, result };
+  }
+
+  it("locks a pool snapshot per tier, even when the tier awards nobody", async () => {
+    const { ticketRows } = participants(6);
+    const { payload, created } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 10)],
+    });
+
+    await makeEngine(payload).runDraw("g1");
+
+    const snapshots = created["giveaway-pool-snapshots"] ?? [];
+    // One per tier, including the two that awarded nothing.
+    expect(snapshots).toHaveLength(3);
+
+    const tier3 = snapshots.find((s) => s.tier === "tier3");
+    expect(tier3?.candidateCount).toBe(6);
+    expect(tier3?.entries).toHaveLength(6);
+
+    // Tier 1 and Tier 2 have empty pools — nobody met their thresholds.
+    expect(snapshots.find((s) => s.tier === "tier1")?.candidateCount).toBe(0);
+  });
+
+  it("does not lock a pool on a dry run", async () => {
+    const { ticketRows } = participants(5);
+    const { payload, created } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      tickets: ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    await makeEngine(payload).runDraw("g1", { dryRun: true });
+    expect(created["giveaway-pool-snapshots"]).toBeUndefined();
+  });
+
+  it("replaces a disqualified winner from the locked pool", async () => {
+    const { payload, created, seed } = await drawnGiveaway(10, 2);
+
+    const winners = created["giveaway-winners"] ?? [];
+    expect(winners).toHaveLength(2);
+
+    // The fake serves finds from `collections`, so mirror the draw's writes.
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const target = winners[0]!;
+    const outcome = await makeEngine(payload).replaceWinner(target.id, {
+      reason: "Ticket charged back",
+    });
+
+    expect(outcome.replaced).toBe(true);
+
+    // Original is kept, marked disqualified, and its prize withheld.
+    expect(target.claimStatus).toBe("disqualified");
+    expect(target.fulfilmentStatus).toBe("cancelled");
+    expect(target.disqualificationReason).toBe("Ticket charged back");
+
+    const replacement = (created["giveaway-winners"] ?? []).at(-1);
+    expect(replacement?.replaces).toBe(target.id);
+    expect(replacement?.prizeName).toBe(target.prizeName);
+    expect(replacement?.tier).toBe(target.tier);
+  });
+
+  it("never draws a replacement who already holds a prize", async () => {
+    const { payload, created, seed } = await drawnGiveaway(6, 3);
+
+    const winners = created["giveaway-winners"] ?? [];
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const existingWinnerIds = winners.map((w) => w.user);
+
+    const outcome = await makeEngine(payload).replaceWinner(winners[0]!.id, {
+      reason: "Fraud confirmed",
+    });
+
+    expect(outcome.replaced).toBe(true);
+    if (outcome.replaced) {
+      expect(existingWinnerIds).not.toContain(outcome.userKey);
+    }
+  });
+
+  it("refuses to disqualify a prize that has already been fulfilled", async () => {
+    const { payload, created, seed } = await drawnGiveaway(6, 1);
+
+    const winners = created["giveaway-winners"] ?? [];
+    winners[0]!.fulfilmentStatus = "fulfilled";
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const outcome = await makeEngine(payload).replaceWinner(winners[0]!.id, {
+      reason: "Too late",
+    });
+
+    expect(outcome.replaced).toBe(false);
+    if (!outcome.replaced) {
+      expect(outcome.message).toMatch(/already been fulfilled/);
+    }
+    expect(winners[0]?.claimStatus).not.toBe("disqualified");
+  });
+
+  it("still disqualifies when the pool has nobody left to draw", async () => {
+    // Every participant wins, so no replacement is available.
+    const { payload, created, seed } = await drawnGiveaway(3, 3);
+
+    const winners = created["giveaway-winners"] ?? [];
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const outcome = await makeEngine(payload).replaceWinner(winners[0]!.id, {
+      reason: "Refunded",
+    });
+
+    expect(outcome.replaced).toBe(false);
+    // The disqualification must still stand — the prize is withheld either way.
+    expect(winners[0]?.claimStatus).toBe("disqualified");
+    expect(winners[0]?.fulfilmentStatus).toBe("cancelled");
+  });
+
+  it("will not disqualify the same winner twice", async () => {
+    const { payload, created, seed } = await drawnGiveaway(8, 2);
+
+    const winners = created["giveaway-winners"] ?? [];
+    seed("giveaway-winners", winners);
+    seed("giveaway-pool-snapshots", created["giveaway-pool-snapshots"] ?? []);
+
+    const drawEngine = makeEngine(payload);
+    await drawEngine.replaceWinner(winners[0]!.id, { reason: "First" });
+    const second = await drawEngine.replaceWinner(winners[0]!.id, {
+      reason: "Second",
+    });
+
+    expect(second.replaced).toBe(false);
+    if (!second.replaced) {
+      expect(second.message).toMatch(/already been disqualified/);
+    }
+  });
+});
+
+describe("resuming an interrupted draw (spec §19)", () => {
+  /**
+   * A giveaway whose Tier 1 completed and awarded `tier1Winners`, then was
+   * interrupted before Tier 2 — the state a mid-draw crash leaves behind.
    */
   function partiallyDrawn(tier1Winners: string[]) {
     const { ticketRows, boostRows, offerRows } = participants(100, {
@@ -1056,8 +1541,10 @@ describe("resuming a failed draw (spec §19)", () => {
 
     const fake = createFakePayload({
       giveaway: {
-        status: "failed",
+        status: "interrupted",
         drawSeed: "original-seed",
+        drawExecutionId: "exec-1",
+        lastCheckpoint: "tier1_prizes_allocated",
         drawError: "database unavailable",
         totalValidParticipants: 100,
         tier1WinnerPercentage: 5,
@@ -1100,21 +1587,73 @@ describe("resuming a failed draw (spec §19)", () => {
     return fake;
   }
 
-  it("refuses to re-run a failed draw as a fresh draw", async () => {
+  /**
+   * The §19 workflow in full: an administrator reviews the interruption and
+   * authorizes it, and only then may the draw continue.
+   */
+  async function authorizeAndResume(payload: any) {
+    const drawEngine = makeEngine(payload);
+    await drawEngine.authorizeResumption("g1", {
+      authorizedBy: "admin@newsspend.com",
+    });
+    return drawEngine.runDraw("g1", { resume: true });
+  }
+
+  it("refuses to re-run an interrupted draw as a fresh draw", async () => {
     const { payload } = partiallyDrawn(["u0", "u1", "u2", "u3", "u4"]);
 
-    await expect(new GiveawayEngine(payload).runDraw("g1")).rejects.toThrow(
-      /can only be continued as an authorized resume, not restarted/
+    await expect(makeEngine(payload).runDraw("g1")).rejects.toThrow(
+      /administrator must authorize its resumption/
     );
+  });
+
+  it("refuses to resume without authorization", async () => {
+    const { payload } = partiallyDrawn(["u0"]);
+
+    // Asking to resume is not the same as being allowed to: the giveaway is
+    // still INTERRUPTED, so the gate holds.
+    await expect(
+      makeEngine(payload).runDraw("g1", { resume: true })
+    ).rejects.toThrow(/resumption has been authorized/);
+  });
+
+  it("records the authorization and keeps the execution id across attempts", async () => {
+    const { payload, giveaway, created } = partiallyDrawn(["u0"]);
+
+    const result = await authorizeAndResume(payload);
+
+    expect(result.executionId).toBe("exec-1");
+    expect(giveaway.resumptionAuthorizedBy).toBe("admin@newsspend.com");
+
+    const attempt = (created["giveaway-draw-attempts"] ?? [])[0];
+    expect(attempt?.kind).toBe("resumption");
+    expect(attempt?.executionId).toBe("exec-1");
+    expect(attempt?.seed).toBe("original-seed");
+    expect(attempt?.authorizedBy).toBe("admin@newsspend.com");
+    expect(attempt?.outcome).toBe("completed");
+
+    const events = (created["giveaway-audit-log"] ?? []).map(
+      (e) => e.eventType
+    );
+    expect(events).toContain("resumption_authorized");
+  });
+
+  it("continues from the checkpoint the interruption left behind", async () => {
+    const { payload, giveaway } = partiallyDrawn(["u0"]);
+
+    const result = await authorizeAndResume(payload);
+
+    // Tier 1's checkpoints were already passed, so they are not rewritten; the
+    // draw runs on to the end of the sequence.
+    expect(result.lastCheckpoint).toBe("winner_report_generated");
+    expect(giveaway.lastCheckpoint).toBe("winner_report_generated");
   });
 
   it("does not award a second prize to an existing winner", async () => {
     const priorWinners = ["u0", "u1", "u2", "u3", "u4"];
     const { payload, created } = partiallyDrawn(priorWinners);
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
-      resume: true,
-    });
+    const result = await authorizeAndResume(payload);
 
     // Nobody who already won appears again in the newly drawn tiers.
     const freshWinners = result.tiers
@@ -1136,9 +1675,7 @@ describe("resuming a failed draw (spec §19)", () => {
     const priorWinners = ["u0", "u1", "u2", "u3", "u4"];
     const { payload, created, prizes } = partiallyDrawn(priorWinners);
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
-      resume: true,
-    });
+    const result = await authorizeAndResume(payload);
 
     const tier1 = result.tiers.find((t) => t.tier === "tier1")!;
     expect(tier1.skipped).toBe(true);
@@ -1156,9 +1693,7 @@ describe("resuming a failed draw (spec §19)", () => {
   it("reuses the original seed and participant snapshot", async () => {
     const { payload, created, giveaway } = partiallyDrawn(["u0"]);
 
-    const result = await new GiveawayEngine(payload).runDraw("g1", {
-      resume: true,
-    });
+    const result = await authorizeAndResume(payload);
 
     expect(result.seed).toBe("original-seed");
     expect(giveaway.drawSeed).toBe("original-seed");
@@ -1175,13 +1710,13 @@ describe("resuming a failed draw (spec §19)", () => {
   it("completes the giveaway and clears the error", async () => {
     const { payload, giveaway } = partiallyDrawn(["u0"]);
 
-    await new GiveawayEngine(payload).runDraw("g1", { resume: true });
+    await authorizeAndResume(payload);
 
     expect(giveaway.status).toBe("completed");
     expect(giveaway.drawError).toBeNull();
   });
 
-  it("refuses to resume a giveaway that has not failed", async () => {
+  it("refuses to authorize a resumption for a giveaway that is running normally", async () => {
     const { payload } = createFakePayload({
       giveaway: {
         tier1WinnerPercentage: 0,
@@ -1192,9 +1727,53 @@ describe("resuming a failed draw (spec §19)", () => {
       prizes: [prizeRow("p3", "tier3", 5)],
     });
 
-    await expect(
-      new GiveawayEngine(payload).runDraw("g1", { resume: true })
-    ).rejects.toThrow(/Only a failed draw can be resumed/);
+    const authorization = await makeEngine(payload).authorizeResumption("g1", {
+      authorizedBy: "admin@newsspend.com",
+    });
+
+    expect(authorization.authorized).toBe(false);
+    expect(authorization.message).toMatch(/Only an interrupted or failed draw/);
+  });
+
+  it("counts a half-drawn tier's winners against its percentage cap", async () => {
+    const { ticketRows } = participants(100);
+
+    const fake = createFakePayload({
+      giveaway: {
+        status: "interrupted",
+        drawSeed: "original-seed",
+        lastCheckpoint: "tier2_prizes_allocated",
+        totalValidParticipants: 100,
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        // 5% of 100 = 5 winners for the whole giveaway, not per attempt.
+        tier3WinnerPercentage: 5,
+      },
+      tickets: ticketRows,
+      prizes: [{ ...prizeRow("p3", "tier3", 50), unitsAwarded: 2 }],
+    });
+
+    // Tier 3 awarded two winners and then stopped — no completion marker, so
+    // it will be drawn again. Its allowance is 3, not another 5.
+    fake.seed(
+      "giveaway-winners",
+      ["u0", "u1"].map((user, i) => ({
+        id: `w${i}`,
+        giveaway: "g1",
+        user,
+        tier: "tier3",
+        prize: "cat-p3",
+        prizeName: "prize-p3",
+        winningTicket: `t${i}`,
+      }))
+    );
+
+    const result = await authorizeAndResume(fake.payload);
+
+    const tier3 = result.tiers.find((t) => t.tier === "tier3")!;
+    expect(tier3.effectiveCap).toBe(3);
+    expect(tier3.winners).toHaveLength(5);
+    expect((fake.created["giveaway-winners"] ?? []).length).toBe(3);
   });
 
   it("does not advance a streak twice across a resume", async () => {
@@ -1217,8 +1796,9 @@ describe("resuming a failed draw (spec §19)", () => {
 
     const fake = createFakePayload({
       giveaway: {
-        status: "failed",
+        status: "interrupted",
         drawSeed: "original-seed",
+        lastCheckpoint: "tier1_prizes_allocated",
         totalValidParticipants: 3,
         tier1WinnerPercentage: 0,
         tier2WinnerPercentage: 0,
@@ -1231,7 +1811,7 @@ describe("resuming a failed draw (spec §19)", () => {
       streaks,
     });
 
-    await new GiveawayEngine(fake.payload).runDraw("g1", { resume: true });
+    await authorizeAndResume(fake.payload);
 
     expect(streaks[0]?.consecutiveCount).toBe(2);
   });
@@ -1244,13 +1824,11 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
       prizes: [],
     });
 
-    await expect(new GiveawayEngine(payload).runDraw("g1")).rejects.toThrow(
+    await expect(makeEngine(payload).runDraw("g1")).rejects.toThrow(
       GiveawayEngineError
     );
 
-    const { valid, errors } = await new GiveawayEngine(payload).validateDraw(
-      "g1"
-    );
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
     expect(valid).toBe(false);
     expect(errors.join(" ")).toMatch(/No prizes have been configured/);
   });
@@ -1267,9 +1845,7 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
       prizes: [prizeRow("p3", "tier3", 5)],
     });
 
-    const { valid, errors } = await new GiveawayEngine(payload).validateDraw(
-      "g1"
-    );
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
     expect(valid).toBe(false);
     expect(errors.join(" ")).toMatch(/tier1 is enabled .* Prize Pool is empty/);
   });
@@ -1281,9 +1857,7 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
       prizes: [prizeRow("p3", "tier3", 5)],
     });
 
-    const { valid, errors } = await new GiveawayEngine(payload).validateDraw(
-      "g1"
-    );
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
     expect(valid).toBe(false);
     expect(errors.join(" ")).toMatch(/countdown has not ended/);
   });
@@ -1295,9 +1869,7 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
       prizes: [prizeRow("p3", "tier3", 5)],
     });
 
-    const { valid, errors } = await new GiveawayEngine(payload).validateDraw(
-      "g1"
-    );
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
     expect(valid).toBe(false);
     expect(errors.join(" ")).toMatch(/cannot be repeated/);
   });
@@ -1308,14 +1880,12 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
       prizes: [{ ...prizeRow("p3", "tier3", 5), maxUnits: 2.5 }],
     });
 
-    const { valid, errors } = await new GiveawayEngine(payload).validateDraw(
-      "g1"
-    );
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
     expect(valid).toBe(false);
     expect(errors.join(" ")).toMatch(/valid Maximum Units/);
   });
 
-  it("marks the giveaway failed and preserves records when a draw throws", async () => {
+  it("interrupts rather than fails when a draw throws part-way through", async () => {
     const { payload, giveaway } = createFakePayload({
       giveaway: {
         tier1WinnerPercentage: 0,
@@ -1333,10 +1903,334 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
       return { id: "x" };
     };
 
-    await expect(new GiveawayEngine(payload).runDraw("g1")).rejects.toThrow(
+    await expect(makeEngine(payload).runDraw("g1")).rejects.toThrow(
       /database unavailable/
     );
-    expect(giveaway.status).toBe("failed");
+    // An interruption preserves everything and waits for an administrator; it
+    // is not a failure, because the draw can be picked up where it stopped.
+    expect(giveaway.status).toBe("interrupted");
     expect(giveaway.drawError).toMatch(/database unavailable/);
+    expect(giveaway.lastCheckpoint).toBeTruthy();
+  });
+
+  it("fails outright when the integrity check finds a broken invariant", async () => {
+    const { payload, giveaway, prizes } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      tickets: participants(10).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    // Something outside the draw has overspent this prize's stock. Resuming
+    // would build on a result that is already wrong, so §19's "recovery cannot
+    // safely continue" applies and the draw is FAILED, not INTERRUPTED.
+    const original = payload.update;
+    payload.update = async (args: Row) => {
+      const result = await original(args);
+      if (args.collection === "giveaway-prizes" && prizes[0]) {
+        prizes[0].unitsAwarded = 99;
+      }
+      return result;
+    };
+
+    await expect(makeEngine(payload).runDraw("g1")).rejects.toThrow(
+      /Draw integrity check failed/
+    );
+    expect(giveaway.status).toBe("failed");
+  });
+
+  it("refuses a second prize to one user before confirming the result", async () => {
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      tickets: participants(10).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    const drawEngine = makeEngine(payload);
+    const result = await drawEngine.runDraw("g1", { dryRun: true });
+
+    // Every winner is distinct — the check that guards this has nothing to
+    // report on a sound draw, which is the point of asserting it here.
+    const users = result.tiers.flatMap((t) => t.winners.map((w) => w.userKey));
+    expect(new Set(users).size).toBe(users.length);
+  });
+});
+
+describe("budget reserve (administrator setting, not in the spec)", () => {
+  /** 100 participants, tier 3 at 10% → 10 winners before any budget limit. */
+  function tenPercentOfHundred(giveaway: Row = {}, prizes?: Row[]) {
+    return createFakePayload({
+      giveaway: {
+        totalValidParticipants: 100,
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 10,
+        ...giveaway,
+      },
+      tickets: participants(100).ticketRows,
+      prizes: prizes ?? [prizeRow("p3", "tier3", 40)],
+    });
+  }
+
+  it("awards the full stock when utilisation is left at its default", async () => {
+    const { payload } = tenPercentOfHundred();
+
+    const result = await makeEngine(payload).runDraw("g1");
+
+    // Nothing is held back: the percentage cap is the only ceiling, exactly as
+    // §9 describes.
+    expect(result.totalWinners).toBe(10);
+  });
+
+  it("holds stock back when utilisation is reduced", async () => {
+    const { payload, created } = tenPercentOfHundred({
+      budgetUtilizationPct: 10,
+    });
+
+    const result = await makeEngine(payload).runDraw("g1");
+
+    // 10% of 40 units = 4, below the 10 the percentage cap would allow.
+    expect(result.totalWinners).toBe(4);
+
+    const events = (created["giveaway-audit-log"] ?? []).map(
+      (e) => e.eventType
+    );
+    expect(events).toContain("budget_limit_reached");
+  });
+
+  it("stops once the monetary cap cannot cover another prize", async () => {
+    const { payload } = tenPercentOfHundred({ maxBudgetCapNaira: 25_000 }, [
+      {
+        ...prizeRow("p3", "tier3", 40),
+        prize: { id: "cat-p3", name: "prize-p3", valueNaira: 10_000 },
+      },
+    ]);
+
+    const result = await makeEngine(payload).runDraw("g1");
+
+    // ₦25,000 buys two ₦10,000 prizes; the third would overspend.
+    expect(result.totalWinners).toBe(2);
+  });
+
+  it("refuses to draw with a monetary cap over unpriced prizes", async () => {
+    const { payload } = tenPercentOfHundred({ maxBudgetCapNaira: 25_000 });
+
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
+
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/no Value \(₦\)/);
+  });
+
+  it("counts an interrupted attempt's spend against the budget", async () => {
+    const fake = tenPercentOfHundred({
+      status: "interrupted",
+      drawSeed: "original-seed",
+      lastCheckpoint: "tier2_prizes_allocated",
+      budgetUtilizationPct: 10,
+    });
+
+    // A previous attempt already awarded 3 of the 4 units the reserve allows.
+    (fake.prizes[0] as Row).unitsAwarded = 3;
+    fake.seed(
+      "giveaway-winners",
+      ["u0", "u1", "u2"].map((user, i) => ({
+        id: `w${i}`,
+        giveaway: "g1",
+        user,
+        tier: "tier3",
+        prize: "cat-p3",
+        prizeName: "prize-p3",
+        winningTicket: `t${i}`,
+      }))
+    );
+
+    const drawEngine = makeEngine(fake.payload);
+    await drawEngine.authorizeResumption("g1", { authorizedBy: "admin" });
+    const result = await drawEngine.runDraw("g1", { resume: true });
+
+    // One unit of budget left, so exactly one more winner — not another four.
+    expect((fake.created["giveaway-winners"] ?? []).length).toBe(1);
+    expect(result.totalWinners).toBe(4);
+  });
+});
+
+describe("draw state machine (spec §19)", () => {
+  function readyToDraw() {
+    return createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      tickets: participants(10).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+  }
+
+  it("walks the full checkpoint sequence and ends on audit completion", async () => {
+    const { payload, giveaway, created } = readyToDraw();
+
+    const result = await makeEngine(payload).runDraw("g1");
+
+    const checkpoints = (created["giveaway-audit-log"] ?? [])
+      .filter((e) => e.eventType === "checkpoint_reached")
+      .map((e) => e.detail.checkpoint);
+
+    expect(checkpoints).toEqual([
+      "config_validated",
+      "pool_generated",
+      "pool_locked",
+      "tier1_winners_selected",
+      "tier1_prizes_allocated",
+      "tier2_winners_selected",
+      "tier2_prizes_allocated",
+      "tier3_winners_selected",
+      "tier3_prizes_allocated",
+      "final_validation",
+      "result_confirmed",
+      "audit_completed",
+      "winner_report_generated",
+    ]);
+
+    expect(result.lastCheckpoint).toBe("winner_report_generated");
+    expect(giveaway.status).toBe("completed");
+  });
+
+  it("leaves the report checkpoint open when the report cannot be sent", async () => {
+    const { payload, giveaway, created } = readyToDraw();
+
+    await makeEngine(payload, async () => {
+      throw new Error("provider unavailable");
+    }).runDraw("g1");
+
+    const checkpoints = (created["giveaway-audit-log"] ?? [])
+      .filter((e) => e.eventType === "checkpoint_reached")
+      .map((e) => e.detail.checkpoint);
+
+    // §21 — a delivery failure never invalidates the draw, so the giveaway is
+    // still completed. But the checkpoint stays open rather than being papered
+    // over, so an unsent report remains visible.
+    expect(giveaway.status).toBe("completed");
+    expect(checkpoints).not.toContain("winner_report_generated");
+    expect(created["giveaway-report-deliveries"]?.[0]?.status).toBe("failed");
+  });
+
+  it("emails the winner report once the draw completes", async () => {
+    const { payload } = readyToDraw();
+    const sender = stubReportSender();
+
+    await makeEngine(payload, sender.send).runDraw("g1");
+
+    expect(sender.sent).toHaveLength(1);
+    expect(sender.sent[0]?.to).toBe("rewards@newsspend.com");
+    expect(sender.sent[0]?.attachment.filename).toEndWith(".csv");
+  });
+
+  it("opens an initial attempt carrying the execution id and seed", async () => {
+    const { payload, giveaway, created } = readyToDraw();
+
+    const result = await makeEngine(payload).runDraw("g1");
+    const attempt = (created["giveaway-draw-attempts"] ?? [])[0];
+
+    expect(attempt?.attemptNumber).toBe(1);
+    expect(attempt?.kind).toBe("initial");
+    expect(attempt?.outcome).toBe("completed");
+    expect(attempt?.executionId).toBe(result.executionId);
+    expect(attempt?.seed).toBe(result.seed);
+    expect(giveaway.drawExecutionId).toBe(result.executionId);
+  });
+
+  it("persists nothing on a dry run", async () => {
+    const { payload, giveaway, created } = readyToDraw();
+
+    const result = await makeEngine(payload).runDraw("g1", {
+      dryRun: true,
+    });
+
+    expect(result.totalWinners).toBeGreaterThan(0);
+    expect(created["giveaway-draw-attempts"]).toBeUndefined();
+    expect(giveaway.status).toBe("active");
+    expect(giveaway.lastCheckpoint).toBeUndefined();
+  });
+
+  it("refuses to start a draw that is already in progress", async () => {
+    const { payload } = createFakePayload({
+      giveaway: { status: "draw_in_progress" },
+      tickets: participants(10).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/already in progress/);
+  });
+
+  it("refuses to restart a draw that was authorized only to resume", async () => {
+    const { payload } = createFakePayload({
+      giveaway: { status: "resumption_authorized" },
+      tickets: participants(10).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/authorized to resume, not to restart/);
+  });
+
+  it("refuses to draw a cancelled giveaway", async () => {
+    const { payload } = createFakePayload({
+      giveaway: { status: "cancelled" },
+      tickets: participants(10).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/was cancelled/);
+  });
+
+  it("cancels a giveaway that has not been drawn", async () => {
+    const { payload, giveaway } = readyToDraw();
+
+    const outcome = await makeEngine(payload).cancelGiveaway("g1", {
+      reason: "Sponsor withdrew the prizes",
+      cancelledBy: "admin@newsspend.com",
+    });
+
+    expect(outcome.cancelled).toBe(true);
+    expect(giveaway.status).toBe("cancelled");
+  });
+
+  it("refuses to cancel a completed draw", async () => {
+    const { payload } = createFakePayload({
+      giveaway: { status: "completed" },
+    });
+
+    const outcome = await makeEngine(payload).cancelGiveaway("g1", {
+      reason: "changed our minds",
+    });
+
+    expect(outcome.cancelled).toBe(false);
+    expect(outcome.message).toMatch(/prizes are allocated/);
+  });
+
+  it("refuses to cancel while a draw is unresolved", async () => {
+    const { payload } = createFakePayload({
+      giveaway: { status: "interrupted" },
+    });
+
+    const outcome = await makeEngine(payload).cancelGiveaway("g1", {
+      reason: "changed our minds",
+    });
+
+    expect(outcome.cancelled).toBe(false);
+    expect(outcome.message).toMatch(/Resolve it before cancelling/);
   });
 });

@@ -21,7 +21,7 @@ export type Participation = {
 export type EligibilityResult = {
   eligible: boolean;
   /** Which path qualified the user, if any. */
-  path: "primary" | "consecutive" | null;
+  path: "primary" | "consecutive" | "loyalty" | null;
 };
 
 /**
@@ -32,16 +32,23 @@ export type EligibilityResult = {
  */
 export function evaluateEligibility(
   tier: PrizeTier,
-  participation: Participation
+  participation: Participation,
+  /**
+   * §22.4 loyalty waiver. Waives the Featured Offer requirement only — the
+   * ticket and Boost Your Luck requirements still apply in full, and the
+   * waiver applies to Tier 1 alone.
+   */
+  loyaltyWaiver = false
 ): EligibilityResult {
   const primary = PRIMARY_ELIGIBILITY[tier];
+  const offersRequired = loyaltyWaiver ? 0 : primary.featuredOffers;
 
   if (
     participation.validTickets >= primary.tickets &&
     participation.boosts >= primary.boosts &&
-    participation.featuredOffers >= primary.featuredOffers
+    participation.featuredOffers >= offersRequired
   ) {
-    return { eligible: true, path: "primary" };
+    return { eligible: true, path: loyaltyWaiver ? "loyalty" : "primary" };
   }
 
   const consecutive = CONSECUTIVE_ELIGIBILITY[tier];

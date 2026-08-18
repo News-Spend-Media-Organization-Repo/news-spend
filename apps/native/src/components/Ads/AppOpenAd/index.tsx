@@ -1,10 +1,11 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { BottomSheet } from "heroui-native";
+import { BottomSheet } from "heroui-native/bottom-sheet";
 import { CaretRightIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
 import { NativeAd } from "react-native-google-mobile-ads";
 import { useSnapshot } from "valtio";
+import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { type AdPlacement, consumeAd } from "#/state/adManager";
 import {
@@ -40,6 +41,7 @@ const AppOpenAd = () => {
     setLoading(true);
     setError(false);
     try {
+      await initializeAdsWhenPermitted();
       const ad = await NativeAd.createForAdRequest(adUnits.native, {});
       setNativeAd(ad);
       setNativeAdReady(true);
