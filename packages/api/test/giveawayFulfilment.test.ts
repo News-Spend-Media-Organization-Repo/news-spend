@@ -7,6 +7,8 @@ type Row = Record<string, any>;
 function winnerRow(overrides: Row = {}): Row {
   return {
     id: "w1",
+    user: "u1",
+    prizeName: "₦500 Airtime",
     claimStatus: "claimed",
     fulfilmentStatus: "pending",
     claimPhone: "08031234567",
@@ -19,7 +21,10 @@ function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-winners": winners,
     "giveaway-fulfilment-attempts": [],
+    notifications: [],
+    users: [{ id: "u1", email: "winner@example.com", username: "winner" }],
   };
+  const emails: Row[] = [];
   const created: Record<string, Row[]> = {};
 
   const payload: any = {
@@ -48,6 +53,13 @@ function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
       collections[collection] = [...(collections[collection] ?? []), row];
       return row;
     },
+    findByID: async ({ collection, id }: Row) =>
+      collections[collection]?.find((row) => String(row.id) === String(id)) ??
+      null,
+    sendEmail: async (message: Row) => {
+      emails.push(message);
+      return message;
+    },
     update: async ({ collection, id, data }: Row) => {
       const row = collections[collection]?.find((item) => item.id === id);
       if (row) {
@@ -57,7 +69,7 @@ function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
     },
   };
 
-  return { payload, collections, created };
+  return { payload, collections, created, emails };
 }
 
 function matchesWhere(row: Row, where: Row | undefined): boolean {
@@ -417,6 +429,97 @@ describe("fulfilPendingPrizes", () => {
     // Left retrying forever would mean nobody ever looks at a payout that is
     // never going to succeed on its own.
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
+  });
+
+  it("tells the winner when a prize is put on hold", async () => {
+    const { payload, collections, emails } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new ReloadlyError("invalid account number", 400, null, false);
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // A silent hold is how a mistyped phone number becomes a prize nobody
+    // ever receives: the record says "review", and the winner is never
+    // given a reason to go and look at it.
+    const notification = collections.notifications[0];
+    expect(notification).toBeDefined();
+    expect(notification.targetType).toBe("specific");
+    expect(notification._status).toBe("published");
+    expect(notification.specificUsers).toEqual(["u1"]);
+
+    expect(emails).toHaveLength(1);
+    expect(emails[0].to).toBe("winner@example.com");
+  });
+
+  it("does not leak the provider's wording to the winner", async () => {
+    const { payload, collections, emails } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new ReloadlyError("INVALID_ACCOUNT_NUMBER", 400, null, false);
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // `reviewNote` is written for an administrator. Repeated to a winner it
+    // reads as either gibberish or an accusation, so the message says a
+    // problem exists and the prize is safe, and nothing else.
+    const said = JSON.stringify(collections.notifications[0]) + emails[0].html;
+    expect(said).not.toContain("INVALID_ACCOUNT_NUMBER");
+    expect(collections["giveaway-winners"][0].reviewNote).toContain(
+      "INVALID_ACCOUNT_NUMBER"
+    );
+  });
+
+  it("does not tell the winner anything while a failure is still retrying", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new ReloadlyError("gateway timeout", 503, null, true);
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // A transient outage that clears on the next pass is not news. Only the
+    // hold is worth interrupting somebody for.
+    expect(collections.notifications).toHaveLength(0);
+  });
+
+  it("keeps a retried prize visible to the next pass", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    let attempts = 0;
+    const client = fakeClient({
+      topup: async () => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new ReloadlyError("gateway timeout", 503, null, true);
+        }
+        return { transactionId: 99, operatorName: "MTN Nigeria" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+    await fulfilPendingPrizes(payload, { client });
+
+    // The sweep selects `pending`, so a prize left marked in-progress after a
+    // failure would be invisible to every later pass — retryable in name and
+    // abandoned in fact.
+    expect(attempts).toBe(2);
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "fulfilled"
+    );
   });
 
   it("treats a duplicate-identifier response as already paid, not failed", async () => {

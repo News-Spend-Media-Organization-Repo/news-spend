@@ -26,6 +26,7 @@ type Winning = {
   tier: string;
   fulfilmentType: string;
   claimStatus: string;
+  fulfilmentStatus: string;
   claimable: boolean;
   closedReason: string | null;
   closedMessage: string | null;
@@ -70,11 +71,37 @@ function statusLine(prize: Winning): { label: string; tone: string } {
   if (prize.awaitingVerification) {
     return { label: "Verify your identity to receive this", tone: "urgent" };
   }
+  /**
+   * Claimed is not delivered, and saying so was actively misleading.
+   *
+   * Airtime and data are dispatched by an hourly sweep, so a prize sits
+   * queued for up to an hour before anything is even attempted, and a
+   * retryable failure returns it to that queue. Every one of those states
+   * used to render as a green "Claimed" — so the commonest failure there is,
+   * a mistyped phone number, looked identical to success until the third
+   * attempt gave up and flipped it to review.
+   */
+  if (prize.claimStatus === "claimed" && prize.fulfilmentStatus !== "fulfilled") {
+    return {
+      label:
+        prize.fulfilmentStatus === "in_progress"
+          ? "Sending now"
+          : "Processing — we're sending it",
+      tone: "muted",
+    };
+  }
   if (prize.claimStatus === "claimed") {
     const on = prize.selectedAt
       ? ` · ${format(new Date(prize.selectedAt), "d MMM")}`
       : "";
-    return { label: `Claimed${on}`, tone: "good" };
+    // What "done" means depends on how it was delivered.
+    const verb =
+      prize.fulfilmentType === "points"
+        ? "Credited"
+        : prize.fulfilmentType === "physical"
+          ? "Dispatched"
+          : "Sent";
+    return { label: `${verb}${on}`, tone: "good" };
   }
   return { label: prize.claimStatus, tone: "muted" };
 }

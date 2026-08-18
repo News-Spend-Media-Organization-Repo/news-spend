@@ -6,6 +6,7 @@ import {
   ReloadlyError,
   reloadlyConfigFromEnv,
 } from "./reloadly";
+import { notifyFulfilmentProblem } from "./notifyFulfilmentProblem";
 
 /** How many payouts one pass will attempt. */
 const FULFILMENT_BATCH_SIZE = 50;
@@ -97,6 +98,24 @@ export async function fulfilPendingPrizes(
     }
 
     summary.attempted += 1;
+
+    /**
+     * Mark the attempt before making it. `in_progress` existed in the schema
+     * and nothing ever set it, which left `pending` covering two different
+     * things: queued, and being sent right now. The app could only say
+     * "Claimed" to both, so a winner watching for their airtime saw no
+     * difference between "we have not started" and "we are trying".
+     *
+     * Set even though a pass usually finishes in seconds: a run that dies
+     * mid-dispatch leaves a visible `in_progress` rather than a prize that
+     * looks untouched, and the next pass picks it up either way.
+     */
+    await payload.update({
+      collection: "giveaway-winners",
+      id: winner.id,
+      data: { fulfilmentStatus: "in_progress" },
+    });
+
     const outcome = await fulfilOne(payload, resolved, winner);
 
     if (outcome === "sent") {
@@ -371,17 +390,41 @@ async function handleFailure(
       winnerId,
       `Payout failed ${attempts.totalDocs + 1} times. Last error: ${message}`
     );
+  } else {
+    /**
+     * Put it back in the queue.
+     *
+     * `in_progress` is a claim, not a label: the sweep selects `pending`, so a
+     * prize left `in_progress` after a failure is invisible to every future
+     * pass — retryable in name and abandoned in fact. This is the line that
+     * makes the retry real, and it must stay paired with the claim above.
+     */
+    await payload.update({
+      collection: "giveaway-winners",
+      id: winnerId,
+      data: { fulfilmentStatus: "pending" },
+    });
   }
 
   await record({ outcome: "retryable_failure", localAmount, error: message });
   return "failed";
 }
 
-/** Take a prize out of the queue and put it in front of a person. */
-function hold(payload: BasePayload, winnerId: string, reason: string) {
-  return payload.update({
+/**
+ * Take a prize out of the queue and put it in front of a person.
+ *
+ * Both the administrator and the winner are told. Only the administrator was,
+ * until now, and the winner is the one who may be able to fix the cause — a
+ * mistyped phone number is the commonest reason a payout is rejected, and it
+ * is invisible from the inside.
+ */
+async function hold(payload: BasePayload, winnerId: string, reason: string) {
+  await payload.update({
     collection: "giveaway-winners",
     id: winnerId,
     data: { fulfilmentStatus: "on_hold", reviewNote: reason },
   });
+
+  // Never throws; a notification failure must not undo a handled hold.
+  await notifyFulfilmentProblem(payload, winnerId);
 }
