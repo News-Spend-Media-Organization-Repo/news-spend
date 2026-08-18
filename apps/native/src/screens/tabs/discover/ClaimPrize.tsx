@@ -2,6 +2,7 @@ import { isInferableError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native/card";
+import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 
@@ -50,6 +51,23 @@ const ClaimPrize = () => {
       enabled: Boolean(winnerId),
     })
   );
+
+  /**
+   * Seed the form with what is already on record when correcting details.
+   *
+   * `values` rather than `defaultValues`: the prize arrives after the form is
+   * created, and defaultValues are only read on the first render. Guarded on
+   * the form being untouched so it cannot overwrite what someone is typing.
+   */
+  useEffect(() => {
+    if (prize?.canEditDetails && !form.formState.isDirty) {
+      form.reset({
+        phoneNumber: prize.sentTo ?? "",
+        recipientName: prize.recipientName ?? "",
+        shippingAddress: prize.shippingAddress ?? "",
+      });
+    }
+  }, [prize, form]);
 
   const claim = useMutation(
     orpc.giveaway.claimPrize.mutationOptions({
@@ -112,6 +130,41 @@ const ClaimPrize = () => {
     })
   );
 
+  /**
+   * Correcting details already given, rather than claiming.
+   *
+   * Same form, because the questions are identical — what changes is which
+   * procedure answers them and what the screen calls itself. A separate screen
+   * would be the same four fields with a different title.
+   */
+  const editing = Boolean(prize?.canEditDetails);
+  const title = editing ? "Update Details" : "Claim Prize";
+
+  const edit = useMutation(
+    orpc.giveaway.updateClaimDetails.mutationOptions({
+      onSuccess: (result) => {
+        toast.success("Details updated", { description: result.message });
+        queryClient.invalidateQueries({
+          queryKey: orpc.giveaway.actionable.key(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.giveaway.winning.key(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: orpc.giveaway.prizeDetails.key(),
+        });
+        navigation.goBack();
+      },
+      onError: (error) => {
+        toast.error(
+          isInferableError(error)
+            ? error.message
+            : "Could not update these details."
+        );
+      },
+    })
+  );
+
   if (isPending) {
     return (
       <Screen>
@@ -139,6 +192,7 @@ const ClaimPrize = () => {
     );
   }
 
+  const busy = claim.isPending || edit.isPending;
   const values = form.watch();
   const missingDetails =
     (prize.needs.phone && values.phoneNumber.trim().length < 7) ||
@@ -150,7 +204,7 @@ const ClaimPrize = () => {
     const phoneNumber = prize.needs.phone ? data.phoneNumber.trim() : undefined;
 
     const send = () =>
-      claim.mutate({
+      (editing ? edit : claim).mutate({
         winnerId: prize.id,
         phoneNumber,
         recipientName: prize.needs.address
@@ -180,7 +234,9 @@ const ClaimPrize = () => {
 
     Alert.alert(
       "Send to this number?",
-      `${prize.prizeName} will be sent to ${phoneNumber}. This cannot be undone, and a prize can only be claimed once.`,
+      editing
+        ? `${prize.prizeName} will be sent to ${phoneNumber} instead. Check it carefully — once it sends, it cannot be pulled back.`
+        : `${prize.prizeName} will be sent to ${phoneNumber}. This cannot be undone, and a prize can only be claimed once.`,
       [
         { text: "Check again", style: "cancel" },
         { text: "Yes, send it", onPress: send },
@@ -190,30 +246,32 @@ const ClaimPrize = () => {
 
   return (
     <Screen>
-      <ScreenHeader title="Claim Prize" />
+      <ScreenHeader title={title} />
 
       <ScrollView contentContainerClassName="gap-4 px-4 pb-8">
         <Card>
           <Card.Body className="items-center gap-1 py-6">
-            <Text className="text-sm text-subtle-text">You won</Text>
+            <Text className="text-sm text-subtle-text">
+              {editing ? "Updating details for" : "You won"}
+            </Text>
             <Text className="text-center font-extrabold text-xl">
               {prize.prizeName}
             </Text>
           </Card.Body>
         </Card>
 
-        {!prize.claimable && (
+        {!(prize.claimable || editing) && (
           <Text className="text-center text-subtle-text">
             {prize.closedMessage ?? "This prize can no longer be claimed."}
           </Text>
         )}
 
-        {prize.claimable && (
+        {(prize.claimable || editing) && (
           <FormProvider {...form}>
             {prize.needs.phone && (
               <View className="gap-1">
                 <FormTextInput
-                  description="We'll send it straight to this number, so check it carefully."
+                  description="We'll send it straight to this number, so check it carefully. Nigerian numbers only for now."
                   keyboardType="phone-pad"
                   label="Phone number"
                   name="phoneNumber"
@@ -231,12 +289,20 @@ const ClaimPrize = () => {
                   placeholder="Who should the courier ask for?"
                 />
                 <FormTextInput
+                  description="We can only deliver within Nigeria for now."
                   isMultiline
                   label="Delivery address"
                   name="shippingAddress"
                   placeholder="Street, area, city, state"
                 />
               </>
+            )}
+
+            {(prize.needs.phone || prize.needs.address) && (
+              <Text className="text-sm text-subtle-text">
+                Made a mistake? You can change these from the prize screen
+                until it's on its way.
+              </Text>
             )}
 
             {prize.needs.verification && (
@@ -253,13 +319,19 @@ const ClaimPrize = () => {
             )}
 
             <Button
-              isDisabled={missingDetails || claim.isPending}
+              isDisabled={missingDetails || busy}
               onPress={submit}
             >
               <Button.Label>
-                {claim.isPending ? "Claiming…" : "Claim prize"}
+                {busy
+                  ? editing
+                    ? "Saving…"
+                    : "Claiming…"
+                  : editing
+                    ? "Save changes"
+                    : "Claim prize"}
               </Button.Label>
-              {claim.isPending && (
+              {busy && (
                 <ActivityIndicator className="ml-2" color="#fff" size="small" />
               )}
             </Button>

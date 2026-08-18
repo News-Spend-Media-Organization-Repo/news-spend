@@ -732,6 +732,21 @@ const recordEngagement = protectedNoGuestProcedure
 // --- Claiming prizes (spec §21) ---
 
 /** Shape one winner row for the app, with everything the claim screen needs. */
+/**
+ * Fulfilment states in which the winner's own details may still be corrected.
+ *
+ * `fulfilled` is absent because the airtime has already gone to whatever
+ * number was on record, and editing it afterwards would only rewrite history.
+ * `in_progress` is absent because a dispatch is in flight and changing the
+ * destination mid-attempt is a race with real money on the end of it.
+ * `cancelled` is absent because there is nothing left to send.
+ */
+const EDITABLE_FULFILMENT_STATES = [
+  "pending",
+  "on_hold",
+  "awaiting_verification",
+];
+
 function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
   const prize = winner.prize as Row | string | null;
   const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
@@ -770,6 +785,27 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
       address: requirements.needsAddress,
       verification: requirements.needsVerification,
     },
+    /**
+     * What the winner supplied at claim time. Their own details, returned to
+     * them — a top-up that went to a mistyped number is otherwise impossible
+     * for them to diagnose, and impossible to correct.
+     */
+    sentTo: (winner.claimPhone as string | null) ?? null,
+    recipientName: (winner.claimRecipientName as string | null) ?? null,
+    shippingAddress: (winner.claimAddress as string | null) ?? null,
+    /**
+     * Whether the winner may still correct where this is going.
+     *
+     * Decided here, once, so the button and the procedure cannot drift into
+     * disagreeing — a screen offering an edit the server then refuses is
+     * worse than no button at all.
+     */
+    canEditDetails:
+      winner.claimStatus === "claimed" &&
+      (requirements.needsPhone || requirements.needsAddress) &&
+      EDITABLE_FULFILMENT_STATES.includes(
+        String(winner.fulfilmentStatus ?? "")
+      ),
   };
 }
 
@@ -989,15 +1025,6 @@ const prizeDetails = protectedProcedure
       pointsAmount: (prizeDoc?.pointsAmount as number | null) ?? null,
       claimedAt: ((winner as Row).claimedAt as string | null) ?? null,
       fulfilledAt: ((winner as Row).fulfilledAt as string | null) ?? null,
-      /**
-       * What the winner supplied at claim time. Their own details, returned to
-       * them — a top-up that went to a mistyped number is otherwise impossible
-       * for them to diagnose.
-       */
-      sentTo: ((winner as Row).claimPhone as string | null) ?? null,
-      recipientName:
-        ((winner as Row).claimRecipientName as string | null) ?? null,
-      shippingAddress: ((winner as Row).claimAddress as string | null) ?? null,
       /** §22.7/§22.8 — why a payout is being held, in the winner's own words. */
       reviewNote: ((winner as Row).reviewNote as string | null) ?? null,
       dispatch: attempt
@@ -1106,6 +1133,115 @@ function assertDetailsSupplied(
     });
   }
 }
+
+export const UpdateClaimDetailsInput = ClaimPrizeInput;
+
+/**
+ * Correct the details a prize is being sent to (§15).
+ *
+ * A mistyped phone number is the commonest reason a payout is rejected, and
+ * until now the winner could see that something had gone wrong and do nothing
+ * about it — the number was captured once, at claim time, and never again.
+ * The prize sat on hold waiting for an administrator to notice.
+ *
+ * Name and address work the same way for a physical prize, for the same
+ * reason: a delivery to the wrong street is as stuck as a top-up to the wrong
+ * number, and the person who can fix it fastest is the one it belongs to.
+ *
+ * A CORRECTED PRIZE GOES BACK IN THE QUEUE, but only if a payout was actually
+ * attempted and failed. `on_hold` covers two very different things — a
+ * fulfilment failure, and a §22.7/§22.8 fraud review — and letting an edit
+ * clear the second would hand anyone under review a one-tap way out of it. A
+ * failed attempt leaves a `giveaway-fulfilment-attempts` row behind and a
+ * fraud hold does not, which is what tells them apart.
+ */
+const updateClaimDetails = protectedNoGuestProcedure
+  .use(claimRateLimit)
+  .input(UpdateClaimDetailsInput)
+  .handler(async ({ input, context, errors }) => {
+    const { payload, user } = context;
+
+    const winner = await payload
+      .findByID({
+        collection: "giveaway-winners",
+        id: input.winnerId,
+        depth: 1,
+      })
+      .catch(() => null);
+
+    if (!winner) {
+      throw errors.NOT_FOUND({ message: "That prize could not be found." });
+    }
+
+    // Never leak the existence of someone else's prize.
+    if (relationId(winner.user) !== user.id) {
+      throw errors.NOT_FOUND({ message: "That prize could not be found." });
+    }
+
+    if (winner.claimStatus !== "claimed") {
+      throw errors.BAD_REQUEST({
+        message: "Claim this prize first, then its details can be changed.",
+      });
+    }
+
+    const fulfilmentStatus = String(winner.fulfilmentStatus ?? "");
+    if (!EDITABLE_FULFILMENT_STATES.includes(fulfilmentStatus)) {
+      throw errors.CONFLICT({
+        message:
+          fulfilmentStatus === "fulfilled"
+            ? "This prize has already been sent, so its details can no longer be changed."
+            : "This prize is being sent right now — try again in a few minutes.",
+      });
+    }
+
+    const prize = winner.prize as Row | string | null;
+    const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
+    const fulfilmentType = (prizeDoc?.fulfilmentType ??
+      "physical") as FulfilmentType;
+    const requirements = claimRequirements(fulfilmentType, {
+      requiresVerification: Boolean(prizeDoc?.requiresVerification),
+    });
+
+    assertDetailsSupplied(requirements, input, errors);
+
+    /**
+     * Only send it back to the queue when a payout was tried and failed.
+     * A fraud hold has no attempts against it, so it stays held.
+     */
+    let releasedForRetry = false;
+    if (fulfilmentStatus === "on_hold") {
+      const attempts = await payload.count({
+        collection: "giveaway-fulfilment-attempts",
+        where: { winner: { equals: String(winner.id) } },
+      });
+      releasedForRetry = attempts.totalDocs > 0;
+    }
+
+    await payload.update({
+      collection: "giveaway-winners",
+      id: String(winner.id),
+      data: {
+        ...(requirements.needsPhone ? { claimPhone: input.phoneNumber } : {}),
+        ...(requirements.needsAddress
+          ? {
+              claimRecipientName: input.recipientName,
+              claimAddress: input.shippingAddress,
+            }
+          : {}),
+        ...(releasedForRetry
+          ? { fulfilmentStatus: "pending", reviewNote: null }
+          : {}),
+      },
+    });
+
+    return {
+      id: String(winner.id),
+      releasedForRetry,
+      message: releasedForRetry
+        ? "Updated. We'll try sending it again shortly."
+        : "Updated.",
+    };
+  });
 
 /**
  * Claim a prize (spec §21).
@@ -1372,6 +1508,7 @@ export const giveawayRouter = {
   winning,
   prizeDetails,
   claimPrize,
+  updateClaimDetails,
   lastResult,
   acknowledgeResult,
 };

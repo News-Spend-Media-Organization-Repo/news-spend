@@ -446,14 +446,14 @@ describe("fulfilPendingPrizes", () => {
     // A silent hold is how a mistyped phone number becomes a prize nobody
     // ever receives: the record says "review", and the winner is never
     // given a reason to go and look at it.
-    const notification = collections.notifications[0];
+    const notification = collections.notifications![0]!;
     expect(notification).toBeDefined();
     expect(notification.targetType).toBe("specific");
     expect(notification._status).toBe("published");
     expect(notification.specificUsers).toEqual(["u1"]);
 
     expect(emails).toHaveLength(1);
-    expect(emails[0].to).toBe("winner@example.com");
+    expect(emails[0]!.to).toBe("winner@example.com");
   });
 
   it("does not leak the provider's wording to the winner", async () => {
@@ -471,9 +471,9 @@ describe("fulfilPendingPrizes", () => {
     // `reviewNote` is written for an administrator. Repeated to a winner it
     // reads as either gibberish or an accusation, so the message says a
     // problem exists and the prize is safe, and nothing else.
-    const said = JSON.stringify(collections.notifications[0]) + emails[0].html;
+    const said = JSON.stringify(collections.notifications![0]) + emails[0]!.html;
     expect(said).not.toContain("INVALID_ACCOUNT_NUMBER");
-    expect(collections["giveaway-winners"][0].reviewNote).toContain(
+    expect(collections["giveaway-winners"]![0]!.reviewNote).toContain(
       "INVALID_ACCOUNT_NUMBER"
     );
   });
@@ -492,7 +492,7 @@ describe("fulfilPendingPrizes", () => {
 
     // A transient outage that clears on the next pass is not news. Only the
     // hold is worth interrupting somebody for.
-    expect(collections.notifications).toHaveLength(0);
+    expect(collections.notifications!).toHaveLength(0);
   });
 
   it("keeps a retried prize visible to the next pass", async () => {
@@ -517,7 +517,7 @@ describe("fulfilPendingPrizes", () => {
     // failure would be invisible to every later pass — retryable in name and
     // abandoned in fact.
     expect(attempts).toBe(2);
-    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+    expect(collections["giveaway-winners"]![0]!.fulfilmentStatus).toBe(
       "fulfilled"
     );
   });

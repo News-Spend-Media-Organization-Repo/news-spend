@@ -113,6 +113,11 @@ function createContext({
         hasNextPage: start + size < totalDocs,
       };
     },
+    count: async ({ collection, where }: Row) => ({
+      totalDocs: (collections[collection] ?? []).filter((row) =>
+        matchesWhere(row, where)
+      ).length,
+    }),
     update: async ({ collection, id, data }: Row) => {
       const row = collections[collection]?.find((item) => item.id === id);
       if (row) {
@@ -855,5 +860,140 @@ describe("expireLapsedClaims (spec §21)", () => {
 
     expect(await expireLapsedClaims(payload)).toBe(0);
     expect(collections["giveaway-winners"]?.[0]?.claimStatus).toBe("claimed");
+  });
+});
+
+describe("giveaway.updateClaimDetails", () => {
+  it("corrects the number a held airtime prize is being sent to", async () => {
+    const { ctx, collections } = createContext({
+      winners: [
+        winnerRow({ claimStatus: "claimed", fulfilmentStatus: "on_hold" }),
+      ],
+    });
+    collections["giveaway-fulfilment-attempts"] = [
+      { id: "a1", winner: "w1", outcome: "permanent_failure" },
+    ];
+
+    const result = await call(
+      giveawayRouter.updateClaimDetails,
+      { winnerId: "w1", phoneNumber: "08099999999" },
+      { context: ctx }
+    );
+
+    const winner = collections["giveaway-winners"]![0]!;
+    expect(winner.claimPhone).toBe("08099999999");
+    // A corrected number is worthless if nothing tries again.
+    expect(result.releasedForRetry).toBe(true);
+    expect(winner.fulfilmentStatus).toBe("pending");
+  });
+
+  it("does not release a prize held for review rather than for a failure", async () => {
+    const { ctx, collections } = createContext({
+      winners: [
+        winnerRow({ claimStatus: "claimed", fulfilmentStatus: "on_hold" }),
+      ],
+    });
+    // No fulfilment attempts: this is a §22.7/§22.8 fraud hold, not a payout
+    // that failed. Editing a phone number must not be a way out of a review.
+    collections["giveaway-fulfilment-attempts"] = [];
+
+    const result = await call(
+      giveawayRouter.updateClaimDetails,
+      { winnerId: "w1", phoneNumber: "08099999999" },
+      { context: ctx }
+    );
+
+    expect(result.releasedForRetry).toBe(false);
+    expect(collections["giveaway-winners"]![0]!.fulfilmentStatus).toBe(
+      "on_hold"
+    );
+  });
+
+  it("refuses to change details once the prize has been sent", async () => {
+    const { ctx } = createContext({
+      winners: [
+        winnerRow({ claimStatus: "claimed", fulfilmentStatus: "fulfilled" }),
+      ],
+    });
+
+    const error = await captureError(
+      call(
+        giveawayRouter.updateClaimDetails,
+        { winnerId: "w1", phoneNumber: "08099999999" },
+        { context: ctx }
+      )
+    );
+
+    // The airtime has already gone somewhere. Editing the record afterwards
+    // would only rewrite history.
+    expect(error.code).toBe("CONFLICT");
+    expect(error.message).toMatch(/already been sent/);
+  });
+
+  it("refuses while a dispatch is in flight", async () => {
+    const { ctx } = createContext({
+      winners: [
+        winnerRow({ claimStatus: "claimed", fulfilmentStatus: "in_progress" }),
+      ],
+    });
+
+    const error = await captureError(
+      call(
+        giveawayRouter.updateClaimDetails,
+        { winnerId: "w1", phoneNumber: "08099999999" },
+        { context: ctx }
+      )
+    );
+
+    expect(error.code).toBe("CONFLICT");
+  });
+
+  it("will not let someone edit a prize that is not theirs", async () => {
+    const { ctx } = createContext({
+      winners: [
+        winnerRow({
+          user: "someone-else",
+          claimStatus: "claimed",
+          fulfilmentStatus: "on_hold",
+        }),
+      ],
+    });
+
+    const error = await captureError(
+      call(
+        giveawayRouter.updateClaimDetails,
+        { winnerId: "w1", phoneNumber: "08099999999" },
+        { context: ctx }
+      )
+    );
+
+    // Not FORBIDDEN: that would confirm the prize exists.
+    expect(error.code).toBe("NOT_FOUND");
+  });
+
+  it("updates name and address for a physical prize", async () => {
+    const { ctx, collections } = createContext({
+      winners: [
+        winnerRow({
+          prize: prize({ fulfilmentType: "physical" }),
+          claimStatus: "claimed",
+          fulfilmentStatus: "pending",
+        }),
+      ],
+    });
+
+    await call(
+      giveawayRouter.updateClaimDetails,
+      {
+        winnerId: "w1",
+        recipientName: "Joseph Odunsi",
+        shippingAddress: "3 Olanipekun Street, Ikosi Ketu, Lagos",
+      },
+      { context: ctx }
+    );
+
+    const winner = collections["giveaway-winners"]![0]!;
+    expect(winner.claimRecipientName).toBe("Joseph Odunsi");
+    expect(winner.claimAddress).toContain("Olanipekun");
   });
 });

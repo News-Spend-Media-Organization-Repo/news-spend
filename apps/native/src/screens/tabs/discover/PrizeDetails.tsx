@@ -183,6 +183,23 @@ function PrizeDetails({
           </Button>
         ) : null}
 
+        {/*
+          The way out of a wrong phone number or a wrong street.
+          Until this existed, details were captured once at claim time and
+          never again: a winner could see that a top-up had been rejected and
+          could do nothing about it but wait for someone to notice. The server
+          decides whether it is still editable, so this cannot offer an edit
+          that would then be refused.
+        */}
+        {data.canEditDetails ? (
+          <Button
+            variant="secondary"
+            onPress={() => navigation.navigate("ClaimPrize", { winnerId })}
+          >
+            <Button.Label>Update delivery details</Button.Label>
+          </Button>
+        ) : null}
+
         {/* The one thing a winner most wants and cannot otherwise see: whether
             an unclaimed prize is still claimable, and why not if it is not. */}
         {data.closedMessage ? (
