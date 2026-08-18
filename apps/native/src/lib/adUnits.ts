@@ -1,7 +1,17 @@
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { TestIds } from "react-native-google-mobile-ads";
 
-const isTest = __DEV__;
+const appVariant = Constants.expoConfig?.extra?.variant as
+  | "development"
+  | "beta"
+  | "preview"
+  | "production"
+  | undefined;
+
+// Real ad units only in the production build; every other environment
+// (development, preview, beta) serves Google's test ad units.
+const isTest = __DEV__ || appVariant !== "production";
 
 export const adUnits = isTest
   ? {

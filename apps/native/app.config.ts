@@ -136,6 +136,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId: "f652bbae-90d7-4074-b356-70438f948249",
       },
+      // Which build variant this binary is (development | beta | preview |
+      // production). Read at runtime via Constants.expoConfig?.extra?.variant.
+      variant: APP_VARIANT,
       // An update carries its own urgency. `eas update` bakes this config into
       // the manifest it publishes, so the client reads the value off the
       // incoming update — before downloading it, and without the running build
