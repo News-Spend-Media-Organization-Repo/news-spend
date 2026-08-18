@@ -72,7 +72,17 @@ const ClaimPrize = () => {
         }
 
         if (result.awaitingVerification) {
-          navigation.navigate("VerifyIdentity");
+          /**
+           * `IdentityVerification`, not `VerifyIdentity`.
+           *
+           * The two screens differ by more than a name: the old one asks
+           * people to photograph a passport and uploads it into our own
+           * storage, which is exactly what moving to Didit was meant to stop.
+           * MyPrizes was updated in that migration and this route was missed,
+           * so the only way to reach the retired screen was to win a prize
+           * that needed verifying.
+           */
+          navigation.navigate("IdentityVerification");
           return;
         }
 
