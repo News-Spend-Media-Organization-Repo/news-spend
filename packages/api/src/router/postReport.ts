@@ -27,7 +27,7 @@ export type PostReportInput = z.infer<typeof postReportSchema>;
 export const createPostReport = protectedNoGuestProcedure
   // Reports feed the auto-hide threshold and the admin queue, so a single
   // account must not be able to flood either. Genuine reporting is bursty at
-  // worst — a handful a minute is well clear of real use.
+  // worst: a handful a minute is well clear of real use.
   .use(createRateLimitMiddleware({ maxRequests: 5, window: 60_000 }))
   .input(postReportSchema)
   .handler(async ({ input, context }) => {
@@ -48,8 +48,8 @@ export const createPostReport = protectedNoGuestProcedure
     });
 
     // No denormalized copy is kept on the user. "Comments I reported" is
-    // derived from contentReports at read time — see comment/moderation-filters
-    // — so there is nothing to drift when a report is dismissed or a comment
+    // derived from contentReports at read time (see comment/moderation-filters),
+    // so there is nothing to drift when a report is dismissed or a comment
     // is deleted.
     return response;
   });

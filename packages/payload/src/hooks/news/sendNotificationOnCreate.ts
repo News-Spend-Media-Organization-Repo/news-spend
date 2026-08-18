@@ -5,7 +5,7 @@ import type { CollectionAfterChangeHook } from "payload";
  *
  * Creates a Notifications campaign document (status="sending") which triggers
  * the Notifications afterChange hook → expo-push-service.ts → delivery tracking,
- * receipt polling, and inbox entries — all via the new unified push system.
+ * receipt polling, and inbox entries, all via the new unified push system.
  */
 const sendNotificationOnCreate: CollectionAfterChangeHook = async ({
   req,

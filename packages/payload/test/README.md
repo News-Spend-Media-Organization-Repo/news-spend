@@ -13,12 +13,12 @@ hook. The fast unit tests in `packages/api/test` stay where they are.
 
 ## Why they exist
 
-The unit tests run against a hand-written `payload` stand-in — an object with
+The unit tests run against a hand-written `payload` stand-in: an object with
 `find`, `findByID`, `create` and `update` on it. That is the right tool for pure
 logic and it is fast, but it has **no collection hooks**, so anything that
 depends on them is invisible to it.
 
-That gap shipped a real bug. The §5 prize-pool lock refuses writes to
+That gap shipped a real bug. The section 5 prize-pool lock refuses writes to
 `giveaway-prizes` while a giveaway sits in a locked status, and the draw engine
 writes `unitsAwarded` to that collection *while the giveaway is
 `draw_in_progress`*. The lock stopped the engine one write after the first
@@ -37,16 +37,16 @@ the schema, which rewrites whatever it is aimed at. Pointed at `newsspend`, it
 would rewrite the development database, which nothing automated in this repo is
 allowed to touch.
 
-For the same reason `NODE_ENV` must not be `production` — that swaps push for
+For the same reason `NODE_ENV` must not be `production`: that swaps push for
 `prodMigrations` (see `@payloadcms/db-postgres`'s `connect`), and the point here
 is to test the collections exactly as they are configured right now.
 
 ## Credentials
 
-`testPayload.ts` **overwrites** every credential the config reads — it does not
+`testPayload.ts` **overwrites** every credential the config reads, it does not
 default them. Bun loads `.env` from the working directory before any test code
 runs, and `packages/payload/.env` holds a live Resend key. An earlier version of
-this helper used `||=`, left the real key in place, and sent three §21 Winner
+this helper used `||=`, left the real key in place, and sent three section 21 Winner
 Reports to `rewards@newsspend.com` from a test run.
 
 The Winner Report does **not** go through Payload's email adapter. It uses
@@ -66,5 +66,5 @@ Three things stop a test mailing a real inbox, in order of how much they matter:
 
 `assertNoLiveMailKey` runs *after* the config import, which is the only point
 where a transitive `.env` re-read could undo the stub. It is deliberately not
-called straight after `stubEnv` — there it would only re-read the assignment
+called straight after `stubEnv`: there it would only re-read the assignment
 above it and could never fail. It is a narrow check, not the main protection.

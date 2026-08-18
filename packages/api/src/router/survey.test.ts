@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import crypto from "node:crypto";
 import { call } from "@orpc/server";
 
-// Mock sendNotification — hoisted before all imports by bun:test
+// Mock sendNotification: hoisted before all imports by bun:test
 const notificationMock = mock(async () => ({}));
 mock.module("@news-spend-media/payload/lib/lottery-notification", () => ({
   sendNotification: notificationMock,

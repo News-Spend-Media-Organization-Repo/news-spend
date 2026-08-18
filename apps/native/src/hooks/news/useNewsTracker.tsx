@@ -82,7 +82,7 @@ export function useReadingTracker(
         return;
       }
 
-      // Reset all state on focus — timer starts on first scroll
+      // Reset all state on focus: timer starts on first scroll
       setElapsedSeconds(0);
       setHasScrolledThreshold(false);
       setInRapidScroll(false);
@@ -122,7 +122,7 @@ export function useReadingTracker(
       }
       resetInactivityTimer();
 
-      // Rolling average speed — wait until window is full before judging
+      // Rolling average speed: wait until window is full before judging
       if (lastScrollTime.current !== null) {
         const timeDiff = currentTime - lastScrollTime.current;
         const offsetDiff = Math.abs(scrollY - lastScrollY.current);
@@ -147,7 +147,7 @@ export function useReadingTracker(
         if (avgSpeed > RAPID_SCROLL_THRESHOLD) {
           if (!inRapidScroll) {
             console.log(
-              "[ReadingTracker] Rapid scroll detected — pausing timer"
+              "[ReadingTracker] Rapid scroll detected: pausing timer"
             );
             stopTracking();
             setInRapidScroll(true);

@@ -51,7 +51,7 @@ type BaseScreenProps = {
    */
   safeAreaEdges?: ExtendedEdge[];
   /**
-   * Background color — applied to the root screen container.
+   * Background color, applied to the root screen container.
    */
   backgroundColor?: string;
   /**
@@ -309,9 +309,9 @@ function ScreenWithScrolling(props: ScreenProps) {
  * Represents a screen component that provides a consistent layout and behaviour for different screen presets.
  *
  * Presets:
- * - `fixed`  — non-scrolling; uses KeyboardAvoidingView when needed.
- * - `scroll` — always scrollable; uses KeyboardAwareScrollView (or plain ScrollView as fallback).
- * - `auto`   — scrollable only when content overflows the screen.
+ * - `fixed`: non-scrolling, uses KeyboardAvoidingView when needed.
+ * - `scroll`: always scrollable, uses KeyboardAwareScrollView (or plain ScrollView as fallback).
+ * - `auto`: scrollable only when content overflows the screen.
  *
  * @see [Documentation and Examples]{@link https://docs.infinite.red/ignite-cli/boilerplate/app/components/Screen/}
  */

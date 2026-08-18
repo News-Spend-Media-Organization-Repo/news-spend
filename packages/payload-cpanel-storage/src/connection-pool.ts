@@ -306,7 +306,7 @@ export class SftpConnectionPool {
 
 		const currentSize = this.pool.length;
 		if (currentSize >= this.options.minConnections) {
-			// Pool is healthy — reset backoff counter
+			// Pool is healthy; reset backoff counter
 			this.consecutiveFailures = 0;
 			return;
 		}
@@ -320,7 +320,7 @@ export class SftpConnectionPool {
 			const elapsed = Date.now() - this.lastFailureTime;
 			if (elapsed < backoffMs) {
 				this.log(
-					`Skipping connection attempt — next retry in ${Math.round((backoffMs - elapsed) / 1000)}s (failure #${this.consecutiveFailures})`,
+					`Skipping connection attempt, next retry in ${Math.round((backoffMs - elapsed) / 1000)}s (failure #${this.consecutiveFailures})`,
 				);
 				return;
 			}

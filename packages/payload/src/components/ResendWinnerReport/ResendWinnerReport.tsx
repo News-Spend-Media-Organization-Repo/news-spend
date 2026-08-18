@@ -5,10 +5,10 @@ import type { UIFieldClientComponent } from "payload";
 import { useState } from "react";
 
 /**
- * Resend the Winner Report for the giveaway open in the admin (spec §21).
+ * Resend the Winner Report for the giveaway open in the admin (spec 21).
  *
  * The button is only offered for a completed draw, but that is convenience
- * rather than security — the endpoint re-checks the role and the draw status,
+ * rather than security. The endpoint re-checks the role and the draw status,
  * and a resend is recorded as its own delivery so the original stays
  * identifiable.
  */

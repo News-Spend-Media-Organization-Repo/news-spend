@@ -1,7 +1,7 @@
 /**
  * Generic Redis caching utilities.
  *
- * All functions gracefully degrade — if Redis is unavailable or errors occur,
+ * All functions gracefully degrade: if Redis is unavailable or errors occur,
  * the fallback function is called and the result is returned uncached.
  */
 
@@ -39,10 +39,10 @@ export async function withCache<T>(
       return JSON.parse(cached) as T;
     }
   } catch {
-    // Redis unavailable or parse error — fall through to fn()
+    // Redis unavailable or parse error: fall through to fn()
   }
 
-  // Cache miss or Redis error — execute the function
+  // Cache miss or Redis error: execute the function
   const result = await fn();
 
   // Try to write to cache (fire-and-forget)
@@ -51,7 +51,7 @@ export async function withCache<T>(
     const redis = getRedis();
     await redis.set(key, JSON.stringify(result), "EX", options.ttl);
   } catch {
-    // Ignore write errors — data is still returned from fn()
+    // Ignore write errors: data is still returned from fn()
   }
 
   return result;
@@ -87,6 +87,6 @@ export async function invalidateCache(keyOrPattern: string): Promise<void> {
       await redis.del(keyOrPattern);
     }
   } catch {
-    // Ignore — cache invalidation is best-effort
+    // Ignore: cache invalidation is best-effort
   }
 }

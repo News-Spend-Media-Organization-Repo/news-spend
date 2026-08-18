@@ -25,7 +25,7 @@ describe("publisher.sendMessage", () => {
       { context: ctx }
     );
 
-    // sendMessage returned successfully — the publish happened
+    // sendMessage returned successfully, the publish happened
     // (roundtrip verified in the onMessage test below)
   });
 });

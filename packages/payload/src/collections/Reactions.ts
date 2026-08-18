@@ -70,7 +70,7 @@ async function recalculateCounts(
 
     // Raw SQL (not payload.update) on purpose: news is a drafts/versions
     // collection, and a normal update writes a new _news_v snapshot on every
-    // call — every like/dislike was generating a junk editorial-history
+    // call. Every like/dislike was generating a junk editorial-history
     // entry (the same bug as the news.views counter, fixed separately). Raw
     // SQL is also atomic and bypasses hooks entirely; targetCollection is a
     // closed set ("news" | "comments"), never user input, so the literal

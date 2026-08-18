@@ -1,8 +1,8 @@
 /**
- * Seed the Master Prize Catalogue (spec §2).
+ * Seed the Master Prize Catalogue (spec 2).
  *
  * The fifty prizes the app owner supplied, with a fulfilment type derived from
- * their category — which is the field the whole claim flow turns on, and the
+ * their category, which is the field the whole claim flow turns on, and the
  * one their source data has no equivalent of. Reward Points become `points`
  * with the amount parsed from the name, Airtime & Data splits on whether the
  * name mentions data, Vouchers become `gift_card`, and the rest divide into
@@ -15,7 +15,7 @@
  *
  * Every prize is seeded with `requiresVerification: false`. Turning the gate on
  * before there is a working verification screen would route those winners into
- * the old ID-upload form, which is worse than not gating at all — set the
+ * the old ID-upload form, which is worse than not gating at all. Set the
  * checkbox per prize in the CMS once that flow is real.
  *
  * Usage, from apps/cms:
@@ -465,7 +465,7 @@ for (const prize of missing) {
   } catch (error) {
     failed += 1;
     console.error(
-      `  failed: ${prize.name} — ${error instanceof Error ? error.message : error}`
+      `  failed: ${prize.name}: ${error instanceof Error ? error.message : error}`
     );
   }
 }

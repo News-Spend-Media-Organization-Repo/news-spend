@@ -72,7 +72,7 @@ export const DEFAULT_FEED_CONFIG: FeedComposerConfig = {
 /**
  * Feed Composer class for building complex feeds with injection rules.
  *
- * All content injection is synchronous — partner content is drawn from the
+ * All content injection is synchronous. Partner content is drawn from the
  * AdManager's pre-fetched pool, eliminating N+1 queries during composition.
  */
 export class FeedComposer {
@@ -86,7 +86,7 @@ export class FeedComposer {
 
   /**
    * Composes the final feed with all injection rules applied.
-   * Synchronous — no DB queries during composition.
+   * Synchronous, with no DB queries during composition.
    */
   composeFeed(data: FeedComposerData): FeedItem[] {
     const { mainNews, relatedNews, promotionMedia } = data;
@@ -206,7 +206,7 @@ export class FeedComposer {
 
 /**
  * Composes a feed with all injection rules applied.
- * Synchronous — the AdManager's pool was pre-fetched during init.
+ * Synchronous: the AdManager's pool was pre-fetched during init.
  */
 export function composeFeed(
   adManager: AdManager,
@@ -219,7 +219,7 @@ export function composeFeed(
 
 /**
  * Creates a simplified feed with just ads injected (for backwards compatibility).
- * Synchronous — ads are picked from the AdManager's pre-fetched pool.
+ * Synchronous: ads are picked from the AdManager's pre-fetched pool.
  */
 export function composeSimpleFeed(
   mainNews: News[],

@@ -10,7 +10,7 @@ const DAY = 24 * HOUR;
 let payload: BasePayload;
 
 /**
- * The §21 Winner Report goes to a real inbox on a completed draw. The engine
+ * The section 21 Winner Report goes to a real inbox on a completed draw. The engine
  * takes an injectable sender for exactly this reason, so every draw here uses
  * one that goes nowhere. The stubbed Resend key in the test helper is the outer
  * guard; this is the one that expresses the intent.
@@ -161,7 +161,7 @@ describe("giveaway draw, against a real database", () => {
     /**
      * The assertion this whole file exists for.
      *
-     * Writing `unitsAwarded` is what the §5 prize-pool lock refused, because
+     * Writing `unitsAwarded` is what the section 5 prize-pool lock refused, because
      * a draw is `draw_in_progress` while it allocates and that is a locked
      * status. The engine's own tests could not see it: their fake payload has
      * no collection hooks, so the lock never ran. Here it does.
@@ -174,7 +174,7 @@ describe("giveaway draw, against a real database", () => {
     expect(prizeRow.unitsAwarded).toBe(1);
 
     /**
-     * Every participant is told the draw happened — the same audience the
+     * Every participant is told the draw happened, the same audience the
      * reveal has. The message must not name the outcome, or the sealed card
      * it opens with has nothing left to reveal.
      */
@@ -252,7 +252,7 @@ describe("giveaway draw, against a real database", () => {
      *
      * This is the guarantee an operator is relying on when they leave an
      * expensive item out of a draw they cannot fund: not selecting it has to
-     * mean it cannot be won, whatever the draw does. §4 says so; nothing
+     * mean it cannot be won, whatever the draw does. Section 4 says so; nothing
      * proved it until now.
      */
     const unpooled = await payload.create({
@@ -268,7 +268,7 @@ describe("giveaway draw, against a real database", () => {
 
     const result = await engine().runDraw(giveawayId);
 
-    // Everyone wins — tier 3 is at 100% with units for all of them — so if the
+    // Everyone wins (tier 3 is at 100% with units for all of them), so if the
     // unpooled prize were reachable at all, this is the draw that would reach
     // it.
     expect(result.totalWinners).toBe(3);

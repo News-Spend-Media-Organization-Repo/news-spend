@@ -29,7 +29,7 @@ export function UpdateSheet({
       <BottomSheet.Portal>
         {/*
           A mandatory update is the one case where dismissal is refused by every
-          route — handle and backdrop both. Optional updates stay dismissible:
+          route (handle and backdrop both). Optional updates stay dismissible:
           the check re-runs on the next foreground, so losing the sheet costs
           the user nothing.
         */}
@@ -67,7 +67,7 @@ export function UpdateSheet({
 
             {isDownloading && !isReady ? (
               <Text className="text-center text-subtle-text text-xs">
-                Downloading in the background — you can keep using the app.
+                Downloading in the background. You can keep using the app.
               </Text>
             ) : null}
           </View>

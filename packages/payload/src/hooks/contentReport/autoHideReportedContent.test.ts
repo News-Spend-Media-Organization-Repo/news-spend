@@ -170,7 +170,7 @@ describe("autoHideReportedContent", () => {
 
   it("does not hide on a single report for a non-severe reason", async () => {
     // "harassment" triggers an *urgent admin alert* but is deliberately not in
-    // the hide-on-first-report set — the two lists are not the same.
+    // the hide-on-first-report set; the two lists are not the same.
     const req = makeReq({ reports: reporters(1) });
     await runHook({ doc: makeDoc({ reason: "harassment" }), req });
 

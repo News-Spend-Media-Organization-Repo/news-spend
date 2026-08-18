@@ -15,7 +15,7 @@ import { UpdateSheet } from "#/components/UpdateSheet";
 /**
  * An update declares its own urgency. `eas update` bakes the app config of the
  * publish into the manifest it serves, so `extra.updatePriority` travels with
- * the update and is readable from the check alone — before a byte of the
+ * the update and is readable from the check alone, before a byte of the
  * payload is downloaded, and without the running build having known about it.
  */
 const isMandatoryUpdate = (update: UpdateInfo | undefined) => {
@@ -47,7 +47,7 @@ export const useUpdates = () => {
   const initialCheckDone = useRef(false);
 
   // One fetch per update. `isDownloading` only flips on the next render, so it
-  // can't guard the effect that starts the download — the update's own id can.
+  // can't guard the effect that starts the download, the update's own id can.
   const fetchedUpdateId = useRef<string | null>(null);
 
   const isMandatory = isMandatoryUpdate(availableUpdate);
@@ -81,7 +81,7 @@ export const useUpdates = () => {
   }, [isUpdateAvailable, availableUpdate, isDevelopmentBuild]);
 
   // When the app comes to the foreground, check for updates.
-  // ON_LOAD only fires on cold start — this covers users who keep
+  // ON_LOAD only fires on cold start, this covers users who keep
   // the app open for hours/days.
   const handleAppStateChange = useCallback(
     (nextState: AppStateStatus) => {
@@ -91,7 +91,7 @@ export const useUpdates = () => {
         initialCheckDone.current
       ) {
         checkForUpdateAsync().catch(() => {
-          // Silently ignore — network failures are expected.
+          // Silently ignore. Network failures are expected.
         });
       }
     },

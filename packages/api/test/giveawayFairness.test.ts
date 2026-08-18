@@ -6,14 +6,14 @@ import {
 } from "@news-spend-media/payload/lib/giveaway/fairness";
 
 /**
- * Fairness and anti-abuse rules (spec §22).
+ * Fairness and anti-abuse rules (spec section 22).
  *
  * `outcomes` is the user's history over previously completed giveaways, most
  * recent first. `null` means they did not take part in that one.
  */
 const history = (...outcomes: DrawOutcome[]) => ({ outcomes });
 
-describe("§22.1 — high-tier cooldown", () => {
+describe("22.1: high-tier cooldown", () => {
   it("bars Tier 1 and Tier 2 after a Tier 2 win last draw", () => {
     const h = history("tier2");
 
@@ -42,7 +42,7 @@ describe("§22.1 — high-tier cooldown", () => {
   });
 });
 
-describe("§22.2 — Tier 1 cooldown", () => {
+describe("22.2: Tier 1 cooldown", () => {
   // "Draw 1 → Tier 1 Winner; Draws 2–5 → Cannot win Tier 1; Draw 6 → restored"
   it("bars Tier 1 for four draws, matching the spec's worked example", () => {
     const filler: DrawOutcome[] = [];
@@ -60,7 +60,7 @@ describe("§22.2 — Tier 1 cooldown", () => {
   });
 
   it("leaves Tier 2 and Tier 3 open once the high-tier cooldown has passed", () => {
-    // Won Tier 1 three draws ago: §22.1 has elapsed, §22.2 has not.
+    // Won Tier 1 three draws ago: 22.1 has elapsed, 22.2 has not.
     const h = history("participated_no_win", "participated_no_win", "tier1");
 
     expect(evaluateFairness("tier1", h).eligible).toBe(false);
@@ -69,7 +69,7 @@ describe("§22.2 — Tier 1 cooldown", () => {
   });
 });
 
-describe("§22.3 — consecutive Tier 1 wins", () => {
+describe("22.3: consecutive Tier 1 wins", () => {
   it("suspends Tier 1 after two wins running", () => {
     expect(evaluateFairness("tier1", history("tier1", "tier1")).eligible).toBe(
       false
@@ -77,13 +77,13 @@ describe("§22.3 — consecutive Tier 1 wins", () => {
   });
 
   it("is unreachable in practice, because earlier rules forbid the wins it reacts to", () => {
-    // §22.3 reacts to two Tier 1 wins in consecutive draws, but a user can
-    // never legitimately reach that: §22.1 bars Tier 1 the draw after any
-    // high-tier win, and §22.2 keeps it barred for four. So after one Tier 1
+    // 22.3 reacts to two Tier 1 wins in consecutive draws, but a user can
+    // never legitimately reach that: 22.1 bars Tier 1 the draw after any
+    // high-tier win, and 22.2 keeps it barred for four. So after one Tier 1
     // win, Tier 1 is closed at every point a second win could occur.
     //
     // This asserts the spec conflict rather than the behaviour, so it fails
-    // loudly if §22.2 is ever relaxed — at which point §22.3 becomes live and
+    // loudly if 22.2 is ever relaxed, at which point 22.3 becomes live and
     // needs real scrutiny.
     const filler: DrawOutcome[] = [];
 
@@ -107,7 +107,7 @@ describe("§22.3 — consecutive Tier 1 wins", () => {
   });
 });
 
-describe("§22.4 — loyalty waiver", () => {
+describe("22.4: loyalty waiver", () => {
   const fourBlanks: DrawOutcome[] = [
     "participated_no_win",
     "participated_no_win",
@@ -132,7 +132,7 @@ describe("§22.4 — loyalty waiver", () => {
   });
 
   it("is broken by a draw the user sat out", () => {
-    // Took part, took part, skipped, took part, took part — no run of four.
+    // Took part, took part, skipped, took part, took part, no run of four.
     expect(
       hasLoyaltyWaiver(
         history(

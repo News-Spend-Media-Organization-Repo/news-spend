@@ -29,7 +29,7 @@ const eventSchema = z.object({
   timestamp: z.string().optional(),
 });
 
-// Batch track events — called from the mobile analytics client
+// Batch track events, called from the mobile analytics client
 const track = publicProcedure
   .input(
     z.object({

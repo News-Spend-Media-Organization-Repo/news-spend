@@ -10,7 +10,7 @@ import { maxTierWinners } from "./eligibility";
  * Answer "what could this giveaway actually award?" before running it.
  *
  * The engine already refuses to award a prize that is not in the pool, and
- * already caps each prize at its Maximum Units — but neither fact is visible
+ * already caps each prize at its Maximum Units: but neither fact is visible
  * until a draw has run, and by then it is not a question any more. A giveaway
  * with a generator in the catalogue and no budget to honour it is a decision
  * made at configuration time, and the operator deserves to see the
@@ -18,7 +18,7 @@ import { maxTierWinners } from "./eligibility";
  *
  * WHAT THIS IS NOT. It does not sample, shuffle or pick anybody: it reports
  * the CAPS, which is the part that determines what is possible. Who wins is
- * random; how many can win, and of what, is arithmetic — and the arithmetic is
+ * random; how many can win, and of what, is arithmetic: and the arithmetic is
  * what nobody could see.
  *
  * Reuses `maxTierWinners`, the same function the draw applies, rather than
@@ -31,7 +31,7 @@ export type TierSimulation = {
   winnerPercentage: number;
   /** Participants meeting this tier's eligibility bar, as supplied. */
   eligible: number;
-  /** §9 — the percentage cap, applied to TOTAL participants, not eligible ones. */
+  /** 9: the percentage cap, applied to TOTAL participants, not eligible ones. */
   maxByPercentage: number;
   /** Sum of Maximum Units across the prizes pooled at this tier. */
   unitsAvailable: number;
@@ -94,7 +94,7 @@ export async function simulateDraw(
   const tiers: TierSimulation[] = [];
 
   /**
-   * A winner is removed from consideration for every later tier (§22), so the
+   * A winner is removed from consideration for every later tier (22), so the
    * pool each tier draws from is what the ones before it left behind. Walking
    * the tiers in the engine's own order keeps that shrinkage honest.
    */
@@ -116,8 +116,8 @@ export async function simulateDraw(
       0
     );
 
-    // Percentage is applied to TOTAL participants — never to the eligible
-    // subset, and never reduced by earlier tiers. That is §9, and getting it
+    // Percentage is applied to TOTAL participants: never to the eligible
+    // subset, and never reduced by earlier tiers. That is 9, and getting it
     // wrong here would make the simulation flatter than the real draw.
     const maxByPercentage = maxTierWinners(participants, winnerPercentage);
 
@@ -143,7 +143,7 @@ export async function simulateDraw(
 
     if (winnerPercentage > 0 && tierRows.length === 0) {
       warnings.push(
-        `${tier} is enabled at ${winnerPercentage}% but has no prizes pooled — the draw will refuse to start.`
+        `${tier} is enabled at ${winnerPercentage}% but has no prizes pooled: the draw will refuse to start.`
       );
     }
     if (winnerPercentage > 0 && maxByPercentage === 0) {

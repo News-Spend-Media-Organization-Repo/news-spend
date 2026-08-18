@@ -8,7 +8,7 @@ export function startTrendingJob() {
   const expr = `*/${Math.max(1, interval)} * * * *`;
 
   // run on schedule. `catch` is the backstop: anything escaping the handler is
-  // an unhandled rejection, which takes the whole process down — a Postgres
+  // an unhandled rejection, which takes the whole process down. A Postgres
   // blip crash-looped the server for three hours on 2026-08-10 this way.
   const job = new Cron(
     expr,

@@ -9,15 +9,15 @@ import { getPayload } from "../lib/getPayload";
  * Debounced like-notification sender. Queued by the notifyOnCommentLike hook
  * (packages/payload/src/hooks/reactions/notifyOnCommentLike.ts) on
  * Reactions.afterChange, with a delay. The debounce is keyed by the comment
- * author, not by comment — so likes landing on several different comments
+ * author, not by comment, so likes landing on several different comments
  * by the same author within the window are picked up by this one job too,
  * instead of firing a separate push per comment.
  *
  * When it fires, this re-queries which of the author's comments got a "like"
  * within the same debounce window (rather than trusting anything passed at
  * schedule time, so it reflects whatever actually happened by the time it
- * runs) and reports the most recent liker by name — not an exact "N new
- * likes" count — which avoids needing extra persisted state to track "likes
+ * runs) and reports the most recent liker by name, not an exact "N new
+ * likes" count, which avoids needing extra persisted state to track "likes
  * since last notified", at the cost of not naming every liker if several
  * liked within the same window.
  *
@@ -138,7 +138,7 @@ export const sendCommentLikeNotificationTask = {
     // Deep link opens the thread rooted at the liked comment's parent (or
     // itself when top-level), with the liked comment pinned/highlighted.
     // When multiple comments were liked, this links to the most recently
-    // liked one — a real, relevant conversation, even though it's not the
+    // liked one, a real, relevant conversation, even though it's not the
     // only one that changed.
     const newsId =
       typeof mostRecentComment?.news === "string"

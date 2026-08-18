@@ -154,7 +154,7 @@ describe("activity.byNewsId", () => {
 });
 
 describe("activity.byUserId", () => {
-  // Exercised through a server-side router client rather than `call()` — same
+  // Exercised through a server-side router client rather than `call()`. Same
   // middleware and validation, less ceremony per case.
   it("returns an empty page for a category the endpoint does not serve", async () => {
     const { ctx } = contextWith([activity()]);

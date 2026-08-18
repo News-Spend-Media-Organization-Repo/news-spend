@@ -18,7 +18,7 @@ type WelcomeEmailProps = {
 export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
   <Html>
     <Head />
-    <Preview>Welcome to Newsspend Media — Today is just the beginning.</Preview>
+    <Preview>Welcome to Newsspend Media. Today is just the beginning.</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={logoSection}>
@@ -41,7 +41,7 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
         <Text style={description}>
           You've just stepped into a platform designed to transform your
           everyday digital life into real-world progress, rewards, and
-          opportunities — a platform built to celebrate ambition, reward
+          opportunities. A platform built to celebrate ambition, reward
           perseverance, and change lives.
         </Text>
 
@@ -78,7 +78,7 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
 
           <Text style={stepTitle}>⚡ 2. Earn Points Effortlessly</Text>
           <Text style={description}>
-            Do what you already love — and get rewarded:
+            Do what you already love, and get rewarded:
           </Text>
           <ul style={checklist}>
             <li>✔️ Read meaningful content</li>
@@ -96,9 +96,9 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
           <Text style={description}>This is where it becomes real:</Text>
           <Text style={rewardTitle}>🎯 Dream Fulfillment</Text>
           <Text style={description}>
-            Track your progress toward goals that matter to you — scholarships,
-            sponsored experiences, shopping support, skill development, and
-            more.
+            Track your progress toward goals that matter to you, including
+            scholarships, sponsored experiences, shopping support, skill
+            development, and more.
           </Text>
           <Text style={rewardTitle}>🎁 Enter the Giveaway</Text>
           <Text style={description}>

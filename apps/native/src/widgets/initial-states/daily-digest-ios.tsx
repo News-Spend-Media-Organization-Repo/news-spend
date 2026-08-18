@@ -5,7 +5,7 @@ import { Voltra as V } from "@use-voltra/ios/server";
  *
  * Rendered by the Voltra config plugin during prebuild and baked into
  * VoltraWidgetInitialStates.swift, where it backs `Provider.placeholder` and the
- * widget gallery preview — everything shown before the first real timeline entry
+ * widget gallery preview, everything shown before the first real timeline entry
  * or server fetch lands.
  *
  * Deliberately carries no date, greeting or headline: this snapshot is frozen at

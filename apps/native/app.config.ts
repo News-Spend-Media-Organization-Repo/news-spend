@@ -141,7 +141,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       variant: APP_VARIANT,
       // An update carries its own urgency. `eas update` bakes this config into
       // the manifest it publishes, so the client reads the value off the
-      // incoming update — before downloading it, and without the running build
+      // incoming update, before downloading it, and without the running build
       // needing to have known about it. Publish a forced one with:
       //   UPDATE_PRIORITY=mandatory eas update --branch production
       updatePriority: UPDATE_PRIORITY,

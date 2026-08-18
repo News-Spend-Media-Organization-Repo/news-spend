@@ -77,7 +77,7 @@ export async function computeTrendingScores(opts: ScoringOptions) {
     },
     pagination: false,
     depth: 0,
-    // only the scoring signals — without this every article's rich-text body
+    // only the scoring signals: without this, every article's rich-text body
     // is loaded into memory just to be discarded
     select: {
       views: true,
@@ -99,7 +99,7 @@ export async function computeTrendingScores(opts: ScoringOptions) {
     const likes = Number(doc.likesCount ?? 0);
     const dislikes = Number(doc.dislikesCount ?? 0);
 
-    // counts only — count() aggregates in the database instead of hydrating
+    // counts only: count() aggregates in the database instead of hydrating
     // every matching row, which otherwise dominates this job's memory use
     const [comments, shares, reads] = await Promise.all([
       payload.count({

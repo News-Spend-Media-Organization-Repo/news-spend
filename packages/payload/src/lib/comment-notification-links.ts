@@ -13,7 +13,7 @@ import type { BasePayload, PayloadRequest } from "payload";
  * the comment the notification is about (a new reply or the liked comment);
  * the screen renders it pinned under the thread root.
  *
- * Returns null when the news doc can't be resolved — callers should then
+ * Returns null when the news doc can't be resolved. Callers should then
  * send the notification without a url (push still delivered, no deep link).
  */
 export async function getCommentThreadUrl({

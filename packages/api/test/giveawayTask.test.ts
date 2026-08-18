@@ -193,7 +193,7 @@ describe("processGiveaway task", () => {
     expect(created["giveaway-winners"]).toBeUndefined();
   });
 
-  it("is safe to run twice — the second run finds nothing to draw", async () => {
+  it("is safe to run twice: the second run finds nothing to draw", async () => {
     const { payload, created } = createFakePayload({
       giveaways: [giveawayRow()],
       tickets: ticketsFor("g1", 10),
@@ -210,7 +210,7 @@ describe("processGiveaway task", () => {
 
   it("never resumes an interrupted draw by itself", async () => {
     const { payload, collections } = createFakePayload({
-      // §19 — only an administrator may authorize a resumption.
+      // 19: only an administrator may authorize a resumption.
       giveaways: [
         giveawayRow({
           status: "interrupted",
@@ -270,7 +270,7 @@ describe("processGiveaway task", () => {
     const { output } = await runTask(payload);
 
     expect(output.reportsRetried).toBe(1);
-    // No mail provider is configured in a test, so the send fails again — the
+    // No mail provider is configured in a test, so the send fails again: the
     // point is that the task picked it up and did not throw.
     expect(collections["giveaway-report-deliveries"]?.[0]?.status).toBe(
       "failed"

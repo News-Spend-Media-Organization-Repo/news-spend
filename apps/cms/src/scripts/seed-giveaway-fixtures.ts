@@ -4,14 +4,14 @@
  * A fresh environment has an empty Master Prize Catalogue and no partner
  * content, and that single gap blocks most of the engine from ever running:
  *
- *   - Boosts (§7) need Connect Brands content. Without it `BoostLuck` can only
+  *   - Boosts (7) need Connect Brands content. Without it `BoostLuck` can only
  *     refuse, because the engine will not count an engagement it cannot
  *     attribute to a specific item.
- *   - Featured Offers (§8) need Lucky App Wall content, for the same reason.
+  *   - Featured Offers (8) need Lucky App Wall content, for the same reason.
  *   - Tier 1 and Tier 2 need BOTH of the above, so neither is reachable at all.
  *   - The giveaway reveal plays a Connect Brands advertisement before showing
  *     the outcome, and falls straight through to the result without one.
- *   - Reloadly fulfilment (§15) needs an airtime or data prize to exist. It had
+  *   - Reloadly fulfilment (15) needs an airtime or data prize to exist. It had
  *     never executed in any environment before this script.
  *
  * Everything is created through Payload's local API rather than SQL, so the
@@ -62,7 +62,7 @@ type CatalogueEntry = {
   pointsAmount?: number;
   /**
    * What Reloadly is asked to send, in naira. Airtime operators take a range
-   * rather than fixed denominations, so this is sent verbatim — see
+   * rather than fixed denominations, so this is sent verbatim; see
    * `fulfilPrizes`, which reads `reloadlyLocalAmount` before `valueNaira`.
    */
   reloadlyLocalAmount?: number;
@@ -73,7 +73,7 @@ const CATALOGUE: CatalogueEntry[] = [
   {
     /**
      * Tier 1 is only reachable with 10 tickets, 3 boosts and a Featured Offer
-     * (§11), so this prize is unawardable until the partner content below has
+     * (11), so this prize is unawardable until the partner content below has
      * actually been engaged with. Points rather than a physical item on
      * purpose: the tier is about eligibility, and a physical claim would add
      * an address step and possibly identity verification to a test that is not
@@ -90,13 +90,13 @@ const CATALOGUE: CatalogueEntry[] = [
     /**
      * Tier 2 exists here only so a seeded giveaway can start at all. The draw
      * refuses to run when any tier with a percentage above zero has an empty
-     * pool, and the defaults enable all three — so a catalogue without a tier 2
+     * pool, and the defaults enable all three, so a catalogue without a tier 2
      * entry produced a giveaway that could never be drawn:
      *
      *   Draw cannot start: tier2 is enabled (0.5%) but its Prize Pool is empty.
      *
      * Points rather than airtime or data on purpose. Tier 2's own reachability
-     * (§11) is what the seeded content is for; the fulfilment paths are already
+     * (11) is what the seeded content is for; the fulfilment paths are already
      * covered by the tier 3 entries below, and a second Reloadly prize would
      * only spend credit proving the same thing twice.
      */
@@ -118,7 +118,7 @@ const CATALOGUE: CatalogueEntry[] = [
   {
     /**
      * The reason this script exists. Airtime is the only prize type that
-     * reaches Reloadly on a claim, and that path had never run anywhere —
+     * reaches Reloadly on a claim, and that path had never run anywhere,
      * dev, staging or production.
      */
     name: "₦500 Airtime",
@@ -131,7 +131,7 @@ const CATALOGUE: CatalogueEntry[] = [
   {
     /**
      * Named exactly "2GB Data" because `seed-reloadly-data-plans` matches
-     * catalogue entries by name — without that name the plans have nothing to
+     * catalogue entries by name; without that name the plans have nothing to
      * attach to.
      *
      * No `reloadlyLocalAmount` here, unlike airtime. Data is sold as fixed
@@ -160,7 +160,7 @@ type PartnerItem = {
  * Where a seeded item sends someone who taps it.
  *
  * Not optional in practice: `usePartnerClick` reads the store links, falls
- * back to the website, and returns silently when there is none — so an item
+   * back to the website, and returns silently when there is none, so an item
  * seeded without a link is simply dead to the touch, with no error and no
  * toast. The first seeded app-wall offer was exactly that, and looked like a
  * broken button rather than missing data.
@@ -171,47 +171,47 @@ const SEED_LINK = "https://newsspend.com";
  * Partner content cannot be conjured from nothing: `media` is a required
  * upload and `partner` a required relationship, so this reuses whatever the
  * environment already has rather than inventing a creative. A seeded ad with a
- * placeholder image would not be a meaningful test of an ad anyway — the point
+   * placeholder image would not be a meaningful test of an ad anyway; the point
  * is only to make the engagement surfaces reachable.
  */
 const PARTNER_CONTENT: PartnerItem[] = [
   /**
    * Three separate Connect Brands items, because a Boost is recorded against
-   * the item watched and the engine refuses the same one twice — three boosts
+   * the item watched and the engine refuses the same one twice, so three boosts
    * has to mean three different advertisements, not one watched three times.
-   * Tier 1 needs all three (§11), so a single item caps everyone at tier 3.
+   * Tier 1 needs all three (11), so a single item caps everyone at tier 3.
    */
   {
-    title: "Sponsor spot — Connect Brands",
+    title: "Sponsor spot: Connect Brands",
     placement: "connect-brand-video",
     type: "video",
     condition: "Watch to the end to boost your entries",
     points: 10,
-    why: "Earns Boosts (§7) and is what the reveal plays before an outcome.",
+    why: "Earns Boosts (7) and is what the reveal plays before an outcome.",
   },
   {
-    title: "Sponsor spot — Connect Brands 2",
+    title: "Sponsor spot: Connect Brands 2",
     placement: "connect-brand-video",
     type: "video",
     condition: "Watch to the end to boost your entries",
     points: 10,
-    why: "Second distinct Boost item — three are needed for Tier 1.",
+    why: "Second distinct Boost item. Three are needed for Tier 1.",
   },
   {
-    title: "Sponsor spot — Connect Brands 3",
+    title: "Sponsor spot: Connect Brands 3",
     placement: "connect-brand-video",
     type: "video",
     condition: "Watch to the end to boost your entries",
     points: 10,
-    why: "Third distinct Boost item — three are needed for Tier 1.",
+    why: "Third distinct Boost item. Three are needed for Tier 1.",
   },
   {
-    title: "Sponsor offer — Lucky App Wall",
+    title: "Sponsor offer: Lucky App Wall",
     placement: "lucky-app-wall",
     type: "app",
     condition: "Complete the offer to earn a Featured Offer",
     points: 50,
-    why: "Earns Featured Offers (§8) once a partner confirms the conversion.",
+    why: "Earns Featured Offers (8) once a partner confirms the conversion.",
   },
 ];
 
@@ -232,15 +232,15 @@ async function main() {
   assertSafeTarget();
 
   const payload = await getPayload();
-  const mode = WRITE ? "WRITE" : "DRY RUN — nothing will be created";
+  const mode = WRITE ? "WRITE" : "DRY RUN: nothing will be created";
   console.log(`\n${mode}\n`);
 
   // --- Master Prize Catalogue -------------------------------------------
 
   /**
    * Keyed by name, carrying the tier as well as the id. A prize may only enter
-   * a pool under the tier it holds in the catalogue (§4), and the hook enforces
-   * that — so the pool below has to read each entry's own tier rather than
+   * a pool under the tier it holds in the catalogue (4), and the hook enforces
+   * that, so the pool below has to read each entry's own tier rather than
    * assume one. It once assumed tier 3 and the tier 1 prize made the seed fail
    * half-way, leaving an active giveaway with an empty pool behind it.
    */
@@ -309,7 +309,7 @@ async function main() {
     console.log(
       `\n  skipped  content    needs an existing Partner (${partners.docs.length}) ` +
         `and Media (${media.docs.length}) record.\n` +
-        "           Create one of each in the CMS, then re-run — an upload " +
+        "           Create one of each in the CMS, then re-run. An upload " +
         "cannot be seeded from here.\n"
     );
   }
@@ -376,10 +376,10 @@ async function main() {
        * enabled tier whose pool is empty. Neither could be fixed by re-running,
        * since the whole branch was skipped whenever a giveaway was active.
        *
-       * Safe to do while live: §5 locks the pool from `pool_building` onwards,
-       * and `active` is deliberately outside that set, so this cannot disturb a
-       * draw that has begun. Existing rows are never touched — only gaps are
-       * filled — so units already awarded are left as they are.
+   * Safe to do while live: 5 locks the pool from `pool_building` onwards,
+   * and `active` is deliberately outside that set, so this cannot disturb a
+   * draw that has begun. Existing rows are never touched, only gaps are
+   * filled, so units already awarded are left as they are.
        */
       const giveaway = active.docs[0];
       const pool = await payload.find({
@@ -397,14 +397,14 @@ async function main() {
       const missing = [...prizeIds].filter(([, prize]) => !pooled.has(prize.id));
 
       console.log(
-        `\n  exists   giveaway   "${giveaway.name}" is already active — leaving its configuration alone.`
+        `\n  exists   giveaway   "${giveaway.name}" is already active, leaving its configuration alone.`
       );
 
       if (missing.length === 0) {
         console.log(`  ok       pool       all ${pooled.size} prizes present`);
         /**
          * A dry run only knows the prizes that already exist, so a catalogue
-         * entry it is about to create cannot be reported as a pool gap yet —
+         * entry it is about to create cannot be reported as a pool gap yet,
          * it has no id to compare against. Say so, rather than let "all
          * present" read as "nothing left to do".
          */
@@ -445,7 +445,7 @@ async function main() {
           /**
            * Left at the specification's defaults on purpose. A test giveaway
            * once ran with tier 3 at 100%, which awards a prize to every
-           * eligible entrant — correct for proving the reveal with a single
+           * eligible entrant, correct for proving the reveal with a single
            * participant, badly wrong anywhere else.
            */
           tier1WinnerPercentage: 0.1,

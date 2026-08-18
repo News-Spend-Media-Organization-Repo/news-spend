@@ -15,7 +15,7 @@ import { AppState, Platform } from "react-native";
  * - the authorization is still `undetermined` (iOS remembers the user's
  *   choice for the lifetime of the install, so it is never re-requested),
  * - the app is in the `active` state (iOS silently drops the prompt when
- *   the request is made while the app is inactive/backgrounded — e.g.
+ *   the request is made while the app is inactive/backgrounded, e.g.
  *   mid-splash or during a transition).
  */
 export async function ensureTrackingPermission(): Promise<boolean> {

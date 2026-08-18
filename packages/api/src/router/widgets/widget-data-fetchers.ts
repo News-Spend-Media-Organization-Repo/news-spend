@@ -10,7 +10,7 @@ export type NewsItem = {
 
 /**
  * Deep link for a single story, matching the `News` screen's linking path
- * (`/article/:slug/:id?`) under the news tab. Verified against the running app —
+ * (`/article/:slug/:id?`) under the news tab. Verified against the running app:
  * the tab prefix is required, `news-spend:///article/...` does not navigate.
  */
 export function newsDeepLink(item: NewsItem): string {

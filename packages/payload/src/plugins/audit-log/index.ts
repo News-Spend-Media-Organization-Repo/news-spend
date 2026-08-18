@@ -28,7 +28,7 @@ type AuditTarget = {
 
 // Collections to audit and which operations to track
 const AUDIT_TARGETS: Record<string, AuditTarget> = {
-  // Content — editorial accountability
+  // Content: editorial accountability
   news: {
     operations: ["create", "update", "delete"],
     ignoreFields: ["views", "totalComments"],
@@ -39,17 +39,17 @@ const AUDIT_TARGETS: Record<string, AuditTarget> = {
   "partner-content": { operations: ["create", "update", "delete"] },
   contentReports: { operations: ["create", "update", "delete"] },
 
-  // Admin — privilege & role tracking
+  // Admin: privilege & role tracking
   admins: { operations: ["create", "update", "delete"] },
 
-  // Compliance — KYC, lottery, financial
+  // Compliance: KYC, lottery, financial
   "identity-verification": { operations: ["create", "update", "delete"] },
   lottery: { operations: ["create", "update", "delete"] },
   "lottery-winners": { operations: ["create", "update", "delete"] },
   "ticket-purchase-log": { operations: ["create"] },
 };
 
-// Globals are singletons — only "update" is meaningful
+// Globals are singletons, so only "update" is meaningful
 const GLOBAL_AUDIT_TARGETS: string[] = ["news-category"];
 
 const ADMIN_COLLECTION = "admins";
@@ -223,7 +223,7 @@ const auditLogsCollection: CollectionConfig = {
       options: ["create", "read", "update", "delete", "login", "logout"],
     },
     {
-      // Polymorphic — could be a CMS admin or an app user
+      // Polymorphic: could be a CMS admin or an app user
       name: "performedBy",
       type: "relationship",
       index: true,
@@ -234,7 +234,7 @@ const auditLogsCollection: CollectionConfig = {
       type: "json",
       admin: {
         description:
-          "Changed fields only — { field: { from, to } }. Present on updates when originalDoc is available.",
+          "Changed fields only: { field: { from, to } }. Present on updates when originalDoc is available.",
       },
     },
     {
@@ -335,7 +335,7 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
       const bulkDocs = resultObj?.docs as Record<string, unknown>[] | undefined;
 
       if (bulkDocs) {
-        // Bulk operations — no per-doc originalDoc available, always snapshot
+        // Bulk operations: no per-doc originalDoc available, always snapshot
         for (const doc of bulkDocs) {
           if (doc?.id === undefined) {
             continue;
@@ -476,7 +476,7 @@ export const auditLogPlugin: Plugin = (incomingConfig) => {
       const { performedBy } = resolveActor(req);
       const ip = extractIp(req);
 
-      // Globals always have previousDoc — diff is always possible here
+      // Globals always have previousDoc, so diff is always possible here
       const changes =
         previousDoc && doc
           ? diff(

@@ -54,7 +54,7 @@ describe("reloadlyConfigFromEnv", () => {
     process.env = prev;
   });
 
-  it("defaults to sandbox — the safe direction — on anything but 'live'", () => {
+  it("defaults to sandbox (the safe direction) on anything but 'live'", () => {
     const prev = { ...process.env };
     process.env.RELOADLY_CLIENT_ID = "id";
     process.env.RELOADLY_CLIENT_SECRET = "secret";
@@ -88,7 +88,7 @@ describe("ReloadlyClient auth", () => {
     await c.getOperator(341);
     await c.getOperator(341);
 
-    // One auth call, however many API calls follow — re-minting a token per
+    // One auth call, however many API calls follow. Re-minting a token per
     // payout would triple the request count of a batch for nothing.
     const authCalls = calls.filter((call) => call.url.includes("oauth/token"));
     expect(authCalls).toHaveLength(1);

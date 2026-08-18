@@ -23,7 +23,7 @@ type UsePartnerAdOptions = {
    * Pin the rotation to one kind of advertisement.
    *
    * For callers that need a predictable outcome rather than a fair share of
-   * inventory — the giveaway reveal has to know whether an ad can be shown
+   * inventory: the giveaway reveal has to know whether an ad can be shown
    * before it decides how to sequence itself, and a Google ad it cannot
    * attribute or time is no use to it.
    */
@@ -57,7 +57,7 @@ export function usePartnerAd({
      *
      * This was `Infinity`, and the query cache is persisted to MMKV with a
      * 24-hour `gcTime`, so whatever the first call returned was kept and never
-     * questioned — including a `null` from before any Connect Brands content
+     * questioned, including a `null` from before any Connect Brands content
      * existed. The app then believed there were no ads, sent everyone to the
      * Lucky App Wall instead, and kept doing so across restarts and even an
      * EAS update, because an update replaces JavaScript and not stored data.
@@ -79,7 +79,7 @@ export function usePartnerAd({
   };
 
   const cycleAdType = () => {
-    // A pinned caller stays pinned — re-rolling here would quietly undo it on
+    // A pinned caller stays pinned: re-rolling here would quietly undo it on
     // the first close.
     if (forceType) {
       return;

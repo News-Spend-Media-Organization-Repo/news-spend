@@ -137,7 +137,7 @@ function renderDigestVariants(stories: NewsItem[], greeting: string) {
  *
  * These cannot reuse the iOS tree above: `updateAndroidWidget` feeds whatever
  * it is given to `renderAndroidWidgetToString`, and the two component sets do
- * not overlap — Android has Column/Row/Box and no VStack, ZStack, Divider or
+ * not overlap: Android has Column/Row/Box and no VStack, ZStack, Divider or
  * Link. Layout intentionally matches the server-rendered Android digest.
  */
 function renderAndroidDigestVariants(stories: NewsItem[], greeting: string) {
@@ -231,7 +231,7 @@ type ArticleDoc = {
 };
 
 /**
- * `news.all` returns a feed union — articles interleaved with ad and promo
+ * `news.all` returns a feed union: articles interleaved with ad and promo
  * entries, none of which carry a title. `includeAds: false` keeps them out at
  * runtime, but the return type stays a union, so narrow structurally.
  */
@@ -326,8 +326,8 @@ export async function scheduleDailyDigest(): Promise<void> {
     const now = new Date();
 
     if (Platform.OS === "ios") {
-      // The timeline opens with an entry for right now — without it the widget
-      // renders its placeholder until the first future slot arrives — followed
+      // The timeline opens with an entry for right now (without it the widget
+      // renders its placeholder until the first future slot arrives), followed
       // by each upcoming greeting changeover, in order.
       const toEntry = (date: Date): ScheduledWidgetEntry => ({
         date,

@@ -58,7 +58,7 @@ export async function processNotification(data: NotificationData) {
   // versions/drafts configured. @ts-expect-error is the minimal workaround.
   await payload.create({
     collection: "notifications",
-    // @ts-expect-error — draft overload false match, see comment above
+    // @ts-expect-error: draft overload false match, see comment above
     data: createData,
   });
 
@@ -67,7 +67,7 @@ export async function processNotification(data: NotificationData) {
 
 /**
  * Schedule a push notification for later delivery.
- * Full implementation deferred — use the Notifications admin UI for now.
+ * Full implementation deferred. Use the Notifications admin UI for now.
  */
 export async function scheduleNotification(data: ScheduledNotificationData) {
   console.log("Scheduling notification:", data);

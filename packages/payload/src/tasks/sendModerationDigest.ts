@@ -11,8 +11,8 @@ import { nextDigestTime } from "../lib/nextDigestTime";
  * Daily digest email for content reports. Runs via cron (configured in
  * configurePayload.ts → jobs.autoRun).
  *
- * Covers *every* unresolved report regardless of age — a 24h window meant
- * anything not actioned on its arrival day silently disappeared — plus a
+ * Covers *every* unresolved report regardless of age: a 24h window meant
+ * anything not actioned on its arrival day silently disappeared, plus a
  * rolling 24h count of content-filter rejections, which are informational
  * rather than actionable. Recipients are resolved by role and per-admin
  * preference; see lib/moderationRecipients.
@@ -218,7 +218,7 @@ export const sendModerationDigestTask = {
           ? `<ul>${repeatOffenders
               .map(
                 ([userId, count]) =>
-                  `<li><a href="${serverUrl}/admin/collections/users/${userId}" style="color: #1a73e8;">User ${userId}</a> — <strong>${count}</strong> blocked attempts</li>`
+                  `<li><a href="${serverUrl}/admin/collections/users/${userId}" style="color: #1a73e8;">User ${userId}</a>: <strong>${count}</strong> blocked attempts</li>`
               )
               .join("")}</ul>`
           : "";
@@ -235,7 +235,7 @@ export const sendModerationDigestTask = {
         contentFlags
           .map(
             (f) =>
-              `<li><strong>${f.reason}</strong>${f.ageDays >= 1 ? ` <span style="color: #b3261e;">(pending ${f.ageDays} day${f.ageDays > 1 ? "s" : ""})</span>` : ""} — <a href="${serverUrl}/admin/collections/${f.relationTo}/${f.value}" style="color: #1a73e8;">View ${f.relationTo === "news" ? "News" : "Comment"}</a></li>`
+              `<li><strong>${f.reason}</strong>${f.ageDays >= 1 ? ` <span style="color: #b3261e;">(pending ${f.ageDays} day${f.ageDays > 1 ? "s" : ""})</span>` : ""}: <a href="${serverUrl}/admin/collections/${f.relationTo}/${f.value}" style="color: #1a73e8;">View ${f.relationTo === "news" ? "News" : "Comment"}</a></li>`
           )
           .join("") +
         "</ul>";
@@ -284,7 +284,7 @@ export const sendModerationDigestTask = {
       await resend.emails.send({
         from: DEFAULT_FROM_EMAIL,
         to: adminEmails,
-        subject: `Moderation Digest — ${reports.length} unresolved report${reports.length === 1 ? "" : "s"}${newInWindow > 0 ? ` (${newInWindow} new)` : ""}`,
+        subject: `Moderation Digest: ${reports.length} unresolved report${reports.length === 1 ? "" : "s"}${newInWindow > 0 ? ` (${newInWindow} new)` : ""}`,
         html,
       });
 

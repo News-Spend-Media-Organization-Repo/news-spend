@@ -4,7 +4,7 @@ import type { BasePayload } from "payload";
  * Tell everyone who entered that the draw has been made.
  *
  * Sent to every valid ticket holder, not only the winners, because that is the
- * audience the reveal itself has — `giveaway.lastResult` answers for people who
+ * audience the reveal itself has: `giveaway.lastResult` answers for people who
  * did not win too, and a draw that only speaks to winners reads to everyone
  * else as though their entry was never counted.
  *
@@ -18,7 +18,7 @@ import type { BasePayload } from "payload";
  * or when the next giveaway starts, so somebody who never opens the app can
  * lose a prize they really won. This is the nudge that stops that being silent.
  *
- * NEVER THROWS. It runs after a draw has already awarded its prizes, and §21's
+ * NEVER THROWS. It runs after a draw has already awarded its prizes, and 21's
  * reasoning about the Winner Report applies just as much here: an unreachable
  * notification service must not turn a correct draw into a failed one.
  */
@@ -69,7 +69,7 @@ export async function notifyDrawCompleted(
          * Both of these are load-bearing, and neither is obvious.
          *
          * `targetType` defaults to "all", and `specificUsers` is only consulted
-         * when it is "specific" — so without this the notification goes to
+         * when it is "specific": so without this the notification goes to
          * every user on the platform rather than the people who entered.
          *
          * `_status` matters because the collection has drafts enabled and the

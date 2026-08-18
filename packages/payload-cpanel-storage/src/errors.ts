@@ -74,7 +74,7 @@ export function isRetryableError(error: unknown): boolean {
 	if (error instanceof Error) {
 		const message = error.message.toLowerCase();
 
-		// Authentication failures are never transient — retrying with the same
+		// Authentication failures are never transient. Retrying with the same
 		// credentials will only produce more failed logins, which risks tripping
 		// the server's brute-force protection (e.g. cPHulk).
 		if (

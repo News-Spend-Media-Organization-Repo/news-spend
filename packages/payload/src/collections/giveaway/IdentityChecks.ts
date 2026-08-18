@@ -4,7 +4,7 @@ import { DIDIT_STATUSES } from "../../lib/giveaway/didit";
 import { ADMIN_GROUP_RECORDS } from "./constants";
 
 /**
- * Identity verification decisions from Didit (spec §16).
+ * Identity verification decisions from Didit (spec 16).
  *
  * Deliberately holds no documents. The provider keeps the passport photo and
  * the selfie; this side keeps a session id and a decision, which is everything

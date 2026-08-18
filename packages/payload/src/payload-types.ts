@@ -550,11 +550,11 @@ export interface User {
   wish: string;
   phone: string;
   /**
-   * Required to take part in giveaways — prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.
+   * Required to take part in giveaways, as prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.
    */
   dateOfBirth?: string | null;
   /**
-   * ISO country code the user selected. A display signal only — it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.
+   * ISO country code the user selected. A display signal only; it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.
    */
   country?: string | null;
   /**
@@ -629,7 +629,7 @@ export interface Giveaway {
    */
   ticketPrice: number;
   /**
-   * The smallest number of tickets a user may buy at once (spec §1). This is a purchase floor, not a tier requirement.
+   * The smallest number of tickets a user may buy at once (spec 1). This is a purchase floor, not a tier requirement.
    */
   minTicketsRequired: number;
   /**
@@ -673,11 +673,11 @@ export interface Giveaway {
    */
   drawSeed?: string | null;
   /**
-   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (§19).
+   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (19).
    */
   drawExecutionId?: string | null;
   /**
-   * The last material step the draw completed. A resumption continues from the next one (§19).
+   * The last material step the draw completed. A resumption continues from the next one (19).
    */
   lastCheckpoint?:
     | (
@@ -740,12 +740,12 @@ export interface GiveawayDrawAttempt {
    */
   resumes?: (string | null) | GiveawayDrawAttempt;
   /**
-   * The draw seed. A resumption reuses the original — a fresh seed would change the winners of the tiers that had not yet run.
+   * The draw seed. A resumption reuses the original, because a fresh seed would change the winners of the tiers that had not yet run.
    */
   seed: string;
   outcome: 'running' | 'completed' | 'interrupted' | 'failed';
   /**
-   * The last material step this attempt completed (§19).
+   * The last material step this attempt completed (19).
    */
   lastCheckpoint?:
     | (
@@ -901,7 +901,7 @@ export interface Comment {
   id: string;
   text: string;
   /**
-   * Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed — the threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.
+   * Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed. The threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.
    */
   moderationStatus?: ('visible' | 'hidden' | 'removed') | null;
   user: string | User;
@@ -954,7 +954,7 @@ export interface ContentReport {
     | 'other';
   additionalDetails?: string | null;
   /**
-   * The reported content. Optional — not set for user-level actions (e.g. blocking).
+   * The reported content. Optional: not set for user-level actions (e.g. blocking).
    */
   reportedItem?:
     | ({
@@ -1018,7 +1018,7 @@ export interface GiveawayAccountFlag {
    */
   trustStatus: 'ok' | 'suspicious' | 'disqualified';
   /**
-   * Identifier shared by accounts judged to belong to the same person. Every account in a group is excluded from the pool (§22.6).
+   * Identifier shared by accounts judged to belong to the same person. Every account in a group is excluded from the pool (22.6).
    */
   duplicateAccountGroup?: string | null;
   /**
@@ -1087,7 +1087,7 @@ export interface GiveawayAuditLog {
   tier?: string | null;
   message: string;
   /**
-   * Structured event payload — counts, IDs, seeds, errors.
+   * Structured event payload: counts, IDs, seeds, errors.
    */
   detail?:
     | {
@@ -1111,7 +1111,7 @@ export interface GiveawayAuditLog {
   createdAt: string;
 }
 /**
- * Boost Your Luck and Featured Offer completions. Contributes to Tier 1 and Tier 2 eligibility only — never creates additional draw entries.
+ * Boost Your Luck and Featured Offer completions. Contributes to Tier 1 and Tier 2 eligibility only; never creates additional draw entries.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-engagements".
@@ -1132,7 +1132,7 @@ export interface GiveawayEngagement {
    */
   content?: (string | null) | PartnerContent;
   /**
-   * Set once a CPA partner confirms the action. Not required for eligibility today — no partner platform is integrated yet.
+   * Set once a CPA partner confirms the action. Not required for eligibility today: no partner platform is integrated yet.
    */
   conversion?: (string | null) | PartnerConversion;
   /**
@@ -1172,7 +1172,7 @@ export interface GiveawayEngagement {
 export interface PartnerContent {
   id: string;
   /**
-   * Main heading — 30 characters recommended
+   * Main heading, 30 characters recommended
    */
   title: string;
   /**
@@ -1207,7 +1207,7 @@ export interface PartnerContent {
    */
   media?: (string | null) | Media;
   /**
-   * Promotion images and video — one video and at least three images
+   * Promotion images and video, one video and at least three images
    */
   items?:
     | {
@@ -1398,7 +1398,7 @@ export interface PartnerConversion {
   createdAt: string;
 }
 /**
- * Provider payouts for airtime and data prizes. Append-only — the record of what was actually sent.
+ * Provider payouts for airtime and data prizes. Append-only: the record of what was actually sent.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-fulfilment-attempts".
@@ -1490,7 +1490,7 @@ export interface GiveawayWinner {
    */
   claimAddress?: string | null;
   /**
-   * On Hold is set automatically when the winner's account is flagged as suspicious (§22.7, §22.8) — the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.
+   * On Hold is set automatically when the winner's account is flagged as suspicious (22.7, 22.8): the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.
    */
   fulfilmentStatus: 'pending' | 'awaiting_verification' | 'on_hold' | 'in_progress' | 'fulfilled' | 'cancelled';
   /**
@@ -1499,12 +1499,12 @@ export interface GiveawayWinner {
   reviewNote?: string | null;
   fulfilledAt?: string | null;
   /**
-   * Set when this record replaces a disqualified winner (§12). The original is kept rather than deleted, so the audit trail stays intact.
+   * Set when this record replaces a disqualified winner (12). The original is kept rather than deleted, so the audit trail stays intact.
    */
   replaces?: (string | null) | GiveawayWinner;
   disqualifiedAt?: string | null;
   /**
-   * Why this winner was disqualified — recorded before any replacement is drawn.
+   * Why this winner was disqualified, recorded before any replacement is drawn.
    */
   disqualificationReason?: string | null;
   createdBy?: {
@@ -1548,7 +1548,7 @@ export interface PrizeCatalogue {
    */
   valueNaira?: number | null;
   /**
-   * The winner can still claim immediately — this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
+   * The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
    */
   requiresVerification?: boolean | null;
   /**
@@ -1556,17 +1556,17 @@ export interface PrizeCatalogue {
    */
   reloadlyLocalAmount?: number | null;
   /**
-   * A data bundle is provisioned by one specific network for that network's own SIMs — an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.
+   * A data bundle is provisioned by one specific network for that network's own SIMs: an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.
    */
   reloadlyDataPlans?:
     | {
         network: 'mtn' | 'airtel' | 'glo' | 't2';
         /**
-         * This network's "…Data" operator, not its airtime one — look it up from Reloadly's operator list.
+         * This network's "…Data" operator, not its airtime one: look it up from Reloadly's operator list.
          */
         reloadlyOperatorId: number;
         /**
-         * The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount — check the operator's own plan list rather than assuming Value (₦) applies.
+         * The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount: check the operator's own plan list rather than assuming Value (₦) applies.
          */
         reloadlyLocalAmount: number;
         id?: string | null;
@@ -1781,7 +1781,7 @@ export interface GiveawayStreak {
   createdAt: string;
 }
 /**
- * Identity decisions from the verification provider. No documents are stored here — the provider holds those.
+ * Identity decisions from the verification provider. No documents are stored here: the provider holds those.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "identity-checks".
@@ -1807,7 +1807,7 @@ export interface IdentityCheck {
   decidedAt?: string | null;
   lastWebhookAt?: string | null;
   /**
-   * Anything a person needs to know — a declined reason, or why a decision was overridden.
+   * Anything a person needs to know: a declined reason, or why a decision was overridden.
    */
   note?: string | null;
   createdBy?: {
@@ -1962,7 +1962,7 @@ export interface NewsAnalytic {
   createdAt: string;
 }
 /**
- * Per-device delivery receipts for push notification campaigns. Operational use only — used for Expo receipt polling and dead token cleanup.
+ * Per-device delivery receipts for push notification campaigns. Operational use only, used for Expo receipt polling and dead token cleanup.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-deliveries".
@@ -1995,7 +1995,7 @@ export interface NotificationDelivery {
    */
   errorMessage?: string | null;
   /**
-   * Expo delivery ticket ID — used for receipt polling
+   * Expo delivery ticket ID, used for receipt polling
    */
   expoTicketId?: string | null;
   /**
@@ -2171,7 +2171,7 @@ export interface NotificationInbox {
    */
   notification: string | Notification;
   /**
-   * Denormalized from campaign — avoids joins on inbox fetch
+   * Denormalized from campaign. Avoids joins on inbox fetch.
    */
   title: string;
   /**
@@ -2183,7 +2183,7 @@ export interface NotificationInbox {
    */
   imageUrl?: string | null;
   /**
-   * Deeplink payload — e.g. { screen, id, url }
+   * Deeplink payload (e.g. { screen, id, url })
    */
   data?:
     | {
@@ -2449,7 +2449,7 @@ export interface AuditLog {
         value: string | User;
       } | null);
   /**
-   * Changed fields only — { field: { from, to } }. Present on updates when originalDoc is available.
+   * Changed fields only: { field: { from, to } }. Present on updates when originalDoc is available.
    */
   diff?:
     | {
@@ -3976,7 +3976,7 @@ export interface ModerationSetting {
    */
   alertRoles?: ('super-admin' | 'content-manager' | 'editor' | 'viewer')[] | null;
   /**
-   * Extra addresses that are not admin accounts — shared inboxes, on-call rotations, outsourced moderators. Merged with anything in the MODERATION_ALERT_EMAILS env var.
+   * Extra addresses that are not admin accounts, such as shared inboxes, on-call rotations, or outsourced moderators. Merged with anything in the MODERATION_ALERT_EMAILS env var.
    */
   additionalRecipients?:
     | {

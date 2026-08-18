@@ -93,7 +93,7 @@ export default memo(function LotteryReward() {
       onSuccess: applyClaimSuccessSideEffects,
       onError: (error) => {
         // CONFLICT means the backend's atomic claim check found this
-        // reward already marked claimed — most likely this exact request
+        // reward already marked claimed, most likely this exact request
         // already succeeded once (e.g. a retry after a lost response) and
         // this is a duplicate, not a genuine failure. Treat it the same
         // as a success instead of surfacing an error toast.
@@ -135,7 +135,7 @@ export default memo(function LotteryReward() {
   // Keyed on data?.id (not `data`) so marking the reward `claimed` in the
   // cache after a claim doesn't produce a new object reference and
   // re-trigger this effect, which would reopen the dialog.
-  // `user` is intentionally omitted from deps — including it would re-open
+  // `user` is intentionally omitted from deps. Including it would re-open
   // the dialog every time the auth session reference changes (e.g. after
   // useUser() re-fetches on Profile visit), even for the same reward.
   // biome-ignore lint/correctness/useExhaustiveDependencies: see above
@@ -161,7 +161,7 @@ export default memo(function LotteryReward() {
   // `handleClaim` is read through a ref instead of a dependency: it's
   // re-created whenever `isClaimPending` changes, and `isClosed`/
   // `isEarnedReward` from the ad SDK stay `true` once set (they don't
-  // reset on their own) — depending on `handleClaim` directly would
+  // reset on their own), so depending on `handleClaim` directly would
   // re-fire this effect on every claim-pending toggle, re-claiming in
   // an infinite loop.
   const handleClaimRef = useRef(handleClaim);

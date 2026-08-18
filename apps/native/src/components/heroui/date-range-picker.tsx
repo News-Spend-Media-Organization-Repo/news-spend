@@ -53,14 +53,14 @@ function CalendarShell({
           <View className="flex-1 rounded-lg bg-surface px-3 py-2">
             <Text className="text-center text-secondary text-xs">From</Text>
             <Text className="text-center font-medium text-sm">
-              {rangeStart ? format(rangeStart, "dd MMM yyyy") : "—"}
+              {rangeStart ? format(rangeStart, "dd MMM yyyy") : "–"}
             </Text>
           </View>
           <Text className="text-secondary">→</Text>
           <View className="flex-1 rounded-lg bg-surface px-3 py-2">
             <Text className="text-center text-secondary text-xs">To</Text>
             <Text className="text-center font-medium text-sm">
-              {rangeEnd ? format(rangeEnd, "dd MMM yyyy") : "—"}
+              {rangeEnd ? format(rangeEnd, "dd MMM yyyy") : "–"}
             </Text>
           </View>
         </View>

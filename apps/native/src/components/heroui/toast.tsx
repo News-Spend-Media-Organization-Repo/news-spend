@@ -69,7 +69,7 @@ const ICONS: Record<ToastVariant, Icon> = {
  *
  * HeroUI derives every toast label by mixing the variant colour toward
  * `--black`, which stays pure black in our dark theme. On our dark surface
- * (#18181B) that lands `danger` at 2.44:1 — the base `danger` token only gets
+ * (#18181B) that lands `danger` at 2.44:1, but the base `danger` token only gets
  * to 3.97:1, so neither clears 4.5:1 and this one is lifted by hand. The other
  * three variants pass once they use their base token, which is what
  * `useToastColors` does below.
@@ -174,7 +174,7 @@ function AppToast({ variant, label, options, ...toastProps }: AppToastProps) {
           {action.label}
         </HeroUIToast.Action>
       ) : null}
-      {/* Dismisses itself — Toast.Close reads `hide` and `id` off the root context. */}
+      {/* Dismisses itself. Toast.Close reads `hide` and `id` off the root context. */}
       {options?.closable ? <HeroUIToast.Close /> : null}
     </HeroUIToast>
   );
@@ -209,7 +209,7 @@ function show(
 
   withManager((m) => {
     // HeroUI's `show()` treats a caller-supplied id that's still active as a
-    // no-op — it won't swap in the new content. Callers that reuse an id
+    // no-op: it won't swap in the new content. Callers that reuse an id
     // (e.g. morphing an offline error toast into a "back online" success
     // toast) expect the old one replaced, so clear it first; harmless if
     // nothing with that id exists.
@@ -243,10 +243,10 @@ function show(
 /**
  * App-wide toast API.
  *
- * Importable from anywhere — including non-React modules like the api error
- * helper and the auth store — which is why it is a singleton over a hook.
+ * Importable from anywhere, including non-React modules like the api error
+ * helper and the auth store, which is why it is a singleton over a hook.
  *
- * Callable directly (`toast("Saved")`), matching sonner's shape — several
+ * Callable directly (`toast("Saved")`), matching sonner's shape. Several
  * call sites carried over from the sonner migration rely on that form as an
  * alias for `toast.show`.
  */
@@ -273,7 +273,7 @@ export const toast = Object.assign(
     /**
      * Escape hatch: hand HeroUI a component and own the whole toast.
      *
-     * Use when the variants above can't express it — a progress bar, an
+     * Use when the variants above can't express it, like a progress bar, an
      * avatar, a two-button row. Everything in `heroui-native`'s Toast is
      * yours here: `Toast.Title`, `Toast.Description`, `Toast.Action`,
      * `Toast.Close`, plus `variant`, `placement`, `isSwipeable`, `animation`
@@ -286,7 +286,7 @@ export const toast = Object.assign(
     },
     /**
      * Dismiss toasts. No argument clears all of them, which is what sonner
-     * did — HeroUI's bare `hide()` would only drop the most recent one.
+     * did. HeroUI's bare `hide()` would only drop the most recent one.
      */
     dismiss: (id?: string | string[]) =>
       withManager((m) => m.hide(id ?? "all")),

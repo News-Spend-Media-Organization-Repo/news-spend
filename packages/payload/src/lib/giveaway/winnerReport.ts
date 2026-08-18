@@ -24,10 +24,10 @@ export type WinnerReportRow = {
   featuredOfferCount: number;
   claimStatus: string;
   fulfilmentStatus: string;
-  /** §22.7/§22.8 — fulfilment paused pending an administrator's review. */
+  /** 22.7/22.8: fulfilment paused pending an administrator's review. */
   heldForReview: boolean;
   reviewNote: string;
-  /** §12 — the winner this row replaces, if any. */
+  /** 12: the winner this row replaces, if any. */
   replacesWinnerId: string;
   disqualifiedAt: string;
   disqualificationReason: string;
@@ -46,8 +46,8 @@ export type WinnerReport = {
   executionId: string | null;
   totalValidParticipants: number;
   /**
-   * Winners currently holding a prize. Disqualified rows are excluded — a
-   * disqualified winner is not a winner — but they still appear in the CSV,
+   * Winners currently holding a prize. Disqualified rows are excluded: a
+   * disqualified winner is not a winner, but they still appear in the CSV,
    * with their replacement, so the record of what happened stays complete.
    */
   totalWinners: number;
@@ -64,11 +64,11 @@ export type WinnerReport = {
 };
 
 /**
- * Assemble the Winner Report for a completed draw (spec §21).
+ * Assemble the Winner Report for a completed draw (spec 21).
  *
  * Everything is read back from the persisted records rather than passed
  * through from the draw, so a report generated now and one generated after a
- * resend say the same thing — and a report can be produced for a draw that
+ * resend say the same thing, and a report can be produced for a draw that
  * ran long before this code did.
  */
 export async function buildWinnerReport(
@@ -169,7 +169,7 @@ function toReportRow(winner: GiveawayWinner): WinnerReportRow {
 }
 
 /**
- * The anti-abuse and manual-review summary §21 asks for in the email body.
+ * The anti-abuse and manual-review summary 21 asks for in the email body.
  *
  * Exclusions are counted from the audit log rather than recomputed, so the
  * report describes what the draw actually did rather than what the same rules
@@ -213,12 +213,12 @@ function summariseAntiAbuse(
   };
 }
 
-/** `NewsSpend Winner Report – [Draw Title] – [Draw Date]` (spec §21). */
+/** `NewsSpend Winner Report – [Draw Title] – [Draw Date]` (spec 21). */
 export function winnerReportSubject(report: WinnerReport): string {
   return `NewsSpend Winner Report – ${report.title} – ${report.drawDateLabel}`;
 }
 
-/** `NewsSpend_Winner_Report_[Draw_Title]_[Draw_Date].csv` (spec §21). */
+/** `NewsSpend_Winner_Report_[Draw_Title]_[Draw_Date].csv` (spec 21). */
 export function winnerReportFileName(report: WinnerReport): string {
   return `NewsSpend_Winner_Report_${slug(report.title)}_${report.drawDateStamp}.csv`;
 }
@@ -284,7 +284,7 @@ function csvCell(value: string): string {
   return safe;
 }
 
-/** The email body §21 specifies: headline figures, then the review summary. */
+/** The email body 21 specifies: headline figures, then the review summary. */
 export function renderWinnerReportHtml(report: WinnerReport): string {
   const { antiAbuse } = report;
 
@@ -296,7 +296,7 @@ export function renderWinnerReportHtml(report: WinnerReport): string {
 
   return `<div style="font-family: system-ui, -apple-system, sans-serif; max-width: 640px; color: #1a1a2e;">
   <h2 style="margin: 0 0 4px;">NewsSpend Winner Report</h2>
-  <p style="margin: 0 0 20px; color: #666;">${escapeHtml(report.title)} — ${escapeHtml(report.drawDateLabel)}</p>
+  <p style="margin: 0 0 20px; color: #666;">${escapeHtml(report.title)}: ${escapeHtml(report.drawDateLabel)}</p>
 
   <table style="border-collapse: collapse; width: 100%; margin-bottom: 24px;">
     ${summaryRow("Draw ID", report.giveawayId)}
@@ -321,7 +321,7 @@ export function renderWinnerReportHtml(report: WinnerReport): string {
   </table>
 
   <p style="color: #444; margin: 0 0 8px;">The full winner list is attached as a CSV, including any disqualified winners and their replacements.</p>
-  <p style="color: #999; font-size: 12px; margin-top: 20px;">News Spend Media — generated automatically after the draw completed.</p>
+  <p style="color: #999; font-size: 12px; margin-top: 20px;">News Spend Media: generated automatically after the draw completed.</p>
 </div>`;
 }
 

@@ -11,7 +11,7 @@ let initPromise: Promise<void> | null = null;
 /**
  * Initializes the Google Mobile Ads SDK exactly once, and only after the App
  * Tracking Transparency prompt has been resolved (iOS). Any code that loads an
- * ad — preloads, app-open ads, feed ads, rewarded ads — should go through this
+ * ad: preloads, app-open ads, feed ads, rewarded ads, should go through this
  * gate so no tracking data is collected before the user has had a chance to
  * consent.
  *

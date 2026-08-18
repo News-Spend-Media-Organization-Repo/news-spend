@@ -153,7 +153,7 @@ describe("giveaway.prizeDetails", () => {
   });
 
   it("explains a payout being held", async () => {
-    // §22.7/§22.8 — the win stands, the payout waits. Saying so is the
+    // 22.7/22.8: the win stands, the payout waits. Saying so is the
     // difference between a delay and an apparent loss.
     const result: any = await detailsOf(
       createContext({

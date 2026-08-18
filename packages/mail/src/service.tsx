@@ -113,7 +113,7 @@ export async function sendWitnessReportEmail(
   </table>
   ${description ? `<p style="color: #444; margin: 8px 0;"><strong>Description:</strong><br/>${description}</p>` : ""}
   <p style="color: #666;">Review this in the <strong>Witness Reports</strong> section of the admin panel.</p>
-  <p style="color: #999; font-size: 12px; margin-top: 16px;">News Spend Media — iWitness</p>
+  <p style="color: #999; font-size: 12px; margin-top: 16px;">News Spend Media: iWitness</p>
 </div>`,
     });
     logger.info({ to, title, name }, "Witness report email sent successfully");
@@ -143,7 +143,7 @@ export async function sendContentReportEmail(
     await resend.emails.send({
       from: DEFAULT_FROM_EMAIL,
       to,
-      subject: "User blocked — moderation required",
+      subject: "User blocked: moderation required",
       html: `<div style="font-family: system-ui, sans-serif; max-width: 480px;">
   <h2 style="color: #1a1a2e;">A user has been blocked on News Spend Media</h2>
   <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
@@ -174,11 +174,11 @@ type WinnerReportEmailParams = {
 };
 
 /**
- * Email a giveaway Winner Report with its CSV attached (spec §21).
+ * Email a giveaway Winner Report with its CSV attached (spec 21).
  *
  * Unlike the other senders here, this one rethrows. The caller keeps a
  * delivery log and retries, so it has to be able to tell a send that worked
- * from one that did not — swallowing the error would record a success that
+ * from one that did not. Swallowing the error would record a success that
  * never happened.
  */
 export async function sendGiveawayWinnerReport(

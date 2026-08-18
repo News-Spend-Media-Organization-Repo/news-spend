@@ -20,7 +20,7 @@ describe("othersInDraw", () => {
 describe("sealedCardStake", () => {
   it("says nothing about others when there are none", () => {
     // "alongside 0 others" is worse than silence, and "alongside 1 others"
-    // — the bug this replaces — both miscounted and invented a rival.
+    // are both bugs this replaces: miscounting and inventing a rival.
     expect(sealedCardStake(1, 1)).toBe("You entered with 1 ticket.");
   });
 

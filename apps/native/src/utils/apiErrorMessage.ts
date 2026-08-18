@@ -2,7 +2,7 @@
  * Extracts a message safe to show the user from an oRPC error.
  *
  * Server messages are only surfaced for codes we raise deliberately with
- * user-facing copy — a content-filter rejection, a rate limit, a permission
+ * user-facing copy: a content-filter rejection, a rate limit, a permission
  * problem. Everything else falls back to the caller's generic wording, so an
  * internal error can never leak a stack detail or a database message into a
  * toast.

@@ -32,7 +32,7 @@ import {
  *
  * Steps 2/3 use payload.create, which fires the afterChange hook and backfills
  * comment counts. Step 1 is a raw INSERT into reactions_rels (no hook fires),
- * so we recalculate the affected counters in steps 4/5 with bulk SQL — bulk
+ * so we recalculate the affected counters in steps 4/5 with bulk SQL. Bulk
  * SQL is one statement per table, doesn't write _news_v version rows, and
  * doesn't fight with any concurrent process touching the news or comments
  * tables. (Per-row payload.update was tried first and deadlocked.)

@@ -28,7 +28,7 @@ function defaultPickerDate() {
  *
  * Giveaway prizes are age-restricted, so participation needs a birth date on
  * record. Asked here rather than at signup so it lands at the moment it is
- * actually needed — someone reading news has no reason to be asked their age,
+ * actually needed. Someone reading news has no reason to be asked their age,
  * and a required field at signup is a reason to abandon signup.
  *
  * Stated plainly as write-once in the copy, because it is: the endpoint

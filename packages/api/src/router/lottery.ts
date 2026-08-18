@@ -32,8 +32,8 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
  * during Zod 4 contract introspection, killing the server at startup. Plain
  * Zod 4 with `z.file()` does the same job.
  *
- * This whole flow goes when the lottery does — it is the ID-upload form the
- * provider-hosted verification replaces — but it must not crash the server in
+ * This whole flow goes when the lottery does (it is the ID-upload form the
+ * provider-hosted verification replaces), but it must not crash the server in
  * the meantime.
  */
 const verifyIdentityInput = z.object({
@@ -315,9 +315,9 @@ const identityStatus = protectedNoGuestProcedure.handler(
 /**
  * `processLottery` used to live here as an unauthenticated procedure: anyone
  * who could reach the API could trigger the draw. It was removed rather than
- * protected, because oRPC procedures authenticate app users, not CMS admins —
- * the strongest available guard would still have meant "any signed-in user can
- * run the draw".
+ * protected, because oRPC procedures authenticate app users, not CMS admins,
+ * and the strongest available guard would still have meant "any signed-in user
+ * can run the draw".
  *
  * Manual triggering is now POST /api/lottery/:id/run-draw, which is restricted
  * to Super Admins and backed by the "Run draw now" button on the lottery. The

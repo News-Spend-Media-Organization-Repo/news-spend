@@ -6,7 +6,7 @@ import { sql } from "@payloadcms/db-postgres";
  *
  * Purely additive: one nullable column on `users`, plus its index and foreign
  * key. Existing rows read as NULL, which the reveal treats as "has seen
- * nothing" — so the first draw after this ships is announced to everyone who
+ * nothing", so the first draw after this ships is announced to everyone who
  * entered it, which is the intended behaviour rather than a backfill gap.
  */
 export async function up({ db }: MigrateUpArgs): Promise<void> {

@@ -8,7 +8,7 @@ import { useState } from "react";
  * Runs the draw for the lottery currently open in the admin.
  *
  * The button only offers itself once the lottery has actually ended and has not
- * been drawn, but it is not the security boundary — the endpoint re-checks the
+ * been drawn, but it is not the security boundary. The endpoint re-checks the
  * role, the end date and the processed stamp, and the draw itself is idempotent.
  */
 export const RunLotteryDraw: UIFieldClientComponent = () => {

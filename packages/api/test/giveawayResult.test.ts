@@ -225,8 +225,8 @@ describe("giveaway.acknowledgeResult", () => {
   });
 
   it("refuses to move the pointer to a superseded result", async () => {
-    // A client holding week 33's reveal must not be able to mark week 34 seen
-    // — that would silently swallow a result nobody had been shown.
+    // A client holding week 33's reveal must not be able to mark week 34 seen,
+    // as that would silently swallow a result nobody had been shown.
     const { ctx, updates } = createContext({
       giveaways: [
         completedGiveaway(),

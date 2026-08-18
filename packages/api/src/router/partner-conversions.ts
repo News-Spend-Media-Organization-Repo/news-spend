@@ -71,8 +71,8 @@ export const trackClick = protectedNoGuestProcedure
     /**
      * Settle the conversion here, for a partner who cannot post back yet.
      *
-     * §8 counts completions rather than intentions, and a tap is only an
-     * intention — that is why a Featured Offer normally waits for the
+     * 8 counts completions rather than intentions, and a tap is only an
+     * intention. That is why a Featured Offer normally waits for the
      * partner's confirmation. But a partner with no working postback will
      * never send one, so every offer of theirs is uncompletable, and Tier 1
      * and Tier 2 are then unreachable for everybody: both require a Featured
@@ -81,7 +81,7 @@ export const trackClick = protectedNoGuestProcedure
      * So this is a deliberate, temporary and NARROW relaxation: per partner,
      * off by default, and described in the CMS in terms of what it costs. Not
      * a global switch, because a global switch is the one nobody remembers to
-     * turn off — this stops applying the moment that partner's record is
+     * turn off. This stops applying the moment that partner's record is
      * corrected.
      *
      * Never throws. The person has tapped a link and is waiting on a
@@ -92,16 +92,16 @@ export const trackClick = protectedNoGuestProcedure
         /**
          * Once per person per offer, ever.
          *
-         * `trackClick` deliberately records every tap — that is what click
-         * tracking is — so nothing stops the same offer being opened fifty
+         * `trackClick` deliberately records every tap (that is what click
+         * tracking is), so nothing stops the same offer being opened fifty
          * times. Under a real postback that is harmless, because the partner
          * confirms one genuine action; with award-on-click there is no such
          * bound, and each tap would credit the points again.
          *
          * Points buy giveaway tickets, so an uncapped version of this is not
          * a points leak but an unlimited supply of draw entries. The Featured
-         * Offer itself was already safe — `recordFeaturedOffer` refuses a
-         * repeat — which is exactly why this gap would have been easy to miss:
+         * Offer itself was already safe (`recordFeaturedOffer` refuses a
+         * repeat), which is exactly why this gap would have been easy to miss:
          * eligibility looked correct while the points quietly multiplied.
          */
         const settled = await payload.count({
@@ -148,7 +148,7 @@ const webhookInput = z.object({
 /**
  * Turn a click into a completed, paid-for conversion.
  *
- * One implementation for both ways a conversion can settle — a verified
+ * One implementation for both ways a conversion can settle: a verified
  * partner postback, and the award-on-click relaxation for a partner who
  * cannot post back yet. They award the same points and record the same
  * Featured Offer because they mean the same thing; two copies would be two
@@ -209,7 +209,7 @@ async function settleConversion(
   }
 
   /**
-   * A settled conversion on an app-wall item is a Featured Offer (§8).
+   * A settled conversion on an app-wall item is a Featured Offer (8).
    *
    * Deliberately last and deliberately incapable of throwing: the points are
    * already credited, so a giveaway that is closed, or an offer already
@@ -291,7 +291,7 @@ export const handleWebhook = publicProcedure
         { clickId: input.clickId, reason: verdict.reason },
         "[partner] rejected an unverified conversion postback"
       );
-      // Deliberately not saying which check failed — that is a tuning guide
+      // Deliberately not saying which check failed; that is a tuning guide
       // for anyone probing it. The partner's own logs have the detail.
       throw errors.UNAUTHORIZED({
         message: "This conversion could not be verified.",

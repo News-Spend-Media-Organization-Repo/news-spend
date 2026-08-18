@@ -12,7 +12,7 @@ import { retryFailedWinnerReports } from "../lib/giveaway/sendWinnerReport";
  * that is not `active`, and a draw moves the giveaway out of `active` as its
  * first act, so a second caller arriving mid-draw finds nothing to do.
  *
- * A giveaway that stopped part-way is deliberately left alone. §19 requires an
+ * A giveaway that stopped part-way is deliberately left alone. Section 19 requires an
  * administrator to authorize a resumption, and a job that resumed draws by
  * itself would be exactly the "ordinary user restarting the draw" the
  * specification forbids.
@@ -50,12 +50,12 @@ async function drawEndedGiveaways(payload: BasePayload): Promise<number> {
        * One giveaway failing must not stop the others, and must not fail the
        * task. The engine has already recorded the interruption and preserved
        * everything it awarded; failing here would burn the task's retries
-       * re-attempting a draw that needs an administrator, and §19 says only an
+       * re-attempting a draw that needs an administrator, and section 19 says only an
        * administrator may authorize that.
        */
       logger.error(
         { err: error, giveawayId: giveaway.id },
-        "[giveaway] draw stopped — an administrator must review it"
+        "[giveaway] draw stopped: an administrator must review it"
       );
     }
   }
@@ -67,12 +67,12 @@ async function drawEndedGiveaways(payload: BasePayload): Promise<number> {
  * Payload job task: processGiveaway
  *
  * 1. Draws any active giveaway that has passed its end date.
- * 2. Pays out claimed airtime and data prizes through Reloadly (spec §15).
- * 3. Expires prizes whose claim window has closed (spec §21).
- * 4. Retries Winner Report emails that previously failed (spec §21).
+ * 2. Pays out claimed airtime and data prizes through Reloadly (spec 15).
+ * 3. Expires prizes whose claim window has closed (spec 21).
+ * 4. Retries Winner Report emails that previously failed (spec 21).
  *
  * Queued hourly, so a run missed because the database was unreachable is
- * retried an hour later rather than never — the failure mode that left a
+ * retried an hour later rather than never, the failure mode that left a
  * lottery round undrawn with paid-for tickets. All four steps are repeat-safe.
  *
  * Unlike the lottery task, this does NOT create the next giveaway. A giveaway

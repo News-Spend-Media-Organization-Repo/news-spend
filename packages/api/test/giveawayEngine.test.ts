@@ -23,7 +23,7 @@ type FakeData = {
   offers?: Row[];
   prizes?: Row[];
   streaks?: Row[];
-  /** Previously completed giveaways, for the §22 fairness history. */
+  /** Previously completed giveaways, for the 22 fairness history. */
   priorGiveaways?: Row[];
   /** Winner rows from those prior giveaways. */
   priorWinners?: Row[];
@@ -100,7 +100,7 @@ function createFakePayload(data: FakeData = {}) {
       };
       created[collection] = [...(created[collection] ?? []), row];
       // Newly written rows are visible to later reads, as they would be in a
-      // real database — the engine counts its own draw attempts, for one.
+      // real database: the engine counts its own draw attempts, for one.
       // `created` keeps the same object references, so updates show in both.
       collections[collection] = [...(collections[collection] ?? []), row];
       return row;
@@ -205,8 +205,8 @@ function participants(
 
 /**
  * A Winner Report sender that always succeeds. Passed to the engine so a draw
- * in a test never reaches for a mail provider, and so §19's thirteenth
- * checkpoint — which only closes when the report actually goes out — is
+ * in a test never reaches for a mail provider, and so 19's thirteenth
+ * checkpoint, which only closes when the report actually goes out, is
  * reachable here.
  */
 function stubReportSender() {
@@ -240,7 +240,7 @@ function prizeRow(
   };
 }
 
-describe("maxTierWinners (spec §3)", () => {
+describe("maxTierWinners (spec 3)", () => {
   it("rounds down", () => {
     expect(maxTierWinners(10_000, 0.1)).toBe(10);
     expect(maxTierWinners(10_000, 0.5)).toBe(50);
@@ -254,7 +254,7 @@ describe("maxTierWinners (spec §3)", () => {
   });
 });
 
-describe("evaluateEligibility (spec §11)", () => {
+describe("evaluateEligibility (spec 11)", () => {
   const base: Participation = {
     userId: "u",
     validTickets: 0,
@@ -344,7 +344,7 @@ describe("evaluateEligibility (spec §11)", () => {
   });
 });
 
-describe("streak persistence (spec §11)", () => {
+describe("streak persistence (spec 11)", () => {
   /** Runs a draw in which `participantIds` hold one valid ticket each. */
   async function drawWith(streaks: Row[], participantIds: string[]) {
     const { payload, created } = createFakePayload({
@@ -450,7 +450,7 @@ describe("streak persistence (spec §11)", () => {
     await drawWith(rows, ["someoneElse"]);
 
     expect(rows[0]?.consecutiveCount).toBe(0);
-    // Not rewritten — avoids churning every dormant row on every draw.
+    // Not rewritten: avoids churning every dormant row on every draw.
     expect(rows[0]?.lastEvaluatedGiveaway).toBe("g0");
   });
 
@@ -643,7 +643,7 @@ describe("GiveawayEngine.runDraw", () => {
     }
   });
 
-  it("enforces one prize per user across all tiers (spec §13)", async () => {
+  it("enforces one prize per user across all tiers (spec 13)", async () => {
     // Every user qualifies for all three tiers simultaneously.
     const { ticketRows, boostRows, offerRows } = participants(200, {
       tickets: 10,
@@ -1097,7 +1097,7 @@ describe("GiveawayEngine.runDraw", () => {
   });
 });
 
-describe("fairness and anti-abuse in a real draw (spec §22)", () => {
+describe("fairness and anti-abuse in a real draw (spec 22)", () => {
   /** A completed giveaway that ended `daysAgo` days back. */
   const priorGiveaway = (id: string, daysAgo: number) => ({
     id,
@@ -1145,7 +1145,7 @@ describe("fairness and anti-abuse in a real draw (spec §22)", () => {
     const pool = (tier: string) =>
       result.tiers.find((t) => t.tier === tier)?.candidatePoolSize;
 
-    // 19 of 20 for the high tiers — u0 is serving §22.1 and §22.2.
+    // 19 of 20 for the high tiers: u0 is serving 22.1 and 22.2.
     expect(pool("tier1")).toBe(19);
     expect(pool("tier2")).toBe(19);
 
@@ -1191,7 +1191,7 @@ describe("fairness and anti-abuse in a real draw (spec §22)", () => {
 
   it("waives the Featured Offer for a user who has gone four draws without a prize", async () => {
     // "loyal" meets Tier 1's ticket and boost bars but has NO featured offer,
-    // so only the §22.4 waiver can put them in the pool.
+    // so only the 22.4 waiver can put them in the pool.
     const tickets = [
       {
         id: "t0",
@@ -1345,7 +1345,7 @@ describe("fairness and anti-abuse in a real draw (spec §22)", () => {
 
     const result = await makeEngine(payload).runDraw("g1");
 
-    // Suspicion must never alter the selection (§22.8) — u0 still competes.
+    // Suspicion must never alter the selection (22.8): u0 still competes.
     expect(result.totalValidParticipants).toBe(3);
 
     const rows = created["giveaway-winners"] ?? [];
@@ -1358,11 +1358,11 @@ describe("fairness and anti-abuse in a real draw (spec §22)", () => {
   });
 });
 
-describe("pool lock and replacement winners (spec §12)", () => {
+describe("pool lock and replacement winners (spec 12)", () => {
   /**
    * Runs a real Tier 3 draw over `count` participants producing exactly
    * `maxUnits` winners. Tier 3 is set to 100% so the prize stock is what caps
-   * the winner count — deriving a percentage instead runs into floating point
+    * the winner count, deriving a percentage instead runs into floating point
    * (a 1-in-6 share evaluates to 0.9999…, which floors to zero winners).
    */
   async function drawnGiveaway(count: number, maxUnits: number) {
@@ -1403,7 +1403,7 @@ describe("pool lock and replacement winners (spec §12)", () => {
     expect(tier3?.candidateCount).toBe(6);
     expect(tier3?.entries).toHaveLength(6);
 
-    // Tier 1 and Tier 2 have empty pools — nobody met their thresholds.
+    // Tier 1 and Tier 2 have empty pools: nobody met their thresholds.
     expect(snapshots.find((s) => s.tier === "tier1")?.candidateCount).toBe(0);
   });
 
@@ -1502,7 +1502,7 @@ describe("pool lock and replacement winners (spec §12)", () => {
     });
 
     expect(outcome.replaced).toBe(false);
-    // The disqualification must still stand — the prize is withheld either way.
+    // The disqualification must still stand: the prize is withheld either way.
     expect(winners[0]?.claimStatus).toBe("disqualified");
     expect(winners[0]?.fulfilmentStatus).toBe("cancelled");
   });
@@ -1527,10 +1527,10 @@ describe("pool lock and replacement winners (spec §12)", () => {
   });
 });
 
-describe("resuming an interrupted draw (spec §19)", () => {
+describe("resuming an interrupted draw (spec 19)", () => {
   /**
    * A giveaway whose Tier 1 completed and awarded `tier1Winners`, then was
-   * interrupted before Tier 2 — the state a mid-draw crash leaves behind.
+    * interrupted before Tier 2: the state a mid-draw crash leaves behind.
    */
   function partiallyDrawn(tier1Winners: string[]) {
     const { ticketRows, boostRows, offerRows } = participants(100, {
@@ -1588,7 +1588,7 @@ describe("resuming an interrupted draw (spec §19)", () => {
   }
 
   /**
-   * The §19 workflow in full: an administrator reviews the interruption and
+   * The 19 workflow in full: an administrator reviews the interruption and
    * authorizes it, and only then may the draw continue.
    */
   async function authorizeAndResume(payload: any) {
@@ -1753,7 +1753,7 @@ describe("resuming an interrupted draw (spec §19)", () => {
       prizes: [{ ...prizeRow("p3", "tier3", 50), unitsAwarded: 2 }],
     });
 
-    // Tier 3 awarded two winners and then stopped — no completion marker, so
+    // Tier 3 awarded two winners and then stopped: no completion marker, so
     // it will be drawn again. Its allowance is 3, not another 5.
     fake.seed(
       "giveaway-winners",
@@ -1817,7 +1817,7 @@ describe("resuming an interrupted draw (spec §19)", () => {
   });
 });
 
-describe("GiveawayEngine.validateDraw (spec §19)", () => {
+describe("GiveawayEngine.validateDraw (spec 19)", () => {
   it("refuses to start when no prizes are configured", async () => {
     const { payload } = createFakePayload({
       tickets: participants(10).ticketRows,
@@ -1925,7 +1925,7 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
     });
 
     // Something outside the draw has overspent this prize's stock. Resuming
-    // would build on a result that is already wrong, so §19's "recovery cannot
+    // would build on a result that is already wrong, so 19's "recovery cannot
     // safely continue" applies and the draw is FAILED, not INTERRUPTED.
     const original = payload.update;
     payload.update = async (args: Row) => {
@@ -1956,7 +1956,7 @@ describe("GiveawayEngine.validateDraw (spec §19)", () => {
     const drawEngine = makeEngine(payload);
     const result = await drawEngine.runDraw("g1", { dryRun: true });
 
-    // Every winner is distinct — the check that guards this has nothing to
+    // Every winner is distinct: the check that guards this has nothing to
     // report on a sound draw, which is the point of asserting it here.
     const users = result.tiers.flatMap((t) => t.winners.map((w) => w.userKey));
     expect(new Set(users).size).toBe(users.length);
@@ -1985,7 +1985,7 @@ describe("budget reserve (administrator setting, not in the spec)", () => {
     const result = await makeEngine(payload).runDraw("g1");
 
     // Nothing is held back: the percentage cap is the only ceiling, exactly as
-    // §9 describes.
+    // 9 describes.
     expect(result.totalWinners).toBe(10);
   });
 
@@ -2055,13 +2055,13 @@ describe("budget reserve (administrator setting, not in the spec)", () => {
     await drawEngine.authorizeResumption("g1", { authorizedBy: "admin" });
     const result = await drawEngine.runDraw("g1", { resume: true });
 
-    // One unit of budget left, so exactly one more winner — not another four.
+    // One unit of budget left, so exactly one more winner: not another four.
     expect((fake.created["giveaway-winners"] ?? []).length).toBe(1);
     expect(result.totalWinners).toBe(4);
   });
 });
 
-describe("draw state machine (spec §19)", () => {
+describe("draw state machine (spec 19)", () => {
   function readyToDraw() {
     return createFakePayload({
       giveaway: {
@@ -2114,7 +2114,7 @@ describe("draw state machine (spec §19)", () => {
       .filter((e) => e.eventType === "checkpoint_reached")
       .map((e) => e.detail.checkpoint);
 
-    // §21 — a delivery failure never invalidates the draw, so the giveaway is
+    // 21: a delivery failure never invalidates the draw, so the giveaway is
     // still completed. But the checkpoint stays open rather than being papered
     // over, so an unsent report remains visible.
     expect(giveaway.status).toBe("completed");

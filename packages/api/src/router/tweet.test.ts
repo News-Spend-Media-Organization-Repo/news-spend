@@ -5,7 +5,7 @@ import { call } from "@orpc/server";
 import { expectError, mockContext } from "../test-utils";
 import { tweetRouter } from "./tweet";
 
-// Module mock for react-tweet/api — tweetRouter calls getTweet
+// Module mock for react-tweet/api: tweetRouter calls getTweet
 type MockTweet = { id: string; text: string };
 
 const getTweetMock = mock(

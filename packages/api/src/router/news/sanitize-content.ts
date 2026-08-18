@@ -2,7 +2,7 @@
  * Recursively walks Lexical content and removes ReadAlso blocks whose
  * referenced news article is no longer published or has been deleted.
  *
- * This runs after `payload.find` with depth population — the relationship
+ * This runs after `payload.find` with depth population, so the relationship
  * data is already resolved. We only check the in-memory value, no extra DB
  * queries.
  */

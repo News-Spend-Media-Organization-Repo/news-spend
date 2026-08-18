@@ -174,7 +174,7 @@ describe("recordDecision", () => {
     });
 
     // A hold is an administrator's decision. Passing an identity check says
-    // nothing about whatever made them hold it (§22.8).
+    // nothing about whatever made them hold it (22.8).
     expect(result.released).toBe(0);
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
   });
@@ -249,7 +249,7 @@ describe("recordDecision", () => {
 describe("recordDecision with an unknown user", () => {
   it("acknowledges rather than throwing, so the provider stops retrying", async () => {
     const { payload, collections } = createFakePayload();
-    // A uuid column rejects this outright — the lookup throws rather than
+    // A uuid column rejects this outright: the lookup throws rather than
     // returning nothing, which is what `userExists` has to survive.
     payload.count = async ({ collection }: Row) => {
       if (collection === "users") {

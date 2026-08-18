@@ -5,7 +5,7 @@ import { newsDeepLink } from "./widget-data-fetchers";
 
 const ACCENT = t.accentDigest;
 
-/** Android has no Divider primitive — a hairline Box stands in. */
+/** Android has no Divider primitive: a hairline Box stands in. */
 function Hairline() {
   return <A.Box style={{ height: 1, backgroundColor: t.hairline }} />;
 }

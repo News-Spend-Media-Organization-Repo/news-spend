@@ -9,7 +9,7 @@ const NotificationDeliveries: CollectionConfig = {
     group: "Push Notifications",
     defaultColumns: ["notification", "user", "status", "deliveredAt"],
     description:
-      "Per-device delivery receipts for push notification campaigns. Operational use only — used for Expo receipt polling and dead token cleanup.",
+      "Per-device delivery receipts for push notification campaigns. Operational use only, used for Expo receipt polling and dead token cleanup.",
   },
   access: {
     read: adminOnly,
@@ -86,7 +86,7 @@ const NotificationDeliveries: CollectionConfig = {
       name: "expoTicketId",
       type: "text",
       admin: {
-        description: "Expo delivery ticket ID — used for receipt polling",
+        description: "Expo delivery ticket ID, used for receipt polling",
       },
     },
     {

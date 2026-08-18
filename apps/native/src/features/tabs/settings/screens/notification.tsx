@@ -26,7 +26,7 @@ type NotificationConfig = {
   description: string;
 };
 
-// Scoped extension of the user type — ideally merged into the real User type
+// Scoped extension of the user type, ideally merged into the real User type
 // upstream so this cast can be removed.
 type UserWithNotifications = {
   notificationPreferences?: {
@@ -185,7 +185,7 @@ export default function Notifications() {
   );
 
   // Extract the types object so the reference is stable across renders when
-  // the data hasn't changed — keeps the useCallback memoisation effective.
+  // the data hasn't changed, which keeps the useCallback memoisation effective.
   const notifTypes = (user as UserWithNotifications | undefined)
     ?.notificationPreferences?.types;
 

@@ -56,7 +56,7 @@ export default function useUser() {
 
   useEffect(() => {
     if (query.isError && authState.status !== "stale") {
-      // Network error — if we have cached state, stay stale
+      // Network error: if we have cached state, stay stale
       // If we have nothing, sign out
       setAuthSession(null, "signOut");
     }

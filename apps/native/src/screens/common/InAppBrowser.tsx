@@ -50,7 +50,7 @@ import { Text } from "#/components/heroui/text";
 export type InAppBrowserParams = {
   url: string;
   title?: string;
-  /** Legacy discriminator — "game" swaps the leave-confirmation copy. */
+  /** Legacy discriminator: "game" swaps the leave-confirmation copy. */
   type?: string;
   /**
    * Hide the header chrome for fullscreen content (games). A floating close
@@ -183,7 +183,7 @@ export default function InAppBrowser({
       }
       if (HANDOFF_SCHEMES.some((scheme) => url.startsWith(scheme))) {
         Linking.openURL(url).catch(() => {
-          /* nothing installed to handle it — stay put */
+          /* nothing installed to handle it; stay put */
         });
         return false;
       }

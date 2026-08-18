@@ -211,7 +211,7 @@ const ReanimatedProgress = ({
 };
 
 // ---------------------------------------------------------------------------
-// TapArea — thin RNGH-native tap zone, safe inside GestureHandlerRootView
+// TapArea: thin RNGH-native tap zone, safe inside GestureHandlerRootView
 // ---------------------------------------------------------------------------
 
 type TapAreaProps = {
@@ -226,7 +226,7 @@ const TapArea = ({ gesture, style }: TapAreaProps) => (
 );
 
 // ---------------------------------------------------------------------------
-// Extracted hooks — keep main component complexity under the limit
+// Extracted hooks: keep main component complexity under the limit
 // ---------------------------------------------------------------------------
 
 type UsePlaybackSyncOptions = {
@@ -343,7 +343,7 @@ const useControlVisibility = ({ isPlaying }: UseControlVisibilityOptions) => {
       // Hide the center play icon when playing starts
       playIconOpacity.value = withTiming(0, { duration: 200 });
     } else {
-      // Paused — cancel any pending hide, restore controls and play icon
+      // Paused: cancel any pending hide, restore controls and play icon
       if (hideControlsTimeout.current) {
         clearTimeout(hideControlsTimeout.current);
         hideControlsTimeout.current = null;
@@ -355,7 +355,7 @@ const useControlVisibility = ({ isPlaying }: UseControlVisibilityOptions) => {
   }, [isPlaying, controlsOpacity, playIconOpacity, hideControls]);
 
   const showPlayIconAnimation = useCallback(() => {
-    // Brief flash — just pulse opacity up; isPlaying effect will hide it when needed
+    // Brief flash: just pulse opacity up; isPlaying effect will hide it when needed
     playIconOpacity.value = withTiming(1, { duration: 150 });
   }, [playIconOpacity]);
 
@@ -408,7 +408,7 @@ export const Video = ({
   const [isMuted, setIsMuted] = useState(muted);
   const [isSeeking, setIsSeeking] = useState(false);
   const [thumbnail, setThumbnail] = useState<VideoThumbnail | null>(null);
-  // Stays true forever once the user has played at least once — ref so it
+  // Stays true forever once the user has played at least once. Ref so it
   // never triggers a re-render on its own.
   const hasPlayedOnce = useRef(false);
 
@@ -658,7 +658,7 @@ export const Video = ({
         style={styles.video}
       />
 
-      {/* Poster thumbnail — shown until the user plays for the first time */}
+      {/* Poster thumbnail, shown until the user plays for the first time */}
       {Boolean(thumbnail && !hasPlayedOnce.current) && (
         <View pointerEvents="none" style={styles.thumbnailOverlay}>
           <ExpoImage
@@ -669,7 +669,7 @@ export const Video = ({
         </View>
       )}
 
-      {/* Tap gesture areas — left: seek back, center: play/pause, right: seek forward */}
+      {/* Tap gesture areas: left: seek back, center: play/pause, right: seek forward */}
       <View pointerEvents="box-none" style={styles.gestureOverlay}>
         <TapArea
           gesture={Gesture.Tap().onEnd(() => scheduleOnRN(handleLeftDoubleTap))}
@@ -687,7 +687,7 @@ export const Video = ({
         />
       </View>
 
-      {/* Centered play/pause icon — always mounted, opacity driven by isPlaying */}
+      {/* Centered play/pause icon: always mounted, opacity driven by isPlaying */}
       <Animated.View
         pointerEvents="none"
         style={[styles.centerPlayIcon, playIconAnimatedStyle]}

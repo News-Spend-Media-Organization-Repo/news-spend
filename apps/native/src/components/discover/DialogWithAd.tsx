@@ -108,8 +108,8 @@ export function DialogWithAd({
           });
         },
         onError: ({ message }) => {
-          // The API explains refusals in terms a winner can act on — an empty
-          // giveaway, too few points — so show it rather than a generic line.
+          // The API explains refusals in terms a winner can act on (an empty
+          // giveaway, too few points), so show it rather than a generic line.
           setServerError(message || "Sorry, something went wrong.");
         },
       }

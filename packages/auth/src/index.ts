@@ -71,7 +71,7 @@ export const auth = betterAuth({
       /**
        * Read-only to the client. Age gates giveaway participation, so this is
        * written once by `account.setDateOfBirth` and corrected only by an
-       * administrator — a birth date its holder can rewrite is not a check.
+       * administrator. A birth date its holder can rewrite is not a check.
        */
       dateOfBirth: {
         fieldName: "date_of_birth",

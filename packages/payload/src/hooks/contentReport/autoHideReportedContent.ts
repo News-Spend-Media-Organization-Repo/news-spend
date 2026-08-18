@@ -7,7 +7,7 @@ export { DEFAULT_AUTO_HIDE_THRESHOLD as AUTO_HIDE_REPORT_THRESHOLD } from "../..
 /**
  * Hides reported comments automatically so objectionable content stops being
  * served without waiting for a moderator. Required by App Store Review
- * guideline 1.2, which expects reported content to be acted on promptly —
+ * guideline 1.2, which expects reported content to be acted on promptly;
  * a human-in-the-loop-only flow cannot guarantee that.
  *
  * The threshold and the hide-on-first-report reasons come from the Moderation

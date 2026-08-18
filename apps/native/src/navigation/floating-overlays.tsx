@@ -10,7 +10,7 @@ type FloatingOverlaysProps = {
 };
 
 /**
- * Pure content — MusicPlayer + LiveBanner. Positioning, sizing, and the
+ * Pure content: MusicPlayer + LiveBanner. Positioning, sizing, and the
  * show/hide animation all live in the parent (TabBar), which renders this
  * as a sibling of the tab button row inside one shared animated wrapper, so
  * the two slide/fade together and the wrapper's single onLayout measures

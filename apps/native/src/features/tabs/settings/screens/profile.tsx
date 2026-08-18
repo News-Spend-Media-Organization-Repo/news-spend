@@ -198,7 +198,7 @@ function Profile() {
                   {/*
                    * Shown but not editable. Age decides whether someone may
                    * take part in a giveaway, so a birth date the holder can
-                   * rewrite is not a check — it is a prompt they answer again
+                   * rewrite is not a check; it is a prompt they answer again
                    * after being refused.
                    */}
                   <Text className="text-subtle-text text-xs">

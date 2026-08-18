@@ -9,7 +9,7 @@ import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 const Welcome = () => {
   const navigation = useNavigation("Welcome");
 
-  // Static screen — interactive as soon as it renders.
+  // Static screen: interactive as soon as it renders.
   useMarkInteractive(true);
 
   return (

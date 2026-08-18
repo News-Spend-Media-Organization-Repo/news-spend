@@ -2169,10 +2169,10 @@ function countEngagements(
  * Whether the giveaway is in a state that permits a draw to run (spec 19).
  *
  * A completed or cancelled draw is never repeatable. An interrupted or failed
- * one can only be continued as an authorized resumption — re-running it fresh
+ * one can only be continued as an authorized resumption: re-running it fresh
  * would re-process tiers that already awarded prizes, handing a second prize
- * to existing winners and breaking §13. That authorization is a separate,
- * recorded act (`authorizeResumption`), which is how §19's "prevent ordinary
+ * to existing winners and breaking 13. That authorization is a separate,
+ * recorded act (`authorizeResumption`), which is how 19's "prevent ordinary
  * users from restarting draw" is enforced: wanting to resume is not enough,
  * the giveaway has to have been moved to RESUMPTION_AUTHORIZED first.
  */

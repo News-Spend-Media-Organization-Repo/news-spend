@@ -9,7 +9,7 @@ import {
 } from "../test-utils";
 
 // ---------------------------------------------------------------------------
-// Mock content filter — must be set up before importing the router so that
+// Mock content filter. Must be set up before importing the router so that
 // comment.ts resolves screenText / CONTENT_FILTER_MESSAGE from this stub.
 // ---------------------------------------------------------------------------
 mock.module("../lib/content-filter", () => ({
@@ -563,7 +563,7 @@ describe("commentRouter.update", () => {
             id: "c1",
             user: "user-1",
             text: "Original",
-            createdAt: new Date().toISOString(), // just now — within 15 min
+            createdAt: new Date().toISOString(), // just now, within 15 min
           },
         ],
       },

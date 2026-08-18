@@ -16,7 +16,7 @@ const cases: { label: string; run: () => void }[] = [
   {
     // Sonner's `toast` was callable directly, as an alias for `toast.show`;
     // some migrated call sites still use that form.
-    label: "callable form — toast(label, options)",
+    label: "callable form: toast(label, options)",
     run: () => toast("Sign In Successful", { description: "Welcome back" }),
   },
   {
@@ -146,7 +146,7 @@ const cases: { label: string; run: () => void }[] = [
             <View className="flex-1">
               <Toast.Title>Fully custom</Toast.Title>
               <Toast.Description>
-                Raw heroui-native Toast — every part is yours.
+                Raw heroui-native Toast: every part is yours.
               </Toast.Description>
             </View>
             <Toast.Action onPress={() => props.hide()}>Undo</Toast.Action>

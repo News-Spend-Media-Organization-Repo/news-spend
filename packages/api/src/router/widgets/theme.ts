@@ -2,8 +2,8 @@
  * Widget palette.
  *
  * Widgets paint their own SURFACE rather than inheriting the system container.
- * `createWidgetUpdateHandler` only passes `widgetId`, `family` and `platform` —
- * there is no `colorScheme` — so a server-rendered widget cannot adapt to light
+ * `createWidgetUpdateHandler` only passes `widgetId`, `family` and `platform`.
+ * There is no `colorScheme`, so a server-rendered widget cannot adapt to light
  * or dark. Relying on the system background meant white text landed on a white
  * card in light mode and the whole widget read as blank.
  */
@@ -13,7 +13,7 @@ export const widgetTheme = {
   hairline: "#24354A",
 
   textPrimary: "#FFFFFF",
-  /** Secondary headlines — steps back from the lead without dropping legibility. */
+  /** Secondary headlines: steps back from the lead without dropping legibility. */
   textSecondary: "#C9D1DC",
   textMuted: "#8A94A6",
 

@@ -33,7 +33,7 @@ import RewardTaskItemCard from "../RewardTaskItem";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 
-// Stable empty fallbacks — inline `?? []` would mint a new identity every
+// Stable empty fallbacks. Inline `?? []` would mint a new identity every
 // render and defeat MemoizedListHeader's memo.
 const EMPTY_DOCS: RouterOutputs["news"]["home"]["docs"] = [];
 const EMPTY_BOOKS: PartnerContent[] = [];
@@ -64,7 +64,7 @@ const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
 const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
-  // Keyed by ad item id — stable across recycles, unlike positional arrays
+  // Keyed by ad item id: stable across recycles, unlike positional arrays
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
   const tabBarHeight = useTabBarHeight();
   const { trackImpression } = useNewsAnalytics();
@@ -119,8 +119,8 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       }),
       getNextPageParam: (lastPage) => lastPage.nextPage,
       initialPageParam: undefined,
-      staleTime: 5 * 60 * 1000, // 5 min — prevents refetch on tab switch
-      gcTime: 10 * 60 * 1000, // 10 min — keep cached data in memory
+      staleTime: 5 * 60 * 1000, // 5 min, prevents refetch on tab switch
+      gcTime: 10 * 60 * 1000, // 10 min, keeps cached data in memory
     })
   );
 
@@ -205,7 +205,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
   const keyExtractor = useCallback(
     (item: RouterOutputs["news"]["home"]["docs"][0], index: number) =>
-      // Never fall back to a shared constant key — with recycleItems, duplicate
+      // Never fall back to a shared constant key; with recycleItems, duplicate
       // keys make recycled cells bleed state between items.
       item?.id ?? `${item && "_type" in item ? item._type : "item"}-${index}`,
     []
@@ -313,7 +313,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       }
 
       // When a gAd becomes visible, preload the next 2 gAd slots ahead by
-      // walking the feed data — refs are registered by id so position-safe.
+      // walking the feed data. Refs are registered by id so position-safe.
       if (
         item.isViewable &&
         item.item?._type === "ad" &&

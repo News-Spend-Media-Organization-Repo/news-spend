@@ -37,7 +37,7 @@ export function getUsername(
     return;
   }
   if (typeof user === "string") {
-    return; // bare ID — no name available
+    return; // bare ID, no name available
   }
   return (user as { username?: string }).username ?? undefined;
 }

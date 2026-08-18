@@ -48,7 +48,7 @@ function SmallTrendingNews({ news }: { news: NewsItem[] }) {
       <V.Link destination={newsDeepLink(lead)}>
         <V.VStack spacing={10} style={{ padding: 16, flex: 1 }}>
           <Eyebrow />
-          {/* The lead gets every line the small family can spare — the date and
+          {/* The lead gets every line the small family can spare: the date and
               greeting chrome that used to sit here said nothing the status bar
               didn't already. */}
           <V.Text

@@ -45,7 +45,7 @@ describe("notifyDrawCompleted", () => {
   it("targets the entrants rather than the whole platform", async () => {
     // `targetType` defaults to "all", and `specificUsers` is only read when it
     // is "specific". Without this the notification reaches every user on the
-    // platform — on staging that was one person, in production everybody.
+    // platform. On staging that was one person, in production everybody.
     const { payload, created } = createFakePayload();
 
     await notifyDrawCompleted(payload, "g1");
@@ -110,7 +110,7 @@ describe("notifyDrawCompleted", () => {
   });
 
   it("never throws, so a notification cannot fail a completed draw", async () => {
-    // It runs after the prizes have been awarded. §21 makes the same argument
+    // It runs after the prizes have been awarded. 21 makes the same argument
     // about the Winner Report: a delivery failure does not invalidate a draw.
     const { payload } = createFakePayload();
     payload.create = async () => {

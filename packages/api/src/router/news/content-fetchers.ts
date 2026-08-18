@@ -132,7 +132,7 @@ export async function fetchRelatedNews(params: FetchRelatedNewsParams) {
 }
 
 /**
- * @deprecated Use fetchPromoMedia instead — queries partner-content with type=promo-media.
+ * @deprecated Use fetchPromoMedia instead: queries partner-content with type=promo-media.
  * Keep until promotion-media data is migrated.
  */
 export async function fetchPromotionMedia(params: FetchPromotionMediaParams) {

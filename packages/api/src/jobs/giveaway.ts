@@ -10,14 +10,14 @@ import { Cron } from "croner";
  * past its end date with paid-for tickets and no winners until someone
  * noticed. An hourly sweep makes a missed window self-healing.
  *
- * This is only safe because the task is repeat-safe — the engine refuses to
+ * This is only safe because the task is repeat-safe: the engine refuses to
  * draw a giveaway that is not `active`, and a draw leaves `active` as its
  * first act, so an overlapping run finds nothing to do.
  */
 export function startGiveawayJob() {
   const expr = "0 * * * *";
 
-  // see trending.ts — an unhandled rejection here exits the process
+  // see trending.ts, an unhandled rejection here exits the process
   const job = new Cron(
     expr,
     {

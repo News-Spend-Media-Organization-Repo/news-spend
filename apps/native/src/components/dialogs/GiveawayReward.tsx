@@ -26,22 +26,22 @@ const ANNOUNCE_DELAY_MS = 5000;
  *
  * The ad is suspense, never a toll. A prize that cannot be revealed because no
  * ad was available is a prize held hostage by fill rate, so every path out of
- * the ad phase — finished, dismissed, or never started — ends at the reveal.
+ * the ad phase (finished, dismissed, or never started) ends at the reveal.
  */
 const AD_TIMEOUT_MS = 20_000;
 
 type Phase = "sealed" | "ad" | "revealed";
 
 /**
- * Tell someone how the draw went — whether or not they won.
+ * Tell someone how the draw went, whether or not they won.
  *
  * A draw that only speaks to its winners reads, to everyone else, as though
  * their entry was never counted. So this covers all participants: the sealed
  * card first, then the reveal, with the same beat in between either way.
  *
  * Shown once and never again, tracked on the server rather than on the device.
- * "You didn't win" survives a reinstall badly — repeating it is worse than
- * never saying it — so the acknowledgement is a server pointer, not local
+ * "You didn't win" survives a reinstall badly. Repeating it is worse than
+ * never saying it, so the acknowledgement is a server pointer, not local
  * state.
  *
  * The claim itself still lives on `MyPrizes` / `ClaimPrize`, which persist. A
@@ -70,7 +70,7 @@ export default memo(function GiveawayReward() {
    * Whether there is anything to enter yet.
    *
    * A draw is only ever revealed once the giveaway that produced it has
-   * completed, and the next one is created by hand rather than automatically —
+   * completed, and the next one is created by hand rather than automatically,
    * so at the exact moment this sheet is on screen there is usually NO open
    * giveaway, and often will not be for some time.
    *
@@ -100,7 +100,7 @@ export default memo(function GiveawayReward() {
    *
    * The reveal happens once; an unclaimed prize needs reminding about until it
    * is claimed or its window shuts. This is that reminder, and it waits for
-   * `lastResult` to settle — announcing a win while the reveal is still
+   * `lastResult` to settle. Announcing a win while the reveal is still
    * loading would give the outcome away before the moment meant to deliver it.
    */
   const unclaimed = (actionable ?? []).filter((prize) => prize.claimable);
@@ -117,7 +117,7 @@ export default memo(function GiveawayReward() {
     setPhase("revealed");
 
     // Acknowledged at the moment the outcome is actually shown, not when the
-    // dialog opened — closing during the ad must not burn the reveal.
+    // dialog opened. Closing during the ad must not burn the reveal.
     if (result?.giveawayId) {
       acknowledge.mutate({ giveawayId: result.giveawayId });
     }
@@ -175,7 +175,7 @@ export default memo(function GiveawayReward() {
       <BottomSheet isOpen={open} onOpenChange={setOpen}>
         <BottomSheet.Portal>
           <BottomSheet.Overlay />
-          {/* A reminder is dismissible by every means — it recurs until the
+          {/* A reminder is dismissible by every means. It recurs until the
               prize is claimed, so losing it costs nothing. */}
           <BottomSheet.Content enableDynamicSizing enablePanDownToClose>
             <View className="gap-4 px-5 pt-2 pb-8">
@@ -231,7 +231,7 @@ export default memo(function GiveawayReward() {
       <BottomSheet isOpen={open && phase !== "ad"} onOpenChange={setOpen}>
         <BottomSheet.Portal>
           {/*
-            A sealed result cannot be dismissed by any route — not the handle,
+            A sealed result cannot be dismissed by any route, not the handle,
             not the backdrop. The reveal happens once ever, so a card swiped
             away half-opened would strand it for good. A dialog refused this
             for free; a sheet has to be told, since swiping down is its
@@ -276,7 +276,7 @@ export default memo(function GiveawayReward() {
                             ? ` And ${more} other prize${more === 1 ? "" : "s"}.`
                             : ""
                         }`
-                      : "Your entry was counted in the draw — it just wasn't your name this time. The next giveaway is a fresh start."}
+                      : "Your entry was counted in the draw, but it just wasn't your name this time. The next giveaway is a fresh start."}
                   </Text>
                 </View>
               )}
@@ -319,7 +319,7 @@ export default memo(function GiveawayReward() {
         </BottomSheet.Portal>
       </BottomSheet>
 
-      {/* Controlled, and never allowed to send anyone to the app wall — a
+      {/* Controlled, and never allowed to send anyone to the app wall. A
           detour mid-reveal would abandon the result on a different screen. */}
       <PartnerAdDialog
         fallbackToAppWall={false}

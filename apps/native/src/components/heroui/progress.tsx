@@ -1,5 +1,5 @@
 /**
- * ProgressBar — custom component for HeroUI Native
+ * ProgressBar: custom component for HeroUI Native
  *
  * Follows HeroUI Native conventions:
  *  - Compound component pattern  (ProgressBar.Root / ProgressBar.Track / ProgressBar.Fill / ProgressBar.Label)
@@ -172,7 +172,7 @@ function Fill({ className, style }: FillProps) {
   // The fill bar is 40% of the track. It starts fully hidden to the left
   // (translateX = -fillWidth) and sweeps until fully hidden to the right
   // (translateX = trackWidth). withRepeat replays from the beginning each
-  // time, so there is never an instant jump — the bar always re-enters
+  // time, so there is never an instant jump; the bar always re-enters
   // smoothly from the left.
   const FILL_RATIO = 0.4;
   const translateX = useSharedValue(0);
@@ -194,7 +194,7 @@ function Fill({ className, style }: FillProps) {
         easing: Easing.inOut(Easing.ease),
       }),
       -1, // loop forever
-      false // don't reverse — always sweeps left → right
+      false // don't reverse; always sweeps left → right
     );
 
     return () => cancelAnimation(translateX);
@@ -238,7 +238,7 @@ type ProgressBarRootProps = {
   /** Optional label text or ProgressBar.Label / ProgressBar.Track children */
   children?: ReactNode;
   className?: string;
-  /** Color variant — maps to HeroUI Native semantic tokens */
+  /** Color variant: maps to HeroUI Native semantic tokens */
   color?: ColorVariant;
   /** Show an animated indeterminate state (looping) */
   indeterminate?: boolean;

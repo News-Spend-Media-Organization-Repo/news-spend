@@ -107,8 +107,8 @@ const ClaimPrize = () => {
         navigation.goBack();
       },
       onError: (error) => {
-        // The window may have closed while this screen was open — a new
-        // giveaway starting is enough to do it — so the list has to be
+        // The window may have closed while this screen was open (a new
+        // giveaway starting is enough to do it), so the list has to be
         // refetched rather than left showing a claim button that cannot work.
         if (isInferableError(error) && error.code === "CONFLICT") {
           queryClient.invalidateQueries({
@@ -133,7 +133,7 @@ const ClaimPrize = () => {
   /**
    * Correcting details already given, rather than claiming.
    *
-   * Same form, because the questions are identical — what changes is which
+   * Same form, because the questions are identical; what changes is which
    * procedure answers them and what the screen calls itself. A separate screen
    * would be the same four fields with a different title.
    */
@@ -219,7 +219,7 @@ const ClaimPrize = () => {
      * Read the number back before sending anything to it.
      *
      * Airtime and data go straight to whatever number is typed here, and the
-     * provider has no idea it was meant for someone else — a transposed digit
+     * provider has no idea it was meant for someone else. A transposed digit
      * tops up a stranger, and there is no way to pull it back. A claim can
      * also only be made once, so the mistake is not recoverable in the app
      * either.
@@ -235,7 +235,7 @@ const ClaimPrize = () => {
     Alert.alert(
       "Send to this number?",
       editing
-        ? `${prize.prizeName} will be sent to ${phoneNumber} instead. Check it carefully — once it sends, it cannot be pulled back.`
+        ? `${prize.prizeName} will be sent to ${phoneNumber} instead. Check it carefully, because once it sends, it cannot be pulled back.`
         : `${prize.prizeName} will be sent to ${phoneNumber}. This cannot be undone, and a prize can only be claimed once.`,
       [
         { text: "Check again", style: "cancel" },
@@ -308,13 +308,13 @@ const ClaimPrize = () => {
             {prize.needs.verification && (
               <Text className="text-sm text-subtle-text">
                 This prize needs an identity check before it can be sent.
-                Claiming now secures it — you can verify whenever you're ready.
+                Claiming now secures it. You can verify whenever you're ready.
               </Text>
             )}
 
             {!(prize.needs.phone || prize.needs.address) && (
               <Text className="text-center text-subtle-text">
-                Nothing else needed — tap below and it's yours.
+                Nothing else needed. Tap below and it's yours.
               </Text>
             )}
 

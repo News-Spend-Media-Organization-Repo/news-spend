@@ -34,7 +34,7 @@ const setupAndroidChannel = async () => {
     });
 
     // Split from "default" so a user can turn down low-signal like
-    // notifications independently of replies, at the Android OS level —
+    // notifications independently of replies, at the Android OS level:
     // see resolveChannelId in packages/payload/src/lib/expo-push-service.ts.
     // Channel settings only take effect on first creation; once a channel
     // exists, the user's own choice in system settings always wins.
@@ -156,7 +156,7 @@ const usePushNotification = () => {
     );
   }, [user, saveToken]);
 
-  // Listeners don't depend on auth — set up once, unconditionally
+  // Listeners don't depend on auth: set up once, unconditionally
   useEffect(() => {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {

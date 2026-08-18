@@ -1,10 +1,10 @@
-# AGENTS.md — Coding Agent Guide for turbo-payload
+# AGENTS.md: Coding Agent Guide for turbo-payload
 
 ## Project Overview
 
 Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/Expo** (mobile).
 
-- **Package manager**: `bun` (v1.3.9) — use `bun` for all commands, NOT npm/yarn/pnpm
+- **Package manager**: `bun` (v1.3.9): use `bun` for all commands, NOT npm/yarn/pnpm
 - **Task runner**: Turborepo (`turbo.json` at root)
 - **Workspace roots**: `apps/*`, `packages/*`, `tooling/*`
 
@@ -32,11 +32,11 @@ Monorepo: **Next.js + Payload CMS** (web), **Bun server** (API), **React Native/
 | DB migrate             | `cd packages/db && bun run db:migrate`                               |
 | DB studio              | `cd packages/db && bun run db:studio`                                |
 
-Run `bun x biome check --write` before committing — pre-commit hooks (lefthook) enforce this.
+Run `bun x biome check --write` before committing. Pre-commit hooks (lefthook) enforce this.
 
 ## Linting & Formatting (Biome)
 
-This project uses **Biome** for linting and formatting — NOT ESLint/Prettier.
+This project uses **Biome** for linting and formatting, not ESLint/Prettier.
 
 Config files: `biome.jsonc` at repo root.
 
@@ -46,8 +46,8 @@ All packages extend `@news-spend-media/config/tsconfig.base.json`:
 
 - `strict: true`, `strictNullChecks: true`
 - `target: "ESNext"`, `module: "ESNext"`, `moduleResolution: "bundler"`
-- `verbatimModuleSyntax: true` — use `import type` for type-only imports
-- `noUncheckedIndexedAccess: true` — array/object access returns `T | undefined`
+- `verbatimModuleSyntax: true`: use `import type` for type-only imports
+- `noUncheckedIndexedAccess: true`: array/object access returns `T | undefined`
 - `noFallthroughCasesInSwitch: true`
 - `isolatedModules: true`
 
@@ -109,7 +109,7 @@ CMS tsconfig uses `~/*` path alias → `./src/*`.
 
 #### Testing routers
 
-Test procedures directly — no HTTP — per the [oRPC testing guide](https://v2.orpc.dev/docs/advanced/testing-and-mocking).
+Test procedures directly (no HTTP), per the [oRPC testing guide](https://v2.orpc.dev/docs/advanced/testing-and-mocking).
 Helpers live in `packages/api/src/test-utils.ts`; put the test next to the
 router as `<router>.test.ts`.
 

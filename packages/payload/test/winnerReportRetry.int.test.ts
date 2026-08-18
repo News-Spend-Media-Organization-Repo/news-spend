@@ -110,8 +110,8 @@ describe("winner report retry", () => {
      * Four sweeps at once, which is what staging actually did: `autoRun`
      * lives in the shared config so the CMS and the API server each sweep,
      * and a rolling deploy briefly doubles that. Before the claim, every one
-     * of them sent the same report — winners' names, emails and phone
-     * numbers, four times over.
+     * of them sent the same report (winners' names, emails and phone
+     * numbers), four times over.
      */
     let sends = 0;
     const send = async () => {
@@ -153,7 +153,7 @@ describe("winner report retry", () => {
     expect(result.retried).toBe(1);
     expect(result.sent).toBe(0);
 
-    // Back to `failed`, not stranded in the claimed state — otherwise one bad
+    // Back to `failed`, not stranded in the claimed state, because otherwise one bad
     // send would silently retire the report for good.
     const after = await payload.find({
       collection: "giveaway-report-deliveries",

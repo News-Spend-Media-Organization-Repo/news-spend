@@ -98,7 +98,7 @@ async function createDrawableGiveaway(participants: number, maxUnits: number) {
  * A payload that fails the Nth winner it is asked to record.
  *
  * Interrupting for real, rather than writing `status: "interrupted"` into the
- * database by hand — the point of the test is that the engine reaches that
+ * database by hand, because the point of the test is that the engine reaches that
  * state on its own and can be continued from it. A failing report sender would
  * not do: `sendWinnerReport` deliberately never throws, so a report failure
  * cannot stop a draw.
@@ -128,7 +128,7 @@ function payloadFailingOnWinner(
   }) as BasePayload;
 }
 
-describe("interrupted draw, resumed (§19)", () => {
+describe("interrupted draw, resumed (19)", () => {
   test("records who authorized the resumption", async () => {
     const giveawayId = await createDrawableGiveaway(2, 2);
 
@@ -152,7 +152,7 @@ describe("interrupted draw, resumed (§19)", () => {
     /**
      * The gap this endpoint was built to close. Reaching
      * `resumption_authorized` by editing the status select produces the same
-     * state with all three of these empty, which leaves §19 unable to answer
+     * state with all three of these empty, which leaves section 19 unable to answer
      * who allowed the prizes to be awarded.
      */
     const authorized = await payload.findByID({
@@ -249,7 +249,7 @@ describe("interrupted draw, resumed (§19)", () => {
       engine(payloadFailingOnWinner(payload, 2)).runDraw(giveawayId)
     ).rejects.toThrow();
 
-    // Without `resume`, this is a restart — which would re-draw the tier and
+    // Without `resume`, this is a restart, which would re-draw the tier and
     // award the prize a second time.
     await expect(engine().runDraw(giveawayId)).rejects.toThrow(
       /stopped part-way through/

@@ -120,8 +120,8 @@ describe("simulateDraw", () => {
       giveaway: { tier1WinnerPercentage: 10 },
     });
 
-    // Only 20 of 100 meet tier 1's bar, but §9 applies the percentage to all
-    // 100 — reducing it to the eligible subset would understate the draw.
+    // Only 20 of 100 meet tier 1's bar, but 9 applies the percentage to all
+    // 100. Reducing it to the eligible subset would understate the draw.
     const result = await simulateDraw(payload, "g1", {
       participants: 100,
       eligible: { tier1: 20 },
@@ -146,7 +146,7 @@ describe("simulateDraw", () => {
     const tier1 = result.tiers.find((t) => t.tier === "tier1")!;
     const tier3 = result.tiers.find((t) => t.tier === "tier3")!;
 
-    // A tier 1 winner cannot also win tier 3 (§22), so the 5 who did are gone.
+    // A tier 1 winner cannot also win tier 3 (22), so the 5 who did are gone.
     expect(tier1.effectiveCap).toBe(5);
     expect(tier3.eligible).toBe(5);
   });

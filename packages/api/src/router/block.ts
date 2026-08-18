@@ -46,7 +46,7 @@ const blockUser = protectedNoGuestProcedure
         data: { blocker: user.id, blocked: input.userId },
       });
     } catch (error) {
-      // Already blocked — treat as success so a double tap is harmless.
+      // Already blocked; treat as success so a double tap is harmless.
       if (isUniqueViolation(error)) {
         return { success: true, alreadyBlocked: true };
       }

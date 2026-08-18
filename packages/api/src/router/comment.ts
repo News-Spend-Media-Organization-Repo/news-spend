@@ -44,7 +44,7 @@ export type AllCommentsInput = z.infer<typeof allCommentsInput>;
 
 /**
  * Shared response shape returned by like/dislike. The client uses this to
- * reconcile the optimistic cache write with server truth — no refetch needed,
+ * reconcile the optimistic cache write with server truth; no refetch needed,
  * so the icon doesn't get clobbered by a stale read.
  */
 type ReactionResponse = {
@@ -58,7 +58,7 @@ type ReactionResponse = {
  *
  * Written as an explicit OR rather than `not_in` because comments created
  * before `moderationStatus` existed have NULL, and SQL's `NOT IN` drops NULL
- * rows — which would hide the entire pre-existing comment history.
+ * rows, which would hide the entire pre-existing comment history.
  */
 const VISIBLE_COMMENTS_FILTER: Where = {
   or: [
@@ -69,8 +69,8 @@ const VISIBLE_COMMENTS_FILTER: Where = {
 
 /**
  * Records a filter rejection so repeat offenders are visible to moderators,
- * who would otherwise never learn that a user keeps trying to post slurs —
- * the comment is never created, so it leaves no other trace.
+ * who would otherwise never learn that a user keeps trying to post slurs.
+ * The comment is never created, so it leaves no other trace.
  *
  * Deliberately stores only the matched term and severity, never the attempted
  * text: the point of the filter is that objectionable content is not persisted.

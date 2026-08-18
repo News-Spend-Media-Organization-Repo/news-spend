@@ -40,7 +40,7 @@ const GetOneInput = z.object({
    * before `recordEngagement` refuses it as already completed.
    *
    * Set from the Boost surface so the exclusion applies where a repeat is
-   * wasted effort, and nowhere else — the reveal plays an advertisement for
+   * wasted effort, and nowhere else. The reveal plays an advertisement for
    * suspense, not for credit, and has no reason to narrow its inventory.
    */
   forBoost: z.boolean().optional().default(false),

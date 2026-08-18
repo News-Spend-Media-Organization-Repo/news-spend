@@ -43,7 +43,7 @@ export function startReply(
   commentState.mode = "reply";
   commentState.target = replyingToComment;
   commentState.parent = parentComment ?? replyingToComment;
-  // Draft intentionally not cleared — user may have been mid-typing.
+  // Draft intentionally not cleared, as the user may have been mid-typing.
 }
 
 /**
