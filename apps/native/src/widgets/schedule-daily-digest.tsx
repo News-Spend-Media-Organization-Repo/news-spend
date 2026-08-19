@@ -1,6 +1,6 @@
 import {
-  updateAndroidWidget,
   VoltraAndroid as A,
+  updateAndroidWidget,
 } from "@use-voltra/android-client";
 import type { ScheduledWidgetEntry } from "@use-voltra/ios-client";
 import { scheduleWidget, Voltra } from "@use-voltra/ios-client";
@@ -154,7 +154,12 @@ function renderAndroidDigestVariants(stories: NewsItem[], greeting: string) {
   return {
     small: (
       <A.Column
-        style={{ gap: 10, padding: 16, flex: 1, backgroundColor: THEME.surface }}
+        style={{
+          gap: 10,
+          padding: 16,
+          flex: 1,
+          backgroundColor: THEME.surface,
+        }}
       >
         {eyebrow}
         {lead ? (
@@ -179,7 +184,12 @@ function renderAndroidDigestVariants(stories: NewsItem[], greeting: string) {
     ),
     medium: (
       <A.Column
-        style={{ gap: 10, padding: 16, flex: 1, backgroundColor: THEME.surface }}
+        style={{
+          gap: 10,
+          padding: 16,
+          flex: 1,
+          backgroundColor: THEME.surface,
+        }}
       >
         <A.Row style={{ alignItems: "center" }}>
           {eyebrow}

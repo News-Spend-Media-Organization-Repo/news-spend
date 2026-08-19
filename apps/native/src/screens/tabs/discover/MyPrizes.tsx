@@ -40,7 +40,7 @@ type Winning = {
  * A short line telling the winner what, if anything, is theirs to do.
  *
  * Deliberately distinguishes "we are checking you" from "you have a step
-   * left". They look the same in the data (both stop a dispatch) but mean
+ * left". They look the same in the data (both stop a dispatch) but mean
  * opposite things to the person reading them.
  */
 function statusLine(prize: Winning): { label: string; tone: string } {
@@ -81,7 +81,10 @@ function statusLine(prize: Winning): { label: string; tone: string } {
    * a mistyped phone number, looked identical to success until the third
    * attempt gave up and flipped it to review.
    */
-  if (prize.claimStatus === "claimed" && prize.fulfilmentStatus !== "fulfilled") {
+  if (
+    prize.claimStatus === "claimed" &&
+    prize.fulfilmentStatus !== "fulfilled"
+  ) {
     return {
       label:
         prize.fulfilmentStatus === "in_progress"
@@ -116,8 +119,8 @@ const TONE_CLASS: Record<string, string> = {
  * An icon per kind of prize, so a list of names reads as a list of things.
  *
  * Airtime and data share the phone: the distinction that matters to somebody
-   * scanning this list is "it arrives on my line", not which of the two it is.
-   * The name already says that.
+ * scanning this list is "it arrives on my line", not which of the two it is.
+ * The name already says that.
  */
 const PRIZE_ICON: Record<string, typeof GiftIcon> = {
   points: CoinsIcon,
@@ -229,8 +232,8 @@ function PrizeCard({
  * Everything this user has won, and what is left to do about it.
  *
  * Split into two lists rather than one, because they behave differently.
-   * "Needs You" is bounded by each prize's own claim window (fourteen days, or
-   * until the next giveaway starts), so it can never grow past a handful and is
+ * "Needs You" is bounded by each prize's own claim window (fourteen days, or
+ * until the next giveaway starts), so it can never grow past a handful and is
  * fetched whole. "History" is everything that has already resolved, which
  * only ever grows, so it is the one that is paged.
  *
@@ -301,7 +304,7 @@ const MyPrizes = () => {
   const isEmpty = actionablePrizes.length === 0 && history.length === 0;
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <ScreenHeader title="My Prizes" />
 
       <LegendList

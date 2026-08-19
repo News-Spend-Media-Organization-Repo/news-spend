@@ -74,9 +74,8 @@ const SingleNews = () => {
     return (
       <Screen
         className="flex-1 items-center justify-center"
-        SystemBarsProps={{
-          style: { navigationBar: "dark", statusBar: "auto" },
-        }}
+        navigationBarButtonStyle="dark"
+        statusBarStyle="auto"
       >
         <Text className="text-center">Failed to load news article</Text>
       </Screen>
@@ -86,9 +85,7 @@ const SingleNews = () => {
   const { url, blurhash } = getImageData(data?.image);
 
   return (
-    <Screen
-      SystemBarsProps={{ style: { navigationBar: "dark", statusBar: "auto" } }}
-    >
+    <Screen navigationBarButtonStyle="dark" statusBarStyle="auto">
       <SkeletonGroup className="flex-1" isLoading={!data}>
         <ScrollView
           className="bg-white"

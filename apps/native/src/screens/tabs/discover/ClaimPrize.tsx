@@ -300,8 +300,8 @@ const ClaimPrize = () => {
 
             {(prize.needs.phone || prize.needs.address) && (
               <Text className="text-sm text-subtle-text">
-                Made a mistake? You can change these from the prize screen
-                until it's on its way.
+                Made a mistake? You can change these from the prize screen until
+                it's on its way.
               </Text>
             )}
 
@@ -318,10 +318,7 @@ const ClaimPrize = () => {
               </Text>
             )}
 
-            <Button
-              isDisabled={missingDetails || busy}
-              onPress={submit}
-            >
+            <Button isDisabled={missingDetails || busy} onPress={submit}>
               <Button.Label>
                 {busy
                   ? editing

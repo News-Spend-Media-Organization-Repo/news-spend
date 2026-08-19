@@ -4,7 +4,7 @@ import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 
 const Email = () => (
-  <Screen systemBarStyle="light">
+  <Screen statusBarStyle="light">
     <ScrollView showsVerticalScrollIndicator={false}>
       <View className="gap-4 p-3">
         <Text className="text-base leading-relaxed">

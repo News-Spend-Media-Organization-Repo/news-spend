@@ -240,7 +240,7 @@ function Live() {
   }
 
   return (
-    <Screen contentContainerClassName="pt-safe" systemBarStyle="dark">
+    <Screen contentContainerClassName="pt-safe" statusBarStyle="dark">
       {data?.isLive && !auth.user && (
         <Alert className="items-center rounded-lg" status="warning">
           <Alert.Indicator className="pt-0" />

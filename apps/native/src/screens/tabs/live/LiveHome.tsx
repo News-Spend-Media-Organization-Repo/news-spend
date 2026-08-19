@@ -69,7 +69,7 @@ function LiveHome() {
   }
 
   return (
-    <Screen contentContainerClassName="px-2" systemBarStyle="light">
+    <Screen contentContainerClassName="px-2" statusBarStyle="light">
       <LegendList
         contentContainerStyle={{
           paddingBottom: tabBarHeight + 20,

@@ -150,7 +150,7 @@ function Profile() {
   };
 
   return (
-    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+    <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={40}
         contentContainerClassName="px-6 pt-5"

@@ -8,7 +8,7 @@ const LotteryRules = () => {
   const _navigation = useNavigation("LotteryRules");
 
   return (
-    <Screen className="pb-safe" systemBarStyle="light">
+    <Screen className="pb-safe" statusBarStyle="light">
       <ScreenHeader title="Giveaway Official Rules" />
 
       <ScrollView contentContainerClassName="gap-4 px-4 py-6">

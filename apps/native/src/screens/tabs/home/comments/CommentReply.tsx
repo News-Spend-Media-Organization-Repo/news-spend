@@ -163,7 +163,7 @@ function CommentReplies() {
     <Screen
       contentContainerClassName="py-safe"
       disableKeyboardAvoidingView
-      systemBarStyle="auto"
+      statusBarStyle="auto"
     >
       <KeyboardAvoidingView
         behavior="padding"
