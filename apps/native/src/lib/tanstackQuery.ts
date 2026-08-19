@@ -7,6 +7,15 @@ export const queryClient = new QueryClient({
     onError: (error, query) => {
       console.log(error, query.queryKey);
 
+      // 426 means the server will not serve this build at all. Nothing else
+      // will succeed either, so surface it once, globally.
+      if (error instanceof ORPCError && error.code === "UPGRADE_REQUIRED") {
+        import("#/state/upgrade").then(({ requireUpgrade }) =>
+          requireUpgrade()
+        );
+        return;
+      }
+
       if (error instanceof ORPCError && error.data?.httpStatus === 401) {
         Sentry.captureMessage("Session expired after retries");
         console.log("🚀 ~ Query error 401 after retries, logging out");
@@ -20,6 +29,15 @@ export const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error) => {
       console.log(error);
+
+      // 426 means the server will not serve this build at all. Nothing else
+      // will succeed either, so surface it once, globally.
+      if (error instanceof ORPCError && error.code === "UPGRADE_REQUIRED") {
+        import("#/state/upgrade").then(({ requireUpgrade }) =>
+          requireUpgrade()
+        );
+        return;
+      }
 
       if (error instanceof ORPCError && error.data?.httpStatus === 401) {
         Sentry.captureMessage("Session expired after retries", {});
