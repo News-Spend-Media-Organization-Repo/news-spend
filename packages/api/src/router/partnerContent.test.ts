@@ -381,7 +381,7 @@ describe("partnerContentRouter.random", () => {
   });
 });
 
-describe("partnerContentRouter.getOne — Boost exclusion", () => {
+describe("partnerContentRouter.getOne: Boost exclusion", () => {
   function boostPayload(engagements: Doc[]) {
     return createFakePayload({
       collections: {
@@ -418,7 +418,7 @@ describe("partnerContentRouter.getOne — Boost exclusion", () => {
       );
 
       // Math.random() = 0 would otherwise pick "a". Watching that ad again
-      // earns nothing — recordEngagement refuses it as already completed.
+      // earns nothing; recordEngagement refuses it as already completed.
       expect(result?.id).toBe("b");
     } finally {
       Math.random = originalRandom;

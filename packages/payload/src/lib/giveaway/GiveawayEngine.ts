@@ -61,10 +61,10 @@ type PoolPrize = {
 /**
  * Optional spending limits for the whole draw.
  *
- * Neither appears in the specification — they come from the administrator's
+ * Neither appears in the specification: they come from the administrator's
  * side of the product, where holding some stock back for the next giveaway is
  * a normal thing to want. Both default to unlimited, so a giveaway behaves
- * exactly as §5 and §9 describe unless somebody deliberately changes them.
+ * exactly as 5 and 9 describe unless somebody deliberately changes them.
  *
  * They are applied *before* selection, as a reduction to what a tier may award,
  * rather than by truncating the winner list afterwards. Selecting winners and
@@ -86,7 +86,7 @@ type StreakRow = {
   userKey: UserKey;
   tier: PrizeTier;
   consecutiveCount: number;
-  /** Already advanced by this giveaway — guards double-counting on resume. */
+  /** Already advanced by this giveaway, guarding double-counting on resume. */
   alreadyEvaluated: boolean;
 };
 
@@ -117,9 +117,9 @@ export type DrawResult = {
   giveawayId: string;
   seed: string;
   dryRun: boolean;
-  /** Identifies this draw across every attempt at it (spec §19). */
+  /** Identifies this draw across every attempt at it (spec 19). */
   executionId: string;
-  /** The last material checkpoint reached (spec §19). */
+  /** The last material checkpoint reached (spec 19). */
   lastCheckpoint: DrawCheckpoint | null;
   totalValidParticipants: number;
   totalWinners: number;
@@ -127,10 +127,10 @@ export type DrawResult = {
 };
 
 /**
- * Mutable state for one execution attempt (spec §19).
+ * Mutable state for one execution attempt (spec 19).
  *
  * `lastCheckpoint` is the engine's position in the thirteen-step sequence. It
- * is loaded from the giveaway on a resumption and advanced — never rewound — as
+ * is loaded from the giveaway on a resumption and advanced, never rewound, as
  * the draw proceeds, which is what makes each step idempotent: a step already
  * behind this marker is skipped rather than repeated.
  */
@@ -153,7 +153,7 @@ export type RunDrawOptions = {
   /** Run even if the countdown has not ended. Intended for testing. */
   ignoreEndDate?: boolean;
   /**
-   * Continue a draw that stopped part-way through (spec §19).
+   * Continue a draw that stopped part-way through (spec 19).
    *
    * Only permitted once an administrator has called `authorizeResumption`,
    * which is the authorization step the specification requires. A resumed draw
@@ -162,26 +162,26 @@ export type RunDrawOptions = {
    * and treats existing winners as ineligible.
    *
    * There is deliberately no destructive restart: winner records and audit
-   * records are immutable under §17, so a partial draw can only be continued.
+   * records are immutable under 17, so a partial draw can only be continued.
    */
   resume?: boolean;
 };
 
 /**
- * The giveaway draw engine (spec §12).
+ * The giveaway draw engine (spec 12).
  *
  * For each tier in order: build the candidate pool, select winners at random
  * from it, allocate prizes, then remove every winner from all remaining pools.
  *
  * Winner selection is capped at the number of prize units actually available,
- * so a selected winner always receives a prize — there is no
+ * so a selected winner always receives a prize; there is no
  * selected-but-unallocated state.
  */
 export class GiveawayEngine {
   private readonly payload: BasePayload;
 
   /**
-   * How the §21 Winner Report is delivered. Injectable so a draw can be run
+   * How the 21 Winner Report is delivered. Injectable so a draw can be run
    * in a test without reaching for a mail provider, and so the provider can
    * be swapped without touching the engine.
    */
@@ -241,7 +241,7 @@ export class GiveawayEngine {
     const ctx = await this.beginAttempt(giveaway, seed, dryRun, resume);
 
     try {
-      // Checkpoint 1 — configuration validated (spec §19).
+      // Checkpoint 1: configuration validated (spec 19).
       await this.checkpoint(ctx, "config_validated", "ready");
 
       const result = await this.executeDraw(ctx);
@@ -264,7 +264,7 @@ export class GiveawayEngine {
   }
 
   /**
-   * Open an execution attempt (spec §19).
+   * Open an execution attempt (spec 19).
    *
    * Every attempt at the same draw shares one execution id; each resumption is
    * a new attempt row linked to the one before it, so the history reads as
@@ -337,7 +337,7 @@ export class GiveawayEngine {
         drawExecutionId: executionId,
         currentAttempt: attempt.id,
         drawError: null,
-        // A resumption keeps the original start time — it is the same draw.
+        // A resumption keeps the original start time: it is the same draw.
         ...(resume ? {} : { drawStartedAt: new Date().toISOString() }),
       },
     });
@@ -360,10 +360,10 @@ export class GiveawayEngine {
   }
 
   /**
-   * Record a completed material step (spec §19).
+   * Record a completed material step (spec 19).
    *
    * Progress is monotonic: a checkpoint at or behind the current position is
-   * ignored. That single rule is what makes every step idempotent — repeating
+   * ignored. That single rule is what makes every step idempotent: repeating
    * a request for a step that already completed writes nothing, duplicates no
    * winners, deducts no stock and emits no second audit event.
    */
@@ -412,8 +412,8 @@ export class GiveawayEngine {
    * Move the giveaway to a new state without advancing the checkpoint.
    *
    * Status says what the engine is doing right now; the checkpoint says what it
-   * has finished. They advance at different moments — POOL_BUILDING is entered
-   * before there is anything to record — so they are set separately.
+   * has finished. They advance at different moments: POOL_BUILDING is entered
+   * before there is anything to record, so they are set separately.
    */
   private async setStatus(ctx: RunContext, status: GiveawayStatus) {
     if (ctx.dryRun || ctx.status === status) {
@@ -445,19 +445,19 @@ export class GiveawayEngine {
       executionId: ctx.executionId,
     });
 
-    // Checkpoint 12 — the audit trail for this draw is complete.
+    // Checkpoint 12: the audit trail for this draw is complete.
     await this.checkpoint(ctx, "audit_completed");
 
     await this.closeAttempt(ctx, "completed");
 
     /**
-     * Checkpoint 13 — the Winner Report (spec §21).
+     * Checkpoint 13: the Winner Report (spec 21).
      *
      * Deliberately the last thing, and deliberately outside everything that
      * can fail the draw. `sendWinnerReport` never throws and a failure leaves
      * a delivery row to retry from, so an unreachable mail provider cannot
-     * interrupt a draw that has already awarded its prizes correctly — which
-     * is exactly what §21 requires.
+     * interrupt a draw that has already awarded its prizes correctly, which
+     * is exactly what 21 requires.
      *
      * The checkpoint is only reached if the report actually went out, so an
      * unsent report stays visible rather than being papered over.
@@ -476,15 +476,15 @@ export class GiveawayEngine {
      * to fail the draw.
      *
      * Here rather than in the scheduled task, because a draw now has three
-     * ways to complete — the hourly sweep, the manual button, and a resumption
-     * — and the lottery's habit of calling its notification from each entry
+     * ways to complete: the hourly sweep, the manual button, and a resumption
+     * and the lottery's habit of calling its notification from each entry
      * point is how one of them ends up forgotten.
      */
     await notifyDrawCompleted(this.payload, ctx.giveawayId);
   }
 
   /**
-   * Stop an attempt that threw (spec §19, Interruption Behaviour).
+   * Stop an attempt that threw (spec 19, Interruption Behaviour).
    *
    * The distinction the specification draws is between an interruption, which
    * preserves everything and waits for an administrator, and a failure, which
@@ -494,13 +494,13 @@ export class GiveawayEngine {
    * leaves the winners, the locked pool and the remaining stock exactly as
    * they were, so the draw can be picked up from its last checkpoint. What
    * cannot be picked up is a draw that has already violated its own
-   * invariants — two prizes to one user, or a prize past its unit ceiling.
+   * invariants: two prizes to one user, or a prize past its unit ceiling.
    * Resuming that would build on a result that is already wrong, so it is
    * FAILED and needs a human before anything else happens. The same applies
    * when nothing completed at all: there is no checkpoint to continue from.
    *
    * Nothing is rolled back either way. Winner records and audit records are
-   * immutable under §17, and §19 requires prize assignments, the locked pool
+   * immutable under 17, and 19 requires prize assignments, the locked pool
    * and remaining stock to survive an interruption intact.
    */
   private async stopAttempt(ctx: RunContext, error: unknown, message: string) {
@@ -537,7 +537,7 @@ export class GiveawayEngine {
       message
     );
 
-    // §19 requires an authorized administrator to be notified. Until the §21
+    // 19 requires an authorized administrator to be notified. Until the 21
     // mail work lands this is a log line, which is at least visible in the
     // server's alerting rather than silent.
     this.payload.logger.error(
@@ -547,7 +547,7 @@ export class GiveawayEngine {
         lastCheckpoint: ctx.lastCheckpoint,
         status,
       },
-      `[giveaway] draw ${status} — administrator authorization required to continue`
+      `[giveaway] draw ${status}: administrator authorization required to continue`
     );
   }
 
@@ -573,12 +573,12 @@ export class GiveawayEngine {
   }
 
   /**
-   * Authorize the resumption of an interrupted or failed draw (spec §19).
+   * Authorize the resumption of an interrupted or failed draw (spec 19).
    *
    * This is the gate the specification asks for: an interrupted draw cannot be
    * restarted by anyone until an administrator has reviewed it, so `runDraw`
    * refuses to resume anything that is not in RESUMPTION_AUTHORIZED. Callers
-   * must enforce the administrator role themselves — the engine records who
+   * must enforce the administrator role themselves: the engine records who
    * authorized it but has no way to verify the claim.
    */
   async authorizeResumption(
@@ -637,7 +637,7 @@ export class GiveawayEngine {
   }
 
   /**
-   * Cancel a giveaway (spec §19, CANCELLED).
+   * Cancel a giveaway (spec 19, CANCELLED).
    *
    * Refused once a draw is in flight or complete: prizes have been allocated by
    * then, and cancelling would leave winners holding records for a giveaway
@@ -667,7 +667,7 @@ export class GiveawayEngine {
     if (status === "completed") {
       return {
         cancelled: false,
-        message: "A completed draw cannot be cancelled — prizes are allocated.",
+        message: "A completed draw cannot be cancelled: prizes are allocated.",
       };
     }
 
@@ -698,7 +698,7 @@ export class GiveawayEngine {
     return { cancelled: true };
   }
 
-  /** Pre-draw configuration checks (spec §19). */
+  /** Pre-draw configuration checks (spec 19). */
   async validateDraw(
     giveawayId: string,
     {
@@ -745,7 +745,7 @@ export class GiveawayEngine {
     }
 
     // A monetary cap is meaningless if the prizes it is meant to bound have no
-    // price on them — it would silently treat every prize as free.
+    // price on them: it would silently treat every prize as free.
     if (
       typeof giveaway.maxBudgetCapNaira === "number" &&
       prizeRows.docs.length > 0
@@ -799,7 +799,7 @@ export class GiveawayEngine {
 
     /**
      * Disqualified and duplicate accounts come out before anything else, so
-     * they are absent from Total Valid Participants too (§22.5, §22.6) — they
+     * they are absent from Total Valid Participants too (22.5, 22.6); they
      * were never legitimate participants, and leaving them in the denominator
      * would inflate every tier's winner cap.
      */
@@ -822,9 +822,9 @@ export class GiveawayEngine {
     });
 
     // Total Valid Participants: unique users holding at least one valid ticket,
-    // captured once and held constant for the whole draw (spec §3). A resume
-    // reuses the original snapshot rather than recounting — tickets may have
-    // been invalidated since, and §3 requires the value not to change mid-draw.
+    // captured once and held constant for the whole draw (spec 3). A resume
+    // reuses the original snapshot rather than recounting: tickets may have
+    // been invalidated since, and 3 requires the value not to change mid-draw.
     const totalValidParticipants = resume
       ? (giveaway.totalValidParticipants ?? participation.size)
       : participation.size;
@@ -854,7 +854,7 @@ export class GiveawayEngine {
           completedTiers: new Set<PrizeTier>(),
         };
 
-    /** Users already holding a prize — excluded from all remaining pools (§13). */
+    /** Users already holding a prize: excluded from all remaining pools (13). */
     const winnersSoFar = new Set<UserKey>();
     for (const winners of winnersByTier.values()) {
       for (const winner of winners) {
@@ -881,11 +881,11 @@ export class GiveawayEngine {
       await this.updateStreaks(giveawayId, participation);
     }
 
-    // Checkpoint 10 — final validation against the §18 integrity checklist.
+    // Checkpoint 10: final validation against the 18 integrity checklist.
     await this.verifyDrawIntegrity(ctx, tiers);
     await this.checkpoint(ctx, "final_validation");
 
-    // Checkpoint 11 — the result is confirmed and will not change.
+    // Checkpoint 11: the result is confirmed and will not change.
     await this.checkpoint(ctx, "result_confirmed");
 
     return {
@@ -901,11 +901,11 @@ export class GiveawayEngine {
   }
 
   /**
-   * Process every tier in order (spec §12).
+   * Process every tier in order (spec 12).
    *
    * A tier that already completed on an earlier attempt is replayed from its
-   * persisted records rather than re-drawn — that is what stops a resumption
-   * awarding a second time — while a tier that was interrupted part-way is
+   * persisted records rather than re-drawn, that is what stops a resumption
+   * awarding a second time, while a tier that was interrupted part-way is
    * drawn again with its existing winners counted against its cap.
    */
   private async runTiers(args: {
@@ -963,7 +963,7 @@ export class GiveawayEngine {
           budget: args.budget,
           // A tier interrupted part-way through has winners on record but no
           // completion marker. They count against this tier's cap, or a
-          // resumed draw would award the full percentage a second time (§9).
+          // resumed draw would award the full percentage a second time (9).
           priorWinners: winnersByTier.get(tier) ?? [],
         })
       );
@@ -973,8 +973,8 @@ export class GiveawayEngine {
   }
 
   /**
-   * The §18 draw-integrity checklist, run before the result is confirmed
-   * (spec §19, checkpoint 10).
+   * The 18 draw-integrity checklist, run before the result is confirmed
+   * (spec 19, checkpoint 10).
    *
    * These are the invariants the rest of the engine is built to maintain, so
    * in normal operation this finds nothing. It exists for the case where a
@@ -990,7 +990,7 @@ export class GiveawayEngine {
       for (const winner of tier.winners) {
         if (seen.has(winner.userKey)) {
           problems.push(
-            `User ${winner.userKey} holds more than one prize in this giveaway (§13).`
+            `User ${winner.userKey} holds more than one prize in this giveaway (13).`
           );
         }
         seen.add(winner.userKey);
@@ -1019,7 +1019,7 @@ export class GiveawayEngine {
     for (const row of prizeRows.docs) {
       if ((row.unitsAwarded ?? 0) > (row.maxUnits ?? 0)) {
         problems.push(
-          `Prize row ${row.id} awarded ${row.unitsAwarded} of a maximum ${row.maxUnits} units (§5).`
+          `Prize row ${row.id} awarded ${row.unitsAwarded} of a maximum ${row.maxUnits} units (5).`
         );
       }
     }
@@ -1063,8 +1063,8 @@ export class GiveawayEngine {
     } = args;
     const { giveawayId, dryRun } = ctx;
 
-    // Step 1 — Build the candidate pool (spec §12), applying the fairness
-    // rules of §22 alongside the tier eligibility thresholds of §11.
+    // Step 1: Build the candidate pool (spec 12), applying the fairness
+    // rules of 22 alongside the tier eligibility thresholds of 11.
     await this.setStatus(ctx, "pool_building");
 
     const { candidates, fairnessExclusions, loyaltyWaivers } =
@@ -1081,7 +1081,7 @@ export class GiveawayEngine {
     );
 
     // The system shall never select more winners than the percentage cap, the
-    // available prize units, or the candidate pool size (spec §9). Winners a
+    // available prize units, or the candidate pool size (spec 9). Winners a
     // previous, interrupted attempt already awarded in this tier have spent
     // part of the percentage allowance, so only the remainder is available.
     const remainingAllowance = Math.max(
@@ -1123,7 +1123,7 @@ export class GiveawayEngine {
       );
 
       // Say so plainly when a reserve, rather than the spec's own rules, is
-      // what limited this tier — otherwise the shortfall looks inexplicable.
+      // what limited this tier: otherwise the shortfall looks inexplicable.
       if (
         budget.limited &&
         budget.unitsRemaining < Math.min(remainingAllowance, unitsAvailable)
@@ -1163,13 +1163,13 @@ export class GiveawayEngine {
       }
     }
 
-    // Only entries belonging to candidates form the locked pool (§12).
+    // Only entries belonging to candidates form the locked pool (12).
     const pooledEntries = ticketEntries.filter((entry) =>
       candidates.has(entry.userKey)
     );
 
     /**
-     * Lock the pool before selecting anything (§12).
+     * Lock the pool before selecting anything (12).
      *
      * The specification requires the pool to be locked, not merely computed:
      * a replacement winner must later be drawn from "the original locked
@@ -1179,14 +1179,14 @@ export class GiveawayEngine {
      * Written even when the tier awards nobody, so the record of who *could*
      * have won is complete.
      */
-    // Checkpoint 2 — the candidate pool exists (spec §19).
+    // Checkpoint 2: the candidate pool exists (spec 19).
     await this.checkpoint(ctx, "pool_generated", undefined, { tier });
 
     if (!dryRun) {
       await this.lockCandidatePool(giveawayId, tier, candidates, pooledEntries);
     }
 
-    // Checkpoint 3 — and it is locked. Later tiers lock their own pools, which
+    // Checkpoint 3: and it is locked. Later tiers lock their own pools, which
     // the audit log records; the checkpoint marker only moves forwards.
     await this.checkpoint(ctx, "pool_locked", "pool_locked", { tier });
 
@@ -1216,12 +1216,12 @@ export class GiveawayEngine {
   }
 
   /**
-   * Steps 2 and 3 of §12: draw a winner, then allocate them a prize.
+   * Steps 2 and 3 of 12: draw a winner, then allocate them a prize.
    *
    * The two are interleaved rather than run as separate passes. Allocating
    * immediately keeps unit accounting exact when a prize runs out partway
    * through a tier, and guarantees no winner is ever left holding a selection
-   * with nothing behind it — the winner is only recorded once a prize is
+   * with nothing behind it: the winner is only recorded once a prize is
    * certain to be available for them.
    */
   private async drawWinners(args: {
@@ -1313,7 +1313,7 @@ export class GiveawayEngine {
    *
    * Running out of prize units is ordinary and already covered by
    * `prize_exhausted`. Stopping because the money ran out while stock remains
-   * is not, and is worth saying plainly — otherwise the shortfall looks like
+   * is not, and is worth saying plainly: otherwise the shortfall looks like
    * a bug in the draw.
    */
   private async reportAllocationStop(
@@ -1340,7 +1340,7 @@ export class GiveawayEngine {
   }
 
   /**
-   * Close out a tier: record its completion and its two §19 checkpoints.
+   * Close out a tier: record its completion and its two 19 checkpoints.
    *
    * This runs for every tier, including one that awards nobody. A tier that
    * finished with an empty pool or a disabled percentage is finished all the
@@ -1348,9 +1348,9 @@ export class GiveawayEngine {
    * for no reason.
    *
    * Winner selection and prize allocation are separate checkpoints in the
-   * specification but interleaved in this engine — each winner is allocated a
+   * specification but interleaved in this engine: each winner is allocated a
    * prize the moment they are drawn, which is what keeps unit accounting exact
-   * when stock runs out mid-tier — so both are reached here, in order.
+   * when stock runs out mid-tier, so both are reached here, in order.
    */
   private async completeTier(
     ctx: RunContext,
@@ -1436,7 +1436,7 @@ export class GiveawayEngine {
     return { winnersByTier, completedTiers };
   }
 
-  /** Persist the locked candidate pool for one tier (spec §12). */
+  /** Persist the locked candidate pool for one tier (spec 12). */
   private async lockCandidatePool(
     giveawayId: string,
     tier: PrizeTier,
@@ -1444,7 +1444,7 @@ export class GiveawayEngine {
     entries: TicketEntry[]
   ) {
     // A resumed draw re-reaches tiers it already locked. The pool must not be
-    // rewritten — it is the record of what the original draw saw.
+    // rewritten: it is the record of what the original draw saw.
     const existing = await this.payload.find({
       collection: "giveaway-pool-snapshots",
       where: {
@@ -1481,14 +1481,14 @@ export class GiveawayEngine {
 
   /**
    * Disqualify a winner and draw their replacement from the locked pool
-   * (spec §12).
+   * (spec 12).
    *
    * The specification is emphatic that this must not rerun the draw: every
    * other winner keeps their prize, and the replacement comes from the pool as
    * it was locked, not from a pool rebuilt out of data that has since changed.
    *
    * The disqualified record is kept rather than deleted, so the audit trail
-   * shows what happened. The replacement inherits the same prize — no stock is
+   * shows what happened. The replacement inherits the same prize: no stock is
    * returned or re-allocated, because the unit was already spent.
    *
    * Selection is seeded from the draw seed plus the disqualified winner's id,
@@ -1585,7 +1585,7 @@ export class GiveawayEngine {
       (entry) => !excluded.has(entry.userKey)
     );
 
-    // Tickets invalidated since the lock cannot win (§12).
+    // Tickets invalidated since the lock cannot win (12).
     const validEntries = await this.dropInvalidatedTickets(entries);
 
     const seed = (giveaway?.drawSeed as string | undefined) ?? winnerId;
@@ -1663,7 +1663,7 @@ export class GiveawayEngine {
       this.loadAccountFlags(),
     ]);
 
-    // Every winner row counts, including disqualified ones — §12 excludes
+    // Every winner row counts, including disqualified ones: 12 excludes
     // "previously selected replacement candidates" as well as current winners,
     // so nobody who has already been drawn can be drawn again.
     const excluded = new Set<UserKey>(flags.excluded);
@@ -1677,7 +1677,7 @@ export class GiveawayEngine {
     return excluded;
   }
 
-  /** Remove entries whose ticket is no longer valid (§12 post-draw events). */
+  /** Remove entries whose ticket is no longer valid (12 post-draw events). */
   private async dropInvalidatedTickets(
     entries: TicketEntry[]
   ): Promise<TicketEntry[]> {
@@ -1735,7 +1735,7 @@ export class GiveawayEngine {
         selectedAt: new Date().toISOString(),
         claimDeadline: claimDeadlineFor(new Date()),
         claimStatus: "unclaimed",
-        // A flagged account still wins — only the payout waits (§22.8).
+        // A flagged account still wins: only the payout waits (22.8).
         fulfilmentStatus: heldForReview ? "on_hold" : "pending",
         reviewNote: heldForReview
           ? "Account flagged as suspicious. Fulfilment held pending administrator review; the draw result stands."
@@ -1747,7 +1747,7 @@ export class GiveawayEngine {
       collection: "giveaway-prizes",
       id: prize.rowId,
       data: { unitsAwarded: prize.unitsAwarded },
-      // The pool is locked to administrators for the whole draw (§5), and this
+      // The pool is locked to administrators for the whole draw (5), and this
       // write happens in the middle of one. The flag distinguishes the engine
       // recording an allocation from a person editing the pool.
       context: { giveawayEngine: true },
@@ -1810,8 +1810,8 @@ export class GiveawayEngine {
   }
 
   /**
-   * Accounts excluded from the draw entirely (spec §22.5, §22.6), and those
-   * whose winnings must be held for review (§22.7, §22.8).
+   * Accounts excluded from the draw entirely (spec 22.5, 22.6), and those
+   * whose winnings must be held for review (22.7, 22.8).
    */
   private async loadAccountFlags(): Promise<{
     excluded: Set<UserKey>;
@@ -1835,7 +1835,7 @@ export class GiveawayEngine {
       }
 
       // A duplicate-account group is excluded regardless of trust status: the
-      // whole cluster comes out of the pool (§22.6).
+      // whole cluster comes out of the pool (22.6).
       if (flag.trustStatus === "disqualified" || flag.duplicateAccountGroup) {
         excluded.add(userKey);
         reasons.set(
@@ -1847,7 +1847,7 @@ export class GiveawayEngine {
         continue;
       }
 
-      // Suspicion never removes anyone from the draw — the specification is
+      // Suspicion never removes anyone from the draw: the specification is
       // explicit that it must not alter the selection. It only holds the prize.
       if (flag.trustStatus === "suspicious") {
         heldForReview.add(userKey);
@@ -1879,7 +1879,7 @@ export class GiveawayEngine {
         pagination: false,
         depth: 0,
       }),
-      // Streaks are not scoped to a giveaway — they persist across them.
+      // Streaks are not scoped to a giveaway: they persist across them.
       this.payload.find({
         collection: "giveaway-streaks",
         pagination: false,
@@ -1965,8 +1965,8 @@ export class GiveawayEngine {
   }
 
   /**
-   * Persist consecutive-giveaway streaks (spec §11). These survive the
-   * post-draw reset of ticket, boost and offer aggregates — without that they
+   * Persist consecutive-giveaway streaks (spec 11). These survive the
+   * post-draw reset of ticket, boost and offer aggregates: without that they
    * could never reach the required four.
    */
   private async updateStreaks(
@@ -2014,7 +2014,7 @@ export class GiveawayEngine {
    * Zero the streak of anyone who did not participate at all.
    *
    * Sitting a giveaway out breaks the streak just like participating and
-   * missing the bar — otherwise a run of qualifying giveaways with gaps in it
+   * missing the bar: otherwise a run of qualifying giveaways with gaps in it
    * would still reach four, which is not what "consecutive" means. Rows already
    * at zero are skipped so this doesn't rewrite the whole table every draw.
    */
@@ -2144,7 +2144,7 @@ function aggregateTickets(
 
 /**
  * Tally completed engagements onto participants who hold a valid ticket,
- * splitting Boosts from Featured Offers by `type` (spec §7, §8).
+ * splitting Boosts from Featured Offers by `type` (spec 7, 8).
  */
 function countEngagements(
   participation: Map<UserKey, Participation>,
@@ -2166,13 +2166,13 @@ function countEngagements(
 }
 
 /**
- * Whether the giveaway is in a state that permits a draw to run (spec §19).
+ * Whether the giveaway is in a state that permits a draw to run (spec 19).
  *
  * A completed or cancelled draw is never repeatable. An interrupted or failed
- * one can only be continued as an authorized resumption — re-running it fresh
+ * one can only be continued as an authorized resumption: re-running it fresh
  * would re-process tiers that already awarded prizes, handing a second prize
- * to existing winners and breaking §13. That authorization is a separate,
- * recorded act (`authorizeResumption`), which is how §19's "prevent ordinary
+ * to existing winners and breaking 13. That authorization is a separate,
+ * recorded act (`authorizeResumption`), which is how 19's "prevent ordinary
  * users from restarting draw" is enforced: wanting to resume is not enough,
  * the giveaway has to have been moved to RESUMPTION_AUTHORIZED first.
  */
@@ -2284,12 +2284,12 @@ function applyStreaks(
 const EMPTY_HISTORY: UserDrawHistory = { outcomes: [] };
 
 /**
- * Users who may compete for this tier (spec §12 step 1).
+ * Users who may compete for this tier (spec 12 step 1).
  *
  * Three gates, in order: they must not already hold a prize from this giveaway
- * (§13); they must clear the fairness cooldowns (§22.1–22.3); and they must
- * meet the tier's eligibility thresholds (§11) — relaxed by the loyalty waiver
- * where §22.4 grants one.
+ * (13); they must clear the fairness cooldowns (22.1-22.3); and they must
+ * meet the tier's eligibility thresholds (11): relaxed by the loyalty waiver
+ * where 22.4 grants one.
  *
  * Fairness is checked before eligibility so the exclusion reported is the
  * meaningful one: telling an administrator a user is serving a Tier 1 cooldown
@@ -2302,7 +2302,7 @@ function buildCandidatePool(
   histories: Map<UserKey, UserDrawHistory>
 ): {
   candidates: Set<UserKey>;
-  /** Count of users barred by each §22 rule, for the audit log. */
+  /** Count of users barred by each 22 rule, for the audit log. */
   fairnessExclusions: Map<string, number>;
   loyaltyWaivers: Set<UserKey>;
 } {

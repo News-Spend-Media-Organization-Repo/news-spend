@@ -3,12 +3,12 @@
  *
  * Tier 2 is the one tier no draw has ever awarded, anywhere. Tier 1 was proven
  * with a dedicated fixture and Tier 3 by every other test; Tier 2 sat between
- * them, its eligibility path (§11) never once walked end to end.
+ * them, its eligibility path (11) never once walked end to end.
  *
  * TIERS 1 AND 3 ARE SET TO ZERO, which is what makes this a test of Tier 2
  * rather than a draw that happens to include it. A tier at 0% is skipped
  * entirely and needs no prize pool, so the only prize that can leave this
- * giveaway is the Tier 2 one — if anything else is awarded, the tier routing
+ * giveaway is the Tier 2 one; if anything else is awarded, the tier routing
  * is wrong, and that is worth knowing.
  *
  * Tier 2 at 100% because the point is to reach the tier deterministically with
@@ -36,7 +36,7 @@ const PRIZE_NAME = "1,500 Dream Points";
 async function main() {
   const payload = await getPayload();
 
-  console.log(`\n${WRITE ? "WRITE" : "DRY RUN — nothing will be changed"}\n`);
+  console.log(`\n${WRITE ? "WRITE" : "DRY RUN: nothing will be changed"}\n`);
 
   const active = await payload.find({
     collection: "giveaways",
@@ -64,7 +64,7 @@ async function main() {
   const prize = found.docs[0];
   if (!prize) {
     console.log(
-      `  MISSING  ${PRIZE_NAME} is not in the catalogue — run seed-giveaway-fixtures first.\n`
+      `  MISSING  ${PRIZE_NAME} is not in the catalogue; run seed-giveaway-fixtures first.\n`
     );
     return;
   }
@@ -80,7 +80,7 @@ async function main() {
   const giveaway = await payload.create({
     collection: "giveaways",
     data: {
-      name: `Tier 2 test — ${new Date().toISOString().slice(0, 10)}`,
+      name: `Tier 2 test: ${new Date().toISOString().slice(0, 10)}`,
       status: "active",
       startDate: new Date(now - HOUR).toISOString(),
       endDate: new Date(now + 7 * 24 * HOUR).toISOString(),

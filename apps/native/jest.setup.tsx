@@ -1,9 +1,9 @@
-// react-native-edge-to-edge — native module for system bars
+// react-native-edge-to-edge: native module for system bars
 jest.mock("react-native-edge-to-edge", () => ({
   SystemBars: ({ children }: any) => children,
 }));
 
-// uniwind — styling hooks
+// uniwind: styling hooks
 jest.mock("uniwind", () => ({
   useUniwind: jest.fn(() => ({ theme: "light" })),
   useCSSVariable: jest.fn(() => "#000000"),
@@ -30,7 +30,7 @@ jest.mock("react-native-safe-area-context", () => ({
   },
 }));
 
-// phosphor-react-native — icon library
+// phosphor-react-native: icon library
 jest.mock("phosphor-react-native", () => {
   const MockIcon = ({ ...props }: any) => null;
   return {
@@ -40,7 +40,7 @@ jest.mock("phosphor-react-native", () => {
   };
 });
 
-// #/components/heroui/toast — toast notifications
+// #/components/heroui/toast: toast notifications
 jest.mock("#/components/heroui/toast", () => {
   const toast = jest.fn();
   toast.show = jest.fn();

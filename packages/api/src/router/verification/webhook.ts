@@ -6,17 +6,17 @@ import {
 import { recordDecision } from "@news-spend-media/payload/lib/giveaway/verification";
 
 /**
- * Didit's verification webhook (spec §16).
+ * Didit's verification webhook (spec 16).
  *
- * This endpoint is unauthenticated in the usual sense — Didit has no session
- * with us — so the HMAC signature is the ONLY thing standing between a forged
+ * This endpoint is unauthenticated in the usual sense: Didit has no session
+ * with us, so the HMAC signature is the ONLY thing standing between a forged
  * request and a released prize. Nothing is read out of the body before the
  * signature has been checked.
  *
  * Status codes matter more than usual here. A sender that gets a non-2xx will
  * retry, so 2xx is returned for anything we have finished dealing with, even
  * when the answer is "this means nothing to us". Only a failed signature gets
- * 401, and only a genuine server fault gets 5xx — those are the two cases
+ * 401, and only a genuine server fault gets 5xx: those are the two cases
  * where a retry is the right behaviour.
  */
 export async function diditWebhookHandler(req: Request): Promise<Response> {
@@ -58,7 +58,7 @@ export async function diditWebhookHandler(req: Request): Promise<Response> {
   const sessionId = body.session_id ? String(body.session_id) : null;
   const status = body.status ? String(body.status) : null;
   // We put our own user id in `vendor_data` when the session was created, and
-  // the signature covers the session id it arrived with — so this is the one
+  // the signature covers the session id it arrived with, so this is the one
   // identity in the payload we are entitled to trust.
   const userId = body.vendor_data ? String(body.vendor_data) : null;
 

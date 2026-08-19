@@ -5,13 +5,13 @@ import type { UIFieldClientComponent } from "payload";
 import { useState } from "react";
 
 /**
- * Runs — or resumes — the draw for the giveaway open in the admin.
+ * Runs (or resumes) the draw for the giveaway open in the admin.
  *
  * Two reasons this exists rather than leaving everything to the hourly sweep.
  * A draw that needs running early, or re-running after a failure, otherwise has
  * no control at all; and more seriously, the sweep only ever selects giveaways
  * whose status is `active`, so a draw an administrator has authorized to resume
- * (§19) is picked up by nothing. This is its only execution path.
+ * (19) is picked up by nothing. This is its only execution path.
  *
  * The states below are a courtesy, not a security boundary or the rule set. The
  * endpoint re-checks the role and hands the whole decision to the engine's own
@@ -130,13 +130,13 @@ export const RunGiveawayDraw: UIFieldClientComponent = () => {
   }
 
   /**
-   * §19 — a stopped draw is not restartable, only resumable, and only once an
+   * 19: a stopped draw is not restartable, only resumable, and only once an
    * administrator has authorized it. So this offers authorization, never a
    * restart: restarting would re-draw tiers that already have winners.
    *
    * It goes through the endpoint rather than setting the status field directly
    * because the engine stamps who authorized it and when, and writes the audit
-   * entry §19 asks for. Editing the select reaches the same status and records
+   * entry 19 asks for. Editing the select reaches the same status and records
    * none of that.
    */
   if (resolvedStatus && ["interrupted", "failed"].includes(resolvedStatus)) {
@@ -145,7 +145,7 @@ export const RunGiveawayDraw: UIFieldClientComponent = () => {
         <p className="field-description">
           This draw stopped part-way through ({resolvedStatus})
           {lastCheckpoint ? `, after ${lastCheckpoint}` : ""}. Authorizing it
-          continues from that checkpoint — it cannot be restarted, or the tiers
+          continues from that checkpoint. It cannot be restarted, or the tiers
           already drawn would be drawn again.
         </p>
         <Button

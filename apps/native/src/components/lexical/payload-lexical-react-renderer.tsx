@@ -89,12 +89,12 @@ export function PayloadLexicalReactRenderer<
         return elementRenderers.horizontalrule();
       }
 
-      // Relationship nodes — skip silently. Override via a custom elementRenderer if needed.
+      // Relationship nodes: skip silently. Override via a custom elementRenderer if needed.
       if (node.type === "relationship") {
         return null;
       }
 
-      // Unknown node — warn in dev, skip silently in prod so new Payload node
+      // Unknown node: warn in dev, skip silently in prod so new Payload node
       // types don't crash the renderer.
       if (__DEV__) {
         console.warn(
@@ -221,7 +221,7 @@ export function PayloadLexicalReactRenderer<
           );
         }
 
-        // ── List — pass listType down to listitem children ────────────────────
+        // ── List: pass listType down to listitem children ────────────────────
         if (node.type === "list") {
           const serializedChildren = serialize(node.children, node.listType);
           return (
@@ -231,7 +231,7 @@ export function PayloadLexicalReactRenderer<
           );
         }
 
-        // ── List item — inject parentListType so renderer knows bullet vs number
+        // ── List item: inject parentListType so renderer knows bullet vs number
         if (node.type === "listitem") {
           const nodeWithListType = parentListType
             ? { ...node, listType: parentListType }
@@ -257,7 +257,7 @@ export function PayloadLexicalReactRenderer<
     [renderElement, renderText, renderBlock]
   );
 
-  // Serializing walks the whole document tree recursively — memoize so
+  // Serializing walks the whole document tree recursively; memoize so
   // unrelated re-renders of the screen don't rebuild the article JSX.
   const rendered = React.useMemo(
     () => serialize(content?.root?.children),

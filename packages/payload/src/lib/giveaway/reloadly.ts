@@ -1,9 +1,9 @@
 /**
- * Reloadly top-ups client (spec §15).
+ * Reloadly top-ups client (spec 15).
  *
  * Only the airtime/data product is covered. Reloadly scopes an access token to
- * one product — a token minted for gift cards is rejected by the top-ups API
- * and vice versa — so adding gift cards later means a second audience and a
+ * one product (a token minted for gift cards is rejected by the top-ups API
+ * and vice versa), so adding gift cards later means a second audience and a
  * second cached token, not another call on this client.
  */
 
@@ -85,7 +85,7 @@ export class ReloadlyError extends Error {
    * The case that matters: a run that succeeds at Reloadly and then dies
    * before recording it. The retry sends the same identifier, Reloadly
    * refuses it, and treating that as a failure would either strand the prize
-   * or — if the identifier were regenerated — pay the winner twice.
+   * or (if the identifier were regenerated) pay the winner twice.
    */
   get isAlreadySent(): boolean {
     return this.status === 400 && DUPLICATE_IDENTIFIER.test(this.message);
@@ -192,8 +192,8 @@ export class ReloadlyClient {
         (body as { message?: string } | null)?.message ??
         `Reloadly request failed (${response.status})`;
 
-      // 4xx means the request itself is wrong — a bad number, an amount the
-      // operator will not accept — and will fail identically forever.
+      // 4xx means the request itself is wrong (a bad number, an amount the
+      // operator will not accept) and will fail identically forever.
       throw new ReloadlyError(
         message,
         response.status,

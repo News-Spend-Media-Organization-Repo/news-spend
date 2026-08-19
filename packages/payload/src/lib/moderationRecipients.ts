@@ -100,7 +100,7 @@ const FLOOR_ROLES = new Set(["super-admin"]);
 /**
  * Guarantees moderation email always has somewhere to go.
  *
- * Individual opt-out is deliberately allowed — a Content Manager muting
+ * Individual opt-out is deliberately allowed: a Content Manager muting
  * themselves while colleagues stay on rotation is legitimate. Everyone opting
  * out at once is not: it would silently disable the notification path this app
  * tells App Review guarantees reports get acted on, with nothing on screen to
@@ -180,14 +180,14 @@ export async function resolveModerationRecipients(
   if (floorEngaged) {
     payload.logger.warn(
       { tier, recipientCount: recipients.length },
-      "Moderation alert safety floor engaged — every configured recipient has opted out, so super-admins were notified regardless of their preference. Review Alert Recipients in Moderation Settings."
+      "Moderation alert safety floor engaged: every configured recipient has opted out, so super-admins were notified regardless of their preference. Review Alert Recipients in Moderation Settings."
     );
   }
 
   if (recipients.length === 0) {
     payload.logger.error(
       { tier, adminCount: adminDocs.length },
-      "No moderation alert recipients resolved — moderation email will not be delivered. Configure Alert Recipients in Moderation Settings, set an admin's Moderation Alerts preference, or set MODERATION_ALERT_EMAILS."
+      "No moderation alert recipients resolved; moderation email will not be delivered. Configure Alert Recipients in Moderation Settings, set an admin's Moderation Alerts preference, or set MODERATION_ALERT_EMAILS."
     );
   }
 

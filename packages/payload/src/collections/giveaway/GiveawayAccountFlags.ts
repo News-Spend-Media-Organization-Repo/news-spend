@@ -3,9 +3,9 @@ import type { CollectionConfig } from "payload";
 import { ACCOUNT_TRUST_STATUS_OPTIONS, ADMIN_GROUP } from "./constants";
 
 /**
- * Account-level trust flags for the giveaway (spec §22.5–22.8).
+ * Account-level trust flags for the giveaway (spec 22.5–22.8).
  *
- * One row per *flagged* account, not per user — the overwhelming majority of
+ * One row per *flagged* account, not per user: the overwhelming majority of
  * accounts are never flagged, so an unflagged user simply has no row here and
  * is treated as trusted.
  *
@@ -17,10 +17,10 @@ import { ACCOUNT_TRUST_STATUS_OPTIONS, ADMIN_GROUP } from "./constants";
  * Two distinct effects, per the specification:
  *
  * - `disqualified` and any `duplicateAccountGroup` are excluded from the
- *   candidate pool before selection (§22.5, §22.6), so they can never win.
- * - `suspicious` accounts are *not* excluded (§22.7, §22.8). They take part
+ *   candidate pool before selection (22.5, 22.6), so they can never win.
+ * - `suspicious` accounts are *not* excluded (22.7, 22.8). They take part
  *   normally, and if one wins, the prize is held for manual review. The draw
- *   is never rerun and the selection is never altered — the specification is
+ *   is never rerun and the selection is never altered. The specification is
  *   explicit that suspicion must not change the algorithm.
  */
 export const GiveawayAccountFlags: CollectionConfig = {
@@ -69,7 +69,7 @@ export const GiveawayAccountFlags: CollectionConfig = {
       index: true,
       admin: {
         description:
-          "Identifier shared by accounts judged to belong to the same person. Every account in a group is excluded from the pool (§22.6).",
+          "Identifier shared by accounts judged to belong to the same person. Every account in a group is excluded from the pool (22.6).",
       },
     },
     {

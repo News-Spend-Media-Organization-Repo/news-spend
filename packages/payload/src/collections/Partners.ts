@@ -235,7 +235,7 @@ export const Partners: CollectionConfig = {
            * `req` is passed so this runs inside the transaction that created
            * the partner. Without it the update opens its own connection, which
            * cannot see the uncommitted row, and every attempt to create a
-           * webhook or postback partner fails with "Not Found" — the create is
+           * webhook or postback partner fails with "Not Found". The create is
            * rolled back and the partner never exists.
            */
           await req.payload.update({

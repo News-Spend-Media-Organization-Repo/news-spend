@@ -51,13 +51,13 @@ function LuckyAppWall() {
    * The shared hook, not a local opener.
    *
    * This screen used to call `Linking.openURL` directly, which meant the one
-   * surface that produces Featured Offers (§8) recorded nothing when an offer
-   * was opened. §8 counts partner-confirmed conversions, a conversion needs a
-   * click id, and a click id only exists if `trackClick` ran — so no Featured
+   * surface that produces Featured Offers (section 8) recorded nothing when an offer
+   * was opened. Section 8 counts partner-confirmed conversions, a conversion needs a
+   * click id, and a click id only exists if `trackClick` ran. No Featured
    * Offer could ever be earned, and Tier 1 and Tier 2, which both require one,
    * were unreachable for everybody.
    *
-   * Every other partner surface — the all, books and apps tabs — already uses
+   * Every other partner surface (the all, books and apps tabs) already uses
    * this hook. This one was the exception.
    */
   const { handleClick } = usePartnerClick();

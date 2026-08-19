@@ -50,11 +50,11 @@ export type PartnerAdDialogProps = {
   /**
    * Pin the rotation to one kind of advertisement instead of sampling it.
    *
-   * For callers that must know in advance whether an ad can be shown — the
+   * For callers that must know in advance whether an ad can be shown: the
    * giveaway reveal sequences itself around the answer.
    */
   preferAdType?: "custom" | "native";
-  /** Serving this so a Boost can be earned — see `usePartnerAd`. */
+  /** Serving this so a Boost can be earned; see `usePartnerAd`. */
   forBoost?: boolean;
 };
 
@@ -94,8 +94,8 @@ export function PartnerAdDialog({
    *
    * The trigger path checks this inside `handleOpenChange` before opening. An
    * external `open` never goes through that path, so a caller that sets it
-   * while the rotation is on a Google ad — or before any partner item has
-   * loaded — used to get a modal with nothing in it. The check lives here,
+   * while the rotation is on a Google ad (or before any partner item has
+   * loaded), used to get a modal with nothing in it. The check lives here,
    * where both paths meet.
    */
   const showable = adType === "custom" && Boolean(ad);
@@ -105,9 +105,9 @@ export function PartnerAdDialog({
   /**
    * The completed ad is handed to the caller, not just the fact of completion.
    *
-   * A giveaway Boost is recorded against the specific partner item watched —
-   * three boosts means three different items, and the engine refuses a repeat
-   * — so a caller that only learns "an ad finished" has nothing to record.
+   * A giveaway Boost is recorded against the specific partner item watched.
+   * Three boosts means three different items, and the engine refuses a repeat,
+   * so a caller that only learns "an ad finished" has nothing to record.
    * A Google ad has no partner-content record, so it reports `undefined` and
    * the caller decides what that is worth.
    */

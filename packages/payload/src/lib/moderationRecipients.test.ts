@@ -224,7 +224,7 @@ describe("applyRecipientFloor", () => {
     const selected = selectRecipients(admins, "digest", settings);
     const result = applyRecipientFloor(admins, selected);
 
-    // The opt-out is still honoured — the floor is about total silence only.
+    // The opt-out is still honoured; the floor is about total silence only.
     expect(result).toEqual({ recipients: ["cm@x.com"], floorEngaged: false });
   });
 

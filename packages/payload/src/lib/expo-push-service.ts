@@ -26,8 +26,8 @@ const NOTIFICATION_TYPE_TO_PREFERENCE: Record<string, string | undefined> = {
 /**
  * Android notification channel to deliver on (registered client-side in
  * usePushNotification.tsx). "comment" notifications cover two different
- * kinds of activity — a reply (data.kind: "reply") and a like
- * (data.kind: "like") — which get their own channels so a user can turn
+ * kinds of activity: a reply (data.kind: "reply") and a like
+ * (data.kind: "like"), which get their own channels so a user can turn
  * down low-signal like notifications on Android without also muting
  * replies, while still sharing the same COMMENT preference toggle that
  * gates whether either is sent at all. Everything else falls back to the
@@ -52,7 +52,7 @@ function resolveChannelId(notification: Notification): string {
  * updates each returned token's row sequentially within its own job. Without
  * a deterministic order, two concurrent jobs whose token sets overlap could
  * acquire those row locks in different relative orders and deadlock in
- * Postgres — sorting guarantees every job walks overlapping rows in the same
+ * Postgres. Sorting guarantees every job walks overlapping rows in the same
  * order, so a circular wait can't form.
  */
 async function resolveTokens(

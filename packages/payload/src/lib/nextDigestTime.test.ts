@@ -23,7 +23,7 @@ describe("nextDigestTime", () => {
 
   it("uses the Lagos calendar date, not the UTC one", () => {
     // 23:30 UTC on the 10th is already 00:30 on the 11th in Lagos, so the next
-    // digest is the 11th's slot — same instant either way, but the date parts
+    // digest is the 11th's slot; same instant either way, but the date parts
     // must come from the Lagos calendar for the arithmetic to hold.
     const result = nextDigestTime(new Date("2026-08-10T23:30:00Z"));
 

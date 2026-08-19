@@ -13,7 +13,7 @@ import type { BasePayload } from "payload";
  *
  * Schema comes from Drizzle's push, not from the migration files: the point is
  * to test the collections as currently configured, and push builds exactly
- * that. It is also why `NODE_ENV` must not be `production` here — see
+ * that. It is also why `NODE_ENV` must not be `production` here; see
  * `@payloadcms/db-postgres`'s connect, which swaps push for `prodMigrations`.
  */
 
@@ -35,8 +35,8 @@ const TEST_RESEND_KEY = "re_test_not_a_real_key";
  * Deliberately called AFTER the Payload config has been imported, not straight
  * after `stubEnv`. Called there it would only re-read the assignment two lines
  * above and could never fail; the window worth checking is module
- * initialisation, where a transitive import can re-read `.env` — which is where
- * the live key lives — and undo the stub before anything sends.
+ * initialisation, where a transitive import can re-read `.env` (which is where
+ * the live key lives) and undo the stub before anything sends.
  *
  * This is the third line of defence, not the first. The overwrite is what
  * prevents a send, the injected `reportSender` keeps tests off that path
@@ -50,7 +50,7 @@ function assertNoLiveMailKey(): void {
     throw new Error(
       `Refusing to run: RESEND_API_KEY is "${key?.slice(0, 7) ?? "unset"}…", not the test key. ` +
         "Something re-read the environment during config import. A live key here " +
-        "can mail the Winner Report to a real inbox — see test/README.md."
+        "can mail the Winner Report to a real inbox; see test/README.md."
     );
   }
 }
@@ -90,7 +90,7 @@ async function ensureDatabase(uri: string): Promise<void> {
       select 1 from pg_database where datname = ${name}`;
 
     if (existing.length === 0) {
-      // Identifier, so it cannot be parameterised — safe because the name has
+      // Identifier, so it cannot be parameterised; safe because the name has
       // already been checked against the single permitted value above.
       await admin.unsafe(`CREATE DATABASE "${name}"`);
     }
@@ -104,8 +104,8 @@ async function ensureDatabase(uri: string): Promise<void> {
  *
  * Every one of these is OVERWRITTEN, never defaulted. Bun loads `.env` from the
  * working directory before any of this runs, and `packages/payload/.env` holds
- * a live Resend key — so a `||=` here quietly leaves the real credential in
- * place. A completed draw sends the §21 Winner Report to a real address, which
+ * a live Resend key, so a `||=` here quietly leaves the real credential in
+ * place. A completed draw sends the section 21 Winner Report to a real address, which
  * is exactly what happened the first time this file was written with `||=`.
  *
  * Nothing here reaches a network. A test that genuinely needs to assert on mail
@@ -118,7 +118,7 @@ function stubEnv(uri: string): void {
   process.env.RESEND_DEFAULT_FROM_ADDRESS = "test@example.invalid";
   process.env.RESEND_DEFAULT_FROM_NAME = "Integration Test";
   /**
-   * The Winner Report does not use Payload's email adapter at all — it goes
+   * The Winner Report does not use Payload's email adapter at all; it goes
    * through `packages/mail`, whose from address is built from SMTP_USER_FROM
    * and defaults to a real newsspend.com address. Stubbed so no test process
    * ever holds the production sender, even though a rejected key already stops

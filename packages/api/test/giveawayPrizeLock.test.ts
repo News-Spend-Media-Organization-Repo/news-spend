@@ -8,7 +8,7 @@ type Row = Record<string, any>;
  *
  * The engine's own tests run on a fake Payload that never invokes collection
  * hooks, so the engine and this lock had never met until a real draw ran on a
- * real database — where the lock stopped the engine one write after the first
+ * real database, where the lock stopped the engine one write after the first
  * winner, and the draw could not complete. These tests put the two together.
  */
 const hook = (GiveawayPrizes.hooks?.beforeValidate as any[])[0];
@@ -100,7 +100,7 @@ describe("giveaway-prizes pool lock", () => {
   });
 
   it("does not let the engine flag bypass the catalogue tier rule", async () => {
-    // The exemption is for the lock alone. Everything §4 enforces about which
+    // The exemption is for the lock alone. Everything section 4 enforces about which
     // tier a prize may be selected under still applies.
     const req = createReq({ status: "draw_in_progress", engine: true });
 

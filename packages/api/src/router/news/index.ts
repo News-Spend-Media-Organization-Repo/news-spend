@@ -224,7 +224,7 @@ const recordView = publicProcedure
       // use EX and NX to atomically check-and-set
       const res = await r.set(dedupeKey, "1", "EX", String(ttl), "NX");
       if (res === null) {
-        // already viewed recently — do not increment
+        // already viewed recently, do not increment
         incremented = false;
       }
     } catch {
@@ -235,11 +235,11 @@ const recordView = publicProcedure
     if (incremented) {
       // Raw SQL (not payload.update) on purpose: news is a drafts/versions
       // collection, and a normal update writes a new _news_v snapshot on
-      // every call — meaning every article view was generating a junk
+      // every call, meaning every article view was generating a junk
       // editorial-history entry. It was also a non-atomic read-then-write
       // (data: { views: (doc.views ?? 0) + 1 }), so concurrent viewers could
       // race and lose an increment. Raw SQL is a single atomic UPDATE and
-      // bypasses Payload's hooks/versioning entirely — the one afterChange
+      // bypasses Payload's hooks/versioning entirely. The one afterChange
       // hook on News (sendNotificationOnCreate) already no-ops on repeat
       // updates via doc.hasBeenPublished, so skipping it here changes nothing.
       const { sql } = await import("@payloadcms/db-postgres");
@@ -264,7 +264,7 @@ const home = publicProcedure
     const limit = input?.limit || 12;
     const page = input?.page || 1;
 
-    // 1. Fetch main news with cache (90s TTL) — this is the heaviest query
+    // 1. Fetch main news with cache (90s TTL), the heaviest query
     const news = await withCache(
       `news:home:${page}:${limit}`,
       { ttl: 90 },
@@ -405,7 +405,7 @@ const likeDislikeInput = z.object({
 
 /**
  * Shared response shape returned by like/dislike. The client uses this to
- * reconcile the optimistic cache write with server truth — no refetch needed,
+ * reconcile the optimistic cache write with server truth, so no refetch is needed,
  * so the icon doesn't get clobbered by a stale read.
  */
 type ReactionResponse = {

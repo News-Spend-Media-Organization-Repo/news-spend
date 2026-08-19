@@ -44,10 +44,10 @@ type RecordAttempt = (data: {
 }) => Promise<unknown>;
 
 /**
- * Pay out claimed airtime and data prizes (spec §15).
+ * Pay out claimed airtime and data prizes (spec 15).
  *
  * Only touches winners whose prize is delivered by the provider and whose
- * fulfilment is `pending` — a prize on hold, awaiting verification, or already
+ * fulfilment is `pending`, a prize on hold, awaiting verification, or already
  * fulfilled is deliberately out of scope, so the states that stop a dispatch
  * keep stopping it.
  *
@@ -135,7 +135,7 @@ function defaultClient(payload: BasePayload): ReloadlyClient | null {
 
   if (!config) {
     payload.logger.warn(
-      "[giveaway] Reloadly is not configured — airtime and data prizes will wait"
+      "[giveaway] Reloadly is not configured: airtime and data prizes will wait"
     );
     return null;
   }
@@ -147,7 +147,7 @@ type Outcome = "sent" | "failed" | "skipped";
 
 /**
  * The prize cannot be sent as configured, and no amount of retrying changes
- * that — held immediately rather than run through the provider's retry
+ * that, held immediately rather than run through the provider's retry
  * classification, which has nothing to say about a decision made entirely on
  * this side.
  */
@@ -158,7 +158,7 @@ class UnresolvablePlanError extends Error {}
  *
  * Deliberately not matched on `operatorId`. Reloadly's sandbox and live
  * catalogues are separate lists and an id that means "MTN Nigeria" in one is
- * not promised to mean anything in the other — so an id-based map silently
+ * not promised to mean anything in the other, so an id-based map silently
  * stops working the day the environment switches, and if an id happens to be
  * reused for a different network it resolves to the wrong one and sends an MTN
  * bundle to an Airtel SIM. The operator's name survives that switch.
@@ -272,7 +272,7 @@ async function fulfilOne(
 }
 
 /**
- * Airtime needs only an amount configured by a person — the network itself is
+ * Airtime needs only an amount configured by a person: the network itself is
  * detected from the winner's phone number at send time, since airtime (unlike
  * data) is not locked to a specific carrier's own SIMs the same way.
  */
@@ -297,7 +297,7 @@ async function resolveAirtimeTopup(
  * Match the winner's actual network to a data plan configured for it.
  *
  * A data bundle is provisioned by one specific network for that network's own
- * SIMs — an MTN bundle does nothing for an Airtel winner. So the winner's real
+ * SIMs; an MTN bundle does nothing for an Airtel winner. So the winner's real
  * network is detected from their phone number, exactly as for airtime, and
  * then looked up against the rows a person configured on the prize. A network
  * with no configured row is held for review rather than sent a different
@@ -349,7 +349,7 @@ async function handleFailure(
   /**
    * The provider recognised the identifier, which means the money already
    * went out on an earlier pass that died before recording it. Marking it
-   * fulfilled is the correct reading — the alternative is a prize that looks
+   * fulfilled is the correct reading: the alternative is a prize that looks
    * unpaid forever and a winner who has already been paid.
    */
   if (error instanceof ReloadlyError && error.isAlreadySent) {
@@ -396,7 +396,7 @@ async function handleFailure(
      *
      * `in_progress` is a claim, not a label: the sweep selects `pending`, so a
      * prize left `in_progress` after a failure is invisible to every future
-     * pass — retryable in name and abandoned in fact. This is the line that
+     * pass, retryable in name and abandoned in fact. This is the line that
      * makes the retry real, and it must stay paired with the claim above.
      */
     await payload.update({
@@ -414,7 +414,7 @@ async function handleFailure(
  * Take a prize out of the queue and put it in front of a person.
  *
  * Both the administrator and the winner are told. Only the administrator was,
- * until now, and the winner is the one who may be able to fix the cause — a
+ * until now, and the winner is the one who may be able to fix the cause: a
  * mistyped phone number is the commonest reason a payout is rejected, and it
  * is invisible from the inside.
  */

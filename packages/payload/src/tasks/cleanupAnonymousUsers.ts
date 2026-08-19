@@ -62,9 +62,7 @@ export const cleanupAnonymousUsersTask: TaskConfig<"cleanupAnonymousUsers"> = {
         );
         const hasActiveSession = result.rows.length > 0;
         if (hasActiveSession) {
-          logger.info(
-            `Skipping anonymous user ${user.id} — has active session`
-          );
+          logger.info(`Skipping anonymous user ${user.id}: has active session`);
           continue;
         }
 

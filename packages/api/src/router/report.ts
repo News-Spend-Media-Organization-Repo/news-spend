@@ -16,7 +16,7 @@ import { rateLimitedPublicProcedure } from "../index";
  * The single-or-many handling is kept deliberately: a form with one file
  * attached sends one value rather than a list, and `zfd.repeatableOfType`
  * smoothed that over. Dropping it would break a report with exactly one
- * attachment — the most common kind.
+ * attachment, the most common kind.
  */
 const ReportInput = z.object({
   name: z.string().min(1),

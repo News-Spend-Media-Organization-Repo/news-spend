@@ -19,7 +19,7 @@ export function othersInDraw(
  * The sealed card's one line about what this person had riding on the draw.
  *
  * Kept out of the component so the arithmetic and the pluralisation can be
- * tested without rendering a dialog — both were wrong in the first version,
+ * tested without rendering a dialog, since both were wrong in the first version,
  * and neither is the sort of thing anyone re-reads once it looks roughly
  * right on screen.
  */

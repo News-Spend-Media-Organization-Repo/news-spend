@@ -86,7 +86,7 @@ async function handleApi(req: Request) {
   const result = await apiHandler.handle(req, { prefix: "/api", context });
   if (result.matched) {
     // new Headers(...) rather than Object.fromEntries(...entries()), which
-    // collapses repeated headers — auth responses can carry several Set-Cookie
+    // collapses repeated headers. Auth responses can carry several Set-Cookie
     const headers = new Headers(result.response.headers);
     for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
       headers.set(key, value);
@@ -187,7 +187,7 @@ function withCors(response: Response, origin: string | null): Response {
  * Credential scanners sweep for dotfiles (.env, .git/config, .ssh/id_rsa,
  * .claude.json, ...). Nothing here serves files, but an /api/-prefixed probe
  * would otherwise reach createContext and cost a session lookup to 404.
- * .well-known is exempt — it is a real path better-auth can serve under.
+ * .well-known is exempt; it is a real path better-auth can serve under.
  */
 function isDotfileProbe(pathname: string): boolean {
   return pathname
@@ -237,8 +237,8 @@ const staticRoutes = {
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || "development",
       // rss climbing while heapUsed stays flat means the growth is native
-      // (allocator/runtime) rather than anything the JS heap is holding —
-      // that distinction is what tells us whether a memory issue is ours
+      // (allocator/runtime) rather than anything the JS heap is holding.
+      // That distinction is what tells us whether a memory issue is ours
       memory: {
         rssMb: mb(mem.rss),
         heapTotalMb: mb(mem.heapTotal),
@@ -374,7 +374,7 @@ appLogger.info(
 );
 
 // Periodic memory sample. Railway graphs RSS only, which cannot distinguish
-// native/allocator retention from the JS heap holding objects — the split is
+// native/allocator retention from the JS heap holding objects, the split is
 // what says whether a memory problem is ours. uptimeH is included so a restart
 // shows up in the series instead of having to be inferred from a reset counter.
 const MEMORY_SAMPLE_INTERVAL_MS = Number(

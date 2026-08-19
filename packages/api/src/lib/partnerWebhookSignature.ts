@@ -32,8 +32,8 @@ function hexEquals(expected: string, received: string): boolean {
  * added an optional field, and a partner integration that breaks on our
  * deploys is one that gets disabled rather than fixed.
  *
- * The timestamp is inside the signed string, not merely alongside it —
- * otherwise it could be rewritten freely and the replay window would mean
+ * The timestamp is inside the signed string, not merely alongside it.
+ * Otherwise it could be rewritten freely and the replay window would mean
  * nothing.
  */
 export function canonicalString(input: {
@@ -49,8 +49,8 @@ export function canonicalString(input: {
  *
  * Until this existed the endpoint took anyone's word for it. `clickId` is
  * handed to the app so it can build the redirect, so a user could read their
- * own and post it back to award themselves points and — because a conversion
- * is what records a Featured Offer (§8) — Tier 1 and Tier 2 eligibility. No
+ * own and post it back to award themselves points and, because a conversion
+ * is what records a Featured Offer (8), Tier 1 and Tier 2 eligibility. No
  * partner needed to be involved at all.
  */
 export function verifyPartnerSignature({

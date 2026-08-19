@@ -8,7 +8,7 @@ import { ORPCError } from "@orpc/server";
 import { protectedNoGuestProcedure } from "../index";
 
 /**
- * Identity verification for the winner of a prize that requires it (spec §16).
+ * Identity verification for the winner of a prize that requires it (spec 16).
  *
  * Guests are excluded throughout: a verification has to attach to an account
  * that will still exist when the prize ships.

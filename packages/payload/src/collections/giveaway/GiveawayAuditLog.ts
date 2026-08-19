@@ -3,7 +3,7 @@ import type { CollectionConfig } from "payload";
 import { ADMIN_GROUP_RECORDS, AUDIT_EVENT_TYPE_OPTIONS } from "./constants";
 
 /**
- * Immutable audit log for all giveaway activity (spec §17, §18).
+ * Immutable audit log for all giveaway activity (spec 17, 18).
  *
  * Records are append-only: once written they cannot be edited or deleted
  * through the API or the admin UI.
@@ -62,7 +62,7 @@ export const GiveawayAuditLog: CollectionConfig = {
       name: "detail",
       type: "json",
       admin: {
-        description: "Structured event payload — counts, IDs, seeds, errors.",
+        description: "Structured event payload: counts, IDs, seeds, errors.",
       },
     },
     {

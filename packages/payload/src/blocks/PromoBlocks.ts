@@ -79,7 +79,7 @@ export const PromoVideoSourceBlock: Block = {
       },
     },
     {
-      // Hidden fingerprint — tracks what the thumbnail was generated from
+      // Hidden fingerprint: tracks what the thumbnail was generated from
       name: "thumbnailSource",
       type: "text",
       admin: {

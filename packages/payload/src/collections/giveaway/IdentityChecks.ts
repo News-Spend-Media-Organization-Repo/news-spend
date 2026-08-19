@@ -4,7 +4,7 @@ import { DIDIT_STATUSES } from "../../lib/giveaway/didit";
 import { ADMIN_GROUP_RECORDS } from "./constants";
 
 /**
- * Identity verification decisions from Didit (spec §16).
+ * Identity verification decisions from Didit (spec 16).
  *
  * Deliberately holds no documents. The provider keeps the passport photo and
  * the selfie; this side keeps a session id and a decision, which is everything
@@ -27,7 +27,7 @@ export const IdentityChecks: CollectionConfig = {
     useAsTitle: "id",
     defaultColumns: ["user", "status", "provider", "decidedAt", "updatedAt"],
     description:
-      "Identity decisions from the verification provider. No documents are stored here — the provider holds those.",
+      "Identity decisions from the verification provider. No documents are stored here: the provider holds those.",
   },
   access: {
     // A decision releases money's worth of prizes, so nothing outside the
@@ -105,7 +105,7 @@ export const IdentityChecks: CollectionConfig = {
       type: "textarea",
       admin: {
         description:
-          "Anything a person needs to know — a declined reason, or why a decision was overridden.",
+          "Anything a person needs to know: a declined reason, or why a decision was overridden.",
       },
     },
   ],

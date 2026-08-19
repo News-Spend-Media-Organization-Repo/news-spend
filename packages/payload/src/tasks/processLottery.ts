@@ -31,14 +31,14 @@ async function processExpiredLotteries(payload: BasePayload): Promise<number> {
     );
 
     // Pass the id explicitly. Called with no argument, runLottery re-queries for
-    // whichever lottery is active and takes the first result — not necessarily
+    // whichever lottery is active and takes the first result, not necessarily
     // the one being iterated here, so with more than one active it would draw
     // one lottery and deactivate another.
     const result = await new LotteryEngine(payload).runLottery(lottery.id);
 
     if ("alreadyProcessed" in result && result.alreadyProcessed) {
       logger.info(
-        `Lottery ${lottery.id} was already drawn — skipping notification`
+        `Lottery ${lottery.id} was already drawn, skipping notification`
       );
       continue;
     }

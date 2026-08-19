@@ -19,7 +19,7 @@ function escapeHtml(value: string): string {
  * Sends a single report to every admin immediately, rather than waiting for
  * the nightly digest. Queued (without `waitUntil`) by the contentReports
  * afterChange hook for severe categories only, so it is picked up by the next
- * default-queue autoRun tick — minutes rather than up to a day.
+ * default-queue autoRun tick, minutes rather than up to a day.
  *
  * Volume is deliberately not batched here: severe reports should be rare, and
  * one email per report is what makes them impossible to overlook.

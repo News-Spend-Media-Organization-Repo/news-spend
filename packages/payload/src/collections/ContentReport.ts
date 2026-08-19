@@ -52,7 +52,7 @@ export const ContentReport: CollectionConfig = {
       relationTo: ["comments", "news"],
       admin: {
         description:
-          "The reported content. Optional — not set for user-level actions (e.g. blocking).",
+          "The reported content. Optional: not set for user-level actions (e.g. blocking).",
       },
     },
     {

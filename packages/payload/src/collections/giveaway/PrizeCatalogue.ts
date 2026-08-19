@@ -9,7 +9,7 @@ import {
 } from "./constants";
 
 /**
- * Master Prize Catalogue (spec §2).
+ * Master Prize Catalogue (spec 2).
  *
  * The single source of truth for all prize definitions. Every prize belongs to
  * exactly one tier, and duplicate prize names are rejected regardless of tier.
@@ -176,10 +176,10 @@ export const PrizeCatalogue: CollectionConfig = {
       index: true,
       admin: {
         description:
-          "The winner can still claim immediately — this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.",
+          "The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.",
       },
       validate: (value: boolean | null | undefined) => {
-        // Without a provider this checkbox does not gate anything — it parks
+        // Without a provider this checkbox does not gate anything: it parks
         // the winner in `awaiting_verification` with no way out, which is
         // worse than not gating at all. Refusing here is the only warning an
         // administrator gets, since the box itself looks harmless.
@@ -207,7 +207,7 @@ export const PrizeCatalogue: CollectionConfig = {
       admin: {
         condition: (data) => data?.fulfilmentType === "data",
         description:
-          "A data bundle is provisioned by one specific network for that network's own SIMs — an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.",
+          "A data bundle is provisioned by one specific network for that network's own SIMs: an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.",
       },
       fields: [
         {
@@ -228,7 +228,7 @@ export const PrizeCatalogue: CollectionConfig = {
           required: true,
           admin: {
             description:
-              "This network's \"…Data\" operator, not its airtime one — look it up from Reloadly's operator list.",
+              "This network's \"…Data\" operator, not its airtime one: look it up from Reloadly's operator list.",
           },
         },
         {
@@ -239,7 +239,7 @@ export const PrizeCatalogue: CollectionConfig = {
           min: 0,
           admin: {
             description:
-              "The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount — check the operator's own plan list rather than assuming Value (₦) applies.",
+              "The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount: check the operator's own plan list rather than assuming Value (₦) applies.",
           },
         },
       ],

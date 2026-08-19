@@ -222,7 +222,7 @@ export const Media: CollectionConfig = {
           console.log("🎬 [video-thumbnail] size entry:", JSON.stringify(s));
 
           if (s?.url) {
-            // Stash for step 2 afterChange — cloud storage will fire payload.update on
+            // Stash for step 2 afterChange. Cloud storage will fire payload.update on
             // the video doc next (skipCloudStorage=true), which wipes our sizes.
             // Step 2 afterChange catches that update and re-applies.
             (req as any).__videoThumbSizes = {

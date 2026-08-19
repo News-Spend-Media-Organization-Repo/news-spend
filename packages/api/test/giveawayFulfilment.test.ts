@@ -106,7 +106,7 @@ describe("fulfilPendingPrizes", () => {
   it("does nothing when Reloadly is not configured", async () => {
     const { payload, created } = createFakePayload({ winners: [winnerRow()] });
 
-    // No client passed and no env vars set — the module must not throw for
+    // No client passed and no env vars set: the module must not throw for
     // an unconfigured provider, only decline to act.
     const summary = await fulfilPendingPrizes(payload);
 
@@ -146,7 +146,7 @@ describe("fulfilPendingPrizes", () => {
     const summary = await fulfilPendingPrizes(payload, { client });
 
     expect(summary.attempted).toBe(0);
-    // Untouched — a physical prize is somebody else's job entirely.
+    // Untouched: a physical prize is somebody else's job entirely.
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
   });
 
@@ -191,7 +191,7 @@ describe("fulfilPendingPrizes", () => {
 
     const summary = await fulfilPendingPrizes(payload, { client });
 
-    // ₦600 buys a different plan on every network — the amount alone cannot
+    // ₦600 buys a different plan on every network. The amount alone cannot
     // pick the bundle, so this must never be inferred.
     expect(summary.skipped).toBe(1);
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
@@ -224,7 +224,7 @@ describe("fulfilPendingPrizes", () => {
 
     const summary = await fulfilPendingPrizes(payload, { client });
 
-    // Sending the MTN bundle to an Airtel SIM would not deliver — an MTN
+    // Sending the MTN bundle to an Airtel SIM would not deliver: an MTN
     // bundle is provisioned by MTN for MTN's own subscribers, the same way a
     // Vodafone bundle does nothing on an EE phone.
     expect(summary.skipped).toBe(1);
@@ -291,7 +291,7 @@ describe("fulfilPendingPrizes", () => {
         }),
       ],
     });
-    // The id is deliberately one that means nothing to us — this is what a
+    // The id is deliberately one that means nothing to us, as this is what a
     // switch from Reloadly's sandbox catalogue to the live one looks like.
     // Keying off the id would leave every data prize unroutable; the name
     // still identifies the network.
@@ -406,7 +406,7 @@ describe("fulfilPendingPrizes", () => {
 
     await fulfilPendingPrizes(payload, { client });
 
-    // One transient failure should not take the prize out of the queue —
+    // One transient failure should not take the prize out of the queue;
     // an outage clears on its own within a few hourly passes.
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
   });
@@ -514,7 +514,7 @@ describe("fulfilPendingPrizes", () => {
     await fulfilPendingPrizes(payload, { client });
 
     // The sweep selects `pending`, so a prize left marked in-progress after a
-    // failure would be invisible to every later pass — retryable in name and
+    // failure would be invisible to every later pass, retryable in name and
     // abandoned in fact.
     expect(attempts).toBe(2);
     expect(collections["giveaway-winners"]![0]!.fulfilmentStatus).toBe(

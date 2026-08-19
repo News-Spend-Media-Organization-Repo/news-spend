@@ -15,13 +15,13 @@ type ReactionDoc = {
 /**
  * Schedules a debounced push notification to a comment's author when their
  * comment receives a new like. Fires only on the transition INTO "like" (a
- * fresh like, or switching from dislike/none) — not on every save, and not
+ * fresh like, or switching from dislike/none), not on every save, and not
  * on unlike (that's a delete, handled by afterDelete, which this hook
  * doesn't run for).
  *
  * Debounced per-author (not per-comment) via the job queue: if a
  * "sendCommentLikeNotification" job is already pending for this comment's
- * author, this no-ops — the pending job re-queries all of that author's
+ * author, this no-ops; the pending job re-queries all of that author's
  * recently-liked comments when it fires, so likes on *different* comments by
  * the same author within the window collapse into one grouped push instead
  * of one push per comment.

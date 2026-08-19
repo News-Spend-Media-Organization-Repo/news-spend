@@ -70,11 +70,11 @@ export class AdManager {
       );
 
       // Shuffle the pool so sequential draws feel random
-      // (shuffle a copy — cached data should not be mutated)
+      // (shuffle a copy; cached data should not be mutated)
       this.pool = [...docs].sort(() => Math.random() - 0.5);
       this.poolIndex = 0;
     } catch {
-      // If fetching fails, pool stays empty — pickAd() will return Google ads
+      // If fetching fails, pool stays empty, and pickAd() will return Google ads
       this.pool = [];
       this.poolIndex = 0;
     }
@@ -82,7 +82,7 @@ export class AdManager {
 
   /**
    * Picks an ad based on configured probability.
-   * Synchronous — draws from the pre-fetched pool.
+   * Synchronous: draws from the pre-fetched pool.
    */
   pickAd(): AdItem {
     try {

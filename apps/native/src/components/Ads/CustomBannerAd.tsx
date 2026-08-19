@@ -40,7 +40,7 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
   });
 
   const { containerWidth, containerHeight } = useMemo(() => {
-    // ANCHORED_ADAPTIVE_BANNER has no fixed dims — fill width at 6:1 ratio
+    // ANCHORED_ADAPTIVE_BANNER has no fixed dims, so we fill width at a 6:1 ratio
     if (size === "ANCHORED_ADAPTIVE") {
       return {
         containerWidth: AVAILABLE_WIDTH,
@@ -50,7 +50,7 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
 
     const { width: nominalW, height: nominalH } = getBannerDimensions(size);
 
-    // Scale down proportionally only if wider than screen — never scale up
+    // Scale down proportionally only if wider than screen; never scale up
     const scale = nominalW > AVAILABLE_WIDTH ? AVAILABLE_WIDTH / nominalW : 1;
     return {
       containerWidth: Math.round(nominalW * scale),

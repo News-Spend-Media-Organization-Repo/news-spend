@@ -23,14 +23,14 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
 
   /**
    * Reporting and blocking both require a registered account. Guests still see
-   * the options — hiding them entirely is what left reviewers unable to find
-   * any moderation affordance — but tapping one routes to sign-in, matching
+   * the options. Hiding them entirely is what left reviewers unable to find
+   * any moderation affordance, but tapping one routes to sign-in, matching
    * how the Like button already treats anonymous users.
    */
   const requireAccount = () => {
     if (!authState.user || authState.user.isAnonymous) {
       setOpen(false);
-      // `redirect` is only read as truthy — it makes the sign-in screen
+      // `redirect` is only read as truthy; it makes the sign-in screen
       // goBack() on success, returning the user to this comment.
       navigation.navigate("SignIn", { redirect: true });
       return false;

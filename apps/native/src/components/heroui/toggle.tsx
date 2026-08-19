@@ -1,5 +1,5 @@
 /**
- * ToggleButton + ToggleButtonGroup — custom component for HeroUI Native
+ * ToggleButton + ToggleButtonGroup: custom component for HeroUI Native
  * Mirrors the HeroUI Native Pro API. Styles via tailwind-variants (tv).
  *
  * ─── Anatomy ─────────────────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ function Label({ children, className, style }: LabelProps) {
 // ─── ToggleButton ─────────────────────────────────────────────────────────────
 
 export type ToggleButtonProps = {
-  /** Injected by ToggleButtonGroup — do not pass manually */
+  /** Injected by ToggleButtonGroup. Do not pass manually. */
   _position?: Position;
   children?: ReactNode;
   className?: string;

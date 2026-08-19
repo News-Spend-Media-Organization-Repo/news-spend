@@ -8,8 +8,8 @@
  *
  * The matcher normalizes common evasion tricks (leetspeak, diacritics,
  * character padding, letter separators) before testing, and matches on word
- * boundaries so ordinary words containing a banned substring — "class",
- * "assess", "Scunthorpe" — are not flagged.
+ * boundaries so ordinary words containing a banned substring, such as
+ * "class", "assess", or "Scunthorpe", are not flagged.
  */
 
 /** Severe terms: slurs and sexual content involving minors. Always rejected. */
@@ -206,8 +206,8 @@ function findMatch(haystack: string, terms: string[]): string | undefined {
  * different letters. Each interior symbol becomes a single-character wildcard
  * and the *token* is used as the pattern, tested against each term.
  *
- * Scoped tightly — only word-shaped tokens carrying one or two interior
- * symbols — so ordinary punctuation never reaches it.
+ * Scoped tightly to only word-shaped tokens carrying one or two interior
+ * symbols, so ordinary punctuation never reaches it.
  */
 function findWildcardMatch(text: string, terms: string[]): string | undefined {
   const candidates = fold(text).split(/\s+/).filter(Boolean);
@@ -239,7 +239,7 @@ function findWildcardMatch(text: string, terms: string[]): string | undefined {
  * Screens user-submitted text against the wordlist.
  *
  * Returns `{ ok: true }` when the text is clean, otherwise the severity and
- * the term that matched (for logging — never surface the term to the author,
+ * the term that matched (for logging; never surface the term to the author,
  * since that just teaches the filter's contents).
  */
 export function screenText(text: string): ContentFilterResult {

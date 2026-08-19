@@ -60,7 +60,7 @@ describe("evaluateParticipant", () => {
   it("admits the same person once their birthday passes", () => {
     const dob = "2008-06-01";
 
-    // The verdict changes with the date and nothing else — no stored flag to
+    // The verdict changes with the date and nothing else: no stored flag to
     // go stale, and nobody has to intervene on the birthday.
     expect(
       evaluateParticipant({ dateOfBirth: dob }, { now: new Date("2026-05-31") })

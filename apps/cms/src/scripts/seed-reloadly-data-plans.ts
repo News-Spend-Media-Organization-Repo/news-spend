@@ -1,8 +1,8 @@
 /**
- * Seed the Reloadly data plans on the Master Prize Catalogue (spec §15).
+ * Seed the Reloadly data plans on the Master Prize Catalogue (spec 15).
  *
  * A data bundle is provisioned by one network for that network's own SIMs, so
- * a data prize needs one row per network it should cover — see
+ * a data prize needs one row per network it should cover; see
  * `PrizeCatalogue.reloadlyDataPlans`. At fulfilment the winner's real network
  * is detected from their phone number and matched against these rows; a
  * network with no row here holds the prize for review rather than sending a
@@ -16,7 +16,7 @@
  * HOW THE AMOUNTS WERE CHOSEN
  *
  * Each is a real fixed denomination from Reloadly's operator list, read from
- * `localFixedAmountsDescriptions` (naira — the local currency), not converted
+ * `localFixedAmountsDescriptions` (naira, the local currency), not converted
  * from the account's CAD denomination and not inferred from the prize's
  * `valueNaira`. Data plans are fixed SKUs: a network sells 2.5GB for ₦600 or
  * 3GB for ₦800 and nothing in between, so an arbitrary amount is rejected.
@@ -28,7 +28,7 @@
  *
  * Airtime prizes are deliberately absent. Airtime operators take a range
  * rather than fixed denominations, so `fulfilPrizes` falls back to the prize's
- * `valueNaira` and a ₦500 airtime prize sends exactly ₦500 — nothing to map.
+ * `valueNaira` and a ₦500 airtime prize sends exactly ₦500; nothing to map.
  *
  * Usage, from apps/cms:
  *
@@ -51,7 +51,7 @@ type Plan = {
   buys: string;
 };
 
-/** Reloadly's DATA operator per network — not the airtime one. */
+/** Reloadly's DATA operator per network, not the airtime one. */
 const OPERATOR: Record<Network, number> = {
   mtn: 345,
   airtel: 646,
@@ -174,7 +174,7 @@ const PLANS: { prize: string; promisedGb: number; plans: Plan[] }[] = [
       },
       // T2 (9mobile) is deliberately absent: its data plans stop at ₦5,000 for
       // 11.4GB, so it sells nothing that covers a 20GB promise. A T2 winner of
-      // this prize is held for review, which is the right outcome — the
+      // this prize is held for review, which is the right outcome; the
       // alternative is quietly sending half the advertised bundle.
     ],
   },
@@ -198,7 +198,7 @@ for (const entry of PLANS) {
   const prize = docs[0] as any;
 
   if (!prize) {
-    console.log(`\n${entry.prize}: NOT FOUND in the catalogue — skipped.`);
+    console.log(`\n${entry.prize}: NOT FOUND in the catalogue, skipped.`);
     failed += 1;
     continue;
   }
@@ -229,7 +229,7 @@ for (const entry of PLANS) {
   );
   if (missing.length) {
     console.log(
-      `  none  ${missing.join(", ")} — no plan covers ${entry.promisedGb}GB; winners on these networks are held for review`
+      `  none  ${missing.join(", ")}: no plan covers ${entry.promisedGb}GB; winners on these networks are held for review`
     );
   }
 

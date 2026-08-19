@@ -4,7 +4,7 @@
  *
  * Written for recovering a round whose scheduled draw never ran. It reports by
  * default and only writes when told to, because the risk here is not failing to
- * draw — it is drawing twice. `LotteryEngine` writes one winner row per ticket
+ * draw; it is drawing twice. `LotteryEngine` writes one winner row per ticket
  * with no existence check, so a round that was *partially* drawn will gain a
  * second overlapping set of winners if it is simply re-run.
  *
@@ -122,13 +122,13 @@ for (const r of rows) {
 function describe(state: DrawState): string {
   switch (state) {
     case "stamped":
-      return "drawn (processedAt set) — nothing to do";
+      return "drawn (processedAt set); nothing to do";
     case "not-drawn":
-      return "NOT DRAWN — safe to draw";
+      return "NOT DRAWN; safe to draw";
     case "complete":
-      return "winners exist for every ticket, but processedAt is unset — the draw finished and the stamp did not land. Do NOT re-draw; stamp it instead.";
+      return "winners exist for every ticket, but processedAt is unset. The draw finished and the stamp did not land. Do NOT re-draw; stamp it instead.";
     case "partial":
-      return "PARTIAL — some winners written, some missing. Re-drawing will duplicate the existing ones. Clear them first.";
+      return "PARTIAL: some winners written, some missing. Re-drawing will duplicate the existing ones. Clear them first.";
     default:
       return state;
   }
@@ -171,7 +171,7 @@ if ("alreadyProcessed" in result && result.alreadyProcessed) {
 }
 
 console.log(
-  `Draw complete — ${result.totalWinners ?? 0} winners from ${result.totalParticipants ?? 0} participants.`
+  `Draw complete: ${result.totalWinners ?? 0} winners from ${result.totalParticipants ?? 0} participants.`
 );
 
 await sendLotteryNotification({ lotteryId: target.id, payload });

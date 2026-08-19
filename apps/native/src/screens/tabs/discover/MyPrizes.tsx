@@ -40,7 +40,7 @@ type Winning = {
  * A short line telling the winner what, if anything, is theirs to do.
  *
  * Deliberately distinguishes "we are checking you" from "you have a step
- * left" — they look the same in the data (both stop a dispatch) but mean
+   * left". They look the same in the data (both stop a dispatch) but mean
  * opposite things to the person reading them.
  */
 function statusLine(prize: Winning): { label: string; tone: string } {
@@ -66,7 +66,7 @@ function statusLine(prize: Winning): { label: string; tone: string } {
     return { label: deadline, tone: "urgent" };
   }
   if (prize.underReview) {
-    return { label: "Under review — nothing needed from you", tone: "muted" };
+    return { label: "Under review. Nothing needed from you", tone: "muted" };
   }
   if (prize.awaitingVerification) {
     return { label: "Verify your identity to receive this", tone: "urgent" };
@@ -77,7 +77,7 @@ function statusLine(prize: Winning): { label: string; tone: string } {
    * Airtime and data are dispatched by an hourly sweep, so a prize sits
    * queued for up to an hour before anything is even attempted, and a
    * retryable failure returns it to that queue. Every one of those states
-   * used to render as a green "Claimed" — so the commonest failure there is,
+   * used to render as a green "Claimed", so the commonest failure there is,
    * a mistyped phone number, looked identical to success until the third
    * attempt gave up and flipped it to review.
    */
@@ -86,7 +86,7 @@ function statusLine(prize: Winning): { label: string; tone: string } {
       label:
         prize.fulfilmentStatus === "in_progress"
           ? "Sending now"
-          : "Processing — we're sending it",
+          : "Processing: we're sending it",
       tone: "muted",
     };
   }
@@ -116,8 +116,8 @@ const TONE_CLASS: Record<string, string> = {
  * An icon per kind of prize, so a list of names reads as a list of things.
  *
  * Airtime and data share the phone: the distinction that matters to somebody
- * scanning this list is "it arrives on my line", not which of the two it is —
- * the name already says that.
+   * scanning this list is "it arrives on my line", not which of the two it is.
+   * The name already says that.
  */
 const PRIZE_ICON: Record<string, typeof GiftIcon> = {
   points: CoinsIcon,
@@ -206,8 +206,8 @@ function PrizeCard({
             </Text>
           </View>
 
-          {/* Every card opens something now — the claimable one its claim, the
-              rest their record — so every card carries an affordance. */}
+          {/* Every card opens something now: the claimable one opens its claim, and the
+              rest open their record, so every card carries an affordance. */}
           {prize.claimable ? (
             <View className="rounded-full bg-s-400 px-3 py-1">
               <Text className="font-semibold text-white text-xs">Claim</Text>
@@ -229,8 +229,8 @@ function PrizeCard({
  * Everything this user has won, and what is left to do about it.
  *
  * Split into two lists rather than one, because they behave differently.
- * "Needs You" is bounded by each prize's own claim window — fourteen days, or
- * until the next giveaway starts — so it can never grow past a handful and is
+   * "Needs You" is bounded by each prize's own claim window (fourteen days, or
+   * until the next giveaway starts), so it can never grow past a handful and is
  * fetched whole. "History" is everything that has already resolved, which
  * only ever grows, so it is the one that is paged.
  *
@@ -274,7 +274,7 @@ const MyPrizes = () => {
   }
 
   /**
-   * A prize awaiting verification has already been claimed — the clock is
+   * A prize awaiting verification has already been claimed; the clock is
    * stopped and there is nothing left to claim. Sending it to ClaimPrize
    * would ask the winner to repeat a step they have finished; what it is
    * actually waiting on is their identity.
@@ -288,7 +288,7 @@ const MyPrizes = () => {
    * A prize with something to do opens that thing; everything else opens its
    * record.
    *
-   * Claiming stays one tap — it is the only part on a clock. A finished prize
+   * Claiming stays one tap: it is the only part on a clock. A finished prize
    * used to be inert here, which left a winner whose airtime had not arrived
    * with "fulfilled" and no way to see the number it was sent to.
    */

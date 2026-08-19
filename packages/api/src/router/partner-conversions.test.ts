@@ -430,7 +430,7 @@ describe("partnerConversionRouter.webhook", () => {
 });
 
 
-describe("partnerConversionRouter.webhook — verification", () => {
+describe("partnerConversionRouter.webhook: verification", () => {
   it("refuses an unsigned postback", async () => {
     const payload = createFakePayload({
       collections: {
@@ -504,7 +504,7 @@ describe("partnerConversionRouter.webhook — verification", () => {
   });
 });
 
-describe("partnerConversionRouter.trackClick — award on click", () => {
+describe("partnerConversionRouter.trackClick: award on click", () => {
   function clickPayload(partnerOverrides: Doc = {}) {
     return createFakePayload({
       collections: {
@@ -530,7 +530,7 @@ describe("partnerConversionRouter.trackClick — award on click", () => {
       { context: ctx }
     );
 
-    // §8 counts completions, not intentions. Without a partner saying so, a
+    // 8 counts completions, not intentions. Without a partner saying so, a
     // tap stays a tap.
     expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
     expect(payload.docs("activities")).toHaveLength(0);
@@ -559,7 +559,7 @@ describe("partnerConversionRouter.trackClick — award on click", () => {
     /**
      * Break the points write specifically. An earlier version of this test
      * called a `failOn` helper that does not exist, and the optional chaining
-     * meant it asserted against a perfectly healthy payload — green, and
+     * meant it asserted against a perfectly healthy payload (green, and
      * proving nothing.
      */
     const realCreate = payload.create.bind(payload);
@@ -596,7 +596,7 @@ describe("partnerConversionRouter.trackClick — award on click", () => {
       );
     }
 
-    // Every tap is still recorded — that is what click tracking is — but only
+    // Every tap is still recorded (that is what click tracking is), but only
     // the first one pays. Points buy giveaway tickets, so an uncapped version
     // of this is an unlimited supply of draw entries.
     expect(payload.docs("partner-conversions")).toHaveLength(4);

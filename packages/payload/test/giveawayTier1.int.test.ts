@@ -23,10 +23,10 @@ beforeEach(async () => {
 let seq = 0;
 
 /**
- * Tier 1 as §11 defines it: ten tickets, three Boosts and one Featured Offer.
+ * Tier 1 as section 11 defines it: ten tickets, three Boosts and one Featured Offer.
  *
  * Every one of these had to be fixed before a Tier 1 winner could exist at
- * all — one Boost item where three distinct ones are needed, an app wall that
+ * all, one Boost item where three distinct ones are needed, an app wall that
  * never recorded a click, and webhook partners that could not be created. None
  * of them announced itself, because a tier nobody reaches looks exactly like a
  * tier nobody happened to qualify for that round. This is the test that tells
@@ -95,7 +95,7 @@ async function setUp({
 
   const userId = await createUser();
 
-  // §6 aggregates by quantity, so one purchase of ten counts as ten.
+  // Section 6 aggregates by quantity, so one purchase of ten counts as ten.
   await payload.create({
     collection: "giveaway-tickets",
     data: {
@@ -147,7 +147,7 @@ async function winnersOf(giveawayId: string) {
   return found.docs;
 }
 
-describe("Tier 1 eligibility (§11)", () => {
+describe("Tier 1 eligibility (11)", () => {
   test("awards the top tier when all three requirements are met", async () => {
     const { giveawayId, userId } = await setUp();
 
@@ -201,7 +201,7 @@ describe("Tier 1 eligibility (§11)", () => {
   }, 120_000);
 
   test("a draw that awards nothing still completes cleanly", async () => {
-    // No winners is a legitimate outcome, not a failure — it must not leave
+    // No winners is a legitimate outcome, not a failure; it must not leave
     // the giveaway interrupted, which is what an administrator would have to
     // untangle by hand.
     const { giveawayId } = await setUp({ boosts: 0, featuredOffers: 0 });

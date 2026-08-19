@@ -44,7 +44,7 @@ const ROUTE_BY_TAB_PATH: Record<string, string> = Object.fromEntries(
  * user out of the tab they were using. Notifications have always done this;
  * widget taps and other incoming URLs now go through the same path.
  *
- * Accepts a full URL or a bare path — app-generated links put the tab first in
+ * Accepts a full URL or a bare path, as app-generated links put the tab first in
  * both forms. Returns the input unchanged when it carries no tab segment, or
  * when the app has no current tab yet (cold start resolves to NewsHome, which
  * leaves a `news/...` link alone).
@@ -137,7 +137,7 @@ export const linking: LinkingOptions<RootParamList> = {
     }
   },
   subscribe(listener) {
-    // Detour also delivers incoming URLs, so it needs the same retargeting —
+    // Detour also delivers incoming URLs, so it needs the same retargeting.
     // otherwise it hands React Navigation the raw link first and the tab
     // rewrite below never gets a say.
     const detourSub = Detour.addEventListener("url", ({ url }) => {

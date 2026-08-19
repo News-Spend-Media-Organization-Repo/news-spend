@@ -47,7 +47,7 @@ function CommentReplies() {
     Boolean(highlightCommentId) && highlightCommentId !== commentId;
 
   // Shared helper to seed a single-comment query from the paginated all-comments
-  // cache — avoids a network round-trip when the comment was already loaded.
+  // cache, avoiding a network round-trip when the comment was already loaded.
   const getCommentFromCache = (
     targetId: string
   ): RouterOutputs["comments"]["one"] | undefined => {
@@ -112,7 +112,7 @@ function CommentReplies() {
   const replies = useInfiniteQuery(
     orpc.comments.all.infiniteOptions({
       input: (pageParam: number | undefined) => ({
-        // Guarded by `enabled` below — never actually fetches with "".
+        // Guarded by `enabled` below, so it never actually fetches with "".
         newsId: effectiveNewsId ?? "",
         parentId: commentId,
         page: pageParam,

@@ -102,8 +102,8 @@ export type FakePayloadOptions = {
 /**
  * An in-memory stand-in for the Payload local API.
  *
- * Covers the operations the routers actually use — find / findByID / create /
- * update / delete / count plus the `db` transaction hooks — over seeded
+ * Covers the operations the routers actually use (find / findByID / create /
+ * update / delete / count plus the `db` transaction hooks) over seeded
  * documents, with enough `where` support (see {@link matchesWhere}) that
  * queries in handlers filter for real instead of being stubbed away per test.
  *
@@ -135,7 +135,7 @@ export function createFakePayload(options: FakePayloadOptions = {}) {
   let transactionCount = 0;
 
   const payload = {
-    /** Live view of the seeded data — assert against it after a mutation. */
+    /** Live view of the seeded data; assert against it after a mutation. */
     collections,
     /** The (always-defined) document list for a collection, for assertions. */
     docs: (collection: string): Doc[] => docsIn(collection),
@@ -269,8 +269,8 @@ export type FakePayload = ReturnType<typeof createFakePayload>;
  *
  * Handles the dotted paths the routers query (`user.id`, `target.value`,
  * `notificationPreferences.types.BREAKING_NEWS`, `schedule.startDate`). A path
- * ending in `.id` also resolves against an *unpopulated* relationship — where
- * the field is the raw id string — matching how Payload treats depth 0.
+ * ending in `.id` also resolves against an *unpopulated* relationship, where
+ * the field is the raw id string, matching how Payload treats depth 0.
  */
 function fieldValue(doc: Doc, field: string): unknown {
   // A doc may carry the path as a literal flat key (`{"target.value": "c1"}`),
@@ -287,7 +287,7 @@ function fieldValue(doc: Doc, field: string): unknown {
       return;
     }
     if (typeof value !== "object") {
-      // `user.id` against `user: "u1"` — the id itself is the last segment.
+      // `user.id` against `user: "u1"`: the id itself is the last segment.
       return part === "id" && index === parts.length - 1 ? value : undefined;
     }
     value = (value as Doc)[part];

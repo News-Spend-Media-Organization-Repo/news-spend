@@ -168,7 +168,7 @@ describe("notificationsRouter.newsCreate", () => {
       "notificationPreferences.types.BREAKING_NEWS": { equals: true },
     });
 
-    // Only the two subscribed users' tokens are sent — u2 opted out, so
+    // Only the two subscribed users' tokens are sent; u2 opted out, so
     // tok-3 must not appear.
     const tokenFind = payload.calls.find(
       (c) => c.op === "find" && c.collection === "push-tokens"
@@ -206,7 +206,7 @@ describe("notificationsRouter.newsCreate", () => {
     );
 
     expect(result).toEqual({ success: true });
-    // sendNotification is still called — push-tokens query uses empty `in` list
+    // sendNotification is still called, even though the push-tokens query uses an empty `in` list
     expect(mockSendNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         pushTokens: [],

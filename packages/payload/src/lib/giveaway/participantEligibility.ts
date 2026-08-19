@@ -47,7 +47,7 @@ export type ParticipantVerdict =
  * Separate from the tier eligibility in `eligibility.ts`, and deliberately so:
  * that decides *which prizes* someone can win, this decides whether they may
  * buy a ticket in the first place. A user failing this is not a low-tier
- * participant — they are not a participant.
+ * participant, they are not a participant.
  *
  * Enforced at purchase rather than only at signup. Someone who signed up
  * under age becomes eligible on their eighteenth birthday without needing to
@@ -79,7 +79,7 @@ export function evaluateParticipant(
 /**
  * The country a giveaway decision should be made against.
  *
- * Self-reported country is a display signal, not a legal one — it is typed
+ * Self-reported country is a display signal, not a legal one: it is typed
  * into a form and can be changed at will. Where a verified document exists it
  * wins, because that is the only version of this fact anyone has actually
  * checked.

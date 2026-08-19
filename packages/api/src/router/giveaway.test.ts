@@ -16,7 +16,7 @@ const NOW = new Date();
 
 /**
  * Over 18, so the age gate on purchases is not what these tests measure.
- * Buying a ticket requires it — prizes of real value are age-restricted.
+ * Buying a ticket requires it, as prizes of real value are age-restricted.
  */
 function adult(overrides: Doc = {}): Doc {
   return {

@@ -97,7 +97,7 @@ const checkRatio = (
     return (
       `Image ratio (${media.width}x${media.height}) does not match ` +
       `${spec.label} (${spec.width}x${spec.height}). ` +
-      "The app may crop or letterbox this ad — please re-upload at the correct dimensions."
+      "The app may crop or letterbox this ad. Please re-upload at the correct dimensions."
     );
   }
   return true;
@@ -123,17 +123,17 @@ const _GOOGLE_CTA_OPTIONS = [
 ];
 
 const AD_SIZE_GUIDANCE: Record<string, string> = {
-  BANNER: "320x50px — thin mobile banner, keep text minimal",
-  LARGE_BANNER: "468x60px — wider mobile banner",
-  FULL_BANNER: "468x60px — same dimensions as Large Banner",
-  LEADERBOARD: "728x90px — top/bottom of page, landscape only",
-  INLINE_RECTANGLE: "300x250px — most versatile, works in-feed and sidebars",
-  MEDIUM_RECTANGLE: "300x250px — same dimensions as Inline Rectangle",
-  LARGE_RECTANGLE: "336x280px — slightly larger in-content rectangle",
-  HALF_PAGE: "300x600px — tall portrait, high visual impact",
-  WIDE_SKYSCRAPER: "160x600px — narrow portrait, sidebar use",
-  BILLBOARD: "970x250px — large landscape, desktop-primary",
-  ANCHORED_ADAPTIVE: "Any size — slot adapts to screen width automatically",
+  BANNER: "320x50px: thin mobile banner, keep text minimal",
+  LARGE_BANNER: "468x60px: wider mobile banner",
+  FULL_BANNER: "468x60px: same dimensions as Large Banner",
+  LEADERBOARD: "728x90px: top/bottom of page, landscape only",
+  INLINE_RECTANGLE: "300x250px: most versatile, works in-feed and sidebars",
+  MEDIUM_RECTANGLE: "300x250px: same dimensions as Inline Rectangle",
+  LARGE_RECTANGLE: "336x280px: slightly larger in-content rectangle",
+  HALF_PAGE: "300x600px: tall portrait, high visual impact",
+  WIDE_SKYSCRAPER: "160x600px: narrow portrait, sidebar use",
+  BILLBOARD: "970x250px: large landscape, desktop-primary",
+  ANCHORED_ADAPTIVE: "Any size: slot adapts to screen width automatically",
 };
 
 const isBannerType = (data: any) => ["banner"].includes(data?.type);
@@ -292,7 +292,7 @@ export const PartnerContent: CollectionConfig = {
               required: true,
               admin: {
                 placeholder: "Enter a catchy title",
-                description: "Main heading — 30 characters recommended",
+                description: "Main heading, 30 characters recommended",
               },
             },
             {
@@ -391,7 +391,7 @@ export const PartnerContent: CollectionConfig = {
               maxRows: 6,
               admin: {
                 description:
-                  "Promotion images and video — one video and at least three images",
+                  "Promotion images and video, one video and at least three images",
                 condition: (data) => data?.type === "promo-media",
               },
               validate: (val) => {
@@ -529,7 +529,7 @@ export const PartnerContent: CollectionConfig = {
                     const hasAndroid = !!links?.androidPlayStore;
                     const hasWebsite = !!links?.website;
                     if (val && !hasAndroid && !hasWebsite) {
-                      return "Either add the Android Play Store link or a website fallback — otherwise Android users will have no link.";
+                      return "Either add the Android Play Store link or a website fallback, otherwise Android users will have no link.";
                     }
                     return true;
                   },
@@ -551,7 +551,7 @@ export const PartnerContent: CollectionConfig = {
                       data?.links as Record<string, unknown> | undefined
                     )?.website;
                     if (val && !hasIos && !hasWebsite) {
-                      return "Either add the iOS App Store link or a website fallback — otherwise iOS users will have no link.";
+                      return "Either add the iOS App Store link or a website fallback, otherwise iOS users will have no link.";
                     }
                     return true;
                   },

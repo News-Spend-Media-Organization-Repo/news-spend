@@ -9,7 +9,7 @@ import {
 
 /**
  * `@payloadcms/db-postgres` runs on node-postgres, so drizzle's `execute`
- * resolves to a pg QueryResult — rows live under `.rows`. The array shape is
+ * resolves to a pg QueryResult; rows live under `.rows`. The array shape is
  * covered too, since other drivers return rows directly.
  */
 function fakePayload(result: unknown) {

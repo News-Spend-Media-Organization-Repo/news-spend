@@ -10,7 +10,7 @@ import {
 } from "./constants";
 
 /**
- * Core giveaway configuration (spec §1, §3).
+ * Core giveaway configuration (spec 1, 3).
  *
  * The administrator configures exactly four things: ticket price, the maximum
  * winner percentage per tier, the prize pool (see `giveaway-prizes`), and the
@@ -36,12 +36,12 @@ export const Giveaways: CollectionConfig = {
   endpoints: [
     {
       /**
-       * Run — or resume — this giveaway's draw by hand.
+       * Run (or resume) this giveaway's draw by hand.
        *
        * The hourly sweep is the normal path and remains so. This exists for the
        * two cases it cannot serve: a draw that must run early or be re-run
        * after a failure, and a draw an administrator has authorized to resume
-       * (§19) — the sweep only ever selects `active` giveaways, so without this
+       * (19), the sweep only ever selects `active` giveaways, so without this
        * a resumption would never execute at all.
        *
        * Every rule about *whether* a draw may run stays in the engine's own
@@ -51,7 +51,7 @@ export const Giveaways: CollectionConfig = {
       /**
        * What could this giveaway award, at a given number of participants?
        *
-       * Read-only and unauthenticated by nothing — it writes nothing, starts
+       * Read-only and unauthenticated by nothing: it writes nothing, starts
        * nothing and touches no winner. Available to any admin rather than
        * super-admins alone, because the whole point is that it should be
        * consulted freely while a pool is being decided, and a check people
@@ -148,7 +148,7 @@ export const Giveaways: CollectionConfig = {
           });
 
           return Response.json({
-            message: `Draw complete — ${result.totalWinners} winner${
+            message: `Draw complete: ${result.totalWinners} winner${
               result.totalWinners === 1 ? "" : "s"
             } from ${result.totalValidParticipants} participant${
               result.totalValidParticipants === 1 ? "" : "s"
@@ -191,15 +191,15 @@ export const Giveaways: CollectionConfig = {
     },
     {
       /**
-       * Authorize a stopped draw to resume (§19).
+       * Authorize a stopped draw to resume (19).
        *
        * The status alone is what the engine checks, so an administrator can
-       * reach `resumption_authorized` by editing the select — and that is how
+       * reach `resumption_authorized` by editing the select, and that is how
        * it was done before this existed. It works, and it records nothing: no
        * name, no timestamp, no audit entry, because the stamping lives in
        * `authorizeResumption` rather than in the field.
        *
-       * §19 exists so a draw can be defended afterwards. "Someone changed a
+       * 19 exists so a draw can be defended afterwards. "Someone changed a
        * dropdown" is the wrong answer to who allowed prizes to be awarded, so
        * this routes the same decision through the engine, which records it.
        */
@@ -248,7 +248,7 @@ export const Giveaways: CollectionConfig = {
     },
     {
       /**
-       * Resend the Winner Report (spec §21, "provide Resend Winner Report
+       * Resend the Winner Report (spec 21, "provide Resend Winner Report
        * button in CMS").
        *
        * A resend is recorded as its own delivery rather than overwriting the
@@ -324,7 +324,7 @@ export const Giveaways: CollectionConfig = {
           }
         }
 
-        // Configuration locks when the draw begins (spec §5, §16).
+        // Configuration locks when the draw begins (spec 5, 16).
         if (
           operation === "update" &&
           prevStatus &&
@@ -431,7 +431,7 @@ export const Giveaways: CollectionConfig = {
       defaultValue: 1,
       admin: {
         description:
-          "The smallest number of tickets a user may buy at once (spec §1). This is a purchase floor, not a tier requirement.",
+          "The smallest number of tickets a user may buy at once (spec 1). This is a purchase floor, not a tier requirement.",
       },
       validate: (value: number | null | undefined) => {
         if (value === null || value === undefined) {
@@ -536,7 +536,7 @@ export const Giveaways: CollectionConfig = {
         readOnly: true,
         position: "sidebar",
         description:
-          "Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (§19).",
+          "Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (19).",
       },
     },
     {
@@ -547,7 +547,7 @@ export const Giveaways: CollectionConfig = {
         readOnly: true,
         position: "sidebar",
         description:
-          "The last material step the draw completed. A resumption continues from the next one (§19).",
+          "The last material step the draw completed. A resumption continues from the next one (19).",
       },
     },
     {
@@ -646,7 +646,7 @@ export const Giveaways: CollectionConfig = {
 /**
  * Percentage field shared by all three tiers: accepts decimals to at least two
  * places, rejects negatives and values above 100, and allows 0 to disable the
- * tier (spec §3).
+ * tier (spec 3).
  */
 function winnerPercentageField(
   name: string,

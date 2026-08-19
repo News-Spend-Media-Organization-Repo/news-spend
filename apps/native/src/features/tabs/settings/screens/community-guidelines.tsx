@@ -14,7 +14,7 @@ const communityGuidelinesContent = [
     description: "When commenting or interacting with others:",
     bullets: [
       "Treat all users with respect and dignity",
-      "Disagree constructively — attack ideas, not people",
+      "Disagree constructively: attack ideas, not people",
       "Avoid personal insults, name-calling, or derogatory language",
       "Be mindful of cultural differences and sensitivities",
     ],
@@ -61,7 +61,7 @@ const communityGuidelinesContent = [
     bullets: [
       "Blocked users cannot see your comments or interact with your content",
       "You can manage your blocked list in Settings → Blocked Users",
-      "Blocking is private — the blocked user is not notified",
+      "Blocking is private. The blocked user is not notified.",
     ],
   },
   {

@@ -21,8 +21,8 @@ export const singleton = <Value>(
   const pending = Promise.resolve(valueFactory());
 
   // `??=` kept a rejected promise cached forever, so one failed Postgres
-  // connection poisoned every later getPayload() for the life of the process —
-  // the server stayed up while every request that needed Payload failed.
+  // connection poisoned every later getPayload() for the life of the process.
+  // The server stayed up while every request that needed Payload failed.
   // Evicting lets the next call retry.
   pending.catch(() => {
     if (g.__singletons?.[name] === pending) {

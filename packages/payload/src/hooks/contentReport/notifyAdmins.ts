@@ -5,7 +5,7 @@ import { nextDigestTime } from "../../lib/nextDigestTime";
 /**
  * Routes new ContentReports to admins on one of two tiers.
  *
- * Severe categories — configurable via the Moderation Settings global — queue
+ * Severe categories, configurable via the Moderation Settings global, queue
  * an immediate alert job, picked up by the next default-queue autoRun tick.
  * Everything else is batched into the daily digest at 11 PM Africa/Lagos: when
  * a digest job is already pending this does nothing, otherwise it queues one

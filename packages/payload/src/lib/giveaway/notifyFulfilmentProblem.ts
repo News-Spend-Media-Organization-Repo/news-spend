@@ -18,7 +18,7 @@ import type { BasePayload } from "payload";
  *
  * NEVER THROWS. The prize is already on hold and an administrator has already
  * been given the record. A notification service being unreachable must not
- * turn a handled failure into an unhandled one, exactly as §21 reasons about
+ * turn a handled failure into an unhandled one, exactly as 21 reasons about
  * the Winner Report.
  */
 export async function notifyFulfilmentProblem(
@@ -55,7 +55,7 @@ export async function notifyFulfilmentProblem(
         _status: "published",
         specificUsers: [userId],
         title: `There's a hold-up with ${prizeName}`,
-        body: "We hit a problem sending it. Your prize is safe — open the app for details.",
+        body: "We hit a problem sending it. Your prize is safe. Open the app for details.",
         deliveryAction: "send-now",
         priority: "high",
         sound: true,
@@ -84,7 +84,7 @@ export async function notifyFulfilmentProblem(
           html: [
             `<p>Hi${account?.username ? ` ${account.username}` : ""},</p>`,
             `<p>We ran into a problem sending <strong>${prizeName}</strong>.</p>`,
-            `<p>Your prize is safe and still yours — nothing has been lost and there is no deadline to worry about. Our team is looking into it, and you can see the current status in the app under My Prizes.</p>`,
+            `<p>Your prize is safe and still yours. Nothing has been lost and there is no deadline to worry about. Our team is looking into it, and you can see the current status in the app under My Prizes.</p>`,
             `<p>If we need anything from you, we'll be in touch.</p>`,
           ].join("\n"),
         });

@@ -10,7 +10,7 @@ import * as Sentry from "@sentry/bun";
 // evaluated. Importing this from src/index.ts would be too late for the
 // instrumentation to patch @orpc/server.
 
-// Not a secret — a DSN only grants the ability to send events in. Kept as a
+// Not a secret: a DSN only grants the ability to send events in. Kept as a
 // fallback so a deploy that has not had SENTRY_DSN set still reports.
 const FALLBACK_DSN =
   "https://d3dbe494a482913916c7bb43fa05b2bf@o4507648362938368.ingest.de.sentry.io/4511030787768400";
@@ -20,12 +20,12 @@ const environment =
   process.env.APP_ENV || process.env.NODE_ENV || "development";
 const isProduction = environment === "production";
 // Anything deployed reports; only a developer's own machine stays silent. Gating
-// on `isProduction` instead would leave staging — where changes are actually
-// exercised before release — reporting nothing.
+// on `isProduction` instead would leave staging, where changes are actually
+// exercised before release, reporting nothing.
 const isLocal = environment === "development" || environment === "local";
 
 // Tracing every request is affordable at current volume but is the first thing
-// to turn down if the quota gets tight — hence the env override.
+// to turn down if the quota gets tight, hence the env override.
 const tracesSampleRate = Number(
   process.env.SENTRY_TRACES_SAMPLE_RATE ?? (isProduction ? 0.2 : 1)
 );

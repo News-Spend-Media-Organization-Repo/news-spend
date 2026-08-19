@@ -41,7 +41,7 @@ type UnknownBlockNode = {
 
 /**
  * Inline block (Payload 3.x SerializedInlineBlockNode, `type: "inlineBlock"`).
- * Inserted mid-paragraph/heading — appears as a child of paragraph/heading
+ * Inserted mid-paragraph/heading: appears as a child of paragraph/heading
  * nodes, not at root. Emitted only when a block is registered as inline-capable
  * via BlocksFeature. Unlike top-level blocks, fields carry no `blockName`.
  */
@@ -117,7 +117,7 @@ export type ListItemNode = {
   value: number;
   /** Present on checklist items */
   checked?: boolean;
-  /** Inherited from parent list — passed down by serializer */
+  /** Inherited from parent list, passed down by serializer */
   listType?: "number" | "bullet" | "check";
 } & AbstractElementNode<"listitem">;
 
@@ -216,7 +216,7 @@ export type PayloadLexicalReactRendererProps<
   blockRenderers?: BlockRenderers<Blocks>;
 };
 
-// Legacy — kept for any usage of the old serializer.tsx (can be removed)
+// Legacy: kept for any usage of the old serializer.tsx (can be removed)
 export type SerializedLexicalEditorState = {
   root: {
     type: string;

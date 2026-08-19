@@ -18,7 +18,7 @@ import { orpc } from "#/lib/orpc";
  *
  * Deliberately a browser session rather than an in-app form. The old screen
  * asked people to photograph a passport and uploaded it into our own storage;
- * this way the documents never touch us at all — the provider holds them and
+ * this way the documents never touch us at all; the provider holds them and
  * we keep a decision.
  *
  * The decision arrives by webhook, not from the browser closing, so returning
@@ -34,7 +34,7 @@ const POLL_INTERVAL_MS = 2500;
  * What the configured workflow actually does, in order.
  *
  * The design also listed a NIN/BVN cross-check, which the published Free KYC
- * workflow does not perform — it is OCR, liveness and face match only. Naming
+ * workflow does not perform; it is OCR, liveness and face match only. Naming
  * a check we do not run would be a promise about somebody's identity data that
  * we cannot keep, so it is left out until the workflow includes it.
  */
@@ -84,9 +84,9 @@ export default function IdentityVerification() {
     }
 
     setChecking(false);
-    // Not a failure — a provider can take longer, or want a human to look.
+    // Not a failure: a provider can take longer, or want a human to look.
     toast.info(
-      "We haven't heard back yet. You can close this — we'll let you know."
+      "We haven't heard back yet. You can close this. We'll let you know."
     );
   }, [queryClient]);
 
@@ -108,7 +108,7 @@ export default function IdentityVerification() {
       // finished, rather than leaving them in a browser tab to close by hand.
       await WebBrowser.openAuthSessionAsync(
         session.url,
-        // Not "verify-identity" — that path still belongs to the old upload
+        // Not "verify-identity": that path still belongs to the old upload
         // form, and redirecting there would land the user back on the screen
         // this one replaces.
         Linking.createURL("identity-verification")
@@ -144,7 +144,7 @@ export default function IdentityVerification() {
         <Text className="text-center text-muted-foreground text-sm leading-5">
           {verified
             ? "Nothing else to do. This carries over to every prize you win."
-            : "Your prize is already claimed and waiting. Scan an ID and take a quick selfie — about a minute, and you'll only ever do this once."}
+            : "Your prize is already claimed and waiting. Scan an ID and take a quick selfie. It takes about a minute, and you'll only ever do this once."}
         </Text>
 
         {!verified && (

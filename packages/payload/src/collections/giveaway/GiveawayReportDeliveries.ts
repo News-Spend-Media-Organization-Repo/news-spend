@@ -3,13 +3,13 @@ import type { CollectionConfig } from "payload";
 import { ADMIN_GROUP_RECORDS } from "./constants";
 
 /**
- * The email log for Winner Report deliveries (spec §21).
+ * The email log for Winner Report deliveries (spec 21).
  *
- * §21 asks for four things that a timestamp on the giveaway cannot provide:
+ * Section 21 asks for four things that a timestamp on the giveaway cannot provide:
  * exactly one *original* report per draw, automatic retries on failure, a
  * record of what was sent, and a Resend button in the CMS. All four need to
- * distinguish attempts from each other — which one was the original, how many
- * times it was tried, what the provider said when it failed — so each delivery
+ * distinguish attempts from each other: which one was the original, how many
+ * times it was tried, what the provider said when it failed, so each delivery
  * is its own row.
  *
  * A failed delivery never invalidates the draw. It is recorded here, retried,
@@ -54,10 +54,10 @@ export const GiveawayReportDeliveries: CollectionConfig = {
       index: true,
       options: [
         {
-          label: "Original — sent automatically after the draw",
+          label: "Original: sent automatically after the draw",
           value: "original",
         },
-        { label: "Resend — requested by an administrator", value: "resend" },
+        { label: "Resend: requested by an administrator", value: "resend" },
       ],
       admin: {
         description:

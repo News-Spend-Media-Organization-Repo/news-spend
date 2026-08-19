@@ -50,7 +50,7 @@ const Lotteries: CollectionConfig = {
          * left with paid-for tickets and no winners, while a new round takes
          * over the "active" slot and hides it. Blocking here also stops the
          * scheduled task from creating the next lottery when the current draw
-         * has failed — which is safe only because the draw itself is now
+         * has failed, which is safe only because the draw itself is now
          * idempotent, so the task's retries cannot double-award.
          */
         if (operation === "create") {
@@ -159,7 +159,7 @@ const Lotteries: CollectionConfig = {
           });
 
           return Response.json({
-            message: `Draw complete — ${result.totalWinners ?? 0} winners from ${result.totalParticipants ?? 0} participants.`,
+            message: `Draw complete: ${result.totalWinners ?? 0} winners from ${result.totalParticipants ?? 0} participants.`,
             totalWinners: result.totalWinners ?? 0,
             totalParticipants: result.totalParticipants ?? 0,
           });

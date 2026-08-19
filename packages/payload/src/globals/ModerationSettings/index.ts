@@ -9,7 +9,7 @@ import {
  * Central configuration for user-generated content moderation.
  *
  * Everything here has a code-level default, so an unconfigured install still
- * behaves correctly — the global raises the ceiling rather than being a
+ * behaves correctly; the global raises the ceiling rather than being a
  * prerequisite. Leaving a field empty means "use the default"; see
  * lib/moderationSettings for how each one resolves.
  */
@@ -69,7 +69,7 @@ const ModerationSettings: GlobalConfig = {
               ],
               admin: {
                 description:
-                  "Extra addresses that are not admin accounts — shared inboxes, on-call rotations, outsourced moderators. Merged with anything in the MODERATION_ALERT_EMAILS env var.",
+                  "Extra addresses that are not admin accounts, such as shared inboxes, on-call rotations, or outsourced moderators. Merged with anything in the MODERATION_ALERT_EMAILS env var.",
               },
             },
           ],

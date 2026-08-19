@@ -42,7 +42,7 @@ const NewsItemGoogleAds = memo(
       getCachedAd(tab, item.id)
     );
 
-    // loadingRef is the source of truth — never synced from state, always set imperatively.
+    // loadingRef is the source of truth: never synced from state, always set imperatively.
     // This ensures loadAd() guards are accurate even when called synchronously inside
     // useRecyclingEffect (before the async setLoading state update has re-rendered).
     const loadingRef = useRef(false);

@@ -395,7 +395,7 @@ export const sharedScreens = {
       headerShown: false,
     },
   }),
-  // Bench for the HeroUI toast wrapper. Dev builds only — `news-spend://toast-lab`.
+  // Bench for the HeroUI toast wrapper. Dev builds only: `news-spend://toast-lab`.
   ...(__DEV__
     ? {
         ToastLab: createNativeStackScreen({

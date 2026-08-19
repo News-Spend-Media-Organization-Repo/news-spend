@@ -58,7 +58,7 @@ function createContext({
    * its own identity or it spends the budget of the tests around it.
    */
   userId?: string;
-  /** Completed giveaways behind this one, for the §22 cooldown history. */
+  /** Completed giveaways behind this one, for the 22 cooldown history. */
   priorGiveaways?: Row[];
   priorWinners?: Row[];
   priorTickets?: Row[];
@@ -218,7 +218,7 @@ describe("giveaway.current", () => {
   });
 });
 
-describe("giveaway.buyTickets (spec §6)", () => {
+describe("giveaway.buyTickets (spec 6)", () => {
   it("writes one row per purchase rather than upserting", async () => {
     const { ctx, created } = createContext({
       tickets: [ticket({ id: "t0", quantity: 3 })],
@@ -230,7 +230,7 @@ describe("giveaway.buyTickets (spec §6)", () => {
       { context: ctx }
     );
 
-    // A second row, not an edit to the first — each purchase is its own
+    // A second row, not an edit to the first: each purchase is its own
     // weighted entry in the draw.
     expect(created["giveaway-tickets"]).toHaveLength(1);
     expect(created["giveaway-tickets"]?.[0]).toMatchObject({
@@ -295,7 +295,7 @@ describe("giveaway.buyTickets (spec §6)", () => {
       call(giveawayRouter.buyTickets, { quantity: 10 }, { context: ctx })
     ).rejects.toThrow(/database unavailable/);
 
-    // Charged 500, refunded 500 — the user is not left out of pocket for
+    // Charged 500, refunded 500: the user is not left out of pocket for
     // tickets they never received.
     expect(balance()).toBe(1000);
   });
@@ -339,7 +339,7 @@ describe("giveaway.buyTickets (spec §6)", () => {
  * Skipped while `AGE_GATE_ENABLED` is false in the giveaway router.
  *
  * These describe the gate's behaviour when it is on, and they pass as written
- * the moment it is switched back on — un-skip in the same change that flips
+ * the moment it is switched back on: un-skip in the same change that flips
  * the flag. The under-18 rule itself is unaffected and still covered directly
  * by participantEligibility.test.ts; only its enforcement at purchase is off.
  */
@@ -354,7 +354,7 @@ describe.skip("age gate on participation", () => {
       call(giveawayRouter.buyTickets, { quantity: 1 }, { context: ctx })
     );
 
-    // FORBIDDEN, not BAD_REQUEST — nothing about the request is malformed,
+    // FORBIDDEN, not BAD_REQUEST: nothing about the request is malformed,
     // the account simply may not do this.
     expect(error.code).toBe("FORBIDDEN");
     expect(error.message).toMatch(/date of birth/);
@@ -417,7 +417,7 @@ describe.skip("age gate on participation", () => {
   });
 });
 
-describe("giveaway.recordEngagement (spec §7, §8)", () => {
+describe("giveaway.recordEngagement (spec 7, 8)", () => {
   it("records a completed boost", async () => {
     const { ctx, created } = createContext({
       tickets: [ticket()],
@@ -506,7 +506,7 @@ describe("giveaway.recordEngagement (spec §7, §8)", () => {
       { context: ctx }
     );
 
-    // Re-watching the same advertisement is not a second boost — otherwise
+    // Re-watching the same advertisement is not a second boost: otherwise
     // Tier 1's three-boost requirement falls to a single item.
     const error = await captureError(
       call(
@@ -537,13 +537,13 @@ describe("giveaway.recordEngagement (spec §7, §8)", () => {
   });
 });
 
-describe("giveaway.progress (spec §11)", () => {
+describe("giveaway.progress (spec 11)", () => {
   it("aggregates tickets by quantity, not by row", async () => {
     const { ctx } = createContext({
       tickets: [
         ticket({ id: "t1", quantity: 5 }),
         ticket({ id: "t2", quantity: 5 }),
-        // Refunded tickets never count (§6).
+        // Refunded tickets never count (6).
         ticket({ id: "t3", quantity: 50, status: "refunded" }),
       ],
     });
@@ -643,7 +643,7 @@ describe("giveaway.progress (spec §11)", () => {
   });
 });
 
-describe("giveaway.progress cooldowns (spec §22)", () => {
+describe("giveaway.progress cooldowns (spec 22)", () => {
   /** A completed giveaway that ended before the open one. */
   const lastRound = {
     id: "g0",
@@ -702,7 +702,7 @@ describe("giveaway.progress cooldowns (spec §22)", () => {
             status: "valid",
           },
         ],
-        // Won Tier 1 last round, so Tier 1 is barred for four draws (§22.2).
+        // Won Tier 1 last round, so Tier 1 is barred for four draws (22.2).
         priorWinners: [
           { id: "pw0", giveaway: "g0", user: "u1", tier: "tier1" },
         ],
@@ -715,11 +715,11 @@ describe("giveaway.progress cooldowns (spec §22)", () => {
 
     const tier1 = result.tiers.find((t) => t.tier === "tier1");
 
-    // They have done everything asked of them this round — and still cannot
+    // They have done everything asked of them this round, and still cannot
     // win Tier 1, which is exactly the distinction the app needs to show.
     expect(tier1?.requirementsMet).toBe(true);
     expect(tier1?.canWin).toBe(false);
-    expect(tier1?.cooldown?.rule).toBe("§22.1");
+    expect(tier1?.cooldown?.rule).toBe("22.1");
 
     // Tier 3 is untouched by the high-tier cooldowns.
     expect(result.tiers.find((t) => t.tier === "tier3")?.canWin).toBe(true);
@@ -738,7 +738,7 @@ describe("giveaway.progress cooldowns (spec §22)", () => {
     expect(result.tiers.find((t) => t.tier === "tier1")?.canWin).toBe(true);
   });
 
-  it("waives the Featured Offer requirement for a loyal user (§22.4)", async () => {
+  it("waives the Featured Offer requirement for a loyal user (22.4)", async () => {
     const rounds = [4, 3, 2, 1].map((n) => ({
       id: `g-${n}`,
       name: `Round ${n}`,

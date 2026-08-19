@@ -142,7 +142,7 @@ export const CommentBox = ({
   // ---------------------------------------------------------------------------
 
   const handlePost = () => {
-    // Read auth at call time (not render time) — a destructured copy would go
+    // Read auth at call time (not render time), because a destructured copy would go
     // stale when the user signs in while this screen stays mounted.
     const { user } = authState;
     if (!user || user.isAnonymous) {
@@ -165,7 +165,7 @@ export const CommentBox = ({
         },
         onError: (err) => {
           // The draft is deliberately left in the box so the author can edit
-          // and retry — a content-filter rejection asks them to revise.
+          // and retry, since a content-filter rejection asks them to revise.
           toast.error("Comment not posted", {
             description: apiErrorMessage(
               err,
@@ -285,8 +285,8 @@ export const CommentBox = ({
     return (
       <>
         {/* Absolutely positioned so it dims the screen without pulling
-            composerContent out of the KeyboardAvoidingView's flex flow —
-            composerContent must stay a normal flex child (like the
+            composerContent out of the KeyboardAvoidingView's flex flow,
+            because composerContent must stay a normal flex child (like the
             new-comment case) so it still gets pushed up above the
             keyboard. */}
         <Pressable

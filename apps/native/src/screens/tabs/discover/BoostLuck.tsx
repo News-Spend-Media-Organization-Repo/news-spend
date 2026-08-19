@@ -29,8 +29,8 @@ const BoostLuck = () => {
         });
       },
       onError: (error) => {
-        // The engine explains refusals in terms the person can act on — buy a
-        // ticket first, or this item has already counted — so show its words
+        // The engine explains refusals in terms the person can act on: buy a
+        // ticket first, or this item has already counted, so show its words
         // rather than a generic failure.
         toast.error("That didn't count", { description: error.message });
       },
@@ -53,7 +53,7 @@ const BoostLuck = () => {
    * A Boost is recorded against the partner item that was watched.
    *
    * A Google ad arrives here with no item, because it has no partner-content
-   * record for the engine to count against — and the engine deliberately
+   * record for the engine to count against, and the engine deliberately
    * refuses an engagement it cannot attribute, since three boosts must mean
    * three different items rather than one watched three times. Saying so is
    * better than a silent no-op that leaves the counter stuck.
@@ -71,7 +71,7 @@ const BoostLuck = () => {
 
   /**
    * Once the boosts for the top tier are in, send people to the app wall,
-   * which is where Featured Offers — the other half of Tier 1 — come from.
+   * which is where Featured Offers (the other half of Tier 1) come from.
    *
    * Counted from the server rather than a ref, because a ref resets every
    * time this screen unmounts: someone returning after three boosts used to
@@ -172,7 +172,7 @@ const BoostLuck = () => {
             purpose is earning a Boost.
 
             The rotation is otherwise 40% partner / 60% Google, and a Google ad
-            cannot earn a Boost at all — it has no partner-content record for
+            cannot earn a Boost at all: it has no partner-content record for
             the engine to attribute one to, so it is refused. Left sampling,
             roughly three in five attempts here spent fifteen seconds to earn
             nothing, or bounced the person to the Lucky App Wall instead. The
@@ -180,7 +180,7 @@ const BoostLuck = () => {
           */}
           <PartnerAdDialog
             asChild
-            // Skip anything whose Boost is already earned — a repeat here
+            // Skip anything whose Boost is already earned: a repeat here
             // costs a full advertisement and is then refused.
             forBoost
             onCountdownComplete={onCountdownComplete}

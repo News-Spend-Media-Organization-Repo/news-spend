@@ -103,8 +103,8 @@ export class LotteryEngine {
        * This is a compare-and-set: the update only matches while the lottery is
        * neither already being processed nor already processed, so a second
        * caller gets zero rows back and stops. Without it, anything that re-runs
-       * the draw — the task's `retries: 2`, a manual trigger after an outage, a
-       * duplicate cron — creates a second full set of winner rows, because
+       * the draw (the task's `retries: 2`, a manual trigger after an outage, a
+       * duplicate cron) creates a second full set of winner rows, because
        * winners are written per ticket with no existence check.
        */
       const claim = await this.payload.update({
@@ -121,7 +121,7 @@ export class LotteryEngine {
 
       if (!claim.docs?.length) {
         this.payload.logger.info(
-          `[LOTTERY] Draw for ${activeLottery.id} is already processing or already processed — skipping`
+          `[LOTTERY] Draw for ${activeLottery.id} is already processing or already processed; skipping`
         );
         return {
           success: true,
@@ -143,7 +143,7 @@ export class LotteryEngine {
 
       if (tickets.docs.length === 0) {
         this.payload.logger.info("[LOTTERY] No participants found");
-        // A draw with nobody in it is still a completed draw — mark it so, or
+        // A draw with nobody in it is still a completed draw. Mark it so, or
         // the lottery stays claimed forever and blocks the next one.
         await this.markProcessed(activeLottery.id);
         return {
@@ -214,7 +214,7 @@ export class LotteryEngine {
       this.payload.logger.error({ err: error }, "[LOTTERY] Fatal error");
 
       // Release the claim so the draw can be retried. `processedAt` is left
-      // unset deliberately — the draw did not finish. Any winners already
+      // unset deliberately. The draw did not finish. Any winners already
       // written stay put, so a retry must be preceded by a check of how far
       // the previous attempt got.
       if (claimedLotteryId) {

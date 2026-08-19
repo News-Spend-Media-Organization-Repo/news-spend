@@ -7,7 +7,7 @@ import {
 } from "./constants";
 
 /**
- * Winner records (spec §12, §13, §21).
+ * Winner records (spec 12, 13, 21).
  *
  * A winner is a user who was randomly selected from a candidate pool AND
  * successfully allocated a prize. A user may hold at most one winner record per
@@ -187,7 +187,7 @@ export const GiveawayWinners: CollectionConfig = {
       options: [...FULFILMENT_STATUS_OPTIONS],
       admin: {
         description:
-          "On Hold is set automatically when the winner's account is flagged as suspicious (§22.7, §22.8) — the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.",
+          "On Hold is set automatically when the winner's account is flagged as suspicious (22.7, 22.8): the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.",
       },
     },
     {
@@ -215,7 +215,7 @@ export const GiveawayWinners: CollectionConfig = {
       admin: {
         readOnly: true,
         description:
-          "Set when this record replaces a disqualified winner (§12). The original is kept rather than deleted, so the audit trail stays intact.",
+          "Set when this record replaces a disqualified winner (12). The original is kept rather than deleted, so the audit trail stays intact.",
       },
     },
     {
@@ -233,7 +233,7 @@ export const GiveawayWinners: CollectionConfig = {
       admin: {
         readOnly: true,
         description:
-          "Why this winner was disqualified — recorded before any replacement is drawn.",
+          "Why this winner was disqualified, recorded before any replacement is drawn.",
       },
     },
   ],

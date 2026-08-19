@@ -1,17 +1,17 @@
 import type { BasePayload } from "payload";
 
 /**
- * Record a Featured Offer completion against the open giveaway (spec §8).
+ * Record a Featured Offer completion against the open giveaway (spec 8).
  *
  * Driven by a partner confirming a conversion, not by the tap that opened the
- * link. A tap is an intention; §8 counts completions, and treating the two as
+ * link. A tap is an intention; Section 8 counts completions, and treating the two as
  * the same would let anyone reach Tier 1 by opening one offer and closing it
  * again.
  *
  * NEVER THROWS. This runs inside the conversion webhook, after the partner has
  * been told the conversion succeeded and the user has been paid points. A
  * giveaway that is closed, a user with no ticket, or an offer already counted
- * are all ordinary outcomes — none of them is a reason to fail a payout that
+ * are all ordinary outcomes, none of them is a reason to fail a payout that
  * has already happened.
  */
 export async function recordFeaturedOffer(
@@ -44,14 +44,14 @@ export async function recordFeaturedOffer(
       .findByID({ collection: "partner-content", id: contentId, depth: 0 })
       .catch(() => null);
 
-    // Only the app wall counts as a Featured Offer — a Connect Brands video is
+    // Only the app wall counts as a Featured Offer: a Connect Brands video is
     // a Boost, and the two must not be interchangeable.
     const placements = (content?.placements ?? []) as string[];
     if (!placements.includes("lucky-app-wall")) {
       return { recorded: false, reason: "not a Featured Offer placement" };
     }
 
-    // §8 contributes to eligibility, and eligibility starts with a ticket.
+    // Section 8 contributes to eligibility, and eligibility starts with a ticket.
     const tickets = await payload.count({
       collection: "giveaway-tickets",
       where: {

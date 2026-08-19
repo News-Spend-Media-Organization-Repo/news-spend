@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   },
   output: "standalone",
   // Keeps ssh2 and its optional cpu-features native binding out of the server
-  // bundle — required by the cPanel SFTP storage adapter. This replaces an
+  // bundle, required by the cPanel SFTP storage adapter. This replaces an
   // equivalent `webpack.externals` block: declaring it here works under both
   // Webpack and Turbopack, whereas the webpack-only version made `next dev
   // --turbopack` warn that the two bundlers were configured differently.
@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
   // to `{}`. Next flattens the config and only counts a key it can actually
   // enumerate, so an empty object reads as "Turbopack not configured" and it
   // warns that the two bundlers disagree. Declaring the monorepo root is both
-  // the correct setting here — Turbopack resolves nothing above this path —
+  // the correct setting here (Turbopack resolves nothing above this path)
   // and enough for that check to see a real Turbopack config.
   turbopack: {
     root: monorepoRoot,

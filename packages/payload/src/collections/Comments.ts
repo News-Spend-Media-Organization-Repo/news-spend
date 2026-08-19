@@ -160,7 +160,7 @@ const Comments: CollectionConfig = {
       ],
       admin: {
         description:
-          "Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed — the threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.",
+          "Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed. The threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.",
       },
     },
     {

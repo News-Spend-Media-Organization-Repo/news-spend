@@ -41,7 +41,7 @@ export const DEFAULT_ALERT_ROLES = ["super-admin", "content-manager"];
 /**
  * Applies defaults to a raw global document.
  *
- * Empty and unset are treated identically — both mean "use the default" —
+ * Empty and unset are treated identically: both mean "use the default",
  * because Payload writes an empty array for a `hasMany` select the moment the
  * global is saved, and an admin saving the form without touching a field must
  * not silently disable that behaviour.
@@ -81,8 +81,8 @@ export function applySettingsDefaults(
 /**
  * Loads the global and applies defaults.
  *
- * Never throws: if the global cannot be read — not yet created, database
- * hiccup — moderation falls back to code defaults rather than failing the
+ * Never throws: if the global cannot be read (not yet created, database
+ * hiccup), moderation falls back to code defaults rather than failing the
  * report that triggered it.
  */
 export async function getModerationSettings(
@@ -100,7 +100,7 @@ export async function getModerationSettings(
   } catch (error) {
     payload.logger.error(
       { error },
-      "Failed to read moderation settings global — falling back to defaults"
+      "Failed to read moderation settings global; falling back to defaults"
     );
     return applySettingsDefaults(null);
   }

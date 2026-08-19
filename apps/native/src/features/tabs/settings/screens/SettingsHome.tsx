@@ -53,7 +53,7 @@ const settingsItems: SettingsItem[] = [
     screen: "Profile",
     authRequired: true,
   },
-  // Must ship in release builds — it was previously __DEV__-only, so no
+  // Must ship in release builds. It was previously __DEV__-only, so no
   // reviewer could ever find the block-management screen. Guests are routed to
   // sign-in, since blocking requires a registered account.
   {
@@ -88,8 +88,8 @@ const settingsItems: SettingsItem[] = [
   // Identity verification is deliberately absent. It is reached from the
   // prize that needs it (see MyPrizes), never browsed to: every check costs
   // real money at the provider, and no prize currently requires one. A
-  // standing menu entry would invite people to hand over an ID document —
-  // and have us pay to inspect it — for nothing.
+  // standing menu entry would invite people to hand over an ID document,
+  // and have us pay to inspect it, for nothing.
   { title: "Contact us", icon: PhoneCallIcon, screen: "Support" },
   {
     title: "Legal Agreement",
@@ -119,7 +119,7 @@ function SettingsHome() {
   const isGuest = user?.isAnonymous === true;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Static menu screen — interactive as soon as it renders.
+  // Static menu screen: interactive as soon as it renders.
   useMarkInteractive(true);
 
   const handleLogout = useCallback(async () => {

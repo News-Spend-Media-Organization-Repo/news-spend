@@ -1,24 +1,24 @@
 /**
  * Set up the one part of the claim flow that has never run: identity
- * verification before dispatch (§15).
+ * verification before dispatch (spec 15).
  *
- * Nothing anywhere — dev, staging or production — has ever had a prize with
+ * Nothing anywhere (dev, staging or production) has ever had a prize with
  * `requiresVerification` set, so no winner has ever reached
  * `awaiting_verification` and the Didit hand-off has only ever been exercised
  * by unit tests. The tier 1 fixture deliberately uses points to keep the tier
  * eligibility test free of an address step, which was right for that test and
  * left this half uncovered.
  *
- * A PHYSICAL prize, because that is the combination the flag is actually for —
- * the catalogue's own guidance is "high-value items, not airtime or points" —
+ * A PHYSICAL prize, because that is the combination the flag is actually for:
+ * the catalogue's own guidance is "high-value items, not airtime or points",
  * and because it exercises the address step at the same time, which is the
  * other untested half of a physical claim.
  *
- * TIER 3 on purpose. The §22 cooldowns bar only tiers 1 and 2, so a tester who
+ * TIER 3 on purpose. The section 22 cooldowns bar only tiers 1 and 2, so a tester who
  * has already won recently stays eligible here; at tier 1 they would be
- * excluded by §22.2 and the draw would award nothing.
+ * excluded by 22.2 and the draw would award nothing.
  *
- * Usage, from apps/cms — note this needs the DIDIT_* variables, because the
+ * Usage, from apps/cms. Note this needs the DIDIT_* variables, because the
  * catalogue refuses `requiresVerification` when no provider is configured:
  *
  *   railway run -e staging -s cms -- \
@@ -30,12 +30,12 @@ import { getPayload } from "@news-spend-media/payload";
 
 const WRITE = process.argv.includes("--write");
 
-const PRIZE_NAME = "Test Physical Prize — Verification";
+const PRIZE_NAME = "Test Physical Prize: Verification";
 
 async function main() {
   const payload = await getPayload();
 
-  console.log(`\n${WRITE ? "WRITE" : "DRY RUN — nothing will be changed"}\n`);
+  console.log(`\n${WRITE ? "WRITE" : "DRY RUN: nothing will be changed"}\n`);
 
   // --- The prize ---------------------------------------------------------
 
@@ -105,7 +105,7 @@ async function main() {
   );
 
   /**
-   * Tiers 1 and 2 are stocked only so the draw can start at all — it refuses
+   * Tiers 1 and 2 are stocked only so the draw can start at all. It refuses
    * any enabled tier with an empty pool. At 0.1% and 0.5% neither awards
    * anything with a handful of participants, which is the intent: this test is
    * about tier 3.
@@ -123,7 +123,7 @@ async function main() {
     });
     const id = found.docs[0]?.id ? String(found.docs[0].id) : null;
     if (!id) {
-      console.log(`  MISSING  prize      ${name} — run seed-giveaway-fixtures first`);
+      console.log(`  MISSING  prize      ${name}. Run seed-giveaway-fixtures first.`);
       continue;
     }
     if (pooled.has(id)) {

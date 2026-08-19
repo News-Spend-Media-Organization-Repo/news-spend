@@ -7,10 +7,10 @@ import {
 } from "./constants";
 
 /**
- * Boost Your Luck interactions and Featured Offer completions (spec §7, §8).
+ * Boost Your Luck interactions and Featured Offer completions (spec 7, 8).
  *
  * These are one collection rather than two because they differ only in which
- * app surface produced them — both are engagement with a `partner-content`
+ * app surface produced them. Both are engagement with a `partner-content`
  * item, both contribute to Tier 1 and Tier 2 eligibility only, both aggregate
  * within the active giveaway period, and neither creates additional draw
  * entries.
@@ -19,7 +19,7 @@ import {
  * giveaway system does not maintain its own parallel notion of what an offer
  * is. `conversion` links to the partner-side CPA record once a partner
  * integration exists; until then it stays empty and is deliberately NOT what
- * gates eligibility — requiring it today would make Tier 1 and Tier 2
+ * gates eligibility. Requiring it today would make Tier 1 and Tier 2
  * unreachable, since no partner platform is integrated yet.
  */
 export const GiveawayEngagements: CollectionConfig = {
@@ -37,7 +37,7 @@ export const GiveawayEngagements: CollectionConfig = {
       "completedAt",
     ],
     description:
-      "Boost Your Luck and Featured Offer completions. Contributes to Tier 1 and Tier 2 eligibility only — never creates additional draw entries.",
+      "Boost Your Luck and Featured Offer completions. Contributes to Tier 1 and Tier 2 eligibility only; never creates additional draw entries.",
   },
   access: {
     read: () => true,
@@ -88,7 +88,7 @@ export const GiveawayEngagements: CollectionConfig = {
       index: true,
       admin: {
         description:
-          "Set once a CPA partner confirms the action. Not required for eligibility today — no partner platform is integrated yet.",
+          "Set once a CPA partner confirms the action. Not required for eligibility today: no partner platform is integrated yet.",
       },
     },
     {

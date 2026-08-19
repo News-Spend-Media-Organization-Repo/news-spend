@@ -17,7 +17,7 @@ import { getThumbnailWithCache } from "#/components/videoPlayer/thumbnailCache";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
 
-// YouTube removed — ToS violation in ad context
+// YouTube removed: ToS violation in ad context
 
 export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const { width } = useWindowDimensions();

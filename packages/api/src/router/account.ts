@@ -146,7 +146,7 @@ export const SetDateOfBirthInput = z.object({
  * Record a date of birth, once.
  *
  * Write-once by design. Age gates giveaway participation, so a birth date the
- * holder can rewrite is not a check — it is a prompt someone answers again
+ * holder can rewrite is not a check; it is a prompt someone answers again
  * after being refused. A genuine mistype is a support correction, made by an
  * administrator in the CMS, the same way a bank does not let you edit your
  * own date of birth after it has been used for anything.
@@ -182,7 +182,7 @@ const setDateOfBirth = protectedNoGuestProcedure
 
     if (parsed < oldest) {
       throw errors.BAD_REQUEST({
-        message: "Please check the year — that date is not plausible.",
+        message: "Please check the year. That date is not plausible.",
       });
     }
 

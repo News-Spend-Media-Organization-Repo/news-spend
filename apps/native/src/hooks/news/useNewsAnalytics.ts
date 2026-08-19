@@ -5,7 +5,7 @@ import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { authState } from "#/state/auth";
 import { storage } from "#/utils/storage";
 
-// Stable device ID — generated once and persisted
+// Stable device ID: generated once and persisted
 function getOrCreateDeviceId(): string {
   const key = "news_analytics_device_id";
   const existing = storage.getString(key);
@@ -17,7 +17,7 @@ function getOrCreateDeviceId(): string {
   return id;
 }
 
-// Session ID — regenerated each app launch (kept in memory)
+// Session ID: regenerated each app launch (kept in memory)
 let sessionId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export function renewAnalyticsSession(): void {

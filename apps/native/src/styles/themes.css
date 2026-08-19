@@ -50,7 +50,7 @@
       --default: oklch(0.274 0.006 286.033);
       --default-foreground: oklch(0.9911 0 0);
 
-      /* p-500 is too dark for dark bg — use p-75 which is readable */
+      /* p-500 is too dark for dark bg; use p-75 which is readable */
       --accent: var(--p-75);
       /* oklch(0.738 0.0363 238.87) */
       --accent-foreground: oklch(0.05 0 0);

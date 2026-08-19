@@ -3,13 +3,13 @@ import type { CollectionConfig } from "payload";
 import { ADMIN_GROUP_RECORDS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
- * The locked candidate pool for one tier of one giveaway (spec §12).
+ * The locked candidate pool for one tier of one giveaway (spec 12).
  *
  * The specification requires the pool to be *locked* at cutoff, not merely
  * calculated: once written it must not change during execution, and the
  * replacement-winner rule draws from "the original locked candidate pool" when
  * a winner is later disqualified. A pool held only in memory cannot satisfy
- * that — by the time a refund surfaces, the draw is long over.
+ * that; by the time a refund surfaces, the draw is long over.
  *
  * `entries` holds one record per valid ticket purchase, exactly as the draw
  * saw it, so a replacement is drawn from the same weighted population as the

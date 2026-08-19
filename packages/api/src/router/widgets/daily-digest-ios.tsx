@@ -17,7 +17,7 @@ function Surface({ children }: { children: ReactNode }) {
 
 /**
  * The greeting doubles as the eyebrow. It keeps the brand voice while freeing
- * the line the date used to occupy — the date is already in the status bar.
+ * the line the date used to occupy, since the date is already in the status bar.
  */
 function Eyebrow({ greeting }: { greeting: string }) {
   return (
@@ -97,12 +97,12 @@ function MediumDailyDigest({ digest }: { digest: DigestData }) {
   return (
     <Surface>
       <V.VStack spacing={10} style={{ padding: 16, flex: 1 }}>
-        {/* An explicit Spacer, not justifyContent — these map to SwiftUI HStacks,
+        {/* An explicit Spacer, not justifyContent. These map to SwiftUI HStacks,
             where space-between does not separate the children. */}
         <V.HStack style={{ alignItems: "center" }}>
           <Eyebrow greeting={digest.greeting} />
           <V.Spacer />
-          {/* "What did I miss" is the digest's whole job — the count answers it
+          {/* "What did I miss" is the digest's whole job, and the count answers it
               before any headline is read. */}
           <V.Text style={{ fontSize: 11, color: t.textMuted }}>
             {`${digest.stories.length} new`}

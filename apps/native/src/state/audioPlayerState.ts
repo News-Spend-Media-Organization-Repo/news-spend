@@ -195,7 +195,7 @@ async function configureAudioSession() {
       interruptionMode: "doNotMix",
     });
   } catch {
-    // Non-critical — may already be configured
+    // Non-critical; may already be configured
   }
 }
 
@@ -357,7 +357,7 @@ export const togglePlayback = () => {
   if (audioPlayer.playing) {
     audioPlayer.pause();
   } else {
-    // Live radio can't be resumed — reload the current stream
+    // Live radio can't be resumed, so reload the current stream
     const station = currentStationList[currentStationIndex];
     if (station) {
       playStation(station, currentStationList, currentStationIndex);

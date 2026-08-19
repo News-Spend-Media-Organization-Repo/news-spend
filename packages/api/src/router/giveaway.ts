@@ -41,7 +41,7 @@ import {
 import { createRateLimitMiddleware } from "../lib/ratelimit";
 
 /**
- * Upper bound on a single purchase. Not a business rule — the quantity is
+ * Upper bound on a single purchase. Not a business rule: the quantity is
  * multiplied by the ticket price to produce a points debit, so an absurd
  * value is worth rejecting outright rather than reasoning about.
  */
@@ -51,7 +51,7 @@ const MAX_TICKETS_PER_PURCHASE = 1000;
  * Whether an account must have a date of birth on record to take part.
  *
  * Off for now, deliberately. The check itself works, but nothing in the app
- * can record a date of birth — the profile only displays one — so enabling it
+ * can record a date of birth (the profile only displays one), so enabling it
  * tells people to supply something they have no way to supply. Turn this back
  * on in the same change that ships the capture flow, and un-skip the age-gate
  * block in giveawayRouter.test.ts with it.
@@ -75,7 +75,7 @@ function relationId(value: unknown): string | null {
 }
 
 /**
- * Which app surfaces produce which kind of engagement (spec §7, §8).
+ * Which app surfaces produce which kind of engagement (spec 7, 8).
  *
  * A Boost is a Connect Brand advertisement watched to completion; a Featured
  * Offer is an item on the Lucky App Wall. Checking the placement stops a
@@ -131,8 +131,8 @@ type ClaimErrorFactory = ErrorFactory & {
  * The giveaway currently accepting participation.
  *
  * Only a giveaway that is `active` and inside its own window takes tickets or
- * engagements. Once the draw begins the candidate pool is locked (§12), so
- * anything recorded afterwards could never have counted anyway — better to
+ * engagements. Once the draw begins the candidate pool is locked (12), so
+ * anything recorded afterwards could never have counted anyway: better to
  * refuse it than to store a row that silently does nothing.
  */
 async function openGiveaway(
@@ -177,7 +177,7 @@ async function openGiveaway(
  * Checked here rather than only at signup, for two reasons: someone who
  * signed up under age becomes eligible on their birthday with no action
  * needed, and someone who lied at signup is caught again at the point where
- * it actually matters — money changing hands for a chance at a prize.
+ * it actually matters: money changing hands for a chance at a prize.
  *
  * Deliberately FORBIDDEN rather than BAD_REQUEST. This is not a malformed
  * request the caller can fix by sending different input; the account itself
@@ -212,7 +212,7 @@ async function assertOldEnough(
 /**
  * Everything the eligibility rules need about one user in one giveaway.
  *
- * Tickets are summed by quantity rather than counted by row — §6 aggregates
+ * Tickets are summed by quantity rather than counted by row: 6 aggregates
  * every valid purchase in the period, and one purchase of ten tickets has to
  * weigh the same as ten purchases of one.
  */
@@ -275,7 +275,7 @@ const NO_HISTORY: UserDrawHistory = { outcomes: [] };
 /**
  * A user's participation this round together with their history, which is
  * everything the tier summary needs. Both write endpoints echo the caller's
- * new standing, so they load the same pair the progress endpoint does — a
+ * new standing, so they load the same pair the progress endpoint does: a
  * summary that omitted the cooldowns would contradict it.
  */
 async function loadStanding(
@@ -296,8 +296,8 @@ async function loadStanding(
  *
  * Two separate questions are answered per tier, and keeping them apart matters
  * for what the app can honestly say. `requirementsMet` is whether the user has
- * done enough this round — the thing they can act on. `canWin` also accounts
- * for the §22 fairness cooldowns, which no amount of buying or boosting will
+ * done enough this round: the thing they can act on. `canWin` also accounts
+ * for the 22 fairness cooldowns, which no amount of buying or boosting will
  * change: a recent Tier 1 winner is barred from Tier 1 whatever they do.
  *
  * Collapsing the two would mean either promising a tier the draw will exclude
@@ -322,7 +322,7 @@ function summariseTiers(
       cooldown: fairness.eligible
         ? null
         : { rule: fairness.rule, reason: fairness.reason },
-      /** §22.4 — the Featured Offer requirement is waived this round. */
+      /** 22.4: the Featured Offer requirement is waived this round. */
       loyaltyWaiver,
       requirements: {
         primary: PRIMARY_ELIGIBILITY[tier],
@@ -343,7 +343,7 @@ const PARTICIPANTS_SHOWN = 20;
  * Who has entered the open giveaway, and how many people that is.
  *
  * The count is derived from valid tickets rather than read off the giveaway,
- * because `totalValidParticipants` is only written when the draw runs — it is
+ * because `totalValidParticipants` is only written when the draw runs: it is
  * null for the whole period anyone is actually looking at this.
  *
  * Counts people, not tickets: somebody who bought ten tickets is one
@@ -443,7 +443,7 @@ const current = publicProcedure.handler(async ({ context }) => {
  *
  * The fairness cooldowns are read from the same history reconstruction the
  * draw itself uses, so what the app shows and what the draw does cannot drift
- * apart — there is one implementation, not two.
+ * apart: there is one implementation, not two.
  */
 const progress = protectedProcedure.handler(async ({ context, errors }) => {
   const { payload, user } = context;
@@ -493,18 +493,18 @@ export const BuyTicketsInput = z.object({
 });
 
 /**
- * Buy tickets for the open giveaway (spec §6).
+ * Buy tickets for the open giveaway (spec 6).
  *
  * One row per purchase, never an upsert. The legacy lottery collapsed every
- * purchase by a user into a single row, which made the ticket count decorative
- * — the draw rolled once per user however many tickets they had bought. Here
+ * purchase by a user into a single row, which made the ticket count decorative:
+ * the draw rolled once per user however many tickets they had bought. Here
  * each row is an independent weighted entry, so buying more tickets genuinely
  * improves the odds.
  *
  * The points debit follows the same shape as the lottery's: balance read and
  * write inside one transaction that first takes a row lock on the user, so two
  * concurrent purchases cannot both pass the check. The debit commits before
- * the tickets exist, and is refunded if creating them fails — the reverse
+ * the tickets exist, and is refunded if creating them fails: the reverse
  * order would hand out tickets nobody paid for.
  */
 const buyTickets = protectedNoGuestProcedure
@@ -555,7 +555,7 @@ const buyTickets = protectedNoGuestProcedure
         type: "point",
         action: "ticketPurchase",
         point: -cost,
-        description: `Giveaway ticket purchase — ${giveaway.name}`,
+        description: `Giveaway ticket purchase: ${giveaway.name}`,
       });
     });
 
@@ -596,7 +596,7 @@ const buyTickets = protectedNoGuestProcedure
           type: "point",
           action: "ticketPurchase",
           point: cost,
-          description: "Refund — giveaway ticket purchase failed",
+          description: "Refund: giveaway ticket purchase failed",
         })
         .catch((refundError: unknown) => {
           payload.logger.error(
@@ -612,7 +612,7 @@ const buyTickets = protectedNoGuestProcedure
 export const RecordEngagementInput = z.object({
   type: z.enum(["boost", "featured_offer"]),
   /**
-   * The partner item engaged with. Required, not optional: §7 and §8 both
+   * The partner item engaged with. Required, not optional: 7 and 8 both
    * mandate recording the interaction's identity, and without it there is no
    * way to tell a second genuine engagement from the same one replayed.
    */
@@ -622,15 +622,15 @@ export const RecordEngagementInput = z.object({
 
 /**
  * Record a completed Boost Your Luck interaction or Featured Offer
- * (spec §7, §8).
+ * (spec 7, 8).
  *
- * Neither creates a draw entry — both only contribute towards Tier 1 and
+ * Neither creates a draw entry: both only contribute towards Tier 1 and
  * Tier 2 eligibility, which is why nothing here touches ticket counts.
  *
  * Three rules guard it. The user must already hold a valid ticket, because
  * engagement without participation is not participation. The item's placement
  * must match the kind of engagement claimed. And one partner item counts once
- * per giveaway per user — re-watching the same advertisement is not three
+ * per giveaway per user: re-watching the same advertisement is not three
  * boosts, and without that rule Tier 1 is reachable from a single item.
  */
 const recordEngagement = protectedNoGuestProcedure
@@ -729,7 +729,7 @@ const recordEngagement = protectedNoGuestProcedure
     };
   });
 
-// --- Claiming prizes (spec §21) ---
+// --- Claiming prizes (spec 21) ---
 
 /** Shape one winner row for the app, with everything the claim screen needs. */
 /**
@@ -771,7 +771,7 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
     closedReason: window.open ? null : window.reason,
     closedMessage: window.open ? null : window.message,
     /**
-     * §22.7/§22.8 — the win stands, but the payout waits on a review. The app
+     * 22.7/22.8: the win stands, but the payout waits on a review. The app
      * must say so rather than promise delivery.
      */
     underReview: winner.fulfilmentStatus === "on_hold",
@@ -787,7 +787,7 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
     },
     /**
      * What the winner supplied at claim time. Their own details, returned to
-     * them — a top-up that went to a mistyped number is otherwise impossible
+     * them: a top-up that went to a mistyped number is otherwise impossible
      * for them to diagnose, and impossible to correct.
      */
     sentTo: (winner.claimPhone as string | null) ?? null,
@@ -797,7 +797,7 @@ function toWinning(winner: Row, window: ReturnType<typeof claimWindowFor>) {
      * Whether the winner may still correct where this is going.
      *
      * Decided here, once, so the button and the procedure cannot drift into
-     * disagreeing — a screen offering an edit the server then refuses is
+     * disagreeing: a screen offering an edit the server then refuses is
      * worse than no button at all.
      */
     canEditDetails:
@@ -830,8 +830,8 @@ function winningFrom(winner: Row, latestStart: string | null) {
 }
 
 /**
- * A prize's own claim window bounds how long it can stay unresolved — 14
- * days, or until the next giveaway starts — so the count of prizes genuinely
+ * A prize's own claim window bounds how long it can stay unresolved (14
+ * days, or until the next giveaway starts), so the count of prizes genuinely
  * waiting on this user is naturally small. It never needs a page.
  *
  * This is the same pair `toWinning` derives `claimable` and
@@ -850,17 +850,17 @@ const ACTIONABLE_WHERE: Where = {
  *
  * The claim window is what actually bounds this list to a handful of rows.
  * The limit only guards against the hourly expiry sweep having stopped
- * running — it should never be the thing doing the bounding.
+ * running: it should never be the thing doing the bounding.
  */
 const ACTIONABLE_CEILING = 100;
 
 /**
  * Every prize still waiting on this user: unclaimed within its window, or
- * claimed but pending the one-time identity check (spec §21).
+ * claimed but pending the one-time identity check (spec 21).
  *
  * Deliberately unpaged. Unlike the full history, this list cannot grow
- * without bound — a prize leaves it the moment it is claimed (unless it also
- * needs verification) or its window closes — so there is nothing here for
+ * without bound: a prize leaves it the moment it is claimed (unless it also
+ * needs verification) or its window closes, so there is nothing here for
  * pagination to protect against.
  */
 const actionable = protectedProcedure.handler(async ({ context }) => {
@@ -889,7 +889,7 @@ export const HistoryInput = z.object({
 });
 
 /**
- * Everything else this user has won, newest first, a page at a time —
+ * Everything else this user has won, newest first, a page at a time:
  * claimed, expired, disqualified, all of it.
  *
  * This is the list that only ever grows, so it is the one that is paged.
@@ -964,8 +964,8 @@ const winning = protectedProcedure
  *
  * Separate from `winning`, which the claim screen uses and which deliberately
  * returns only what is needed to decide *what to ask for*. This is the record
- * of what happened: which giveaway produced it, what it was, and — for airtime
- * and data, the two that leave the platform — the number it was sent to and
+ * of what happened: which giveaway produced it, what it was, and (for airtime
+ * and data, the two that leave the platform) the number it was sent to and
  * what the provider said. Someone whose top-up has not arrived needs to see
  * the number that was actually used, which is otherwise only in the CMS.
  */
@@ -1025,7 +1025,7 @@ const prizeDetails = protectedProcedure
       pointsAmount: (prizeDoc?.pointsAmount as number | null) ?? null,
       claimedAt: ((winner as Row).claimedAt as string | null) ?? null,
       fulfilledAt: ((winner as Row).fulfilledAt as string | null) ?? null,
-      /** §22.7/§22.8 — why a payout is being held, in the winner's own words. */
+      /** 22.7/22.8: why a payout is being held, in the winner's own words. */
       reviewNote: ((winner as Row).reviewNote as string | null) ?? null,
       dispatch: attempt
         ? {
@@ -1100,7 +1100,7 @@ function claimMessage(
     return "Claimed. This prize is under review and will be released once checks are complete.";
   }
   if (next === "awaiting_verification") {
-    return "Claimed and secured. Verify your identity to receive it — there is no rush, your prize is held for you.";
+    return "Claimed and secured. Verify your identity to receive it. There is no rush, your prize is held for you.";
   }
   if (next === "fulfilled") {
     return `Claimed. ${pointsAmount} points have been added to your balance.`;
@@ -1137,11 +1137,11 @@ function assertDetailsSupplied(
 export const UpdateClaimDetailsInput = ClaimPrizeInput;
 
 /**
- * Correct the details a prize is being sent to (§15).
+ * Correct the details a prize is being sent to (15).
  *
  * A mistyped phone number is the commonest reason a payout is rejected, and
  * until now the winner could see that something had gone wrong and do nothing
- * about it — the number was captured once, at claim time, and never again.
+ * about it: the number was captured once, at claim time, and never again.
  * The prize sat on hold waiting for an administrator to notice.
  *
  * Name and address work the same way for a physical prize, for the same
@@ -1149,8 +1149,8 @@ export const UpdateClaimDetailsInput = ClaimPrizeInput;
  * number, and the person who can fix it fastest is the one it belongs to.
  *
  * A CORRECTED PRIZE GOES BACK IN THE QUEUE, but only if a payout was actually
- * attempted and failed. `on_hold` covers two very different things — a
- * fulfilment failure, and a §22.7/§22.8 fraud review — and letting an edit
+ * attempted and failed. `on_hold` covers two very different things: a
+ * fulfilment failure, and a 22.7/22.8 fraud review. Letting an edit
  * clear the second would hand anyone under review a one-tap way out of it. A
  * failed attempt leaves a `giveaway-fulfilment-attempts` row behind and a
  * fraud hold does not, which is what tells them apart.
@@ -1190,7 +1190,7 @@ const updateClaimDetails = protectedNoGuestProcedure
         message:
           fulfilmentStatus === "fulfilled"
             ? "This prize has already been sent, so its details can no longer be changed."
-            : "This prize is being sent right now — try again in a few minutes.",
+            : "This prize is being sent right now. Try again in a few minutes.",
       });
     }
 
@@ -1244,14 +1244,14 @@ const updateClaimDetails = protectedNoGuestProcedure
   });
 
 /**
- * Claim a prize (spec §21).
+ * Claim a prize (spec 21).
  *
  * What the winner has to supply depends entirely on how the prize is
  * delivered, which is why the catalogue carries a fulfilment type: airtime
  * needs a number, a refrigerator needs an address, and points need nothing at
  * all because the account is already the destination.
  *
- * Points settle immediately — the credit and the claim are written together,
+ * Points settle immediately: the credit and the claim are written together,
  * so there is no window in which a prize reads as claimed but unpaid.
  * Everything else moves to `pending` for a provider or a person to fulfil.
  */
@@ -1301,7 +1301,7 @@ const claimPrize = protectedNoGuestProcedure
     /**
      * A points prize is settled here and now. The credit is written before the
      * claim is recorded, so a failure leaves the prize unclaimed and
-     * retryable — the reverse order would mark it claimed with nothing paid.
+     * retryable: the reverse order would mark it claimed with nothing paid.
      */
     if (requirements.instant && pointsAmount > 0) {
       await payload.db.drizzle.insert(activities).values({
@@ -1309,7 +1309,7 @@ const claimPrize = protectedNoGuestProcedure
         type: "point",
         action: "lottery",
         point: pointsAmount,
-        description: `Giveaway prize — ${winner.prizeName}`,
+        description: `Giveaway prize: ${winner.prizeName}`,
       });
     }
 
@@ -1345,7 +1345,7 @@ const claimPrize = protectedNoGuestProcedure
  *
  * Sorted by when the draw finished rather than when the giveaway started,
  * because a giveaway that was interrupted and resumed can complete after one
- * that started later — and it is the completion that the reveal announces.
+ * that started later, and it is the completion that the reveal announces.
  */
 async function lastCompletedGiveaway(payload: BasePayload) {
   const found = await payload.find({
@@ -1371,7 +1371,7 @@ async function lastCompletedGiveaway(payload: BasePayload) {
  *
  * Returns null far more often than not, and every null is an ordinary case:
  * no draw has happened, this user did not enter it, or they have already seen
- * the result. The app treats all three the same way — show nothing.
+ * the result. The app treats all three the same way: show nothing.
  *
  * Unlike `actionable`, this answers for losers too. A draw that says nothing
  * to the people who did not win reads as though their entry was never
@@ -1432,7 +1432,7 @@ const lastResult = protectedProcedure.handler(async ({ context }) => {
   }
 
   /**
-   * Summed by quantity, not counted by row — the same rule §6 applies
+   * Summed by quantity, not counted by row: the same rule 6 applies
    * everywhere else. One purchase of ten tickets is ten entries, and telling
    * that person they entered with one would understate their own stake back
    * to them.

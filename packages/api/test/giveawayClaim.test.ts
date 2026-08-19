@@ -15,9 +15,9 @@ const DAY = 24 * 60 * 60 * 1000;
 const user = { id: "u1", isAnonymous: false, username: "tester" };
 
 /**
- * One clock for the whole fixture. `pastGiveaway` is stamped twice per test —
+ * One clock for the whole fixture. `pastGiveaway` is stamped twice per test,
  * once inside `winnerRow` and once as `createContext`'s default `giveaways`
- * seed — and two live `Date.now()` calls can straddle a millisecond tick under
+ * seed, and two live `Date.now()` calls can straddle a millisecond tick under
  * CPU contention, making the second giveaway read as "superseded" by the first
  * (claim.ts `isSuperseded`: latestStart > giveawayStartDate). Freezing the
  * clock makes the two stamps identical, so a fresh giveaway is never mistaken
@@ -175,7 +175,7 @@ async function captureError(promise: Promise<unknown>) {
   throw new Error("expected the call to throw, but it resolved");
 }
 
-describe("claimWindowFor (spec §21)", () => {
+describe("claimWindowFor (spec 21)", () => {
   const selectedAt = new Date(Date.now() - 2 * DAY).toISOString();
   const winner = { selectedAt, claimDeadline: claimDeadlineFor(selectedAt) };
 
@@ -198,7 +198,7 @@ describe("claimWindowFor (spec §21)", () => {
   });
 
   it("closes the moment a later giveaway exists, deadline or not", () => {
-    // Two days in, twelve still on the clock — but a new round has started.
+    // Two days in, twelve still on the clock, but a new round has started.
     const window = claimWindowFor(winner, { laterGiveawayExists: true });
 
     expect(window.open).toBe(false);
@@ -249,8 +249,8 @@ describe("giveaway.actionable", () => {
   });
 
   it("still shows a prize the sweep has not yet caught, marked closed", async () => {
-    // Storage still says "unclaimed" — only the hourly sweep flips it to
-    // "expired" — so this genuinely belongs here until that runs. The window
+    // Storage still says "unclaimed": only the hourly sweep flips it to
+    // "expired", so this genuinely belongs here until that runs. The window
     // being closed is what the app has to show, not the raw claimStatus.
     const selectedAt = new Date(Date.now() - 30 * DAY).toISOString();
     const { ctx } = createContext({
@@ -310,7 +310,7 @@ describe("giveaway.actionable", () => {
       context: ctx,
     });
 
-    // Fulfilled prizes belong to history, not the unpaged actionable list —
+    // Fulfilled prizes belong to history, not the unpaged actionable list;
     // otherwise this list would grow the same way history does.
     expect(rows).toHaveLength(0);
   });
@@ -413,7 +413,7 @@ describe("giveaway.winning", () => {
       ),
     });
 
-    // Deliberately a prize past the first page of history — the claim screen
+    // Deliberately a prize past the first page of history: the claim screen
     // has to reach it even though the app is only holding page one.
     const row = await call(
       giveawayRouter.winning,
@@ -437,7 +437,7 @@ describe("giveaway.winning", () => {
   });
 });
 
-describe("giveaway.claimPrize (spec §21)", () => {
+describe("giveaway.claimPrize (spec 21)", () => {
   it("credits a points prize immediately", async () => {
     const { ctx, points, collections } = createContext({
       winners: [
@@ -456,7 +456,7 @@ describe("giveaway.claimPrize (spec §21)", () => {
 
     expect(result.pointsCredited).toBe(500);
     expect(points).toEqual([500]);
-    // Settled outright — there is no window where it reads claimed but unpaid.
+    // Settled outright: there is no window where it reads claimed but unpaid.
     expect(collections["giveaway-winners"]?.[0]?.fulfilmentStatus).toBe(
       "fulfilled"
     );
@@ -544,7 +544,7 @@ describe("giveaway.claimPrize (spec §21)", () => {
       winners: [winnerRow()],
       giveaways: [
         pastGiveaway(),
-        // Configured but not published — it has not started anything.
+        // Configured but not published: it has not started anything.
         {
           id: "g2",
           status: "draft",
@@ -591,7 +591,7 @@ describe("giveaway.claimPrize (spec §21)", () => {
       { context: ctx }
     );
 
-    // §22.8 — claiming is the winner's act, releasing is the administrator's.
+    // 22.8: claiming is the winner's act, releasing is the administrator's.
     expect(result.underReview).toBe(true);
     expect(collections["giveaway-winners"]?.[0]?.fulfilmentStatus).toBe(
       "on_hold"
@@ -621,7 +621,7 @@ describe("giveaway.claimPrize (spec §21)", () => {
       { context: ctx }
     );
 
-    // The claim itself lands immediately — that is what stops the 14-day
+    // The claim itself lands immediately: that is what stops the 14-day
     // clock. Only the dispatch waits on identity.
     expect(result.claimStatus).toBe("claimed");
     expect(result.awaitingVerification).toBe(true);
@@ -684,7 +684,7 @@ describe("giveaway.claimPrize (spec §21)", () => {
       { context: ctx }
     );
 
-    // An administrator review outranks a verification prompt — telling the
+    // An administrator review outranks a verification prompt: telling the
     // winner to verify would imply that is all that stands in the way.
     expect(result.underReview).toBe(true);
     expect(collections["giveaway-winners"]?.[0]?.fulfilmentStatus).toBe(
@@ -705,7 +705,7 @@ describe("giveaway.claimPrize (spec §21)", () => {
       )
     );
 
-    // Deliberately NOT_FOUND rather than FORBIDDEN — a stranger's prize should
+    // Deliberately NOT_FOUND rather than FORBIDDEN: a stranger's prize should
     // not be confirmed to exist.
     expect(error.code).toBe("NOT_FOUND");
   });
@@ -743,7 +743,7 @@ describe("supersession lookups scale flat", () => {
 
     expect(items).toHaveLength(12);
     // Twelve prizes across twelve different giveaways still costs one
-    // giveaway lookup — asking for the newest start date answers "has this
+    // giveaway lookup: asking for the newest start date answers "has this
     // been superseded?" for every prize at once.
     expect(reads.giveaways).toBe(1);
   });
@@ -798,7 +798,7 @@ describe("supersession lookups scale flat", () => {
   });
 });
 
-describe("expireLapsedClaims (spec §21)", () => {
+describe("expireLapsedClaims (spec 21)", () => {
   it("expires an unclaimed prize past its deadline", async () => {
     const selectedAt = new Date(Date.now() - 30 * DAY).toISOString();
     const { payload, collections } = createContext({
@@ -893,7 +893,7 @@ describe("giveaway.updateClaimDetails", () => {
         winnerRow({ claimStatus: "claimed", fulfilmentStatus: "on_hold" }),
       ],
     });
-    // No fulfilment attempts: this is a §22.7/§22.8 fraud hold, not a payout
+    // No fulfilment attempts: this is a 22.7/22.8 fraud hold, not a payout
     // that failed. Editing a phone number must not be a way out of a review.
     collections["giveaway-fulfilment-attempts"] = [];
 

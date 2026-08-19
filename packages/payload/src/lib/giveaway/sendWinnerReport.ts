@@ -44,9 +44,9 @@ export type SendWinnerReportOptions = {
 const DEFAULT_MAX_ATTEMPTS = 3;
 
 /**
- * Send the Winner Report for a completed draw (spec §21).
+ * Send the Winner Report for a completed draw (spec 21).
  *
- * The four sending rules §21 states all live here. The report goes out only
+ * The four sending rules 21 states all live here. The report goes out only
  * once a draw is `completed`; there is at most one *original* per draw, so a
  * second automatic attempt after one has succeeded does nothing; failures are
  * retried, both inside this call and later by
@@ -54,7 +54,7 @@ const DEFAULT_MAX_ATTEMPTS = 3;
  * delivery log whether it worked or not.
  *
  * This never throws. A draw that has already awarded its prizes correctly must
- * not be marked failed because a mail provider was unreachable — §21 is
+ * not be marked failed because a mail provider was unreachable: 21 is
  * explicit that a delivery failure does not invalidate the draw.
  */
 export async function sendWinnerReport(
@@ -89,7 +89,7 @@ export async function sendWinnerReport(
       };
     }
 
-    // §21 — one original per draw. A failed original is retried on its own
+    // 21: one original per draw. A failed original is retried on its own
     // row rather than duplicated, so "how many originals were there?" always
     // answers one.
     const existingOriginal = await findOriginalDelivery(payload, giveawayId);
@@ -231,11 +231,11 @@ async function attemptDelivery(
 }
 
 /**
- * Retry every delivery that is still failed (spec §21, "retry automatically
+ * Retry every delivery that is still failed (spec 21, "retry automatically
  * on failure").
  *
  * Intended for a scheduled job. Retrying a whole delivery rather than a single
- * send means the report is rebuilt from current records — which is what you
+ * send means the report is rebuilt from current records, which is what you
  * want, since a disqualification between the draw and a successful send should
  * be reflected in the report that finally arrives.
  */
@@ -288,13 +288,13 @@ export async function retryFailedWinnerReports(
  * the job queue runs in more than one process: `jobs.autoRun` lives in the
  * shared config, so the CMS and the API server each sweep, and a rolling
  * deploy briefly doubles that again. Every runner read the same failed row and
- * every one of them sent it — one draw's report went to a real inbox four
+ * every one of them sent it: one draw's report went to a real inbox four
  * times in the same millisecond, carrying winners' names, emails and phone
  * numbers each time.
  *
  * The claim is a single conditional UPDATE rather than a read-then-write:
  * Postgres serialises the row, so exactly one runner sees a row come back and
- * the rest move on. `pending` is the claimed state — it is what the delivery
+ * the rest move on. `pending` is the claimed state: it is what the delivery
  * was before it failed, and `attemptDelivery` moves it to `sent` or back to
  * `failed`, so a runner that dies mid-send leaves the row eligible again on
  * the next sweep rather than stuck.
@@ -372,7 +372,7 @@ async function writeAudit(
 
 /**
  * Resolved lazily so importing this module does not require a mail provider
- * key — the report can be built and rendered in a test without one.
+ * key: the report can be built and rendered in a test without one.
  */
 const defaultSender: ReportSender = async (message) => {
   const { sendGiveawayWinnerReport } = await import("@news-spend-media/mail");

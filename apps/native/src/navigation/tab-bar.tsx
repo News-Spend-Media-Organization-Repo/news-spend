@@ -21,10 +21,10 @@ import { FloatingOverlays } from "./floating-overlays";
 // route name (Home/Live/Shop/Discover). Both are needed: tabs are lazy by
 // default, so on a tab's first focus its nested stack hasn't mounted/reported
 // state back yet, and getFocusedRouteNameFromRoute briefly returns undefined
-// for that one render — falling back to the tab's own name. Without the tab
+// for that one render, falling back to the tab's own name. Without the tab
 // names here too, that render would incorrectly hide the tab bar for a frame
-// before the nested stack resolves and it pops back — a visible flicker.
-// Deliberately excludes Settings/SettingsHome — the tab bar is never shown
+// before the nested stack resolves and it pops back, a visible flicker.
+// Deliberately excludes Settings/SettingsHome: the tab bar is never shown
 // anywhere in the Settings tab, including its own root.
 const TAB_ROOT_ROUTES = new Set([
   "NewsHome",
@@ -47,17 +47,17 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { buildHref } = useLinkBuilder();
 
   // React Navigation renders whatever this component returns as a normal
-  // flex sibling of the "screens" container — so animating THIS component's
+  // flex sibling of the "screens" container. So animating THIS component's
   // own height (an earlier approach) made that sibling container resize
   // too, and every screen (via StyleSheet.absoluteFill inside it) visibly
   // resized along with it, even screens like PlayLottery that have nothing
   // to do with the tab bar. Making our root position: absolute removes us
-  // from that flex column entirely, so the screens container — and every
-  // screen inside it — is always full height, completely unaffected by our
+  // from that flex column entirely, so the screens container, and every
+  // screen inside it, is always full height, completely unaffected by our
   // own show/hide animation. We just slide and fade over top of it instead.
   //
   // FloatingOverlays (MusicPlayer/LiveBanner) renders as a sibling of the tab
-  // row inside this SAME wrapper, not its own separately-animated element —
+  // row inside this SAME wrapper, not its own separately-animated element.
   // otherwise its height is never reflected in useTabBarHeight() (screens
   // padding for the tab bar alone would sit partly behind it when a track is
   // playing or a live banner shows), and its opacity fade only stays in sync

@@ -4,7 +4,7 @@ import { call } from "@orpc/server";
 import { createFakePayload, expectError, mockContext } from "../test-utils";
 import { accountRouter } from "./account";
 
-// Module mock for @news-spend-media/auth — updateProfile calls auth.api.updateUser
+// Module mock for @news-spend-media/auth: updateProfile calls auth.api.updateUser
 const updateUserMock = mock(
   (args: Record<string, Record<string, unknown>>) => ({
     id: "user-1",
@@ -524,7 +524,7 @@ describe("accountRouter.setDateOfBirth", () => {
 });
 
 // ---------------------------------------------------------------------------
-// updateProfile — protected fields
+// updateProfile: protected fields
 // ---------------------------------------------------------------------------
 describe("accountRouter.updateProfile protected fields", () => {
   it("silently drops dateOfBirth and verifiedCountry", async () => {

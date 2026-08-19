@@ -18,7 +18,7 @@ const NotificationInbox: CollectionConfig = {
     defaultColumns: ["title", "user", "type", "createdAt"],
     description:
       "Per-user notification inbox. One record per user per campaign. Read by the mobile app to display notification history.",
-    // Hidden in production — managed entirely by the system
+    // Hidden in production, managed entirely by the system
     hidden: () => process.env.NODE_ENV === "production",
   },
   access: {
@@ -71,7 +71,7 @@ const NotificationInbox: CollectionConfig = {
       type: "text",
       required: true,
       admin: {
-        description: "Denormalized from campaign — avoids joins on inbox fetch",
+        description: "Denormalized from campaign. Avoids joins on inbox fetch.",
       },
     },
     {
@@ -93,7 +93,7 @@ const NotificationInbox: CollectionConfig = {
       name: "data",
       type: "json",
       admin: {
-        description: "Deeplink payload — e.g. { screen, id, url }",
+        description: "Deeplink payload (e.g. { screen, id, url })",
       },
     },
     {

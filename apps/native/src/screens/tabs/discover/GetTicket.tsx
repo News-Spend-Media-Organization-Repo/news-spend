@@ -198,7 +198,7 @@ const GetTicket = () => {
         </View>
 
         {/* The price is per giveaway and set by an administrator, so it is
-            read rather than stated — the copy said 50 while the giveaway
+            read rather than stated: the copy said 50 while the giveaway
             charged 100, which is the sort of thing people notice only after
             their points have gone. */}
         <Text className="mt-2 text-[15px] text-p-50">
