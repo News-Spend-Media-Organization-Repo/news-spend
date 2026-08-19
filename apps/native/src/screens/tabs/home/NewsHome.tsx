@@ -1,6 +1,6 @@
+import type { LegendListRef } from "@legendapp/list/react-native";
 import type { NewsCategory } from "@news-spend-media/payload/types";
 import { useScrollToTop } from "@react-navigation/native";
-import type { FlashListRef } from "@shopify/flash-list";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
@@ -43,10 +43,10 @@ export default function NewsHome() {
   );
 
   // Create refs object for all lists
-  const listRefs = useRef<Record<string, FlashListRef<any>>>({});
+  const listRefs = useRef<Record<string, LegendListRef>>({});
 
   // Ref for the active list that will work with useScrollToTop
-  const activeListRef = useRef<FlashListRef<any>>(null);
+  const activeListRef = useRef<LegendListRef>(null);
 
   // Update active ref when index changes
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function NewsHome() {
   useScrollToTop(activeListRef);
 
   const createSetRef = useCallback(
-    (routeKey: string) => (ref: FlashListRef<any> | null) => {
+    (routeKey: string) => (ref: LegendListRef | null) => {
       if (ref) {
         listRefs.current[routeKey] = ref;
         if (routes[index].key === routeKey) {

@@ -9,7 +9,10 @@ import {
   KeyboardAvoidingView,
   KeyboardProvider,
 } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  initialWindowMetrics,
+  SafeAreaProvider,
+} from "react-native-safe-area-context";
 import { ToastBridge } from "#/components/heroui/toast";
 import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import usePushNotification from "#/hooks/usePushNotification";
@@ -66,7 +69,7 @@ export const Provider = ({ children }: Props) => {
   return (
     <DetourProvider config={detourConfig}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <KeyboardProvider>
             <HeroUINativeProvider config={config}>
               <ErrorBoundary>

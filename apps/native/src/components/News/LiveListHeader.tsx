@@ -1,5 +1,5 @@
+import { LegendList } from "@legendapp/list/react-native";
 import type { News } from "@news-spend-media/payload/types";
-import { FlashList } from "@shopify/flash-list";
 import { View } from "react-native";
 
 import { Image } from "#/components/heroui/image";
@@ -36,8 +36,9 @@ export default function LiveListHeader({ news }: { news: News }) {
 
       <View className="gap-1.5">
         <Text variant="HeadingMedium">TV Programs</Text>
-        <FlashList
+        <LegendList
           data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+          estimatedItemSize={170}
           horizontal
           ItemSeparatorComponent={() => <View className="w-3.5" />}
           keyExtractor={(_item, index) => index.toString()}

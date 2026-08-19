@@ -24,7 +24,7 @@
     "./helpers/*": "./src/helpers/*/index.ts",
     "./hooks/*": "./src/hooks/*/index.ts",
     "./plugins/*": "./src/plugins/*/index.ts",
-    "./payload-types": "./src/payload.types.ts",
+    "./payload-types": "./src/payload-types.ts",
     "./payload-config": "./src/payload.config.ts"
   },
   "scripts": {

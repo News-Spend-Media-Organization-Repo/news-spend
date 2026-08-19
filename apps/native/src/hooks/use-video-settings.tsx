@@ -1,4 +1,4 @@
-import * as Network from "expo-network";
+import NetInfo from "@react-native-community/netinfo";
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
 
@@ -41,23 +41,23 @@ export const useVideoSettings = () => {
     loadSettings();
     checkNetworkState();
 
-    const subscription = Network.addNetworkStateListener((state) => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       setNetworkState({
         isConnected: state.isConnected ?? false,
-        isWifi: state.type === Network.NetworkStateType.WIFI,
+        isWifi: state.type === "wifi",
         type: state.type || "unknown",
       });
     });
 
-    return () => subscription.remove();
+    return () => unsubscribe();
   }, [loadSettings, checkNetworkState]);
 
   const checkNetworkState = async () => {
     try {
-      const state = await Network.getNetworkStateAsync();
+      const state = await NetInfo.fetch();
       setNetworkState({
         isConnected: state.isConnected ?? false,
-        isWifi: state.type === Network.NetworkStateType.WIFI,
+        isWifi: state.type === "wifi",
         type: state.type || "unknown",
       });
     } catch (e) {

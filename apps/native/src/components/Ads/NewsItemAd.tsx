@@ -68,9 +68,15 @@ function NewsItemAds({
           source={url}
         />
         <View className="flex-1 justify-center gap-4">
-          <View className="flex-row justify-between">
-            <Text className="font-bold text-p-500">{partnerContent.title}</Text>
-            <Text className="rounded-sm border border-gray-50 px-1 text-s-300">
+          <View className="flex-row justify-between gap-2">
+            <Text
+              className="flex-1 font-bold text-p-500"
+              ellipsizeMode="tail"
+              numberOfLines={2}
+            >
+              {partnerContent.title}
+            </Text>
+            <Text className="shrink-0 self-start rounded-sm border border-gray-50 px-1 text-s-300">
               Ad
             </Text>
           </View>

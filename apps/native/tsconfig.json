@@ -3,17 +3,15 @@
   "compilerOptions": {
     "types": ["jest"],
     "strict": true,
-    "baseUrl": ".",
     "paths": {
-      "#/*": ["src/*"],
-      "#/images/*": ["assets/images/*"],
+      "#/*": ["./src/*"],
+      "#/images/*": ["./assets/images/*"],
       "~/*": ["./*"],
       "@/*": ["./*"]
     },
     "strictNullChecks": true,
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
-    "ignoreDeprecations": "6.0"
+    "allowSyntheticDefaultImports": true
   },
   "include": ["**/*.ts", "**/*.tsx"]
 }

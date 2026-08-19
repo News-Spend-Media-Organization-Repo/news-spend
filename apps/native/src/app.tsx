@@ -10,6 +10,8 @@ import { AppMetrics, Observe, ObserveRoot } from "expo-observe";
 import { ObserveNavigationProvider } from "expo-observe/integrations/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect, useRef } from "react";
+import { Platform, StatusBar as RNStatusBar } from "react-native";
+import { initialWindowMetrics } from "react-native-safe-area-context";
 import { Uniwind } from "uniwind";
 import { useSnapshot } from "valtio";
 import AppOpenAd from "./components/Ads/AppOpenAd";
@@ -33,6 +35,26 @@ import { storage } from "./utils/storage";
 import { UpgradeRequired } from "#/components/UpgradeRequired";
 
 Uniwind.setTheme("light");
+
+// HeroUINativeProvider feeds uniwind its insets via SafeAreaListener, which only
+// fires after the native view measures. Until then `rt.insets` is all zeroes and
+// anything using pt-safe renders unpadded, then jumps. Seed it synchronously so
+// the first frame is already correct.
+//
+// On Android initialWindowMetrics is often null this early: the native module
+// reads rootWindowInsets off the decor view, which has none until it is attached.
+// StatusBar.currentHeight is a plain constant and is available right away, so it
+// covers the top edge (the one behind the status bar) while the listener fills in
+// the rest a frame later.
+const initialInsets =
+  initialWindowMetrics?.insets ??
+  (Platform.OS === "android"
+    ? { top: RNStatusBar.currentHeight ?? 0, bottom: 0, left: 0, right: 0 }
+    : null);
+
+if (initialInsets) {
+  Uniwind.updateInsets(initialInsets);
+}
 
 SplashScreen.preventAutoHideAsync();
 
