@@ -8,7 +8,7 @@ export default function LegalAgreement() {
   const navigation = useNavigation("Legal");
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <ListGroup variant="transparent">
         <PressableFeedback
           animation={false}

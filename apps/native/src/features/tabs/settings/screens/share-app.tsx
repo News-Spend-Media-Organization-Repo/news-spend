@@ -170,7 +170,7 @@ const ShareApp = () => {
   );
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text className="px-4 py-2">
           Earn <Text className="font-semibold text-accent">20</Text> credits for

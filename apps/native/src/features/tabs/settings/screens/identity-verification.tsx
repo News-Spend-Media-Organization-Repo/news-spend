@@ -121,7 +121,7 @@ export default function IdentityVerification() {
   }, [start, queryClient, pollForDecision]);
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <ScreenHeader title="Verify Identity" />
       <View className="flex-1 items-center justify-center gap-4 px-5 pb-8">
         <View

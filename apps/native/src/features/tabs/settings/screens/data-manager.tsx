@@ -1,7 +1,7 @@
 import { Directory, Paths } from "expo-file-system";
-import { Spinner } from "heroui-native/spinner";
 import { ListGroup } from "heroui-native/list-group";
 import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
 import { Switch } from "heroui-native/switch";
 import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
@@ -324,7 +324,7 @@ export default function DataManager() {
   ];
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <View className="gap-4">
         <ListGroup variant="transparent">
           {notificationOptions.map((option, index) => (

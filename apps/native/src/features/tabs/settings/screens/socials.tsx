@@ -23,7 +23,7 @@ const socials = [
 
 export default function Socials() {
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <View className="gap-3 px-3 pt-2">
         <Text className="text-center" variant="subtitle">
           Follow us on social media

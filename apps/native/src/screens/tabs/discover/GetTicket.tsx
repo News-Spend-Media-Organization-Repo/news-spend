@@ -82,7 +82,7 @@ const GetTicket = () => {
   }
 
   return (
-    <Screen className="bg-p-300" systemBarStyle="light">
+    <Screen className="bg-p-300" statusBarStyle="light">
       <ScreenHeader
         className="bg-p-300"
         right={

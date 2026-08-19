@@ -63,7 +63,7 @@ function ShopHome() {
   useMarkInteractive(!allStoresPending);
 
   return (
-    <Screen className="bg-white" preset="fixed" systemBarStyle="light">
+    <Screen className="bg-white" preset="fixed" statusBarStyle="light">
       <Tabs
         className="mx-2 flex-1 pt-4"
         onValueChange={setActiveTab}

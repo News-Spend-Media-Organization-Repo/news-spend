@@ -116,14 +116,7 @@ export default function Activities() {
   );
 
   return (
-    <Screen
-      SystemBarsProps={{
-        style: {
-          navigationBar: "dark",
-          statusBar: "light",
-        },
-      }}
-    >
+    <Screen navigationBarButtonStyle="dark" statusBarStyle="light">
       <DateRangePicker
         endDate={endDate}
         label="Custom date range"

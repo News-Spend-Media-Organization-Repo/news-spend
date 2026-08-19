@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
-import { Spinner } from "heroui-native/spinner";
 import { ListGroup } from "heroui-native/list-group";
 import { Separator } from "heroui-native/separator";
+import { Spinner } from "heroui-native/spinner";
 import { Switch } from "heroui-native/switch";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
@@ -205,7 +205,7 @@ export default function Notifications() {
   }
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <ListGroup variant="transparent">
         {NOTIFICATION_CONFIGS.map((config, index) => (
           <View key={config.type}>

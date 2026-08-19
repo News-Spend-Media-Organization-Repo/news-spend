@@ -15,5 +15,16 @@ export const commonErrors = {
   CONFLICT: { message: "Conflict" },
   TOO_MANY_REQUESTS: { message: "Too many requests", status: 429 },
   INPUT_VALIDATION_FAILED: { message: "Invalid input", status: 422 },
+  /**
+   * This build is older than the server will serve.
+   *
+   * Its own code rather than FORBIDDEN so the app can tell "you may not do
+   * this" apart from "you must update to do anything", and show a blocking
+   * update screen for the second. 426 is the HTTP status for exactly this.
+   */
+  UPGRADE_REQUIRED: {
+    message: "This version of the app is no longer supported.",
+    status: 426,
+  },
   INTERNAL_SERVER_ERROR: { message: "Internal server error" },
 };

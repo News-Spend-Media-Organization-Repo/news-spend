@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import * as Application from "expo-application";
 import { Avatar } from "heroui-native/avatar";
 import { Card } from "heroui-native/card";
-import { cn } from "heroui-native/utils";
+import { useThemeColor } from "heroui-native/hooks";
 import { ListGroup } from "heroui-native/list-group";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
-import { useThemeColor } from "heroui-native/hooks";
+import { cn } from "heroui-native/utils";
 import {
   ArrowClockwiseIcon,
   ArticleIcon,
@@ -168,7 +168,7 @@ function SettingsHome() {
   const buildNumber = Application.nativeBuildVersion ?? "1";
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         showsVerticalScrollIndicator={false}

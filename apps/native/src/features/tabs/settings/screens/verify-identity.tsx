@@ -3,12 +3,12 @@ import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { cn } from "heroui-native/utils";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { FieldError } from "heroui-native/field-error";
 import { ListGroup } from "heroui-native/list-group";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
+import { cn } from "heroui-native/utils";
 import { CameraIcon, CameraRotateIcon } from "phosphor-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -244,7 +244,7 @@ const VerifyIdentity = () => {
   }
 
   return (
-    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+    <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={40}
         contentContainerClassName="gap-6 px-5 pt-5 pb-12"

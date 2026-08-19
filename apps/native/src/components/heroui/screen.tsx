@@ -1,4 +1,6 @@
 import { useScrollToTop } from "@react-navigation/native";
+import { NavigationBar } from "expo-navigation-bar";
+import { StatusBar, type StatusBarStyle } from "expo-status-bar";
 import { cn } from "heroui-native/utils";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
@@ -10,11 +12,6 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import {
-  type SystemBarStyle,
-  SystemBars,
-  type SystemBarsProps,
-} from "react-native-edge-to-edge";
 import {
   KeyboardAvoidingView,
   type KeyboardAvoidingViewProps,
@@ -55,9 +52,9 @@ type BaseScreenProps = {
    */
   backgroundColor?: string;
   /**
-   * System bar setting. Defaults to auto (light in dark mode, dark in light mode).
+   * Status bar appearance. Defaults to auto (light in dark mode, dark in light mode).
    */
-  systemBarStyle?: SystemBarStyle;
+  statusBarStyle?: StatusBarStyle;
   /**
    * By how much should we offset the keyboard? Defaults to 0.
    * Only applies to fixed preset with KeyboardAvoidingView.
@@ -79,9 +76,10 @@ type BaseScreenProps = {
    */
   disableKeyboardAwareScrollView?: boolean;
   /**
-   * Pass any additional props directly to the SystemBars component.
+   * Android navigation bar button appearance ("light" = white icons, "dark" = black icons).
+   * Ignored on iOS. Defaults to the status bar style.
    */
-  SystemBarsProps?: SystemBarsProps;
+  navigationBarButtonStyle?: "light" | "dark";
   /**
    * Pass any additional props directly to the KeyboardAvoidingView component.
    */
@@ -320,8 +318,8 @@ export function Screen(props: ScreenProps) {
     KeyboardAvoidingViewProps,
     keyboardOffset = 0,
     safeAreaEdges,
-    SystemBarsProps,
-    systemBarStyle,
+    navigationBarButtonStyle,
+    statusBarStyle,
     screenClassName,
     backgroundColor,
     disableKeyboardAvoidingView = false,
@@ -329,6 +327,8 @@ export function Screen(props: ScreenProps) {
 
   const { theme } = useUniwind();
   const $containerInsets = useSafeAreaInsetsStyle(safeAreaEdges);
+
+  const barStyle = statusBarStyle ?? (theme === "dark" ? "light" : "dark");
 
   // KeyboardAvoidingView is only needed for non-scrolling (fixed) screens.
   // Scroll/auto presets delegate keyboard handling to KeyboardAwareScrollView.
@@ -350,10 +350,8 @@ export function Screen(props: ScreenProps) {
         backgroundColor ? { backgroundColor } : undefined,
       ]}
     >
-      <SystemBars
-        style={systemBarStyle ?? (theme === "dark" ? "light" : "dark")}
-        {...SystemBarsProps}
-      />
+      <StatusBar style={barStyle} />
+      <NavigationBar style={navigationBarButtonStyle ?? barStyle} />
 
       {shouldUseKeyboardAvoidingView ? (
         <KeyboardAvoidingView

@@ -193,8 +193,8 @@ function PrizeDetails({
         */}
         {data.canEditDetails ? (
           <Button
-            variant="secondary"
             onPress={() => navigation.navigate("ClaimPrize", { winnerId })}
+            variant="secondary"
           >
             <Button.Label>Update delivery details</Button.Label>
           </Button>

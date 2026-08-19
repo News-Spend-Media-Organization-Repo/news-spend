@@ -143,7 +143,7 @@ const ShopDetails = () => {
 
   if (openShop) {
     return (
-      <Screen preset="fixed" safeAreaEdges={["bottom"]} systemBarStyle="light">
+      <Screen preset="fixed" safeAreaEdges={["bottom"]} statusBarStyle="light">
         <ScreenHeader
           left={headerLeft}
           right={headerRight}
@@ -183,7 +183,7 @@ const ShopDetails = () => {
   }
 
   return (
-    <Screen preset="scroll" systemBarStyle="light">
+    <Screen preset="scroll" statusBarStyle="light">
       <ScreenHeader
         left={headerLeft}
         right={headerRight}

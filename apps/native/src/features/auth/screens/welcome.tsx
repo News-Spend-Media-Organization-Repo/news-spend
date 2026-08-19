@@ -13,7 +13,7 @@ const Welcome = () => {
   useMarkInteractive(true);
 
   return (
-    <Screen className="bg-p-500 px-6" preset="fixed" systemBarStyle="light">
+    <Screen className="bg-p-500 px-6" preset="fixed" statusBarStyle="light">
       <View className="flex-2 items-center justify-center">
         <Image
           contentFit="contain"
