@@ -1,8 +1,3 @@
-// react-native-edge-to-edge: native module for system bars
-jest.mock("react-native-edge-to-edge", () => ({
-  SystemBars: ({ children }: any) => children,
-}));
-
 // uniwind: styling hooks
 jest.mock("uniwind", () => ({
   useUniwind: jest.fn(() => ({ theme: "light" })),

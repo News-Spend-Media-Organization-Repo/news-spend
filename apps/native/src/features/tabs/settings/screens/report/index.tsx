@@ -115,7 +115,7 @@ function Report() {
     }
   };
   return (
-    <Screen className="bg-white" systemBarStyle="light">
+    <Screen className="bg-white" statusBarStyle="light">
       <KeyboardAwareScrollView contentContainerClassName="gap-4 px-2.5 pb-safe-2 pt-2">
         <FormProvider {...formMethods}>
           <View className="gap-4">

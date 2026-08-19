@@ -40,7 +40,7 @@ const Support = () => {
   const navigation = useNavigation();
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="items-center px-4 py-4">
           <Text className="font-semibold text-lg">

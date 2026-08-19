@@ -1,4 +1,5 @@
 import contract from "@news-spend-media/api/contract.json";
+import * as Application from "expo-application";
 import type { router } from "@news-spend-media/api/router/index";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -33,17 +34,38 @@ const retryPlugin = new RetryLinkPlugin<ORPCClientContext>({
   },
 });
 
+/**
+ * Tell the server which build is calling it.
+ *
+ * Sent on every request rather than recorded once at sign-in, so the server
+ * can refuse a build it no longer supports before that build does anything —
+ * and so "how many users are on version X" is answerable from traffic rather
+ * than inferred from push tokens.
+ *
+ * The trigger was the oRPC v2 upgrade: the protocol changed under clients that
+ * had no way to know, and their requests simply began failing. A version on
+ * the request is what turns that into an answerable question.
+ */
+const APP_VERSION = Application.nativeApplicationVersion ?? "";
+
+function commonHeaders(): Record<string, string> {
+  const headers = new Map<string, string>();
+
+  const cookies = authClient.getCookie();
+  if (cookies) {
+    headers.set("Cookie", cookies);
+  }
+  if (APP_VERSION) {
+    headers.set("x-app-version", APP_VERSION);
+  }
+
+  return Object.fromEntries(headers);
+}
+
 const link = new RPCLink<ORPCClientContext>({
   origin: url,
   url: "/rpc",
-  headers: () => {
-    const headers = new Map<string, string>();
-    const cookies = authClient.getCookie();
-    if (cookies) {
-      headers.set("Cookie", cookies);
-    }
-    return Object.fromEntries(headers);
-  },
+  headers: commonHeaders,
   plugins: [retryPlugin],
 });
 
@@ -52,14 +74,7 @@ const openapiLink = new OpenAPILink<ORPCClientContext>(
   {
     origin: url,
     url: "/api",
-    headers: () => {
-      const headers = new Map<string, string>();
-      const cookies = authClient.getCookie();
-      if (cookies) {
-        headers.set("Cookie", cookies);
-      }
-      return Object.fromEntries(headers);
-    },
+    headers: commonHeaders,
     plugins: [retryPlugin],
   }
 );

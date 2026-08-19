@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -139,7 +140,11 @@ const usePushNotification = () => {
     saveToken(
       {
         token,
-        // appVersion: Application.nativeApplicationVersion || "",
+        // Which build this device is on. Left commented out until now, which
+        // meant every token carried a blank version — and when the oRPC v2
+        // upgrade stopped older clients working, there was no way to tell how
+        // many users were affected.
+        appVersion: Application.nativeApplicationVersion ?? "",
         deviceModel: Device.modelName ?? "",
         deviceName: Device.deviceName ?? "",
         deviceType:
@@ -147,7 +152,7 @@ const usePushNotification = () => {
             ios: "ios",
             android: "android",
           }) || "web",
-        // deviceOsVersion: Device.osVersion,
+        osVersion: Device.osVersion ?? "",
       },
       {
         onError: (error) => console.error("Error saving token:", error),

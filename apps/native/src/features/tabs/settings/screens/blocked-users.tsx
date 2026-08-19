@@ -121,7 +121,7 @@ export default function BlockedUsers() {
 
   if (isLoading) {
     return (
-      <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+      <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
         <View className="flex-1 items-center justify-center p-8">
           <Spinner size="lg" />
         </View>
@@ -131,7 +131,7 @@ export default function BlockedUsers() {
 
   if (blockedUsers.length === 0) {
     return (
-      <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+      <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
         <View className="flex-1 items-center justify-center p-8">
           <Text className="text-center text-muted">
             You haven&apos;t blocked any users yet.
@@ -146,7 +146,7 @@ export default function BlockedUsers() {
   }
 
   return (
-    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+    <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
       <LegendList
         contentContainerStyle={{ padding: 16 }}
         data={blockedUsers}

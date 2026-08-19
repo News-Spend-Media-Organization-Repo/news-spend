@@ -30,6 +30,7 @@ import { Provider } from "./provider";
 import { authState, hydrateAuth } from "./state/auth";
 import { createMMKVPersister } from "./utils/clientPersister";
 import { storage } from "./utils/storage";
+import { UpgradeRequired } from "#/components/UpgradeRequired";
 
 Uniwind.setTheme("light");
 
@@ -136,6 +137,8 @@ export function App() {
         </ObserveNavigationProvider>
         <LotteryReward />
         <GiveawayReward />
+        {/* Last, so it covers everything when the server refuses this build. */}
+        <UpgradeRequired />
 
         <AppOpenAd />
       </Provider>

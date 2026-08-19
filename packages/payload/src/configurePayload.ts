@@ -246,7 +246,47 @@ const baseConfig: Config = {
       pool: {},
     }),
     computeBlurhash({ showBlurhashField: false }),
-    sentryPlugin({ Sentry }),
+    sentryPlugin({
+      Sentry,
+      options: {
+        /**
+         * Say who was signed in when this happened.
+         *
+         * The plugin reports the error and the request but not the person, so
+         * an admin-panel issue could be read and not attributed — and with a
+         * handful of administrators, "who was doing this" is usually the
+         * fastest route to "what were they doing".
+         *
+         * `req.user` is whoever is authenticated: an `admins` document in the
+         * admin panel, a `users` one on the public API. The collection is
+         * tagged alongside the id so the two cannot be confused — they are
+         * different people who happen to share a shape.
+         *
+         * Id and email only. The request is already attached; this is
+         * attribution, not a copy of the account.
+         */
+        context: ({ defaultContext, req }) => {
+          const user = req?.user;
+
+          if (!user?.id) {
+            return defaultContext;
+          }
+
+          return {
+            ...defaultContext,
+            user: {
+              id: String(user.id),
+              email: user.email,
+              ip_address: "{{auto}}",
+            },
+            tags: {
+              ...defaultContext.tags,
+              user_collection: user.collection ?? "unknown",
+            },
+          };
+        },
+      },
+    }),
     auditFieldsPlugin(),
     auditLogPlugin,
   ],

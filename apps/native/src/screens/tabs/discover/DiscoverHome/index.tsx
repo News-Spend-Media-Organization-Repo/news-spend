@@ -60,7 +60,7 @@ function DiscoverHome() {
   useMarkInteractive(true);
 
   return (
-    <Screen systemBarStyle="light">
+    <Screen statusBarStyle="light">
       <TabBarHeightProvider value={tabBarHeight}>
         <Tabs.Container
           containerStyle={{ flex: 1 }}

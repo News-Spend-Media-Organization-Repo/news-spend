@@ -134,7 +134,7 @@ function DeleteAccount() {
   };
 
   return (
-    <Screen safeAreaEdges={["bottom"]} systemBarStyle="light">
+    <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
       <KeyboardAwareScrollView
         bottomOffset={40}
         contentContainerClassName="gap-6 px-5 pt-5 pb-12"

@@ -114,7 +114,7 @@ const BoostLuck = () => {
   }
 
   return (
-    <Screen className="gap-4 pb-safe" systemBarStyle="light">
+    <Screen className="gap-4 pb-safe" statusBarStyle="light">
       <ScreenHeader
         right={
           <Text

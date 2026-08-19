@@ -215,11 +215,30 @@ const createPushToken = protectedProcedure
       deviceType: z.enum(["ios", "android", "web"]),
       deviceModel: z.string().optional(),
       deviceName: z.string().optional(),
+      /**
+       * Which build this device is running.
+       *
+       * Was accepted nowhere and written as `""`, so every token on record
+       * had a blank version. That is fine until a server change stops being
+       * backwards compatible, at which point "how many users are on a build
+       * older than X" is the only question that matters and there is no way
+       * to answer it. Optional so an older client that does not send it still
+       * registers.
+       */
+      appVersion: z.string().max(32).optional(),
+      osVersion: z.string().max(32).optional(),
     })
   )
   .handler(async ({ input, context }) => {
     const { payload, user } = context;
-    const { token, deviceType, deviceModel, deviceName } = input;
+    const {
+      token,
+      deviceType,
+      deviceModel,
+      deviceName,
+      appVersion,
+      osVersion,
+    } = input;
 
     const pushToken = await payload.find({
       collection: "push-tokens",
@@ -243,7 +262,8 @@ const createPushToken = protectedProcedure
           user: user.id,
           deviceType,
           status: "active",
-          appVersion: "",
+          appVersion: appVersion ?? "",
+          osVersion: osVersion ?? undefined,
           deviceModel,
           deviceName,
         },
@@ -256,7 +276,8 @@ const createPushToken = protectedProcedure
         user: user.id,
         deviceType,
         status: "active",
-        appVersion: "",
+        appVersion: appVersion ?? "",
+        osVersion: osVersion ?? undefined,
         deviceModel,
         deviceName,
       },

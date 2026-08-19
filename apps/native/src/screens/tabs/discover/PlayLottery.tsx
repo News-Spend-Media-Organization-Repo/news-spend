@@ -133,15 +133,7 @@ const PlayLottery = () => {
   };
 
   return (
-    <Screen
-      className=""
-      SystemBarsProps={{
-        style: {
-          navigationBar: "dark",
-          statusBar: "light",
-        },
-      }}
-    >
+    <Screen className="" navigationBarButtonStyle="dark" statusBarStyle="light">
       <ScreenHeader
         right={
           <Text
