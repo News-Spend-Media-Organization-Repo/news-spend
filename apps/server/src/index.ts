@@ -80,24 +80,54 @@ export const apiHandler = new OpenAPIHandler(router, {
   ],
 });
 
+/**
+ * Attach the signed-in user to whatever Sentry reports from this request.
+ *
+ * Wrapped in an isolation scope rather than calling `setUser` directly. On a
+ * custom `Bun.serve` handler there is no per-request scope by default, so a
+ * bare `setUser` writes to a scope shared by every concurrent request — one
+ * person's identity would end up on another person's error, which is worse
+ * than having no identity at all.
+ *
+ * Deliberately id and email only. Sentry already sees the request; the point
+ * here is to answer "who hit this", not to copy the account into it.
+ */
+function withSentryUser<T>(
+  user: { id?: string; email?: string } | undefined,
+  run: () => Promise<T>
+): Promise<T> {
+  return Sentry.withIsolationScope(async (scope) => {
+    if (user?.id) {
+      scope.setUser({
+        id: user.id,
+        email: user.email,
+        ip_address: "{{auto}}",
+      });
+    }
+    return await run();
+  });
+}
+
 async function handleApi(req: Request) {
   const origin = req.headers.get("origin");
   const context = await createContext({ request: req });
-  const result = await apiHandler.handle(req, { prefix: "/api", context });
-  if (result.matched) {
-    // new Headers(...) rather than Object.fromEntries(...entries()), which
-    // collapses repeated headers. Auth responses can carry several Set-Cookie
-    const headers = new Headers(result.response.headers);
-    for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
-      headers.set(key, value);
+  return await withSentryUser(context.user, async () => {
+    const result = await apiHandler.handle(req, { prefix: "/api", context });
+    if (result.matched) {
+      // new Headers(...) rather than Object.fromEntries(...entries()), which
+      // collapses repeated headers. Auth responses can carry several Set-Cookie
+      const headers = new Headers(result.response.headers);
+      for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
+        headers.set(key, value);
+      }
+      return new Response(result.response.body, {
+        status: result.response.status,
+        statusText: result.response.statusText,
+        headers,
+      });
     }
-    return new Response(result.response.body, {
-      status: result.response.status,
-      statusText: result.response.statusText,
-      headers,
-    });
-  }
-  return new Response("Not Found", { status: 404 });
+    return new Response("Not Found", { status: 404 });
+  });
 }
 
 export const rpcHandler = new RPCHandler(router, {
@@ -119,19 +149,21 @@ export const rpcHandler = new RPCHandler(router, {
 async function handleRpc(req: Request) {
   const origin = req.headers.get("origin");
   const context = await createContext({ request: req });
-  const result = await rpcHandler.handle(req, { prefix: "/rpc", context });
-  if (result.matched) {
-    const headers = new Headers(result.response.headers);
-    for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
-      headers.set(key, value);
+  return await withSentryUser(context.user, async () => {
+    const result = await rpcHandler.handle(req, { prefix: "/rpc", context });
+    if (result.matched) {
+      const headers = new Headers(result.response.headers);
+      for (const [key, value] of Object.entries(getCorsHeaders(origin))) {
+        headers.set(key, value);
+      }
+      return new Response(result.response.body, {
+        status: result.response.status,
+        statusText: result.response.statusText,
+        headers,
+      });
     }
-    return new Response(result.response.body, {
-      status: result.response.status,
-      statusText: result.response.statusText,
-      headers,
-    });
-  }
-  return new Response("Not Found", { status: 404 });
+    return new Response("Not Found", { status: 404 });
+  });
 }
 
 function isCorsOriginAllowed(origin: string | null): boolean {
