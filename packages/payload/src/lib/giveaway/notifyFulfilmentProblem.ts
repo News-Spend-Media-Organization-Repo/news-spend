@@ -84,7 +84,7 @@ export async function notifyFulfilmentProblem(
           html: [
             `<p>Hi${account?.username ? ` ${account.username}` : ""},</p>`,
             `<p>We ran into a problem sending <strong>${prizeName}</strong>.</p>`,
-            `<p>Your prize is safe and still yours. Nothing has been lost and there is no deadline to worry about. Our team is looking into it, and you can see the current status in the app under My Prizes.</p>`,
+            "<p>Your prize is safe and still yours. Nothing has been lost and there is no deadline to worry about. Our team is looking into it, and you can see the current status in the app under My Prizes.</p>",
             `<p>If we need anything from you, we'll be in touch.</p>`,
           ].join("\n"),
         });

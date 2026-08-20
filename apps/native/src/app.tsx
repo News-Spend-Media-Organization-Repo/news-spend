@@ -14,6 +14,7 @@ import { Platform, StatusBar as RNStatusBar } from "react-native";
 import { initialWindowMetrics } from "react-native-safe-area-context";
 import { Uniwind } from "uniwind";
 import { useSnapshot } from "valtio";
+import { UpgradeRequired } from "#/components/UpgradeRequired";
 import AppOpenAd from "./components/Ads/AppOpenAd";
 import GiveawayReward from "./components/dialogs/GiveawayReward";
 import LotteryReward from "./components/dialogs/LotteryReward";
@@ -32,7 +33,6 @@ import { Provider } from "./provider";
 import { authState, hydrateAuth } from "./state/auth";
 import { createMMKVPersister } from "./utils/clientPersister";
 import { storage } from "./utils/storage";
-import { UpgradeRequired } from "#/components/UpgradeRequired";
 
 Uniwind.setTheme("light");
 

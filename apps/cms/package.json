@@ -35,7 +35,7 @@
     "@payloadcms/plugin-sentry": "catalog:",
     "@payloadcms/plugin-seo": "catalog:",
     "@payloadcms/richtext-lexical": "catalog:",
-    "@sentry/nextjs": "^10",
+    "@sentry/nextjs": "catalog:",
     "babel-plugin-react-compiler": "^0.0.0",
     "cross-env": "^10.1.0",
     "graphql": "^16.10.0",
@@ -44,11 +44,11 @@
     "postcss": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-tweet": "^3.3.0",
+    "react-tweet": "catalog:",
     "require-in-the-middle": "^7.5.0",
     "sharp": "catalog:",
-    "ssh2": "^1.17.0",
-    "ssh2-sftp-client": "^12.1.0"
+    "ssh2": "catalog:",
+    "ssh2-sftp-client": "catalog:"
   },
   "devDependencies": {
     "@news-spend-media/config": "workspace:*",

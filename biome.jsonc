@@ -9,11 +9,7 @@
     "ultracite/biome/next"
   ],
   "javascript": {
-    "globals": [
-      "Bun",
-      "__DEV__",
-      "jest"
-    ]
+    "globals": ["Bun", "__DEV__", "jest"]
   },
   "linter": {
     "rules": {

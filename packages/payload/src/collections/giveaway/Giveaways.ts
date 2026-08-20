@@ -60,11 +60,8 @@ export const Giveaways: CollectionConfig = {
       path: "/:id/simulate",
       method: "post",
       handler: async (req) => {
-        if (!req.user || req.user.collection !== "admins") {
-          return Response.json(
-            { message: "Admins only." },
-            { status: 403 }
-          );
+        if (req.user?.collection !== "admins") {
+          return Response.json({ message: "Admins only." }, { status: 403 });
         }
 
         const id = req.routeParams?.id as string | undefined;
@@ -90,7 +87,9 @@ export const Giveaways: CollectionConfig = {
           );
         }
 
-        const { simulateDraw } = await import("../../lib/giveaway/simulateDraw");
+        const { simulateDraw } = await import(
+          "../../lib/giveaway/simulateDraw"
+        );
 
         try {
           const result = await simulateDraw(req.payload, id, {

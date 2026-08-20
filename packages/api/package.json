@@ -33,24 +33,24 @@
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
     "@payloadcms/db-postgres": "catalog:",
-    "@sentry/node": "^10",
+    "@sentry/node": "catalog:",
     "@use-voltra/android": "^2.1.1",
-    "@use-voltra/ios": "^2.1.1",
+    "@use-voltra/ios": "catalog:",
     "@use-voltra/server": "^2.1.1",
     "croner": "^9.1.0",
-    "date-fns": "^4.1.0",
+    "date-fns": "catalog:",
     "dotenv": "catalog:",
-    "expo-server-sdk": "^4.0.0",
+    "expo-server-sdk": "catalog:",
     "node-internet-radio": "^0.2.1",
     "payload": "catalog:",
-    "radio-browser-api": "^6.0.3",
+    "radio-browser-api": "catalog:",
     "react": "catalog:",
-    "react-tweet": "^3.3.0",
+    "react-tweet": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@news-spend-media/config": "workspace:*",
-    "@types/bun": "^1.3.14",
+    "@types/bun": "catalog:",
     "typescript": "catalog:"
   }
 }

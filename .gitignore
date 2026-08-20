@@ -56,3 +56,6 @@ local.db
 .sisyphus
 docs
 .omo
+
+# payload generated graphql schema
+apps/cms/schema.graphql

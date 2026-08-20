@@ -89,7 +89,10 @@ export function verifyPartnerSignature({
     return { valid: false, reason: "timestamp outside the accepted window" };
   }
 
-  const expected = hmac(secret, canonicalString({ timestamp, clickId, status }));
+  const expected = hmac(
+    secret,
+    canonicalString({ timestamp, clickId, status })
+  );
 
   return hexEquals(expected, signature)
     ? { valid: true }

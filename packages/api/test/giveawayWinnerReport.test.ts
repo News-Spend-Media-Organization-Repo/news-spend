@@ -87,16 +87,19 @@ function createFakePayload({
     db: {
       drizzle: {
         execute: async (query: unknown) => {
-          const text = String((query as { queryChunks?: unknown })?.queryChunks
-            ? JSON.stringify((query as Row).queryChunks)
-            : query);
+          const text = String(
+            (query as { queryChunks?: unknown })?.queryChunks
+              ? JSON.stringify((query as Row).queryChunks)
+              : query
+          );
 
           if (!text.includes("giveaway_report_deliveries")) {
             return { rows: [] };
           }
 
-          const claimable = (collections["giveaway-report-deliveries"] ?? [])
-            .filter((row) => row.status === "failed");
+          const claimable = (
+            collections["giveaway-report-deliveries"] ?? []
+          ).filter((row) => row.status === "failed");
 
           for (const row of claimable) {
             row.status = "pending";

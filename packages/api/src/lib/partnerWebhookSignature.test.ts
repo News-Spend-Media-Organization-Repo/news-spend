@@ -1,5 +1,5 @@
-import { createHmac } from "node:crypto";
 import { describe, expect, it } from "bun:test";
+import { createHmac } from "node:crypto";
 
 import {
   canonicalString,
@@ -82,9 +82,9 @@ describe("verifyPartnerSignature", () => {
   it("rejects a rewritten timestamp", () => {
     // The timestamp is signed, not merely sent alongside, so moving it
     // forward to dodge the window invalidates the signature.
-    expect(
-      verify({ headers: { timestamp: String(NOW + 10) } }).valid
-    ).toBe(false);
+    expect(verify({ headers: { timestamp: String(NOW + 10) } }).valid).toBe(
+      false
+    );
   });
 
   it("refuses a partner with no secret configured rather than waving it through", () => {

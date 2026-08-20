@@ -47,9 +47,7 @@ async function main() {
     depth: 0,
   });
 
-  let prizeId = existing.docs[0]?.id
-    ? String(existing.docs[0].id)
-    : null;
+  let prizeId = existing.docs[0]?.id ? String(existing.docs[0].id) : null;
 
   if (prizeId) {
     console.log(`  exists   prize      ${PRIZE_NAME}`);
@@ -123,7 +121,9 @@ async function main() {
     });
     const id = found.docs[0]?.id ? String(found.docs[0].id) : null;
     if (!id) {
-      console.log(`  MISSING  prize      ${name}. Run seed-giveaway-fixtures first.`);
+      console.log(
+        `  MISSING  prize      ${name}. Run seed-giveaway-fixtures first.`
+      );
       continue;
     }
     if (pooled.has(id)) {
@@ -174,16 +174,20 @@ async function main() {
         id: giveaway.id,
         data: { tier3WinnerPercentage: 100 },
       });
-      console.log(`  set      tier3      100% (was ${giveaway.tier3WinnerPercentage}%)`);
+      console.log(
+        `  set      tier3      100% (was ${giveaway.tier3WinnerPercentage}%)`
+      );
     } else {
-      console.log(`  set      tier3      100% (currently ${giveaway.tier3WinnerPercentage}%)`);
+      console.log(
+        `  set      tier3      100% (currently ${giveaway.tier3WinnerPercentage}%)`
+      );
     }
   }
 
-  if (!WRITE) {
-    console.log("\nRe-run with --write to apply.\n");
-  } else {
+  if (WRITE) {
     console.log("\n  Ready. Run the draw, then claim in the app.\n");
+  } else {
+    console.log("\nRe-run with --write to apply.\n");
   }
 }
 

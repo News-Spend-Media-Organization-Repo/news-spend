@@ -7,7 +7,11 @@ function createPayload({
   giveaway = {},
   pool = [],
   catalogue = [],
-}: { giveaway?: Row; pool?: Row[]; catalogue?: Row[] } = {}) {
+}: {
+  giveaway?: Row;
+  pool?: Row[];
+  catalogue?: Row[];
+} = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-prizes": pool,
     "prize-catalogue": catalogue,
@@ -29,7 +33,13 @@ function createPayload({
 }
 
 function poolRow(tier: string, name: string, maxUnits: number, id = name): Row {
-  return { id: `p-${id}`, tier, maxUnits, unitsAwarded: 0, prize: { id, name } };
+  return {
+    id: `p-${id}`,
+    tier,
+    maxUnits,
+    unitsAwarded: 0,
+    prize: { id, name },
+  };
 }
 
 describe("simulateDraw", () => {
@@ -96,14 +106,14 @@ describe("simulateDraw", () => {
 
   it("does not count units already awarded", async () => {
     const payload = createPayload({
-      pool: [
-        { ...poolRow("tier3", "500 Airtime", 30), unitsAwarded: 25 },
-      ],
+      pool: [{ ...poolRow("tier3", "500 Airtime", 30), unitsAwarded: 25 }],
     });
 
     const result = await simulateDraw(payload, "g1", { participants: 1000 });
 
-    expect(result.tiers.find((t) => t.tier === "tier3")!.unitsAvailable).toBe(5);
+    expect(result.tiers.find((t) => t.tier === "tier3")!.unitsAvailable).toBe(
+      5
+    );
   });
 
   it("warns when an enabled tier has no prizes at all", async () => {

@@ -121,10 +121,7 @@ export async function simulateDraw(
     // wrong here would make the simulation flatter than the real draw.
     const maxByPercentage = maxTierWinners(participants, winnerPercentage);
 
-    const eligibleHere = Math.min(
-      eligible?.[tier] ?? participants,
-      remaining
-    );
+    const eligibleHere = Math.min(eligible?.[tier] ?? participants, remaining);
 
     const effectiveCap = Math.min(
       maxByPercentage,

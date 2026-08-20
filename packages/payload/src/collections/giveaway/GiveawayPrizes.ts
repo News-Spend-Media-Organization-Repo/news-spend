@@ -89,8 +89,8 @@ export const GiveawayPrizes: CollectionConfig = {
           });
         }
 
-         // A prize may only be selected under the tier assigned to it in the
-         // Master Prize Catalogue (spec 4).
+        // A prize may only be selected under the tier assigned to it in the
+        // Master Prize Catalogue (spec 4).
         if (data?.tier && data.tier !== prize.tier) {
           throw new ValidationError({
             collection: "giveaway-prizes",
