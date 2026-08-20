@@ -36,7 +36,6 @@
     "@payloadcms/plugin-seo": "catalog:",
     "@payloadcms/richtext-lexical": "catalog:",
     "@sentry/nextjs": "^9",
-    "autoprefixer": "^10.4.27",
     "babel-plugin-react-compiler": "^0.0.0",
     "cross-env": "^10.1.0",
     "graphql": "^16.10.0",

@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
-    "strictNullChecks": true
-  },
-  "exclude": ["node_modules"],
-  "extends": "@news-spend-media/config/tsconfig.base.json"
-}

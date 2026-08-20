@@ -5,24 +5,13 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/tailwind.ts"
+    ".": "./src/tailwind.css"
   },
   "scripts": {
     "clean": "rm -rf .turbo node_modules",
     "format": "bun x biome format .",
     "format:fix": "bun x biome format --write .",
     "lint": "bun x biome lint .",
-    "lint:fix": "bun x biome check --write .",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^3.4.17",
-    "tailwindcss-animate": "^1.0.7"
-  },
-  "devDependencies": {
-    "@news-spend-media/config": "workspace:*",
-    "typescript": "^5.8.2"
+    "lint:fix": "bun x biome check --write ."
   }
 }
