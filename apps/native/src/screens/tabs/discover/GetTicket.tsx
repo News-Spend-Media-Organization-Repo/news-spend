@@ -32,7 +32,14 @@ const GetTicket = () => {
   const { data: currentLottery, isPending: isLotteryPending } = useQuery(
     orpc.giveaway.current.queryOptions()
   );
-  const hasActiveLottery = !isLotteryPending && Boolean(currentLottery);
+  /**
+   * Entries are only taken while the server says the window is open. A
+   * giveaway switched on ahead of its start date is returned by `current` so
+   * the home screen can count down to it, but buying into it here would be
+   * refused, so this screen treats it as not yet enterable.
+   */
+  const isOpen = currentLottery?.isOpen ?? false;
+  const hasActiveLottery = !isLotteryPending && isOpen;
 
   // Preload native ad on mount
   useEffect(() => {
@@ -55,10 +62,17 @@ const GetTicket = () => {
 
   const onTicketPress = () => {
     if (!hasActiveLottery) {
-      Alert.alert(
-        "No Active Giveaway",
-        "There's no giveaway running right now. Check back soon!"
-      );
+      if (currentLottery?.state === "pending") {
+        Alert.alert(
+          "Not Open Yet",
+          "This giveaway hasn't opened yet. Check back when it starts!"
+        );
+      } else {
+        Alert.alert(
+          "No Active Giveaway",
+          "There's no giveaway running right now. Check back soon!"
+        );
+      }
       return;
     }
     if (
@@ -189,7 +203,9 @@ const GetTicket = () => {
                   </Text>
                 ) : (
                   <Text className="text-danger">
-                    There's no giveaway running right now.
+                    {currentLottery?.state === "pending"
+                      ? "This giveaway hasn't opened yet."
+                      : "There's no giveaway running right now."}
                   </Text>
                 )}
               </View>

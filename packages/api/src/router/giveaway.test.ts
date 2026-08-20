@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { call } from "@orpc/server";
 
 import {
@@ -138,7 +138,89 @@ describe("giveaway.current", () => {
       description: "A test giveaway",
       ticketPrice: 5,
       minTicketsRequired: 1,
+      isOpen: true,
+      state: "open",
     });
+  });
+
+  /**
+   * The app renders its entry button from this call and the write paths
+   * enforce the window separately, so a giveaway switched on early must not
+   * come back looking enterable: that mismatch is what put a live "Enter
+   * Giveaway" button in front of a purchase the server would refuse.
+   */
+  it("reports a giveaway switched on before its start date as not open", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway({ startDate: FUTURE, endDate: FAR_FUTURE })],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(giveawayRouter.current, undefined, {
+      context: ctx,
+    });
+
+    expect(result).toMatchObject({
+      id: "gw-1",
+      startDate: FUTURE,
+      isOpen: false,
+      state: "pending",
+    });
+  });
+
+  it("reports a giveaway past its end date as not open", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway({ startDate: FAR_PAST, endDate: PAST })],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(giveawayRouter.current, undefined, {
+      context: ctx,
+    });
+
+    expect(result).toMatchObject({ isOpen: false, state: "closed" });
+  });
+
+  /**
+   * The bug this guards against was reported as a giveaway showing as not
+   * started for a reader hours west of UTC. The dates cross the window in
+   * absolute time, so no device offset may change the answer.
+   */
+  it("judges the window in UTC, not in any local calendar", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [
+          giveaway({
+            startDate: "2026-08-20T14:00:00.000Z",
+            endDate: "2026-09-20T14:00:00.000Z",
+          }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const at = (iso: string) => {
+      const spy = spyOn(Date, "now").mockReturnValue(new Date(iso).getTime());
+      return () => spy.mockRestore();
+    };
+
+    let restore = at("2026-08-20T15:45:00.000Z");
+    const afterStart = await call(giveawayRouter.current, undefined, {
+      context: ctx,
+    });
+    restore();
+
+    restore = at("2026-08-20T13:59:00.000Z");
+    const beforeStart = await call(giveawayRouter.current, undefined, {
+      context: ctx,
+    });
+    restore();
+
+    expect(afterStart).toMatchObject({ isOpen: true, state: "open" });
+    expect(beforeStart).toMatchObject({ isOpen: false, state: "pending" });
   });
 
   it("returns null when there is no active giveaway", async () => {
