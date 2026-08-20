@@ -2048,9 +2048,10 @@ export interface Notification {
    */
   deliveryAction?: ('send-now' | 'schedule') | null;
   /**
-   * When to send this notification (your local time)
+   * When to send this notification. Pick the time and the timezone you mean it in; everyone receives it at that same moment, shown in their own local time.
    */
   scheduledFor?: string | null;
+  scheduledFor_tz?: SupportedTimezones;
   /**
    * Target audience type
    */
@@ -3527,6 +3528,7 @@ export interface NotificationsSelect<T extends boolean = true> {
   data?: T;
   deliveryAction?: T;
   scheduledFor?: T;
+  scheduledFor_tz?: T;
   targetType?: T;
   segment?: T;
   specificUsers?: T;

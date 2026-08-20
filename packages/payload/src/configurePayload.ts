@@ -90,6 +90,16 @@ const baseConfig: Config = {
   logger: "sync",
   admin: {
     user: Admins.slug,
+    /**
+     * Where an administrator is assumed to be composing times, unless they
+     * say otherwise. The newsroom runs on WAT, so a scheduling field opens on
+     * Lagos rather than on whatever zone the browser happens to report, and a
+     * team member travelling or working from Canada has to choose their zone
+     * deliberately rather than have it silently applied.
+     */
+    timezones: {
+      defaultTimezone: "Africa/Lagos",
+    },
     meta: {
       title: "News Spend Media CMS",
       description:
@@ -221,6 +231,15 @@ const baseConfig: Config = {
       connectionString: process.env.DATABASE_URI || "",
     },
     idType: "uuid",
+    /**
+     * Migrations live beside the schema they describe, not next to the CMS
+     * app that happens to load it. Without this the adapter defaults to
+     * `<config dir>/migrations`, which resolves into `apps/cms` and does not
+     * exist, so `migrate:create` finds no snapshot to diff against and emits
+     * the entire schema as a fresh migration rather than the one changed
+     * column.
+     */
+    migrationDir: path.resolve(dirname, "migrations"),
     prodMigrations: migrations,
   }),
   sharp,
