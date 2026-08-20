@@ -145,18 +145,29 @@ async function resolveSegmentTokens(
 
   const segmentWhere: Where = { ...deviceTypeWhere };
 
+  /**
+   * Segment boundaries are absolute instants, expressed as ISO strings.
+   *
+   * Two things were wrong here and both silently emptied the audience. The
+   * field was queried as `lastActiveAt`, which does not exist on users (it is
+   * `lastActive`), and Payload throws a `QueryError` for an unqueryable path,
+   * so a segment send raised rather than delivered. The bounds were also
+   * passed as epoch numbers from `.getTime()`, which is not a value a date
+   * column can be compared against.
+   *
+   * `.toISOString()` is what makes this timezone-proof: the cutoff is one
+   * instant in UTC, so it means the same thing regardless of where the
+   * administrator who scheduled the notification happens to be sitting.
+   */
+  const activeCutoff = subDays(new Date(), 30).toISOString();
+  const newUserCutoff = subDays(new Date(), 7).toISOString();
+
   if (segment === "active-users") {
-    segmentWhere["user.lastActiveAt"] = {
-      greater_than: subDays(new Date(), 30).getTime(),
-    };
+    segmentWhere["user.lastActive"] = { greater_than: activeCutoff };
   } else if (segment === "inactive-users") {
-    segmentWhere["user.lastActiveAt"] = {
-      less_than: subDays(new Date(), 30).getTime(),
-    };
+    segmentWhere["user.lastActive"] = { less_than: activeCutoff };
   } else if (segment === "new-users") {
-    segmentWhere["user.createdAt"] = {
-      greater_than: subDays(new Date(), 7).getTime(),
-    };
+    segmentWhere["user.createdAt"] = { greater_than: newUserCutoff };
   } else {
     return [];
   }
