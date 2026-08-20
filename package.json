@@ -80,15 +80,15 @@
   },
   "private": true,
   "overrides": {
-    "@sentry/bun": "9.47.1",
-    "@sentry/core": "9.47.1",
-    "@sentry/nextjs": "9.47.1",
-    "@sentry/node": "9.47.1",
-    "@sentry/node-core": "9.47.1",
-    "@sentry/opentelemetry": "9.47.1",
-    "@sentry/types": "9.47.1",
-    "@sentry/browser": "9.47.1",
-    "@sentry/react": "9.47.1"
+    "@sentry/bun": "10.70.0",
+    "@sentry/core": "10.70.0",
+    "@sentry/nextjs": "10.70.0",
+    "@sentry/node": "10.70.0",
+    "@sentry/node-core": "10.70.0",
+    "@sentry/opentelemetry": "10.70.0",
+    "@sentry/types": "10.70.0",
+    "@sentry/browser": "10.70.0",
+    "@sentry/react": "10.70.0"
   },
   "engines": {
     "node": ">=20.11.1"

@@ -33,7 +33,7 @@
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
     "@payloadcms/db-postgres": "catalog:",
-    "@sentry/node": "^9",
+    "@sentry/node": "^10",
     "@use-voltra/android": "^2.1.1",
     "@use-voltra/ios": "^2.1.1",
     "@use-voltra/server": "^2.1.1",
