@@ -165,7 +165,16 @@ async function resolveSegmentTokens(
   if (segment === "active-users") {
     segmentWhere["user.lastActive"] = { greater_than: activeCutoff };
   } else if (segment === "inactive-users") {
-    segmentWhere["user.lastActive"] = { less_than: activeCutoff };
+    /*
+     * A reader with no recorded activity at all is inactive, not unknown.
+     * `lastActive` only began being written recently, so every account that
+     * predates it holds null, and a bare `less_than` would quietly exclude
+     * exactly the dormant readers this segment exists to reach.
+     */
+    segmentWhere.or = [
+      { "user.lastActive": { less_than: activeCutoff } },
+      { "user.lastActive": { exists: false } },
+    ];
   } else if (segment === "new-users") {
     segmentWhere["user.createdAt"] = { greater_than: newUserCutoff };
   } else {
