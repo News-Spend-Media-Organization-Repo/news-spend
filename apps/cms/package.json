@@ -38,7 +38,7 @@
     "@sentry/nextjs": "^9",
     "autoprefixer": "^10.4.27",
     "babel-plugin-react-compiler": "^0.0.0",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "graphql": "^16.10.0",
     "next": "catalog:",
     "payload": "catalog:",
