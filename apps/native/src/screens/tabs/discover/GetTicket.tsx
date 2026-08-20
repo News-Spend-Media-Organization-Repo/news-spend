@@ -1,6 +1,5 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { startOfWeek } from "date-fns";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { MinusCircleIcon, PlusCircleIcon } from "phosphor-react-native";
@@ -88,13 +87,6 @@ const GetTicket = () => {
     }
   };
 
-  // Get the start of the current two-week period (Monday)
-  const now = new Date();
-  const startOfLotteryPeriod = startOfWeek(now, { weekStartsOn: 1 });
-  if (startOfLotteryPeriod.getDate() - now.getDate() <= 7) {
-    startOfLotteryPeriod.setDate(startOfLotteryPeriod.getDate() + 7);
-  }
-
   return (
     <Screen className="bg-p-300" statusBarStyle="light">
       <ScreenHeader
@@ -118,11 +110,18 @@ const GetTicket = () => {
 
           <Card className="mx-2 rounded-xl bg-s-300 px-6">
             <Card.Body className="p-0 pt-3">
+              {/*
+                Named by the giveaway itself, or not at all.
+
+                This used to fall back to a date derived from the lottery's
+                fixed fortnightly cadence, which the giveaway engine replaced:
+                a giveaway's window is set per giveaway by an administrator, so
+                a locally computed Monday named a period that did not exist.
+              */}
               <Text className="text-center text-p-400">
-                The{" "}
-                {currentLottery?.name ??
-                  startOfLotteryPeriod.toLocaleDateString().split("/")}{" "}
-                game
+                {currentLottery?.name
+                  ? `The ${currentLottery.name} game`
+                  : "Giveaway entries"}
               </Text>
             </Card.Body>
 
