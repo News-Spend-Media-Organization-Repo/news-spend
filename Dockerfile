@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.11-alpine AS base
+FROM oven/bun:1.4.0-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache libpq git
 
