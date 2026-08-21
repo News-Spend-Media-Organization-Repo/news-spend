@@ -1,8 +1,11 @@
 node_modules
+**/node_modules
 .next
+**/.next
 .vscode
 .github
 .turbo
+**/.turbo
 build
 debug
 dist
