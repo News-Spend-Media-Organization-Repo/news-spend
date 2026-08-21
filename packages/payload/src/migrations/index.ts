@@ -38,6 +38,7 @@ import * as migration_20260816_010657 from './20260816_010657';
 import * as migration_20260818_171212 from './20260818_171212';
 import * as migration_20260820_172902_scheduled_notification_timezone from './20260820_172902_scheduled_notification_timezone';
 import * as migration_20260821_000000_fix_comments_news_cascade from './20260821_000000_fix_comments_news_cascade';
+import * as migration_20260821_010000_reapply_cascade_fixes from './20260821_010000_reapply_cascade_fixes';
 
 export const migrations = [
   {
@@ -239,5 +240,10 @@ export const migrations = [
     up: migration_20260821_000000_fix_comments_news_cascade.up,
     down: migration_20260821_000000_fix_comments_news_cascade.down,
     name: '20260821_000000_fix_comments_news_cascade'
+  },
+  {
+    up: migration_20260821_010000_reapply_cascade_fixes.up,
+    down: migration_20260821_010000_reapply_cascade_fixes.down,
+    name: '20260821_010000_reapply_cascade_fixes'
   },
 ];
