@@ -70,7 +70,9 @@ async function main() {
   }
 
   if (!WRITE) {
-    console.log("  create   giveaway   Tier 2 test, tier2 100%, tiers 1 and 3 off");
+    console.log(
+      "  create   giveaway   Tier 2 test, tier2 100%, tiers 1 and 3 off"
+    );
     console.log(`  add      pool       ${PRIZE_NAME} (tier2) x5`);
     console.log("\nRe-run with --write to apply.\n");
     return;

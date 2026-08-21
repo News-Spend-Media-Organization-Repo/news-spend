@@ -1,8 +1,50 @@
-import type { CollectionConfig } from "payload";
+import type { CollectionConfig, PayloadRequest } from "payload";
 
 import { authenticated } from "../access/authenticated";
 import { adminOnly } from "../access/hasRole";
 import { NOTIFICATION_TYPES } from "./NotificationInbox";
+
+/**
+ * Drop any send still waiting for this notification.
+ *
+ * The afterChange hook queues on every published save, so without this a
+ * second save before the send time leaves two jobs waiting on the same
+ * notification and everyone receives it twice. Editing a scheduled
+ * notification is normal (a typo, a reworded title, or a time an
+ * administrator in another timezone believed was wrong), so the duplicate was
+ * easy to produce and invisible until the pushes landed.
+ *
+ * Only unstarted jobs are removed: one already running or completed is a send
+ * that has happened, and deleting its row would not unsend it.
+ */
+async function cancelPendingSends(
+  notificationId: string,
+  req: PayloadRequest
+): Promise<void> {
+  try {
+    await req.payload.delete({
+      collection: "payload-jobs",
+      where: {
+        and: [
+          { taskSlug: { equals: "sendScheduledNotification" } },
+          { "input.notificationId": { equals: notificationId } },
+          { completedAt: { exists: false } },
+          { processing: { not_equals: true } },
+        ],
+      },
+      req,
+    });
+  } catch (err) {
+    // A failure to tidy up must not block the save. The worst case is the
+    // duplicate this exists to prevent, which is better than an editor being
+    // unable to fix a typo.
+    req.payload.logger.error({
+      msg: "Notifications: could not cancel pending scheduled sends",
+      err,
+      notificationId,
+    });
+  }
+}
 
 const Notifications: CollectionConfig = {
   slug: "notifications",
@@ -73,9 +115,25 @@ const Notifications: CollectionConfig = {
     {
       name: "scheduledFor",
       type: "date",
+      /**
+       * The instant is absolute; the timezone records who chose it.
+       *
+       * `scheduled_for` is a `timestamptz`, so the moment of delivery has
+       * never been in doubt: the job runner fires it at one instant and every
+       * reader on earth gets it then. What was missing is the *intent* behind
+       * the number. Without a recorded zone, an administrator in Lagos who
+       * schedules 10:00 and one in Toronto who opens the same document see
+       * 10:00 and 05:00, and the second may "correct" a time that was never
+       * wrong, moving the send for everyone.
+       *
+       * Storing the zone alongside makes the entry self-describing: the
+       * document says "10:00 Africa/Lagos", which reads the same in Toronto.
+       */
+      timezone: true,
       admin: {
         condition: (data) => data?.deliveryAction === "schedule",
-        description: "When to send this notification (your local time)",
+        description:
+          "When to send this notification. Pick the time and the timezone you mean it in; everyone receives it at that same moment, shown in their own local time.",
         date: {
           pickerAppearance: "dayAndTime",
         },
@@ -247,12 +305,20 @@ const Notifications: CollectionConfig = {
         const deliveryAction = doc.deliveryAction;
 
         if (deliveryAction === "schedule" && doc.scheduledFor) {
+          await cancelPendingSends(doc.id, req);
+
           await req.payload.jobs.queue({
             task: "sendScheduledNotification",
             input: { notificationId: doc.id },
             waitUntil: new Date(doc.scheduledFor),
           });
           return doc;
+        }
+
+        // Switched from scheduled back to immediate, or unscheduled entirely:
+        // whatever was waiting must not still fire.
+        if (deliveryAction !== "schedule") {
+          await cancelPendingSends(doc.id, req);
         }
 
         if (deliveryAction === "send-now") {

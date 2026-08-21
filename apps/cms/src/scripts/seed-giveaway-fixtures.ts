@@ -4,14 +4,14 @@
  * A fresh environment has an empty Master Prize Catalogue and no partner
  * content, and that single gap blocks most of the engine from ever running:
  *
-  *   - Boosts (7) need Connect Brands content. Without it `BoostLuck` can only
+ *   - Boosts (7) need Connect Brands content. Without it `BoostLuck` can only
  *     refuse, because the engine will not count an engagement it cannot
  *     attribute to a specific item.
-  *   - Featured Offers (8) need Lucky App Wall content, for the same reason.
+ *   - Featured Offers (8) need Lucky App Wall content, for the same reason.
  *   - Tier 1 and Tier 2 need BOTH of the above, so neither is reachable at all.
  *   - The giveaway reveal plays a Connect Brands advertisement before showing
  *     the outcome, and falls straight through to the result without one.
-  *   - Reloadly fulfilment (15) needs an airtime or data prize to exist. It had
+ *   - Reloadly fulfilment (15) needs an airtime or data prize to exist. It had
  *     never executed in any environment before this script.
  *
  * Everything is created through Payload's local API rather than SQL, so the
@@ -160,7 +160,7 @@ type PartnerItem = {
  * Where a seeded item sends someone who taps it.
  *
  * Not optional in practice: `usePartnerClick` reads the store links, falls
-   * back to the website, and returns silently when there is none, so an item
+ * back to the website, and returns silently when there is none, so an item
  * seeded without a link is simply dead to the touch, with no error and no
  * toast. The first seeded app-wall offer was exactly that, and looked like a
  * broken button rather than missing data.
@@ -171,7 +171,7 @@ const SEED_LINK = "https://newsspend.com";
  * Partner content cannot be conjured from nothing: `media` is a required
  * upload and `partner` a required relationship, so this reuses whatever the
  * environment already has rather than inventing a creative. A seeded ad with a
-   * placeholder image would not be a meaningful test of an ad anyway; the point
+ * placeholder image would not be a meaningful test of an ad anyway; the point
  * is only to make the engagement surfaces reachable.
  */
 const PARTNER_CONTENT: PartnerItem[] = [
@@ -376,10 +376,10 @@ async function main() {
        * enabled tier whose pool is empty. Neither could be fixed by re-running,
        * since the whole branch was skipped whenever a giveaway was active.
        *
-   * Safe to do while live: 5 locks the pool from `pool_building` onwards,
-   * and `active` is deliberately outside that set, so this cannot disturb a
-   * draw that has begun. Existing rows are never touched, only gaps are
-   * filled, so units already awarded are left as they are.
+       * Safe to do while live: 5 locks the pool from `pool_building` onwards,
+       * and `active` is deliberately outside that set, so this cannot disturb a
+       * draw that has begun. Existing rows are never touched, only gaps are
+       * filled, so units already awarded are left as they are.
        */
       const giveaway = active.docs[0];
       const pool = await payload.find({
@@ -394,7 +394,9 @@ async function main() {
           typeof row.prize === "string" ? row.prize : String(row.prize?.id)
         )
       );
-      const missing = [...prizeIds].filter(([, prize]) => !pooled.has(prize.id));
+      const missing = [...prizeIds].filter(
+        ([, prize]) => !pooled.has(prize.id)
+      );
 
       console.log(
         `\n  exists   giveaway   "${giveaway.name}" is already active, leaving its configuration alone.`
@@ -410,7 +412,7 @@ async function main() {
          */
         if (!WRITE && prizeIds.size < CATALOGUE.length) {
           console.log(
-            `           pool       (prizes created above would be added too)`
+            "           pool       (prizes created above would be added too)"
           );
         }
       }

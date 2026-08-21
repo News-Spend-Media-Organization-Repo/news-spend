@@ -1,5 +1,7 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
+import { useEventListener } from "expo";
 import { Image } from "expo-image";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Spinner } from "heroui-native/spinner";
 import {
   PauseIcon,
@@ -7,9 +9,14 @@ import {
   SpeakerHighIcon,
   SpeakerSlashIcon,
 } from "phosphor-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Linking, Platform, useWindowDimensions, View } from "react-native";
-import Video, { type VideoRef } from "react-native-video";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Linking,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
@@ -18,6 +25,8 @@ import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
 
 // YouTube removed: ToS violation in ad context
+
+type VideoPlayerStatus = "idle" | "loading" | "readyToPlay" | "error";
 
 export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const { width } = useWindowDimensions();
@@ -31,6 +40,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const [muted, setMuted] = useState(true);
   const [isLoading, setLoading] = useState(false);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [status, setStatus] = useState<VideoPlayerStatus>("idle");
 
   const { url, blurhash } = getImageData(isImageAd ? ad.media : null);
   const partnerLogo = getImageData(
@@ -42,25 +52,44 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
       : null
   );
 
-  const videoRef = useRef<VideoRef>(null);
+  const videoSourceUri = isVideoAd
+    ? (ad.videoUrl ?? (typeof ad.video === "string" ? ad.video : ad.video?.url))
+    : null;
+
+  const player = useVideoPlayer(null, (p) => {
+    p.muted = true;
+    p.loop = false;
+  });
 
   useEffect(() => {
-    if (!isVideoAd) {
-      return;
-    }
-    const videoSourceUri = ad.videoUrl
-      ? ad.videoUrl
-      : typeof ad.video === "string"
-        ? ad.video
-        : ad.video?.url;
+    player.muted = muted;
+  }, [muted, player]);
 
+  useEffect(() => {
     if (!videoSourceUri) {
       return;
     }
+    player.replaceAsync({ uri: videoSourceUri }).catch((error) => {
+      console.warn("Failed to load ad video", error);
+    });
+  }, [player, videoSourceUri]);
 
-    videoRef.current?.setSource({ uri: videoSourceUri });
-    videoRef.current?.resume();
+  useEffect(() => {
+    if (!videoSourceUri) {
+      player.pause();
+      return;
+    }
+    if (paused) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }, [paused, player, videoSourceUri]);
 
+  useEffect(() => {
+    if (!videoSourceUri) {
+      return;
+    }
     let isMounted = true;
     (async () => {
       const uri = await getThumbnailWithCache(videoSourceUri);
@@ -72,7 +101,18 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
     return () => {
       isMounted = false;
     };
-  }, [ad.video, ad.videoUrl, isVideoAd]);
+  }, [videoSourceUri]);
+
+  useEventListener(player, "statusChange", ({ status: nextStatus }) => {
+    setStatus(nextStatus);
+    setLoading(nextStatus === "loading");
+  });
+
+  useEventListener(player, "playToEnd", () => {
+    player.pause();
+    player.currentTime = 0;
+    setPaused(true);
+  });
 
   const onPress = useCallback(() => {
     const url =
@@ -94,23 +134,19 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
       <View className="w-full">
         {isVideoAd ? (
           <View className="relative mx-2" style={{ height: videoHeight }}>
-            <Video
-              muted={muted}
-              onEnd={() => {
-                setPaused(true);
-                videoRef.current?.seek(0);
-              }}
-              onLoad={() => setLoading(false)}
-              onLoadStart={() => setLoading(true)}
-              paused={paused}
-              poster={{
-                source: { uri: thumbnail ?? undefined },
-                resizeMode: "cover",
-              }}
-              ref={videoRef}
-              resizeMode="cover"
-              style={{ minHeight: "100%", width: "100%" }}
+            <VideoView
+              contentFit="cover"
+              nativeControls={false}
+              player={player}
+              style={{ width: "100%", height: "100%" }}
             />
+            {status !== "readyToPlay" && (
+              <Image
+                contentFit="cover"
+                source={thumbnail ? { uri: thumbnail } : undefined}
+                style={StyleSheet.absoluteFill}
+              />
+            )}
             <View className="absolute inset-0 items-start justify-end">
               {isLoading && (
                 <View className="absolute inset-0 z-20 items-center justify-center">

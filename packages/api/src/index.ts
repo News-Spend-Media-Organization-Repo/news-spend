@@ -10,6 +10,7 @@ import {
   requireAuth,
   requireAuthNoGuest,
 } from "./middlewares/auth.middleware";
+import { recordLastActive } from "./middlewares/lastActive.middleware";
 
 export const sentryMiddleware = os.middleware(async ({ next }) => {
   try {
@@ -28,8 +29,16 @@ export const basicProcedure = os
   // to update rather than told its credentials are wrong.
   .use(requireSupportedAppVersion);
 export const publicProcedure = basicProcedure.use(optionalAuth);
-export const protectedProcedure = basicProcedure.use(requireAuth);
-export const protectedNoGuestProcedure = basicProcedure.use(requireAuthNoGuest);
+// Activity is recorded after auth, so the middleware has a user to attribute
+// it to. Public procedures record too: a reader browsing news while signed in
+// is active, and only counting the authenticated-only calls would make the
+// segments measure engagement with a subset of the app.
+export const protectedProcedure = basicProcedure
+  .use(requireAuth)
+  .use(recordLastActive);
+export const protectedNoGuestProcedure = basicProcedure
+  .use(requireAuthNoGuest)
+  .use(recordLastActive);
 
 export const rateLimitedPublicProcedure =
   publicProcedure.use(rateLimitMiddleware);

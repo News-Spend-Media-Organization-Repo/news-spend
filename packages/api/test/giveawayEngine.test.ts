@@ -1362,7 +1362,7 @@ describe("pool lock and replacement winners (spec 12)", () => {
   /**
    * Runs a real Tier 3 draw over `count` participants producing exactly
    * `maxUnits` winners. Tier 3 is set to 100% so the prize stock is what caps
-    * the winner count, deriving a percentage instead runs into floating point
+   * the winner count, deriving a percentage instead runs into floating point
    * (a 1-in-6 share evaluates to 0.9999…, which floors to zero winners).
    */
   async function drawnGiveaway(count: number, maxUnits: number) {
@@ -1530,7 +1530,7 @@ describe("pool lock and replacement winners (spec 12)", () => {
 describe("resuming an interrupted draw (spec 19)", () => {
   /**
    * A giveaway whose Tier 1 completed and awarded `tier1Winners`, then was
-    * interrupted before Tier 2: the state a mid-draw crash leaves behind.
+   * interrupted before Tier 2: the state a mid-draw crash leaves behind.
    */
   function partiallyDrawn(tier1Winners: string[]) {
     const { ticketRows, boostRows, offerRows } = participants(100, {

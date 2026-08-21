@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.11 AS builder
+FROM oven/bun:1.4.0 AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
@@ -39,6 +39,12 @@ RUN apt-get update && apt-get -yqq --no-install-recommends install \
     libtool \
     && rm -rf /var/lib/apt/lists/*
 COPY bun.lock ./
+# Carries `linker = "hoisted"`. Bun 1.4 defaults workspaces to isolated
+# linking, where a package resolves only what it declares itself — so without
+# this file the image installs a different dependency layout than every
+# developer machine, and any package that has been quietly relying on a
+# hoisted sibling's dependency fails here and nowhere else.
+COPY bunfig.toml ./
 COPY package.json ./
 COPY turbo.json ./
 COPY patches ./patches
@@ -50,7 +56,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun turbo build --filter=@news-spend-media/cms...
 
-FROM oven/bun:1.3.11 AS runtime
+FROM oven/bun:1.4.0 AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get -yqq --no-install-recommends install \
     ca-certificates \

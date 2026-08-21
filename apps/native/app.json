@@ -124,7 +124,6 @@
           "enforceContrast": false
         }
       ],
-      "react-native-video",
       [
         "expo-build-properties",
         {

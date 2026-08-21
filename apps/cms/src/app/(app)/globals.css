@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "@news-spend-media/tailwind-config";
 
 @layer utilities {
   input[type="number"].arrow-hide::-webkit-outer-spin-button,

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ES2022"],
     "paths": {
@@ -14,7 +13,7 @@
       "@news-spend-media/payload/helpers/*": ["./src/helpers/*"],
       "@news-spend-media/payload/hooks/*": ["./src/hooks/*"],
       "@news-spend-media/payload/payload-config": ["./src/payload.config"],
-      "@news-spend-media/payload/payload-types": ["./src/payload.types"],
+      "@news-spend-media/payload/payload-types": ["./src/payload-types"],
       "@news-spend-media/payload/plugins/*": ["./src/plugins/*"]
     },
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",

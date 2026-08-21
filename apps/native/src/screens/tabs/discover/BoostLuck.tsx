@@ -20,9 +20,18 @@ const BoostLuck = () => {
   const { data } = useQuery(orpc.giveaway.progress.queryOptions());
   const boostLuckMutation = useMutation(
     orpc.giveaway.recordEngagement.mutationOptions({
-      onSuccess: (result) => {
+      onSuccess: () => {
+        /*
+         * Confirms the boost landed without stating the running total.
+         *
+         * The tally used to be here, which put a count of how many times
+         * someone had watched a sponsor onto a toast that floats over
+         * whatever screen is open, including the one announcing a win. It
+         * read as the app scoring their behaviour back at them. What a person
+         * needs at this moment is only that the thing they just did counted.
+         */
         toast.success("Luck Boosted!", {
-          description: `${result.boosts} boost${result.boosts === 1 ? "" : "s"} this giveaway.`,
+          description: "Counted for this giveaway.",
         });
         queryClient.invalidateQueries({
           queryKey: orpc.giveaway.progress.queryKey(),

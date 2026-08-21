@@ -9,14 +9,20 @@ import {
   KeyboardAvoidingView,
   KeyboardProvider,
 } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  initialWindowMetrics,
+  SafeAreaProvider,
+} from "react-native-safe-area-context";
 import { ToastBridge } from "#/components/heroui/toast";
+import OfflineAlert from "#/components/OfflineAlert";
 import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
+import { useOnlineManager } from "#/hooks/useOnlineManager";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { useUpdates } from "#/lib/UpdatesProvider";
 import { authState } from "#/state/auth";
+import { useAfterStartup } from "#/utils/afterStartup";
 import { scheduleDailyDigest } from "#/widgets";
 
 type Props = {
@@ -52,21 +58,36 @@ const config: HeroUINativeConfig = {
 export const Provider = ({ children }: Props) => {
   useListeningTimeSync();
   usePushNotification();
+  // Without this React Query believes it is online forever, and offline
+  // queries fail through the full retry ladder instead of pausing.
+  useOnlineManager();
   const { updateSheet } = useUpdates();
 
-  useEffect(() => {
-    newsAnalyticsClient.start(() => authState.user?.id);
-    return () => newsAnalyticsClient.stop();
-  }, []);
+  // Neither of the effects below is needed for the first screen, and both are
+  // expensive in the way that matters at startup: the analytics client starts
+  // a poller, and the digest fetches news over the network and renders widget
+  // timelines. Held until the first frames are done.
+  const startupSettled = useAfterStartup();
 
   useEffect(() => {
+    if (!startupSettled) {
+      return;
+    }
+    newsAnalyticsClient.start(() => authState.user?.id);
+    return () => newsAnalyticsClient.stop();
+  }, [startupSettled]);
+
+  useEffect(() => {
+    if (!startupSettled) {
+      return;
+    }
     scheduleDailyDigest();
-  }, []);
+  }, [startupSettled]);
 
   return (
     <DetourProvider config={detourConfig}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <KeyboardProvider>
             <HeroUINativeProvider config={config}>
               <ErrorBoundary>
@@ -81,6 +102,7 @@ export const Provider = ({ children }: Props) => {
                 </IconContext.Provider>
               </ErrorBoundary>
               <ToastBridge />
+              <OfflineAlert />
             </HeroUINativeProvider>
           </KeyboardProvider>
         </SafeAreaProvider>

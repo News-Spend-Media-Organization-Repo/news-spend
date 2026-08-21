@@ -181,9 +181,7 @@ async function settleConversion(
   });
 
   const userId =
-    typeof conversion.user === "string"
-      ? conversion.user
-      : conversion.user?.id;
+    typeof conversion.user === "string" ? conversion.user : conversion.user?.id;
 
   if (pointsToAward > 0 && userId) {
     await payload.create({

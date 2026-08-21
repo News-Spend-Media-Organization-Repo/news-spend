@@ -1,4 +1,5 @@
-import type { Config } from "@swmansion/react-native-detour";
+import type { Config, DetourStorage } from "@swmansion/react-native-detour";
+import { loadString, remove, saveString } from "#/utils/storage";
 
 /**
  * Detour config for deferred deep linking.
@@ -16,4 +17,13 @@ export const detourConfig: Config = {
   appID: process.env.EXPO_PUBLIC_DETOUR_APP_ID as string,
   shouldUseClipboard: false,
   linkProcessingMode: "deferred-only",
+  storage: {
+    getItem: (key) => loadString(key),
+    setItem: (key, value) => {
+      saveString(key, value);
+    },
+    removeItem: (key) => {
+      remove(key);
+    },
+  } satisfies DetourStorage,
 };

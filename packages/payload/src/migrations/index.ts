@@ -36,6 +36,7 @@ import * as migration_20260815_041656 from './20260815_041656';
 import * as migration_20260815_091616 from './20260815_091616';
 import * as migration_20260816_010657 from './20260816_010657';
 import * as migration_20260818_171212 from './20260818_171212';
+import * as migration_20260820_172902_scheduled_notification_timezone from './20260820_172902_scheduled_notification_timezone';
 
 export const migrations = [
   {
@@ -226,6 +227,11 @@ export const migrations = [
   {
     up: migration_20260818_171212.up,
     down: migration_20260818_171212.down,
-    name: '20260818_171212'
+    name: '20260818_171212',
+  },
+  {
+    up: migration_20260820_172902_scheduled_notification_timezone.up,
+    down: migration_20260820_172902_scheduled_notification_timezone.down,
+    name: '20260820_172902_scheduled_notification_timezone'
   },
 ];

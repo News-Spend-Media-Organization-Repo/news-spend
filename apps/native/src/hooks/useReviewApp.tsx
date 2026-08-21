@@ -1,12 +1,7 @@
-import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import InAppReview from "react-native-in-app-review";
 
 export default function useAppReview() {
-  const { getItem, setItem } = useAsyncStorage("in_App_Review");
-
   const onReview = async () => {
-    const _lastDateAppReviewed = await getItem();
-
     // if (lastDateAppReviewed !== null) {
     //   const Today = new Date();
     //   const leftTime = Math.abs(Today - Date.parse(lastDateAppReviewed));
@@ -15,11 +10,11 @@ export default function useAppReview() {
     //   console.log({ leftDays });
 
     //   if (leftDays > 15) {
-    //     await setItem(new Date().toString());
+    //     storage.set("in_App_Review", new Date().toString());
     //     InAppReview.RequestInAppReview();
     //   }
     // } else {
-    //   await setItem(new Date().toString());
+    //   storage.set("in_App_Review", new Date().toString());
     //   InAppReview.RequestInAppReview();
     // }
     console.log(InAppReview.isAvailable());

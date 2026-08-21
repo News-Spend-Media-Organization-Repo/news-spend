@@ -3,7 +3,7 @@ import {
   useIsFocused,
   useNavigation,
 } from "@react-navigation/native";
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   differenceInDays,
   differenceInHours,
@@ -56,18 +56,18 @@ const PlayLottery = () => {
    * come from the same fold over valid tickets and asking twice would count
    * the same rows twice.
    */
-  const [currentGiveawayQuery, participantsQuery] = useQueries({
-    queries: [
-      orpc.giveaway.current.queryOptions({
-        refetchInterval: 60_000,
-        enabled: isFocused,
-      }),
-      orpc.giveaway.participants.queryOptions({
-        refetchInterval: 50_000,
-        enabled: isFocused,
-      }),
-    ],
-  });
+  const currentGiveawayQuery = useQuery(
+    orpc.giveaway.current.queryOptions({
+      refetchInterval: 60_000,
+      enabled: isFocused,
+    })
+  );
+  const participantsQuery = useQuery(
+    orpc.giveaway.participants.queryOptions({
+      refetchInterval: 50_000,
+      enabled: isFocused,
+    })
+  );
 
   const [now, setNow] = useState(() => new Date());
 
@@ -80,21 +80,35 @@ const PlayLottery = () => {
     }, [])
   );
 
-  const currentLottery = currentGiveawayQuery.data;
+  const currentGiveaway = currentGiveawayQuery.data;
   const isLoading = currentGiveawayQuery.isLoading;
-  const endDate = currentLottery?.endDate
-    ? new Date(currentLottery.endDate)
-    : null;
-  const hasEnded = endDate ? now >= endDate : false;
 
-  const daysLeft = endDate ? differenceInDays(endDate, now) : 0;
-  const hoursLeft = endDate ? differenceInHours(endDate, now) % 24 : 0;
-  const minutesLeft = endDate ? differenceInMinutes(endDate, now) % 60 : 0;
+  /**
+   * Whether entries are being taken is the server's judgement, not one made
+   * again here: a giveaway can be switched on before its start date, and a
+   * button offering entry into one the server would refuse is worse than no
+   * button. The countdown below only decides *what* is being counted to.
+   */
+  const isOpen = currentGiveaway?.isOpen ?? false;
+  const hasEnded = currentGiveaway?.state === "closed";
+
+  /**
+   * Before it opens, count down to the opening; once open, to the close.
+   * Both are UTC instants from the API, so parsing them preserves the offset
+   * and the countdown reads the same on a device in any timezone.
+   */
+  const target = currentGiveaway
+    ? new Date(isOpen ? currentGiveaway.endDate : currentGiveaway.startDate)
+    : null;
+
+  const daysLeft = target ? differenceInDays(target, now) : 0;
+  const hoursLeft = target ? differenceInHours(target, now) % 24 : 0;
+  const minutesLeft = target ? differenceInMinutes(target, now) % 60 : 0;
 
   let timeLeft: string;
   if (isLoading) {
     timeLeft = "Loading...";
-  } else if (!currentLottery) {
+  } else if (!currentGiveaway) {
     timeLeft = "No active giveaway";
   } else if (hasEnded) {
     timeLeft = "Ended";
@@ -106,14 +120,16 @@ const PlayLottery = () => {
     timeLeft = `${minutesLeft}m`;
   }
 
-  const showLeftSuffix = !(isLoading || !currentLottery || hasEnded);
-  const hasActiveLottery = !isLoading && Boolean(currentLottery) && !hasEnded;
+  const showLeftSuffix = !(isLoading || !currentGiveaway || hasEnded);
+  const hasActiveLottery = !isLoading && isOpen;
   const enterButtonLabel = isLoading
     ? "Loading..."
-    : currentLottery
+    : currentGiveaway
       ? hasEnded
         ? "Giveaway Ended"
-        : "Enter Giveaway"
+        : isOpen
+          ? "Enter Giveaway"
+          : "Opens Soon"
       : "No Active Giveaway";
 
   const participants =

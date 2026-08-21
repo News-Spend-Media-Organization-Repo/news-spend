@@ -262,7 +262,8 @@ const News: CollectionConfig = {
       relationTo: "admins",
       hasMany: false,
       required: true,
-      defaultValue: ({ user }: { user: Admin }) => user.id,
+      defaultValue: ({ user }: { user?: Admin | null }) =>
+        user?.id ?? undefined,
       admin: {
         position: "sidebar",
         allowCreate: false,

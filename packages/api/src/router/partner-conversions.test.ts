@@ -1,14 +1,13 @@
-import { createHmac } from "node:crypto";
 import { describe, expect, it } from "bun:test";
+import { createHmac } from "node:crypto";
 import { call } from "@orpc/server";
-
+import { canonicalString } from "../lib/partnerWebhookSignature";
 import {
   createFakePayload,
   type Doc,
   expectError,
   mockContext,
 } from "../test-utils";
-import { canonicalString } from "../lib/partnerWebhookSignature";
 import { partnerConversionRouter } from "./partner-conversions";
 
 const authedUser = { id: "user-1", isAnonymous: false, username: "tester" };
@@ -59,7 +58,11 @@ function signedHeaders({
   clickId = "clk_abc1234567890123",
   status = "success",
   secret = WEBHOOK_SECRET,
-}: { clickId?: string; status?: string; secret?: string } = {}): Headers {
+}: {
+  clickId?: string;
+  status?: string;
+  secret?: string;
+} = {}): Headers {
   const timestamp = String(Math.floor(Date.now() / 1000));
   const signature = createHmac("sha256", secret)
     .update(canonicalString({ timestamp, clickId, status }), "utf-8")
@@ -319,7 +322,10 @@ describe("partnerConversionRouter.webhook", () => {
         "partner-content": [partnerContent({ points: 50 })],
       },
     });
-    const ctx = mockContext({ payload, headers: signedHeaders({ status: "failed" }) });
+    const ctx = mockContext({
+      payload,
+      headers: signedHeaders({ status: "failed" }),
+    });
 
     const result = await call(
       partnerConversionRouter.webhook,
@@ -428,7 +434,6 @@ describe("partnerConversionRouter.webhook", () => {
     expect(result.pointsAwarded).toBe(10);
   });
 });
-
 
 describe("partnerConversionRouter.webhook: verification", () => {
   it("refuses an unsigned postback", async () => {

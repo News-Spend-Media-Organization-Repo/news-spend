@@ -95,6 +95,10 @@ export const enum_feedback_type = pgEnum("enum_feedback_type", [
   "advertisement",
   "other",
 ]);
+export const enum_giveaway_account_flags_trust_status = pgEnum(
+  "enum_giveaway_account_flags_trust_status",
+  ["ok", "suspicious", "disqualified"],
+);
 export const enum_giveaway_audit_log_event_type = pgEnum(
   "enum_giveaway_audit_log_event_type",
   [
@@ -104,9 +108,22 @@ export const enum_giveaway_audit_log_event_type = pgEnum(
     "featured_offer_completion",
     "participants_snapshot",
     "candidate_pool_built",
+    "candidate_pool_locked",
+    "checkpoint_reached",
+    "draw_interrupted",
+    "resumption_authorized",
+    "giveaway_cancelled",
+    "winner_disqualified",
+    "replacement_selected",
+    "winner_held_ticket_invalid",
+    "account_excluded",
+    "fairness_exclusion",
+    "loyalty_waiver_applied",
+    "winner_held_for_review",
     "winner_selected",
     "prize_allocated",
     "prize_exhausted",
+    "budget_limit_reached",
     "tier_completed",
     "draw_started",
     "draw_resumed",
@@ -114,6 +131,32 @@ export const enum_giveaway_audit_log_event_type = pgEnum(
     "draw_error",
     "winner_report_sent",
     "claim_status_change",
+  ],
+);
+export const enum_giveaway_draw_attempts_kind = pgEnum(
+  "enum_giveaway_draw_attempts_kind",
+  ["initial", "resumption"],
+);
+export const enum_giveaway_draw_attempts_outcome = pgEnum(
+  "enum_giveaway_draw_attempts_outcome",
+  ["running", "completed", "interrupted", "failed"],
+);
+export const enum_giveaway_draw_attempts_last_checkpoint = pgEnum(
+  "enum_giveaway_draw_attempts_last_checkpoint",
+  [
+    "config_validated",
+    "pool_generated",
+    "pool_locked",
+    "tier1_winners_selected",
+    "tier1_prizes_allocated",
+    "tier2_winners_selected",
+    "tier2_prizes_allocated",
+    "tier3_winners_selected",
+    "tier3_prizes_allocated",
+    "final_validation",
+    "result_confirmed",
+    "audit_completed",
+    "winner_report_generated",
   ],
 );
 export const enum_giveaway_engagements_type = pgEnum(
@@ -124,18 +167,66 @@ export const enum_giveaway_engagements_completion_status = pgEnum(
   "enum_giveaway_engagements_completion_status",
   ["completed", "incomplete", "abandoned", "failed"],
 );
+export const enum_giveaway_fulfilment_attempts_provider = pgEnum(
+  "enum_giveaway_fulfilment_attempts_provider",
+  ["reloadly"],
+);
+export const enum_giveaway_fulfilment_attempts_environment = pgEnum(
+  "enum_giveaway_fulfilment_attempts_environment",
+  ["sandbox", "live"],
+);
+export const enum_giveaway_fulfilment_attempts_outcome = pgEnum(
+  "enum_giveaway_fulfilment_attempts_outcome",
+  ["sent", "already_sent", "retryable_failure", "permanent_failure", "skipped"],
+);
+export const enum_giveaway_pool_snapshots_tier = pgEnum(
+  "enum_giveaway_pool_snapshots_tier",
+  ["tier1", "tier2", "tier3"],
+);
 export const enum_giveaway_prizes_tier = pgEnum("enum_giveaway_prizes_tier", [
   "tier1",
   "tier2",
   "tier3",
 ]);
+export const enum_giveaway_report_deliveries_kind = pgEnum(
+  "enum_giveaway_report_deliveries_kind",
+  ["original", "resend"],
+);
+export const enum_giveaway_report_deliveries_status = pgEnum(
+  "enum_giveaway_report_deliveries_status",
+  ["pending", "sent", "failed"],
+);
 export const enum_giveaways_status = pgEnum("enum_giveaways_status", [
   "draft",
   "active",
-  "drawing",
+  "ready",
+  "pool_building",
+  "pool_locked",
+  "draw_in_progress",
+  "interrupted",
+  "resumption_authorized",
   "completed",
   "failed",
+  "cancelled",
 ]);
+export const enum_giveaways_last_checkpoint = pgEnum(
+  "enum_giveaways_last_checkpoint",
+  [
+    "config_validated",
+    "pool_generated",
+    "pool_locked",
+    "tier1_winners_selected",
+    "tier1_prizes_allocated",
+    "tier2_winners_selected",
+    "tier2_prizes_allocated",
+    "tier3_winners_selected",
+    "tier3_prizes_allocated",
+    "final_validation",
+    "result_confirmed",
+    "audit_completed",
+    "winner_report_generated",
+  ],
+);
 export const enum_giveaway_streaks_tier = pgEnum("enum_giveaway_streaks_tier", [
   "tier1",
   "tier2",
@@ -152,17 +243,48 @@ export const enum_giveaway_winners_tier = pgEnum("enum_giveaway_winners_tier", [
 ]);
 export const enum_giveaway_winners_claim_status = pgEnum(
   "enum_giveaway_winners_claim_status",
-  ["unclaimed", "claimed", "expired", "forfeited"],
+  ["unclaimed", "claimed", "expired", "forfeited", "disqualified"],
 );
 export const enum_giveaway_winners_fulfilment_status = pgEnum(
   "enum_giveaway_winners_fulfilment_status",
-  ["pending", "in_progress", "fulfilled", "cancelled"],
+  [
+    "pending",
+    "awaiting_verification",
+    "on_hold",
+    "in_progress",
+    "fulfilled",
+    "cancelled",
+  ],
+);
+export const enum_identity_checks_provider = pgEnum(
+  "enum_identity_checks_provider",
+  ["didit"],
+);
+export const enum_identity_checks_status = pgEnum(
+  "enum_identity_checks_status",
+  [
+    "Not Started",
+    "In Progress",
+    "In Review",
+    "Approved",
+    "Declined",
+    "Abandoned",
+    "Expired",
+  ],
+);
+export const enum_prize_catalogue_reloadly_data_plans_network = pgEnum(
+  "enum_prize_catalogue_reloadly_data_plans_network",
+  ["mtn", "airtel", "glo", "t2"],
 );
 export const enum_prize_catalogue_tier = pgEnum("enum_prize_catalogue_tier", [
   "tier1",
   "tier2",
   "tier3",
 ]);
+export const enum_prize_catalogue_fulfilment_type = pgEnum(
+  "enum_prize_catalogue_fulfilment_type",
+  ["points", "airtime", "data", "gift_card", "physical", "experience"],
+);
 export const enum_lottery_winners_prize_tier = pgEnum(
   "enum_lottery_winners_prize_tier",
   ["HIGH", "MID", "LOW", "NONE"],
@@ -216,6 +338,58 @@ export const enum_notifications_delivery_action = pgEnum(
   "enum_notifications_delivery_action",
   ["send-now", "schedule"],
 );
+export const enum_notifications_scheduledfor_tz = pgEnum(
+  "enum_notifications_scheduledfor_tz",
+  [
+    "Pacific/Midway",
+    "Pacific/Niue",
+    "Pacific/Honolulu",
+    "Pacific/Rarotonga",
+    "America/Anchorage",
+    "Pacific/Gambier",
+    "America/Los_Angeles",
+    "America/Tijuana",
+    "America/Denver",
+    "America/Phoenix",
+    "America/Chicago",
+    "America/Guatemala",
+    "America/New_York",
+    "America/Bogota",
+    "America/Caracas",
+    "America/Santiago",
+    "America/Buenos_Aires",
+    "America/Sao_Paulo",
+    "Atlantic/South_Georgia",
+    "Atlantic/Azores",
+    "Atlantic/Cape_Verde",
+    "Europe/London",
+    "Europe/Berlin",
+    "Africa/Lagos",
+    "Europe/Athens",
+    "Africa/Cairo",
+    "Europe/Moscow",
+    "Asia/Riyadh",
+    "Asia/Dubai",
+    "Asia/Baku",
+    "Asia/Karachi",
+    "Asia/Tashkent",
+    "Asia/Calcutta",
+    "Asia/Dhaka",
+    "Asia/Almaty",
+    "Asia/Jakarta",
+    "Asia/Bangkok",
+    "Asia/Shanghai",
+    "Asia/Singapore",
+    "Asia/Tokyo",
+    "Asia/Seoul",
+    "Australia/Brisbane",
+    "Australia/Sydney",
+    "Pacific/Guam",
+    "Pacific/Noumea",
+    "Pacific/Auckland",
+    "Pacific/Fiji",
+  ],
+);
 export const enum_notifications_target_type = pgEnum(
   "enum_notifications_target_type",
   ["all", "segment", "specific"],
@@ -244,6 +418,58 @@ export const enum__notifications_v_version_type = pgEnum(
 export const enum__notifications_v_version_delivery_action = pgEnum(
   "enum__notifications_v_version_delivery_action",
   ["send-now", "schedule"],
+);
+export const enum__notifications_v_version_scheduledfor_tz = pgEnum(
+  "enum__notifications_v_version_scheduledfor_tz",
+  [
+    "Pacific/Midway",
+    "Pacific/Niue",
+    "Pacific/Honolulu",
+    "Pacific/Rarotonga",
+    "America/Anchorage",
+    "Pacific/Gambier",
+    "America/Los_Angeles",
+    "America/Tijuana",
+    "America/Denver",
+    "America/Phoenix",
+    "America/Chicago",
+    "America/Guatemala",
+    "America/New_York",
+    "America/Bogota",
+    "America/Caracas",
+    "America/Santiago",
+    "America/Buenos_Aires",
+    "America/Sao_Paulo",
+    "Atlantic/South_Georgia",
+    "Atlantic/Azores",
+    "Atlantic/Cape_Verde",
+    "Europe/London",
+    "Europe/Berlin",
+    "Africa/Lagos",
+    "Europe/Athens",
+    "Africa/Cairo",
+    "Europe/Moscow",
+    "Asia/Riyadh",
+    "Asia/Dubai",
+    "Asia/Baku",
+    "Asia/Karachi",
+    "Asia/Tashkent",
+    "Asia/Calcutta",
+    "Asia/Dhaka",
+    "Asia/Almaty",
+    "Asia/Jakarta",
+    "Asia/Bangkok",
+    "Asia/Shanghai",
+    "Asia/Singapore",
+    "Asia/Tokyo",
+    "Asia/Seoul",
+    "Australia/Brisbane",
+    "Australia/Sydney",
+    "Pacific/Guam",
+    "Pacific/Noumea",
+    "Pacific/Auckland",
+    "Pacific/Fiji",
+  ],
 );
 export const enum__notifications_v_version_target_type = pgEnum(
   "enum__notifications_v_version_target_type",
@@ -401,6 +627,7 @@ export const enum_payload_jobs_log_task_slug = pgEnum(
     "sendUrgentModerationAlert",
     "checkPushReceipts",
     "processLottery",
+    "processGiveaway",
     "cleanupAnonymousUsers",
     "generateVideoThumbnail",
     "deleteVideoThumbTemp",
@@ -421,6 +648,7 @@ export const enum_payload_jobs_task_slug = pgEnum(
     "sendUrgentModerationAlert",
     "checkPushReceipts",
     "processLottery",
+    "processGiveaway",
     "cleanupAnonymousUsers",
     "generateVideoThumbnail",
     "deleteVideoThumbTemp",
@@ -1007,6 +1235,83 @@ export const feedback_rels = pgTable(
   ],
 );
 
+export const giveaway_account_flags = pgTable(
+  "giveaway_account_flags",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    trustStatus: enum_giveaway_account_flags_trust_status("trust_status")
+      .notNull()
+      .default("suspicious"),
+    duplicateAccountGroup: varchar("duplicate_account_group"),
+    reason: varchar("reason"),
+    flaggedAt: timestamp("flagged_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    reviewedBy: uuid("reviewed_by_id").references(() => admins.id, {
+      onDelete: "set null",
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("giveaway_account_flags_user_idx").on(columns.user),
+    index("giveaway_account_flags_trust_status_idx").on(columns.trustStatus),
+    index("giveaway_account_flags_duplicate_account_group_idx").on(
+      columns.duplicateAccountGroup,
+    ),
+    index("giveaway_account_flags_reviewed_by_idx").on(columns.reviewedBy),
+    index("giveaway_account_flags_updated_at_idx").on(columns.updatedAt),
+    index("giveaway_account_flags_created_at_idx").on(columns.createdAt),
+    uniqueIndex("user_idx").on(columns.user),
+  ],
+);
+
+export const giveaway_account_flags_rels = pgTable(
+  "giveaway_account_flags_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("giveaway_account_flags_rels_order_idx").on(columns.order),
+    index("giveaway_account_flags_rels_parent_idx").on(columns.parent),
+    index("giveaway_account_flags_rels_path_idx").on(columns.path),
+    index("giveaway_account_flags_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [giveaway_account_flags.id],
+      name: "giveaway_account_flags_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "giveaway_account_flags_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const giveaway_audit_log = pgTable(
   "giveaway_audit_log",
   {
@@ -1077,6 +1382,95 @@ export const giveaway_audit_log_rels = pgTable(
       columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "giveaway_audit_log_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const giveaway_draw_attempts = pgTable(
+  "giveaway_draw_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    giveaway: uuid("giveaway_id")
+      .notNull()
+      .references((): AnyPgColumn => giveaways.id, {
+        onDelete: "set null",
+      }),
+    executionId: varchar("execution_id").notNull(),
+    attemptNumber: numeric("attempt_number", { mode: "number" }).notNull(),
+    kind: enum_giveaway_draw_attempts_kind("kind").notNull(),
+    resumes: uuid("resumes_id").references(
+      (): AnyPgColumn => giveaway_draw_attempts.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    seed: varchar("seed").notNull(),
+    outcome: enum_giveaway_draw_attempts_outcome("outcome")
+      .notNull()
+      .default("running"),
+    lastCheckpoint:
+      enum_giveaway_draw_attempts_last_checkpoint("last_checkpoint"),
+    authorizedBy: varchar("authorized_by"),
+    error: varchar("error"),
+    startedAt: timestamp("started_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    endedAt: timestamp("ended_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("giveaway_draw_attempts_giveaway_idx").on(columns.giveaway),
+    index("giveaway_draw_attempts_execution_id_idx").on(columns.executionId),
+    index("giveaway_draw_attempts_kind_idx").on(columns.kind),
+    index("giveaway_draw_attempts_resumes_idx").on(columns.resumes),
+    index("giveaway_draw_attempts_outcome_idx").on(columns.outcome),
+    index("giveaway_draw_attempts_updated_at_idx").on(columns.updatedAt),
+    index("giveaway_draw_attempts_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const giveaway_draw_attempts_rels = pgTable(
+  "giveaway_draw_attempts_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("giveaway_draw_attempts_rels_order_idx").on(columns.order),
+    index("giveaway_draw_attempts_rels_parent_idx").on(columns.parent),
+    index("giveaway_draw_attempts_rels_path_idx").on(columns.path),
+    index("giveaway_draw_attempts_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [giveaway_draw_attempts.id],
+      name: "giveaway_draw_attempts_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "giveaway_draw_attempts_rels_admins_fk",
     }).onDelete("cascade"),
   ],
 );
@@ -1170,6 +1564,160 @@ export const giveaway_engagements_rels = pgTable(
   ],
 );
 
+export const giveaway_fulfilment_attempts = pgTable(
+  "giveaway_fulfilment_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    winner: uuid("winner_id")
+      .notNull()
+      .references(() => giveaway_winners.id, {
+        onDelete: "set null",
+      }),
+    provider: enum_giveaway_fulfilment_attempts_provider("provider")
+      .notNull()
+      .default("reloadly"),
+    environment:
+      enum_giveaway_fulfilment_attempts_environment("environment").notNull(),
+    outcome: enum_giveaway_fulfilment_attempts_outcome("outcome").notNull(),
+    providerReference: varchar("provider_reference"),
+    providerTransactionId: varchar("provider_transaction_id"),
+    operatorId: numeric("operator_id", { mode: "number" }),
+    operatorName: varchar("operator_name"),
+    localAmount: numeric("local_amount", { mode: "number" }),
+    recipientPhone: varchar("recipient_phone"),
+    error: varchar("error"),
+    attemptedAt: timestamp("attempted_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("giveaway_fulfilment_attempts_winner_idx").on(columns.winner),
+    index("giveaway_fulfilment_attempts_provider_idx").on(columns.provider),
+    index("giveaway_fulfilment_attempts_outcome_idx").on(columns.outcome),
+    index("giveaway_fulfilment_attempts_provider_reference_idx").on(
+      columns.providerReference,
+    ),
+    index("giveaway_fulfilment_attempts_provider_transaction_id_idx").on(
+      columns.providerTransactionId,
+    ),
+    index("giveaway_fulfilment_attempts_updated_at_idx").on(columns.updatedAt),
+    index("giveaway_fulfilment_attempts_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const giveaway_fulfilment_attempts_rels = pgTable(
+  "giveaway_fulfilment_attempts_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("giveaway_fulfilment_attempts_rels_order_idx").on(columns.order),
+    index("giveaway_fulfilment_attempts_rels_parent_idx").on(columns.parent),
+    index("giveaway_fulfilment_attempts_rels_path_idx").on(columns.path),
+    index("giveaway_fulfilment_attempts_rels_admins_id_idx").on(
+      columns.adminsID,
+    ),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [giveaway_fulfilment_attempts.id],
+      name: "giveaway_fulfilment_attempts_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "giveaway_fulfilment_attempts_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const giveaway_pool_snapshots = pgTable(
+  "giveaway_pool_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    giveaway: uuid("giveaway_id")
+      .notNull()
+      .references(() => giveaways.id, {
+        onDelete: "set null",
+      }),
+    tier: enum_giveaway_pool_snapshots_tier("tier").notNull(),
+    candidateCount: numeric("candidate_count", { mode: "number" }).notNull(),
+    entries: jsonb("entries").notNull(),
+    lockedAt: timestamp("locked_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("giveaway_pool_snapshots_giveaway_idx").on(columns.giveaway),
+    index("giveaway_pool_snapshots_tier_idx").on(columns.tier),
+    index("giveaway_pool_snapshots_updated_at_idx").on(columns.updatedAt),
+    index("giveaway_pool_snapshots_created_at_idx").on(columns.createdAt),
+    uniqueIndex("giveaway_tier_idx").on(columns.giveaway, columns.tier),
+  ],
+);
+
+export const giveaway_pool_snapshots_rels = pgTable(
+  "giveaway_pool_snapshots_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("giveaway_pool_snapshots_rels_order_idx").on(columns.order),
+    index("giveaway_pool_snapshots_rels_parent_idx").on(columns.parent),
+    index("giveaway_pool_snapshots_rels_path_idx").on(columns.path),
+    index("giveaway_pool_snapshots_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [giveaway_pool_snapshots.id],
+      name: "giveaway_pool_snapshots_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "giveaway_pool_snapshots_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const giveaway_prizes = pgTable(
   "giveaway_prizes",
   {
@@ -1240,6 +1788,91 @@ export const giveaway_prizes_rels = pgTable(
   ],
 );
 
+export const giveaway_report_deliveries = pgTable(
+  "giveaway_report_deliveries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    giveaway: uuid("giveaway_id")
+      .notNull()
+      .references(() => giveaways.id, {
+        onDelete: "set null",
+      }),
+    kind: enum_giveaway_report_deliveries_kind("kind").notNull(),
+    status: enum_giveaway_report_deliveries_status("status")
+      .notNull()
+      .default("pending"),
+    recipient: varchar("recipient").notNull(),
+    subject: varchar("subject").notNull(),
+    attachmentFileName: varchar("attachment_file_name"),
+    winnerCount: numeric("winner_count", { mode: "number" }),
+    attempts: numeric("attempts", { mode: "number" }).notNull().default(0),
+    providerMessageId: varchar("provider_message_id"),
+    error: varchar("error"),
+    requestedBy: varchar("requested_by"),
+    sentAt: timestamp("sent_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    createdAtIso: timestamp("created_at_iso", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("giveaway_report_deliveries_giveaway_idx").on(columns.giveaway),
+    index("giveaway_report_deliveries_kind_idx").on(columns.kind),
+    index("giveaway_report_deliveries_status_idx").on(columns.status),
+    index("giveaway_report_deliveries_provider_message_id_idx").on(
+      columns.providerMessageId,
+    ),
+    index("giveaway_report_deliveries_updated_at_idx").on(columns.updatedAt),
+    index("giveaway_report_deliveries_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const giveaway_report_deliveries_rels = pgTable(
+  "giveaway_report_deliveries_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("giveaway_report_deliveries_rels_order_idx").on(columns.order),
+    index("giveaway_report_deliveries_rels_parent_idx").on(columns.parent),
+    index("giveaway_report_deliveries_rels_path_idx").on(columns.path),
+    index("giveaway_report_deliveries_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [giveaway_report_deliveries.id],
+      name: "giveaway_report_deliveries_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "giveaway_report_deliveries_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const giveaways = pgTable(
   "giveaways",
   {
@@ -1259,6 +1892,9 @@ export const giveaways = pgTable(
     ticketPrice: numeric("ticket_price", { mode: "number" })
       .notNull()
       .default(50),
+    minTicketsRequired: numeric("min_tickets_required", { mode: "number" })
+      .notNull()
+      .default(1),
     tier1WinnerPercentage: numeric("tier1_winner_percentage", {
       mode: "number",
     })
@@ -1274,11 +1910,29 @@ export const giveaways = pgTable(
     })
       .notNull()
       .default(5),
+    budgetUtilizationPct: numeric("budget_utilization_pct", { mode: "number" })
+      .notNull()
+      .default(100),
+    maxBudgetCapNaira: numeric("max_budget_cap_naira", { mode: "number" }),
     status: enum_giveaways_status("status").notNull().default("draft"),
     totalValidParticipants: numeric("total_valid_participants", {
       mode: "number",
     }),
     drawSeed: varchar("draw_seed"),
+    drawExecutionId: varchar("draw_execution_id"),
+    lastCheckpoint: enum_giveaways_last_checkpoint("last_checkpoint"),
+    currentAttempt: uuid("current_attempt_id").references(
+      (): AnyPgColumn => giveaway_draw_attempts.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    resumptionAuthorizedBy: varchar("resumption_authorized_by"),
+    resumptionAuthorizedAt: timestamp("resumption_authorized_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     drawStartedAt: timestamp("draw_started_at", {
       mode: "string",
       withTimezone: true,
@@ -1313,6 +1967,8 @@ export const giveaways = pgTable(
   (columns) => [
     uniqueIndex("giveaways_name_idx").on(columns.name),
     index("giveaways_status_idx").on(columns.status),
+    index("giveaways_draw_execution_id_idx").on(columns.drawExecutionId),
+    index("giveaways_current_attempt_idx").on(columns.currentAttempt),
     index("giveaways_updated_at_idx").on(columns.updatedAt),
     index("giveaways_created_at_idx").on(columns.createdAt),
   ],
@@ -1557,16 +2213,32 @@ export const giveaway_winners = pgTable(
       withTimezone: true,
       precision: 3,
     }),
+    claimPhone: varchar("claim_phone"),
+    claimRecipientName: varchar("claim_recipient_name"),
+    claimAddress: varchar("claim_address"),
     fulfilmentStatus: enum_giveaway_winners_fulfilment_status(
       "fulfilment_status",
     )
       .notNull()
       .default("pending"),
+    reviewNote: varchar("review_note"),
     fulfilledAt: timestamp("fulfilled_at", {
       mode: "string",
       withTimezone: true,
       precision: 3,
     }),
+    replaces: uuid("replaces_id").references(
+      (): AnyPgColumn => giveaway_winners.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    disqualifiedAt: timestamp("disqualified_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    disqualificationReason: varchar("disqualification_reason"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -1592,6 +2264,7 @@ export const giveaway_winners = pgTable(
     index("giveaway_winners_fulfilment_status_idx").on(
       columns.fulfilmentStatus,
     ),
+    index("giveaway_winners_replaces_idx").on(columns.replaces),
     index("giveaway_winners_updated_at_idx").on(columns.updatedAt),
     index("giveaway_winners_created_at_idx").on(columns.createdAt),
   ],
@@ -1624,6 +2297,107 @@ export const giveaway_winners_rels = pgTable(
   ],
 );
 
+export const identity_checks = pgTable(
+  "identity_checks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    provider: enum_identity_checks_provider("provider")
+      .notNull()
+      .default("didit"),
+    sessionId: varchar("session_id").notNull(),
+    status: enum_identity_checks_status("status")
+      .notNull()
+      .default("Not Started"),
+    decidedAt: timestamp("decided_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    lastWebhookAt: timestamp("last_webhook_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    note: varchar("note"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("identity_checks_user_idx").on(columns.user),
+    uniqueIndex("identity_checks_session_id_idx").on(columns.sessionId),
+    index("identity_checks_status_idx").on(columns.status),
+    index("identity_checks_updated_at_idx").on(columns.updatedAt),
+    index("identity_checks_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const identity_checks_rels = pgTable(
+  "identity_checks_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("identity_checks_rels_order_idx").on(columns.order),
+    index("identity_checks_rels_parent_idx").on(columns.parent),
+    index("identity_checks_rels_path_idx").on(columns.path),
+    index("identity_checks_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [identity_checks.id],
+      name: "identity_checks_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "identity_checks_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const prize_catalogue_reloadly_data_plans = pgTable(
+  "prize_catalogue_reloadly_data_plans",
+  {
+    _order: integer("_order").notNull(),
+    _parentID: uuid("_parent_id").notNull(),
+    id: varchar("id").primaryKey(),
+    network: enum_prize_catalogue_reloadly_data_plans_network("network"),
+    reloadlyOperatorId: numeric("reloadly_operator_id", { mode: "number" }),
+    reloadlyLocalAmount: numeric("reloadly_local_amount", { mode: "number" }),
+  },
+  (columns) => [
+    index("prize_catalogue_reloadly_data_plans_order_idx").on(columns._order),
+    index("prize_catalogue_reloadly_data_plans_parent_id_idx").on(
+      columns._parentID,
+    ),
+    foreignKey({
+      columns: [columns["_parentID"]],
+      foreignColumns: [prize_catalogue.id],
+      name: "prize_catalogue_reloadly_data_plans_parent_id_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const prize_catalogue = pgTable(
   "prize_catalogue",
   {
@@ -1631,6 +2405,13 @@ export const prize_catalogue = pgTable(
     name: varchar("name").notNull(),
     tier: enum_prize_catalogue_tier("tier").notNull(),
     description: varchar("description"),
+    fulfilmentType: enum_prize_catalogue_fulfilment_type("fulfilment_type")
+      .notNull()
+      .default("physical"),
+    pointsAmount: numeric("points_amount", { mode: "number" }),
+    valueNaira: numeric("value_naira", { mode: "number" }),
+    requiresVerification: boolean("requires_verification").default(false),
+    reloadlyLocalAmount: numeric("reloadly_local_amount", { mode: "number" }),
     image: uuid("image_id").references(() => media.id, {
       onDelete: "set null",
     }),
@@ -1653,6 +2434,10 @@ export const prize_catalogue = pgTable(
   (columns) => [
     uniqueIndex("prize_catalogue_name_idx").on(columns.name),
     index("prize_catalogue_tier_idx").on(columns.tier),
+    index("prize_catalogue_fulfilment_type_idx").on(columns.fulfilmentType),
+    index("prize_catalogue_requires_verification_idx").on(
+      columns.requiresVerification,
+    ),
     index("prize_catalogue_image_idx").on(columns.image),
     index("prize_catalogue_active_idx").on(columns.active),
     index("prize_catalogue_updated_at_idx").on(columns.updatedAt),
@@ -2614,6 +3399,10 @@ export const notifications = pgTable(
       withTimezone: true,
       precision: 3,
     }),
+    scheduledFor_tz:
+      enum_notifications_scheduledfor_tz("scheduledfor_tz").default(
+        "Africa/Lagos",
+      ),
     targetType: enum_notifications_target_type("target_type").default("all"),
     segment: enum_notifications_segment("segment"),
     priority: enum_notifications_priority("priority").default("default"),
@@ -2718,6 +3507,9 @@ export const _notifications_v = pgTable(
       withTimezone: true,
       precision: 3,
     }),
+    version_scheduledFor_tz: enum__notifications_v_version_scheduledfor_tz(
+      "version_scheduledfor_tz",
+    ).default("Africa/Lagos"),
     version_targetType: enum__notifications_v_version_target_type(
       "version_target_type",
     ).default("all"),
@@ -3127,6 +3919,7 @@ export const partners = pgTable(
       .default("manual"),
     webhookUrl: varchar("webhook_url"),
     webhookSecret: varchar("webhook_secret"),
+    awardOnClick: boolean("award_on_click").default(false),
     apiKey: varchar("api_key"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
@@ -3147,6 +3940,7 @@ export const partners = pgTable(
     uniqueIndex("partners_slug_idx").on(columns.slug),
     index("partners_popularity_score_idx").on(columns.popularityScore),
     index("partners_logo_idx").on(columns.logo),
+    index("partners_award_on_click_idx").on(columns.awardOnClick),
     index("partners_updated_at_idx").on(columns.updatedAt),
     index("partners_created_at_idx").on(columns.createdAt),
   ],
@@ -3809,6 +4603,13 @@ export const users = pgTable(
     username: varchar("username").notNull(),
     wish: varchar("wish").notNull(),
     phone: varchar("phone").notNull(),
+    dateOfBirth: timestamp("date_of_birth", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    country: varchar("country"),
+    verifiedCountry: varchar("verified_country"),
     _verified: boolean("_verified").notNull().default(false),
     isAnonymous: boolean("is_anonymous"),
     dailyRead: jsonb("daily_read")
@@ -3825,6 +4626,12 @@ export const users = pgTable(
       precision: 3,
     }),
     customAttributes: jsonb("custom_attributes"),
+    lastGiveawayResultSeen: uuid("last_giveaway_result_seen_id").references(
+      () => giveaways.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -3842,8 +4649,14 @@ export const users = pgTable(
   },
   (columns) => [
     uniqueIndex("users_username_idx").on(columns.username),
+    index("users_date_of_birth_idx").on(columns.dateOfBirth),
+    index("users_country_idx").on(columns.country),
+    index("users_verified_country_idx").on(columns.verifiedCountry),
     index("users_notification_preferences_idx").on(
       columns.notificationPreferences,
+    ),
+    index("users_last_giveaway_result_seen_idx").on(
+      columns.lastGiveawayResultSeen,
     ),
     index("users_updated_at_idx").on(columns.updatedAt),
     index("users_created_at_idx").on(columns.createdAt),
@@ -4203,13 +5016,19 @@ export const payload_locked_documents_rels = pgTable(
     commentsID: uuid("comments_id"),
     contentReportsID: uuid("content_reports_id"),
     feedbackID: uuid("feedback_id"),
+    "giveaway-account-flagsID": uuid("giveaway_account_flags_id"),
     "giveaway-audit-logID": uuid("giveaway_audit_log_id"),
+    "giveaway-draw-attemptsID": uuid("giveaway_draw_attempts_id"),
     "giveaway-engagementsID": uuid("giveaway_engagements_id"),
+    "giveaway-fulfilment-attemptsID": uuid("giveaway_fulfilment_attempts_id"),
+    "giveaway-pool-snapshotsID": uuid("giveaway_pool_snapshots_id"),
     "giveaway-prizesID": uuid("giveaway_prizes_id"),
+    "giveaway-report-deliveriesID": uuid("giveaway_report_deliveries_id"),
     giveawaysID: uuid("giveaways_id"),
     "giveaway-streaksID": uuid("giveaway_streaks_id"),
     "giveaway-ticketsID": uuid("giveaway_tickets_id"),
     "giveaway-winnersID": uuid("giveaway_winners_id"),
+    "identity-checksID": uuid("identity_checks_id"),
     "prize-catalogueID": uuid("prize_catalogue_id"),
     "identity-verificationID": uuid("identity_verification_id"),
     lotteryID: uuid("lottery_id"),
@@ -4260,14 +5079,29 @@ export const payload_locked_documents_rels = pgTable(
     index("payload_locked_documents_rels_feedback_id_idx").on(
       columns.feedbackID,
     ),
+    index("payload_locked_documents_rels_giveaway_account_flags_id_idx").on(
+      columns["giveaway-account-flagsID"],
+    ),
     index("payload_locked_documents_rels_giveaway_audit_log_id_idx").on(
       columns["giveaway-audit-logID"],
+    ),
+    index("payload_locked_documents_rels_giveaway_draw_attempts_id_idx").on(
+      columns["giveaway-draw-attemptsID"],
     ),
     index("payload_locked_documents_rels_giveaway_engagements_id_idx").on(
       columns["giveaway-engagementsID"],
     ),
+    index("payload_locked_documents_rels_giveaway_fulfilment_attemp_idx").on(
+      columns["giveaway-fulfilment-attemptsID"],
+    ),
+    index("payload_locked_documents_rels_giveaway_pool_snapshots_id_idx").on(
+      columns["giveaway-pool-snapshotsID"],
+    ),
     index("payload_locked_documents_rels_giveaway_prizes_id_idx").on(
       columns["giveaway-prizesID"],
+    ),
+    index("payload_locked_documents_rels_giveaway_report_deliveries_idx").on(
+      columns["giveaway-report-deliveriesID"],
     ),
     index("payload_locked_documents_rels_giveaways_id_idx").on(
       columns.giveawaysID,
@@ -4280,6 +5114,9 @@ export const payload_locked_documents_rels = pgTable(
     ),
     index("payload_locked_documents_rels_giveaway_winners_id_idx").on(
       columns["giveaway-winnersID"],
+    ),
+    index("payload_locked_documents_rels_identity_checks_id_idx").on(
+      columns["identity-checksID"],
     ),
     index("payload_locked_documents_rels_prize_catalogue_id_idx").on(
       columns["prize-catalogueID"],
@@ -4390,9 +5227,19 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_feedback_fk",
     }).onDelete("cascade"),
     foreignKey({
+      columns: [columns["giveaway-account-flagsID"]],
+      foreignColumns: [giveaway_account_flags.id],
+      name: "payload_locked_documents_rels_giveaway_account_flags_fk",
+    }).onDelete("cascade"),
+    foreignKey({
       columns: [columns["giveaway-audit-logID"]],
       foreignColumns: [giveaway_audit_log.id],
       name: "payload_locked_documents_rels_giveaway_audit_log_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["giveaway-draw-attemptsID"]],
+      foreignColumns: [giveaway_draw_attempts.id],
+      name: "payload_locked_documents_rels_giveaway_draw_attempts_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["giveaway-engagementsID"]],
@@ -4400,9 +5247,24 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_giveaway_engagements_fk",
     }).onDelete("cascade"),
     foreignKey({
+      columns: [columns["giveaway-fulfilment-attemptsID"]],
+      foreignColumns: [giveaway_fulfilment_attempts.id],
+      name: "payload_locked_documents_rels_giveaway_fulfilment_attempt_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["giveaway-pool-snapshotsID"]],
+      foreignColumns: [giveaway_pool_snapshots.id],
+      name: "payload_locked_documents_rels_giveaway_pool_snapshots_fk",
+    }).onDelete("cascade"),
+    foreignKey({
       columns: [columns["giveaway-prizesID"]],
       foreignColumns: [giveaway_prizes.id],
       name: "payload_locked_documents_rels_giveaway_prizes_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["giveaway-report-deliveriesID"]],
+      foreignColumns: [giveaway_report_deliveries.id],
+      name: "payload_locked_documents_rels_giveaway_report_deliveries_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["giveawaysID"]],
@@ -4423,6 +5285,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["giveaway-winnersID"]],
       foreignColumns: [giveaway_winners.id],
       name: "payload_locked_documents_rels_giveaway_winners_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["identity-checksID"]],
+      foreignColumns: [identity_checks.id],
+      name: "payload_locked_documents_rels_identity_checks_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["prize-catalogueID"]],
@@ -5060,6 +5927,39 @@ export const relations_feedback = relations(feedback, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
+export const relations_giveaway_account_flags_rels = relations(
+  giveaway_account_flags_rels,
+  ({ one }) => ({
+    parent: one(giveaway_account_flags, {
+      fields: [giveaway_account_flags_rels.parent],
+      references: [giveaway_account_flags.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [giveaway_account_flags_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_giveaway_account_flags = relations(
+  giveaway_account_flags,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [giveaway_account_flags.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    reviewedBy: one(admins, {
+      fields: [giveaway_account_flags.reviewedBy],
+      references: [admins.id],
+      relationName: "reviewedBy",
+    }),
+    _rels: many(giveaway_account_flags_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_giveaway_audit_log_rels = relations(
   giveaway_audit_log_rels,
   ({ one }) => ({
@@ -5089,6 +5989,39 @@ export const relations_giveaway_audit_log = relations(
       relationName: "user",
     }),
     _rels: many(giveaway_audit_log_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_giveaway_draw_attempts_rels = relations(
+  giveaway_draw_attempts_rels,
+  ({ one }) => ({
+    parent: one(giveaway_draw_attempts, {
+      fields: [giveaway_draw_attempts_rels.parent],
+      references: [giveaway_draw_attempts.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [giveaway_draw_attempts_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_giveaway_draw_attempts = relations(
+  giveaway_draw_attempts,
+  ({ one, many }) => ({
+    giveaway: one(giveaways, {
+      fields: [giveaway_draw_attempts.giveaway],
+      references: [giveaways.id],
+      relationName: "giveaway",
+    }),
+    resumes: one(giveaway_draw_attempts, {
+      fields: [giveaway_draw_attempts.resumes],
+      references: [giveaway_draw_attempts.id],
+      relationName: "resumes",
+    }),
+    _rels: many(giveaway_draw_attempts_rels, {
       relationName: "_rels",
     }),
   }),
@@ -5136,6 +6069,62 @@ export const relations_giveaway_engagements = relations(
     }),
   }),
 );
+export const relations_giveaway_fulfilment_attempts_rels = relations(
+  giveaway_fulfilment_attempts_rels,
+  ({ one }) => ({
+    parent: one(giveaway_fulfilment_attempts, {
+      fields: [giveaway_fulfilment_attempts_rels.parent],
+      references: [giveaway_fulfilment_attempts.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [giveaway_fulfilment_attempts_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_giveaway_fulfilment_attempts = relations(
+  giveaway_fulfilment_attempts,
+  ({ one, many }) => ({
+    winner: one(giveaway_winners, {
+      fields: [giveaway_fulfilment_attempts.winner],
+      references: [giveaway_winners.id],
+      relationName: "winner",
+    }),
+    _rels: many(giveaway_fulfilment_attempts_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_giveaway_pool_snapshots_rels = relations(
+  giveaway_pool_snapshots_rels,
+  ({ one }) => ({
+    parent: one(giveaway_pool_snapshots, {
+      fields: [giveaway_pool_snapshots_rels.parent],
+      references: [giveaway_pool_snapshots.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [giveaway_pool_snapshots_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_giveaway_pool_snapshots = relations(
+  giveaway_pool_snapshots,
+  ({ one, many }) => ({
+    giveaway: one(giveaways, {
+      fields: [giveaway_pool_snapshots.giveaway],
+      references: [giveaways.id],
+      relationName: "giveaway",
+    }),
+    _rels: many(giveaway_pool_snapshots_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_giveaway_prizes_rels = relations(
   giveaway_prizes_rels,
   ({ one }) => ({
@@ -5169,6 +6158,34 @@ export const relations_giveaway_prizes = relations(
     }),
   }),
 );
+export const relations_giveaway_report_deliveries_rels = relations(
+  giveaway_report_deliveries_rels,
+  ({ one }) => ({
+    parent: one(giveaway_report_deliveries, {
+      fields: [giveaway_report_deliveries_rels.parent],
+      references: [giveaway_report_deliveries.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [giveaway_report_deliveries_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_giveaway_report_deliveries = relations(
+  giveaway_report_deliveries,
+  ({ one, many }) => ({
+    giveaway: one(giveaways, {
+      fields: [giveaway_report_deliveries.giveaway],
+      references: [giveaways.id],
+      relationName: "giveaway",
+    }),
+    _rels: many(giveaway_report_deliveries_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_giveaways_rels = relations(
   giveaways_rels,
   ({ one }) => ({
@@ -5184,7 +6201,12 @@ export const relations_giveaways_rels = relations(
     }),
   }),
 );
-export const relations_giveaways = relations(giveaways, ({ many }) => ({
+export const relations_giveaways = relations(giveaways, ({ one, many }) => ({
+  currentAttempt: one(giveaway_draw_attempts, {
+    fields: [giveaways.currentAttempt],
+    references: [giveaway_draw_attempts.id],
+    relationName: "currentAttempt",
+  }),
   _rels: many(giveaways_rels, {
     relationName: "_rels",
   }),
@@ -5293,8 +6315,51 @@ export const relations_giveaway_winners = relations(
       references: [giveaway_tickets.id],
       relationName: "winningTicket",
     }),
+    replaces: one(giveaway_winners, {
+      fields: [giveaway_winners.replaces],
+      references: [giveaway_winners.id],
+      relationName: "replaces",
+    }),
     _rels: many(giveaway_winners_rels, {
       relationName: "_rels",
+    }),
+  }),
+);
+export const relations_identity_checks_rels = relations(
+  identity_checks_rels,
+  ({ one }) => ({
+    parent: one(identity_checks, {
+      fields: [identity_checks_rels.parent],
+      references: [identity_checks.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [identity_checks_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_identity_checks = relations(
+  identity_checks,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [identity_checks.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    _rels: many(identity_checks_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_prize_catalogue_reloadly_data_plans = relations(
+  prize_catalogue_reloadly_data_plans,
+  ({ one }) => ({
+    _parentID: one(prize_catalogue, {
+      fields: [prize_catalogue_reloadly_data_plans._parentID],
+      references: [prize_catalogue.id],
+      relationName: "reloadlyDataPlans",
     }),
   }),
 );
@@ -5316,6 +6381,9 @@ export const relations_prize_catalogue_rels = relations(
 export const relations_prize_catalogue = relations(
   prize_catalogue,
   ({ one, many }) => ({
+    reloadlyDataPlans: many(prize_catalogue_reloadly_data_plans, {
+      relationName: "reloadlyDataPlans",
+    }),
     image: one(media, {
       fields: [prize_catalogue.image],
       references: [media.id],
@@ -6208,7 +7276,12 @@ export const relations_users_rels = relations(users_rels, ({ one }) => ({
     relationName: "admins",
   }),
 }));
-export const relations_users = relations(users, ({ many }) => ({
+export const relations_users = relations(users, ({ one, many }) => ({
+  lastGiveawayResultSeen: one(giveaways, {
+    fields: [users.lastGiveawayResultSeen],
+    references: [giveaways.id],
+    relationName: "lastGiveawayResultSeen",
+  }),
   _rels: many(users_rels, {
     relationName: "_rels",
   }),
@@ -6345,20 +7418,45 @@ export const relations_payload_locked_documents_rels = relations(
       references: [feedback.id],
       relationName: "feedback",
     }),
+    "giveaway-account-flagsID": one(giveaway_account_flags, {
+      fields: [payload_locked_documents_rels["giveaway-account-flagsID"]],
+      references: [giveaway_account_flags.id],
+      relationName: "giveaway-account-flags",
+    }),
     "giveaway-audit-logID": one(giveaway_audit_log, {
       fields: [payload_locked_documents_rels["giveaway-audit-logID"]],
       references: [giveaway_audit_log.id],
       relationName: "giveaway-audit-log",
+    }),
+    "giveaway-draw-attemptsID": one(giveaway_draw_attempts, {
+      fields: [payload_locked_documents_rels["giveaway-draw-attemptsID"]],
+      references: [giveaway_draw_attempts.id],
+      relationName: "giveaway-draw-attempts",
     }),
     "giveaway-engagementsID": one(giveaway_engagements, {
       fields: [payload_locked_documents_rels["giveaway-engagementsID"]],
       references: [giveaway_engagements.id],
       relationName: "giveaway-engagements",
     }),
+    "giveaway-fulfilment-attemptsID": one(giveaway_fulfilment_attempts, {
+      fields: [payload_locked_documents_rels["giveaway-fulfilment-attemptsID"]],
+      references: [giveaway_fulfilment_attempts.id],
+      relationName: "giveaway-fulfilment-attempts",
+    }),
+    "giveaway-pool-snapshotsID": one(giveaway_pool_snapshots, {
+      fields: [payload_locked_documents_rels["giveaway-pool-snapshotsID"]],
+      references: [giveaway_pool_snapshots.id],
+      relationName: "giveaway-pool-snapshots",
+    }),
     "giveaway-prizesID": one(giveaway_prizes, {
       fields: [payload_locked_documents_rels["giveaway-prizesID"]],
       references: [giveaway_prizes.id],
       relationName: "giveaway-prizes",
+    }),
+    "giveaway-report-deliveriesID": one(giveaway_report_deliveries, {
+      fields: [payload_locked_documents_rels["giveaway-report-deliveriesID"]],
+      references: [giveaway_report_deliveries.id],
+      relationName: "giveaway-report-deliveries",
     }),
     giveawaysID: one(giveaways, {
       fields: [payload_locked_documents_rels.giveawaysID],
@@ -6379,6 +7477,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels["giveaway-winnersID"]],
       references: [giveaway_winners.id],
       relationName: "giveaway-winners",
+    }),
+    "identity-checksID": one(identity_checks, {
+      fields: [payload_locked_documents_rels["identity-checksID"]],
+      references: [identity_checks.id],
+      relationName: "identity-checks",
     }),
     "prize-catalogueID": one(prize_catalogue, {
       fields: [payload_locked_documents_rels["prize-catalogueID"]],
@@ -6677,17 +7780,32 @@ type DatabaseSchema = {
   enum_content_reports_status: typeof enum_content_reports_status;
   enum_content_reports_resolution: typeof enum_content_reports_resolution;
   enum_feedback_type: typeof enum_feedback_type;
+  enum_giveaway_account_flags_trust_status: typeof enum_giveaway_account_flags_trust_status;
   enum_giveaway_audit_log_event_type: typeof enum_giveaway_audit_log_event_type;
+  enum_giveaway_draw_attempts_kind: typeof enum_giveaway_draw_attempts_kind;
+  enum_giveaway_draw_attempts_outcome: typeof enum_giveaway_draw_attempts_outcome;
+  enum_giveaway_draw_attempts_last_checkpoint: typeof enum_giveaway_draw_attempts_last_checkpoint;
   enum_giveaway_engagements_type: typeof enum_giveaway_engagements_type;
   enum_giveaway_engagements_completion_status: typeof enum_giveaway_engagements_completion_status;
+  enum_giveaway_fulfilment_attempts_provider: typeof enum_giveaway_fulfilment_attempts_provider;
+  enum_giveaway_fulfilment_attempts_environment: typeof enum_giveaway_fulfilment_attempts_environment;
+  enum_giveaway_fulfilment_attempts_outcome: typeof enum_giveaway_fulfilment_attempts_outcome;
+  enum_giveaway_pool_snapshots_tier: typeof enum_giveaway_pool_snapshots_tier;
   enum_giveaway_prizes_tier: typeof enum_giveaway_prizes_tier;
+  enum_giveaway_report_deliveries_kind: typeof enum_giveaway_report_deliveries_kind;
+  enum_giveaway_report_deliveries_status: typeof enum_giveaway_report_deliveries_status;
   enum_giveaways_status: typeof enum_giveaways_status;
+  enum_giveaways_last_checkpoint: typeof enum_giveaways_last_checkpoint;
   enum_giveaway_streaks_tier: typeof enum_giveaway_streaks_tier;
   enum_giveaway_tickets_status: typeof enum_giveaway_tickets_status;
   enum_giveaway_winners_tier: typeof enum_giveaway_winners_tier;
   enum_giveaway_winners_claim_status: typeof enum_giveaway_winners_claim_status;
   enum_giveaway_winners_fulfilment_status: typeof enum_giveaway_winners_fulfilment_status;
+  enum_identity_checks_provider: typeof enum_identity_checks_provider;
+  enum_identity_checks_status: typeof enum_identity_checks_status;
+  enum_prize_catalogue_reloadly_data_plans_network: typeof enum_prize_catalogue_reloadly_data_plans_network;
   enum_prize_catalogue_tier: typeof enum_prize_catalogue_tier;
+  enum_prize_catalogue_fulfilment_type: typeof enum_prize_catalogue_fulfilment_type;
   enum_lottery_winners_prize_tier: typeof enum_lottery_winners_prize_tier;
   enum_news_type: typeof enum_news_type;
   enum_news_status: typeof enum_news_status;
@@ -6700,6 +7818,7 @@ type DatabaseSchema = {
   enum_notifications_device_types: typeof enum_notifications_device_types;
   enum_notifications_type: typeof enum_notifications_type;
   enum_notifications_delivery_action: typeof enum_notifications_delivery_action;
+  enum_notifications_scheduledfor_tz: typeof enum_notifications_scheduledfor_tz;
   enum_notifications_target_type: typeof enum_notifications_target_type;
   enum_notifications_segment: typeof enum_notifications_segment;
   enum_notifications_priority: typeof enum_notifications_priority;
@@ -6707,6 +7826,7 @@ type DatabaseSchema = {
   enum__notifications_v_version_device_types: typeof enum__notifications_v_version_device_types;
   enum__notifications_v_version_type: typeof enum__notifications_v_version_type;
   enum__notifications_v_version_delivery_action: typeof enum__notifications_v_version_delivery_action;
+  enum__notifications_v_version_scheduledfor_tz: typeof enum__notifications_v_version_scheduledfor_tz;
   enum__notifications_v_version_target_type: typeof enum__notifications_v_version_target_type;
   enum__notifications_v_version_segment: typeof enum__notifications_v_version_segment;
   enum__notifications_v_version_priority: typeof enum__notifications_v_version_priority;
@@ -6752,12 +7872,22 @@ type DatabaseSchema = {
   content_reports_rels: typeof content_reports_rels;
   feedback: typeof feedback;
   feedback_rels: typeof feedback_rels;
+  giveaway_account_flags: typeof giveaway_account_flags;
+  giveaway_account_flags_rels: typeof giveaway_account_flags_rels;
   giveaway_audit_log: typeof giveaway_audit_log;
   giveaway_audit_log_rels: typeof giveaway_audit_log_rels;
+  giveaway_draw_attempts: typeof giveaway_draw_attempts;
+  giveaway_draw_attempts_rels: typeof giveaway_draw_attempts_rels;
   giveaway_engagements: typeof giveaway_engagements;
   giveaway_engagements_rels: typeof giveaway_engagements_rels;
+  giveaway_fulfilment_attempts: typeof giveaway_fulfilment_attempts;
+  giveaway_fulfilment_attempts_rels: typeof giveaway_fulfilment_attempts_rels;
+  giveaway_pool_snapshots: typeof giveaway_pool_snapshots;
+  giveaway_pool_snapshots_rels: typeof giveaway_pool_snapshots_rels;
   giveaway_prizes: typeof giveaway_prizes;
   giveaway_prizes_rels: typeof giveaway_prizes_rels;
+  giveaway_report_deliveries: typeof giveaway_report_deliveries;
+  giveaway_report_deliveries_rels: typeof giveaway_report_deliveries_rels;
   giveaways: typeof giveaways;
   giveaways_rels: typeof giveaways_rels;
   giveaway_streaks: typeof giveaway_streaks;
@@ -6766,6 +7896,9 @@ type DatabaseSchema = {
   giveaway_tickets_rels: typeof giveaway_tickets_rels;
   giveaway_winners: typeof giveaway_winners;
   giveaway_winners_rels: typeof giveaway_winners_rels;
+  identity_checks: typeof identity_checks;
+  identity_checks_rels: typeof identity_checks_rels;
+  prize_catalogue_reloadly_data_plans: typeof prize_catalogue_reloadly_data_plans;
   prize_catalogue: typeof prize_catalogue;
   prize_catalogue_rels: typeof prize_catalogue_rels;
   identity_verification: typeof identity_verification;
@@ -6866,12 +7999,22 @@ type DatabaseSchema = {
   relations_content_reports: typeof relations_content_reports;
   relations_feedback_rels: typeof relations_feedback_rels;
   relations_feedback: typeof relations_feedback;
+  relations_giveaway_account_flags_rels: typeof relations_giveaway_account_flags_rels;
+  relations_giveaway_account_flags: typeof relations_giveaway_account_flags;
   relations_giveaway_audit_log_rels: typeof relations_giveaway_audit_log_rels;
   relations_giveaway_audit_log: typeof relations_giveaway_audit_log;
+  relations_giveaway_draw_attempts_rels: typeof relations_giveaway_draw_attempts_rels;
+  relations_giveaway_draw_attempts: typeof relations_giveaway_draw_attempts;
   relations_giveaway_engagements_rels: typeof relations_giveaway_engagements_rels;
   relations_giveaway_engagements: typeof relations_giveaway_engagements;
+  relations_giveaway_fulfilment_attempts_rels: typeof relations_giveaway_fulfilment_attempts_rels;
+  relations_giveaway_fulfilment_attempts: typeof relations_giveaway_fulfilment_attempts;
+  relations_giveaway_pool_snapshots_rels: typeof relations_giveaway_pool_snapshots_rels;
+  relations_giveaway_pool_snapshots: typeof relations_giveaway_pool_snapshots;
   relations_giveaway_prizes_rels: typeof relations_giveaway_prizes_rels;
   relations_giveaway_prizes: typeof relations_giveaway_prizes;
+  relations_giveaway_report_deliveries_rels: typeof relations_giveaway_report_deliveries_rels;
+  relations_giveaway_report_deliveries: typeof relations_giveaway_report_deliveries;
   relations_giveaways_rels: typeof relations_giveaways_rels;
   relations_giveaways: typeof relations_giveaways;
   relations_giveaway_streaks_rels: typeof relations_giveaway_streaks_rels;
@@ -6880,6 +8023,9 @@ type DatabaseSchema = {
   relations_giveaway_tickets: typeof relations_giveaway_tickets;
   relations_giveaway_winners_rels: typeof relations_giveaway_winners_rels;
   relations_giveaway_winners: typeof relations_giveaway_winners;
+  relations_identity_checks_rels: typeof relations_identity_checks_rels;
+  relations_identity_checks: typeof relations_identity_checks;
+  relations_prize_catalogue_reloadly_data_plans: typeof relations_prize_catalogue_reloadly_data_plans;
   relations_prize_catalogue_rels: typeof relations_prize_catalogue_rels;
   relations_prize_catalogue: typeof relations_prize_catalogue;
   relations_identity_verification_rels: typeof relations_identity_verification_rels;

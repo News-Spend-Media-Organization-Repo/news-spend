@@ -1,5 +1,4 @@
 import contract from "@news-spend-media/api/contract.json";
-import * as Application from "expo-application";
 import type { router } from "@news-spend-media/api/router/index";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -16,6 +15,7 @@ import type {
   RouterClient,
 } from "@orpc/server";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import * as Application from "expo-application";
 
 import { getBaseUrl } from "#/utils/getBaseUrl";
 import { isNetworkError } from "#/utils/isNetworkError";

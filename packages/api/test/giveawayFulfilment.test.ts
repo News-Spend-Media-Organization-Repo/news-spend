@@ -471,7 +471,8 @@ describe("fulfilPendingPrizes", () => {
     // `reviewNote` is written for an administrator. Repeated to a winner it
     // reads as either gibberish or an accusation, so the message says a
     // problem exists and the prize is safe, and nothing else.
-    const said = JSON.stringify(collections.notifications![0]) + emails[0]!.html;
+    const said =
+      JSON.stringify(collections.notifications![0]) + emails[0]!.html;
     expect(said).not.toContain("INVALID_ACCOUNT_NUMBER");
     expect(collections["giveaway-winners"]![0]!.reviewNote).toContain(
       "INVALID_ACCOUNT_NUMBER"

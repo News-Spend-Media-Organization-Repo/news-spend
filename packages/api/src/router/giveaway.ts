@@ -128,6 +128,68 @@ type ClaimErrorFactory = ErrorFactory & {
 };
 
 /**
+ * The giveaway an administrator has switched on, if any.
+ *
+ * `active` is an administrative state, not a statement about the clock: a
+ * giveaway is switched on once and then opens and closes on its own dates.
+ * Every reader goes through here so that "which giveaway" is answered in one
+ * place, and only then asks `giveawayWindow` whether it is open right now.
+ */
+async function activeGiveaway(
+  payload: BasePayload
+): Promise<Giveaway | undefined> {
+  const found = await payload.find({
+    collection: "giveaways",
+    where: { status: { equals: "active" } },
+    limit: 1,
+    pagination: false,
+    depth: 0,
+  });
+
+  return found.docs[0];
+}
+
+type GiveawayWindow =
+  | { isOpen: true }
+  | { isOpen: false; state: "pending" | "closed"; message: string };
+
+/**
+ * Whether the active giveaway is open for participation at this instant.
+ *
+ * The single source of truth for "is it running", shared by the write paths
+ * that refuse participation and by `current`, which tells the app what to
+ * render. They used to decide it separately, and the app would offer a live
+ * "Enter Giveaway" button for a giveaway switched on ahead of its start date
+ * while every purchase behind that button was refused.
+ *
+ * Compared as epoch milliseconds throughout. `startDate` and `endDate` are
+ * stored and returned as UTC instants, so parsing them back to a `Date` and
+ * taking `getTime()` is offset-safe wherever this runs; nothing here reads a
+ * local calendar field.
+ */
+function giveawayWindow(giveaway: Giveaway): GiveawayWindow {
+  const now = Date.now();
+
+  if (new Date(giveaway.startDate).getTime() > now) {
+    return {
+      isOpen: false,
+      state: "pending",
+      message: "This giveaway has not opened yet.",
+    };
+  }
+
+  if (new Date(giveaway.endDate).getTime() <= now) {
+    return {
+      isOpen: false,
+      state: "closed",
+      message: "This giveaway has closed and is waiting for its draw.",
+    };
+  }
+
+  return { isOpen: true };
+}
+
+/**
  * The giveaway currently accepting participation.
  *
  * Only a giveaway that is `active` and inside its own window takes tickets or
@@ -139,33 +201,16 @@ async function openGiveaway(
   payload: BasePayload,
   errors: ErrorFactory
 ): Promise<Giveaway> {
-  const found = await payload.find({
-    collection: "giveaways",
-    where: { status: { equals: "active" } },
-    limit: 1,
-    pagination: false,
-    depth: 0,
-  });
-
-  const giveaway = found.docs[0];
+  const giveaway = await activeGiveaway(payload);
   if (!giveaway) {
     throw errors.NOT_FOUND({
       message: "There is no giveaway running at the moment.",
     });
   }
 
-  const now = Date.now();
-
-  if (new Date(giveaway.startDate).getTime() > now) {
-    throw errors.CONFLICT({
-      message: "This giveaway has not opened yet.",
-    });
-  }
-
-  if (new Date(giveaway.endDate).getTime() <= now) {
-    throw errors.CONFLICT({
-      message: "This giveaway has closed and is waiting for its draw.",
-    });
+  const window = giveawayWindow(giveaway);
+  if (!window.isOpen) {
+    throw errors.CONFLICT({ message: window.message });
   }
 
   return giveaway;
@@ -409,22 +454,25 @@ const participants = publicProcedure.handler(async ({ context }) => {
   };
 });
 
-/** The giveaway currently open, or null. Safe to call when signed out. */
+/**
+ * The giveaway an administrator has switched on, or null. Safe to call when
+ * signed out.
+ *
+ * Returns a giveaway that has not reached its `startDate` rather than hiding
+ * it, so the app can count down to an opening it knows about. `isOpen` says
+ * whether participation is currently possible, and is the same judgement the
+ * write paths enforce, so the button the app offers and the request behind it
+ * can no longer disagree.
+ */
 const current = publicProcedure.handler(async ({ context }) => {
   const { payload } = context;
 
-  const found = await payload.find({
-    collection: "giveaways",
-    where: { status: { equals: "active" } },
-    limit: 1,
-    pagination: false,
-    depth: 0,
-  });
-
-  const giveaway = found.docs[0];
+  const giveaway = await activeGiveaway(payload);
   if (!giveaway) {
     return null;
   }
+
+  const window = giveawayWindow(giveaway);
 
   return {
     id: giveaway.id,
@@ -434,6 +482,8 @@ const current = publicProcedure.handler(async ({ context }) => {
     endDate: giveaway.endDate,
     ticketPrice: giveaway.ticketPrice,
     minTicketsRequired: giveaway.minTicketsRequired ?? 1,
+    isOpen: window.isOpen,
+    state: window.isOpen ? ("open" as const) : window.state,
   };
 });
 
