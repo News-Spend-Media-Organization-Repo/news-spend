@@ -30,7 +30,9 @@ import {
   useNavigationPersistence,
 } from "./navigation/navigationUtils";
 import { Provider } from "./provider";
+import { setupAudio } from "./state/audioPlayerState";
 import { authState, hydrateAuth } from "./state/auth";
+import { runAfterStartup } from "./utils/afterStartup";
 import { createMMKVPersister } from "./utils/clientPersister";
 import { storage } from "./utils/storage";
 
@@ -59,7 +61,7 @@ if (initialInsets) {
 SplashScreen.preventAutoHideAsync();
 
 SplashScreen.setOptions({
-  duration: 500,
+  duration: 200,
   fade: true,
 });
 
@@ -104,15 +106,31 @@ export function App() {
   // the user has had a chance to consent.
   const adsInitiatedRef = useRef(false);
 
+  useEffect(
+    () =>
+      runAfterStartup(() => {
+        if (adsInitiatedRef.current) {
+          return;
+        }
+        adsInitiatedRef.current = true;
+        initializeAdsWhenPermitted().catch((error) => {
+          console.warn("Ad initialization failed", error);
+        });
+      }),
+    []
+  );
+
+  // Previously ran inside hydrateAuth, which was the only thing that could
+  // establish a signed-in state. Now that a persisted session renders straight
+  // away, the audio player has to be set up off the restored state too, or an
+  // offline launch would come up signed in with no player. Idempotent, so the
+  // hydration path calling it as well is harmless.
   useEffect(() => {
-    if (adsInitiatedRef.current) {
+    if (authStatus !== "signIn") {
       return;
     }
-    adsInitiatedRef.current = true;
-    initializeAdsWhenPermitted().catch((error) => {
-      console.warn("Ad initialization failed", error);
-    });
-  }, []);
+    return runAfterStartup(() => setupAudio());
+  }, [authStatus]);
 
   const hideSplash = useCallback(async () => {
     await SplashScreen.hideAsync();

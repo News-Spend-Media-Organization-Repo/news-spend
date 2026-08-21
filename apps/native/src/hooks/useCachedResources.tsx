@@ -6,7 +6,7 @@ import { orpc } from "#/lib/orpc";
 import { storage } from "#/utils/storage";
 
 export default function useCachedResources() {
-  const [loadingComplete, setLoadingComplete] = useState(false);
+  const [loadingComplete, setLoadingComplete] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   // Helper to load categories
@@ -32,11 +32,15 @@ export default function useCachedResources() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadResourcesAndDataAsync() {
+    function loadResourcesAndDataAsync() {
       try {
         console.log("Loading resources and data");
 
-        await setVideoCacheSizeAsync(30 * 1024 * 1024); // Set video cache size to 30MB
+        // Set video cache size to 30MB. Not awaited before anything else: it
+        // is a native round trip whose result no startup path depends on.
+        setVideoCacheSizeAsync(30 * 1024 * 1024).catch((e) => {
+          console.warn("Failed setting video cache size", e);
+        });
 
         const hasLoadedCategories = storage.getBoolean("HAS_LOADED_CATEGORIES");
         console.log("Has loaded categories:", hasLoadedCategories);

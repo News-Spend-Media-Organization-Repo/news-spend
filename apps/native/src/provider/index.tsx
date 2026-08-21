@@ -20,6 +20,7 @@ import { detourConfig } from "#/lib/detour";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { useUpdates } from "#/lib/UpdatesProvider";
 import { authState } from "#/state/auth";
+import { useAfterStartup } from "#/utils/afterStartup";
 import { scheduleDailyDigest } from "#/widgets";
 
 type Props = {
@@ -57,14 +58,22 @@ export const Provider = ({ children }: Props) => {
   usePushNotification();
   const { updateSheet } = useUpdates();
 
-  useEffect(() => {
-    newsAnalyticsClient.start(() => authState.user?.id);
-    return () => newsAnalyticsClient.stop();
-  }, []);
+  const startupSettled = useAfterStartup();
 
   useEffect(() => {
+    if (!startupSettled) {
+      return;
+    }
+    newsAnalyticsClient.start(() => authState.user?.id);
+    return () => newsAnalyticsClient.stop();
+  }, [startupSettled]);
+
+  useEffect(() => {
+    if (!startupSettled) {
+      return;
+    }
     scheduleDailyDigest();
-  }, []);
+  }, [startupSettled]);
 
   return (
     <DetourProvider config={detourConfig}>
