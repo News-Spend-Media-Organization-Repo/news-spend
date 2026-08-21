@@ -7,6 +7,10 @@ RUN apt-get update && apt-get -yqq --no-install-recommends install \
     && rm -rf /var/lib/apt/lists/*
 
 COPY bun.lock ./
+# See Dockerfile.cms: pins the hoisted linker so the image resolves modules the
+# same way local does. This service does not currently depend on a hoisted
+# sibling, but nothing stops it from starting to.
+COPY bunfig.toml ./
 COPY package.json ./
 COPY turbo.json ./
 COPY patches ./patches

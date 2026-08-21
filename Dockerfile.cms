@@ -39,6 +39,12 @@ RUN apt-get update && apt-get -yqq --no-install-recommends install \
     libtool \
     && rm -rf /var/lib/apt/lists/*
 COPY bun.lock ./
+# Carries `linker = "hoisted"`. Bun 1.4 defaults workspaces to isolated
+# linking, where a package resolves only what it declares itself — so without
+# this file the image installs a different dependency layout than every
+# developer machine, and any package that has been quietly relying on a
+# hoisted sibling's dependency fails here and nowhere else.
+COPY bunfig.toml ./
 COPY package.json ./
 COPY turbo.json ./
 COPY patches ./patches

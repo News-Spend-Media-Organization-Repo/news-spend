@@ -36,6 +36,7 @@
     "@payloadcms/plugin-seo": "catalog:",
     "@payloadcms/richtext-lexical": "catalog:",
     "@sentry/nextjs": "catalog:",
+    "@tailwindcss/postcss": "catalog:",
     "babel-plugin-react-compiler": "^0.0.0",
     "cross-env": "^10.1.0",
     "graphql": "^16.10.0",
