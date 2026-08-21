@@ -140,25 +140,39 @@ export default memo(function GiveawayReward() {
 
   // ── Opening ─────────────────────────────────────────────────────────────────
 
+  /**
+   * What is on offer, identified rather than referenced.
+   *
+   * The effect below keys on these ids instead of on `result` and `reminder`
+   * themselves. A refetch hands back a new object for an unchanged outcome, so
+   * depending on the objects re-ran this effect on every refetch: it restarted
+   * the countdown, and — because the reveal branch had no "already announced"
+   * guard at all — reopened a dialog the user had just dismissed.
+   */
+  const revealId = result?.giveawayId;
+  const reminderId = reminder?.id;
+
   useEffect(() => {
-    if (!(result || reminder)) {
+    const pendingId = reminderId ?? revealId;
+
+    if (!pendingId) {
       return;
     }
-    if (reminder && announcedWin === reminder.id) {
+
+    // Announce a given outcome once per session, so dismissing it does not
+    // mean being nagged on every screen change. This now covers the reveal as
+    // well as the reminder; previously only the reminder was guarded.
+    if (announcedWin === pendingId) {
       return;
     }
 
     const timer = setTimeout(() => {
       setOpen(true);
-      if (reminder) {
-        // Announce a given prize once per session, so dismissing it does not
-        // mean being nagged on every screen change.
-        setAnnouncedWin(reminder.id);
-      }
+      setAnnouncedWin(pendingId);
     }, ANNOUNCE_DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [result, reminder, announcedWin]);
+  }, [revealId, reminderId, announcedWin]);
 
   if (!(result || reminder)) {
     return null;

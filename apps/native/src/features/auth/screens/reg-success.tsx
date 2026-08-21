@@ -5,9 +5,9 @@ import { useSnapshot } from "valtio";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { userQueryOptions } from "#/hooks/auth/useUser";
 import { authClient } from "#/lib/authClient";
 import { authState, setAuthSession } from "#/state/auth";
-import { userQueryOptions } from "../hooks/useUser";
 
 export default function RegSuccess() {
   const { data, isPending, error } = authClient.useSession();

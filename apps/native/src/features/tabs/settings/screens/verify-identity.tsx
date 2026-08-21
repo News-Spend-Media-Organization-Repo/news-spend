@@ -23,7 +23,7 @@ import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import FormTextInput from "#/components/heroui/text-input";
 import { toast } from "#/components/heroui/toast";
-import useUser from "#/hooks/useUser";
+import { useUser } from "#/hooks/auth";
 import { openapi, orpc } from "#/lib/orpc";
 
 const schema = z.object({

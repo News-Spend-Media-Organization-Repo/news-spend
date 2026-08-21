@@ -2,10 +2,9 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { toast } from "#/components/heroui/toast";
+import { userQueryOptions } from "#/hooks/auth/useUser";
 import { authClient } from "#/lib/authClient";
 import { hydrateAuth } from "#/state/auth";
-
-import { userQueryOptions } from "./useUser";
 
 function useLogin() {
   const navigation = useNavigation();
