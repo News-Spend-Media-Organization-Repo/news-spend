@@ -27,20 +27,6 @@ export const setSwipe = (swipe: boolean) => {
   routeState.swipe = swipe;
 };
 
-export const liveBannerState = proxy<{
-  isHidden: boolean;
-}>({
-  isHidden: false,
-});
-
-export const hideLiveBanner = () => {
-  liveBannerState.isHidden = true;
-};
-
-export const showLiveBanner = () => {
-  liveBannerState.isHidden = false;
-};
-
 export const tabBarState = proxy<{
   height: number;
 }>({

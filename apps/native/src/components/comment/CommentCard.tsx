@@ -27,12 +27,9 @@ type CommentCardProps = {
   setReplyingTo?: (id: string) => void;
   setParentId?: (id: string) => void;
   /**
-   * Which "world" this comment is rendered in. Determines whether tapping
-   * reply or the comment count navigates to the article or live-video
-   * reply screen. Defaults to "article" since the comment component is
-   * reused across both contexts.
+   * Which "world" this comment is rendered in. Defaults to "article".
    */
-  screenType?: "article" | "live";
+  screenType?: "article";
 };
 
 const CommentCard = memo(
@@ -58,18 +55,14 @@ const CommentCard = memo(
     }
 
     const navigateToReplies = () => {
-      const target =
-        screenType === "live" ? "LiveCommentReply" : "CommentReply";
-      navigation.navigate(target, {
+      navigation.navigate("CommentReply", {
         commentId: comment.id,
         newsId,
         newsSlug: route.params?.newsSlug as string,
       });
     };
 
-    const isRepliesScreen =
-      route.name ===
-      (screenType === "live" ? "LiveCommentReply" : "CommentReply");
+    const isRepliesScreen = route.name === "CommentReply";
 
     const isLiked = comment.userReaction === "like";
 
@@ -83,9 +76,7 @@ const CommentCard = memo(
     };
 
     const onReply = () => {
-      const target =
-        screenType === "live" ? "LiveCommentReply" : "CommentReply";
-      navigation.navigate(target, {
+      navigation.navigate("CommentReply", {
         commentId: comment.id,
         newsId,
         newsSlug: route.params?.newsSlug as string,

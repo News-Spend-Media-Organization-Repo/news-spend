@@ -3,14 +3,12 @@ import { useMutation } from "@tanstack/react-query";
 
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
-import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
+import type { HomeTabRouteProps } from "#/types";
 
 type UserReaction = "like" | "dislike" | "none";
 
 export default function useDislikeNews() {
-  const route = useRoute<
-    HomeTabRouteProps<"News"> | LiveTabRouteProps<"LiveHome">
-  >();
+  const route = useRoute<HomeTabRouteProps<"News">>();
   const type = route.name === "News" ? "article" : "video";
 
   return useMutation(

@@ -33,7 +33,7 @@ export default function SpecialCoverage({
         <Pressable
           onPress={() =>
             navigation.navigate("Home", {
-              screen: "SingleLive",
+              screen: "News",
               params: { id: item.id, slug: item.slug },
             })
           }

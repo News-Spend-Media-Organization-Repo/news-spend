@@ -7,13 +7,13 @@ const ReadAlso = memo(function ReadAlso({ news }: { news: News }) {
   const navigation = useNavigation();
 
   const onPress = () => {
-    navigation.navigate(news.type === "article" ? "News" : "SingleLive", {
+    navigation.navigate("News", {
       id: news.id as string,
       slug: news.slug as string,
     });
   };
 
-  const label = news.type === "article" ? "Read Also" : "Watch Also";
+  const label = "Read Also";
 
   return (
     <Pressable

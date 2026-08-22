@@ -19,8 +19,6 @@ const sendNotificationOnCreate: CollectionAfterChangeHook = async ({
     let body: string;
     if (doc.type === "article") {
       body = doc.excerpt ? `${doc.excerpt}...` : "New news published!";
-    } else if (doc.isLive) {
-      body = "Live news happening now!";
     } else {
       body = "New video news published!";
     }

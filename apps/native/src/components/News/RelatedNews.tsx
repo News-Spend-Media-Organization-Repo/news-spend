@@ -123,7 +123,7 @@ function RelatedNews({ news }: { news: RelatedNewsData | undefined }) {
           isNews(item) &&
           (item.type === "article" || item.type === "video")
         ) {
-          navigation.navigate(item.type === "article" ? "News" : "SingleLive", {
+          navigation.navigate("News", {
             id: item.id,
             slug: item.slug,
           });

@@ -4,7 +4,7 @@
     "argent": {
       "type": "local",
       "command": [
-        "/Users/odunsi/.volta/tools/image/node/24.11.1/bin/argent",
+        "/Users/odunsi/.bun/bin/argent",
         "mcp"
       ],
       "enabled": true

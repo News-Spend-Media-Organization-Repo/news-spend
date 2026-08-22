@@ -199,28 +199,13 @@ export function PrivacyPolicy() {
         <ul>
           <li>Operate, maintain, and improve the App</li>
           <li>Track engagement and determine reward eligibility</li>
-          <li>Display embedded live stream content</li>
           <li>Serve advertisements and sponsored content</li>
           <li>Communicate important updates and service notices</li>
           <li>Detect, prevent, and address fraud or misuse</li>
           <li>Meet legal and regulatory obligations</li>
         </ul>
 
-        <h2>3. Live Streaming and Embedded Content</h2>
-        <p>
-          Newsspend Media does not host or initiate live streaming sessions
-          within the App. Live streams are created and hosted on third-party
-          platforms such as YouTube, Instagram, or Facebook.
-        </p>
-        <p>
-          The App allows users to view these live streams through embedded
-          third-party players. Viewing activity within the App may be
-          measured solely to assess engagement and reward eligibility. Data
-          collected directly by third-party platforms is governed by their
-          respective privacy policies.
-        </p>
-
-        <h2>4. Rewards, Points, and Incentives</h2>
+        <h2>3. Rewards, Points, and Incentives</h2>
         <p>
           The App includes a reward system that grants points or incentives
           based on verified user activities. We reserve the right to:
@@ -234,14 +219,13 @@ export function PrivacyPolicy() {
           <li>Modify reward rules or eligibility criteria at any time</li>
         </ul>
 
-        <h2>5. Third-Party Services, SDKs, and APIs</h2>
+        <h2>4. Third-Party Services, SDKs, and APIs</h2>
         <p>
           The App integrates third-party services using software development
           kits (SDKs), APIs, and embedded content to support its features.
           These services may include:
         </p>
         <ul>
-          <li>Video platforms such as YouTube, Instagram, and Facebook</li>
           <li>Analytics services (e.g., Firebase, Google Analytics)</li>
           <li>Advertising networks and brand partners</li>
         </ul>

@@ -72,7 +72,7 @@ export default createNativeStackNavigator({
                   <Icon color="white" name={XIcon} />
                 </PressableFeedback>
               }
-              title="Settings"
+              title="Me"
             />
           );
         },

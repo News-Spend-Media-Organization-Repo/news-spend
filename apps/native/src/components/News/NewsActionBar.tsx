@@ -31,19 +31,11 @@ export function NewsActionBar(props: NewsActionBarProps) {
 
   const navigateToComments = (focus?: boolean) => {
     props.onComment?.();
-    if (route.name === "News") {
-      navigation.navigate("Comment", {
-        newsId: props.news?.id!,
-        newsSlug: props.news?.slug!,
-        focus,
-      });
-    } else {
-      navigation.navigate("LiveComment", {
-        newsId: props.news?.id!,
-        newsSlug: props.news?.slug!,
-        focus,
-      });
-    }
+    navigation.navigate("Comment", {
+      newsId: props.news?.id!,
+      newsSlug: props.news?.slug!,
+      focus,
+    });
   };
 
   return (

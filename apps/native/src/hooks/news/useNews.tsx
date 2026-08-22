@@ -71,26 +71,6 @@ export default function useNews(slug: string, type?: "article" | "video") {
 
           return allNews?.find((news) => news.slug === slug);
         }
-        if (route.name === "SingleLive") {
-          const data = queryClient
-            .getQueryData(
-              orpc.news.all.infiniteKey({
-                initialPageParam: undefined,
-                input: (pageParam) => ({
-                  limit: 10,
-                  type: "video",
-                  includeAds: false,
-                  page: pageParam,
-                }),
-              })
-            )
-            ?.pages.flatMap((page) => page.docs);
-
-          return data?.find((news) => {
-            // Ensure 'news' has a 'slug' property before comparing
-            return "slug" in news && (news as { slug: string }).slug === slug;
-          });
-        }
       },
       initialDataUpdatedAt: () => {
         if (route.name === "News") {
@@ -110,18 +90,6 @@ export default function useNews(slug: string, type?: "article" | "video") {
               category: (category?.category as unknown as Category)?.id,
               limit: 10,
             },
-          });
-          return queryClient.getQueryState(qKey)?.dataUpdatedAt;
-        }
-        if (route.name === "SingleLive") {
-          const qKey = orpc.news.all.infiniteKey({
-            input: (pageParam) => ({
-              limit: 10,
-              type: "video",
-
-              page: pageParam,
-            }),
-            initialPageParam: undefined,
           });
           return queryClient.getQueryState(qKey)?.dataUpdatedAt;
         }

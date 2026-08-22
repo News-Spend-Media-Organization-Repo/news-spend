@@ -18,21 +18,19 @@ import { setTabBarHeight } from "#/state/route-state";
 import { FloatingOverlays } from "./floating-overlays";
 
 // Root screen of each tab where the tab bar should show, plus the tab's own
-// route name (Home/Live/Shop/Discover). Both are needed: tabs are lazy by
+// route name (Home/Shop/Discover). Both are needed: tabs are lazy by
 // default, so on a tab's first focus its nested stack hasn't mounted/reported
 // state back yet, and getFocusedRouteNameFromRoute briefly returns undefined
 // for that one render, falling back to the tab's own name. Without the tab
 // names here too, that render would incorrectly hide the tab bar for a frame
 // before the nested stack resolves and it pops back, a visible flicker.
-// Deliberately excludes Settings/SettingsHome: the tab bar is never shown
-// anywhere in the Settings tab, including its own root.
+// Deliberately excludes Me/SettingsHome: the tab bar is never shown
+// anywhere in the Me tab, including its own root.
 const TAB_ROOT_ROUTES = new Set([
   "NewsHome",
-  "LiveHome",
   "ShopHome",
   "DiscoverHome",
   "Home",
-  "Live",
   "Shop",
   "Discover",
 ]);
@@ -107,7 +105,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           const { options } = descriptors[route.key];
           const label = options.tabBarLabel ?? options.title ?? route.name;
           const isFocused = state.index === index;
-          const isSettings = route.name === "Settings";
 
           const onPress = () => {
             const event = navigation.emit({
@@ -146,22 +143,18 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 <options.tabBarIcon
                   color={isFocused ? "#fff" : "gray"}
                   focused={isFocused}
-                  size={isSettings ? 56 : 25}
+                  size={25}
                   style={{ alignSelf: "center" }}
                 />
               )}
-              {isSettings ? null : (
-                <Text
-                  className={cn(
-                    "text-center text-xs",
-                    isFocused
-                      ? "font-semibold text-background"
-                      : "text-gray-500"
-                  )}
-                >
-                  {typeof label === "string" ? label : route.name}
-                </Text>
-              )}
+              <Text
+                className={cn(
+                  "text-center text-xs",
+                  isFocused ? "font-semibold text-background" : "text-gray-500"
+                )}
+              >
+                {typeof label === "string" ? label : route.name}
+              </Text>
             </PlatformPressable>
           );
         })}

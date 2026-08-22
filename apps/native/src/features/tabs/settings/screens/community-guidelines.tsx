@@ -60,7 +60,7 @@ const communityGuidelinesContent = [
       "You can block any user to prevent them from interacting with you:",
     bullets: [
       "Blocked users cannot see your comments or interact with your content",
-      "You can manage your blocked list in Settings → Blocked Users",
+      "You can manage your blocked list in Me → Blocked Users",
       "Blocking is private. The blocked user is not notified.",
     ],
   },
@@ -78,7 +78,7 @@ const communityGuidelinesContent = [
   {
     title: "7. Appeals",
     description:
-      "If you believe content was removed in error, contact our support team through the Support section in Settings. We review all appeals promptly.",
+      "If you believe content was removed in error, contact our support team through the Support section in Me. We review all appeals promptly.",
     bullets: [],
   },
   {
@@ -90,7 +90,7 @@ const communityGuidelinesContent = [
   {
     title: "Contact",
     description:
-      "For questions about these guidelines or to report a concern, email us at support@newsspend.com or use the Support section in Settings.",
+      "For questions about these guidelines or to report a concern, email us at support@newsspend.com or use the Support section in Me.",
     bullets: [],
   },
 ];

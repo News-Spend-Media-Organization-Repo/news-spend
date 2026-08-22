@@ -30,10 +30,10 @@ export const ShareNews = ({
 }) => {
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  const currentTabPath = route.name === "News" ? "news" : "live";
+  const currentTabPath = "news";
   const [visible, setVisible] = useState(false);
   const gap = 10;
-  const currentScreen = route.name === "SingleLive" ? "video" : "article";
+  const currentScreen = "article";
   const url = `https://link.newsspend.com/${currentTabPath}/${currentScreen}/${news.slug}`;
 
   const options = [
