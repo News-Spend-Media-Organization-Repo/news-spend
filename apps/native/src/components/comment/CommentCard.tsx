@@ -7,7 +7,7 @@ import {
   ClockIcon,
   HeartStraightIcon,
 } from "phosphor-react-native";
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { View } from "react-native";
 import { useSnapshot } from "valtio";
 import { Button } from "#/components/heroui/button";
@@ -16,7 +16,7 @@ import { Text } from "#/components/heroui/text";
 import useLikeComment from "#/hooks/comments/useLikeComment";
 import type { RouterOutputs } from "#/lib/orpc";
 import { authState } from "#/state/auth";
-import { randomColor } from "#/utils/index";
+import { avatarColor } from "#/utils/index";
 import CommentOptionPopover from "./CommentOptionPopover";
 
 type CommentCardProps = {
@@ -45,8 +45,6 @@ const CommentCard = memo(
     const { mutate } = useLikeComment(newsId, parentId);
     const auth = useSnapshot(authState);
     const route = useRoute();
-
-    const avatarBg = useMemo(() => randomColor(), []);
 
     const navigation = useNavigation();
 
@@ -91,7 +89,7 @@ const CommentCard = memo(
         <View className="flex-row gap-2.5 px-2.5">
           <View
             className="h-8 w-8 items-center justify-center rounded-full"
-            style={{ backgroundColor: avatarBg }}
+            style={{ backgroundColor: avatarColor(commentUser?.id) }}
           >
             <Text className="text-base text-white">
               {(typeof comment.user === "object" &&

@@ -24,7 +24,7 @@ import {
   UserIcon,
   UserMinusIcon,
 } from "phosphor-react-native";
-import { Fragment, useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSnapshot } from "valtio";
@@ -36,7 +36,7 @@ import { Text } from "#/components/heroui/text";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { orpc } from "#/lib/orpc";
 import { authState, logout } from "#/state/auth";
-import { randomColor } from "#/utils/index";
+import { avatarColor } from "#/utils/index";
 
 type SettingsItem = {
   title: string;
@@ -225,7 +225,6 @@ function ListHeader({ onPress }: ListHeaderProps) {
     })
   );
 
-  const avatarBg = useMemo(() => randomColor(), []);
   const maxValue = 60_000;
   const progressPercentage = Math.round(((totalPoints ?? 0) / maxValue) * 100);
 
@@ -233,7 +232,7 @@ function ListHeader({ onPress }: ListHeaderProps) {
     <View className="gap-4 px-4 pt-4">
       <Card className="gap-3 rounded-xl px-3 pt-4 pb-4">
         <Card.Header className="mb-2 flex-row items-center gap-3">
-          <Avatar size="lg" style={{ backgroundColor: avatarBg }}>
+          <Avatar size="lg" style={{ backgroundColor: avatarColor(user?.id) }}>
             <Avatar.Image />
             <Avatar.Fallback>
               {user?.name
