@@ -17,8 +17,8 @@ import { ADMIN_GROUP_RECORDS } from "./constants";
  * be an insult dressed as diligence. A prize that requires verification checks
  * for an approved row here.
  *
- * The old `identity-verification` collection is untouched: the lottery still
- * writes to it, and it goes when the lottery does.
+ * This replaced the old `identity-verification` collection, which was removed
+ * along with the rest of the legacy lottery.
  */
 export const IdentityChecks: CollectionConfig = {
   slug: "identity-checks",

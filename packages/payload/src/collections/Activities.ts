@@ -44,7 +44,9 @@ const Activities: CollectionConfig = {
         { label: "Connect Brand Ad", value: "connectBrandAd" },
         { label: "Referral", value: "referral" },
         { label: "Ticket Purchase", value: "ticketPurchase" },
-        { label: "Lottery", value: "lottery" },
+        // Value kept as "lottery" because the live giveaway claim path
+        // writes it and historical rows carry it; only the label moved on.
+        { label: "Giveaway", value: "lottery" },
         { label: "Survey Task", value: "surveyTask" },
         { label: "Music Listening Time", value: "musicListeningTime" },
         { label: "Partner Content Task", value: "partnerContentTask" },

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
+import { sendNotification } from "@news-spend-media/payload/lib/send-notification";
 import { createORPCErrorConstructorMap } from "@orpc/contract";
 import { openapi } from "@orpc/openapi";
 import type { BasePayload } from "payload";
