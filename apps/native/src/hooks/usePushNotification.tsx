@@ -13,6 +13,9 @@ import { storage } from "#/utils/storage";
 
 const MAX_RETRY_COUNT = 3;
 
+/** Identifies the (token, account, build) triple the server has acknowledged. */
+const REGISTRATION_KEY = "pushTokenRegistration";
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
@@ -96,15 +99,23 @@ const registerForPushNotificationsAsync = async () => {
   }
 };
 
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The retry used to fire a `setTimeout` and immediately return null, so the
+ * retried attempt's token was thrown away even when it succeeded. Awaiting the
+ * next attempt is what makes the retry count for anything.
+ */
 const registerWithRetry = async (retryCount = 0): Promise<string | null> => {
   try {
     return await registerForPushNotificationsAsync();
   } catch (error) {
     if (retryCount < MAX_RETRY_COUNT) {
-      setTimeout(() => registerWithRetry(retryCount + 1), 1000);
-    } else {
-      console.error("Error registering for push notifications:", error);
+      await delay(1000);
+      return await registerWithRetry(retryCount + 1);
     }
+    console.error("Error registering for push notifications:", error);
     return null;
   }
 };
@@ -112,7 +123,7 @@ const registerWithRetry = async (retryCount = 0): Promise<string | null> => {
 const usePushNotification = () => {
   const authSnapshot = useSnapshot(authState);
   const { user } = authSnapshot;
-  const { mutate: saveToken } = useMutation(
+  const { mutateAsync: saveToken } = useMutation(
     orpc.account.createPushToken.mutationOptions()
   );
 
@@ -125,26 +136,36 @@ const usePushNotification = () => {
       return;
     }
 
-    console.log("Starting token registration...");
     const token = await registerWithRetry();
-    const existingToken = storage.getString("pushToken");
 
-    if (!token || token === existingToken) {
-      console.log("No new token to register");
+    /*
+     * No token means permission is denied, or Expo could not issue one. Record
+     * nothing: the next launch asks again. Caching a failure here is what left
+     * devices permanently unregistered.
+     */
+    if (!token) {
+      console.warn("No push token available to register");
       return;
     }
 
-    storage.set("pushToken", token);
+    const appVersion = Application.nativeApplicationVersion ?? "";
 
-    // Save to your backend
-    saveToken(
-      {
+    /*
+     * A device is registered for a (token, account, build) triple, not for a
+     * token alone. Keying on the token alone meant signing into a second
+     * account on the same phone never re-associated the token with that
+     * account, and the build recorded server-side could never be corrected.
+     */
+    const registration = `${token}|${user.id}|${appVersion}`;
+
+    if (storage.getString(REGISTRATION_KEY) === registration) {
+      return;
+    }
+
+    try {
+      await saveToken({
         token,
-        // Which build this device is on. Left commented out until now, which
-        // meant every token carried a blank version — and when the oRPC v2
-        // upgrade stopped older clients working, there was no way to tell how
-        // many users were affected.
-        appVersion: Application.nativeApplicationVersion ?? "",
+        appVersion,
         deviceModel: Device.modelName ?? "",
         deviceName: Device.deviceName ?? "",
         deviceType:
@@ -153,12 +174,20 @@ const usePushNotification = () => {
             android: "android",
           }) || "web",
         osVersion: Device.osVersion ?? "",
-      },
-      {
-        onError: (error) => console.error("Error saving token:", error),
-        onSuccess: () => console.log("Token saved successfully"),
-      }
-    );
+      });
+
+      /*
+       * Only now — the cache records what the server acknowledged, never what
+       * we merely attempted. Writing it before the call meant one failed save
+       * (offline, a 5xx, an incompatible build) silenced the device forever,
+       * because every later launch saw the token as already registered.
+       */
+      storage.set(REGISTRATION_KEY, registration);
+      storage.set("pushToken", token);
+      console.log("Token saved successfully");
+    } catch (error) {
+      console.error("Error saving token:", error);
+    }
   }, [user, saveToken]);
 
   // Listeners don't depend on auth: set up once, unconditionally
