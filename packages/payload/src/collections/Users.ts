@@ -26,16 +26,11 @@ export const Users: CollectionConfig = {
           sql`DELETE FROM comments WHERE user_id = ${id}`,
           sql`DELETE FROM reactions WHERE user_id = ${id}`,
           sql`DELETE FROM content_reports WHERE reported_by_id = ${id}`,
-          sql`DELETE FROM identity_verification WHERE user_id = ${id}`,
-          sql`DELETE FROM lottery_tickets WHERE user_id = ${id}`,
-          sql`DELETE FROM lottery_winners WHERE user_id = ${id}`,
-          sql`DELETE FROM ticket_purchase_log WHERE user_id = ${id}`,
           sql`DELETE FROM notification_inbox WHERE user_id = ${id}`,
           sql`DELETE FROM notification_deliveries WHERE user_id = ${id}`,
           sql`DELETE FROM partner_conversions WHERE user_id = ${id}`,
           sql`DELETE FROM notifications_rels WHERE users_id = ${id}`,
           sql`DELETE FROM survey_rels WHERE users_id = ${id}`,
-          sql`DELETE FROM lottery_rels WHERE users_id = ${id}`,
           sql`DELETE FROM comments_rels WHERE users_id = ${id}`,
           // Both directions: rows where this user did the blocking, and rows
           // where they were the one blocked. Both columns are NOT NULL with an

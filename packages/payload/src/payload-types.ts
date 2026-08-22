@@ -92,10 +92,6 @@ export interface Config {
     'giveaway-winners': GiveawayWinner;
     'identity-checks': IdentityCheck;
     'prize-catalogue': PrizeCatalogue;
-    'identity-verification': IdentityVerification;
-    lottery: Lottery;
-    'lottery-tickets': LotteryTicket;
-    'lottery-winners': LotteryWinner;
     media: Media;
     news: News;
     'news-analytics': NewsAnalytic;
@@ -111,7 +107,6 @@ export interface Config {
     sessions: Session;
     'shop-analytics': ShopAnalytic;
     survey: Survey;
-    'ticket-purchase-log': TicketPurchaseLog;
     userBlocks: UserBlock;
     users: User;
     verifications: Verification;
@@ -146,10 +141,6 @@ export interface Config {
     'giveaway-winners': GiveawayWinnersSelect<false> | GiveawayWinnersSelect<true>;
     'identity-checks': IdentityChecksSelect<false> | IdentityChecksSelect<true>;
     'prize-catalogue': PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
-    'identity-verification': IdentityVerificationSelect<false> | IdentityVerificationSelect<true>;
-    lottery: LotterySelect<false> | LotterySelect<true>;
-    'lottery-tickets': LotteryTicketsSelect<false> | LotteryTicketsSelect<true>;
-    'lottery-winners': LotteryWinnersSelect<false> | LotteryWinnersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
     'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
@@ -165,7 +156,6 @@ export interface Config {
     sessions: SessionsSelect<false> | SessionsSelect<true>;
     'shop-analytics': ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
-    'ticket-purchase-log': TicketPurchaseLogSelect<false> | TicketPurchaseLogSelect<true>;
     userBlocks: UserBlocksSelect<false> | UserBlocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
@@ -203,7 +193,6 @@ export interface Config {
       sendModerationDigest: TaskSendModerationDigest;
       sendUrgentModerationAlert: TaskSendUrgentModerationAlert;
       checkPushReceipts: TaskCheckPushReceipts;
-      processLottery: TaskProcessLottery;
       processGiveaway: TaskProcessGiveaway;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
@@ -795,10 +784,6 @@ export interface News {
    * 💡 Article or Video
    */
   type?: ('article' | 'video') | null;
-  /**
-   * 💡 Check if video is live
-   */
-  isLive?: boolean | null;
   /**
    * 💡 Title of the news article
    */
@@ -1823,110 +1808,6 @@ export interface IdentityCheck {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "identity-verification".
- */
-export interface IdentityVerification {
-  id: string;
-  user: string | User;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  email: string;
-  shippingAddress: string;
-  governmentId: {
-    front: string | Media;
-    back: string | Media;
-  };
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "lottery".
- */
-export interface Lottery {
-  id: string;
-  name: string;
-  description?: string | null;
-  startDate: string;
-  endDate: string;
-  isActive?: boolean | null;
-  /**
-   * Set while a draw is in progress. Blocks a second draw from starting.
-   */
-  processing?: boolean | null;
-  /**
-   * Stamped when the draw completes. Once set, the draw cannot run again.
-   */
-  processedAt?: string | null;
-  drawSeed?: string | null;
-  ticketPrice: number;
-  winners?: (string | User)[] | null;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "lottery-tickets".
- */
-export interface LotteryTicket {
-  id: string;
-  user: string | User;
-  lottery: string | Lottery;
-  count: number;
-  boostLuck: number;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "lottery-winners".
- */
-export interface LotteryWinner {
-  id: string;
-  lottery: string | Lottery;
-  user: string | User;
-  prizeTier: 'HIGH' | 'MID' | 'LOW' | 'NONE';
-  prize?: string | null;
-  claimed?: boolean | null;
-  claimedAt?: string | null;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics".
  */
 export interface NewsAnalytic {
@@ -2343,26 +2224,6 @@ export interface Survey {
   createdAt: string;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ticket-purchase-log".
- */
-export interface TicketPurchaseLog {
-  id: string;
-  user: string | User;
-  lottery: string | Lottery;
-  ticketQuantity: number;
-  createdBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'admins';
-    value: string | Admin;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * Users blocked by other users. Created from the app; blocking also files a Content Report so moderators are notified.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2553,7 +2414,6 @@ export interface PayloadJob {
           | 'sendModerationDigest'
           | 'sendUrgentModerationAlert'
           | 'checkPushReceipts'
-          | 'processLottery'
           | 'processGiveaway'
           | 'cleanupAnonymousUsers'
           | 'generateVideoThumbnail'
@@ -2599,7 +2459,6 @@ export interface PayloadJob {
         | 'sendModerationDigest'
         | 'sendUrgentModerationAlert'
         | 'checkPushReceipts'
-        | 'processLottery'
         | 'processGiveaway'
         | 'cleanupAnonymousUsers'
         | 'generateVideoThumbnail'
@@ -2714,22 +2573,6 @@ export interface PayloadLockedDocument {
         value: string | PrizeCatalogue;
       } | null)
     | ({
-        relationTo: 'identity-verification';
-        value: string | IdentityVerification;
-      } | null)
-    | ({
-        relationTo: 'lottery';
-        value: string | Lottery;
-      } | null)
-    | ({
-        relationTo: 'lottery-tickets';
-        value: string | LotteryTicket;
-      } | null)
-    | ({
-        relationTo: 'lottery-winners';
-        value: string | LotteryWinner;
-      } | null)
-    | ({
         relationTo: 'media';
         value: string | Media;
       } | null)
@@ -2788,10 +2631,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'survey';
         value: string | Survey;
-      } | null)
-    | ({
-        relationTo: 'ticket-purchase-log';
-        value: string | TicketPurchaseLog;
       } | null)
     | ({
         relationTo: 'userBlocks';
@@ -3288,78 +3127,6 @@ export interface PrizeCatalogueSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "identity-verification_select".
- */
-export interface IdentityVerificationSelect<T extends boolean = true> {
-  user?: T;
-  firstName?: T;
-  lastName?: T;
-  phoneNumber?: T;
-  email?: T;
-  shippingAddress?: T;
-  governmentId?:
-    | T
-    | {
-        front?: T;
-        back?: T;
-      };
-  createdBy?: T;
-  lastModifiedBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "lottery_select".
- */
-export interface LotterySelect<T extends boolean = true> {
-  name?: T;
-  description?: T;
-  startDate?: T;
-  endDate?: T;
-  isActive?: T;
-  processing?: T;
-  processedAt?: T;
-  drawSeed?: T;
-  ticketPrice?: T;
-  winners?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "lottery-tickets_select".
- */
-export interface LotteryTicketsSelect<T extends boolean = true> {
-  user?: T;
-  lottery?: T;
-  count?: T;
-  boostLuck?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "lottery-winners_select".
- */
-export interface LotteryWinnersSelect<T extends boolean = true> {
-  lottery?: T;
-  user?: T;
-  prizeTier?: T;
-  prize?: T;
-  claimed?: T;
-  claimedAt?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
@@ -3430,7 +3197,6 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface NewsSelect<T extends boolean = true> {
   type?: T;
-  isLive?: T;
   title?: T;
   generateSlug?: T;
   slug?: T;
@@ -3772,19 +3538,6 @@ export interface SurveySelect<T extends boolean = true> {
   surveyLink?: T;
   users?: T;
   points?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ticket-purchase-log_select".
- */
-export interface TicketPurchaseLogSelect<T extends boolean = true> {
-  user?: T;
-  lottery?: T;
-  ticketQuantity?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -4165,17 +3918,6 @@ export interface TaskCheckPushReceipts {
   };
   output: {
     processed: number;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskProcessLottery".
- */
-export interface TaskProcessLottery {
-  input?: unknown;
-  output: {
-    processedExpired?: number | null;
-    createdNew?: boolean | null;
   };
 }
 /**

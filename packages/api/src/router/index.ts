@@ -5,8 +5,6 @@ import { blockRouter } from "./block";
 import { commentRouter } from "./comment";
 import { feedbackRouter } from "./feedback";
 import { giveawayRouter } from "./giveaway";
-import { lotteryRouter } from "./lottery";
-import { lotteryTicketRouter } from "./lotteryTicket";
 import { newsRouter } from "./news";
 import { notificationSettingsRouter } from "./notificationSettings";
 import { notificationsRouter } from "./notifications";
@@ -30,8 +28,6 @@ export const router = {
   comments: commentRouter,
   feedback: feedbackRouter,
   giveaway: giveawayRouter,
-  lottery: lotteryRouter,
-  lotteryTicket: lotteryTicketRouter,
   news: newsRouter,
   notificationSettings: notificationSettingsRouter,
   notifications: notificationsRouter,
