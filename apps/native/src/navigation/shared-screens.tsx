@@ -88,13 +88,6 @@ const CommentReplies = lazy(
 );
 const Comments = lazy(() => import("#/screens/tabs/home/comments/Comments"));
 const SingleNews = lazy(() => import("#/screens/tabs/home/news"));
-const LiveCommentReply = lazy(
-  () => import("#/screens/tabs/live/comments/LiveCommentReply")
-);
-const LiveComments = lazy(
-  () => import("#/screens/tabs/live/comments/LiveComments")
-);
-const Live = lazy(() => import("#/screens/tabs/live/Live"));
 
 export const sharedScreens = {
   News: createNativeStackScreen({
@@ -126,37 +119,6 @@ export const sharedScreens = {
       path: "/article/:newsSlug/comment/:commentId/:highlightCommentId?",
     },
     options: {
-      // presentation: "modal",
-      animation: "slide_from_bottom",
-    },
-  }),
-  SingleLive: createNativeStackScreen({
-    screen: Live,
-    getId: ({ params }) => params?.slug,
-    linking: {
-      path: "/video/:slug/:id?",
-    },
-  }),
-  LiveComment: createNativeStackScreen({
-    screen: LiveComments,
-    getId: ({ params }) => params?.slug,
-    linking: {
-      path: "/video/:slug/comment",
-    },
-    options: {
-      headerShown: false,
-      // slide up from bottom
-      animation: "slide_from_bottom",
-    },
-  }),
-  LiveCommentReply: createNativeStackScreen({
-    screen: LiveCommentReply,
-    getId: ({ params }) => params?.slug,
-    linking: {
-      path: "/video/:slug/comment/:commentId/:highlightCommentId?",
-    },
-    options: {
-      headerShown: false,
       // presentation: "modal",
       animation: "slide_from_bottom",
     },

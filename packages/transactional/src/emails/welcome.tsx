@@ -82,7 +82,7 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
           </Text>
           <ul style={checklist}>
             <li>✔️ Read meaningful content</li>
-            <li>✔️ Watch &amp; share live streams</li>
+            <li>✔️ Watch &amp; share engaging videos</li>
             <li>✔️ Engage with brands and content</li>
             <li>✔️ Complete simple tasks &amp; surveys</li>
           </ul>

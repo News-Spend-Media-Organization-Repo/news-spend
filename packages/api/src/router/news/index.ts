@@ -298,21 +298,6 @@ const home = publicProcedure
     return { ...news, docs: composedFeed };
   });
 
-const liveVideos = publicProcedure.handler(async ({ context }) => {
-  const { payload } = context;
-  return await payload.find({
-    collection: "news",
-    where: {
-      type: { equals: "video" },
-      isLive: { equals: true },
-      _status: { equals: "published" },
-    },
-    depth: 1,
-    limit: 10,
-    select: { content: false, keyPoints: false },
-  });
-});
-
 const one = publicProcedure
   .input(
     z.object({
@@ -538,7 +523,6 @@ export const newsRouter = {
   recordView,
   one,
   home,
-  liveVideos,
   relatedNews,
   like,
   dislike,

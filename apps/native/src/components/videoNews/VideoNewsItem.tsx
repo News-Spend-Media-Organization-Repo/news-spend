@@ -19,7 +19,7 @@ const VideoNewsItem = ({ videoNews }: { videoNews: News }) => {
     ) {
       appOpenAdSheetState.open("news-click-ads", onAdClose);
     } else {
-      navigation.navigate("SingleLive", {
+      navigation.navigate("News", {
         slug: videoNews.slug,
         id: videoNews.id,
       });
@@ -27,7 +27,7 @@ const VideoNewsItem = ({ videoNews }: { videoNews: News }) => {
   };
 
   const onAdClose = () => {
-    navigation.navigate("SingleLive", {
+    navigation.navigate("News", {
       slug: videoNews.slug,
       id: videoNews.id,
     });

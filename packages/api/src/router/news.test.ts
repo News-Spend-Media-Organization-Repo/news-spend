@@ -400,56 +400,6 @@ describe("newsRouter.home", () => {
 });
 
 // ---------------------------------------------------------------------------
-// liveVideos
-// ---------------------------------------------------------------------------
-describe("newsRouter.liveVideos", () => {
-  it("returns live video news items", async () => {
-    const payload = createFakePayload({
-      collections: {
-        news: [
-          makeNews({
-            id: "v1",
-            type: "video",
-            isLive: true,
-            slug: "live-1",
-          }),
-          makeNews({
-            id: "v2",
-            type: "video",
-            isLive: false,
-            slug: "live-2",
-          }),
-          makeNews({ id: "n1", type: "article", slug: "art-1" }),
-        ],
-      },
-    });
-    const ctx = mockContext({ payload });
-
-    const result = await call(newsRouter.liveVideos, undefined, {
-      context: ctx,
-    });
-
-    expect(result.docs).toHaveLength(1);
-    expect(result.docs[0]?.id).toBe("v1");
-  });
-
-  it("returns empty when no live videos", async () => {
-    const payload = createFakePayload({
-      collections: {
-        news: [makeNews({ id: "n1", type: "article" })],
-      },
-    });
-    const ctx = mockContext({ payload });
-
-    const result = await call(newsRouter.liveVideos, undefined, {
-      context: ctx,
-    });
-
-    expect(result.docs).toHaveLength(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // relatedNews
 // ---------------------------------------------------------------------------
 describe("newsRouter.relatedNews", () => {

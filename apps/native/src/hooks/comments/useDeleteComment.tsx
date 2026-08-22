@@ -3,14 +3,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
-import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
+import type { HomeTabRouteProps } from "#/types";
 
 export default function useDeleteComment() {
   const route = useRoute<
     | HomeTabRouteProps<"Comment">
     | HomeTabRouteProps<"CommentReply">
-    | LiveTabRouteProps<"LiveComment">
-    | LiveTabRouteProps<"LiveCommentReply">
   >();
   const { newsSlug: slug, newsId, commentId } = route.params;
   const navigation = useNavigation();

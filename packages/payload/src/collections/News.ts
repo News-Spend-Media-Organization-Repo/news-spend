@@ -59,54 +59,11 @@ const News: CollectionConfig = {
       type: "select",
       options: [
         { label: "Article", value: "article" },
-        { label: "Video", value: "video" },
+        { label: "Video", value: "video", admin: { disabled: true } },
       ],
       defaultValue: "article",
       admin: {
         description: "💡 Article or Video",
-      },
-    },
-    {
-      name: "isLive",
-      type: "checkbox",
-      defaultValue: false,
-      admin: {
-        description: "💡 Check if video is live",
-        condition: (data) => data.type === "video",
-      },
-      hooks: {
-        afterChange: [
-          ({ value, previousValue, req }) => {
-            if (value !== previousValue) {
-              // Send a POST request to the publisher API when isLive changes
-              fetch(`${process.env.API_URL}/api/publisher/sendMessage`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  channel: "live-news",
-                  message: "live news update",
-                }),
-              })
-                .then((response) => {
-                  if (!response.ok) {
-                    throw new Error("Failed to send message");
-                  }
-                  return response.json();
-                })
-                .then((data) => {
-                  console.log("Message sent to publisher:", data);
-                })
-                .catch((error) => {
-                  console.error("Error sending message to publisher:", error);
-                  if (process.env.NODE_ENV === "production") {
-                    Sentry.captureException(error);
-                  }
-                });
-            }
-          },
-        ],
       },
     },
     {

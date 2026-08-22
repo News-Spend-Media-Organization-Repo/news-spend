@@ -26,10 +26,9 @@ function ensureScheme(url: string) {
 /** Tab stack route name -> the path segment its screens are nested under. */
 const TAB_PATH_BY_ROUTE: Record<string, string> = {
   NewsHome: "news",
-  LiveHome: "live",
   ShopHome: "shop",
   DiscoverHome: "discover",
-  SettingsHome: "settings",
+  Me: "settings",
 };
 
 const ROUTE_BY_TAB_PATH: Record<string, string> = Object.fromEntries(

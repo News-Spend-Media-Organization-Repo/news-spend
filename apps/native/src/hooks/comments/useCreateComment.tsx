@@ -3,15 +3,9 @@ import { useMutation } from "@tanstack/react-query";
 
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
-import type { HomeTabRouteProps, LiveTabRouteProps } from "#/types";
 
 function useCreateComment(slug: string) {
-  const route = useRoute<
-    | HomeTabRouteProps<"Comment">
-    | HomeTabRouteProps<"CommentReply">
-    | LiveTabRouteProps<"LiveComment">
-    | LiveTabRouteProps<"LiveCommentReply">
-  >();
+  const route = useRoute();
 
   const type =
     route.name === "Comment" || route.name === "CommentReply"

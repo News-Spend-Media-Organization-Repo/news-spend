@@ -55,17 +55,10 @@ const TrendingNewsItem = ({ item }: { item: News }) => {
   const { url, blurhash } = getImageData(item?.image);
 
   const onAdClose = useCallback(() => {
-    if (item?.type === "video") {
-      navigation.navigate("SingleLive", {
-        slug: item.slug,
-        id: item.id,
-      });
-    } else {
-      navigation.navigate("News", {
-        slug: item.slug,
-        id: item.id,
-      });
-    }
+    navigation.navigate("News", {
+      slug: item.slug,
+      id: item.id,
+    });
   }, [item, navigation]);
 
   const onPress = useCallback(() => {
@@ -74,11 +67,6 @@ const TrendingNewsItem = ({ item }: { item: News }) => {
       (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
     ) {
       appOpenAdSheetState.open("news-click-ads", onAdClose);
-    } else if (item?.type === "video") {
-      navigation.navigate("SingleLive", {
-        slug: item.slug,
-        id: item.id,
-      });
     } else {
       navigation.navigate("News", {
         slug: item.slug,

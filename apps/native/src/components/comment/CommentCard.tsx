@@ -7,7 +7,7 @@ import {
   ClockIcon,
   HeartStraightIcon,
 } from "phosphor-react-native";
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { View } from "react-native";
 import { useSnapshot } from "valtio";
 import { Button } from "#/components/heroui/button";
@@ -16,7 +16,7 @@ import { Text } from "#/components/heroui/text";
 import useLikeComment from "#/hooks/comments/useLikeComment";
 import type { RouterOutputs } from "#/lib/orpc";
 import { authState } from "#/state/auth";
-import { randomColor } from "#/utils/index";
+import { avatarColor } from "#/utils/index";
 import CommentOptionPopover from "./CommentOptionPopover";
 
 type CommentCardProps = {
@@ -27,12 +27,9 @@ type CommentCardProps = {
   setReplyingTo?: (id: string) => void;
   setParentId?: (id: string) => void;
   /**
-   * Which "world" this comment is rendered in. Determines whether tapping
-   * reply or the comment count navigates to the article or live-video
-   * reply screen. Defaults to "article" since the comment component is
-   * reused across both contexts.
+   * Which "world" this comment is rendered in. Defaults to "article".
    */
-  screenType?: "article" | "live";
+  screenType?: "article";
 };
 
 const CommentCard = memo(
@@ -49,8 +46,6 @@ const CommentCard = memo(
     const auth = useSnapshot(authState);
     const route = useRoute();
 
-    const avatarBg = useMemo(() => randomColor(), []);
-
     const navigation = useNavigation();
 
     if (!comment) {
@@ -58,18 +53,14 @@ const CommentCard = memo(
     }
 
     const navigateToReplies = () => {
-      const target =
-        screenType === "live" ? "LiveCommentReply" : "CommentReply";
-      navigation.navigate(target, {
+      navigation.navigate("CommentReply", {
         commentId: comment.id,
         newsId,
         newsSlug: route.params?.newsSlug as string,
       });
     };
 
-    const isRepliesScreen =
-      route.name ===
-      (screenType === "live" ? "LiveCommentReply" : "CommentReply");
+    const isRepliesScreen = route.name === "CommentReply";
 
     const isLiked = comment.userReaction === "like";
 
@@ -83,9 +74,7 @@ const CommentCard = memo(
     };
 
     const onReply = () => {
-      const target =
-        screenType === "live" ? "LiveCommentReply" : "CommentReply";
-      navigation.navigate(target, {
+      navigation.navigate("CommentReply", {
         commentId: comment.id,
         newsId,
         newsSlug: route.params?.newsSlug as string,
@@ -100,12 +89,10 @@ const CommentCard = memo(
         <View className="flex-row gap-2.5 px-2.5">
           <View
             className="h-8 w-8 items-center justify-center rounded-full"
-            style={{ backgroundColor: avatarBg }}
+            style={{ backgroundColor: avatarColor(commentUser?.id) }}
           >
             <Text className="text-base text-white">
-              {(typeof comment.user === "object" &&
-                comment.user.username?.[0].toUpperCase()) ??
-                "U"}
+              {commentUser?.username?.[0]?.toUpperCase() ?? "U"}
             </Text>
           </View>
 

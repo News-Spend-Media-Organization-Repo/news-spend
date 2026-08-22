@@ -35,7 +35,7 @@ export default function NewsItem({
         latest, // TODO: fix type
       });
     } else {
-      navigation.navigate("SingleLive", {
+      navigation.navigate("News", {
         slug: news.slug,
         id: news.id,
       });
@@ -50,7 +50,7 @@ export default function NewsItem({
         latest,
       });
     } else {
-      navigation.navigate("SingleLive", {
+      navigation.navigate("News", {
         slug: news.slug,
         id: news.id,
       });

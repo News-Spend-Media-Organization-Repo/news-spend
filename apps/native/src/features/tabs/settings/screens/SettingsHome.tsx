@@ -24,7 +24,7 @@ import {
   UserIcon,
   UserMinusIcon,
 } from "phosphor-react-native";
-import { Fragment, useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSnapshot } from "valtio";
@@ -36,7 +36,7 @@ import { Text } from "#/components/heroui/text";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { orpc } from "#/lib/orpc";
 import { authState, logout } from "#/state/auth";
-import { randomColor } from "#/utils/index";
+import { avatarColor } from "#/utils/index";
 
 type SettingsItem = {
   title: string;
@@ -53,14 +53,10 @@ const settingsItems: SettingsItem[] = [
     screen: "Profile",
     authRequired: true,
   },
-  // Must ship in release builds. It was previously __DEV__-only, so no
-  // reviewer could ever find the block-management screen. Guests are routed to
-  // sign-in, since blocking requires a registered account.
   {
-    title: "Blocked Users",
-    icon: UserMinusIcon,
-    screen: "BlockedUsers",
-    authRequired: true,
+    title: "FAQ",
+    icon: ArticleIcon,
+    screen: "FAQ",
   },
   {
     title: "Activities",
@@ -74,35 +70,48 @@ const settingsItems: SettingsItem[] = [
     screen: "Report",
   },
   {
-    title: "Notification manager",
+    title: "Share This App",
+    icon: ShareIcon,
+    screen: "ShareApp",
+  },
+  {
+    title: "Rate This App",
+    icon: StarIcon,
+    screen: "RateApp",
+  },
+  {
+    title: "Follow Us",
+    icon: IdentificationBadgeIcon,
+    screen: "Socials",
+  },
+  {
+    title: "Notification Manager",
     icon: BellRingingIcon,
     screen: "Notification",
     authRequired: true,
   },
   {
-    title: "Data manager",
+    title: "Data Manager",
     icon: HardDrivesIcon,
     screen: "DataManager",
     authRequired: true,
   },
-  // Identity verification is deliberately absent. It is reached from the
-  // prize that needs it (see MyPrizes), never browsed to: every check costs
-  // real money at the provider, and no prize currently requires one. A
-  // standing menu entry would invite people to hand over an ID document,
-  // and have us pay to inspect it, for nothing.
-  { title: "Contact us", icon: PhoneCallIcon, screen: "Support" },
+  {
+    title: "Contact Us",
+    icon: PhoneCallIcon,
+    screen: "Support",
+  },
   {
     title: "Legal Agreement",
     icon: LockKeyIcon,
     screen: "Legal",
   },
-  { title: "Rate this app", icon: StarIcon, screen: "RateApp" },
   {
-    title: "Share this app",
-    icon: ShareIcon,
-    screen: "ShareApp",
+    title: "Blocked Users",
+    icon: UserMinusIcon,
+    screen: "BlockedUsers",
+    authRequired: true,
   },
-  { title: "Follow us", icon: IdentificationBadgeIcon, screen: "Socials" },
   {
     title: "Delete Account",
     icon: TrashIcon,
@@ -216,7 +225,6 @@ function ListHeader({ onPress }: ListHeaderProps) {
     })
   );
 
-  const avatarBg = useMemo(() => randomColor(), []);
   const maxValue = 60_000;
   const progressPercentage = Math.round(((totalPoints ?? 0) / maxValue) * 100);
 
@@ -224,7 +232,7 @@ function ListHeader({ onPress }: ListHeaderProps) {
     <View className="gap-4 px-4 pt-4">
       <Card className="gap-3 rounded-xl px-3 pt-4 pb-4">
         <Card.Header className="mb-2 flex-row items-center gap-3">
-          <Avatar size="lg" style={{ backgroundColor: avatarBg }}>
+          <Avatar size="lg" style={{ backgroundColor: avatarColor(user?.id) }}>
             <Avatar.Image />
             <Avatar.Fallback>
               {user?.name

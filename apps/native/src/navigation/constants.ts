@@ -3,9 +3,8 @@ export const CONSTANTS = {
   SPLASH_SCREEN_DELAY: 100,
   TAB_SCREENS: [
     "NewsHome",
-    "LiveHome",
     "ShopHome",
-    "SettingsHome",
     "DiscoverHome",
+    "Me",
   ],
 } as const;

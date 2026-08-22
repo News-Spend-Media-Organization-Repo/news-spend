@@ -41,11 +41,7 @@ function ActivitySheetContent({
     if (!news) {
       return;
     }
-    if (news.type === "article") {
-      navigateToScreen("News", { slug: news.slug, id: news.id });
-    } else {
-      navigateToScreen("SingleLive", { slug: news.slug, id: news.id });
-    }
+    navigateToScreen("News", { slug: news.slug, id: news.id });
     onClose();
   };
 

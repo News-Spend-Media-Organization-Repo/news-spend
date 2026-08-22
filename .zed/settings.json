@@ -6,15 +6,27 @@
       "settings": {
         "typescript": {
           "tsserver": {
-            "maxTsServerMemory": 4096
+            "maxTsServerMemory": 3072
           },
-          "disableAutomaticTypeAcquisition": true
+          "disableAutomaticTypeAcquisition": true,
+          "preferences": {
+            "includePackageJsonAutoImports": "off"
+          },
+          "suggest": {
+            "autoImports": true
+          }
         },
         "javascript": {
           "tsserver": {
-            "maxTsServerMemory": 4096
+            "maxTsServerMemory": 3072
           },
-          "disableAutomaticTypeAcquisition": true
+          "disableAutomaticTypeAcquisition": true,
+          "preferences": {
+            "includePackageJsonAutoImports": "off"
+          },
+          "suggest": {
+            "autoImports": true
+          }
         }
       }
     },
@@ -50,48 +62,15 @@
           "ListFooterComponentClassName",
           "ListHeaderComponentClassName"
         ],
-        "classFunctions": ["useResolveClassNames"]
-      }
-    },
-    "oxfmt": {
-      "initialization_options": {
-        "settings": {
-          "configPath": null,
-          "flags": {},
-          "fmt.configPath": null,
-          "fmt.experimental": true,
-          "run": "onSave",
-          "typeAware": false,
-          "unusedDisableDirectives": false
-        }
-      }
-    },
-    "oxlint": {
-      "initialization_options": {
-        "settings": {
-          "disableNestedConfig": false,
-          "fixKind": "safe_fix",
-          "run": "onType",
-          "typeAware": true,
-          "unusedDisableDirectives": "deny"
-        }
-      }
-    },
-    "typescript-language-server": {
-      "settings": {
-        "typescript": {
-          "preferences": {
-            "includePackageJsonAutoImports": "on"
-          }
-        }
+        "classFunctions": [
+          "useResolveClassNames"
+        ]
       }
     }
   },
   "languages": {
     "JavaScript": {
       "code_actions_on_format": {
-        "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true,
         "source.fixAll.biome": true,
         "source.organizeImports.biome": true
       },
@@ -99,12 +78,19 @@
         "language_server": {
           "name": "biome"
         }
-      }
+      },
+      "language_servers": [
+        "vtsls",
+        "biome",
+        "tailwindcss-language-server",
+        "!eslint",
+        "!oxlint",
+        "!oxfmt",
+        "!typescript-language-server"
+      ]
     },
     "TSX": {
       "code_actions_on_format": {
-        "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true,
         "source.fixAll.biome": true,
         "source.organizeImports.biome": true
       },
@@ -112,12 +98,19 @@
         "language_server": {
           "name": "biome"
         }
-      }
+      },
+      "language_servers": [
+        "vtsls",
+        "biome",
+        "tailwindcss-language-server",
+        "!eslint",
+        "!oxlint",
+        "!oxfmt",
+        "!typescript-language-server"
+      ]
     },
     "TypeScript": {
       "code_actions_on_format": {
-        "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true,
         "source.fixAll.biome": true,
         "source.organizeImports.biome": true
       },
@@ -125,19 +118,52 @@
         "language_server": {
           "name": "biome"
         }
-      }
+      },
+      "language_servers": [
+        "vtsls",
+        "biome",
+        "tailwindcss-language-server",
+        "!eslint",
+        "!oxlint",
+        "!oxfmt",
+        "!typescript-language-server"
+      ]
     }
   },
   "context_servers": {
     "argent": {
       "source": "custom",
       "command": "argent",
-      "args": ["mcp"]
+      "args": [
+        "mcp"
+      ]
     }
   },
   "agent": {
     "tool_permissions": {
       "default": "allow"
     }
-  }
+  },
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/CVS",
+    "**/.DS_Store",
+    "**/node_modules",
+    "**/.next",
+    "**/.turbo",
+    "**/.expo",
+    "**/dist",
+    "**/build",
+    "apps/native/ios",
+    "apps/native/android",
+    "**/.codegraph",
+    "**/.act",
+    "**/.sisyphus",
+    "**/.omo",
+    "**/Pods",
+    "**/*.xcworkspace",
+    "**/*.xcodeproj"
+  ]
 }

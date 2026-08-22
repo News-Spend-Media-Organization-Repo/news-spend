@@ -6,7 +6,7 @@ import {
   ClockIcon,
   HeartStraightIcon,
 } from "phosphor-react-native";
-import { memo, type RefObject, useMemo } from "react";
+import { memo, type RefObject } from "react";
 import { type TextInput, View } from "react-native";
 import { useSnapshot } from "valtio";
 
@@ -19,7 +19,7 @@ import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
 import { startReply } from "#/state/commentState";
 import { isRefObject } from "#/utils/comment-utils";
-import { randomColor } from "#/utils/index";
+import { avatarColor } from "#/utils/index";
 import CommentOptionPopover from "./CommentOptionPopover";
 
 type Comment = RouterOutputs["comments"]["one"];
@@ -42,8 +42,6 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
   const { mutate } = useLikeComment(newsId ?? "", parentCommentId);
   const auth = useSnapshot(authState);
   const navigation = useNavigation();
-
-  const avatarBg = useMemo(() => randomColor(), []);
 
   const isLiked = comment.userReaction === "like";
 
@@ -72,8 +70,8 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
     mutate(comment.id);
   };
 
-  const username =
-    typeof comment.user === "object" ? comment.user.username : "Unknown";
+  const commentUser = typeof comment.user === "object" ? comment.user : null;
+  const username = commentUser?.username ?? "Unknown";
 
   return (
     <View className="ml-8 px-2.5">
@@ -81,7 +79,7 @@ const Reply = memo(({ comment, inputRef }: CommentReplyProps) => {
         <View className="flex-1 flex-row gap-2.5">
           <View
             className="h-8 w-8 items-center justify-center rounded-full"
-            style={{ backgroundColor: avatarBg }}
+            style={{ backgroundColor: avatarColor(commentUser?.id) }}
           >
             <Text className="text-base text-white">
               {username.charAt(0).toUpperCase()}

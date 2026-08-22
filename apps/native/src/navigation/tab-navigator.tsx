@@ -1,15 +1,13 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   HouseIcon,
-  PlusCircleIcon,
   ShoppingCartIcon,
   TagIcon,
-  VideoCameraIcon,
+  UserIcon,
 } from "phosphor-react-native";
 
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
-import LiveStack from "./live-stack";
 import SettingsStack from "./settings-stack";
 import ShopStack from "./shop-stack";
 import TabBar from "./tab-bar";
@@ -37,44 +35,6 @@ export default createBottomTabNavigator({
         },
       },
     },
-    Live: {
-      linking: {
-        path: "live",
-        initialRouteName: "LiveHome",
-      },
-      screen: LiveStack,
-      options: {
-        tabBarIcon(props) {
-          return (
-            <VideoCameraIcon
-              color={props.color.toString()}
-              size={props.size}
-              weight="regular"
-            />
-          );
-        },
-      },
-    },
-    Settings: {
-      linking: {
-        path: "settings",
-        initialRouteName: "SettingsHome",
-      },
-      screen: SettingsStack,
-      options: {
-        headerShown: false,
-        title: "Settings",
-        tabBarIcon(props) {
-          return (
-            <PlusCircleIcon
-              color={props.color.toString()}
-              size={props.size}
-              weight="regular"
-            />
-          );
-        },
-      },
-    },
     Discover: {
       linking: {
         path: "discover",
@@ -84,7 +44,11 @@ export default createBottomTabNavigator({
       options: {
         tabBarIcon(props) {
           return (
-            <TagIcon color={props.color} size={props.size} weight="regular" />
+            <TagIcon
+              color={props.color.toString()}
+              size={props.size}
+              weight="regular"
+            />
           );
         },
       },
@@ -101,6 +65,27 @@ export default createBottomTabNavigator({
             <ShoppingCartIcon
               color={props.color.toString()}
               size={props.size}
+              weight="regular"
+            />
+          );
+        },
+      },
+    },
+    Me: {
+      linking: {
+        path: "settings",
+        initialRouteName: "SettingsHome",
+      },
+      screen: SettingsStack,
+      options: {
+        headerShown: false,
+        title: "Me",
+        tabBarIcon(props) {
+          return (
+            <UserIcon
+              color={props.color.toString()}
+              focused={props.focused}
+              // size={props.size}
               weight="regular"
             />
           );
