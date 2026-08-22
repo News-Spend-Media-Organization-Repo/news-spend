@@ -92,9 +92,7 @@ const CommentCard = memo(
             style={{ backgroundColor: avatarColor(commentUser?.id) }}
           >
             <Text className="text-base text-white">
-              {(typeof comment.user === "object" &&
-                comment.user.username?.[0].toUpperCase()) ??
-                "U"}
+              {commentUser?.username?.[0]?.toUpperCase() ?? "U"}
             </Text>
           </View>
 
