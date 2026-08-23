@@ -12,7 +12,7 @@ import {
   GiftIcon,
   PackageIcon,
   TicketIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
 import { ScreenHeader } from "#/components";
 import { Icon } from "#/components/heroui/icon";

@@ -7,14 +7,14 @@ import type {
 } from "heroui-native/toast";
 import { Toast as HeroUIToast, useToast } from "heroui-native/toast";
 import { cn } from "heroui-native/utils";
-import type { Icon } from "phosphor-react-native";
+import type { Icon } from "#/lib/icons";
 import {
   BellIcon,
   CheckCircleIcon,
   InfoIcon,
   WarningIcon,
   XCircleIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { useEffect } from "react";
 import { View } from "react-native";
 import { useUniwind } from "uniwind";

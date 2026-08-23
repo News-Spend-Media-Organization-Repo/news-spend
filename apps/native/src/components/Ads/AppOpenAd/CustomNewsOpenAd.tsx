@@ -8,7 +8,7 @@ import {
   PlayIcon,
   SpeakerHighIcon,
   SpeakerSlashIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Button } from "#/components/heroui/button";

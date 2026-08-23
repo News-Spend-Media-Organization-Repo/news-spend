@@ -1,5 +1,5 @@
 import type { Activity } from "@news-spend-media/payload/types";
-import type { IconProps as PIconProps } from "phosphor-react-native";
+import type { IconProps as PIconProps } from "#/lib/icons";
 import {
   ArrowCounterClockwiseIcon,
   CalendarIcon,
@@ -15,7 +15,7 @@ import {
   ShareNetworkIcon,
   TicketIcon,
   UsersIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import type React from "react";
 import type { RouterInputs } from "#/lib/orpc";
 

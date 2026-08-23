@@ -5,7 +5,7 @@ import { Label } from "heroui-native/label";
 import { TextArea } from "heroui-native/text-area";
 import { TextField } from "heroui-native/text-field";
 import { cn } from "heroui-native/utils";
-import { EyeIcon, EyeSlashIcon } from "phosphor-react-native";
+import { EyeIcon, EyeSlashIcon } from "#/lib/icons";
 import { useState } from "react";
 import {
   Controller,

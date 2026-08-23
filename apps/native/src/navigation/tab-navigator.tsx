@@ -4,7 +4,7 @@ import {
   ShoppingCartIcon,
   TagIcon,
   UserIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";

@@ -7,7 +7,7 @@ import {
   SkipBackIcon,
   SkipForwardIcon,
   XIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { useCallback } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Gesture } from "react-native-gesture-handler";

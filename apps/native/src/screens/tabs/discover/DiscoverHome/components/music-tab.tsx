@@ -1,4 +1,4 @@
-import { CheckCircleIcon, MusicNoteIcon } from "phosphor-react-native";
+import { CheckCircleIcon, MusicNoteIcon } from "#/lib/icons";
 import { useCallback, useMemo } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";

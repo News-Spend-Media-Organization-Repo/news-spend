@@ -3,7 +3,7 @@ import {
   type NativeStackHeaderProps,
 } from "@react-navigation/native-stack";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
-import { XIcon } from "phosphor-react-native";
+import { XIcon } from "#/lib/icons";
 import { Suspense } from "react";
 import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";

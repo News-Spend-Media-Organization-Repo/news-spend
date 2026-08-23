@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-query";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
-import { ArrowLeftIcon, HeartIcon } from "phosphor-react-native";
+import { ArrowLeftIcon, HeartIcon } from "#/lib/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, Platform, StyleSheet, View } from "react-native";
 import WebView from "react-native-webview";

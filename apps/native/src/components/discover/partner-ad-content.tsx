@@ -7,7 +7,7 @@ import {
   PlayIcon,
   SpeakerHighIcon,
   SpeakerSlashIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { useCallback, useEffect, useMemo } from "react";
 import { useWindowDimensions, View } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";

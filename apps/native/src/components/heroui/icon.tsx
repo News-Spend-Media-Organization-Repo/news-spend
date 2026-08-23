@@ -1,4 +1,4 @@
-import type { IconProps as PIconProps } from "phosphor-react-native";
+import type { IconProps as PIconProps } from "#/lib/icons";
 import type React from "react";
 import { useCSSVariable, withUniwind } from "uniwind";
 

@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Spinner } from "heroui-native/spinner";
-import { StarIcon } from "phosphor-react-native";
+import { StarIcon } from "#/lib/icons";
 import { FormProvider, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";

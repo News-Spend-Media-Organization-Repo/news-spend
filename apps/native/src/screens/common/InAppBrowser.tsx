@@ -16,7 +16,7 @@ import {
   DotsThreeOutlineVerticalIcon,
   ShareNetworkIcon,
   XIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,

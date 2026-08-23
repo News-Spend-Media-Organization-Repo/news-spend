@@ -6,7 +6,7 @@ import { BottomSheet } from "heroui-native/bottom-sheet";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Tabs } from "heroui-native/tabs";
 import { cn } from "heroui-native/utils";
-import { NewspaperIcon } from "phosphor-react-native";
+import { NewspaperIcon } from "#/lib/icons";
 import { useState } from "react";
 import { View } from "react-native";
 import { Icon } from "#/components/heroui/icon";

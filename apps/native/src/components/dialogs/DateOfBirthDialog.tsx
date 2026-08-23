@@ -3,7 +3,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Dialog } from "heroui-native/dialog";
-import { CakeIcon } from "phosphor-react-native";
+import { CakeIcon } from "#/lib/icons";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, View } from "react-native";
 

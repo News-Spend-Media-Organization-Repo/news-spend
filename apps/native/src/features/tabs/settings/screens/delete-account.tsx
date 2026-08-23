@@ -3,7 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Checkbox } from "heroui-native/checkbox";
 import { ControlField } from "heroui-native/control-field";
 import { Spinner } from "heroui-native/spinner";
-import { WarningCircleIcon } from "phosphor-react-native";
+import { WarningCircleIcon } from "#/lib/icons";
 import { useState } from "react";
 import { FormProvider, type SubmitHandler, useForm } from "react-hook-form";
 import { Alert, Keyboard, View } from "react-native";

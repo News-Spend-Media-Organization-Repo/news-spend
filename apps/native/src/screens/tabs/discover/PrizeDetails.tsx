@@ -7,7 +7,7 @@ import {
   DeviceMobileIcon,
   GiftIcon,
   PackageIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { ActivityIndicator, View } from "react-native";
 
 import { ScreenHeader } from "#/components";

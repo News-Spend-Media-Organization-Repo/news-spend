@@ -10,7 +10,7 @@ import {
   ShareNetworkIcon,
   TwitterLogoIcon,
   WhatsappLogoIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { useState } from "react";
 import { FlatList, ToastAndroid, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

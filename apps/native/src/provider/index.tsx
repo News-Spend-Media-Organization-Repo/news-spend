@@ -2,7 +2,7 @@ import { ErrorBoundary } from "@sentry/react-native";
 import { DetourProvider } from "@swmansion/react-native-detour";
 import type { HeroUINativeConfig } from "heroui-native/provider";
 import { HeroUINativeProvider } from "heroui-native/provider";
-import { IconContext } from "phosphor-react-native";
+import { IconContext } from "#/lib/icons";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {

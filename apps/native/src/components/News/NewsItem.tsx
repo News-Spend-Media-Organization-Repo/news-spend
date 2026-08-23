@@ -2,7 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { formatDistanceToNow } from "date-fns";
 import { Chip } from "heroui-native/chip";
 import { cn } from "heroui-native/utils";
-import { ClockIcon, PlayIcon } from "phosphor-react-native";
+import { ClockIcon, PlayIcon } from "#/lib/icons";
 import { Pressable, View } from "react-native";
 import type { RouterOutputs } from "#/lib/orpc";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";

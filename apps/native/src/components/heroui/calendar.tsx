@@ -14,7 +14,7 @@ import {
   subMonths,
 } from "date-fns";
 import { cn } from "heroui-native/utils";
-import { CaretLeftIcon, CaretRightIcon } from "phosphor-react-native";
+import { CaretLeftIcon, CaretRightIcon } from "#/lib/icons";
 import type React from "react";
 import { useState } from "react";
 import { Pressable, View } from "react-native";

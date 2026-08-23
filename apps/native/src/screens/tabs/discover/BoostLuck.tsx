@@ -2,7 +2,7 @@ import { CommonActions, useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { Card } from "heroui-native/card";
-import { CoinsIcon } from "phosphor-react-native";
+import { CoinsIcon } from "#/lib/icons";
 import { View } from "react-native";
 
 import { ScreenHeader } from "#/components";

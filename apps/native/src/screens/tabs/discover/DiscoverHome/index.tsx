@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { PlayCircleIcon, SketchLogoIcon } from "phosphor-react-native";
+import { PlayCircleIcon, SketchLogoIcon } from "#/lib/icons";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { Tabs } from "react-native-collapsible-tab";

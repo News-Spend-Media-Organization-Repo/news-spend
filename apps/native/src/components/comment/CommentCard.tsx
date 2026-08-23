@@ -6,7 +6,7 @@ import {
   ChatIcon,
   ClockIcon,
   HeartStraightIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { memo } from "react";
 import { View } from "react-native";
 import { useSnapshot } from "valtio";

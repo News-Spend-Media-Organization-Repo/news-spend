@@ -4,7 +4,7 @@ import {
 } from "@legendapp/list/react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CaretDownIcon } from "phosphor-react-native";
+import { CaretDownIcon } from "#/lib/icons";
 import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, type TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";

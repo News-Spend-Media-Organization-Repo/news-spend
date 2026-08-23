@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { ListGroup } from "heroui-native/list-group";
 import { Separator } from "heroui-native/separator";
-import { FileArrowUpIcon, XIcon } from "phosphor-react-native";
+import { FileArrowUpIcon, XIcon } from "#/lib/icons";
 import { Alert, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "#/components/heroui/text";

@@ -5,7 +5,7 @@ import {
   ArrowBendUpLeftIcon,
   ClockIcon,
   HeartStraightIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { memo, type RefObject } from "react";
 import { type TextInput, View } from "react-native";
 import { useSnapshot } from "valtio";
