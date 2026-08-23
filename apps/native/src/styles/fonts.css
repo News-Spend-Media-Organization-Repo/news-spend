@@ -5,6 +5,7 @@
       --font-medium: "Inter-Medium";
       --font-semibold: "Inter-SemiBold";
       --font-bold: "Inter-Bold";
+      --font-extrabold: "Inter-Bold";
     }
 
     @variant dark {
@@ -12,6 +13,7 @@
       --font-medium: "Inter-Medium";
       --font-semibold: "Inter-SemiBold";
       --font-bold: "Inter-Bold";
+      --font-extrabold: "Inter-Bold";
     }
   }
 }
