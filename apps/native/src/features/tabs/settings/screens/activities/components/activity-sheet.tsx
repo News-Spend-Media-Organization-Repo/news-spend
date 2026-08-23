@@ -1,6 +1,6 @@
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import type { Activity } from "@news-spend-media/payload/types";
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { Image } from "expo-image";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { PressableFeedback } from "heroui-native/pressable-feedback";

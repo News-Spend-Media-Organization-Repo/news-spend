@@ -1,7 +1,7 @@
 import { isInferableError } from "@orpc/client";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { Dialog } from "heroui-native/dialog";
 import { CakeIcon } from "#/lib/icons";
 import { useState } from "react";

@@ -1,7 +1,8 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { format } from "date-fns/format";
+import { formatDistanceToNowStrict } from "date-fns/formatDistanceToNowStrict";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { cn } from "heroui-native/utils";

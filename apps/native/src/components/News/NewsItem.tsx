@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { Chip } from "heroui-native/chip";
 import { cn } from "heroui-native/utils";
 import { ClockIcon, PlayIcon } from "#/lib/icons";
