@@ -11,6 +11,21 @@ import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
 // Input schema for tracking a click
 const trackClickInput = z.object({
   partnerContentId: z.string(),
+  /**
+   * Optional caller-minted click id, so a client can put the id into the
+   * outbound URL and report the click without waiting on this round trip.
+   *
+   * Safe to accept because `clickId` is `unique: true` with a DB index on
+   * partner-conversions: replaying somebody else's id fails the constraint
+   * and writes nothing, so it cannot hijack or overwrite their conversion.
+   * The format is pinned so the value stays a recognisable click id.
+   *
+   * Omitted, one is generated here as before.
+   */
+  clickId: z
+    .string()
+    .regex(/^clk_[0-9a-f]{16}$/, "Invalid click id")
+    .optional(),
 });
 
 // Track a click on CPA content
@@ -43,8 +58,9 @@ export const trackClick = protectedNoGuestProcedure
         ? content.partner
         : content.partner.id;
 
-    // Generate unique click ID
-    const clickId = `clk_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
+    // Caller-minted when the client needed the id before this call returned.
+    const clickId =
+      input.clickId ?? `clk_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
     // Create conversion record
     const created = await payload.create({

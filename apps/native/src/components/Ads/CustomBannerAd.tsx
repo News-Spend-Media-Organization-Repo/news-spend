@@ -1,15 +1,9 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useQuery } from "@tanstack/react-query";
-import * as Linking from "expo-linking";
 import { memo, useMemo } from "react";
-import {
-  Dimensions,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 import { BannerAd as GoogleBannerAd } from "react-native-google-mobile-ads";
+import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { adUnits } from "#/lib/adUnits";
 import { orpc } from "#/lib/orpc";
 import { getBannerDimensions, getGoogleBannerSize } from "#/utils/ads";
@@ -39,6 +33,8 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
     ...queryOptions,
   });
 
+  const { handleClick } = usePartnerClick();
+
   const { containerWidth, containerHeight } = useMemo(() => {
     // ANCHORED_ADAPTIVE_BANNER has no fixed dims, so we fill width at a 6:1 ratio
     if (size === "ANCHORED_ADAPTIVE") {
@@ -58,19 +54,13 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
     };
   }, [size]);
 
-  const onPress = async () => {
-    let urlToOpen = Platform.select({
-      ios: data?.links?.iosAppStore,
-      android: data?.links?.androidPlayStore,
-    });
-    if (!urlToOpen && data?.links?.website) {
-      urlToOpen = data.links.website;
-    }
-    if (urlToOpen) {
-      const canOpen = await Linking.canOpenURL(urlToOpen);
-      if (canOpen) {
-        await Linking.openURL(urlToOpen);
-      }
+  /**
+   * See NewsItemAd: the hook records the CPA click and picks in-app browser
+   * vs store, which opening the URL here bypassed.
+   */
+  const onPress = () => {
+    if (data) {
+      handleClick(data);
     }
   };
 
