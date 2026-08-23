@@ -42,6 +42,7 @@ import * as migration_20260821_010000_reapply_cascade_fixes from './20260821_010
 import * as migration_20260822_194144_drop_legacy_lottery from './20260822_194144_drop_legacy_lottery';
 import * as migration_20260823_073220_partner_content_weight from './20260823_073220_partner_content_weight';
 import * as migration_20260823_090000_delete_cascade_notifications from './20260823_090000_delete_cascade_notifications';
+import * as migration_20260823_093000_delete_cascade_partners_giveaway from './20260823_093000_delete_cascade_partners_giveaway';
 
 export const migrations = [
   {
@@ -263,5 +264,10 @@ export const migrations = [
     up: migration_20260823_090000_delete_cascade_notifications.up,
     down: migration_20260823_090000_delete_cascade_notifications.down,
     name: '20260823_090000_delete_cascade_notifications',
+  },
+  {
+    up: migration_20260823_093000_delete_cascade_partners_giveaway.up,
+    down: migration_20260823_093000_delete_cascade_partners_giveaway.down,
+    name: '20260823_093000_delete_cascade_partners_giveaway',
   },
 ];
