@@ -577,11 +577,13 @@ export const PartnerContent: CollectionConfig = {
               },
             },
             {
-              name: "priority",
+              name: "weight",
               type: "number",
-              defaultValue: 10,
+              defaultValue: 1,
+              min: 0,
               admin: {
-                description: "Higher = shown first in its placement slot",
+                description:
+                  "Share of voice within a placement, relative to the other active content there. Weight 3 against weight 1 is drawn roughly three times as often. 0 withholds it without unpublishing.",
                 position: "sidebar",
               },
             },

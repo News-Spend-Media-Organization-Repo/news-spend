@@ -1239,9 +1239,9 @@ export interface PartnerContent {
    */
   points: number;
   /**
-   * Higher = shown first in its placement slot
+   * Share of voice within a placement, relative to the other active content there. Weight 3 against weight 1 is drawn roughly three times as often. 0 withholds it without unpublishing.
    */
-  priority?: number | null;
+  weight?: number | null;
   /**
    * Where this content should appear in the app
    */
@@ -3347,7 +3347,7 @@ export interface PartnerContentSelect<T extends boolean = true> {
         androidPlayStore?: T;
       };
   points?: T;
-  priority?: T;
+  weight?: T;
   placements?: T;
   status?: T;
   schedule?:

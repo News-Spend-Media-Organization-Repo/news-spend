@@ -3426,7 +3426,7 @@ export const partner_content = pgTable(
     links_iosAppStore: varchar("links_ios_app_store"),
     links_androidPlayStore: varchar("links_android_play_store"),
     points: numeric("points", { mode: "number" }).notNull(),
-    priority: numeric("priority", { mode: "number" }).default(10),
+    weight: numeric("weight", { mode: "number" }).default(1),
     status: enum_partner_content_status("status").notNull().default("draft"),
     schedule_startDate: timestamp("schedule_start_date", {
       mode: "string",
