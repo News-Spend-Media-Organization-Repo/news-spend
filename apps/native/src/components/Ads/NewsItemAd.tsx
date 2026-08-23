@@ -1,8 +1,8 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import * as Linking from "expo-linking";
 import { memo, useCallback, useMemo } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
+import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
 import { Image } from "../heroui/image";
@@ -28,16 +28,18 @@ function NewsItemAds({
   const { url, blurhash } = imageData;
 
   const partnerContent = item.payload;
+  const { handleClick } = usePartnerClick();
 
-  // Memoize the link calculation
-  const adLink = useMemo(() => getLink(partnerContent), [partnerContent]);
-
-  // Stable onPress callback
-  const onPress = useCallback(async () => {
-    if (adLink) {
-      await Linking.openURL(adLink);
-    }
-  }, [adLink]);
+  /**
+   * Routed through usePartnerClick rather than opening the URL directly. A
+   * CPA partner's click has to be recorded and its clickId appended before
+   * the link opens, or the postback lands with nothing to attribute it to.
+   * The hook also decides in-app browser vs leaving for the store.
+   */
+  const onPress = useCallback(
+    () => handleClick(partnerContent),
+    [handleClick, partnerContent]
+  );
 
   // Memoize partner name to prevent recalculation
   const partnerName = useMemo(
@@ -96,18 +98,3 @@ function NewsItemAds({
 }
 
 export default memo(NewsItemAds);
-
-const getLink = (item: PartnerContent | null) => {
-  if (!item) {
-    return null;
-  }
-
-  const { iosAppStore, androidPlayStore, website } = item.links ?? {};
-
-  const platformUrl = Platform.select({
-    ios: iosAppStore,
-    android: androidPlayStore,
-  });
-
-  return platformUrl || website || null;
-};

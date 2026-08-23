@@ -42,11 +42,7 @@ const AUDIT_TARGETS: Record<string, AuditTarget> = {
   // Admin: privilege & role tracking
   admins: { operations: ["create", "update", "delete"] },
 
-  // Compliance: KYC, lottery, financial
-  "identity-verification": { operations: ["create", "update", "delete"] },
-  lottery: { operations: ["create", "update", "delete"] },
-  "lottery-winners": { operations: ["create", "update", "delete"] },
-  "ticket-purchase-log": { operations: ["create"] },
+  // Compliance: KYC, giveaway, financial
 };
 
 // Globals are singletons, so only "update" is meaningful

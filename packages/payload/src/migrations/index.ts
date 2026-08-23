@@ -39,6 +39,10 @@ import * as migration_20260818_171212 from './20260818_171212';
 import * as migration_20260820_172902_scheduled_notification_timezone from './20260820_172902_scheduled_notification_timezone';
 import * as migration_20260821_000000_fix_comments_news_cascade from './20260821_000000_fix_comments_news_cascade';
 import * as migration_20260821_010000_reapply_cascade_fixes from './20260821_010000_reapply_cascade_fixes';
+import * as migration_20260822_194144_drop_legacy_lottery from './20260822_194144_drop_legacy_lottery';
+import * as migration_20260823_073220_partner_content_weight from './20260823_073220_partner_content_weight';
+import * as migration_20260823_090000_delete_cascade_notifications from './20260823_090000_delete_cascade_notifications';
+import * as migration_20260823_093000_delete_cascade_partners_giveaway from './20260823_093000_delete_cascade_partners_giveaway';
 
 export const migrations = [
   {
@@ -234,16 +238,36 @@ export const migrations = [
   {
     up: migration_20260820_172902_scheduled_notification_timezone.up,
     down: migration_20260820_172902_scheduled_notification_timezone.down,
-    name: '20260820_172902_scheduled_notification_timezone'
+    name: '20260820_172902_scheduled_notification_timezone',
   },
   {
     up: migration_20260821_000000_fix_comments_news_cascade.up,
     down: migration_20260821_000000_fix_comments_news_cascade.down,
-    name: '20260821_000000_fix_comments_news_cascade'
+    name: '20260821_000000_fix_comments_news_cascade',
   },
   {
     up: migration_20260821_010000_reapply_cascade_fixes.up,
     down: migration_20260821_010000_reapply_cascade_fixes.down,
-    name: '20260821_010000_reapply_cascade_fixes'
+    name: '20260821_010000_reapply_cascade_fixes',
+  },
+  {
+    up: migration_20260822_194144_drop_legacy_lottery.up,
+    down: migration_20260822_194144_drop_legacy_lottery.down,
+    name: '20260822_194144_drop_legacy_lottery',
+  },
+  {
+    up: migration_20260823_073220_partner_content_weight.up,
+    down: migration_20260823_073220_partner_content_weight.down,
+    name: '20260823_073220_partner_content_weight'
+  },
+  {
+    up: migration_20260823_090000_delete_cascade_notifications.up,
+    down: migration_20260823_090000_delete_cascade_notifications.down,
+    name: '20260823_090000_delete_cascade_notifications',
+  },
+  {
+    up: migration_20260823_093000_delete_cascade_partners_giveaway.up,
+    down: migration_20260823_093000_delete_cascade_partners_giveaway.down,
+    name: '20260823_093000_delete_cascade_partners_giveaway',
   },
 ];

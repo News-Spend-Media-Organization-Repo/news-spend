@@ -113,9 +113,6 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
-      viewabilityConfig={{
-        itemVisiblePercentThreshold: 60,
-      }}
     />
     // </Stack>
   );

@@ -2,6 +2,11 @@
 @import "uniwind";
 @import "heroui-native/styles";
 
+@theme {
+  --field-border-width: 1px;
+  --field-border: var(--border);
+}
+
 @import "./styles/index.css";
 
 @source "../../../node_modules/heroui-native/lib";

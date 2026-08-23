@@ -10,17 +10,13 @@ import {
   SpeakerSlashIcon,
 } from "phosphor-react-native";
 import { useCallback, useEffect, useState } from "react";
-import {
-  Linking,
-  Platform,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { getThumbnailWithCache } from "#/components/videoPlayer/thumbnailCache";
+import { usePartnerClick } from "#/hooks/usePartnerClick";
+import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
 
@@ -30,6 +26,7 @@ type VideoPlayerStatus = "idle" | "loading" | "readyToPlay" | "error";
 
 export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const { width } = useWindowDimensions();
+  const { handleClick } = usePartnerClick();
 
   const isVideoAd =
     ad.type === "video" &&
@@ -114,16 +111,16 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
     setPaused(true);
   });
 
+  /**
+   * Close the sheet before handing off. Unlike the other ad surfaces this one
+   * lives inside the app-open BottomSheet, and a website link routes to the
+   * InAppBrowser screen — pushing that while the sheet is still up would put
+   * the browser behind it.
+   */
   const onPress = useCallback(() => {
-    const url =
-      Platform.select({
-        ios: ad.links?.iosAppStore,
-        android: ad.links?.androidPlayStore,
-      }) ?? ad.links?.website;
-    if (url) {
-      Linking.openURL(url);
-    }
-  }, [ad.links]);
+    appOpenAdSheetState.close();
+    handleClick(ad);
+  }, [handleClick, ad]);
 
   const videoHeight = (width / 16) * 9;
 

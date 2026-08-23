@@ -2,14 +2,17 @@ import type { NewsSelect } from "@news-spend-media/payload/types";
 import type { Payload, Where } from "payload";
 
 /**
- * Builds a where clause for active partner content filtered by placements.
- * Ensures only partner content with status "active" and within valid
- * schedule dates (or no schedule) is returned.
+ * Restricts partner content to what is actually sellable right now: status
+ * "active", started (or with no start date), and not yet ended (or with no
+ * end date).
+ *
+ * Extracted so every partner-content query shares one definition of "live".
+ * `fetchPromoMedia` used to filter on type alone, which served paused
+ * campaigns and ones whose end date had passed.
  */
-function buildPartnerContentWhere(placements: string[]): Where {
+function livePartnerContentWhere(): Where {
   const now = new Date().toISOString();
   return {
-    placements: { in: placements },
     status: { equals: "active" },
     or: [
       { "schedule.startDate": { exists: false } },
@@ -23,6 +26,16 @@ function buildPartnerContentWhere(placements: string[]): Where {
         ],
       },
     ],
+  };
+}
+
+/**
+ * Builds a where clause for live partner content filtered by placements.
+ */
+function buildPartnerContentWhere(placements: string[]): Where {
+  return {
+    placements: { in: placements },
+    ...livePartnerContentWhere(),
   };
 }
 
@@ -43,11 +56,6 @@ export type FetchRelatedNewsParams = {
   depth?: number;
   sort?: string;
   select?: NewsSelect<false>;
-};
-
-export type FetchPromotionMediaParams = {
-  payload: Payload;
-  limit?: number;
 };
 
 export type FetchPromoMediaParams = {
@@ -132,37 +140,20 @@ export async function fetchRelatedNews(params: FetchRelatedNewsParams) {
 }
 
 /**
- * @deprecated Use fetchPromoMedia instead: queries partner-content with type=promo-media.
- * Keep until promotion-media data is migrated.
- */
-export async function fetchPromotionMedia(params: FetchPromotionMediaParams) {
-  const { payload, limit = 1 } = params;
-
-  const promotionMediaCount = await payload.count({
-    collection: "promotion-media",
-  });
-
-  const totalPages = Math.max(
-    Math.ceil(promotionMediaCount.totalDocs / limit),
-    1
-  );
-  const promotionMediaPage = Math.floor(Math.random() * totalPages) + 1;
-
-  return await payload.find({
-    collection: "promotion-media",
-    pagination: false,
-    limit,
-    page: promotionMediaPage,
-  });
-}
-
-/**
- * Fetches a random promo-media item from partner-content.
+ * Fetches a random live promo-media item from partner-content.
+ *
+ * `pagination: false` used to sit alongside `page`, and it wins: Payload
+ * ignores the page and returns every matching row, so the random page was
+ * computed and thrown away and the whole table was hydrated on each feed
+ * request to hand the composer a pool it only picks one item from.
  */
 export async function fetchPromoMedia(params: FetchPromoMediaParams) {
   const { payload, limit = 1 } = params;
 
-  const where: Where = { type: { equals: "promo-media" } };
+  const where: Where = {
+    type: { equals: "promo-media" },
+    ...livePartnerContentWhere(),
+  };
 
   const count = await payload.count({ collection: "partner-content", where });
 
@@ -174,7 +165,6 @@ export async function fetchPromoMedia(params: FetchPromoMediaParams) {
     where,
     limit,
     page: randomPage,
-    pagination: false,
   });
 }
 
