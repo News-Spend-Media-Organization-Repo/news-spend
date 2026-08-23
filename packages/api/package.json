@@ -8,9 +8,6 @@
     "./contract.json": {
       "default": "./src/contract.json"
     },
-    "./router/widgets/handler": {
-      "default": "./src/router/widgets/handler.tsx"
-    },
     "./*": {
       "default": "./src/*.ts"
     }
@@ -34,9 +31,6 @@
     "@orpc/zod": "catalog:",
     "@payloadcms/db-postgres": "catalog:",
     "@sentry/node": "catalog:",
-    "@use-voltra/android": "^2.1.1",
-    "@use-voltra/ios": "catalog:",
-    "@use-voltra/server": "^2.1.1",
     "croner": "^9.1.0",
     "date-fns": "catalog:",
     "dotenv": "catalog:",
