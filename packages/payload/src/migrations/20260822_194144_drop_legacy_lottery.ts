@@ -4,8 +4,27 @@ import type {
 } from "@payloadcms/db-postgres";
 import { sql } from "@payloadcms/db-postgres";
 
+/**
+ * `IF EXISTS` on every drop below is a correction to what `migrate:create`
+ * emitted, not defensive noise.
+ *
+ * The generated block was self-contradictory: it drops the lottery tables with
+ * CASCADE, which already removes the foreign keys on
+ * `payload_locked_documents_rels` that point at them, and then tries to drop
+ * those same constraints by name. The second drop finds nothing, the whole
+ * block is one statement so it rolls back, and Payload's `connect` throws —
+ * which in production means every service that touches Payload crashloops on
+ * boot. It failed that way on 23 Aug 2026 and had to be reverted.
+ */
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
+  -- Job history for a task that no longer exists. The enum below is recreated
+  -- without "processLottery", and the cast back fails on any surviving row
+  -- that still holds it. Payload deletes jobs that succeed and keeps the ones
+  -- that fail, so every row here is a failed run of the lottery cron that can
+  -- never be retried. The log table goes first; it references payload_jobs.
+  DELETE FROM "payload_jobs_log" WHERE "task_slug" = 'processLottery';
+  DELETE FROM "payload_jobs" WHERE "task_slug" = 'processLottery';
    ALTER TABLE "identity_verification" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "identity_verification_rels" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "lottery" DISABLE ROW LEVEL SECURITY;
@@ -26,29 +45,29 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   DROP TABLE "lottery_winners_rels" CASCADE;
   DROP TABLE "ticket_purchase_log" CASCADE;
   DROP TABLE "ticket_purchase_log_rels" CASCADE;
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_identity_verification_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_identity_verification_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_lottery_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_lottery_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_lottery_tickets_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_lottery_tickets_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_lottery_winners_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_lottery_winners_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_ticket_purchase_log_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_ticket_purchase_log_fk";
   
   ALTER TABLE "payload_jobs_log" ALTER COLUMN "task_slug" SET DATA TYPE text;
-  DROP TYPE "public"."enum_payload_jobs_log_task_slug";
+  DROP TYPE IF EXISTS "public"."enum_payload_jobs_log_task_slug";
   CREATE TYPE "public"."enum_payload_jobs_log_task_slug" AS ENUM('inline', 'sendScheduledNotification', 'sendCommentLikeNotification', 'sendModerationDigest', 'sendUrgentModerationAlert', 'checkPushReceipts', 'processGiveaway', 'cleanupAnonymousUsers', 'generateVideoThumbnail', 'deleteVideoThumbTemp', 'cleanupAuditLogs');
   ALTER TABLE "payload_jobs_log" ALTER COLUMN "task_slug" SET DATA TYPE "public"."enum_payload_jobs_log_task_slug" USING "task_slug"::"public"."enum_payload_jobs_log_task_slug";
   ALTER TABLE "payload_jobs" ALTER COLUMN "task_slug" SET DATA TYPE text;
-  DROP TYPE "public"."enum_payload_jobs_task_slug";
+  DROP TYPE IF EXISTS "public"."enum_payload_jobs_task_slug";
   CREATE TYPE "public"."enum_payload_jobs_task_slug" AS ENUM('inline', 'sendScheduledNotification', 'sendCommentLikeNotification', 'sendModerationDigest', 'sendUrgentModerationAlert', 'checkPushReceipts', 'processGiveaway', 'cleanupAnonymousUsers', 'generateVideoThumbnail', 'deleteVideoThumbTemp', 'cleanupAuditLogs');
   ALTER TABLE "payload_jobs" ALTER COLUMN "task_slug" SET DATA TYPE "public"."enum_payload_jobs_task_slug" USING "task_slug"::"public"."enum_payload_jobs_task_slug";
-  DROP INDEX "payload_locked_documents_rels_identity_verification_id_idx";
-  DROP INDEX "payload_locked_documents_rels_lottery_id_idx";
-  DROP INDEX "payload_locked_documents_rels_lottery_tickets_id_idx";
-  DROP INDEX "payload_locked_documents_rels_lottery_winners_id_idx";
-  DROP INDEX "payload_locked_documents_rels_ticket_purchase_log_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_identity_verification_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_lottery_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_lottery_tickets_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_lottery_winners_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_ticket_purchase_log_id_idx";
   ALTER TABLE "news" DROP COLUMN "is_live";
   ALTER TABLE "_news_v" DROP COLUMN "version_is_live";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "identity_verification_id";
@@ -56,7 +75,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "lottery_tickets_id";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "lottery_winners_id";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "ticket_purchase_log_id";
-  DROP TYPE "public"."enum_lottery_winners_prize_tier";`)
+  DROP TYPE IF EXISTS "public"."enum_lottery_winners_prize_tier";`)
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
