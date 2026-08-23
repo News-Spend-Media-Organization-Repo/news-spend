@@ -34,13 +34,18 @@ import {
  * partner_conversions and their shop_analytics; deleting the content removes
  * its conversions too, so a partner delete cascades two levels.
  *
- * The uncomfortable pair is giveaway_prizes.prize_id and
- * giveaway_winners.prize_id. prize_catalogue is reference data while prizes
- * and winners are historical fact, so a catalogue tidy-up would erase who won
- * what. Cascade is what makes the delete succeed, which is what was asked for.
- * If that trade is wrong for those two the alternative is NO ACTION, which
- * keeps the history and fails the delete with a plain foreign-key error rather
- * than today's confusing NOT NULL one.
+ * Two exceptions get NO ACTION rather than cascade: giveaway_prizes.prize_id
+ * and giveaway_winners.prize_id. prize_catalogue is reference data while
+ * prizes and winners are historical fact, so cascading would let a catalogue
+ * tidy-up erase who won what — reference data destroying history is the wrong
+ * direction. NO ACTION keeps the history and refuses the delete with a plain
+ * foreign-key error ("still referenced from table giveaway_winners") instead
+ * of today's confusing NOT NULL one. Deleting a prize that has been awarded
+ * is meant to be refused; the point of the change is that it now fails
+ * legibly rather than aborting the transaction.
+ *
+ * Every other foreign key here cascades, so this is the only place where a
+ * delete is still blocked by design.
  *
  * giveaway_winners and partner_conversions are both empty in production today,
  * so applying this now settles the behaviour before there is history to lose.
@@ -104,11 +109,12 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       FOREIGN KEY ("giveaway_id") REFERENCES "public"."giveaways"("id")
       ON DELETE cascade ON UPDATE no action;
 
+    -- NO ACTION, not cascade: see the note above about reference data.
     ALTER TABLE "giveaway_prizes"
       DROP CONSTRAINT IF EXISTS "giveaway_prizes_prize_id_prize_catalogue_id_fk",
       ADD CONSTRAINT "giveaway_prizes_prize_id_prize_catalogue_id_fk"
       FOREIGN KEY ("prize_id") REFERENCES "public"."prize_catalogue"("id")
-      ON DELETE cascade ON UPDATE no action;
+      ON DELETE no action ON UPDATE no action;
 
     ALTER TABLE "giveaway_report_deliveries"
       DROP CONSTRAINT IF EXISTS "giveaway_report_deliveries_giveaway_id_giveaways_id_fk",
@@ -140,11 +146,12 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       FOREIGN KEY ("giveaway_id") REFERENCES "public"."giveaways"("id")
       ON DELETE cascade ON UPDATE no action;
 
+    -- NO ACTION, not cascade: see the note above about reference data.
     ALTER TABLE "giveaway_winners"
       DROP CONSTRAINT IF EXISTS "giveaway_winners_prize_id_prize_catalogue_id_fk",
       ADD CONSTRAINT "giveaway_winners_prize_id_prize_catalogue_id_fk"
       FOREIGN KEY ("prize_id") REFERENCES "public"."prize_catalogue"("id")
-      ON DELETE cascade ON UPDATE no action;
+      ON DELETE no action ON UPDATE no action;
 
     ALTER TABLE "giveaway_winners"
       DROP CONSTRAINT IF EXISTS "giveaway_winners_user_id_users_id_fk",
