@@ -38,8 +38,41 @@ type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 const EMPTY_DOCS: RouterOutputs["news"]["home"]["docs"] = [];
 const EMPTY_BOOKS: PartnerContent[] = [];
 
-const VIEWABILITY_CONFIG = {
+/**
+ * Drives the feed's mechanics — pausing a carousel that scrolled away and
+ * preloading the next Google ad slots. Deliberately loose and immediate:
+ * these want to fire as early as possible, and delaying a preload leaves an
+ * ad slot blank for longer.
+ */
+const MECHANICS_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 40,
+};
+
+/**
+ * Drives impression counting, and follows the IAB display standard: at least
+ * 50% of the item on screen for at least one continuous second.
+ *
+ * Separate from the config above because the two want opposite things. An
+ * impression has to be earned — the old shared 40%-and-no-dwell rule counted
+ * anything that swept past during a fast scroll, which inflates the
+ * denominator of every rate computed from it. Ad impressions, when they land,
+ * belong on this config rather than a fourth one: a number that is billed
+ * against has to survive an advertiser measuring it themselves.
+ */
+const IMPRESSION_VIEWABILITY_CONFIG = {
+  itemVisiblePercentThreshold: 50,
+  minimumViewTime: 1000,
+};
+
+/**
+ * Only the fields the impression callback reads. The feed is a union of
+ * articles, ads and injected rows, and naming the whole union here would
+ * couple this file to the composer's output type for no benefit.
+ */
+type ImpressionToken = {
+  index: number;
+  isViewable: boolean;
+  item?: { type?: string | null; id?: string; slug?: string | null } | null;
 };
 
 const MemoizedListHeader = memo(
@@ -344,23 +377,41 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
           }
         }
       }
-
-      // Track impressions for article and video news items
-      if (
-        item.isViewable &&
-        item.item &&
-        "type" in item.item &&
-        (item.item.type === "article" || item.item.type === "video") &&
-        item.item.id
-      ) {
-        trackImpressionRef.current(
-          { id: item.item.id, slug: item.item.slug },
-          item.index,
-          "HomeFeed"
-        );
-      }
     }
   });
+
+  // Paired with IMPRESSION_VIEWABILITY_CONFIG, so `isViewable` here already
+  // means 50%-for-a-second rather than merely on screen.
+  const onImpressionItemsChanged = useRef(
+    ({ changed }: { changed: ImpressionToken[] }) => {
+      for (const item of changed) {
+        if (
+          item.isViewable &&
+          item.item &&
+          "type" in item.item &&
+          (item.item.type === "article" || item.item.type === "video") &&
+          item.item.id
+        ) {
+          trackImpressionRef.current(
+            { id: item.item.id, slug: item.item.slug },
+            item.index,
+            "HomeFeed"
+          );
+        }
+      }
+    }
+  );
+
+  const viewabilityConfigCallbackPairs = useRef([
+    {
+      viewabilityConfig: MECHANICS_VIEWABILITY_CONFIG,
+      onViewableItemsChanged: onViewableItemsChanged.current,
+    },
+    {
+      viewabilityConfig: IMPRESSION_VIEWABILITY_CONFIG,
+      onViewableItemsChanged: onImpressionItemsChanged.current,
+    },
+  ]);
   // #endregion
   useScrollToTop(ref);
 
@@ -395,14 +446,13 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       onRefresh={handleRefresh}
-      onViewableItemsChanged={onViewableItemsChanged.current}
       recycleItems
       ref={ref}
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
       // suggestEstimatedItemSize
-      viewabilityConfig={VIEWABILITY_CONFIG}
+      viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
     />
   );
 });
