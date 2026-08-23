@@ -1,7 +1,6 @@
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { RunGiveawayDraw as RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7 } from '@news-spend-media/payload/components/RunGiveawayDraw'
 import { ResendWinnerReport as ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d } from '@news-spend-media/payload/components/ResendWinnerReport'
-import { RunLotteryDraw as RunLotteryDraw_9916e1c28a6cc77d7445bf9a6f37a0eb } from '@news-spend-media/payload/components/RunLotteryDraw'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -41,7 +40,6 @@ export const importMap = {
   "@payloadcms/next/client#SlugField": SlugField_2b8867833a34864a02ddf429b0728a40,
   "@news-spend-media/payload/components/RunGiveawayDraw#RunGiveawayDraw": RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7,
   "@news-spend-media/payload/components/ResendWinnerReport#ResendWinnerReport": ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d,
-  "@news-spend-media/payload/components/RunLotteryDraw#RunLotteryDraw": RunLotteryDraw_9916e1c28a6cc77d7445bf9a6f37a0eb,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,
