@@ -1,4 +1,4 @@
-import { sendNotification } from "@news-spend-media/payload/lib/send-notification";
+import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
 import z from "zod";
 
 import { publicProcedure } from "../index";
@@ -15,6 +15,10 @@ const NewsCreateInput = z.object({
   title: z.string(),
   body: z.string(),
   data: z.record(z.string(), z.any()).optional(),
+});
+
+const LotteryNotificationInput = z.object({
+  lotteryId: z.string(),
 });
 
 const testNotification = publicProcedure
@@ -78,6 +82,45 @@ const newsCreate = publicProcedure
     return { success: true };
   });
 
+const sendLotteryNotification = publicProcedure
+  .input(LotteryNotificationInput)
+  .handler(async ({ input, context }) => {
+    const { payload } = context;
+    const { lotteryId } = input;
+
+    // Find all participants for the lottery
+    const { docs: lotteryParticipants } = await payload.find({
+      collection: "lottery-tickets",
+      where: {
+        lottery: { equals: lotteryId },
+      },
+    });
+
+    const { docs: pushTokens } = await payload.find({
+      collection: "push-tokens",
+      where: {
+        user: {
+          in: lotteryParticipants.map((lottery) =>
+            typeof lottery.user === "string" ? lottery.user : lottery.user.id
+          ),
+        },
+      },
+    });
+
+    await sendNotification({
+      pushTokens,
+      title: "Giveaway has ended",
+      body: "Check to see if you won",
+      data: {
+        lotteryId,
+        type: "lottery",
+        url: "discover",
+      },
+    });
+
+    return { success: true };
+  });
+
 const trackOpenInput = z.object({
   title: z.string().optional(),
   body: z.string().optional(),
@@ -123,5 +166,6 @@ const trackOpen = publicProcedure
 export const notificationsRouter = {
   testNotification,
   newsCreate,
+  sendLotteryNotification,
   trackOpen,
 };

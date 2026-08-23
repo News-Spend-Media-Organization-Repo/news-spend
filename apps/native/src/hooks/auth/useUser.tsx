@@ -83,9 +83,9 @@ export default function useUser() {
     // That churn is why dialogs reopened by themselves. Visiting Profile
     // refetched this query, the session reference changed, and effects keyed
     // on it — GiveawayReward's opener, among others — re-ran and re-announced
-    // a reward the user had already dismissed. The now-deleted LotteryReward
-    // hit the same symptom and worked around it by omitting `user` from its
-    // deps; this is the same bug seen from the other end.
+    // a reward the user had already dismissed. LotteryReward carries a comment
+    // describing the same symptom and works around it by omitting `user` from
+    // its deps; this is the same bug seen from the other end.
     if (JSON.stringify(authState.session?.user) !== JSON.stringify(next.user)) {
       setAuthSession(next, "signIn");
     }

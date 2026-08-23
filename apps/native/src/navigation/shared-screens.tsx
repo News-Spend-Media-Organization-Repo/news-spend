@@ -67,6 +67,9 @@ const Feedback = lazy(
 const Support = lazy(
   () => import("#/features/tabs/settings/screens/support/support")
 );
+const VerifyIdentity = lazy(
+  () => import("#/features/tabs/settings/screens/verify-identity")
+);
 const ShopDetails = lazy(
   () => import("#/features/tabs/shop/screens/ShopDetails")
 );
@@ -194,6 +197,12 @@ export const sharedScreens = {
     screen: Support,
     linking: {
       path: "support",
+    },
+  }),
+  VerifyIdentity: createNativeStackScreen({
+    screen: VerifyIdentity,
+    linking: {
+      path: "verify-identity",
     },
   }),
   IdentityVerification: createNativeStackScreen({

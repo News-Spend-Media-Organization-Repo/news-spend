@@ -1,4 +1,4 @@
-import { sendNotification } from "@news-spend-media/payload/lib/send-notification";
+import { sendNotification } from "@news-spend-media/payload/lib/lottery-notification";
 import { openapi } from "@orpc/openapi";
 import z from "zod";
 

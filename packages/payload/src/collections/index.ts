@@ -22,6 +22,10 @@ export {
   IdentityChecks,
   PrizeCatalogue,
 } from "./giveaway";
+export { default as IdentityVerification } from "./IdentityVerification";
+export { default as Lotteries } from "./Lotteries";
+export { LotteryTickets } from "./LotteryTickets";
+export { default as LotteryWinners } from "./LotteryWinners";
 export { Media } from "./Media";
 export { default as News } from "./News";
 export { default as NewsAnalytics } from "./NewsAnalytics";
@@ -41,6 +45,7 @@ export { Session } from "./Session";
 export { default as ShopAnalytics } from "./ShopAnalytics";
 export { Stores } from "./Stores";
 export { Survey } from "./Survey";
+export { default as TicketPurchaseLog } from "./TicketPurchaseLog";
 export { Users } from "./Users";
 export { Verification } from "./Verification";
 export { default as VerificationOTP } from "./VerificationOTP";

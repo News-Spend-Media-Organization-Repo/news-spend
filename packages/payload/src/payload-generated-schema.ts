@@ -285,6 +285,10 @@ export const enum_prize_catalogue_fulfilment_type = pgEnum(
   "enum_prize_catalogue_fulfilment_type",
   ["points", "airtime", "data", "gift_card", "physical", "experience"],
 );
+export const enum_lottery_winners_prize_tier = pgEnum(
+  "enum_lottery_winners_prize_tier",
+  ["HIGH", "MID", "LOW", "NONE"],
+);
 export const enum_news_type = pgEnum("enum_news_type", ["article", "video"]);
 export const enum_news_status = pgEnum("enum_news_status", [
   "draft",
@@ -334,58 +338,6 @@ export const enum_notifications_delivery_action = pgEnum(
   "enum_notifications_delivery_action",
   ["send-now", "schedule"],
 );
-export const enum_notifications_scheduledfor_tz = pgEnum(
-  "enum_notifications_scheduledfor_tz",
-  [
-    "Pacific/Midway",
-    "Pacific/Niue",
-    "Pacific/Honolulu",
-    "Pacific/Rarotonga",
-    "America/Anchorage",
-    "Pacific/Gambier",
-    "America/Los_Angeles",
-    "America/Tijuana",
-    "America/Denver",
-    "America/Phoenix",
-    "America/Chicago",
-    "America/Guatemala",
-    "America/New_York",
-    "America/Bogota",
-    "America/Caracas",
-    "America/Santiago",
-    "America/Buenos_Aires",
-    "America/Sao_Paulo",
-    "Atlantic/South_Georgia",
-    "Atlantic/Azores",
-    "Atlantic/Cape_Verde",
-    "Europe/London",
-    "Europe/Berlin",
-    "Africa/Lagos",
-    "Europe/Athens",
-    "Africa/Cairo",
-    "Europe/Moscow",
-    "Asia/Riyadh",
-    "Asia/Dubai",
-    "Asia/Baku",
-    "Asia/Karachi",
-    "Asia/Tashkent",
-    "Asia/Calcutta",
-    "Asia/Dhaka",
-    "Asia/Almaty",
-    "Asia/Jakarta",
-    "Asia/Bangkok",
-    "Asia/Shanghai",
-    "Asia/Singapore",
-    "Asia/Tokyo",
-    "Asia/Seoul",
-    "Australia/Brisbane",
-    "Australia/Sydney",
-    "Pacific/Guam",
-    "Pacific/Noumea",
-    "Pacific/Auckland",
-    "Pacific/Fiji",
-  ],
-);
 export const enum_notifications_target_type = pgEnum(
   "enum_notifications_target_type",
   ["all", "segment", "specific"],
@@ -414,58 +366,6 @@ export const enum__notifications_v_version_type = pgEnum(
 export const enum__notifications_v_version_delivery_action = pgEnum(
   "enum__notifications_v_version_delivery_action",
   ["send-now", "schedule"],
-);
-export const enum__notifications_v_version_scheduledfor_tz = pgEnum(
-  "enum__notifications_v_version_scheduledfor_tz",
-  [
-    "Pacific/Midway",
-    "Pacific/Niue",
-    "Pacific/Honolulu",
-    "Pacific/Rarotonga",
-    "America/Anchorage",
-    "Pacific/Gambier",
-    "America/Los_Angeles",
-    "America/Tijuana",
-    "America/Denver",
-    "America/Phoenix",
-    "America/Chicago",
-    "America/Guatemala",
-    "America/New_York",
-    "America/Bogota",
-    "America/Caracas",
-    "America/Santiago",
-    "America/Buenos_Aires",
-    "America/Sao_Paulo",
-    "Atlantic/South_Georgia",
-    "Atlantic/Azores",
-    "Atlantic/Cape_Verde",
-    "Europe/London",
-    "Europe/Berlin",
-    "Africa/Lagos",
-    "Europe/Athens",
-    "Africa/Cairo",
-    "Europe/Moscow",
-    "Asia/Riyadh",
-    "Asia/Dubai",
-    "Asia/Baku",
-    "Asia/Karachi",
-    "Asia/Tashkent",
-    "Asia/Calcutta",
-    "Asia/Dhaka",
-    "Asia/Almaty",
-    "Asia/Jakarta",
-    "Asia/Bangkok",
-    "Asia/Shanghai",
-    "Asia/Singapore",
-    "Asia/Tokyo",
-    "Asia/Seoul",
-    "Australia/Brisbane",
-    "Australia/Sydney",
-    "Pacific/Guam",
-    "Pacific/Noumea",
-    "Pacific/Auckland",
-    "Pacific/Fiji",
-  ],
 );
 export const enum__notifications_v_version_target_type = pgEnum(
   "enum__notifications_v_version_target_type",
@@ -622,6 +522,7 @@ export const enum_payload_jobs_log_task_slug = pgEnum(
     "sendModerationDigest",
     "sendUrgentModerationAlert",
     "checkPushReceipts",
+    "processLottery",
     "processGiveaway",
     "cleanupAnonymousUsers",
     "generateVideoThumbnail",
@@ -642,6 +543,7 @@ export const enum_payload_jobs_task_slug = pgEnum(
     "sendModerationDigest",
     "sendUrgentModerationAlert",
     "checkPushReceipts",
+    "processLottery",
     "processGiveaway",
     "cleanupAnonymousUsers",
     "generateVideoThumbnail",
@@ -2466,6 +2368,306 @@ export const prize_catalogue_rels = pgTable(
   ],
 );
 
+export const identity_verification = pgTable(
+  "identity_verification",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    firstName: varchar("first_name").notNull(),
+    lastName: varchar("last_name").notNull(),
+    phoneNumber: varchar("phone_number").notNull(),
+    email: varchar("email").notNull(),
+    shippingAddress: varchar("shipping_address").notNull(),
+    governmentId_front: uuid("government_id_front_id")
+      .notNull()
+      .references(() => media.id, {
+        onDelete: "set null",
+      }),
+    governmentId_back: uuid("government_id_back_id")
+      .notNull()
+      .references(() => media.id, {
+        onDelete: "set null",
+      }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("identity_verification_user_idx").on(columns.user),
+    index("identity_verification_government_id_government_id_front_idx").on(
+      columns.governmentId_front,
+    ),
+    index("identity_verification_government_id_government_id_back_idx").on(
+      columns.governmentId_back,
+    ),
+    index("identity_verification_updated_at_idx").on(columns.updatedAt),
+    index("identity_verification_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const identity_verification_rels = pgTable(
+  "identity_verification_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("identity_verification_rels_order_idx").on(columns.order),
+    index("identity_verification_rels_parent_idx").on(columns.parent),
+    index("identity_verification_rels_path_idx").on(columns.path),
+    index("identity_verification_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [identity_verification.id],
+      name: "identity_verification_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "identity_verification_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const lottery = pgTable(
+  "lottery",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name").notNull(),
+    description: varchar("description"),
+    startDate: timestamp("start_date", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    endDate: timestamp("end_date", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    isActive: boolean("is_active").default(false),
+    processing: boolean("processing").default(false),
+    processedAt: timestamp("processed_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    drawSeed: varchar("draw_seed"),
+    ticketPrice: numeric("ticket_price", { mode: "number" })
+      .notNull()
+      .default(50),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    uniqueIndex("lottery_name_idx").on(columns.name),
+    index("lottery_updated_at_idx").on(columns.updatedAt),
+    index("lottery_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const lottery_rels = pgTable(
+  "lottery_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    usersID: uuid("users_id"),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("lottery_rels_order_idx").on(columns.order),
+    index("lottery_rels_parent_idx").on(columns.parent),
+    index("lottery_rels_path_idx").on(columns.path),
+    index("lottery_rels_users_id_idx").on(columns.usersID),
+    index("lottery_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [lottery.id],
+      name: "lottery_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["usersID"]],
+      foreignColumns: [users.id],
+      name: "lottery_rels_users_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "lottery_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const lottery_tickets = pgTable(
+  "lottery_tickets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    lottery: uuid("lottery_id")
+      .notNull()
+      .references(() => lottery.id, {
+        onDelete: "set null",
+      }),
+    count: numeric("count", { mode: "number" }).notNull(),
+    boostLuck: numeric("boost_luck", { mode: "number" }).notNull().default(0),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("lottery_tickets_user_idx").on(columns.user),
+    index("lottery_tickets_lottery_idx").on(columns.lottery),
+    index("lottery_tickets_updated_at_idx").on(columns.updatedAt),
+    index("lottery_tickets_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const lottery_tickets_rels = pgTable(
+  "lottery_tickets_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("lottery_tickets_rels_order_idx").on(columns.order),
+    index("lottery_tickets_rels_parent_idx").on(columns.parent),
+    index("lottery_tickets_rels_path_idx").on(columns.path),
+    index("lottery_tickets_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [lottery_tickets.id],
+      name: "lottery_tickets_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "lottery_tickets_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const lottery_winners = pgTable(
+  "lottery_winners",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    lottery: uuid("lottery_id")
+      .notNull()
+      .references(() => lottery.id, {
+        onDelete: "set null",
+      }),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    prizeTier: enum_lottery_winners_prize_tier("prize_tier").notNull(),
+    prize: varchar("prize"),
+    claimed: boolean("claimed").default(false),
+    claimedAt: timestamp("claimed_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("lottery_winners_lottery_idx").on(columns.lottery),
+    index("lottery_winners_user_idx").on(columns.user),
+    index("lottery_winners_updated_at_idx").on(columns.updatedAt),
+    index("lottery_winners_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const lottery_winners_rels = pgTable(
+  "lottery_winners_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("lottery_winners_rels_order_idx").on(columns.order),
+    index("lottery_winners_rels_parent_idx").on(columns.parent),
+    index("lottery_winners_rels_path_idx").on(columns.path),
+    index("lottery_winners_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [lottery_winners.id],
+      name: "lottery_winners_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "lottery_winners_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const media = pgTable(
   "media",
   {
@@ -2601,6 +2803,7 @@ export const news = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     type: enum_news_type("type").default("article"),
+    isLive: boolean("is_live").default(false),
     title: varchar("title"),
     generateSlug: boolean("generate_slug").default(true),
     slug: varchar("slug"),
@@ -2712,6 +2915,7 @@ export const _news_v = pgTable(
       onDelete: "set null",
     }),
     version_type: enum__news_v_version_type("version_type").default("article"),
+    version_isLive: boolean("version_is_live").default(false),
     version_title: varchar("version_title"),
     version_generateSlug: boolean("version_generate_slug").default(true),
     version_slug: varchar("version_slug"),
@@ -3091,10 +3295,6 @@ export const notifications = pgTable(
       withTimezone: true,
       precision: 3,
     }),
-    scheduledFor_tz:
-      enum_notifications_scheduledfor_tz("scheduledfor_tz").default(
-        "Africa/Lagos",
-      ),
     targetType: enum_notifications_target_type("target_type").default("all"),
     segment: enum_notifications_segment("segment"),
     priority: enum_notifications_priority("priority").default("default"),
@@ -3199,9 +3399,6 @@ export const _notifications_v = pgTable(
       withTimezone: true,
       precision: 3,
     }),
-    version_scheduledFor_tz: enum__notifications_v_version_scheduledfor_tz(
-      "version_scheduledfor_tz",
-    ).default("Africa/Lagos"),
     version_targetType: enum__notifications_v_version_target_type(
       "version_target_type",
     ).default("all"),
@@ -3611,7 +3808,6 @@ export const partners = pgTable(
       .default("manual"),
     webhookUrl: varchar("webhook_url"),
     webhookSecret: varchar("webhook_secret"),
-    awardOnClick: boolean("award_on_click").default(false),
     apiKey: varchar("api_key"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
@@ -3632,7 +3828,6 @@ export const partners = pgTable(
     uniqueIndex("partners_slug_idx").on(columns.slug),
     index("partners_popularity_score_idx").on(columns.popularityScore),
     index("partners_logo_idx").on(columns.logo),
-    index("partners_award_on_click_idx").on(columns.awardOnClick),
     index("partners_updated_at_idx").on(columns.updatedAt),
     index("partners_created_at_idx").on(columns.createdAt),
   ],
@@ -4154,6 +4349,71 @@ export const survey_rels = pgTable(
   ],
 );
 
+export const ticket_purchase_log = pgTable(
+  "ticket_purchase_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    lottery: uuid("lottery_id")
+      .notNull()
+      .references(() => lottery.id, {
+        onDelete: "set null",
+      }),
+    ticketQuantity: numeric("ticket_quantity", { mode: "number" }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("ticket_purchase_log_user_idx").on(columns.user),
+    index("ticket_purchase_log_lottery_idx").on(columns.lottery),
+    index("ticket_purchase_log_updated_at_idx").on(columns.updatedAt),
+    index("ticket_purchase_log_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const ticket_purchase_log_rels = pgTable(
+  "ticket_purchase_log_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("ticket_purchase_log_rels_order_idx").on(columns.order),
+    index("ticket_purchase_log_rels_parent_idx").on(columns.parent),
+    index("ticket_purchase_log_rels_path_idx").on(columns.path),
+    index("ticket_purchase_log_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [ticket_purchase_log.id],
+      name: "ticket_purchase_log_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "ticket_purchase_log_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const user_blocks = pgTable(
   "user_blocks",
   {
@@ -4657,6 +4917,10 @@ export const payload_locked_documents_rels = pgTable(
     "giveaway-winnersID": uuid("giveaway_winners_id"),
     "identity-checksID": uuid("identity_checks_id"),
     "prize-catalogueID": uuid("prize_catalogue_id"),
+    "identity-verificationID": uuid("identity_verification_id"),
+    lotteryID: uuid("lottery_id"),
+    "lottery-ticketsID": uuid("lottery_tickets_id"),
+    "lottery-winnersID": uuid("lottery_winners_id"),
     mediaID: uuid("media_id"),
     newsID: uuid("news_id"),
     "news-analyticsID": uuid("news_analytics_id"),
@@ -4672,6 +4936,7 @@ export const payload_locked_documents_rels = pgTable(
     sessionsID: uuid("sessions_id"),
     "shop-analyticsID": uuid("shop_analytics_id"),
     surveyID: uuid("survey_id"),
+    "ticket-purchase-logID": uuid("ticket_purchase_log_id"),
     userBlocksID: uuid("user_blocks_id"),
     usersID: uuid("users_id"),
     verificationsID: uuid("verifications_id"),
@@ -4743,6 +5008,16 @@ export const payload_locked_documents_rels = pgTable(
     index("payload_locked_documents_rels_prize_catalogue_id_idx").on(
       columns["prize-catalogueID"],
     ),
+    index("payload_locked_documents_rels_identity_verification_id_idx").on(
+      columns["identity-verificationID"],
+    ),
+    index("payload_locked_documents_rels_lottery_id_idx").on(columns.lotteryID),
+    index("payload_locked_documents_rels_lottery_tickets_id_idx").on(
+      columns["lottery-ticketsID"],
+    ),
+    index("payload_locked_documents_rels_lottery_winners_id_idx").on(
+      columns["lottery-winnersID"],
+    ),
     index("payload_locked_documents_rels_media_id_idx").on(columns.mediaID),
     index("payload_locked_documents_rels_news_id_idx").on(columns.newsID),
     index("payload_locked_documents_rels_news_analytics_id_idx").on(
@@ -4782,6 +5057,9 @@ export const payload_locked_documents_rels = pgTable(
       columns["shop-analyticsID"],
     ),
     index("payload_locked_documents_rels_survey_id_idx").on(columns.surveyID),
+    index("payload_locked_documents_rels_ticket_purchase_log_id_idx").on(
+      columns["ticket-purchase-logID"],
+    ),
     index("payload_locked_documents_rels_user_blocks_id_idx").on(
       columns.userBlocksID,
     ),
@@ -4906,6 +5184,26 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_prize_catalogue_fk",
     }).onDelete("cascade"),
     foreignKey({
+      columns: [columns["identity-verificationID"]],
+      foreignColumns: [identity_verification.id],
+      name: "payload_locked_documents_rels_identity_verification_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["lotteryID"]],
+      foreignColumns: [lottery.id],
+      name: "payload_locked_documents_rels_lottery_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["lottery-ticketsID"]],
+      foreignColumns: [lottery_tickets.id],
+      name: "payload_locked_documents_rels_lottery_tickets_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["lottery-winnersID"]],
+      foreignColumns: [lottery_winners.id],
+      name: "payload_locked_documents_rels_lottery_winners_fk",
+    }).onDelete("cascade"),
+    foreignKey({
       columns: [columns["mediaID"]],
       foreignColumns: [media.id],
       name: "payload_locked_documents_rels_media_fk",
@@ -4979,6 +5277,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["surveyID"]],
       foreignColumns: [survey.id],
       name: "payload_locked_documents_rels_survey_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["ticket-purchase-logID"]],
+      foreignColumns: [ticket_purchase_log.id],
+      name: "payload_locked_documents_rels_ticket_purchase_log_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["userBlocksID"]],
@@ -5978,6 +6281,132 @@ export const relations_prize_catalogue = relations(
     }),
   }),
 );
+export const relations_identity_verification_rels = relations(
+  identity_verification_rels,
+  ({ one }) => ({
+    parent: one(identity_verification, {
+      fields: [identity_verification_rels.parent],
+      references: [identity_verification.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [identity_verification_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_identity_verification = relations(
+  identity_verification,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [identity_verification.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    governmentId_front: one(media, {
+      fields: [identity_verification.governmentId_front],
+      references: [media.id],
+      relationName: "governmentId_front",
+    }),
+    governmentId_back: one(media, {
+      fields: [identity_verification.governmentId_back],
+      references: [media.id],
+      relationName: "governmentId_back",
+    }),
+    _rels: many(identity_verification_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_lottery_rels = relations(lottery_rels, ({ one }) => ({
+  parent: one(lottery, {
+    fields: [lottery_rels.parent],
+    references: [lottery.id],
+    relationName: "_rels",
+  }),
+  usersID: one(users, {
+    fields: [lottery_rels.usersID],
+    references: [users.id],
+    relationName: "users",
+  }),
+  adminsID: one(admins, {
+    fields: [lottery_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_lottery = relations(lottery, ({ many }) => ({
+  _rels: many(lottery_rels, {
+    relationName: "_rels",
+  }),
+}));
+export const relations_lottery_tickets_rels = relations(
+  lottery_tickets_rels,
+  ({ one }) => ({
+    parent: one(lottery_tickets, {
+      fields: [lottery_tickets_rels.parent],
+      references: [lottery_tickets.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [lottery_tickets_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_lottery_tickets = relations(
+  lottery_tickets,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [lottery_tickets.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    lottery: one(lottery, {
+      fields: [lottery_tickets.lottery],
+      references: [lottery.id],
+      relationName: "lottery",
+    }),
+    _rels: many(lottery_tickets_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_lottery_winners_rels = relations(
+  lottery_winners_rels,
+  ({ one }) => ({
+    parent: one(lottery_winners, {
+      fields: [lottery_winners_rels.parent],
+      references: [lottery_winners.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [lottery_winners_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_lottery_winners = relations(
+  lottery_winners,
+  ({ one, many }) => ({
+    lottery: one(lottery, {
+      fields: [lottery_winners.lottery],
+      references: [lottery.id],
+      relationName: "lottery",
+    }),
+    user: one(users, {
+      fields: [lottery_winners.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    _rels: many(lottery_winners_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_media_rels = relations(media_rels, ({ one }) => ({
   parent: one(media, {
     fields: [media_rels.parent],
@@ -6656,6 +7085,39 @@ export const relations_survey = relations(survey, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
+export const relations_ticket_purchase_log_rels = relations(
+  ticket_purchase_log_rels,
+  ({ one }) => ({
+    parent: one(ticket_purchase_log, {
+      fields: [ticket_purchase_log_rels.parent],
+      references: [ticket_purchase_log.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [ticket_purchase_log_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_ticket_purchase_log = relations(
+  ticket_purchase_log,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [ticket_purchase_log.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    lottery: one(lottery, {
+      fields: [ticket_purchase_log.lottery],
+      references: [lottery.id],
+      relationName: "lottery",
+    }),
+    _rels: many(ticket_purchase_log_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_user_blocks_rels = relations(
   user_blocks_rels,
   ({ one }) => ({
@@ -6913,6 +7375,26 @@ export const relations_payload_locked_documents_rels = relations(
       references: [prize_catalogue.id],
       relationName: "prize-catalogue",
     }),
+    "identity-verificationID": one(identity_verification, {
+      fields: [payload_locked_documents_rels["identity-verificationID"]],
+      references: [identity_verification.id],
+      relationName: "identity-verification",
+    }),
+    lotteryID: one(lottery, {
+      fields: [payload_locked_documents_rels.lotteryID],
+      references: [lottery.id],
+      relationName: "lottery",
+    }),
+    "lottery-ticketsID": one(lottery_tickets, {
+      fields: [payload_locked_documents_rels["lottery-ticketsID"]],
+      references: [lottery_tickets.id],
+      relationName: "lottery-tickets",
+    }),
+    "lottery-winnersID": one(lottery_winners, {
+      fields: [payload_locked_documents_rels["lottery-winnersID"]],
+      references: [lottery_winners.id],
+      relationName: "lottery-winners",
+    }),
     mediaID: one(media, {
       fields: [payload_locked_documents_rels.mediaID],
       references: [media.id],
@@ -6987,6 +7469,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.surveyID],
       references: [survey.id],
       relationName: "survey",
+    }),
+    "ticket-purchase-logID": one(ticket_purchase_log, {
+      fields: [payload_locked_documents_rels["ticket-purchase-logID"]],
+      references: [ticket_purchase_log.id],
+      relationName: "ticket-purchase-log",
     }),
     userBlocksID: one(user_blocks, {
       fields: [payload_locked_documents_rels.userBlocksID],
@@ -7206,6 +7693,7 @@ type DatabaseSchema = {
   enum_prize_catalogue_reloadly_data_plans_network: typeof enum_prize_catalogue_reloadly_data_plans_network;
   enum_prize_catalogue_tier: typeof enum_prize_catalogue_tier;
   enum_prize_catalogue_fulfilment_type: typeof enum_prize_catalogue_fulfilment_type;
+  enum_lottery_winners_prize_tier: typeof enum_lottery_winners_prize_tier;
   enum_news_type: typeof enum_news_type;
   enum_news_status: typeof enum_news_status;
   enum__news_v_version_type: typeof enum__news_v_version_type;
@@ -7217,7 +7705,6 @@ type DatabaseSchema = {
   enum_notifications_device_types: typeof enum_notifications_device_types;
   enum_notifications_type: typeof enum_notifications_type;
   enum_notifications_delivery_action: typeof enum_notifications_delivery_action;
-  enum_notifications_scheduledfor_tz: typeof enum_notifications_scheduledfor_tz;
   enum_notifications_target_type: typeof enum_notifications_target_type;
   enum_notifications_segment: typeof enum_notifications_segment;
   enum_notifications_priority: typeof enum_notifications_priority;
@@ -7225,7 +7712,6 @@ type DatabaseSchema = {
   enum__notifications_v_version_device_types: typeof enum__notifications_v_version_device_types;
   enum__notifications_v_version_type: typeof enum__notifications_v_version_type;
   enum__notifications_v_version_delivery_action: typeof enum__notifications_v_version_delivery_action;
-  enum__notifications_v_version_scheduledfor_tz: typeof enum__notifications_v_version_scheduledfor_tz;
   enum__notifications_v_version_target_type: typeof enum__notifications_v_version_target_type;
   enum__notifications_v_version_segment: typeof enum__notifications_v_version_segment;
   enum__notifications_v_version_priority: typeof enum__notifications_v_version_priority;
@@ -7300,6 +7786,14 @@ type DatabaseSchema = {
   prize_catalogue_reloadly_data_plans: typeof prize_catalogue_reloadly_data_plans;
   prize_catalogue: typeof prize_catalogue;
   prize_catalogue_rels: typeof prize_catalogue_rels;
+  identity_verification: typeof identity_verification;
+  identity_verification_rels: typeof identity_verification_rels;
+  lottery: typeof lottery;
+  lottery_rels: typeof lottery_rels;
+  lottery_tickets: typeof lottery_tickets;
+  lottery_tickets_rels: typeof lottery_tickets_rels;
+  lottery_winners: typeof lottery_winners;
+  lottery_winners_rels: typeof lottery_winners_rels;
   media: typeof media;
   media_rels: typeof media_rels;
   news_key_points: typeof news_key_points;
@@ -7345,6 +7839,8 @@ type DatabaseSchema = {
   shop_analytics_rels: typeof shop_analytics_rels;
   survey: typeof survey;
   survey_rels: typeof survey_rels;
+  ticket_purchase_log: typeof ticket_purchase_log;
+  ticket_purchase_log_rels: typeof ticket_purchase_log_rels;
   user_blocks: typeof user_blocks;
   user_blocks_rels: typeof user_blocks_rels;
   users: typeof users;
@@ -7417,6 +7913,14 @@ type DatabaseSchema = {
   relations_prize_catalogue_reloadly_data_plans: typeof relations_prize_catalogue_reloadly_data_plans;
   relations_prize_catalogue_rels: typeof relations_prize_catalogue_rels;
   relations_prize_catalogue: typeof relations_prize_catalogue;
+  relations_identity_verification_rels: typeof relations_identity_verification_rels;
+  relations_identity_verification: typeof relations_identity_verification;
+  relations_lottery_rels: typeof relations_lottery_rels;
+  relations_lottery: typeof relations_lottery;
+  relations_lottery_tickets_rels: typeof relations_lottery_tickets_rels;
+  relations_lottery_tickets: typeof relations_lottery_tickets;
+  relations_lottery_winners_rels: typeof relations_lottery_winners_rels;
+  relations_lottery_winners: typeof relations_lottery_winners;
   relations_media_rels: typeof relations_media_rels;
   relations_media: typeof relations_media;
   relations_news_key_points: typeof relations_news_key_points;
@@ -7462,6 +7966,8 @@ type DatabaseSchema = {
   relations_shop_analytics: typeof relations_shop_analytics;
   relations_survey_rels: typeof relations_survey_rels;
   relations_survey: typeof relations_survey;
+  relations_ticket_purchase_log_rels: typeof relations_ticket_purchase_log_rels;
+  relations_ticket_purchase_log: typeof relations_ticket_purchase_log;
   relations_user_blocks_rels: typeof relations_user_blocks_rels;
   relations_user_blocks: typeof relations_user_blocks;
   relations_users_rels: typeof relations_users_rels;

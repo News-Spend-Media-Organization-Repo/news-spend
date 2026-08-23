@@ -1,3 +1,5 @@
+import type { BasePayload } from "payload";
+
 import type { PushToken } from "../payload-types";
 
 export async function sendNotification({
@@ -40,6 +42,46 @@ export async function sendNotification({
       priority: "high",
       sound: true,
       data: data ?? {},
+    },
+  });
+}
+
+// send notification to all lottery participants
+export async function sendLotteryNotification({
+  lotteryId,
+  payload,
+}: {
+  lotteryId: string;
+  payload: BasePayload;
+}) {
+  const { docs: lotteryParticipants } = await payload.find({
+    collection: "lottery-tickets",
+    where: {
+      lottery: {
+        equals: lotteryId,
+      },
+    },
+  });
+
+  const pushTokens = await payload.find({
+    collection: "push-tokens",
+    where: {
+      user: {
+        in: lotteryParticipants.map((lottery) =>
+          typeof lottery.user === "string" ? lottery.user : lottery.user.id
+        ),
+      },
+    },
+  });
+
+  await sendNotification({
+    pushTokens: pushTokens.docs,
+    title: "Giveaway has ended",
+    body: "Check to see if you won",
+    data: {
+      lotteryId,
+      type: "lottery",
+      url: "discover",
     },
   });
 }

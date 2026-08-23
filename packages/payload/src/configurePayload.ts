@@ -40,6 +40,10 @@ import {
   GiveawayTickets,
   GiveawayWinners,
   IdentityChecks,
+  IdentityVerification,
+  Lotteries,
+  LotteryTickets,
+  LotteryWinners,
   Media,
   News,
   NewsAnalytics,
@@ -56,6 +60,7 @@ import {
   Session,
   ShopAnalytics,
   Survey,
+  TicketPurchaseLog,
   Users,
   Verification,
   WitnessReport,
@@ -71,6 +76,7 @@ import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processGiveawayTask } from "./tasks/processGiveaway";
+import { processLotteryTask } from "./tasks/processLottery";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
@@ -137,7 +143,7 @@ const baseConfig: Config = {
     ContentReport,
     Feedback,
     // Games,
-    // --- Giveaway draw engine ---
+    // --- Giveaway draw engine (spec-compliant; supersedes Lottery* above) ---
     GiveawayAccountFlags,
     GiveawayAuditLog,
     GiveawayDrawAttempts,
@@ -152,6 +158,11 @@ const baseConfig: Config = {
     GiveawayWinners,
     IdentityChecks,
     PrizeCatalogue,
+    // --- Legacy lottery: retained read-only for audit until cutover ---
+    IdentityVerification,
+    Lotteries,
+    LotteryTickets,
+    LotteryWinners,
     Media,
     News,
     NewsAnalytics,
@@ -168,6 +179,7 @@ const baseConfig: Config = {
     ShopAnalytics,
     // Stores,
     Survey,
+    TicketPurchaseLog,
     UserBlocks,
     Users,
     Verification,
@@ -183,6 +195,7 @@ const baseConfig: Config = {
       sendModerationDigestTask,
       sendUrgentModerationAlertTask,
       checkPushReceiptsTask,
+      processLotteryTask,
       processGiveawayTask,
       cleanupAnonymousUsersTask,
       generateVideoThumbnailTask,

@@ -4,7 +4,7 @@ import { call } from "@orpc/server";
 
 // Mock sendNotification: hoisted before all imports by bun:test
 const notificationMock = mock(async () => ({}));
-mock.module("@news-spend-media/payload/lib/send-notification", () => ({
+mock.module("@news-spend-media/payload/lib/lottery-notification", () => ({
   sendNotification: notificationMock,
 }));
 

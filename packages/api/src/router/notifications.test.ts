@@ -7,7 +7,7 @@ import { notificationsRouter } from "./notifications";
 // Mock sendNotification from the payload package so we never hit the real
 // notification infrastructure.  Each test can inspect mockSendNotification.calls.
 const mockSendNotification = mock(async () => ({ success: true }));
-mock.module("@news-spend-media/payload/lib/send-notification", () => ({
+mock.module("@news-spend-media/payload/lib/lottery-notification", () => ({
   sendNotification: mockSendNotification,
 }));
 
@@ -230,6 +230,112 @@ describe("notificationsRouter.newsCreate", () => {
 
     expect(mockSendNotification).toHaveBeenCalledWith(
       expect.objectContaining({ data: { articleId: "a1" } })
+    );
+  });
+});
+
+// ─── sendLotteryNotification ──────────────────────────────────────────────────
+
+describe("notificationsRouter.sendLotteryNotification", () => {
+  it("sends lottery end notification to all participants", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "lottery-tickets": [
+          { id: "t1", lottery: "lottery-1", user: "u1" },
+          { id: "t2", lottery: "lottery-1", user: "u2" },
+          { id: "t3", lottery: "lottery-2", user: "u3" },
+        ],
+        "push-tokens": [
+          { id: "tok-1", user: "u1", token: "expo-1" },
+          { id: "tok-2", user: "u2", token: "expo-2" },
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      notificationsRouter.sendLotteryNotification,
+      { lotteryId: "lottery-1" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({ success: true });
+
+    // Verify lottery-tickets query
+    const ticketFind = payload.calls.find(
+      (c) => c.op === "find" && c.collection === "lottery-tickets"
+    );
+    expect(ticketFind).toBeDefined();
+    expect(ticketFind?.args.where).toEqual({
+      lottery: { equals: "lottery-1" },
+    });
+
+    // Verify push-tokens query with participant user ids
+    const tokenFind = payload.calls.find(
+      (c) => c.op === "find" && c.collection === "push-tokens"
+    );
+    expect(tokenFind).toBeDefined();
+    expect(tokenFind?.args.where.user.in).toEqual(
+      expect.arrayContaining(["u1", "u2"])
+    );
+
+    expect(mockSendNotification).toHaveBeenCalledWith({
+      pushTokens: expect.arrayContaining([
+        expect.objectContaining({ id: "tok-1" }),
+        expect.objectContaining({ id: "tok-2" }),
+      ]),
+      title: "Giveaway has ended",
+      body: "Check to see if you won",
+      data: { lotteryId: "lottery-1", type: "lottery", url: "discover" },
+    });
+  });
+
+  it("handles object-style user references on lottery tickets", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "lottery-tickets": [
+          { id: "t1", lottery: "lottery-1", user: { id: "u1" } },
+        ],
+        "push-tokens": [{ id: "tok-1", user: "u1", token: "expo-1" }],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      notificationsRouter.sendLotteryNotification,
+      { lotteryId: "lottery-1" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mockSendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pushTokens: [expect.objectContaining({ id: "tok-1" })],
+      })
+    );
+  });
+
+  it("sends with empty tokens when there are no participants", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "lottery-tickets": [],
+        "push-tokens": [],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      notificationsRouter.sendLotteryNotification,
+      { lotteryId: "lottery-99" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mockSendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pushTokens: [],
+        title: "Giveaway has ended",
+      })
     );
   });
 });

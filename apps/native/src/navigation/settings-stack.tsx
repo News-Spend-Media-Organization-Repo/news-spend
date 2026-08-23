@@ -30,6 +30,7 @@ const ROUTE_TITLES = {
   ShareApp: "Share App",
   Socials: "Follow Us",
   IdentityVerification: "Verify Identity",
+  VerifyIdentity: "Verify Identity",
 } as const;
 
 type RouteNames = keyof typeof ROUTE_TITLES;

@@ -17,6 +17,7 @@ import { useSnapshot } from "valtio";
 import { UpgradeRequired } from "#/components/UpgradeRequired";
 import AppOpenAd from "./components/Ads/AppOpenAd";
 import GiveawayReward from "./components/dialogs/GiveawayReward";
+import LotteryReward from "./components/dialogs/LotteryReward";
 import useCachedResources from "./hooks/useCachedResources";
 import { initializeAdsWhenPermitted } from "./lib/adsInit";
 import { initSentry } from "./lib/sentry";
@@ -174,6 +175,7 @@ export function App() {
             theme={myCustomTheme}
           />
         </ObserveNavigationProvider>
+        <LotteryReward />
         <GiveawayReward />
         {/* Last, so it covers everything when the server refuses this build. */}
         <UpgradeRequired />

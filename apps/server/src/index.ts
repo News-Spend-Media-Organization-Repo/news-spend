@@ -453,6 +453,13 @@ try {
       // noop
     }
   });
+  import("@news-spend-media/api/jobs/lottery").then((m) => {
+    try {
+      m.startLotteryJob();
+    } catch {
+      // noop
+    }
+  });
   import("@news-spend-media/api/jobs/giveaway").then((m) => {
     try {
       m.startGiveawayJob();
