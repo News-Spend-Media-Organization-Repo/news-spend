@@ -1,12 +1,23 @@
 import { type CollectionConfig, ValidationError } from "payload";
 
 import { isIdentityProviderConfigured } from "../../lib/giveaway/didit";
+import {
+  ReloadlyClient,
+  reloadlyConfigFromEnv,
+} from "../../lib/giveaway/reloadly";
 
 import {
   ADMIN_GROUP,
   FULFILMENT_TYPE_OPTIONS,
   PRIZE_TIER_OPTIONS,
 } from "./constants";
+
+const RELOADLY_NETWORK_OPERATORS = {
+  mtn: 345,
+  airtel: 646,
+  glo: 647,
+  t2: 645,
+} as const;
 
 /**
  * Master Prize Catalogue (spec 2).
@@ -82,6 +93,94 @@ export const PrizeCatalogue: CollectionConfig = {
                 },
               ],
             });
+          }
+        }
+
+        // Auto-populate operator IDs and validate Reloadly data plans
+        if (
+          data?.fulfilmentType === "data" &&
+          data?.reloadlyDataPlans?.length
+        ) {
+          // Auto-populate operator IDs based on network selection
+          data.reloadlyDataPlans = data.reloadlyDataPlans.map((plan: any) => ({
+            ...plan,
+            reloadlyOperatorId:
+              RELOADLY_NETWORK_OPERATORS[
+                plan.network as keyof typeof RELOADLY_NETWORK_OPERATORS
+              ] || plan.reloadlyOperatorId,
+          }));
+
+          const config = reloadlyConfigFromEnv();
+          if (config) {
+            const client = new ReloadlyClient(config);
+            const errors: Array<{
+              path: string;
+              message: string;
+            }> = [];
+
+            for (let i = 0; i < data.reloadlyDataPlans.length; i++) {
+              const plan = data.reloadlyDataPlans[i];
+
+              if (!plan.reloadlyOperatorId) {
+                errors.push({
+                  path: `reloadlyDataPlans.${i}.reloadlyOperatorId`,
+                  message: "Operator ID is required",
+                });
+                continue;
+              }
+
+              if (!plan.reloadlyLocalAmount) {
+                errors.push({
+                  path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
+                  message: "Amount is required",
+                });
+                continue;
+              }
+
+              try {
+                const operator = await client.getOperatorProducts(
+                  plan.reloadlyOperatorId
+                );
+
+                if (
+                  operator.denominationType === "FIXED" &&
+                  operator.localFixedAmounts &&
+                  !operator.localFixedAmounts.includes(plan.reloadlyLocalAmount)
+                ) {
+                  const available = operator.localFixedAmounts.join(", ");
+                  errors.push({
+                    path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
+                    message: `Amount ₦${plan.reloadlyLocalAmount} is not available for this operator. Available amounts: ${available}`,
+                  });
+                } else if (
+                  operator.denominationType === "RANGE" &&
+                  operator.localMinAmount &&
+                  operator.localMaxAmount
+                ) {
+                  if (
+                    plan.reloadlyLocalAmount < operator.localMinAmount ||
+                    plan.reloadlyLocalAmount > operator.localMaxAmount
+                  ) {
+                    errors.push({
+                      path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
+                      message: `Amount ₦${plan.reloadlyLocalAmount} is outside the valid range (₦${operator.localMinAmount} - ₦${operator.localMaxAmount})`,
+                    });
+                  }
+                }
+              } catch (err: any) {
+                errors.push({
+                  path: `reloadlyDataPlans.${i}.reloadlyOperatorId`,
+                  message: `Could not validate operator: ${err.message}`,
+                });
+              }
+            }
+
+            if (errors.length > 0) {
+              throw new ValidationError({
+                collection: "prize-catalogue",
+                errors,
+              });
+            }
           }
         }
 
@@ -197,7 +296,10 @@ export const PrizeCatalogue: CollectionConfig = {
       admin: {
         condition: (data) => data?.fulfilmentType === "airtime",
         description:
-          "What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number and this is the only field a person needs to set.",
+          "Pick from available airtime amounts. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number at fulfilment.",
+        components: {
+          Field: "@news-spend-media/payload/components/ReloadlyProductSelector#AirtimeProductField",
+        },
       },
     },
     {
@@ -207,7 +309,10 @@ export const PrizeCatalogue: CollectionConfig = {
       admin: {
         condition: (data) => data?.fulfilmentType === "data",
         description:
-          "A data bundle is provisioned by one specific network for that network's own SIMs: an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.",
+          "Add one row per network this data prize should cover. Select the network, then pick from available plans. At fulfilment, the winner's actual network is detected from their phone number and matched against these rows.",
+        components: {
+          RowLabel: "@news-spend-media/payload/components/ReloadlyDataPlanRowLabel#ReloadlyDataPlanRowLabel",
+        },
       },
       fields: [
         {
@@ -220,26 +325,34 @@ export const PrizeCatalogue: CollectionConfig = {
             { label: "Glo Nigeria", value: "glo" },
             { label: "9mobile / T2 Nigeria", value: "t2" },
           ],
+          admin: {
+            description: "Select the network this plan is for",
+            width: "50%",
+          },
         },
         {
           name: "reloadlyOperatorId",
-          label: "Reloadly operator id",
+          label: "Operator ID",
           type: "number",
           required: true,
           admin: {
-            description:
-              "This network's \"…Data\" operator, not its airtime one: look it up from Reloadly's operator list.",
+            description: "Auto-populated based on network",
+            readOnly: true,
+            width: "25%",
           },
         },
         {
           name: "reloadlyLocalAmount",
-          label: "Amount (local currency)",
+          label: "Data Plan",
           type: "number",
           required: true,
           min: 0,
           admin: {
-            description:
-              "The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount: check the operator's own plan list rather than assuming Value (₦) applies.",
+            description: "Select from available plans for this network",
+            components: {
+              Field: "@news-spend-media/payload/components/ReloadlyProductSelector#DataPlanField",
+            },
+            width: "25%",
           },
         },
       ],

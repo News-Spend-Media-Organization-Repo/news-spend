@@ -223,6 +223,30 @@ export class ReloadlyClient {
   }
 
   /**
+   * Get available denominations/products for an operator.
+   * Returns the operator details including available fixed amounts.
+   */
+  getOperatorProducts(operatorId: number): Promise<{
+    operatorId: number;
+    operatorName: string;
+    denominationType: "RANGE" | "FIXED";
+    supportsLocalAmounts: boolean;
+    localMinAmount: number | null;
+    localMaxAmount: number | null;
+    localFixedAmounts: number[] | null;
+  }> {
+    return this.request<{
+      operatorId: number;
+      operatorName: string;
+      denominationType: "RANGE" | "FIXED";
+      supportsLocalAmounts: boolean;
+      localMinAmount: number | null;
+      localMaxAmount: number | null;
+      localFixedAmounts: number[] | null;
+    }>(`/operators/${operatorId}`);
+  }
+
+  /**
    * Send a top-up.
    *
    * `customIdentifier` carries the winner id, which is what makes this safe to
