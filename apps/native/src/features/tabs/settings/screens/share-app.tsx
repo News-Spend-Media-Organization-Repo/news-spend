@@ -3,7 +3,7 @@ import { ListGroup } from "heroui-native/list-group";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Separator } from "heroui-native/separator";
 
-import type { IconProps } from "phosphor-react-native";
+import type { IconProps } from "#/lib/icons";
 import {
   ChatDotsIcon,
   CopyIcon,
@@ -11,7 +11,7 @@ import {
   MessengerLogoIcon,
   ShareNetworkIcon,
   WhatsappLogoIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { useMemo } from "react";
 import { Linking, Platform, ScrollView, View } from "react-native";
 import Share, { type Social } from "react-native-share";

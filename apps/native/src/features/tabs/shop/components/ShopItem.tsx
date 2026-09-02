@@ -3,7 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { Card } from "heroui-native/card";
 import { Separator } from "heroui-native/separator";
-import { HeartIcon } from "phosphor-react-native";
+import { HeartIcon } from "#/lib/icons";
 import { Pressable, View } from "react-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";

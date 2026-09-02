@@ -1,5 +1,5 @@
 import { BottomSheetView } from "@gorhom/bottom-sheet";
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { Dialog } from "heroui-native/dialog";
 import { Separator } from "heroui-native/separator";

@@ -4,7 +4,7 @@ import { Checkbox } from "heroui-native/checkbox";
 import { ControlField } from "heroui-native/control-field";
 import { Description } from "heroui-native/description";
 import { RadioGroup } from "heroui-native/radio-group";
-import { X } from "phosphor-react-native";
+import { X } from "#/lib/icons";
 import React, { useId } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

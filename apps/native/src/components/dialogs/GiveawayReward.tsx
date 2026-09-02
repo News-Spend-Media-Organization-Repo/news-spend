@@ -4,7 +4,7 @@ import {
   SealQuestionIcon,
   TicketIcon,
   TrophyIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { useSnapshot } from "valtio";

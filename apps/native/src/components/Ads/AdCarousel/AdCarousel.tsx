@@ -9,7 +9,7 @@ import type {
   PartnerContent,
   PromoVideoSource,
 } from "@news-spend-media/payload/types";
-import { ShareNetworkIcon } from "phosphor-react-native";
+import { ShareNetworkIcon } from "#/lib/icons";
 import type React from "react";
 import { useCallback, useImperativeHandle, useMemo, useRef } from "react";
 import { useWindowDimensions, View } from "react-native";

@@ -4,11 +4,9 @@ import {
   useNavigation,
 } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import {
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-} from "date-fns";
+import { differenceInDays } from "date-fns/differenceInDays";
+import { differenceInHours } from "date-fns/differenceInHours";
+import { differenceInMinutes } from "date-fns/differenceInMinutes";
 import { LinkButton } from "heroui-native/link-button";
 import { useCallback, useState } from "react";
 import { Platform, ScrollView, View } from "react-native";

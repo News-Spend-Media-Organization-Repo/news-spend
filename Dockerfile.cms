@@ -54,6 +54,19 @@ COPY tooling ./tooling
 RUN bun install --lockfile-only --ignore-scripts && bun install --ignore-scripts
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# next.config.ts reads this for both `deploymentId` and `generateBuildId`, and
+# next.config is evaluated while the image builds, not when it runs. Railway
+# exposes the variable to the container but Docker does not pass it into the
+# build without an ARG, so without this it is undefined exactly where it is
+# read: `generateBuildId` returns null and Next falls back to a fresh random
+# build id each time, while an unset `deploymentId` leaves skew protection off.
+#
+# Declared here rather than beside the other build args because its value is
+# new on every deploy, including a redeploy of an unchanged commit. Any layer
+# below an ENV that always changes can never be reused, so putting it above
+# `bun install` would reinstall system packages and dependencies every time.
+ARG RAILWAY_DEPLOYMENT_ID
+ENV RAILWAY_DEPLOYMENT_ID=$RAILWAY_DEPLOYMENT_ID
 RUN bun turbo build --filter=@news-spend-media/cms...
 
 FROM oven/bun:1.4.0 AS runtime

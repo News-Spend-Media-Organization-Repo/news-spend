@@ -1,5 +1,5 @@
 import type { Activity } from "@news-spend-media/payload/types";
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { cn } from "heroui-native/utils";
 import React from "react";

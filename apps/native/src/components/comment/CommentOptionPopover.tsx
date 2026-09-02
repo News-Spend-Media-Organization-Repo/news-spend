@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
-import { DotsThreeVerticalIcon } from "phosphor-react-native";
+import { DotsThreeVerticalIcon } from "#/lib/icons";
 import React from "react";
 import { Alert } from "react-native";
 

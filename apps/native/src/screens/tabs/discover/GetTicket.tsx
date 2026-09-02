@@ -2,7 +2,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
-import { MinusCircleIcon, PlusCircleIcon } from "phosphor-react-native";
+import { MinusCircleIcon, PlusCircleIcon } from "#/lib/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { NativeAd } from "react-native-google-mobile-ads";

@@ -6,7 +6,7 @@ import {
   PencilSimpleLineIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { Pressable, View } from "react-native";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";

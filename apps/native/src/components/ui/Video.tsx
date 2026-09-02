@@ -9,7 +9,7 @@ import {
   PlayIcon,
   SpeakerHighIcon,
   SpeakerXIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import {
   type Ref,
   useCallback,

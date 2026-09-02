@@ -1,4 +1,4 @@
-import { ArrowClockwiseIcon } from "phosphor-react-native";
+import { ArrowClockwiseIcon } from "#/lib/icons";
 import { Linking, Platform, View } from "react-native";
 import { useSnapshot } from "valtio";
 

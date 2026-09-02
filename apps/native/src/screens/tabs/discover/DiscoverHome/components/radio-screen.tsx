@@ -3,7 +3,7 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import { useQuery } from "@tanstack/react-query";
-import { MusicNoteIcon } from "phosphor-react-native";
+import { MusicNoteIcon } from "#/lib/icons";
 import type { Station } from "radio-browser-api";
 import { useCallback, useMemo } from "react";
 import { type ScrollViewProps, View } from "react-native";

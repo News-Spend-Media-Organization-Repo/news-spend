@@ -1,12 +1,12 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { formatDistance } from "date-fns";
+import { formatDistance } from "date-fns/formatDistance";
 import { Separator } from "heroui-native/separator";
 import {
   ArrowBendUpLeftIcon,
   ChatIcon,
   ClockIcon,
   HeartStraightIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { memo } from "react";
 import { View } from "react-native";
 import { useSnapshot } from "valtio";

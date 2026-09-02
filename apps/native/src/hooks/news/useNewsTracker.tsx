@@ -1,6 +1,6 @@
 import type { Activity, News } from "@news-spend-media/payload/types";
 import { useFocusEffect } from "@react-navigation/native";
-import { isSameDay } from "date-fns";
+import { isSameDay } from "date-fns/isSameDay";
 import { useCallback, useRef, useState } from "react";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { useSnapshot } from "valtio";

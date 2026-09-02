@@ -4,7 +4,8 @@ import {
 } from "@legendapp/list/react-native";
 import type { Activity } from "@news-spend-media/payload/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { addDays, subDays } from "date-fns";
+import { addDays } from "date-fns/addDays";
+import { subDays } from "date-fns/subDays";
 import { Select } from "heroui-native/select";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";

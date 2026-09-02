@@ -1,13 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format } from "date-fns/format";
 import { Card } from "heroui-native/card";
 import {
   CoinsIcon,
   DeviceMobileIcon,
   GiftIcon,
   PackageIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { ActivityIndicator, View } from "react-native";
 
 import { ScreenHeader } from "#/components";

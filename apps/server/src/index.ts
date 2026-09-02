@@ -1,7 +1,6 @@
 import { createContext } from "@news-spend-media/api/context";
 import { router } from "@news-spend-media/api/router/index";
 import { diditWebhookHandler } from "@news-spend-media/api/router/verification/webhook";
-import { widgetHandler } from "@news-spend-media/api/router/widgets/handler";
 import { auth } from "@news-spend-media/auth";
 import { logger as appLogger } from "@news-spend-media/logger";
 import { OpenAPIGenerator } from "@orpc/openapi";
@@ -369,14 +368,6 @@ const server = Bun.serve({
       });
     }
 
-    if (url.pathname === "/api/widgets") {
-      logRequest(req);
-      return widgetHandler(req).then((res) => {
-        logResponse(req, res.status, Date.now() - start);
-        return res;
-      });
-    }
-
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       logRequest(req);
       return handleApi(req).then((res) => {
@@ -394,7 +385,7 @@ const server = Bun.serve({
     logger.error({ err: error }, "Server error");
     // Last line of defence: anything that escapes fetch() lands here, including
     // the routes that never touch oRPC's sentryMiddleware (auth, webhooks,
-    // widgets, static pages).
+    // static pages).
     Sentry.captureException(error);
     return new Response("Internal Server Error", { status: 500 });
   },

@@ -23,7 +23,7 @@ import {
   TrashIcon,
   UserIcon,
   UserMinusIcon,
-} from "phosphor-react-native";
+} from "#/lib/icons";
 import { Fragment, useCallback, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

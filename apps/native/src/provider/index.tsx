@@ -2,7 +2,6 @@ import { ErrorBoundary } from "@sentry/react-native";
 import { DetourProvider } from "@swmansion/react-native-detour";
 import type { HeroUINativeConfig } from "heroui-native/provider";
 import { HeroUINativeProvider } from "heroui-native/provider";
-import { IconContext } from "phosphor-react-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -19,11 +18,11 @@ import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import { useOnlineManager } from "#/hooks/useOnlineManager";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
+import { IconContext } from "#/lib/icons";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { useUpdates } from "#/lib/UpdatesProvider";
 import { authState } from "#/state/auth";
 import { useAfterStartup } from "#/utils/afterStartup";
-import { scheduleDailyDigest } from "#/widgets";
 
 type Props = {
   children: React.ReactNode;
@@ -63,10 +62,9 @@ export const Provider = ({ children }: Props) => {
   useOnlineManager();
   const { updateSheet } = useUpdates();
 
-  // Neither of the effects below is needed for the first screen, and both are
-  // expensive in the way that matters at startup: the analytics client starts
-  // a poller, and the digest fetches news over the network and renders widget
-  // timelines. Held until the first frames are done.
+  // The effect below is not needed for the first screen, and it is expensive
+  // in the way that matters at startup: the analytics client starts a poller.
+  // Held until the first frames are done.
   const startupSettled = useAfterStartup();
 
   useEffect(() => {
@@ -75,13 +73,6 @@ export const Provider = ({ children }: Props) => {
     }
     newsAnalyticsClient.start(() => authState.user?.id);
     return () => newsAnalyticsClient.stop();
-  }, [startupSettled]);
-
-  useEffect(() => {
-    if (!startupSettled) {
-      return;
-    }
-    scheduleDailyDigest();
   }, [startupSettled]);
 
   return (

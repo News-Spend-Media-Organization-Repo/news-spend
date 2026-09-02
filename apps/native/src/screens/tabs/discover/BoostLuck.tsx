@@ -1,8 +1,9 @@
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { differenceInDays, differenceInHours } from "date-fns";
+import { differenceInDays } from "date-fns/differenceInDays";
+import { differenceInHours } from "date-fns/differenceInHours";
 import { Card } from "heroui-native/card";
-import { CoinsIcon } from "phosphor-react-native";
+import { CoinsIcon } from "#/lib/icons";
 import { View } from "react-native";
 
 import { ScreenHeader } from "#/components";

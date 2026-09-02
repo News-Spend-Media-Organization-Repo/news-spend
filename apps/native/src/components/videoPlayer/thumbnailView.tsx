@@ -1,4 +1,4 @@
-import { PlayIcon } from "phosphor-react-native";
+import { PlayIcon } from "#/lib/icons";
 import { Pressable, View } from "react-native";
 
 import { Image } from "#/components/ui";
