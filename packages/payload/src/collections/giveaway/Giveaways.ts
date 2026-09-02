@@ -1,5 +1,5 @@
 import { addWeeks, startOfWeek } from "date-fns";
-import { type CollectionConfig, ValidationError } from "payload";
+import { APIError, type CollectionConfig, ValidationError } from "payload";
 
 import {
   ADMIN_GROUP,
@@ -144,6 +144,12 @@ export const Giveaways: CollectionConfig = {
         try {
           const result = await new GiveawayEngine(req.payload).runDraw(id, {
             resume,
+            // An administrator is pressing the button and reads the refusal in
+            // the response below, so there is nothing for a status change to
+            // tell them. Leaving the giveaway open lets them fix what
+            // validation named and press it again; the scheduled task, which
+            // has nobody to read anything, keeps the default.
+            recordValidationFailure: false,
           });
 
           return Response.json({
@@ -310,16 +316,22 @@ export const Giveaways: CollectionConfig = {
 
           const clash = active.docs[0];
           if (clash && clash.id !== originalDoc?.id) {
-            throw new ValidationError({
-              collection: "giveaways",
-              errors: [
-                {
-                  path: "status",
-                  message: `"${clash.name}" is already active. Only one giveaway may be active at a time.`,
-                },
-              ],
-              id: clash.id,
-            });
+            /**
+             * `APIError`, not `ValidationError`, because this message is the
+             * whole value of the error.
+             *
+             * `ValidationError` composes its own message from the field path
+             * and discards the per-error `message`, so the administrator saw
+             * "The following field is invalid: status" and had to go and work
+             * out for themselves which giveaway was holding the slot. The one
+             * fact that resolves the situation — the name of the giveaway to
+             * close out first — never reached them. `APIError`'s message is
+             * shown verbatim.
+             */
+            throw new APIError(
+              `"${clash.name}" is already active, and only one giveaway may be active at a time. Set "${clash.name}" to Completed or Cancelled first, then activate this one.`,
+              400
+            );
           }
         }
 

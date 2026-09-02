@@ -165,6 +165,21 @@ export type RunDrawOptions = {
    * records are immutable under 17, so a partial draw can only be continued.
    */
   resume?: boolean;
+  /**
+   * On a refused preflight, move the giveaway to `failed` and write the reason
+   * to `drawError`.
+   *
+   * On by default, because the case that matters is the scheduled task. It
+   * runs unattended, and a giveaway left `active` after a refused draw is
+   * re-selected on every run for ever, holding the single active slot and
+   * leaving nothing an administrator can see.
+   *
+   * The manual "Run Draw" button turns it off: there an administrator is
+   * already reading the reason in the response, and flipping the giveaway to
+   * `failed` would only make them reopen it before they could fix the prize
+   * pool and press the button again.
+   */
+  recordValidationFailure?: boolean;
 };
 
 /**
@@ -218,8 +233,36 @@ export class GiveawayEngine {
       resume,
     });
     if (!validation.valid) {
+      const message = `Draw cannot start: ${validation.errors.join("; ")}`;
+
+      /**
+       * Record the refusal before throwing.
+       *
+       * This runs before `beginAttempt`, so the try/catch below — and with it
+       * `stopAttempt`, which is what normally moves a giveaway to `failed` and
+       * writes `drawError` — is never reached. Without this the giveaway stays
+       * `active` indefinitely: `processGiveaway` re-selects it on every run
+       * (it queries `active` plus a passed `endDate`), fails here again, and
+       * leaves nothing an administrator can see, because `drawError` only
+       * renders for `failed` and `interrupted`. It also keeps the single
+       * `active` slot, so no replacement giveaway can be opened until someone
+       * edits the status by hand.
+       *
+       * `failed` is deliberate rather than `interrupted`: nothing was awarded,
+       * so there is no partial draw to defend. It is resumable, and it is not
+       * a locked status, so the administrator can fix whatever validation
+       * named — usually an empty prize pool — and open the giveaway again.
+       */
+      if (!dryRun && (options.recordValidationFailure ?? true)) {
+        await this.payload.update({
+          collection: "giveaways",
+          id: giveawayId,
+          data: { status: "failed", drawError: message },
+        });
+      }
+
       throw new GiveawayEngineError(
-        `Draw cannot start: ${validation.errors.join("; ")}`,
+        message,
         "DRAW_VALIDATION_FAILED",
         validation.errors
       );
