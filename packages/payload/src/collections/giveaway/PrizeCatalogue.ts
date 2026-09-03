@@ -311,7 +311,7 @@ export const PrizeCatalogue: CollectionConfig = {
         description:
           "Add one row per network this data prize should cover. Select the network, then pick from available plans. At fulfilment, the winner's actual network is detected from their phone number and matched against these rows.",
         components: {
-          RowLabel: "@news-spend-media/payload/components/ReloadlyDataPlanRowLabel#ReloadlyDataPlanRowLabel",
+          RowLabel: "@news-spend-media/payload/components/ReloadlyProductSelector#ReloadlyDataPlanRowLabel",
         },
       },
       fields: [

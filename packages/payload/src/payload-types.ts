@@ -1537,21 +1537,24 @@ export interface PrizeCatalogue {
    */
   requiresVerification?: boolean | null;
   /**
-   * What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number and this is the only field a person needs to set.
+   * Pick from available airtime amounts. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number at fulfilment.
    */
   reloadlyLocalAmount?: number | null;
   /**
-   * A data bundle is provisioned by one specific network for that network's own SIMs: an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.
+   * Add one row per network this data prize should cover. Select the network, then pick from available plans. At fulfilment, the winner's actual network is detected from their phone number and matched against these rows.
    */
   reloadlyDataPlans?:
     | {
+        /**
+         * Select the network this plan is for
+         */
         network: 'mtn' | 'airtel' | 'glo' | 't2';
         /**
-         * This network's "…Data" operator, not its airtime one: look it up from Reloadly's operator list.
+         * Auto-populated based on network
          */
         reloadlyOperatorId: number;
         /**
-         * The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount: check the operator's own plan list rather than assuming Value (₦) applies.
+         * Select from available plans for this network
          */
         reloadlyLocalAmount: number;
         id?: string | null;

@@ -1,8 +1,8 @@
 'use client';
 
+import type { TextFieldClientComponent } from 'payload';
 import { useEffect, useState } from 'react';
 import type { FieldBase } from 'payload';
-import type { TextFieldClientComponent } from 'payload';
 
 interface ReloadlyProduct {
   operatorId: number;
@@ -19,12 +19,6 @@ interface DataPlan {
   reloadlyLocalAmount: number;
 }
 
-interface AirtimeProduct {
-  operatorId: number;
-  operatorName: string;
-  localFixedAmounts: number[];
-}
-
 interface ReloadlyProductSelectorProps {
   field: FieldBase;
   value?: number | DataPlan[];
@@ -34,20 +28,15 @@ interface ReloadlyProductSelectorProps {
   network?: string;
 }
 
-const NETWORKS = [
+export const NETWORKS = [
   { label: 'MTN Nigeria', value: 'mtn', operatorId: 345 },
   { label: 'Airtel Nigeria', value: 'airtel', operatorId: 646 },
   { label: 'Glo Nigeria', value: 'glo', operatorId: 647 },
   { label: '9mobile / T2 Nigeria', value: 't2', operatorId: 645 },
 ];
 
-const AIRTIME_OPERATOR_ID = 317; // Nigeria generic airtime operator
+const AIRTIME_OPERATOR_ID = 317;
 
-/**
- * Admin component for selecting Reloadly products dynamically.
- * Shows available denominations/plans fetched from Reloadly API.
- * Supports both airtime (amount selection) and data (plan selection per network).
- */
 export const ReloadlyProductSelector = ({
   field,
   value,
@@ -80,24 +69,21 @@ export const ReloadlyProductSelector = ({
     }
   };
 
-  // For data prizes: fetch when network changes
   useEffect(() => {
     if (fulfilmentType === 'data' && selectedNetwork) {
-      const network = NETWORKS.find((n) => n.value === selectedNetwork);
-      if (network) {
-        fetchProducts(network.operatorId);
+      const net = NETWORKS.find((n) => n.value === selectedNetwork);
+      if (net) {
+        fetchProducts(net.operatorId);
       }
     }
   }, [selectedNetwork, fulfilmentType]);
 
-  // For airtime prizes: fetch on mount
   useEffect(() => {
     if (fulfilmentType === 'airtime') {
       fetchProducts(AIRTIME_OPERATOR_ID);
     }
   }, [fulfilmentType]);
 
-  // DATA PRIZE FLOW
   if (fulfilmentType === 'data') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -142,11 +128,11 @@ export const ReloadlyProductSelector = ({
                 value={value || ''}
                 onChange={(e) => {
                   const amount = Number(e.target.value);
-                  const network = NETWORKS.find((n) => n.value === selectedNetwork);
-                  if (network) {
+                  const net = NETWORKS.find((n) => n.value === selectedNetwork);
+                  if (net) {
                     onChange({
                       network: selectedNetwork,
-                      reloadlyOperatorId: network.operatorId,
+                      reloadlyOperatorId: net.operatorId,
                       reloadlyLocalAmount: amount,
                     });
                   }
@@ -174,11 +160,11 @@ export const ReloadlyProductSelector = ({
                 value={value || ''}
                 onChange={(e) => {
                   const amount = Number(e.target.value);
-                  const network = NETWORKS.find((n) => n.value === selectedNetwork);
-                  if (network) {
+                  const net = NETWORKS.find((n) => n.value === selectedNetwork);
+                  if (net) {
                     onChange({
                       network: selectedNetwork,
-                      reloadlyOperatorId: network.operatorId,
+                      reloadlyOperatorId: net.operatorId,
                       reloadlyLocalAmount: amount,
                     });
                   }
@@ -199,7 +185,6 @@ export const ReloadlyProductSelector = ({
     );
   }
 
-  // AIRTIME PRIZE FLOW
   if (fulfilmentType === 'airtime') {
     return (
       <div>
@@ -253,9 +238,6 @@ export const ReloadlyProductSelector = ({
   return null;
 };
 
-/**
- * Payload field component for airtime amount selection
- */
 export const AirtimeProductField: TextFieldClientComponent = ({
   field,
   value,
@@ -273,9 +255,6 @@ export const AirtimeProductField: TextFieldClientComponent = ({
   );
 };
 
-/**
- * Payload field component for data plan selection within array
- */
 export const DataPlanField: TextFieldClientComponent = ({
   field,
   value,
@@ -295,12 +274,7 @@ export const DataPlanField: TextFieldClientComponent = ({
   );
 };
 
-/**
- * Row label for data plans array showing network and amount
- */
 export const ReloadlyDataPlanRowLabel = ({ data }: any) => {
   const networkLabel = NETWORKS.find((n) => n.value === data?.network)?.label;
   return `${networkLabel || 'Unknown'} - ₦${(data?.reloadlyLocalAmount || 0).toLocaleString()}`;
 };
-
-export default ReloadlyProductSelector;
