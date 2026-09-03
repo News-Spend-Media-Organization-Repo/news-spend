@@ -83,9 +83,16 @@ export const auth = betterAuth({
         type: "string",
         required: true,
       },
+      /**
+       * No longer collected at sign-up (App Store guideline 5.1.1(v): a
+       * required field the app does not need). The DB column is still
+       * NOT NULL, so `databaseHooks.user.create.before` defaults it to "".
+       * Kept here, read-only, so existing numbers stay visible to admins.
+       */
       phone: {
         type: "string",
-        required: true,
+        required: false,
+        input: false,
       },
       username: {
         type: "string",
@@ -274,6 +281,13 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           console.log(user);
+
+          // Phone is no longer collected at sign-up, but the column is still
+          // NOT NULL. Default it for every user, not just anonymous ones.
+          if (!user.phone) {
+            user.phone = "";
+          }
+
           // Handle anonymous users - set default values for required fields
           if (user.isAnonymous) {
             const randomId = Math.random().toString(36).substring(2, 10);

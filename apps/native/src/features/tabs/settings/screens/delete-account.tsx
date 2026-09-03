@@ -159,7 +159,7 @@ function DeleteAccount() {
             <View className="flex-row items-start gap-2">
               <Text>•</Text>
               <Text className="flex-1">
-                Your profile information (name, email, username, phone)
+                Your profile information (name, email, username)
               </Text>
             </View>
             <View className="flex-row items-start gap-2">

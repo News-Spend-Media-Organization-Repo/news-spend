@@ -47,12 +47,6 @@ const schema = z.object({
       /^[a-zA-Z0-9_]+$/,
       "Username can only contain letters, numbers and underscores"
     ),
-  phone: z
-    .string("Please enter your phone number")
-    .trim()
-    .min(10, "Phone number must be at least 10 digits")
-    .max(15, "Phone number must not exceed 15 digits")
-    .regex(/^\+?[0-9]+$/, "Please enter a valid phone number"),
   wish: z.object(
     {
       label: z.string(),
@@ -73,7 +67,6 @@ const defaultValues = {
   email: "rickpd@hotmai.red",
   password: "123456qwerty",
   username: "ricky",
-  phone: "1234567890",
 };
 
 export type SignUpInput = z.input<typeof schema>;
@@ -168,11 +161,6 @@ export default function SignUp() {
                 name="username"
                 placeholder="Username"
                 textContentType="username"
-              />
-              <FormInput
-                name="phone"
-                placeholder="Phone"
-                textContentType="telephoneNumber"
               />
               <FormInput
                 autoCapitalize="none"
