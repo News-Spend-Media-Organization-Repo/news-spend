@@ -34,7 +34,9 @@ const config: GoldieConfig = {
     fontFamily: '-apple-system, "SF Pro Display", system-ui, sans-serif',
     copyHeightRatio: 0.24,
     deviceWidthRatio: 0.84,
-    template: "editorial",
+    // Straight-on device, full screen visible in every tile. The app-store
+    // rejection was about screenshots "not showing the app in use", so the
+    // marketing tilt/panorama layouts are deliberately avoided here.
     layout: "classic",
   },
 
@@ -74,13 +76,6 @@ const config: GoldieConfig = {
       flow: "store-03-points",
       headline: { "en-US": "Get paid to explore" },
       subhead: { "en-US": "Apps, games, books and surveys — every one earns points." },
-    },
-    {
-      kind: "screenshot",
-      id: "giveaway",
-      flow: "store-04-giveaway",
-      headline: { "en-US": "Win real prizes" },
-      subhead: { "en-US": "Enter draws for phones, airtime and data bundles." },
     },
     {
       kind: "screenshot",
