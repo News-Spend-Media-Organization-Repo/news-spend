@@ -9,7 +9,6 @@ function useSignUp() {
       password: string;
       name: string;
       wish: string;
-      phone: string;
       username: string;
     }) => await authClient.signUp.email(data),
   });

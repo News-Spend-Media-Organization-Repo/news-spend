@@ -103,7 +103,10 @@ export const Users: CollectionConfig = {
     {
       name: "phone",
       type: "text",
-      required: true,
+      admin: {
+        description:
+          "No longer collected at sign-up (App Store guideline 5.1.1(v)). Retained for existing users and admin edits.",
+      },
     },
     {
       name: "dateOfBirth",

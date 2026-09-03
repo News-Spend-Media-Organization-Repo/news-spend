@@ -362,7 +362,7 @@ export function AccountDeletionPage() {
           </p>
           <ul class="data-list">
             <li>
-              Your profile information (name, email, username, phone number)
+              Your profile information (name, email, username)
             </li>
             <li>All reward points and activity history</li>
             <li>Your comments and posts</li>

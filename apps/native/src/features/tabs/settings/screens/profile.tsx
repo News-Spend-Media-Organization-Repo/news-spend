@@ -42,10 +42,6 @@ const profileSchema = z.object({
     .trim()
     .min(3, "Username must be at least 3 characters")
     .toLowerCase(),
-  phone: z
-    .string("Phone number is required")
-    .regex(/^\d+$/, "Invalid phone number")
-    .trim(),
   email: z.email("Invalid email").trim(),
   wish: z.string("Wish is required").trim(),
 });
@@ -66,14 +62,12 @@ function Profile() {
     defaultValues: {
       name: "",
       username: "",
-      phone: "",
       email: "",
       wish: "",
     },
     values: {
       name: user?.name ?? "",
       username: user?.username ?? "",
-      phone: user?.phone ?? "",
       email: user?.email ?? "",
       wish: user?.wish ?? "",
     },
@@ -109,7 +103,6 @@ function Profile() {
     const formattedData = {
       name: capitalize(data.name),
       username: data.username,
-      phone: data.phone,
     };
 
     updateProfileMutation.mutate(formattedData, {
@@ -168,11 +161,6 @@ function Profile() {
                 label="Username"
                 name="username"
                 placeholder={user?.username ?? ""}
-              />
-              <FormTextInput
-                label="Phone"
-                name="phone"
-                placeholder={user?.phone ?? ""}
               />
               <FormTextInput
                 isDisabled
