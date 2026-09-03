@@ -1,12 +1,24 @@
 import { type CollectionConfig, ValidationError } from "payload";
 
 import { isIdentityProviderConfigured } from "../../lib/giveaway/didit";
+import {
+  ReloadlyClient,
+  reloadlyConfigFromEnv,
+} from "../../lib/giveaway/reloadly";
+import { describeNearestDenominations } from "../../lib/giveaway/reloadlyDenominations";
 
 import {
   ADMIN_GROUP,
   FULFILMENT_TYPE_OPTIONS,
   PRIZE_TIER_OPTIONS,
+  RELOADLY_NETWORK_OPERATORS,
+  RELOADLY_NETWORK_OPTIONS,
+  RELOADLY_NETWORKS,
+  type ReloadlyNetwork,
 } from "./constants";
+
+const networkLabel = (network: string): string =>
+  RELOADLY_NETWORK_OPTIONS.find((n) => n.value === network)?.label ?? network;
 
 /**
  * Master Prize Catalogue (spec 2).
@@ -81,6 +93,133 @@ export const PrizeCatalogue: CollectionConfig = {
                     "This prize is already used in one or more giveaways and cannot be reassigned to a different tier.",
                 },
               ],
+            });
+          }
+        }
+
+        if (data?.fulfilmentType === "data") {
+          const plans: any[] = data.reloadlyDataPlans ?? [];
+
+          // The operator ID is derived, never typed. Doing it here means the
+          // checks below and the stored row agree on which operator a row is.
+          data.reloadlyDataPlans = plans.map((plan: any) => ({
+            ...plan,
+            reloadlyOperatorId:
+              RELOADLY_NETWORK_OPERATORS[plan.network as ReloadlyNetwork] ||
+              plan.reloadlyOperatorId,
+          }));
+
+          const errors: Array<{
+            path: string;
+            message: string;
+          }> = [];
+
+          // One row per network, no more and no fewer.
+          //
+          // Two rows for the same network are not a harmless duplicate: at
+          // fulfilment the winner's network is matched against these rows and
+          // the first match wins, so the second row is a plan somebody chose
+          // that silently never sends. A missing network is the mirror image —
+          // that winner's prize goes to manual review instead of delivering.
+          // Neither shows up until a real winner hits it, which is why both
+          // are refused at the point the prize is saved.
+          const firstRowFor = new Map<string, number>();
+
+          data.reloadlyDataPlans.forEach((plan: any, i: number) => {
+            if (!plan.network) {
+              return;
+            }
+
+            const seenAt = firstRowFor.get(plan.network);
+            if (seenAt === undefined) {
+              firstRowFor.set(plan.network, i);
+              return;
+            }
+
+            errors.push({
+              path: `reloadlyDataPlans.${i}.network`,
+              message: `${networkLabel(plan.network)} already has a plan in row ${seenAt + 1}. Each network gets exactly one row: at fulfilment the first matching row is the one that sends, so this one would never be used.`,
+            });
+          });
+
+          const missing = RELOADLY_NETWORKS.filter((n) => !firstRowFor.has(n));
+          if (missing.length > 0) {
+            errors.push({
+              path: "reloadlyDataPlans",
+              message: `A data prize must cover all ${RELOADLY_NETWORKS.length} networks, and this one is missing ${missing.map(networkLabel).join(", ")}. A winner on a network with no plan cannot be sent their prize automatically and would be held for manual review.`,
+            });
+          }
+
+          const config = reloadlyConfigFromEnv();
+          if (config) {
+            const client = new ReloadlyClient(config);
+
+            for (let i = 0; i < data.reloadlyDataPlans.length; i++) {
+              const plan = data.reloadlyDataPlans[i];
+
+              if (!plan.reloadlyOperatorId) {
+                errors.push({
+                  path: `reloadlyDataPlans.${i}.reloadlyOperatorId`,
+                  message: "Operator ID is required",
+                });
+                continue;
+              }
+
+              if (!plan.reloadlyLocalAmount) {
+                errors.push({
+                  path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
+                  message: "Amount is required",
+                });
+                continue;
+              }
+
+              try {
+                const operator = await client.getOperatorProducts(
+                  plan.reloadlyOperatorId
+                );
+
+                if (
+                  operator.denominationType === "FIXED" &&
+                  operator.localFixedAmounts &&
+                  !operator.localFixedAmounts.includes(plan.reloadlyLocalAmount)
+                ) {
+                  // Naming the price alone would leave the editor to guess
+                  // which bundle to pick, so say what each one buys — but only
+                  // for the few nearest the amount they actually asked for.
+                  const nearest = describeNearestDenominations(
+                    operator.localFixedAmounts,
+                    plan.reloadlyLocalAmount,
+                    operator.localFixedAmountsDescriptions
+                  );
+                  errors.push({
+                    path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
+                    message: `Amount ₦${plan.reloadlyLocalAmount} is not available for this operator. Nearest plans: ${nearest}`,
+                  });
+                } else if (
+                  operator.denominationType === "RANGE" &&
+                  operator.localMinAmount &&
+                  operator.localMaxAmount &&
+                  (plan.reloadlyLocalAmount < operator.localMinAmount ||
+                    plan.reloadlyLocalAmount > operator.localMaxAmount)
+                ) {
+                  errors.push({
+                    path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
+                    message: `Amount ₦${plan.reloadlyLocalAmount} is outside the valid range (₦${operator.localMinAmount} - ₦${operator.localMaxAmount})`,
+                  });
+                }
+              } catch (err: any) {
+                errors.push({
+                  path: `reloadlyDataPlans.${i}.reloadlyOperatorId`,
+                  message: `Could not validate operator: ${err.message}`,
+                });
+              }
+            }
+          }
+
+          if (errors.length > 0) {
+            throw new ValidationError({
+              collection: "prize-catalogue",
+              errors,
             });
           }
         }
@@ -197,49 +336,72 @@ export const PrizeCatalogue: CollectionConfig = {
       admin: {
         condition: (data) => data?.fulfilmentType === "airtime",
         description:
-          "What Reloadly actually sends, in the recipient's currency. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number and this is the only field a person needs to set.",
+          "Pick from available airtime amounts. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number at fulfilment.",
+        components: {
+          Field:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#AirtimeProductField",
+        },
       },
     },
     {
       name: "reloadlyDataPlans",
       label: "Reloadly data plans, one per network",
       type: "array",
+      // Exactly one row per network. These two stop the admin panel offering a
+      // fifth row at all, which the beforeValidate hook could only complain
+      // about after the fact. They count rows and nothing more, though — four
+      // rows can still be four copies of MTN — so the hook below remains the
+      // check that the four are actually the four different networks.
+      //
+      // Left non-required deliberately: Payload short-circuits an empty array
+      // before reaching minRows, so a physical or points prize still saves
+      // with no rows, while a data prize with none is caught by the hook.
+      minRows: RELOADLY_NETWORKS.length,
+      maxRows: RELOADLY_NETWORKS.length,
       admin: {
         condition: (data) => data?.fulfilmentType === "data",
         description:
-          "A data bundle is provisioned by one specific network for that network's own SIMs: an MTN bundle does nothing for an Airtel winner, the way a Vodafone bundle does nothing on an EE phone. So this is not one operator but one row per network the prize should cover: at fulfilment, the winner's actual network is detected from their phone number and matched against these rows. A winner on a network with no row here is held for review rather than sent the wrong network's bundle.",
+          "One row per network, and all four are required: MTN, Airtel, Glo and 9mobile. Select the network, then pick from that network's live plans. At fulfilment the winner's actual network is detected from their phone number and matched against these rows, so a network left out means that winner's prize is held for manual review.",
+        components: {
+          RowLabel:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#ReloadlyDataPlanRowLabel",
+        },
       },
       fields: [
         {
           name: "network",
           type: "select",
           required: true,
-          options: [
-            { label: "MTN Nigeria", value: "mtn" },
-            { label: "Airtel Nigeria", value: "airtel" },
-            { label: "Glo Nigeria", value: "glo" },
-            { label: "9mobile / T2 Nigeria", value: "t2" },
-          ],
+          options: [...RELOADLY_NETWORK_OPTIONS],
+          admin: {
+            description: "Select the network this plan is for",
+            width: "50%",
+          },
         },
         {
           name: "reloadlyOperatorId",
-          label: "Reloadly operator id",
+          label: "Operator ID",
           type: "number",
           required: true,
           admin: {
-            description:
-              "This network's \"…Data\" operator, not its airtime one: look it up from Reloadly's operator list.",
+            description: "Auto-populated based on network",
+            readOnly: true,
+            width: "25%",
           },
         },
         {
           name: "reloadlyLocalAmount",
-          label: "Amount (local currency)",
+          label: "Data Plan",
           type: "number",
           required: true,
           min: 0,
           admin: {
-            description:
-              "The fixed price of this network's closest bundle to what the prize promises. Data plans are fixed denominations, not a free amount: check the operator's own plan list rather than assuming Value (₦) applies.",
+            description: "Select from available plans for this network",
+            components: {
+              Field:
+                "@news-spend-media/payload/components/ReloadlyProductSelector#DataPlanField",
+            },
+            width: "25%",
           },
         },
       ],

@@ -56,6 +56,14 @@ export type PartnerAdDialogProps = {
   preferAdType?: "custom" | "native";
   /** Serving this so a Boost can be earned; see `usePartnerAd`. */
   forBoost?: boolean;
+  /**
+   * There was genuinely nothing to show, as opposed to nothing yet.
+   *
+   * Opt-in: without it the dialog just falls back to the Lucky App Wall, which
+   * from the outside is indistinguishable from the ad failing to load. A
+   * caller that passes this can say why the person is being moved.
+   */
+  onUnavailable?: () => void;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -77,6 +85,7 @@ export function PartnerAdDialog({
   fallbackToAppWall = true,
   preferAdType,
   forBoost,
+  onUnavailable,
 }: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
 
@@ -199,8 +208,11 @@ export function PartnerAdDialog({
       if (adType === "native") {
         if (googleAd.isLoaded) {
           googleAd.show();
-        } else if (fallbackToAppWall) {
-          navigate("LuckyAppWall");
+        } else {
+          onUnavailable?.();
+          if (fallbackToAppWall) {
+            navigate("LuckyAppWall");
+          }
         }
         return;
       }
@@ -217,8 +229,9 @@ export function PartnerAdDialog({
         return;
       }
 
-      // Genuinely nothing to show → LuckyAppWall fallback.
+      // Genuinely nothing to show → tell the caller, then fall back.
       if (!ad) {
+        onUnavailable?.();
         if (fallbackToAppWall) {
           navigate("LuckyAppWall");
         }
@@ -234,6 +247,7 @@ export function PartnerAdDialog({
       ad,
       isLoading,
       fallbackToAppWall,
+      onUnavailable,
       setIsOpen,
       handleClose,
     ]

@@ -45,6 +45,25 @@ export type Operator = {
   localFixedAmounts: number[] | null;
 };
 
+/**
+ * An operator's purchasable denominations.
+ *
+ * `localFixedAmountsDescriptions` is keyed by the amount as a string and holds
+ * the operator's own wording for what that denomination buys ("2.5GB 2-day").
+ * For data bundles the amount alone is meaningless to whoever is picking one,
+ * since ₦600 buys a different bundle on every network.
+ */
+export type OperatorProducts = {
+  operatorId: number;
+  operatorName: string;
+  denominationType: "RANGE" | "FIXED";
+  supportsLocalAmounts: boolean;
+  localMinAmount: number | null;
+  localMaxAmount: number | null;
+  localFixedAmounts: number[] | null;
+  localFixedAmountsDescriptions?: Record<string, string> | null;
+};
+
 export type TopupResult = {
   transactionId: number;
   status: string;
@@ -220,6 +239,14 @@ export class ReloadlyClient {
 
   getOperator(operatorId: number): Promise<Operator> {
     return this.request<Operator>(`/operators/${operatorId}`);
+  }
+
+  /**
+   * Get available denominations/products for an operator.
+   * Returns the operator details including available fixed amounts.
+   */
+  getOperatorProducts(operatorId: number): Promise<OperatorProducts> {
+    return this.request<OperatorProducts>(`/operators/${operatorId}`);
   }
 
   /**
