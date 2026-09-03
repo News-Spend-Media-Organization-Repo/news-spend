@@ -1,6 +1,7 @@
 import mobileAds from "react-native-google-mobile-ads";
 
 import { preloadAds } from "#/state/adManager";
+import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 
 import { ensureTrackingPermission } from "./tracking";
 
@@ -19,6 +20,11 @@ let initPromise: Promise<void> | null = null;
  * caching a permanent rejection.
  */
 export function initializeAdsWhenPermitted(): Promise<void> {
+  // Screenshot builds never touch the ads SDK, so no ad view (and no AdMob
+  // native-ad validator overlay) can render.
+  if (SCREENSHOT_MODE) {
+    return Promise.resolve();
+  }
   if (!initPromise) {
     initPromise = (async () => {
       await ensureTrackingPermission();

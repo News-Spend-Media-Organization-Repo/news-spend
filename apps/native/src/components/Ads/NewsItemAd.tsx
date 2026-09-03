@@ -5,6 +5,7 @@ import { Pressable, View } from "react-native";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
+import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
 
@@ -97,4 +98,13 @@ function NewsItemAds({
   );
 }
 
-export default memo(NewsItemAds);
+const MemoNewsItemAds = memo(NewsItemAds);
+
+export default function NewsItemAdsGated(
+  props: Parameters<typeof NewsItemAds>[0]
+) {
+  if (SCREENSHOT_MODE) {
+    return null;
+  }
+  return <MemoNewsItemAds {...props} />;
+}
