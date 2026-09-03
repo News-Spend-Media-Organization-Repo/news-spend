@@ -4,8 +4,22 @@
     {
       "name": "cms",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["--filter", "@news-spend-media/cms", "dev:turbo"],
+      "runtimeArgs": [
+        "--filter",
+        "@news-spend-media/cms",
+        "dev:turbo"
+      ],
       "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "--filter",
+        "@news-spend-media/server",
+        "dev"
+      ],
+      "port": 9000
     }
   ]
 }

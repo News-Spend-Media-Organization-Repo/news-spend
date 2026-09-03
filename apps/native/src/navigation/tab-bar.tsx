@@ -98,7 +98,7 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       </View>
 
       <View
-        className="flex-row bg-p-500 pt-2 pb-safe-offset-2"
+        className="flex-row bg-p-500 pt-2 pb-safe-or-2"
         pointerEvents={isTabBarVisible ? "auto" : "none"}
       >
         {state.routes.map((route, index) => {
