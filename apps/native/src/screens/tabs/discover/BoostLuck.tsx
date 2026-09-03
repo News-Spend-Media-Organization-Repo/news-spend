@@ -85,6 +85,11 @@ const BoostLuck = () => {
    * Both come from the server: the count is per giveaway and resets with it,
    * and the threshold is a platform rule the server owns, so a copy here would
    * drift the moment it moves.
+   *
+   * Deliberately not rendered. These decide which state the screen is in and
+   * nothing more: putting "2 of 3 boosts earned" on screen reads as the app
+   * scoring someone's behaviour back at them, the same reason the running
+   * total was taken off the success toast above.
    */
   const boostsDone = data?.participation?.boosts ?? 0;
   const boostsNeeded =
@@ -102,7 +107,8 @@ const BoostLuck = () => {
    */
   const onAdsUnavailable = () => {
     toast.info("No new sponsor ads right now", {
-      description: `You have ${boostsDone} of ${boostsNeeded} boosts. Each sponsor counts once per giveaway, so check back as more are added.`,
+      description:
+        "Each sponsor counts once per giveaway, so check back as more are added.",
     });
     navigation.navigate("LuckyAppWall");
   };
@@ -184,8 +190,8 @@ const BoostLuck = () => {
         <View className="gap-4">
           <Text className="text-center">
             {boostsComplete
-              ? `All ${boostsNeeded} boosts are in for this giveaway. Featured Offers are the other half of Tier 1.`
-              : `Our sponsors wish you good luck. ${boostsDone} of ${boostsNeeded} boosts earned.`}
+              ? "Your boosts are in for this giveaway. Featured Offers are the other half of Tier 1."
+              : "Our sponsors wish you good luck."}
           </Text>
 
           {/*

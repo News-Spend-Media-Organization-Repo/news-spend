@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { type CollectionConfig, slugField } from "payload";
+import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 
 export const Partners: CollectionConfig = {
   slug: "partners",
@@ -105,6 +106,7 @@ export const Partners: CollectionConfig = {
       name: "logo",
       type: "upload",
       relationTo: "media",
+      filterOptions: IMAGE_ONLY,
     },
     {
       name: "contactInfo",

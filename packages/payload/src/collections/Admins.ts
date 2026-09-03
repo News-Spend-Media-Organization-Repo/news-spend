@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload";
+import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 
 const Admins: CollectionConfig = {
   slug: "admins",
@@ -61,6 +62,7 @@ const Admins: CollectionConfig = {
       name: "image",
       type: "upload",
       relationTo: "media",
+      filterOptions: IMAGE_ONLY,
     },
   ],
 };

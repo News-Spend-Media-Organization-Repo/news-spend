@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { slugField } from "payload";
+import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 
 const Categories: CollectionConfig = {
   slug: "categories",
@@ -28,6 +29,7 @@ const Categories: CollectionConfig = {
       name: "image",
       type: "upload",
       relationTo: "media",
+      filterOptions: IMAGE_ONLY,
     },
   ],
 };

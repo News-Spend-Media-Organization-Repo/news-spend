@@ -1,10 +1,10 @@
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical";
-import * as Sentry from "@sentry/nextjs";
-import { type CollectionConfig, slugField } from "payload";
+import { type CollectionConfig, slugField, ValidationError } from "payload";
 
 import { authenticated } from "../access/authenticated";
 import { authenticatedOrPublished } from "../access/authenticatedOrPublished";
 import { AdsBlock, ReadAlsoBlock } from "../blocks";
+import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { calculateNewsMetrics, sendNotificationOnCreate } from "../hooks";
 import type { Admin } from "../payload-types";
 
@@ -26,6 +26,32 @@ const News: CollectionConfig = {
     //     return args
     //   },
     // ],
+    beforeValidate: [
+      /**
+       * Video news is disabled for now.
+       *
+       * Removing the option stops the admin panel offering it, but the option
+       * list is a UI and field-validation concern reached through Payload's
+       * own form. This refuses `type: "video"` arriving any other way — REST,
+       * GraphQL, a seed script — rather than trusting the picker.
+       */
+      ({ data }) => {
+        if (data?.type === "video") {
+          throw new ValidationError({
+            collection: "news",
+            errors: [
+              {
+                path: "type",
+                message:
+                  "Video news is switched off for now. Publish this as an article.",
+              },
+            ],
+          });
+        }
+
+        return data;
+      },
+    ],
     beforeChange: [
       calculateNewsMetrics,
       // totalComments, likesCount, and dislikesCount are all maintained by raw
@@ -57,13 +83,24 @@ const News: CollectionConfig = {
       name: "type",
       label: "News Type",
       type: "select",
-      options: [
-        { label: "Article", value: "article" },
-        { label: "Video", value: "video", admin: { disabled: true } },
-      ],
+      /**
+       * Video is switched off, so it is no longer an option at all.
+       *
+       * Safe to drop rather than merely hide because production holds no video
+       * pieces: Payload validates a select against its own option list, so a
+       * stored "video" would otherwise become unsaveable on its next edit.
+       *
+       * The Video entry previously carried `admin: { disabled: true }`, which
+       * looks like a guard but is not one — a select option is only
+       * `{ label, value }`, so Payload ignored the extra key and video stayed
+       * selectable the whole time. TypeScript had been flagging it.
+       */
+      options: [{ label: "Article", value: "article" }],
       defaultValue: "article",
       admin: {
-        description: "💡 Article or Video",
+        readOnly: true,
+        description:
+          "💡 Video news is switched off for now, so new pieces are articles.",
       },
     },
     {
@@ -83,6 +120,14 @@ const News: CollectionConfig = {
       relationTo: "media",
       required: true,
       displayPreview: true,
+      /**
+       * Media deliberately accepts `video/*` as well as `image/*`, so without
+       * this an editor could pick a video file here and the article would ship
+       * with a header that never renders. Filtering by mime type narrows the
+       * picker and is enforced on save, rather than relying on the person
+       * choosing correctly.
+       */
+      filterOptions: IMAGE_ONLY,
     },
     {
       name: "keyPoints",
