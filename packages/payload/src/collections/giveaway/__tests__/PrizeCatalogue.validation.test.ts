@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ValidationError } from 'payload';
 import { ReloadlyClient } from '../../../lib/giveaway/reloadly';
 
 vi.mock('../../../lib/giveaway/reloadly');
@@ -36,18 +35,17 @@ describe('PrizeCatalogue Validation', () => {
       };
 
       // Should not throw for valid amount
-      expect(() => {
-        // Simulate the validation logic
-        const plans = data.reloadlyDataPlans;
-        const operator = mockReloadlyClient.getOperatorProducts(plans[0].reloadlyOperatorId);
-        const isValid =
-          operator.localFixedAmounts &&
-          operator.localFixedAmounts.includes(plans[0].reloadlyLocalAmount);
-        expect(isValid).toBe(true);
-      }).not.toThrow();
+      const plans = data.reloadlyDataPlans;
+      const operator = await mockReloadlyClient.getOperatorProducts(
+        plans[0].reloadlyOperatorId,
+      );
+      const isValid =
+        operator.localFixedAmounts &&
+        operator.localFixedAmounts.includes(plans[0].reloadlyLocalAmount);
+      expect(isValid).toBe(true);
     });
 
-    it('should reject invalid fixed-amount data plans', () => {
+    it('should reject invalid fixed-amount data plans', async () => {
       const mockReloadlyClient = {
         getOperatorProducts: vi.fn().mockResolvedValue({
           operatorId: 345,
@@ -72,7 +70,7 @@ describe('PrizeCatalogue Validation', () => {
         ],
       };
 
-      const operator = mockReloadlyClient.getOperatorProducts(345);
+      const operator = await mockReloadlyClient.getOperatorProducts(345);
       const isValid =
         operator.localFixedAmounts &&
         operator.localFixedAmounts.includes(data.reloadlyDataPlans[0].reloadlyLocalAmount);
@@ -80,7 +78,7 @@ describe('PrizeCatalogue Validation', () => {
       expect(isValid).toBe(false);
     });
 
-    it('should validate range-based data plans correctly', () => {
+    it('should validate range-based data plans correctly', async () => {
       const mockReloadlyClient = {
         getOperatorProducts: vi.fn().mockResolvedValue({
           operatorId: 999,
@@ -107,7 +105,7 @@ describe('PrizeCatalogue Validation', () => {
         ],
       };
 
-      const operator = mockReloadlyClient.getOperatorProducts(999);
+      const operator = await mockReloadlyClient.getOperatorProducts(999);
       const isValid =
         data.reloadlyDataPlans[0].reloadlyLocalAmount >= (operator.localMinAmount || 0) &&
         data.reloadlyDataPlans[0].reloadlyLocalAmount <= (operator.localMaxAmount || Infinity);
@@ -115,7 +113,7 @@ describe('PrizeCatalogue Validation', () => {
       expect(isValid).toBe(true);
     });
 
-    it('should reject range-based amount outside limits', () => {
+    it('should reject range-based amount outside limits', async () => {
       const mockReloadlyClient = {
         getOperatorProducts: vi.fn().mockResolvedValue({
           operatorId: 999,
@@ -142,7 +140,7 @@ describe('PrizeCatalogue Validation', () => {
         ],
       };
 
-      const operator = mockReloadlyClient.getOperatorProducts(999);
+      const operator = await mockReloadlyClient.getOperatorProducts(999);
       const isValid =
         data.reloadlyDataPlans[0].reloadlyLocalAmount >= (operator.localMinAmount || 0) &&
         data.reloadlyDataPlans[0].reloadlyLocalAmount <= (operator.localMaxAmount || Infinity);
