@@ -20,3 +20,6 @@ ios/
 
 output
 .env.local
+
+# goldie screenshot output
+goldie/out/
