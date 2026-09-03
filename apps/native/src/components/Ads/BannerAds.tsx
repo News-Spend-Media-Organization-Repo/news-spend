@@ -6,6 +6,7 @@ import {
 
 import { adUnits } from "#/lib/adUnits";
 import { getGoogleBannerSize, sizeMap } from "#/utils/ads";
+import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 
 import CustomBannerAd from "./CustomBannerAd";
 
@@ -21,6 +22,10 @@ type BannerAdsProps = {
 };
 
 function BannerAds({ size }: BannerAdsProps) {
+  if (SCREENSHOT_MODE) {
+    return null;
+  }
+
   const useGoogleAd = Math.random() < 0.4;
 
   if (size in sizeMap) {

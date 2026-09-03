@@ -32,6 +32,7 @@ import { Provider } from "./provider";
 import { authState, hydrateAuth } from "./state/auth";
 import { runAfterStartup } from "./utils/afterStartup";
 import { createMMKVPersister } from "./utils/clientPersister";
+import { SCREENSHOT_MODE } from "./utils/screenshotMode";
 import { storage } from "./utils/storage";
 
 Uniwind.setTheme("light");
@@ -165,7 +166,7 @@ export function App() {
         {/* Last, so it covers everything when the server refuses this build. */}
         <UpgradeRequired />
 
-        <AppOpenAd />
+        {!SCREENSHOT_MODE && <AppOpenAd />}
       </Provider>
     </PersistQueryClientProvider>
   );

@@ -11,6 +11,7 @@ import { useAllNews } from "#/hooks/news";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { useTabBarHeight } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
+import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
 
@@ -24,7 +25,7 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
   const { data, isPending, refetch, fetchNextPage, isFetching, hasNextPage } =
     useAllNews({
       category: route,
-      ad: true,
+      ad: !SCREENSHOT_MODE,
     });
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(() => {

@@ -63,11 +63,15 @@
       "ios": {
         "simulator": true
       },
+      "android": {
+        "buildType": "apk"
+      },
       "developmentClient": false,
       "distribution": "internal",
       "environment": "production",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_SCREENSHOT_MODE": "1"
       }
     }
   },
