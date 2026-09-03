@@ -9,7 +9,6 @@ import type {
   PartnerContent,
   PromoVideoSource,
 } from "@news-spend-media/payload/types";
-import { ShareNetworkIcon } from "#/lib/icons";
 import type React from "react";
 import { useCallback, useImperativeHandle, useMemo, useRef } from "react";
 import { useWindowDimensions, View } from "react-native";
@@ -19,7 +18,9 @@ import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { toast } from "#/components/heroui/toast";
 import useAddActivity from "#/hooks/point/useAddActivity";
+import { ShareNetworkIcon } from "#/lib/icons";
 import { authState } from "#/state/auth";
+import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import CarouselItem, { CustomScrollView } from "./CarouselItem";
 import type { AdCarouselProps, AdCarouselRef, CarouselItemData } from "./types";
 
@@ -184,4 +185,11 @@ const AdCarousel: React.FC<
   );
 };
 
-export default AdCarousel;
+const AdCarouselGated: typeof AdCarousel = (props) => {
+  if (SCREENSHOT_MODE) {
+    return null;
+  }
+  return <AdCarousel {...props} />;
+};
+
+export default AdCarouselGated;

@@ -17,6 +17,7 @@ import {
 import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { getCachedAd, setCachedAd } from "#/utils/ad-cache";
+import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
 
@@ -192,4 +193,12 @@ const NewsItemGoogleAds = memo(
 );
 
 NewsItemGoogleAds.displayName = "NewsItemGoogleAds";
-export default NewsItemGoogleAds;
+
+function NewsItemGoogleAdsGated(props: NewsItemGoogleAdProp) {
+  if (SCREENSHOT_MODE) {
+    return null;
+  }
+  return <NewsItemGoogleAds {...props} />;
+}
+
+export default NewsItemGoogleAdsGated;
