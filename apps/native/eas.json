@@ -65,6 +65,7 @@
       },
       "developmentClient": false,
       "distribution": "internal",
+      "environment": "production",
       "env": {
         "APP_VARIANT": "production"
       }
