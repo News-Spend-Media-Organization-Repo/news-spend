@@ -13,7 +13,6 @@ import { partnerConversionRouter } from "./partner-conversions";
 import { partnerContentRouter } from "./partnerContent";
 import { postReportRouter } from "./postReport";
 import { publisherRouter } from "./publisher";
-import { radioStationRouter } from "./radioStation";
 import { reportRouter } from "./report";
 import { storeRouter } from "./store";
 import { surveyRouter } from "./survey";
@@ -36,7 +35,6 @@ export const router = {
   partnerConversions: partnerConversionRouter,
   postReport: postReportRouter,
   publisher: publisherRouter,
-  radioStation: radioStationRouter,
   report: reportRouter,
   store: storeRouter,
   survey: surveyRouter,

@@ -46,12 +46,6 @@
       "expo-status-bar",
       "expo-video",
       "expo-image",
-      [
-        "expo-audio",
-        {
-          "enableBackgroundPlayback": true
-        }
-      ],
       "expo-asset",
       "expo-dev-client",
       "expo-localization",
