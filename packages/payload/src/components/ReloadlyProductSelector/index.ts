@@ -1,7 +1,6 @@
 export {
-  ReloadlyProductSelector,
   AirtimeProductField,
   DataPlanField,
+  operatorIdForNetwork,
   ReloadlyDataPlanRowLabel,
-  NETWORKS,
-} from './ReloadlyProductSelector';
+} from "./ReloadlyProductSelector";

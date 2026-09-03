@@ -1,7 +1,9 @@
+import {
+  ReloadlyClient,
+  reloadlyConfigFromEnv,
+} from "@news-spend-media/payload/lib/giveaway/reloadly";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-
-import { ReloadlyClient, reloadlyConfigFromEnv } from "@news-spend-media/payload/lib/giveaway/reloadly";
 
 /**
  * GET /api/reloadly/operators/:operatorId/products
@@ -11,15 +13,12 @@ import { ReloadlyClient, reloadlyConfigFromEnv } from "@news-spend-media/payload
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { operatorId: string } }
+  { params }: { params: Promise<{ operatorId: string }> }
 ) {
-  const { operatorId } = params;
+  const { operatorId } = await params;
 
-  if (!operatorId || isNaN(Number(operatorId))) {
-    return NextResponse.json(
-      { error: "Invalid operator ID" },
-      { status: 400 }
-    );
+  if (!operatorId || Number.isNaN(Number(operatorId))) {
+    return NextResponse.json({ error: "Invalid operator ID" }, { status: 400 });
   }
 
   const config = reloadlyConfigFromEnv();

@@ -5,19 +5,20 @@ import {
   ReloadlyClient,
   reloadlyConfigFromEnv,
 } from "../../lib/giveaway/reloadly";
+import { describeNearestDenominations } from "../../lib/giveaway/reloadlyDenominations";
 
 import {
   ADMIN_GROUP,
   FULFILMENT_TYPE_OPTIONS,
   PRIZE_TIER_OPTIONS,
+  RELOADLY_NETWORK_OPERATORS,
+  RELOADLY_NETWORK_OPTIONS,
+  RELOADLY_NETWORKS,
+  type ReloadlyNetwork,
 } from "./constants";
 
-const RELOADLY_NETWORK_OPERATORS = {
-  mtn: 345,
-  airtel: 646,
-  glo: 647,
-  t2: 645,
-} as const;
+const networkLabel = (network: string): string =>
+  RELOADLY_NETWORK_OPTIONS.find((n) => n.value === network)?.label ?? network;
 
 /**
  * Master Prize Catalogue (spec 2).
@@ -96,27 +97,62 @@ export const PrizeCatalogue: CollectionConfig = {
           }
         }
 
-        // Auto-populate operator IDs and validate Reloadly data plans
-        if (
-          data?.fulfilmentType === "data" &&
-          data?.reloadlyDataPlans?.length
-        ) {
-          // Auto-populate operator IDs based on network selection
-          data.reloadlyDataPlans = data.reloadlyDataPlans.map((plan: any) => ({
+        if (data?.fulfilmentType === "data") {
+          const plans: any[] = data.reloadlyDataPlans ?? [];
+
+          // The operator ID is derived, never typed. Doing it here means the
+          // checks below and the stored row agree on which operator a row is.
+          data.reloadlyDataPlans = plans.map((plan: any) => ({
             ...plan,
             reloadlyOperatorId:
-              RELOADLY_NETWORK_OPERATORS[
-                plan.network as keyof typeof RELOADLY_NETWORK_OPERATORS
-              ] || plan.reloadlyOperatorId,
+              RELOADLY_NETWORK_OPERATORS[plan.network as ReloadlyNetwork] ||
+              plan.reloadlyOperatorId,
           }));
+
+          const errors: Array<{
+            path: string;
+            message: string;
+          }> = [];
+
+          // One row per network, no more and no fewer.
+          //
+          // Two rows for the same network are not a harmless duplicate: at
+          // fulfilment the winner's network is matched against these rows and
+          // the first match wins, so the second row is a plan somebody chose
+          // that silently never sends. A missing network is the mirror image —
+          // that winner's prize goes to manual review instead of delivering.
+          // Neither shows up until a real winner hits it, which is why both
+          // are refused at the point the prize is saved.
+          const firstRowFor = new Map<string, number>();
+
+          data.reloadlyDataPlans.forEach((plan: any, i: number) => {
+            if (!plan.network) {
+              return;
+            }
+
+            const seenAt = firstRowFor.get(plan.network);
+            if (seenAt === undefined) {
+              firstRowFor.set(plan.network, i);
+              return;
+            }
+
+            errors.push({
+              path: `reloadlyDataPlans.${i}.network`,
+              message: `${networkLabel(plan.network)} already has a plan in row ${seenAt + 1}. Each network gets exactly one row: at fulfilment the first matching row is the one that sends, so this one would never be used.`,
+            });
+          });
+
+          const missing = RELOADLY_NETWORKS.filter((n) => !firstRowFor.has(n));
+          if (missing.length > 0) {
+            errors.push({
+              path: "reloadlyDataPlans",
+              message: `A data prize must cover all ${RELOADLY_NETWORKS.length} networks, and this one is missing ${missing.map(networkLabel).join(", ")}. A winner on a network with no plan cannot be sent their prize automatically and would be held for manual review.`,
+            });
+          }
 
           const config = reloadlyConfigFromEnv();
           if (config) {
             const client = new ReloadlyClient(config);
-            const errors: Array<{
-              path: string;
-              message: string;
-            }> = [];
 
             for (let i = 0; i < data.reloadlyDataPlans.length; i++) {
               const plan = data.reloadlyDataPlans[i];
@@ -147,25 +183,29 @@ export const PrizeCatalogue: CollectionConfig = {
                   operator.localFixedAmounts &&
                   !operator.localFixedAmounts.includes(plan.reloadlyLocalAmount)
                 ) {
-                  const available = operator.localFixedAmounts.join(", ");
+                  // Naming the price alone would leave the editor to guess
+                  // which bundle to pick, so say what each one buys — but only
+                  // for the few nearest the amount they actually asked for.
+                  const nearest = describeNearestDenominations(
+                    operator.localFixedAmounts,
+                    plan.reloadlyLocalAmount,
+                    operator.localFixedAmountsDescriptions
+                  );
                   errors.push({
                     path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
-                    message: `Amount ₦${plan.reloadlyLocalAmount} is not available for this operator. Available amounts: ${available}`,
+                    message: `Amount ₦${plan.reloadlyLocalAmount} is not available for this operator. Nearest plans: ${nearest}`,
                   });
                 } else if (
                   operator.denominationType === "RANGE" &&
                   operator.localMinAmount &&
-                  operator.localMaxAmount
+                  operator.localMaxAmount &&
+                  (plan.reloadlyLocalAmount < operator.localMinAmount ||
+                    plan.reloadlyLocalAmount > operator.localMaxAmount)
                 ) {
-                  if (
-                    plan.reloadlyLocalAmount < operator.localMinAmount ||
-                    plan.reloadlyLocalAmount > operator.localMaxAmount
-                  ) {
-                    errors.push({
-                      path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
-                      message: `Amount ₦${plan.reloadlyLocalAmount} is outside the valid range (₦${operator.localMinAmount} - ₦${operator.localMaxAmount})`,
-                    });
-                  }
+                  errors.push({
+                    path: `reloadlyDataPlans.${i}.reloadlyLocalAmount`,
+                    message: `Amount ₦${plan.reloadlyLocalAmount} is outside the valid range (₦${operator.localMinAmount} - ₦${operator.localMaxAmount})`,
+                  });
                 }
               } catch (err: any) {
                 errors.push({
@@ -174,13 +214,13 @@ export const PrizeCatalogue: CollectionConfig = {
                 });
               }
             }
+          }
 
-            if (errors.length > 0) {
-              throw new ValidationError({
-                collection: "prize-catalogue",
-                errors,
-              });
-            }
+          if (errors.length > 0) {
+            throw new ValidationError({
+              collection: "prize-catalogue",
+              errors,
+            });
           }
         }
 
@@ -298,7 +338,8 @@ export const PrizeCatalogue: CollectionConfig = {
         description:
           "Pick from available airtime amounts. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number at fulfilment.",
         components: {
-          Field: "@news-spend-media/payload/components/ReloadlyProductSelector#AirtimeProductField",
+          Field:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#AirtimeProductField",
         },
       },
     },
@@ -306,12 +347,24 @@ export const PrizeCatalogue: CollectionConfig = {
       name: "reloadlyDataPlans",
       label: "Reloadly data plans, one per network",
       type: "array",
+      // Exactly one row per network. These two stop the admin panel offering a
+      // fifth row at all, which the beforeValidate hook could only complain
+      // about after the fact. They count rows and nothing more, though — four
+      // rows can still be four copies of MTN — so the hook below remains the
+      // check that the four are actually the four different networks.
+      //
+      // Left non-required deliberately: Payload short-circuits an empty array
+      // before reaching minRows, so a physical or points prize still saves
+      // with no rows, while a data prize with none is caught by the hook.
+      minRows: RELOADLY_NETWORKS.length,
+      maxRows: RELOADLY_NETWORKS.length,
       admin: {
         condition: (data) => data?.fulfilmentType === "data",
         description:
-          "Add one row per network this data prize should cover. Select the network, then pick from available plans. At fulfilment, the winner's actual network is detected from their phone number and matched against these rows.",
+          "One row per network, and all four are required: MTN, Airtel, Glo and 9mobile. Select the network, then pick from that network's live plans. At fulfilment the winner's actual network is detected from their phone number and matched against these rows, so a network left out means that winner's prize is held for manual review.",
         components: {
-          RowLabel: "@news-spend-media/payload/components/ReloadlyProductSelector#ReloadlyDataPlanRowLabel",
+          RowLabel:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#ReloadlyDataPlanRowLabel",
         },
       },
       fields: [
@@ -319,12 +372,7 @@ export const PrizeCatalogue: CollectionConfig = {
           name: "network",
           type: "select",
           required: true,
-          options: [
-            { label: "MTN Nigeria", value: "mtn" },
-            { label: "Airtel Nigeria", value: "airtel" },
-            { label: "Glo Nigeria", value: "glo" },
-            { label: "9mobile / T2 Nigeria", value: "t2" },
-          ],
+          options: [...RELOADLY_NETWORK_OPTIONS],
           admin: {
             description: "Select the network this plan is for",
             width: "50%",
@@ -350,7 +398,8 @@ export const PrizeCatalogue: CollectionConfig = {
           admin: {
             description: "Select from available plans for this network",
             components: {
-              Field: "@news-spend-media/payload/components/ReloadlyProductSelector#DataPlanField",
+              Field:
+                "@news-spend-media/payload/components/ReloadlyProductSelector#DataPlanField",
             },
             width: "25%",
           },

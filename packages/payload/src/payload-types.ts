@@ -1541,7 +1541,7 @@ export interface PrizeCatalogue {
    */
   reloadlyLocalAmount?: number | null;
   /**
-   * Add one row per network this data prize should cover. Select the network, then pick from available plans. At fulfilment, the winner's actual network is detected from their phone number and matched against these rows.
+   * One row per network, and all four are required: MTN, Airtel, Glo and 9mobile. Select the network, then pick from that network's live plans. At fulfilment the winner's actual network is detected from their phone number and matched against these rows, so a network left out means that winner's prize is held for manual review.
    */
   reloadlyDataPlans?:
     | {

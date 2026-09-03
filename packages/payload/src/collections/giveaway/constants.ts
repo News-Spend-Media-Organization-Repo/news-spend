@@ -400,6 +400,35 @@ export const FULFILMENT_TYPE_OPTIONS = [
   { label: "Experience / Voucher, arranged manually", value: "experience" },
 ] as const;
 
+/**
+ * The mobile networks a data prize must cover.
+ *
+ * A data bundle is provisioned by one network for that network's own SIMs, so
+ * a data prize needs one row per network. At fulfilment the winner's real
+ * network is detected from their phone number; a network with no row holds the
+ * prize for manual review rather than sending a bundle that would not deliver.
+ * That is why a data prize must cover all four rather than as many as the
+ * administrator felt like entering — the gap only shows up as a stuck winner,
+ * long after the prize was saved.
+ */
+export const RELOADLY_NETWORKS = ["mtn", "airtel", "glo", "t2"] as const;
+export type ReloadlyNetwork = (typeof RELOADLY_NETWORKS)[number];
+
+export const RELOADLY_NETWORK_OPTIONS = [
+  { label: "MTN Nigeria", value: "mtn" },
+  { label: "Airtel Nigeria", value: "airtel" },
+  { label: "Glo Nigeria", value: "glo" },
+  { label: "9mobile / T2 Nigeria", value: "t2" },
+] as const;
+
+/** Reloadly's DATA operator per network, not the airtime one. */
+export const RELOADLY_NETWORK_OPERATORS: Record<ReloadlyNetwork, number> = {
+  mtn: 345,
+  airtel: 646,
+  glo: 647,
+  t2: 645,
+};
+
 /** Fulfilment types that need a phone number from the winner. */
 export const PHONE_FULFILMENT_TYPES: readonly FulfilmentType[] = [
   "airtime",
