@@ -63,6 +63,9 @@
       "ios": {
         "simulator": true
       },
+      "android": {
+        "buildType": "apk"
+      },
       "developmentClient": false,
       "distribution": "internal",
       "environment": "production",
