@@ -1,23 +1,15 @@
 import { useNavigation } from "@react-navigation/native";
-import { PlayCircleIcon, SketchLogoIcon } from "#/lib/icons";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { Tabs } from "react-native-collapsible-tab";
-
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { useConnectBrand } from "#/hooks/discover/useConnectBrand";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
+import { PlayCircleIcon, SketchLogoIcon } from "#/lib/icons";
 
-import {
-  AllTab,
-  AppTab,
-  BooksTab,
-  GamesTab,
-  MusicTab,
-  SurveyTab,
-} from "./components";
+import { AllTab, AppTab, BooksTab, GamesTab, SurveyTab } from "./components";
 import { AnimatedTabBar } from "./components/animated-tab-bar";
 import { TabBarHeightProvider } from "./components/tab-bar-height-context";
 
@@ -84,9 +76,6 @@ function DiscoverHome() {
           </Tabs.Tab>
           <Tabs.Tab label="Apps" name="apps">
             <AppTab />
-          </Tabs.Tab>
-          <Tabs.Tab label="Music" name="music">
-            <MusicTab />
           </Tabs.Tab>
           <Tabs.Tab label="Games" name="games">
             <GamesTab />

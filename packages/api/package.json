@@ -35,9 +35,7 @@
     "date-fns": "catalog:",
     "dotenv": "catalog:",
     "expo-server-sdk": "catalog:",
-    "node-internet-radio": "^0.2.1",
     "payload": "catalog:",
-    "radio-browser-api": "catalog:",
     "react": "catalog:",
     "react-tweet": "catalog:",
     "zod": "catalog:"

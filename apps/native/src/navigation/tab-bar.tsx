@@ -15,7 +15,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { Text } from "#/components/heroui/text";
 import { setTabBarHeight } from "#/state/route-state";
-import { FloatingOverlays } from "./floating-overlays";
 
 // Root screen of each tab where the tab bar should show, plus the tab's own
 // route name (Home/Shop/Discover). Both are needed: tabs are lazy by
@@ -54,13 +53,10 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // screen inside it, is always full height, completely unaffected by our
   // own show/hide animation. We just slide and fade over top of it instead.
   //
-  // FloatingOverlays (MusicPlayer/LiveBanner) renders as a sibling of the tab
-  // row inside this SAME wrapper, not its own separately-animated element.
-  // otherwise its height is never reflected in useTabBarHeight() (screens
-  // padding for the tab bar alone would sit partly behind it when a track is
-  // playing or a live banner shows), and its opacity fade only stays in sync
-  // with the tab row's by coincidence of matching durations, not by
-  // construction. One wrapper, one measurement, one animation for both.
+  // The wrapper's single onLayout feeds useTabBarHeight(), so any floating
+  // content added back as a sibling of the tab row belongs inside this SAME
+  // wrapper rather than as its own separately-animated element: one wrapper,
+  // one measurement, one animation.
   const measuredHeight = useSharedValue(0);
   const progress = useSharedValue(isTabBarVisible ? 1 : 0);
 
@@ -90,13 +86,6 @@ function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         animatedWrapperStyle,
       ]}
     >
-      <View pointerEvents={isTabBarVisible ? "box-none" : "none"}>
-        <FloatingOverlays
-          isTabBarVisible={isTabBarVisible}
-          navigation={navigation}
-        />
-      </View>
-
       <View
         className="flex-row bg-p-500 pt-2 pb-safe-or-2"
         pointerEvents={isTabBarVisible ? "auto" : "none"}
