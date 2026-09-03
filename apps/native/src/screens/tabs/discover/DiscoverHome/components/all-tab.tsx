@@ -10,7 +10,6 @@ import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Skeleton } from "heroui-native/skeleton";
 import { cn } from "heroui-native/utils";
-import type { Station } from "radio-browser-api";
 import { useCallback, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
@@ -37,7 +36,6 @@ import {
   PullToRefreshIndicator,
   triggerRefreshHaptic,
 } from "./pull-to-refresh-indicator";
-import { StationItem } from "./radio-station-item";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -64,7 +62,6 @@ type SectionItem =
   | { type: "empty"; message: string }
   | { type: "app"; data: PartnerContent; onPress: () => void; loading: boolean }
   | { type: "game"; data: GameItemData; onPress: () => void }
-  | { type: "music"; data: Station[] }
   | {
       type: "book";
       data: PartnerContent[];
@@ -95,11 +92,6 @@ const booksQuery = orpc.partnerContent.filtered.queryOptions({
   input: { limit: 5, type: ["book"], placement: ["points-mall-books"] },
 });
 
-const musicQuery = orpc.radioStation.top.queryOptions({
-  input: { limit: 6 },
-  staleTime: 5 * 60 * 1000,
-});
-
 const surveysSelect = (data: unknown) =>
   Array.isArray(data)
     ? [...data].sort(
@@ -124,13 +116,9 @@ const combineAllTabResults = (results: QueryObserverResult[]) => ({
   gamesPending: results[2].isPending,
   gamesError: results[2].error,
 
-  musicData: (results[3].data as Station[]) ?? [],
-  musicPending: results[3].isPending,
-  musicError: results[3].error,
-
-  surveysData: (results[4].data as SurveyItem[]) ?? [],
-  surveysPending: results[4].isPending,
-  surveysError: results[4].error,
+  surveysData: (results[3].data as SurveyItem[]) ?? [],
+  surveysPending: results[3].isPending,
+  surveysError: results[3].error,
 
   isRefetching: results.some((r) => r.isRefetching),
   refetchAll: () => results.forEach((r) => r.refetch()),
@@ -327,21 +315,6 @@ const BooksSection = ({
   </View>
 );
 
-// ─── MusicSection ─────────────────────────────────────────────────────────────
-
-const MusicSection = ({ itemList }: { itemList: Station[] }) => (
-  <ScrollView
-    contentContainerStyle={{ paddingLeft: 16, paddingRight: 8, gap: 16 }}
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={{ height: "100%" }}
-  >
-    {itemList.map((station) => (
-      <StationItem item={station} key={station.id} stationList={itemList} />
-    ))}
-  </ScrollView>
-);
-
 // ─── SurveysSection ───────────────────────────────────────────────────────────
 
 const SurveysSection = ({ data }: { data: SurveyItem[] }) => (
@@ -376,8 +349,6 @@ function renderSectionContent(item: SectionItem) {
       );
     case "game":
       return <GameItem item={item.data} onPress={() => item.onPress()} />;
-    case "music":
-      return <MusicSection itemList={item.data} />;
     case "book":
       return (
         <BooksSection
@@ -412,9 +383,6 @@ export const AllTab = () => {
     gamesData,
     gamesPending,
     gamesError,
-    musicData,
-    musicPending,
-    musicError,
     surveysData,
     surveysPending,
     surveysError,
@@ -425,7 +393,6 @@ export const AllTab = () => {
       appsQuery,
       booksQuery,
       gamesQuery,
-      musicQuery,
       {
         ...orpc.survey.cpx.getSurveys.queryOptions({
           refetchInterval: user && isFocused ? 10 * 60 * 1000 : undefined, // every 15 minutes
@@ -452,18 +419,6 @@ export const AllTab = () => {
           onPress: () => handleClick(app),
           loading: isPartnerLoading(app.id),
         }))
-    );
-
-    buildSection(
-      items,
-      "Music",
-      {
-        pending: musicPending,
-        error: musicError,
-        dataLength: musicData.length,
-      },
-      refetchAll,
-      () => ({ type: "music" as const, data: musicData })
     );
 
     buildSection(
@@ -517,9 +472,6 @@ export const AllTab = () => {
     appsData,
     appsPending,
     appsError,
-    musicData,
-    musicPending,
-    musicError,
     gamesData,
     gamesPending,
     gamesError,
@@ -567,7 +519,6 @@ export const AllTab = () => {
       case "app":
       case "game":
         return `${item.type}-${item.data.id}`;
-      case "music":
       case "book":
       case "survey":
         return item.type;

@@ -510,29 +510,6 @@
       }
     }
   },
-  "radioStation": {
-    "byGenreGroup": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {},
-        "route": {}
-      }
-    },
-    "top": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {},
-        "route": {}
-      }
-    },
-    "getStreamMetadata": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {},
-        "route": {}
-      }
-    }
-  },
   "report": {
     "create": {
       "~orpc": {

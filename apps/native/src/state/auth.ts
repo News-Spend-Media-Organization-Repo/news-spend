@@ -5,7 +5,6 @@ import { authClient } from "#/lib/authClient";
 import { queryClient } from "#/lib/tanstackQuery";
 import { storage } from "#/utils/storage";
 
-import { releaseAudioPlaylist, setupAudio } from "./audioPlayerState";
 import { routeState } from "./route-state";
 
 const initialAuthState = {
@@ -139,8 +138,6 @@ export const hydrateAuth = async () => {
           authState.session = session.data;
           authState.user = user;
           authState.status = "signIn";
-
-          setupAudio();
           return;
         }
 
@@ -200,7 +197,6 @@ export const logout = async () => {
     //   description: `An error occurred while logging out`,
     // });
   } finally {
-    releaseAudioPlaylist();
     authState.session = null;
     authState.user = null;
     authState.status = "signOut";

@@ -58,6 +58,17 @@
       "env": {
         "APP_VARIANT": "production"
       }
+    },
+    "screenshots": {
+      "ios": {
+        "simulator": true
+      },
+      "developmentClient": false,
+      "distribution": "internal",
+      "environment": "production",
+      "env": {
+        "APP_VARIANT": "production"
+      }
     }
   },
   "submit": {

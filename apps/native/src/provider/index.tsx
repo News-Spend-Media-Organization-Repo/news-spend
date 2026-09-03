@@ -14,7 +14,6 @@ import {
 } from "react-native-safe-area-context";
 import { ToastBridge } from "#/components/heroui/toast";
 import OfflineAlert from "#/components/OfflineAlert";
-import { useListeningTimeSync } from "#/hooks/discover/useListeningTime";
 import { useOnlineManager } from "#/hooks/useOnlineManager";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
@@ -55,7 +54,6 @@ const config: HeroUINativeConfig = {
 };
 
 export const Provider = ({ children }: Props) => {
-  useListeningTimeSync();
   usePushNotification();
   // Without this React Query believes it is online forever, and offline
   // queries fail through the full retry ladder instead of pausing.

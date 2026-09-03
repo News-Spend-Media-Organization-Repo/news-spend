@@ -49,7 +49,6 @@ const updateProfile = protectedNoGuestProcedure
       .object({
         username: z.string().min(3).max(30),
         name: z.string().optional(),
-        phone: z.string().optional(),
       })
       .catchall(z.any())
   )

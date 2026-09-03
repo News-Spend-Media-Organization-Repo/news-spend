@@ -6,7 +6,7 @@ const terms = [
   {
     title: "1. Eligibility",
     description:
-      "You must be at least 13 years old to use the News Spend Media app. You must have a valid email address and phone number.",
+      "You must be at least 13 years old to use the News Spend Media app. You must have a valid email address.",
   },
   {
     title: "2. Account",
