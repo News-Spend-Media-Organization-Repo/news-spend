@@ -20,7 +20,15 @@ const config: GoldieConfig = {
     "/private/tmp/claude-501/-Users-odunsi-Workspace-news-spend/18fa2ac7-5fee-4d58-a943-68c84e129cd0/scratchpad/appbuild/NewsSpend.app",
   bundleId: "com.newsspend.app",
 
-  devices: ["iphone-6.9"],
+  // Google Play phone screenshots (1080x1920), captured on a Pixel 9 Pro AVD.
+  // APK from `eas build --profile screenshots --platform android`.
+  android: {
+    appPath:
+      "/private/tmp/claude-501/-Users-odunsi-Workspace-news-spend/18fa2ac7-5fee-4d58-a943-68c84e129cd0/scratchpad/appbuild/NewsSpend.apk",
+    applicationId: "com.newsspend.app",
+  },
+
+  devices: ["iphone-6.9", "pixel-10-pro"],
   locales: ["en-US"],
   appearance: "light",
 
