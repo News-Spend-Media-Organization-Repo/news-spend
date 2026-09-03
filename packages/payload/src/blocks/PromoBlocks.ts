@@ -1,4 +1,5 @@
 import type { Block } from "payload";
+import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
 
 export const PromoVideoSourceBlock: Block = {
   slug: "promo-video-source",
@@ -24,6 +25,7 @@ export const PromoVideoSourceBlock: Block = {
       label: "Video File",
       type: "upload",
       relationTo: "media",
+      filterOptions: VIDEO_ONLY,
       admin: {
         description: "Upload an MP4 video file",
         condition: (_, siblingData) => siblingData?.videoSource === "upload",
@@ -73,6 +75,7 @@ export const PromoVideoSourceBlock: Block = {
       name: "thumbnail",
       type: "upload",
       relationTo: "media",
+      filterOptions: IMAGE_ONLY,
       admin: {
         description:
           "Upload a custom thumbnail, or leave empty to auto-generate from video on save",
@@ -99,6 +102,7 @@ export const PromoImageBlock: Block = {
       type: "upload",
       label: "Image",
       relationTo: "media",
+      filterOptions: IMAGE_ONLY,
       required: true,
     },
   ],

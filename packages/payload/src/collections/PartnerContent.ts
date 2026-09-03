@@ -2,6 +2,7 @@ import type { CollectionConfig } from "payload";
 import { z } from "zod";
 
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
+import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
 
 // ─── Google Ads standard sizes ────────────────────────────────────────────────
@@ -362,6 +363,7 @@ export const PartnerContent: CollectionConfig = {
               type: "upload",
               relationTo: "media",
               required: true,
+              filterOptions: IMAGE_ONLY,
               admin: {
                 description:
                   "Main image or thumbnail. For Banner / Video / Custom types, " +
@@ -438,6 +440,7 @@ export const PartnerContent: CollectionConfig = {
               name: "video",
               type: "upload",
               relationTo: "media",
+              filterOptions: VIDEO_ONLY,
               admin: {
                 description: "Upload MP4 (recommended 1280x720, max 50MB)",
                 condition: (data) =>

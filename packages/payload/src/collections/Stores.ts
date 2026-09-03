@@ -1,4 +1,5 @@
 import { type CollectionConfig, slugField } from "payload";
+import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 
 export const Stores: CollectionConfig = {
   slug: "stores",
@@ -23,6 +24,7 @@ export const Stores: CollectionConfig = {
       name: "image",
       type: "upload",
       relationTo: "media",
+      filterOptions: IMAGE_ONLY,
       required: true,
     },
     {

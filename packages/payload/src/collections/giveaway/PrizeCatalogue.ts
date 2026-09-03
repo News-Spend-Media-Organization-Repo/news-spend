@@ -1,12 +1,11 @@
 import { type CollectionConfig, ValidationError } from "payload";
-
+import { IMAGE_ONLY } from "../../fields/uploadMimeFilters";
 import { isIdentityProviderConfigured } from "../../lib/giveaway/didit";
 import {
   ReloadlyClient,
   reloadlyConfigFromEnv,
 } from "../../lib/giveaway/reloadly";
 import { describeNearestDenominations } from "../../lib/giveaway/reloadlyDenominations";
-
 import {
   ADMIN_GROUP,
   FULFILMENT_TYPE_OPTIONS,
@@ -410,6 +409,7 @@ export const PrizeCatalogue: CollectionConfig = {
       name: "image",
       type: "upload",
       relationTo: "media",
+      filterOptions: IMAGE_ONLY,
       required: false,
     },
     {
