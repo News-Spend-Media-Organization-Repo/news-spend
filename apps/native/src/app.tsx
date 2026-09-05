@@ -10,7 +10,7 @@ import { AppMetrics, Observe, ObserveRoot } from "expo-observe";
 import { ObserveNavigationProvider } from "expo-observe/integrations/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect, useRef } from "react";
-import { Platform, StatusBar as RNStatusBar } from "react-native";
+import { Platform, StatusBar as RNStatusBar, View } from "react-native";
 import { initialWindowMetrics } from "react-native-safe-area-context";
 import { Uniwind } from "uniwind";
 import { useSnapshot } from "valtio";
@@ -119,56 +119,67 @@ export function App() {
     []
   );
 
-  const hideSplash = useCallback(async () => {
-    await SplashScreen.hideAsync();
-  }, []);
+  // Hidden on the real content's first onLayout, not on the JS state that
+  // gates rendering it: that state can flip true well before the Navigation
+  // tree has actually been laid out on the native side. Hiding on the state
+  // change alone tears down the splash into that gap, exposing the bare
+  // Activity window background (a visible grey/white flash on Android) until
+  // real pixels land a beat later.
+  const splashHiddenRef = useRef(false);
 
-  useEffect(() => {
-    if (authStatus !== "idle" && loadingComplete) {
-      hideSplash();
-      AppMetrics.markInteractive();
+  const handleContentLayout = useCallback(() => {
+    if (splashHiddenRef.current) {
+      return;
     }
-  }, [hideSplash, authStatus, loadingComplete]);
+    splashHiddenRef.current = true;
+    AppMetrics.markInteractive();
+    SplashScreen.hideAsync();
+  }, []);
 
   if (authStatus === "idle" || !loadingComplete) {
     return null;
   }
 
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{ persister }}
-    >
-      <Provider>
-        <ObserveNavigationProvider navigationRef={navigationRef}>
-          <Navigation
-            linking={linking}
-            onReady={onReady}
-            onStateChange={onNavigationStateChange}
-            persistor={{
-              persist(state) {
-                const isDev = __DEV__;
-                if (isDev) {
-                  storage.set(CONSTANTS.PERSISTENCE_KEY, JSON.stringify(state));
-                }
-              },
-              restore() {
-                const state = storage.getString(CONSTANTS.PERSISTENCE_KEY);
+    <View onLayout={handleContentLayout} style={{ flex: 1 }}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister }}
+      >
+        <Provider>
+          <ObserveNavigationProvider navigationRef={navigationRef}>
+            <Navigation
+              linking={linking}
+              onReady={onReady}
+              onStateChange={onNavigationStateChange}
+              persistor={{
+                persist(state) {
+                  const isDev = __DEV__;
+                  if (isDev) {
+                    storage.set(
+                      CONSTANTS.PERSISTENCE_KEY,
+                      JSON.stringify(state)
+                    );
+                  }
+                },
+                restore() {
+                  const state = storage.getString(CONSTANTS.PERSISTENCE_KEY);
 
-                return state ? JSON.parse(state) : undefined;
-              },
-            }}
-            ref={navigationRef}
-            theme={myCustomTheme}
-          />
-        </ObserveNavigationProvider>
-        <GiveawayReward />
-        {/* Last, so it covers everything when the server refuses this build. */}
-        <UpgradeRequired />
+                  return state ? JSON.parse(state) : undefined;
+                },
+              }}
+              ref={navigationRef}
+              theme={myCustomTheme}
+            />
+          </ObserveNavigationProvider>
+          <GiveawayReward />
+          {/* Last, so it covers everything when the server refuses this build. */}
+          <UpgradeRequired />
 
-        {!SCREENSHOT_MODE && <AppOpenAd />}
-      </Provider>
-    </PersistQueryClientProvider>
+          {!SCREENSHOT_MODE && <AppOpenAd />}
+        </Provider>
+      </PersistQueryClientProvider>
+    </View>
   );
 }
 

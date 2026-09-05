@@ -54,9 +54,12 @@
       "@rnrepo/expo-config-plugin",
       "@react-native-community/datetimepicker",
       [
-        "expo-navigation-bar",
+        "react-native-edge-to-edge",
         {
-          "enforceContrast": false
+          "android": {
+            "parentTheme": "Default",
+            "enforceNavigationBarContrast": false
+          }
         }
       ],
       [

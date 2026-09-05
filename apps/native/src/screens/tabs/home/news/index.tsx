@@ -168,7 +168,7 @@ const SingleNews = () => {
                 {data?.keyPoints?.map(({ point }, i) => (
                   <View className="flex-row gap-2 pb-2" key={i}>
                     <Text className="text-xs">{"\u2B24"}</Text>
-                    <Text className="p-0" selectable>
+                    <Text className="flex-1 p-0" selectable>
                       {point}
                     </Text>
                   </View>
