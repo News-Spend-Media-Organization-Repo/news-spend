@@ -195,6 +195,7 @@ export interface Config {
       checkPushReceipts: TaskCheckPushReceipts;
       processGiveaway: TaskProcessGiveaway;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
+      pruneNewsAnalytics: TaskPruneNewsAnalytics;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
       deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
       cleanupAuditLogs: TaskCleanupAuditLogs;
@@ -537,7 +538,10 @@ export interface User {
   image?: string | null;
   username: string;
   wish: string;
-  phone: string;
+  /**
+   * No longer collected at sign-up (App Store guideline 5.1.1(v)). Retained for existing users and admin edits.
+   */
+  phone?: string | null;
   /**
    * Required to take part in giveaways, as prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.
    */
@@ -781,9 +785,9 @@ export interface GiveawayDrawAttempt {
 export interface News {
   id: string;
   /**
-   * 💡 Article or Video
+   * 💡 Video news is switched off for now, so new pieces are articles.
    */
-  type?: ('article' | 'video') | null;
+  type?: 'article' | null;
   /**
    * 💡 Title of the news article
    */
@@ -2419,6 +2423,7 @@ export interface PayloadJob {
           | 'checkPushReceipts'
           | 'processGiveaway'
           | 'cleanupAnonymousUsers'
+          | 'pruneNewsAnalytics'
           | 'generateVideoThumbnail'
           | 'deleteVideoThumbTemp'
           | 'cleanupAuditLogs';
@@ -2464,6 +2469,7 @@ export interface PayloadJob {
         | 'checkPushReceipts'
         | 'processGiveaway'
         | 'cleanupAnonymousUsers'
+        | 'pruneNewsAnalytics'
         | 'generateVideoThumbnail'
         | 'deleteVideoThumbTemp'
         | 'cleanupAuditLogs'
@@ -3946,6 +3952,17 @@ export interface TaskCleanupAnonymousUsers {
   input?: unknown;
   output: {
     deletedCount?: number | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPruneNewsAnalytics".
+ */
+export interface TaskPruneNewsAnalytics {
+  input?: unknown;
+  output: {
+    deletedCount?: number | null;
+    hasMore?: boolean | null;
   };
 }
 /**

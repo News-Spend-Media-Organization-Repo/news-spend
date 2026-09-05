@@ -340,46 +340,47 @@ const one = publicProcedure
     };
   });
 
+/**
+ * Three random-ish published articles.
+ *
+ * Delegates to `fetchRelatedNews`, which picks a random page off a `count()`.
+ * This handler used to do that itself with `pagination: false` and no
+ * `select` — hydrating every published article, at Payload's default depth of
+ * 2, purely to read `totalPages` off the result and throw the documents away.
+ */
 const relatedNews = publicProcedure
   .input(z.number().optional())
   .handler(async ({ context }) => {
     const { payload } = context;
-    const queryCount = await payload.find({
-      collection: "news",
-      pagination: false,
-      where: { _status: { equals: "published" } },
-      draft: false,
-    });
-    const randomPage =
-      Math.floor(Math.random() * (queryCount.totalPages || 1)) + 1;
-    const items = await payload.find({
-      collection: "news",
-      depth: 1,
-      limit: 3,
-      page: randomPage,
-      sort: "-createdAt",
-      where: { _status: { equals: "published" } },
-      draft: false,
-      select: { content: false, keyPoints: false },
-    });
+
+    const items = await fetchRelatedNews({ payload, limit: 3 });
     let relatedDocs = items.docs;
-    if (relatedDocs.length < 3 && queryCount.totalDocs > 3) {
+
+    // A random page can land short on the last page; top up from the front.
+    if (relatedDocs.length < 3) {
+      const seen = new Set(relatedDocs.map((d) => d.id));
       const remainingItems = await payload.find({
         collection: "news",
         depth: 1,
-        limit: 3 - relatedDocs.length,
+        limit: 3,
         sort: "-createdAt",
         page: 1,
         where: { _status: { equals: "published" } },
         draft: false,
         select: { content: false, keyPoints: false },
       });
-      relatedDocs = [...relatedDocs, ...remainingItems.docs];
+      for (const doc of remainingItems.docs) {
+        if (relatedDocs.length >= 3) {
+          break;
+        }
+        if (!seen.has(doc.id)) {
+          relatedDocs = [...relatedDocs, doc];
+          seen.add(doc.id);
+        }
+      }
     }
-    const shuffledItems = relatedDocs
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-    return shuffledItems;
+
+    return relatedDocs.slice(0, 3);
   });
 
 const likeDislikeInput = z.object({

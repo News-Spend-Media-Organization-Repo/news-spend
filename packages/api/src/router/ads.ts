@@ -14,10 +14,15 @@ export const getPromoMedia = publicProcedure
   )
   .handler(async ({ context }) => {
     const { payload } = context;
+    // Bounded and shallow. This was `pagination: false` at Payload's default
+    // depth, so a public GET hydrated the whole partner-content table with
+    // every relationship populated.
     const ads = await payload.find({
       collection: "partner-content",
       where: { type: { equals: "promo-media" } },
-      pagination: false,
+      depth: 1,
+      limit: 50,
+      sort: "-createdAt",
     });
 
     return ads.docs;

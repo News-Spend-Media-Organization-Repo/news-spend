@@ -41,7 +41,7 @@ describe("tweetRouter.getById", () => {
 
     const result = await call(
       tweetRouter.getById,
-      { id: "notfound" },
+      { id: "2000000000000000000" },
       { context: mockContext() }
     );
 
@@ -55,7 +55,11 @@ describe("tweetRouter.getById", () => {
     );
 
     const error = await expectError(
-      call(tweetRouter.getById, { id: "missing" }, { context: mockContext() })
+      call(
+        tweetRouter.getById,
+        { id: "3000000000000000000" },
+        { context: mockContext() }
+      )
     );
 
     expect(error).toMatchObject({
@@ -71,7 +75,11 @@ describe("tweetRouter.getById", () => {
     getTweetMock.mockImplementation(() => Promise.reject(orpcErr));
 
     const error = await expectError(
-      call(tweetRouter.getById, { id: "dup" }, { context: mockContext() })
+      call(
+        tweetRouter.getById,
+        { id: "4000000000000000000" },
+        { context: mockContext() }
+      )
     );
 
     expect(error).toMatchObject({
@@ -80,11 +88,30 @@ describe("tweetRouter.getById", () => {
     });
   });
 
+  it("rejects an id that is not a snowflake before calling Twitter", async () => {
+    getTweetMock.mockClear();
+    getTweetMock.mockImplementation(() =>
+      Promise.resolve({ id: "1", text: "should never be reached" })
+    );
+
+    const error = await expectError(
+      call(tweetRouter.getById, { id: "weird" }, { context: mockContext() })
+    );
+
+    expect(error).toMatchObject({ code: "BAD_REQUEST" });
+    // The point of the guard: no outbound request is made at all.
+    expect(getTweetMock).not.toHaveBeenCalled();
+  });
+
   it("throws BAD_REQUEST with fallback message for non-Error throws", async () => {
     getTweetMock.mockImplementation(() => Promise.reject("string error"));
 
     const error = await expectError(
-      call(tweetRouter.getById, { id: "weird" }, { context: mockContext() })
+      call(
+        tweetRouter.getById,
+        { id: "5000000000000000000" },
+        { context: mockContext() }
+      )
     );
 
     expect(error).toMatchObject({

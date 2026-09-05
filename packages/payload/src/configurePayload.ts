@@ -71,6 +71,7 @@ import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processGiveawayTask } from "./tasks/processGiveaway";
+import { pruneNewsAnalyticsTask } from "./tasks/pruneNewsAnalytics";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
@@ -185,6 +186,7 @@ const baseConfig: Config = {
       checkPushReceiptsTask,
       processGiveawayTask,
       cleanupAnonymousUsersTask,
+      pruneNewsAnalyticsTask,
       generateVideoThumbnailTask,
       deleteVideoThumbTempTask,
     ],

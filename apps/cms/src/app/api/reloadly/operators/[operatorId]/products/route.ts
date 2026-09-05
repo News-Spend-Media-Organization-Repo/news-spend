@@ -5,16 +5,47 @@ import {
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { requireAdmin } from "../../../../_lib/requireAdmin";
+
 /**
  * GET /api/reloadly/operators/:operatorId/products
  *
  * Fetch available products/denominations for a Reloadly operator.
  * Used by the Prize Catalogue admin UI to dynamically show available amounts.
+ *
+ * Admin-only. This route lives outside the `(payload)` group, so Payload runs
+ * no access control of its own here — without the guard below it was an
+ * unauthenticated proxy onto our Reloadly account, and every call minted a
+ * fresh OAuth token, so one request to us was two to the provider.
  */
+
+/**
+ * One client for the process, so its cached bearer token is actually reused.
+ *
+ * `ReloadlyClient` caches the token on the instance until shortly before it
+ * expires, which a per-request `new ReloadlyClient()` threw away every time —
+ * turning each products lookup into an `/oauth/token` round trip as well.
+ * Rebuilt only if the credentials change under us.
+ */
+let cachedClient: { client: ReloadlyClient; key: string } | null = null;
+
+function getClient(config: ReturnType<typeof reloadlyConfigFromEnv> & object) {
+  const key = `${config.clientId}:${config.env}`;
+  if (cachedClient?.key !== key) {
+    cachedClient = { client: new ReloadlyClient(config), key };
+  }
+  return cachedClient.client;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ operatorId: string }> }
 ) {
+  const denied = await requireAdmin(req.headers);
+  if (denied) {
+    return denied;
+  }
+
   const { operatorId } = await params;
 
   if (!operatorId || Number.isNaN(Number(operatorId))) {
@@ -32,11 +63,11 @@ export async function GET(
   }
 
   try {
-    const client = new ReloadlyClient(config);
+    const client = getClient(config);
     const products = await client.getOperatorProducts(Number(operatorId));
 
     return NextResponse.json(products);
-  } catch (err: any) {
+  } catch (err) {
     /**
      * Pass Reloadly's own error code through.
      *
@@ -47,15 +78,20 @@ export async function GET(
      * production account had sandbox credentials with `RELOADLY_ENV=live`, and
      * the `INVALID_CREDENTIALS` that would have named it was discarded here.
      */
-    const body = err?.body as { errorCode?: string; message?: string } | null;
+    const reloadlyErr = err as {
+      message?: string;
+      status?: number;
+      body?: { errorCode?: string; message?: string } | null;
+    };
+    const body = reloadlyErr.body;
 
     return NextResponse.json(
       {
-        error: err.message || "Failed to fetch operator products",
+        error: reloadlyErr.message || "Failed to fetch operator products",
         ...(body?.errorCode ? { errorCode: body.errorCode } : {}),
         ...(body?.message ? { providerMessage: body.message } : {}),
       },
-      { status: err.status ?? 500 }
+      { status: reloadlyErr.status ?? 500 }
     );
   }
 }

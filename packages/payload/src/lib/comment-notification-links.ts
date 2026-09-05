@@ -41,12 +41,10 @@ export async function getCommentThreadUrl({
       return null;
     }
 
-    const base =
-      news.type === "video"
-        ? `live/video/${news.slug}`
-        : `news/article/${news.slug}`;
-
-    return `${base}/comment/${rootCommentId}/${highlightCommentId}`;
+    // Article-only: video was removed from the News type options, so the
+    // `live/video/...` branch this used to have was unreachable. Restore it
+    // alongside the option if video ever comes back.
+    return `news/article/${news.slug}/comment/${rootCommentId}/${highlightCommentId}`;
   } catch (error) {
     payload.logger.error(
       { error, newsId },
