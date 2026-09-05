@@ -1,6 +1,4 @@
 import { useScrollToTop } from "@react-navigation/native";
-import { NavigationBar } from "expo-navigation-bar";
-import { StatusBar, type StatusBarStyle } from "expo-status-bar";
 import { cn } from "heroui-native/utils";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
@@ -12,6 +10,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import { type SystemBarStyle, SystemBars } from "react-native-edge-to-edge";
 import {
   KeyboardAvoidingView,
   type KeyboardAvoidingViewProps,
@@ -54,7 +53,7 @@ type BaseScreenProps = {
   /**
    * Status bar appearance. Defaults to auto (light in dark mode, dark in light mode).
    */
-  statusBarStyle?: StatusBarStyle;
+  statusBarStyle?: SystemBarStyle;
   /**
    * By how much should we offset the keyboard? Defaults to 0.
    * Only applies to fixed preset with KeyboardAvoidingView.
@@ -350,8 +349,12 @@ export function Screen(props: ScreenProps) {
         backgroundColor ? { backgroundColor } : undefined,
       ]}
     >
-      <StatusBar style={barStyle} />
-      <NavigationBar style={navigationBarButtonStyle ?? barStyle} />
+      <SystemBars
+        style={{
+          statusBar: barStyle,
+          navigationBar: navigationBarButtonStyle ?? barStyle,
+        }}
+      />
 
       {shouldUseKeyboardAvoidingView ? (
         <KeyboardAvoidingView
