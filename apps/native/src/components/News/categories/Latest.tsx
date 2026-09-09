@@ -17,7 +17,6 @@ import AdCarousel from "#/components/Ads/AdCarousel";
 import NewsItemAd from "#/components/Ads/NewsItemAd";
 import type { NewsItemGoogleAdRef } from "#/components/Ads/NewsItemGoogleAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
-import { useAllNews } from "#/hooks/news";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -111,14 +110,6 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const flattenedNewsRef = useRef<
     RouterOutputs["news"]["home"]["docs"] | undefined
   >(undefined);
-  const videoNews = useAllNews({
-    type: "video",
-  });
-  const flattenedVideoNews = useMemo(
-    () => videoNews?.data?.pages.flatMap((page) => page?.docs),
-    [videoNews?.data]
-  );
-
   const previousTabName = useRef(routeState.tabName);
   useEffect(() => {
     const unsubscribe = subscribeKey(routeState, "tabName", (v) => {
@@ -261,6 +252,35 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
       fetchNextPage();
     }
   }, [hasNextPage, isFetching, fetchNextPage]);
+
+  /**
+   * Rough heights per row type, in px.
+   *
+   * The feed mixes article rows, full-width ad carousels, Google banners and
+   * reward cards, whose heights differ by several multiples. Without an
+   * estimate LegendList guesses one size for all of them, which is what
+   * produces the scroll-position jumps and blank frames during a fast scroll.
+   * These do not need to be exact — they need to be in the right range.
+   */
+  const getEstimatedItemSize = useCallback((_index: number, item: ItemType) => {
+    const type = item && "type" in item ? item.type : undefined;
+    const kind = item && "_type" in item ? item._type : undefined;
+
+    if (type === "adCarousel") {
+      return 260;
+    }
+    if (type === "gAd") {
+      return 120;
+    }
+    if (kind === "relatedNews") {
+      return 220;
+    }
+    if (kind === "rewardTask") {
+      return 140;
+    }
+    // Article and video rows: a 100px thumbnail plus padding.
+    return 116;
+  }, []);
 
   const getItemType = useCallback(
     (item) =>
@@ -431,7 +451,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         paddingTop: 15,
       }}
       data={flattenedNews}
-      // getEstimatedItemSize={getEstimatedItemSize}
+      getEstimatedItemSize={getEstimatedItemSize}
       getItemType={getItemType}
       ItemSeparatorComponent={MemoizedSeparator}
       keyExtractor={keyExtractor}
@@ -440,7 +460,17 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         <MemoizedListHeader
           books={flattenedPartnerContent ?? EMPTY_BOOKS}
           news={trendingNews.data ?? EMPTY_DOCS}
-          specialCoverage={flattenedVideoNews ?? EMPTY_DOCS}
+          /**
+           * Always empty: Special Coverage is video news, and video is
+           * switched off server-side — the News collection offers only
+           * "article" and its beforeValidate hook refuses anything else, so
+           * the `useAllNews({ type: "video" })` that used to feed this could
+           * only ever return zero rows. It was an infinite query firing on
+           * every mount of the home feed for a section that renders `null`
+           * when empty. Switch video back on in the News collection and
+           * restore that hook to bring the section back.
+           */
+          specialCoverage={EMPTY_DOCS}
         />
       }
       onEndReached={onEndReached}

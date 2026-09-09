@@ -7,13 +7,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const slug = request.nextUrl.searchParams.get("slug");
   const secret = request.nextUrl.searchParams.get("secret");
 
-  console.log({
-    collection,
-    slug,
-    secret,
-    key: process.env.NEXT_PRIVATE_REVALIDATION_KEY,
-  });
-
   if (
     !secret ||
     secret !== process.env.NEXT_PRIVATE_REVALIDATION_KEY ||

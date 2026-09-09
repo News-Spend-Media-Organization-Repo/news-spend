@@ -3,17 +3,19 @@ import type { TaskConfig } from "payload";
 import { getPayload } from "../lib/getPayload";
 import { REASON_LABELS } from "../lib/moderationLabels";
 import { resolveModerationRecipients } from "../lib/moderationRecipients";
+import { getModerationSettings } from "../lib/moderationSettings";
 import { nextDigestTime } from "../lib/nextDigestTime";
 
 /**
  * Payload job task: sendModerationDigest
  *
- * Daily digest email for content reports. Runs via cron (configured in
+ * Digest email for content reports. Cadence comes from the Moderation
+ * Settings global (daily or weekly); runs via cron (configured in
  * configurePayload.ts → jobs.autoRun).
  *
  * Covers *every* unresolved report regardless of age: a 24h window meant
  * anything not actioned on its arrival day silently disappeared, plus a
- * rolling 24h count of content-filter rejections, which are informational
+ * rolling window count of content-filter rejections, which are informational
  * rather than actionable. Recipients are resolved by role and per-admin
  * preference; see lib/moderationRecipients.
  */
@@ -24,10 +26,20 @@ export const sendModerationDigestTask = {
   retries: 1,
   handler: async ({ req }) => {
     const payload = await getPayload();
+    const settings = await getModerationSettings(payload, req);
 
-    const windowStartIso = new Date(
-      Date.now() - DIGEST_WINDOW_MS
-    ).toISOString();
+    if (!settings.digestEnabled) {
+      return { output: { sent: false, reason: "digest-disabled" } };
+    }
+
+    const windowMs =
+      settings.digestFrequency === "weekly"
+        ? 7 * DIGEST_WINDOW_MS
+        : DIGEST_WINDOW_MS;
+    const windowLabel =
+      settings.digestFrequency === "weekly" ? "7 days" : "24 hours";
+
+    const windowStartIso = new Date(Date.now() - windowMs).toISOString();
 
     const [reportsResult, rejectionsResult, adminEmails] = await Promise.all([
       payload.find({
@@ -92,7 +104,10 @@ export const sendModerationDigestTask = {
           await payload.jobs.queue({
             task: "sendModerationDigest",
             input: {},
-            waitUntil: nextDigestTime(),
+            waitUntil: nextDigestTime(new Date(), {
+              frequency: settings.digestFrequency,
+              weekday: settings.digestWeekday,
+            }),
           });
         }
       } catch (error) {
@@ -125,7 +140,7 @@ export const sendModerationDigestTask = {
       ageDays: number;
     }> = [];
 
-    const windowStart = Date.now() - DIGEST_WINDOW_MS;
+    const windowStart = Date.now() - windowMs;
     let newInWindow = 0;
     let oldestPendingDays = 0;
 
@@ -223,7 +238,7 @@ export const sendModerationDigestTask = {
               .join("")}</ul>`
           : "";
 
-      rejectionList = `<h3>Content Filter (last 24 hours)</h3>
+      rejectionList = `<h3>Content Filter (last ${windowLabel})</h3>
   <p style="color: #666;"><strong>${rejections.length}</strong> comment${rejections.length > 1 ? "s were" : " was"} blocked before publication across <strong>${rejectionsByUser.size}</strong> user${rejectionsByUser.size === 1 ? "" : "s"}.${repeatOffenders.length > 0 ? " Users with repeated attempts:" : ""}</p>
   ${offenderRows}`;
     }
@@ -246,7 +261,7 @@ export const sendModerationDigestTask = {
   <p style="color: #666;">All unresolved reports (as of ${now}):</p>
   <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
     <tr>
-      <td style="padding: 8px 0; color: #666;">New in last 24 hours</td>
+      <td style="padding: 8px 0; color: #666;">New in last ${windowLabel}</td>
       <td><strong>${newInWindow}</strong></td>
     </tr>
     <tr>

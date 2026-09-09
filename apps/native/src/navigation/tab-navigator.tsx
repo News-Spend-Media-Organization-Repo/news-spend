@@ -1,10 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {
-  HouseIcon,
-  ShoppingCartIcon,
-  TagIcon,
-  UserIcon,
-} from "#/lib/icons";
+import { HouseIcon, ShoppingCartIcon, TagIcon, UserIcon } from "#/lib/icons";
 
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
@@ -96,6 +91,14 @@ export default createBottomTabNavigator({
   screenOptions: {
     headerShown: false,
     tabBarHideOnKeyboard: true,
+    /**
+     * Suspend a tab's React tree while it is off screen.
+     *
+     * Every tab holds live lists, carousels and ad slots, and without this
+     * they keep re-rendering behind whichever tab is in front — Discover's
+     * carousels animate while you are reading news, and vice versa.
+     */
+    freezeOnBlur: true,
     animation: "none",
     tabBarStyle: {
       backgroundColor: "red",

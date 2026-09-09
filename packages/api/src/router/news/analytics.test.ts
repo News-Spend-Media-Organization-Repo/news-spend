@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { call } from "@orpc/server";
 
-import { createFakePayload, expectError, mockContext } from "../../test-utils";
+import {
+  createFakePayload,
+  expectError,
+  mockContext,
+  stubDrizzle,
+} from "../../test-utils";
 import { newsAnalyticsRouter } from "./analytics";
 
 const authedUser = { id: "user-1", isAnonymous: false, username: "tester" };
@@ -23,6 +28,7 @@ describe("newsAnalyticsRouter.track", () => {
         ],
       },
     });
+    const drizzle = stubDrizzle(payload, [{ id: "evt-1" }]);
     const ctx = mockContext({ payload });
 
     const result = await call(
@@ -42,7 +48,9 @@ describe("newsAnalyticsRouter.track", () => {
 
     expect(result.inserted).toBe(1);
     expect(result.failed).toBe(0);
-    expect(payload.docs("news-analytics")).toHaveLength(1);
+    // One statement for the whole batch, not one per event.
+    expect(drizzle.queries).toHaveLength(1);
+    expect(drizzle.queries[0]?.sql).toContain("news_analytics");
   });
 
   it("drops events with unknown article IDs", async () => {
@@ -70,6 +78,8 @@ describe("newsAnalyticsRouter.track", () => {
 
     expect(result.inserted).toBe(0);
     expect(result.failed).toBe(0);
+    // Dropped is reported separately from a write failure.
+    expect(result.dropped).toBe(1);
   });
 
   it("returns correct shape with multiple events", async () => {
@@ -91,6 +101,11 @@ describe("newsAnalyticsRouter.track", () => {
         ],
       },
     });
+    const drizzle = stubDrizzle(payload, [
+      { id: "evt-1" },
+      { id: "evt-2" },
+      { id: "evt-3" },
+    ]);
     const ctx = mockContext({ payload });
 
     const result = await call(
@@ -122,10 +137,11 @@ describe("newsAnalyticsRouter.track", () => {
 
     expect(result.inserted).toBe(3);
     expect(result.failed).toBe(0);
-    expect(payload.docs("news-analytics")).toHaveLength(3);
+    // Three events, still a single round trip.
+    expect(drizzle.queries).toHaveLength(1);
   });
 
-  it("defaults timestamp when not provided", async () => {
+  it("still writes a batch when no timestamp is supplied", async () => {
     const payload = createFakePayload({
       collections: {
         news: [
@@ -138,9 +154,10 @@ describe("newsAnalyticsRouter.track", () => {
         ],
       },
     });
+    const drizzle = stubDrizzle(payload, [{ id: "evt-1" }]);
     const ctx = mockContext({ payload });
 
-    await call(
+    const result = await call(
       newsAnalyticsRouter.track,
       {
         events: [
@@ -155,40 +172,25 @@ describe("newsAnalyticsRouter.track", () => {
       { context: ctx }
     );
 
-    const doc = payload.docs("news-analytics")[0];
-    expect(doc?.timestamp).toBeTruthy();
+    expect(result.inserted).toBe(1);
+    expect(drizzle.queries).toHaveLength(1);
   });
 });
 
 // ---------------------------------------------------------------------------
 // articleStats
 // ---------------------------------------------------------------------------
+// Both aggregations now GROUP BY in Postgres, so the fixtures are the grouped
+// rows the database hands back rather than raw event documents.
 describe("newsAnalyticsRouter.articleStats", () => {
+  const today = new Date().toISOString().slice(0, 10);
+
   it("computes totals and CTR", async () => {
-    const payload = createFakePayload({
-      collections: {
-        "news-analytics": [
-          {
-            id: "a1",
-            article: "news-1",
-            event: "impression",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: "a2",
-            article: "news-1",
-            event: "impression",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: "a3",
-            article: "news-1",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      },
-    });
+    const payload = createFakePayload();
+    stubDrizzle(payload, [
+      { day: today, event: "impression", count: 2 },
+      { day: today, event: "view", count: 1 },
+    ]);
     const ctx = mockContext({ user: authedUser as never, payload });
 
     const result = await call(
@@ -205,11 +207,8 @@ describe("newsAnalyticsRouter.articleStats", () => {
   });
 
   it("returns 0 CTR when no impressions", async () => {
-    const payload = createFakePayload({
-      collections: {
-        "news-analytics": [],
-      },
-    });
+    const payload = createFakePayload();
+    stubDrizzle(payload, []);
     const ctx = mockContext({ user: authedUser as never, payload });
 
     const result = await call(
@@ -223,19 +222,9 @@ describe("newsAnalyticsRouter.articleStats", () => {
     expect(result.trend.length).toBe(7);
   });
 
-  it("fills missing days with counts fallback", async () => {
-    const payload = createFakePayload({
-      collections: {
-        "news-analytics": [
-          {
-            id: "a1",
-            article: "news-1",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      },
-    });
+  it("zeroes days with no events rather than repeating the totals", async () => {
+    const payload = createFakePayload();
+    stubDrizzle(payload, [{ day: today, event: "view", count: 5 }]);
     const ctx = mockContext({ user: authedUser as never, payload });
 
     const result = await call(
@@ -245,10 +234,19 @@ describe("newsAnalyticsRouter.articleStats", () => {
     );
 
     expect(result.trend.length).toBe(7);
+
+    // The one day with data carries it; every other day is zero. This used to
+    // spread the running totals, so quiet days reported the whole period.
+    const withData = result.trend.filter((d) => d.views > 0);
+    expect(withData).toHaveLength(1);
+    expect(withData[0]?.date).toBe(today);
+    expect(withData[0]?.views).toBe(5);
+
     for (const entry of result.trend) {
-      expect(entry).toHaveProperty("date");
-      expect(entry).toHaveProperty("views");
-      expect(entry).toHaveProperty("impressions");
+      if (entry.date !== today) {
+        expect(entry.views).toBe(0);
+        expect(entry.impressions).toBe(0);
+      }
     }
   });
 
@@ -275,28 +273,16 @@ describe("newsAnalyticsRouter.topArticles", () => {
   it("returns articles ranked by event count", async () => {
     const payload = createFakePayload({
       collections: {
-        "news-analytics": [
-          {
-            id: "a1",
-            article: "news-1",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: "a2",
-            article: "news-1",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: "a3",
-            article: "news-2",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
+        news: [
+          { id: "news-1", title: "Article 1" },
+          { id: "news-2", title: "Article 2" },
         ],
       },
     });
+    stubDrizzle(payload, [
+      { article_id: "news-1", count: 2 },
+      { article_id: "news-2", count: 1 },
+    ]);
     const ctx = mockContext({ user: authedUser as never, payload });
 
     const result = await call(
@@ -312,31 +298,20 @@ describe("newsAnalyticsRouter.topArticles", () => {
     expect(result[1]?.count).toBe(1);
   });
 
-  it("respects the limit parameter", async () => {
+  it("passes the limit through to the ranking query", async () => {
     const payload = createFakePayload({
       collections: {
-        "news-analytics": [
-          {
-            id: "a1",
-            article: "news-1",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: "a2",
-            article: "news-2",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: "a3",
-            article: "news-3",
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
+        news: [
+          { id: "news-1", title: "Article 1" },
+          { id: "news-2", title: "Article 2" },
         ],
       },
     });
+    // The database applies LIMIT, so the stub returns what it would have.
+    stubDrizzle(payload, [
+      { article_id: "news-1", count: 2 },
+      { article_id: "news-2", count: 1 },
+    ]);
     const ctx = mockContext({ user: authedUser as never, payload });
 
     const result = await call(
@@ -348,19 +323,13 @@ describe("newsAnalyticsRouter.topArticles", () => {
     expect(result).toHaveLength(2);
   });
 
-  it("handles populated article objects", async () => {
+  it("attaches the article document to each ranked row", async () => {
     const payload = createFakePayload({
       collections: {
-        "news-analytics": [
-          {
-            id: "a1",
-            article: { id: "news-1", title: "Article 1" },
-            event: "view",
-            timestamp: new Date().toISOString(),
-          },
-        ],
+        news: [{ id: "news-1", title: "Article 1" }],
       },
     });
+    stubDrizzle(payload, [{ article_id: "news-1", count: 1 }]);
     const ctx = mockContext({ user: authedUser as never, payload });
 
     const result = await call(
@@ -371,7 +340,24 @@ describe("newsAnalyticsRouter.topArticles", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]?.articleId).toBe("news-1");
-    expect(result[0]?.article).toEqual({ id: "news-1", title: "Article 1" });
+    expect(result[0]?.article).toMatchObject({
+      id: "news-1",
+      title: "Article 1",
+    });
+  });
+
+  it("returns an empty list when nothing matched", async () => {
+    const payload = createFakePayload();
+    stubDrizzle(payload, []);
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      newsAnalyticsRouter.topArticles,
+      { event: "view" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual([]);
   });
 
   it("rejects unauthenticated callers", async () => {

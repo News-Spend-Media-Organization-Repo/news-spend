@@ -387,3 +387,43 @@ function sortDocs(docs: Doc[], sort: string): Doc[] {
     return descending ? -result : result;
   });
 }
+
+/** A statement captured by `stubDrizzle`, with its bound parameters. */
+export type CapturedQuery = { sql: string; params: unknown[] };
+
+/**
+ * Attach a drizzle stub to a fake payload, for routers that drop to raw SQL.
+ *
+ * Several hot paths deliberately bypass Payload (bulk analytics inserts,
+ * GROUP BY aggregations, the atomic view counter), so the fake's collection
+ * store never sees them. This records what was executed — so a test can assert
+ * on the statement — and returns whichever rows the test supplies.
+ *
+ * `rows` may be a fixed array, or a function of the captured query when one
+ * handler has to answer differently for different statements.
+ */
+export function stubDrizzle(
+  payload: ReturnType<typeof createFakePayload>,
+  rows: unknown[] | ((query: CapturedQuery) => unknown[]) = []
+): { queries: CapturedQuery[] } {
+  const queries: CapturedQuery[] = [];
+
+  Object.assign(payload.db, {
+    drizzle: {
+      execute: (statement: { queryChunks?: unknown[] } | string) => {
+        // Drizzle's tagged-template object exposes its chunks; stringify
+        // whatever shape arrives so assertions can match on substrings.
+        const text =
+          typeof statement === "string" ? statement : JSON.stringify(statement);
+        const query: CapturedQuery = { sql: text, params: [] };
+        queries.push(query);
+
+        return Promise.resolve({
+          rows: typeof rows === "function" ? rows(query) : rows,
+        });
+      },
+    },
+  });
+
+  return { queries };
+}

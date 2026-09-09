@@ -2,8 +2,9 @@ import { useNavigation } from "@react-navigation/native";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { Chip } from "heroui-native/chip";
 import { cn } from "heroui-native/utils";
-import { ClockIcon, PlayIcon } from "#/lib/icons";
+import { memo } from "react";
 import { Pressable, View } from "react-native";
+import { ClockIcon, PlayIcon } from "#/lib/icons";
 import type { RouterOutputs } from "#/lib/orpc";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
@@ -12,7 +13,7 @@ import { Icon } from "../heroui/icon";
 import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
 
-export default function NewsItem({
+function NewsItem({
   news,
   latest,
 }: {
@@ -123,3 +124,10 @@ export default function NewsItem({
     </Pressable>
   );
 }
+
+/**
+ * Memoised: the feed re-renders on every page append, viewability change and
+ * refetch, and `recycleItems` limits how many cells exist but not how often
+ * each one re-renders.
+ */
+export default memo(NewsItem);
