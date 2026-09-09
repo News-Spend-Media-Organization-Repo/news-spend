@@ -1,6 +1,9 @@
-import { View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Pressable, View } from "react-native";
+import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { ArrowLeftIcon } from "#/lib/icons";
 
 const privacyPolicyContent = [
   {
@@ -74,30 +77,37 @@ const privacyPolicyContent = [
   },
 ];
 
-const PrivacyPolicy = () => (
-  <Screen
-    className="px-5"
-    contentContainerClassName="gap-6 py-4"
-    preset="scroll"
-    safeAreaEdges={["bottom"]}
-  >
-    <Text variant="HeadingMedium">Privacy Policy</Text>
-    {privacyPolicyContent.map((section) => (
-      <View className="gap-2" key={section.title}>
-        <Text className="font-semibold">{section.title}</Text>
-        <Text variant="caption">{section.description}</Text>
-        {section.bullets.length > 0 && (
-          <View className="gap-1 pl-4">
-            {section.bullets.map((bullet) => (
-              <Text key={bullet} variant="caption">
-                • {bullet}
-              </Text>
-            ))}
-          </View>
-        )}
-      </View>
-    ))}
-  </Screen>
-);
+const PrivacyPolicy = () => {
+  const navigation = useNavigation("PrivacyPolicy");
+
+  return (
+    <Screen
+      className="px-5"
+      contentContainerClassName="gap-6 py-4"
+      preset="scroll"
+      safeAreaEdges={["bottom"]}
+    >
+      <Pressable hitSlop={10} onPress={() => navigation.goBack()}>
+        <Icon className="size-6" name={ArrowLeftIcon} />
+      </Pressable>
+      <Text variant="HeadingMedium">Privacy Policy</Text>
+      {privacyPolicyContent.map((section) => (
+        <View className="gap-2" key={section.title}>
+          <Text className="font-semibold">{section.title}</Text>
+          <Text variant="caption">{section.description}</Text>
+          {section.bullets.length > 0 && (
+            <View className="gap-1 pl-4">
+              {section.bullets.map((bullet) => (
+                <Text key={bullet} variant="caption">
+                  • {bullet}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+      ))}
+    </Screen>
+  );
+};
 
 export default PrivacyPolicy;
