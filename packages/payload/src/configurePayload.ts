@@ -218,6 +218,12 @@ const baseConfig: Config = {
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || "",
+      // Memory: bound the pg pool on small containers. Unset = adapter
+      // default (no behavior change for existing consumers); set e.g.
+      // PG_POOL_MAX=5 on the 1 GB Railway CMS to cap idle connections.
+      ...(process.env.PG_POOL_MAX
+        ? { max: Number(process.env.PG_POOL_MAX) }
+        : {}),
     },
     idType: "uuid",
     /**

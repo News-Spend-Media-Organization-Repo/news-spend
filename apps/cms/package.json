@@ -20,7 +20,8 @@
     "lint:fix": "bun x biome check --write .",
     "payload": "payload",
     "standalone-script": "node ./src/scripts/standalone-script.js",
-    "start": "cross-env NODE_OPTIONS=\"--no-deprecation\" next start",
+    "start": "bun --bun next start",
+    "start:node": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=768\" next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

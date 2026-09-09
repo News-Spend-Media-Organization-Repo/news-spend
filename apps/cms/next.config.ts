@@ -18,6 +18,16 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   output: "standalone",
+  // Memory (see Next.js "How to optimize memory usage" guide): the CMS idles
+  // near its 1 GB Railway limit, so trade boot/first-hit speed for RSS.
+  // `webpackMemoryOptimizations` lowers peak build memory at a small compile
+  // time cost; disabling `preloadEntriesOnStart` stops Next from preloading
+  // every route's modules (including the large Payload admin bundle) into
+  // memory at server start — the first request pays the load cost instead.
+  experimental: {
+    webpackMemoryOptimizations: true,
+    preloadEntriesOnStart: false,
+  },
   // Keeps ssh2 and its optional cpu-features native binding out of the server
   // bundle, required by the cPanel SFTP storage adapter. This replaces an
   // equivalent `webpack.externals` block: declaring it here works under both
