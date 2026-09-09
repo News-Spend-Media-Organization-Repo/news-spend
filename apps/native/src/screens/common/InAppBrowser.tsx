@@ -8,15 +8,6 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { cn } from "heroui-native/utils";
-import {
-  ArrowClockwiseIcon,
-  ArrowLeftIcon,
-  ArrowSquareOutIcon,
-  CopyIcon,
-  DotsThreeOutlineVerticalIcon,
-  ShareNetworkIcon,
-  XIcon,
-} from "#/lib/icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -42,10 +33,18 @@ import type {
   WebViewOpenWindowEvent,
   WebViewProgressEvent,
 } from "react-native-webview/lib/WebViewTypes";
-
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import {
+  ArrowClockwiseIcon,
+  ArrowLeftIcon,
+  ArrowSquareOutIcon,
+  CopyIcon,
+  DotsThreeOutlineVerticalIcon,
+  ShareNetworkIcon,
+  XIcon,
+} from "#/lib/icons";
 
 export type InAppBrowserParams = {
   url: string;
@@ -81,11 +80,19 @@ const HANDOFF_SCHEMES = [
 const HTTP_SCHEME_RE = /^https?:\/\//i;
 const WWW_PREFIX_RE = /^www\./;
 
-const isHttpUrl = (url: string) => HTTP_SCHEME_RE.test(url);
+/**
+ * Trim first: CMS/ad URLs have arrived with leading whitespace, which the
+ * WebView encodes to `%20...` and iOS then rejects with
+ * "is not a file URL" (fatal, NEWS-SPEND-MEDIA-DZ).
+ */
+const sanitizeUrl = (url: string | undefined | null): string =>
+  (url ?? "").trim();
+
+const isHttpUrl = (url: string) => HTTP_SCHEME_RE.test(url.trim());
 
 const getDomain = (url: string) => {
   try {
-    return new URL(url).host.replace(WWW_PREFIX_RE, "");
+    return new URL(url.trim()).host.replace(WWW_PREFIX_RE, "");
   } catch {
     return "";
   }
@@ -108,10 +115,11 @@ export default function InAppBrowser({
   const webViewRef = useRef<WebView>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // `source` is state so that `onOpenWindow` can pull a would-be popup back
-  // into this same WebView instead of letting it escape to the browser.
-  const [source, setSource] = useState({ uri: initialUrl ?? "" });
-  const [currentUrl, setCurrentUrl] = useState(initialUrl ?? "");
+  // Sanitized once: raw params have carried leading whitespace that iOS
+  // loads as `%20...` and rejects as "not a file URL" (fatal crash).
+  const sanitizedInitialUrl = sanitizeUrl(initialUrl);
+  const [source, setSource] = useState({ uri: sanitizedInitialUrl });
+  const [currentUrl, setCurrentUrl] = useState(sanitizedInitialUrl);
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -178,11 +186,12 @@ export default function InAppBrowser({
 
   const handleShouldStartLoad = useCallback(
     ({ url }: ShouldStartLoadRequest) => {
-      if (isHttpUrl(url) || url === "about:blank") {
+      const clean = url.trim();
+      if (isHttpUrl(clean) || clean === "about:blank") {
         return true;
       }
-      if (HANDOFF_SCHEMES.some((scheme) => url.startsWith(scheme))) {
-        Linking.openURL(url).catch(() => {
+      if (HANDOFF_SCHEMES.some((scheme) => clean.startsWith(scheme))) {
+        Linking.openURL(clean).catch(() => {
           /* nothing installed to handle it; stay put */
         });
         return false;
@@ -194,7 +203,7 @@ export default function InAppBrowser({
 
   const handleOpenWindow = useCallback(
     ({ nativeEvent }: WebViewOpenWindowEvent) => {
-      const target = nativeEvent.targetUrl;
+      const target = nativeEvent.targetUrl.trim();
       if (isHttpUrl(target)) {
         setSource({ uri: target });
       }
