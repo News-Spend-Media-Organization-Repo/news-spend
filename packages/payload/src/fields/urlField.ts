@@ -1,4 +1,4 @@
-import type { TextField } from "payload";
+import type { FieldHook, TextField } from "payload";
 import { deepMerge } from "payload";
 
 type UrlFieldValidate = (
@@ -16,33 +16,50 @@ type UrlFieldOverrides = Omit<Partial<TextField>, "type"> & {
   validate?: UrlFieldValidate;
 };
 
+export const isValidUrlValue = (v: unknown): boolean => {
+  if (v === null || v === undefined || v === "") {
+    return true;
+  }
+  try {
+    new URL(String(v).trim());
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Stored trimmed, not as typed. Padded URLs pass `new URL` (the parser strips
+ * surrounding whitespace) yet crash the app's WebView, which encodes the
+ * padding to `%20...` and rejects it as "not a file URL" (NEWS-SPEND-MEDIA-DZ).
+ */
+export const trimUrlHook: FieldHook = ({ value }) => {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => (typeof v === "string" ? v.trim() : v));
+  }
+  return value;
+};
+
 const defaultUrlField: TextField = {
   name: "url",
   type: "text",
+  hooks: {
+    beforeChange: [trimUrlHook],
+  },
   validate: (value: string | string[] | null | undefined) => {
-    const isEmpty = (v: unknown) => v === null || v === undefined || v === "";
-    const isValidUrl = (v: unknown) => {
-      if (isEmpty(v)) {
-        return true;
-      }
-      try {
-        new URL(String(v));
-        return true;
-      } catch {
-        return false;
-      }
-    };
-
     if (Array.isArray(value)) {
       for (const v of value) {
-        if (!isValidUrl(v)) {
+        if (!isValidUrlValue(v)) {
           return "Please enter a valid URL";
         }
       }
       return true;
     }
 
-    return isValidUrl(value) ? true : "Please enter a valid URL";
+    return isValidUrlValue(value) ? true : "Please enter a valid URL";
   },
 };
 
