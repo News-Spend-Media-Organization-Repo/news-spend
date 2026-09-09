@@ -1,12 +1,14 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.dev/mcp/news-spend-media",
+      "enabled": true
+    },
     "argent": {
       "type": "local",
-      "command": [
-        "/Users/odunsi/.bun/bin/argent",
-        "mcp"
-      ],
+      "command": ["/Users/odunsi/.bun/bin/argent", "mcp"],
       "enabled": true
     }
   },
