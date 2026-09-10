@@ -1,11 +1,10 @@
 <a name="readme-top"></a>
 
-<!-- <br /> -->
 <div align="center">
-  <h3 align="center">Payload Monorepo Template (Payload | Next.js | Astro | Svelte)</h3>
+  <h3 align="center">News Spend Media</h3>
 
   <p align="center">
-    A monorepo built on Payload 3 to demonstrate the use of frameworks other than Next.js for their frontend.
+    A full-stack monorepo for the News Spend Media platform, featuring a content management system, native mobile app, and backend API server.
   </p>
 </div>
 
@@ -17,7 +16,6 @@
       <a href="#about-the-project">About The Project</a>
       <ul>
         <li><a href="#built-with">Built With</a></li>
-        <li><a href="#tooling">Tooling</a></li>
       </ul>
     </li>
     <li>
@@ -28,11 +26,8 @@
       </ul>
     </li>
     <li><a href="#project-structure">Project structure</a></li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#developing">Developing</a></li>
     <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
 
@@ -40,24 +35,19 @@
 
 ## About The Project
 
-This project is designed to show how you can use Payload 3 on top of Next.js with alternate frontend frameworks such as Astro. The goal is to provide a boilerplate for users to get started with minimal architectural setup but with an excellent developer experience.
+News Spend Media is a comprehensive platform for managing digital media content and user engagement. The monorepo architecture enables seamless sharing of business logic, types, and configuration across multiple applications.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Built With
 
+- [![Next.js][next-shield]][next-url]
+- [![React Native][react-native-shield]][react-native-url]
+- [![Expo][expo-shield]][expo-url]
 - [![Payload CMS][payload-shield]][payload-url]
-- [![Next][next-shield]][next-url]
-- [![Astro][astro-shield]][astro-url]
-- [![Svelte][svelte-shield]][svelte-url]
 - [![TypeScript][typescript-shield]][typescript-url]
 - [![TailwindCSS][tailwind-shield]][tailwind-url]
-
-### Tooling
-
-- [![Storybook][storybook-shield]][storybook-url]
-- [![ESLint][eslint-shield]][eslint-url]
-- [![Prettier][prettier-shield]][prettier-url]
+- [![Bun][bun-shield]][bun-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -65,39 +55,23 @@ This project is designed to show how you can use Payload 3 on top of Next.js wit
 
 ## Getting Started
 
-Make sure you have the following tools installed on your system to run this project.
-
 ### Prerequisites
 
-#### Required
-
-- [![fnm][fnm-shield]][fnm-url] or [![nvm][nvm-shield]][nvm-url] or [![Node 20+][node-shield]][node-url]
-- [![pnpm][pnpm-shield]][pnpm-url]
-
-#### Optional
-
-- [![vscode][vscode-shield]][vscode-url]
-
-This project includes recommended VS Code extensions. While these extensions are optional your experience will be greatly enhanced by having them.
+- [![Node 20+][node-shield]][node-url]
+- [![Bun 1.3+][bun-shield]][bun-url]
 
 ### Installation
 
 1. Clone this repo
 
    ```sh
-   git clone github.com/fusionary/turbo-payload.git
+   git clone <repository-url>
    ```
 
-2. Use recommended node version (if using FNM)
+2. Install dependencies
 
    ```sh
-   fnm use
-   ```
-
-3. Install node packages
-
-   ```sh
-   pnpm install
+   bun install
    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -106,187 +80,155 @@ This project includes recommended VS Code extensions. While these extensions are
 
 ```
 ├── apps
-│   ├── astro
-│   ├── docs
-│   ├── next
-│   ├── payload
-│   ├── svelte
+│   ├── cms          # Payload CMS + Next.js admin and frontend
+│   ├── native       # React Native mobile app (iOS & Android)
+│   └── server       # Backend API server (Bun-based)
 ├── packages
-│   ├── env
-│   ├── icons
-│   ├── payload
-│   ├── svg
-│   │   ├── README.md
-│   ├── types
-│   ├── ui
-│   ├── utils
-├── tooling
-│   ├── eslint
-│   ├── github
-│   ├── prettier
-│   ├── storybook
-│   ├── tailwind
-│   ├── typescript
+│   ├── api          # Shared API/RPC client and contracts
+│   ├── auth         # Authentication and authorization
+│   ├── config       # Configuration utilities
+│   ├── db           # Database schema and migrations (Drizzle ORM)
+│   ├── env          # Environment variable validation
+│   ├── logger       # Logging utilities
+│   ├── mail         # Email services
+│   ├── payload      # Shared Payload CMS configuration
+│   ├── payload-cpanel-storage # cPanel storage integration
+│   ├── transactional # Transactional utilities
+│   └── utils        # Shared utility functions
+└── tooling
+    └── tailwind     # Shared Tailwind CSS configuration
 ```
-
-<p align="right">(<a href="#readme-top" align="right">back to top</a>)</p>
-
-### Apps
-
-#### astro
-
-Astro frontend application leveraging Payload 3 local API. Astro is configured with Tailwind for styling. Additionally it is configured for dynamic routes using SSR. This can be optimized for production to use SSG in the build phase or SSR/SSG hybrid.
-
-#### docs
-
-This is a Storybook instance to help you create and preview your components as isolated stories.
-
-#### next
-
-This is a NextJS app that connects to the Payload CMS via Local API. This does not contain the the Payload admin. The purpose is to demonstrate a secondary NextJS site in addition to the one with Payload.
-
-#### payload
-
-This app serves two purposes. It includes Next.js and Payload 3. This is configured to serve as the Payload admin as well as a Next.js frontend. This is currently set up as the payload preview app and is also configured to run in hybrid rendering mode.
-
-#### svelte
-
-Svelte frontend application leveraging Payload 3 local API. Svelte is configured with Tailwind for styling. Additionally it is configured for dynamic routes using SSR. This can be optimized for production to use SSG in the build phase or SSR/SSG hybrid.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Packages
+## Apps
 
-#### env
+### cms
 
-This package contains environment variable configuration for use in various apps and packages. It performs environment variable validation and is recommended to ensure all necessary env vars are populated and valid.
+Payload CMS v3 admin interface and Next.js frontend. Manages all content and provides a user-friendly interface for content editors.
 
-#### icons
+- **Framework:** Next.js 16 with Payload CMS 3
+- **Styling:** TailwindCSS
+- **Features:** Content modeling, live preview, SEO management, redirects, Sentry monitoring
 
-Here is where we store reusable iconography. By default it includes Lucide React icons that can be selectively exported. In addition, you can bring your own icons.
+### native
 
-#### payload
+Cross-platform React Native mobile application built with Expo for both iOS and Android.
 
-This is where all of the magic occurs. This is a Payload package which contains all of the shared Payload configuration (e.g. fields, collections, access control, etc.). When you are building out your payload configuration, this is where you want to be. This enables you an elegant way to use a single Payload configuration across multiple apps with no effort and maximum developer productivity.
+- **Framework:** React Native with Expo
+- **Build:** EAS Build and Submit
+- **Features:** Bottom tab navigation, real-time features, secure authentication, offline support
 
-#### svg
+### server
 
-Collection of SVGs for use in various client apps. This is where all SVGs should be exported. There is a [README](/packages/svg/README.md) that contains information on converting SVGs to React components.
+Backend API server providing RESTful and RPC endpoints for the platform.
 
-#### types
+- **Runtime:** Bun
+- **API:** ORPC (Open RPC)
+- **Features:** Rate limiting, OpenAPI documentation, OpenTelemetry instrumentation, Sentry error tracking
 
-Types (and zod schemas) to be used across various different packages and applications.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-#### ui
+## Packages
 
-Shared UI components. Generally speaking we have used this for shared React components.
+### api
 
-#### utils
+Type-safe RPC client and contracts using ORPC. Shared between mobile app and web.
 
-Shared utility functions to be used throughout.
+### auth
 
-### tooling
+Authentication and authorization using Better Auth with Payload CMS integration.
 
-#### eslint
+### config
 
-Customized eslint rules that are the basis for all other JavaScript/TypeScript projects in this repo. If you need to adjust global rules, this is the place to do it. Note that these rules are extended in each package directory so if you need to adjust configuration for a particular package, that is the place to do it.
+Configuration utilities and constants.
 
-#### github
+### db
 
-Baseline Github action configuration to be shared across different pipelines.
+Database schema and migrations using Drizzle ORM with PostgreSQL.
 
-#### prettier
+### env
 
-Shared prettier configuration settings.
+Environment variable validation using Zod. Ensures type safety across the application.
 
-#### storybook
+### logger
 
-This package provides a Storybook configuration that can be used be different packages.
+Structured logging using Pino with optional Sentry integration.
 
-#### tailwind
+### mail
 
-This package provides the Tailwind CSS configuration. Any changes to Tailwind configuration should be completed here.
+Email service integration (Resend).
 
-#### typescript
+### payload
 
-This packages contains several different tsconfigs form which to extend from.
+Shared Payload CMS configuration including collections, fields, hooks, and access control.
+
+### payload-cpanel-storage
+
+Custom cloud storage plugin for Payload using cPanel SFTP.
+
+### transactional
+
+Transactional utilities and patterns.
+
+### utils
+
+Shared utility functions and helpers.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Developing
 
-### Environment Variables
+### CMS
 
-Environment variables are already defined in each app. We use the dotnnvx package along with the ability to encrypt values to store all environment variables in the repo. The only thing that you need to do is to ensure that there is a .env.keys file in the root of the repo. All apps should symlink this so you only need to maintain one set of private keys.
-
-### Database
-
-By default, the local development uses MongoDB for a database. The easiest way to spin up MongoDB is to run it in docker. Run the command below to start a MongoDB instance.
-
-```bash
-  docker run -d --name payload-monorepo -p 27017:27017 mongo
+```sh
+bun dev --filter @news-spend-media/cms
 ```
 
-### Modeling (Payload Config)
+### Native App
 
-If you are just doing modeling or entering content, you only need to execute the Payload app. Running the Payload app will ensure that types are generated for _all_ clients. If you are doing anything that will result in types changing, it is recommended to run this project. There are two ways to do this. First, if you're using VS Code, you can click the run and debug menu (play icon) and then select Payload from the dropdown and then click the play icon. Alternatively, from a terminal you can type `pnpm dev --filter payload...`.
+```sh
+cd apps/native
+bun start
+```
 
-### Frontend
+### Server
 
-If you are only doing frontend coding, and will not be adjusting content or modeling you can just run the frontend project. Right now the only project is Astro. To run this there are two choices. In VS Code you can select astro from the run and debug menu and click play. Alternatively, you can type `pnpm dev --filter astro...`.
+```sh
+bun dev --filter @news-spend-media/server
+```
 
-If you plan on doing frontend coding as well as updating content or models, then it is recommended to run Payload and your frontend project concurrently. Again, you can do this from the run and debug menu or you can type `pnpm dev --filter astro... --filter payload...`. This will make sure both projects are running.
+### Linting & Formatting
 
-### Package Updates
+```sh
+# Run Biomejs linter
+bun run lint
 
-This project has shortcuts to `npm-check-updates` in the package scripts. To check for the latest node packages, run `pnpm packages:check` from the root of the repo. This will list all outstanding dependencies by project. To update the packages, run `pnpm packages:upate`. Executing the updates will automatically run pnpm install after the package.json files are updated.
+# Fix linting issues
+bun run lint:fix
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+# Format code
+bun run format:fix
 
-## Hosting
+# Typecheck
+bun run typecheck
+```
 
-More information coming soon.
+### Testing
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+```sh
+# Run all tests
+bun test
 
-<!-- ROADMAP -->
-
-## Roadmap
-
-See the [open issues](https://github.com/fusionary/turbo-payload/issues) for a full list of proposed features (and known issues).
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTRIBUTING -->
-
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+# Run tests in watch mode
+bun test --watch
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- LICENSE -->
 
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTACT -->
-
-## Contact
-
-Project Link: [https://github.com/fusionary/turbo-payload](https://github.com/fusionary/turbo-payload)
+Distributed under the MIT License.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -297,27 +239,15 @@ Project Link: [https://github.com/fusionary/turbo-payload](https://github.com/fu
 [typescript-url]: https://www.typescriptlang.org/
 [next-shield]: https://img.shields.io/badge/next.js-20232A?style=for-the-badge&logo=nextdotjs&logoColor=white
 [next-url]: https://nextjs.org/
-[astro-shield]: https://img.shields.io/badge/Astro-20232A?style=for-the-badge&logo=Astro&logoColor=BC52EE
-[astro-url]: https://astro.build
-[svelte-shield]: https://img.shields.io/badge/Svelte-20232A?style=for-the-badge&logo=Svelte&logoColor=FF3E00
-[svelte-url]: https://svelte.dev
+[react-native-shield]: https://img.shields.io/badge/react%20native-20232A?style=for-the-badge&logo=react&logoColor=61dafb
+[react-native-url]: https://reactnative.dev/
+[expo-shield]: https://img.shields.io/badge/expo-20232A?style=for-the-badge&logo=expo&logoColor=000020
+[expo-url]: https://expo.dev/
 [payload-shield]: https://img.shields.io/badge/Payload%20CMS-20232A?style=for-the-badge&logo=payloadcms&logoColor=white
 [payload-url]: https://payloadcms.com/
 [tailwind-shield]: https://img.shields.io/badge/tailwindcss-20232A?style=for-the-badge&logo=tailwindcss&logoColor=0ea5e9
 [tailwind-url]: https://tailwindcss.com/
-[storybook-shield]: https://img.shields.io/badge/storybook-20232A?style=for-the-badge&logo=storybook&logoColor=ff4785
-[storybook-url]: https://storybook.js.org/
-[eslint-shield]: https://img.shields.io/badge/eslint-20232A?style=for-the-badge&logo=eslint&logoColor=4B32C3
-[eslint-url]: https://eslint.org/
-[prettier-shield]: https://img.shields.io/badge/prettier-20232A?style=for-the-badge&logo=prettier&logoColor=f8bc45
-[prettier-url]: https://prettier.io/
+[bun-shield]: https://img.shields.io/badge/bun-20232A?style=for-the-badge&logo=bun&logoColor=f471b5
+[bun-url]: https://bun.sh/
 [node-shield]: https://img.shields.io/badge/node.js-20232A?style=for-the-badge&logo=node.js&logoColor=336633
 [node-url]: https://nodejs.org/
-[nvm-shield]: https://img.shields.io/badge/nvm-20232A?style=for-the-badge&logoColor=ffffff
-[nvm-url]: https://github.com/nvm-sh/nvm
-[fnm-shield]: https://img.shields.io/badge/fnm-20232A?style=for-the-badge&logoColor=ffffff
-[fnm-url]: https://fnm.vercel.app/
-[pnpm-shield]: https://img.shields.io/badge/pnpm-20232A?style=for-the-badge&logo=pnpm&logoColor=f6922
-[pnpm-url]: https://pnpm.io/installation
-[vscode-shield]: https://img.shields.io/badge/vscode-20232A?style=for-the-badge&logo=visualstudiocode&logoColor=0098FF
-[vscode-url]: https://code.visualstudio.com/

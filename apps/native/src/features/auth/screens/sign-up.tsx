@@ -9,19 +9,21 @@ import {
   type SubmitHandler,
   useForm,
 } from "react-hook-form";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardController,
 } from "react-native-keyboard-controller";
 import * as z from "zod";
 import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { FormSelectField } from "#/components/heroui/select";
 import { StandardItem } from "#/components/heroui/select-item";
 import { Text } from "#/components/heroui/text";
 import FormInput from "#/components/heroui/text-input";
 import { toast } from "#/components/heroui/toast";
+import { ArrowLeftIcon } from "#/lib/icons";
 import useSignUp from "../hooks/useSignUp";
 
 const schema = z.object({
@@ -146,6 +148,9 @@ export default function SignUp() {
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
+        <Pressable hitSlop={10} onPress={() => navigation.goBack()}>
+          <Icon className="size-6" name={ArrowLeftIcon} />
+        </Pressable>
         <Text className="mt-5 mb-8 text-center font-bold text-2xl">
           Create Account
         </Text>
