@@ -1,5 +1,6 @@
 import type { Block } from "payload";
 import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
+import { trimUrlHook } from "../fields/urlField";
 
 export const PromoVideoSourceBlock: Block = {
   slug: "promo-video-source",
@@ -40,6 +41,9 @@ export const PromoVideoSourceBlock: Block = {
       name: "url",
       label: "Video URL",
       type: "text",
+      hooks: {
+        beforeChange: [trimUrlHook],
+      },
       admin: {
         condition: (_, siblingData) =>
           ["normal", "youtube"].includes(siblingData?.videoSource),
