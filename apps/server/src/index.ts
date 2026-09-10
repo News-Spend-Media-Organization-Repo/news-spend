@@ -58,6 +58,23 @@ export const openAPISpec = await new OpenAPIGenerator({
   },
 });
 
+const SENSITIVE_KEY_RE = /password|secret|token|authorization|cookie|otp|pin/i;
+
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(redact);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        SENSITIVE_KEY_RE.test(key) ? "[REDACTED]" : redact(entry),
+      ])
+    );
+  }
+  return value;
+}
+
 /**
  * Pull the schema `issues` and offending input out of a validation failure.
  *
@@ -80,7 +97,10 @@ function validationDetails(
     return;
   }
   const details = cause as { issues: unknown; invalidData: unknown };
-  return { validationIssues: details.issues, invalidData: details.invalidData };
+  return {
+    validationIssues: details.issues,
+    invalidData: redact(details.invalidData),
+  };
 }
 
 function logHandlerError(scope: "API" | "RPC") {
