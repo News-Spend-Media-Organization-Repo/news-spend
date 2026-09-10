@@ -58,6 +58,45 @@ export const openAPISpec = await new OpenAPIGenerator({
   },
 });
 
+/**
+ * Pull the schema `issues` and offending input out of a validation failure.
+ *
+ * oRPC surfaces input/output validation as an ORPCError whose `cause` is a
+ * ValidationError carrying both. The default `{ err }` log keeps the top-level
+ * message ("Input validation failed") but drops exactly what was wrong and
+ * what was sent, which is what a failure like API-B needs to be diagnosable.
+ */
+function validationDetails(
+  error: unknown
+): { validationIssues: unknown; invalidData: unknown } | undefined {
+  if (!error || typeof error !== "object") {
+    return;
+  }
+  const cause = (error as { cause?: unknown }).cause;
+  if (!cause || typeof cause !== "object") {
+    return;
+  }
+  if (!("issues" in cause && "invalidData" in cause)) {
+    return;
+  }
+  const details = cause as { issues: unknown; invalidData: unknown };
+  return { validationIssues: details.issues, invalidData: details.invalidData };
+}
+
+function logHandlerError(scope: "API" | "RPC") {
+  return (error: unknown) => {
+    const details = validationDetails(error);
+    if (details) {
+      logger.error(
+        { err: error, ...details },
+        `${scope} handler error (input validation failed)`
+      );
+    } else {
+      logger.error({ err: error }, `${scope} handler error`);
+    }
+  };
+}
+
 export const apiHandler = new OpenAPIHandler(router, {
   plugins: [
     new BatchHandlerPlugin(),
@@ -72,11 +111,7 @@ export const apiHandler = new OpenAPIHandler(router, {
       spec: openAPISpec,
     }),
   ],
-  interceptors: [
-    onError((error) => {
-      logger.error({ err: error }, "API handler error");
-    }),
-  ],
+  interceptors: [onError(logHandlerError("API"))],
 });
 
 /**
@@ -138,11 +173,7 @@ export const rpcHandler = new RPCHandler(router, {
     //   logRequestResponse: true,
     // }),
   ],
-  interceptors: [
-    onError((error) => {
-      logger.error({ err: error }, "RPC handler error");
-    }),
-  ],
+  interceptors: [onError(logHandlerError("RPC"))],
 });
 
 async function handleRpc(req: Request) {
