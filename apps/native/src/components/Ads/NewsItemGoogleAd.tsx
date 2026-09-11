@@ -283,13 +283,17 @@ const NewsItemGoogleAds = memo(
             ) : null}
 
             <View className="flex-1 gap-2.5">
-              <View className="flex-1 flex-row justify-between">
+              <View className="flex-row justify-between gap-2">
                 <NativeAsset assetType={NativeAssetType.HEADLINE}>
-                  <Text className="font-bold text-p-500">
+                  <Text
+                    className="flex-1 font-bold text-p-500"
+                    ellipsizeMode="tail"
+                    numberOfLines={2}
+                  >
                     {nativeAd.headline}
                   </Text>
                 </NativeAsset>
-                <Text className="rounded-sm border border-gray-50 px-1 text-s-300 text-xs">
+                <Text className="shrink-0 self-start rounded-sm border border-gray-50 px-1 text-s-300 text-xs">
                   AD
                 </Text>
               </View>

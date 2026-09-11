@@ -8,7 +8,7 @@ import { useFocusEffect, useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
-import type { ComponentRef, JSX, RefObject } from "react";
+import type { JSX, RefObject } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { View } from "react-native";
 import { subscribeKey } from "valtio/utils";
@@ -98,6 +98,44 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
   const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
   // Keyed by ad item id: stable across recycles, unlike positional arrays
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
+
+  // `renderItem` is a plain callback handed to LegendList, not a component —
+  // React Compiler's auto-memoization only reaches components and hooks, so
+  // an inline ref callback written directly in renderItem gets a fresh
+  // identity on every invocation, forcing React to detach/reattach the ref
+  // on every re-render of that row instead of only on mount. These caches
+  // keep one stable function per key across the list's lifetime.
+  const mediaRefCallbacks = useRef<
+    Map<number, (itemRef: AdCarouselRef | null) => void>
+  >(new Map());
+  const getMediaRefCallback = useCallback((index: number) => {
+    let cb = mediaRefCallbacks.current.get(index);
+    if (!cb) {
+      cb = (itemRef) => {
+        mediaRefs.current[index] = itemRef;
+      };
+      mediaRefCallbacks.current.set(index, cb);
+    }
+    return cb;
+  }, []);
+
+  const gAdRefCallbacks = useRef<
+    Map<string, (itemRef: NewsItemGoogleAdRef | null) => void>
+  >(new Map());
+  const getGAdRefCallback = useCallback((id: string) => {
+    let cb = gAdRefCallbacks.current.get(id);
+    if (!cb) {
+      cb = (itemRef) => {
+        if (itemRef) {
+          gBannerRefs.current.set(id, itemRef);
+        } else {
+          gBannerRefs.current.delete(id);
+        }
+      };
+      gAdRefCallbacks.current.set(id, cb);
+    }
+    return cb;
+  }, []);
   const tabBarHeight = useTabBarHeight();
   const { trackImpression } = useNewsAnalytics();
   const trackImpressionRef = useRef(trackImpression);
@@ -327,9 +365,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
         content = (
           <AdCarousel
             item={"payload" in item ? item.payload : undefined}
-            listRef={(itemRef: ComponentRef<typeof AdCarousel> | null) => {
-              mediaRefs.current[index] = itemRef;
-            }}
+            listRef={getMediaRefCallback(index)}
           />
         );
       } else if (item && "_type" in item && item._type === "ad") {
@@ -338,13 +374,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
             <NewsItemGoogleAds
               index={index}
               item={item}
-              ref={(itemRef: NewsItemGoogleAdRef | null) => {
-                if (itemRef && item.id) {
-                  gBannerRefs.current.set(item.id, itemRef);
-                } else if (!itemRef && item.id) {
-                  gBannerRefs.current.delete(item.id);
-                }
-              }}
+              ref={item.id ? getGAdRefCallback(item.id) : undefined}
               tab="latest"
             />
           );
@@ -359,7 +389,7 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
       return <View className="px-3">{content}</View>;
     },
-    []
+    [getMediaRefCallback, getGAdRefCallback]
   );
 
   const FooterItem = useCallback(
