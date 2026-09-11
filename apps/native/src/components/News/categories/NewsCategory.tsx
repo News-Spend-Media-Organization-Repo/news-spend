@@ -1,5 +1,4 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
-import { useFocusEffect } from "@react-navigation/native";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import { memo, useCallback, useRef } from "react";
@@ -9,6 +8,8 @@ import NewsItemGoogleAds, {
   type NewsItemGoogleAdRef,
 } from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
+import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
+import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { useTabBarHeight } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
@@ -20,14 +21,29 @@ const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
 type NewType = React.RefObject<LegendListRef>;
 
-const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
+const NewsCategory = ({
+  isActiveTab,
+  route,
+  ref,
+}: {
+  isActiveTab: boolean;
+  route: string;
+  ref?: NewType;
+}) => {
   const tabBarHeight = useTabBarHeight();
   const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
-  const { data, isPending, refetch, fetchNextPage, isFetching, hasNextPage } =
-    useAllNews({
-      category: route,
-      ad: !SCREENSHOT_MODE,
-    });
+  const {
+    data,
+    dataUpdatedAt,
+    isPending,
+    refetch,
+    fetchNextPage,
+    isFetching,
+    hasNextPage,
+  } = useAllNews({
+    category: route,
+    ad: !SCREENSHOT_MODE,
+  });
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(() => {
     refetch();
@@ -35,18 +51,14 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
     gBannerRefs.current.clear();
   });
 
-  // Fresh list on return from an article — same as Latest. Skipped on first
-  // focus since mounting already fetched.
-  const focusedOnce = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      if (!focusedOnce.current) {
-        focusedOnce.current = true;
-        return;
-      }
-      refetch();
-    }, [refetch])
-  );
+  // Fresh list on return — same as Latest. Covers article-back, bottom-tab
+  // switch, and switching back to this category tab.
+  useRefetchOnReturn({
+    dataUpdatedAt,
+    isActiveTab,
+    refetch,
+    staleTime: NEWS_FEED_STALE_TIME_MS,
+  });
 
   const flattenedNewsRef = useRef<any[] | undefined>(undefined);
 

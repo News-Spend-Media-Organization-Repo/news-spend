@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { orpc } from "#/lib/orpc";
+import { NEWS_FEED_STALE_TIME_MS } from "./constants";
 
 export default function useAllNews({
   category,
@@ -22,6 +23,7 @@ export default function useAllNews({
       }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
+      staleTime: NEWS_FEED_STALE_TIME_MS,
     })
   );
 }
