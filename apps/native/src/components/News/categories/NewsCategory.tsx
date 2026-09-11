@@ -1,4 +1,5 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import { memo, useCallback, useRef } from "react";
@@ -33,6 +34,19 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
     clearTabAdCache(route);
     gBannerRefs.current.clear();
   });
+
+  // Fresh list on return from an article — same as Latest. Skipped on first
+  // focus since mounting already fetched.
+  const focusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnce.current) {
+        focusedOnce.current = true;
+        return;
+      }
+      refetch();
+    }, [refetch])
+  );
 
   const flattenedNewsRef = useRef<any[] | undefined>(undefined);
 

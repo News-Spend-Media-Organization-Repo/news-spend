@@ -1,8 +1,8 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native/card";
 import { Chip } from "heroui-native/chip";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSnapshot } from "valtio";
@@ -52,6 +52,20 @@ export function SurveyTab() {
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(
     surveyQuery.refetch
+  );
+
+  // Fresh offers on return — same as the home feed. Skipped on first focus
+  // since mounting already fetched.
+  const focusedOnce = useRef(false);
+  const surveyRefetch = surveyQuery.refetch;
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnce.current) {
+        focusedOnce.current = true;
+        return;
+      }
+      surveyRefetch();
+    }, [surveyRefetch])
   );
 
   const handleStartSurvey = useCallback(

@@ -4,7 +4,7 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useScrollToTop } from "@react-navigation/native";
+import { useFocusEffect, useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
@@ -204,6 +204,22 @@ const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
   const trendingRefetch = useRefreshByUser(trendingNews.refetch);
+
+  // Fresh news on return: the 5min staleTime above keeps tab switches cheap,
+  // so coming back from an article would otherwise sit on the cached list
+  // until it ages out. A forced refetch updates loaded pages in place —
+  // no scroll jump, unlike the pull-to-refresh pagination reset below.
+  // Skipped on first focus: mounting already fetched.
+  const focusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnce.current) {
+        focusedOnce.current = true;
+        return;
+      }
+      refetch();
+    }, [refetch])
+  );
 
   // #region Callbacks
   const resetInfiniteQueryPagination = useCallback(() => {

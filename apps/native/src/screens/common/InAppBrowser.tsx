@@ -281,7 +281,11 @@ export default function InAppBrowser({
   }));
 
   return (
-    <Screen preset="fixed" safeAreaEdges={hideHeader ? [] : ["bottom"]}>
+    <Screen
+      preset="fixed"
+      safeAreaEdges={hideHeader ? [] : ["bottom"]}
+      statusBarStyle="light"
+    >
       {hideHeader ? null : (
         <View className="bg-p-500 pt-safe-offset-1">
           <View className="relative w-full flex-row items-center px-3 py-2">
