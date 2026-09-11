@@ -21,6 +21,7 @@ import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { ArrowLeftIcon, UserIcon } from "#/lib/icons";
 import { getImageData } from "#/utils/getImageData";
+import { toInstant } from "#/utils/toInstant";
 import { useArticleActions } from "./hooks/use-article-actions";
 import { useArticleTracking } from "./hooks/use-article-tracking";
 
@@ -153,12 +154,9 @@ const SingleNews = () => {
               </SkeletonGroup.Item>
 
               <SkeletonGroup.Item className="h-4.25 w-32.5 rounded-md">
-                {data ? (
+                {data?.createdAt ? (
                   <Text className="text-[#737373] text-xs">
-                    {format(
-                      new Date(data.createdAt ?? new Date()),
-                      "do MMMM yyy | p"
-                    )}
+                    {format(toInstant(data.createdAt), "do MMMM yyy | p")}
                   </Text>
                 ) : null}
               </SkeletonGroup.Item>
