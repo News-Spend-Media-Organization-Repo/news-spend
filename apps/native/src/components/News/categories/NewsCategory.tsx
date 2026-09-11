@@ -37,6 +37,7 @@ const NewsCategory = ({
     dataUpdatedAt,
     isPending,
     refetch,
+    refetchFresh,
     fetchNextPage,
     isFetching,
     hasNextPage,
@@ -45,8 +46,12 @@ const NewsCategory = ({
     ad: !SCREENSHOT_MODE,
   });
 
+  // Pull-to-refresh is a deliberate user action, unlike the passive
+  // refetches below — it always bypasses the server's composed-feed cache
+  // and gets a genuinely fresh ad, not just whatever the last 90s window
+  // happened to cache.
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(() => {
-    refetch();
+    refetchFresh();
     clearTabAdCache(route);
     gBannerRefs.current.clear();
   });

@@ -175,6 +175,12 @@ const Latest = memo(
       return unsubscribe;
     }, []);
 
+    // Read at request time by `input` below, so only the specific fetch
+    // triggered by pull-to-refresh carries it — passive refetches (tab
+    // switch, app foreground, article-back) still hit the server's 90s
+    // composed-feed cache instead of forcing a fresh ad on every return.
+    const forceRefreshRef = useRef(false);
+
     const {
       data: news,
       dataUpdatedAt,
@@ -188,6 +194,7 @@ const Latest = memo(
         input: (pageParam: number | undefined) => ({
           limit: 10,
           page: pageParam,
+          forceRefresh: forceRefreshRef.current,
         }),
         getNextPageParam: (lastPage) => lastPage.nextPage,
         initialPageParam: undefined,
@@ -195,6 +202,15 @@ const Latest = memo(
         gcTime: 10 * 60 * 1000, // 10 min, keeps cached data in memory
       })
     );
+
+    const refetchFresh = useCallback(async () => {
+      forceRefreshRef.current = true;
+      try {
+        await refetch();
+      } finally {
+        forceRefreshRef.current = false;
+      }
+    }, [refetch]);
 
     const partnerContent = useQuery(
       orpc.partnerContent.filtered.queryOptions({
@@ -250,7 +266,12 @@ const Latest = memo(
       });
     }, [flattenedNews]);
 
-    const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
+    // Pull-to-refresh is a deliberate user action, unlike the passive
+    // refetches below — it always bypasses the server's composed-feed cache
+    // and gets a genuinely fresh ad, not just whatever the last 90s window
+    // happened to cache.
+    const { isRefetchingByUser, refetchByUser } =
+      useRefreshByUser(refetchFresh);
     const trendingRefetch = useRefreshByUser(trendingNews.refetch);
 
     // Fresh news on return — back from an article, bottom-tab switch, or

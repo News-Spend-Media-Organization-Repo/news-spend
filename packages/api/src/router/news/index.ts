@@ -29,6 +29,8 @@ import {
 const HomeInputSchema = z.object({
   limit: z.number().min(1).max(100).nullish().default(10),
   page: z.number().nullish().default(1),
+  /** Pull-to-refresh: bypass the composed-feed cache for this one call. */
+  forceRefresh: z.boolean().nullish().default(false),
 });
 
 const AllInputSchema = z.object({
@@ -37,6 +39,8 @@ const AllInputSchema = z.object({
   category: z.string().optional(),
   type: z.enum(["article", "video"]).optional().default("article"),
   includeAds: z.boolean().optional().default(true),
+  /** Pull-to-refresh: bypass the composed-feed cache for this one call. */
+  forceRefresh: z.boolean().nullish().default(false),
 });
 
 export type AllNewsInput = z.input<typeof AllInputSchema>;
@@ -56,31 +60,46 @@ function buildWhere(input: AllNewsInput) {
 
 const all = publicProcedure
   .input(AllInputSchema)
-  .handler(async ({ input, context }) => {
+  .handler(({ input, context }) => {
     const { payload } = context;
     const where = buildWhere(input);
+    const limit = input.limit || 10;
+    const page = input.page || 1;
 
-    // Fetch news items (depth 1, exclude heavy fields for list views)
-    const data = await payload.find({
-      collection: "news",
-      where,
-      limit: input.limit || 10,
-      page: input.page || 1,
-      depth: 1,
-      select: { content: false, keyPoints: false },
-    });
+    const buildFeed = async () => {
+      // Fetch news items (depth 1, exclude heavy fields for list views)
+      const data = await payload.find({
+        collection: "news",
+        where,
+        limit,
+        page,
+        depth: 1,
+        select: { content: false, keyPoints: false },
+      });
 
-    // Only inject ads if input.includeAds is true (default: true)
-    if (input.includeAds !== false) {
-      // Create ad manager and compose simple feed with ads
-      const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
-      const docsWithAds = composeSimpleFeed(data.docs, adManager, 4);
+      // Only inject ads if input.includeAds is true (default: true)
+      if (input.includeAds !== false) {
+        // Create ad manager and compose simple feed with ads
+        const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
+        const docsWithAds = composeSimpleFeed(data.docs, adManager, 4);
 
-      return { ...data, docs: docsWithAds };
-    }
+        return { ...data, docs: docsWithAds };
+      }
 
-    // If ads are not included, return plain news
-    return data;
+      // If ads are not included, return plain news
+      return data;
+    };
+
+    // Composed feed (article selection + which ad fills each slot) cached
+    // 90s, same window as `home` — a passive refetch (tab switch, app
+    // foreground, article-back) reuses the same ad slots instead of asking
+    // Google for a fresh native ad every time. A deliberate pull-to-refresh
+    // sets forceRefresh and always gets a genuinely fresh compose.
+    return withCache(
+      `news:all:${input.category ?? "*"}:${input.type}:${input.includeAds}:${page}:${limit}`,
+      { forceRefresh: input.forceRefresh ?? false, ttl: 90 },
+      buildFeed
+    );
   });
 
 const trending = publicProcedure
@@ -259,43 +278,58 @@ const recordView = publicProcedure
 
 const home = publicProcedure
   .input(HomeInputSchema)
-  .handler(async ({ input, context }) => {
+  .handler(({ input, context }) => {
     const { payload } = context;
     const limit = input?.limit || 12;
     const page = input?.page || 1;
 
-    // 1. Fetch main news with cache (90s TTL), the heaviest query
-    const news = await withCache(
-      `news:home:${page}:${limit}`,
-      { ttl: 90 },
-      () =>
-        fetchMainNews({
-          payload,
-          type: "article",
-          limit,
-          page,
-        })
-    );
+    const buildComposedFeed = async () => {
+      // 1. Fetch main news, the heaviest query
+      const news = await fetchMainNews({
+        payload,
+        type: "article",
+        limit,
+        page,
+      });
 
-    // 2. Fetch supporting data in parallel (lightweight, randomized per request)
-    const [related, promotionMedia] = await Promise.all([
-      fetchRelatedNews({ payload, limit: 3 }),
-      fetchPromoMedia({ payload, limit: 1 }),
-    ]);
+      // 2. Fetch supporting data in parallel (lightweight, randomized per request)
+      const [related, promotionMedia] = await Promise.all([
+        fetchRelatedNews({ payload, limit: 3 }),
+        fetchPromoMedia({ payload, limit: 1 }),
+      ]);
 
-    // 3. Initialize ad manager (pool is cached in Redis for 5 min)
-    const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
+      // 3. Initialize ad manager (pool is cached in Redis for 5 min)
+      const adManager = await createAdManager(payload, DEFAULT_AD_CONFIG);
 
-    // 4. Compose the feed using the feed composer (synchronous)
-    const feedData: FeedComposerData = {
-      mainNews: news.docs,
-      relatedNews: related.docs,
-      promotionMedia: promotionMedia.docs,
+      // 4. Compose the feed using the feed composer (synchronous)
+      const feedData: FeedComposerData = {
+        mainNews: news.docs,
+        relatedNews: related.docs,
+        promotionMedia: promotionMedia.docs,
+      };
+
+      const composedFeed = composeFeed(
+        adManager,
+        feedData,
+        DEFAULT_FEED_CONFIG
+      );
+
+      return { ...news, docs: composedFeed };
     };
 
-    const composedFeed = composeFeed(adManager, feedData, DEFAULT_FEED_CONFIG);
-
-    return { ...news, docs: composedFeed };
+    // The composed feed — which articles AND which ad fills each injected
+    // slot — is cached as one unit for 90s. Ad composition used to run
+    // fresh on every call even though the article list itself was already
+    // cached, so a passive refetch (tab switch, app foreground,
+    // article-back) picked a brand-new random ad id every time, busting the
+    // client's ad cache and asking Google for a fresh native ad it didn't
+    // need. A deliberate pull-to-refresh sets forceRefresh and always gets a
+    // genuinely fresh compose.
+    return withCache(
+      `news:home:${page}:${limit}`,
+      { forceRefresh: input?.forceRefresh ?? false, ttl: 90 },
+      buildComposedFeed
+    );
   });
 
 const one = publicProcedure
