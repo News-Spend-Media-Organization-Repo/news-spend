@@ -7,20 +7,16 @@ import { Text } from "#/components/heroui/text";
 type UpdateSheetProps = {
   isOpen: boolean;
   onOpenChange: (value: boolean) => void;
-  /** True once the payload is on disk and a restart is instant. */
-  isReady: boolean;
-  /** True while the payload is still coming down in the background. */
-  isDownloading: boolean;
   /** A mandatory update cannot be dismissed by any route. */
   isMandatory: boolean;
   onRestart: () => void;
 };
 
+// The sheet only ever opens once the update has finished downloading
+// (see useUpdates in UpdatesProvider), so a restart here is always instant.
 export function UpdateSheet({
   isOpen,
   onOpenChange,
-  isReady,
-  isDownloading,
   isMandatory,
   onRestart,
 }: UpdateSheetProps) {
@@ -50,13 +46,8 @@ export function UpdateSheet({
               </Text>
             </View>
 
-            {/* The payload is already downloading by the time this is on
-                screen, so the only wait left is a restart. Until it lands the
-                button says so rather than stranding a tapper on a spinner. */}
-            <Button isDisabled={!isReady} onPress={onRestart}>
-              <Button.Label>
-                {isReady ? "Restart Now" : "Preparing update…"}
-              </Button.Label>
+            <Button onPress={onRestart}>
+              <Button.Label>Restart Now</Button.Label>
             </Button>
 
             {isMandatory ? null : (
@@ -64,12 +55,6 @@ export function UpdateSheet({
                 <Button.Label>Later</Button.Label>
               </Button>
             )}
-
-            {isDownloading && !isReady ? (
-              <Text className="text-center text-subtle-text text-xs">
-                Downloading in the background. You can keep using the app.
-              </Text>
-            ) : null}
           </View>
         </BottomSheet.Content>
       </BottomSheet.Portal>

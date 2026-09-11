@@ -14,6 +14,7 @@ import {
 } from "react-native-safe-area-context";
 import { ToastBridge } from "#/components/heroui/toast";
 import OfflineAlert from "#/components/OfflineAlert";
+import { useAppStateFocusManager } from "#/hooks/useAppStateFocusManager";
 import { useOnlineManager } from "#/hooks/useOnlineManager";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
@@ -58,6 +59,10 @@ export const Provider = ({ children }: Props) => {
   // Without this React Query believes it is online forever, and offline
   // queries fail through the full retry ladder instead of pausing.
   useOnlineManager();
+  // Without this, backgrounding and reopening the app never refetches
+  // stale queries — React Native has no browser window to emit its own
+  // focus event.
+  useAppStateFocusManager();
   const { updateSheet } = useUpdates();
 
   // The effect below is not needed for the first screen, and it is expensive

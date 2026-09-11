@@ -8,7 +8,7 @@ import { useScrollToTop } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
-import type { ComponentRef, JSX, RefObject } from "react";
+import type { JSX, RefObject } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { View } from "react-native";
 import { subscribeKey } from "valtio/utils";
@@ -17,7 +17,9 @@ import AdCarousel from "#/components/Ads/AdCarousel";
 import NewsItemAd from "#/components/Ads/NewsItemAd";
 import type { NewsItemGoogleAdRef } from "#/components/Ads/NewsItemGoogleAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
+import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
+import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
@@ -94,397 +96,475 @@ const MemoizedListHeader = memo(
 
 const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
-const Latest = memo(({ ref }: { ref: RefObject<LegendListRef> }) => {
-  const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
-  // Keyed by ad item id: stable across recycles, unlike positional arrays
-  const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
-  const tabBarHeight = useTabBarHeight();
-  const { trackImpression } = useNewsAnalytics();
-  const trackImpressionRef = useRef(trackImpression);
-  useEffect(() => {
-    trackImpressionRef.current = trackImpression;
-  }, [trackImpression]);
+const Latest = memo(
+  ({
+    isActiveTab,
+    ref,
+  }: {
+    isActiveTab: boolean;
+    ref: RefObject<LegendListRef>;
+  }) => {
+    const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
+    // Keyed by ad item id: stable across recycles, unlike positional arrays
+    const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
 
-  // Stable ref to feed data for use inside onViewableItemsChanged without
-  // needing to re-create the callback on every render.
-  const flattenedNewsRef = useRef<
-    RouterOutputs["news"]["home"]["docs"] | undefined
-  >(undefined);
-  const previousTabName = useRef(routeState.tabName);
-  useEffect(() => {
-    const unsubscribe = subscribeKey(routeState, "tabName", (v) => {
-      if (
-        v !== previousTabName.current &&
-        previousTabName.current === "latest"
-      ) {
-        for (const mediaRef of mediaRefs.current) {
-          try {
-            mediaRef?.pause();
-          } catch {}
-        }
+    // `renderItem` is a plain callback handed to LegendList, not a component —
+    // React Compiler's auto-memoization only reaches components and hooks, so
+    // an inline ref callback written directly in renderItem gets a fresh
+    // identity on every invocation, forcing React to detach/reattach the ref
+    // on every re-render of that row instead of only on mount. These caches
+    // keep one stable function per key across the list's lifetime.
+    const mediaRefCallbacks = useRef<
+      Map<number, (itemRef: AdCarouselRef | null) => void>
+    >(new Map());
+    const getMediaRefCallback = useCallback((index: number) => {
+      let cb = mediaRefCallbacks.current.get(index);
+      if (!cb) {
+        cb = (itemRef) => {
+          mediaRefs.current[index] = itemRef;
+        };
+        mediaRefCallbacks.current.set(index, cb);
       }
-      previousTabName.current = v;
+      return cb;
+    }, []);
+
+    const gAdRefCallbacks = useRef<
+      Map<string, (itemRef: NewsItemGoogleAdRef | null) => void>
+    >(new Map());
+    const getGAdRefCallback = useCallback((id: string) => {
+      let cb = gAdRefCallbacks.current.get(id);
+      if (!cb) {
+        cb = (itemRef) => {
+          if (itemRef) {
+            gBannerRefs.current.set(id, itemRef);
+          } else {
+            gBannerRefs.current.delete(id);
+          }
+        };
+        gAdRefCallbacks.current.set(id, cb);
+      }
+      return cb;
+    }, []);
+    const tabBarHeight = useTabBarHeight();
+    const { trackImpression } = useNewsAnalytics();
+    const trackImpressionRef = useRef(trackImpression);
+    useEffect(() => {
+      trackImpressionRef.current = trackImpression;
+    }, [trackImpression]);
+
+    // Stable ref to feed data for use inside onViewableItemsChanged without
+    // needing to re-create the callback on every render.
+    const flattenedNewsRef = useRef<
+      RouterOutputs["news"]["home"]["docs"] | undefined
+    >(undefined);
+    const previousTabName = useRef(routeState.tabName);
+    useEffect(() => {
+      const unsubscribe = subscribeKey(routeState, "tabName", (v) => {
+        if (
+          v !== previousTabName.current &&
+          previousTabName.current === "latest"
+        ) {
+          for (const mediaRef of mediaRefs.current) {
+            try {
+              mediaRef?.pause();
+            } catch {}
+          }
+        }
+        previousTabName.current = v;
+      });
+      return unsubscribe;
+    }, []);
+
+    // Read at request time by `input` below, so only the specific fetch
+    // triggered by pull-to-refresh carries it — passive refetches (tab
+    // switch, app foreground, article-back) still hit the server's 90s
+    // composed-feed cache instead of forcing a fresh ad on every return.
+    const forceRefreshRef = useRef(false);
+
+    const {
+      data: news,
+      dataUpdatedAt,
+      fetchNextPage,
+      hasNextPage,
+      isFetching,
+      isPending,
+      refetch,
+    } = useInfiniteQuery(
+      orpc.news.home.infiniteOptions({
+        input: (pageParam: number | undefined) => ({
+          limit: 10,
+          page: pageParam,
+          forceRefresh: forceRefreshRef.current,
+        }),
+        getNextPageParam: (lastPage) => lastPage.nextPage,
+        initialPageParam: undefined,
+        staleTime: NEWS_FEED_STALE_TIME_MS,
+        gcTime: 10 * 60 * 1000, // 10 min, keeps cached data in memory
+      })
+    );
+
+    const refetchFresh = useCallback(async () => {
+      forceRefreshRef.current = true;
+      try {
+        await refetch();
+      } finally {
+        forceRefreshRef.current = false;
+      }
+    }, [refetch]);
+
+    const partnerContent = useQuery(
+      orpc.partnerContent.filtered.queryOptions({
+        input: {
+          placement: ["homepage-trending-books"],
+          status: "active",
+          limit: 12,
+          page: 1,
+        },
+      })
+    );
+
+    const flattenedPartnerContent = partnerContent?.data?.docs;
+
+    const trendingNews = useQuery(
+      orpc.news.trending.queryOptions({ input: { limit: 3 } })
+    );
+
+    // Articles already shown in the trending carousel shouldn't also appear
+    // further down in the Latest list.
+    const trendingIds = useMemo(
+      () => new Set(trendingNews.data?.map((item) => item.id)),
+      [trendingNews.data]
+    );
+
+    const flattenedNews = useMemo(() => {
+      const docs = news?.pages.flatMap((page) => page.docs);
+      if (!docs || trendingIds.size === 0) {
+        return docs;
+      }
+      return docs.filter(
+        (item) =>
+          !(
+            item &&
+            "type" in item &&
+            (item.type === "article" || item.type === "video") &&
+            trendingIds.has(item.id)
+          )
+      );
+    }, [news, trendingIds]);
+    flattenedNewsRef.current = flattenedNews;
+
+    // id → index lookup so the gAd-preload walk in onViewableItemsChanged
+    // doesn't do an O(n) findIndex per viewability change.
+    const newsIndexByIdRef = useRef<Map<string, number>>(new Map());
+    useMemo(() => {
+      const map = newsIndexByIdRef.current;
+      map.clear();
+      flattenedNews?.forEach((item, index) => {
+        if (item && "id" in item && item.id) {
+          map.set(item.id, index);
+        }
+      });
+    }, [flattenedNews]);
+
+    // Pull-to-refresh is a deliberate user action, unlike the passive
+    // refetches below — it always bypasses the server's composed-feed cache
+    // and gets a genuinely fresh ad, not just whatever the last 90s window
+    // happened to cache.
+    const { isRefetchingByUser, refetchByUser } =
+      useRefreshByUser(refetchFresh);
+    const trendingRefetch = useRefreshByUser(trendingNews.refetch);
+
+    // Fresh news on return — back from an article, bottom-tab switch, or
+    // switching back to this category tab — but only once the 5min staleTime
+    // has actually elapsed, so flicking between tabs stays cheap. A forced
+    // refetch updates loaded pages in place — no scroll jump, unlike the
+    // pull-to-refresh pagination reset below.
+    useRefetchOnReturn({
+      dataUpdatedAt,
+      isActiveTab,
+      refetch,
+      staleTime: NEWS_FEED_STALE_TIME_MS,
     });
-    return unsubscribe;
-  }, []);
 
-  const {
-    data: news,
-    fetchNextPage,
-    hasNextPage,
-    isFetching,
-    isPending,
-    refetch,
-  } = useInfiniteQuery(
-    orpc.news.home.infiniteOptions({
-      input: (pageParam: number | undefined) => ({
-        limit: 10,
-        page: pageParam,
-      }),
-      getNextPageParam: (lastPage) => lastPage.nextPage,
-      initialPageParam: undefined,
-      staleTime: 5 * 60 * 1000, // 5 min, prevents refetch on tab switch
-      gcTime: 10 * 60 * 1000, // 10 min, keeps cached data in memory
-    })
-  );
+    // #region Callbacks
+    const resetInfiniteQueryPagination = useCallback(() => {
+      const qKey = orpc.news.home.infiniteKey({
+        input: (pageParam: number | undefined) => ({
+          limit: 10,
+          page: pageParam,
+        }),
+        initialPageParam: undefined,
+      });
 
-  const partnerContent = useQuery(
-    orpc.partnerContent.filtered.queryOptions({
-      input: {
-        placement: ["homepage-trending-books"],
-        status: "active",
-        limit: 12,
-        page: 1,
+      queryClient.setQueryData(qKey, (oldData) => {
+        if (!oldData) {
+          return;
+        }
+
+        return {
+          pages: oldData.pages.slice(0, 1),
+          pageParams: oldData.pageParams.slice(0, 1),
+        };
+      });
+    }, []);
+
+    const keyExtractor = useCallback(
+      (item: RouterOutputs["news"]["home"]["docs"][0], index: number) =>
+        // Never fall back to a shared constant key; with recycleItems, duplicate
+        // keys make recycled cells bleed state between items.
+        item?.id ?? `${item && "_type" in item ? item._type : "item"}-${index}`,
+      []
+    );
+
+    const handleRefresh = useCallback(() => {
+      resetInfiniteQueryPagination();
+      refetchByUser();
+      trendingRefetch.refetchByUser();
+      clearTabAdCache("latest");
+      gBannerRefs.current.clear();
+    }, [
+      resetInfiniteQueryPagination,
+      refetchByUser,
+      trendingRefetch.refetchByUser,
+    ]);
+
+    const onEndReached = useCallback(() => {
+      if (hasNextPage && !isFetching) {
+        fetchNextPage();
+      }
+    }, [hasNextPage, isFetching, fetchNextPage]);
+
+    /**
+     * Rough heights per row type, in px.
+     *
+     * The feed mixes article rows, full-width ad carousels, Google banners and
+     * reward cards, whose heights differ by several multiples. Without an
+     * estimate LegendList guesses one size for all of them, which is what
+     * produces the scroll-position jumps and blank frames during a fast scroll.
+     * These do not need to be exact — they need to be in the right range.
+     */
+    const getEstimatedItemSize = useCallback(
+      (_index: number, item: ItemType) => {
+        const type = item && "type" in item ? item.type : undefined;
+        const kind = item && "_type" in item ? item._type : undefined;
+
+        if (type === "adCarousel") {
+          return 260;
+        }
+        if (type === "gAd") {
+          // Icon+text row plus a 16:9 NativeMediaView spanning the width.
+          return 320;
+        }
+        if (kind === "relatedNews") {
+          return 220;
+        }
+        if (kind === "rewardTask") {
+          return 140;
+        }
+        // Article and video rows: a 100px thumbnail plus padding.
+        return 116;
       },
-    })
-  );
+      []
+    );
 
-  const flattenedPartnerContent = partnerContent?.data?.docs;
-
-  const trendingNews = useQuery(
-    orpc.news.trending.queryOptions({ input: { limit: 3 } })
-  );
-
-  // Articles already shown in the trending carousel shouldn't also appear
-  // further down in the Latest list.
-  const trendingIds = useMemo(
-    () => new Set(trendingNews.data?.map((item) => item.id)),
-    [trendingNews.data]
-  );
-
-  const flattenedNews = useMemo(() => {
-    const docs = news?.pages.flatMap((page) => page.docs);
-    if (!docs || trendingIds.size === 0) {
-      return docs;
-    }
-    return docs.filter(
+    const getItemType = useCallback(
       (item) =>
-        !(
+        item?._type === "ad" && item?.type === "adCarousel"
+          ? `adCarousel-${item?.videoSource}`
+          : (item?.type ?? item?._type),
+      []
+    );
+
+    const renderItem = useCallback(
+      ({
+        item,
+        index,
+      }: LegendListRenderItemProps<
+        RouterOutputs["news"]["home"]["docs"][number]
+      >) => {
+        let content: JSX.Element | null = null;
+
+        if (
           item &&
           "type" in item &&
-          (item.type === "article" || item.type === "video") &&
-          trendingIds.has(item.id)
-        )
-    );
-  }, [news, trendingIds]);
-  flattenedNewsRef.current = flattenedNews;
-
-  // id → index lookup so the gAd-preload walk in onViewableItemsChanged
-  // doesn't do an O(n) findIndex per viewability change.
-  const newsIndexByIdRef = useRef<Map<string, number>>(new Map());
-  useMemo(() => {
-    const map = newsIndexByIdRef.current;
-    map.clear();
-    flattenedNews?.forEach((item, index) => {
-      if (item && "id" in item && item.id) {
-        map.set(item.id, index);
-      }
-    });
-  }, [flattenedNews]);
-
-  const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
-  const trendingRefetch = useRefreshByUser(trendingNews.refetch);
-
-  // #region Callbacks
-  const resetInfiniteQueryPagination = useCallback(() => {
-    const qKey = orpc.news.home.infiniteKey({
-      input: (pageParam: number | undefined) => ({
-        limit: 10,
-        page: pageParam,
-      }),
-      initialPageParam: undefined,
-    });
-
-    queryClient.setQueryData(qKey, (oldData) => {
-      if (!oldData) {
-        return;
-      }
-
-      return {
-        pages: oldData.pages.slice(0, 1),
-        pageParams: oldData.pageParams.slice(0, 1),
-      };
-    });
-  }, []);
-
-  const keyExtractor = useCallback(
-    (item: RouterOutputs["news"]["home"]["docs"][0], index: number) =>
-      // Never fall back to a shared constant key; with recycleItems, duplicate
-      // keys make recycled cells bleed state between items.
-      item?.id ?? `${item && "_type" in item ? item._type : "item"}-${index}`,
-    []
-  );
-
-  const handleRefresh = useCallback(() => {
-    resetInfiniteQueryPagination();
-    refetchByUser();
-    trendingRefetch.refetchByUser();
-    clearTabAdCache("latest");
-    gBannerRefs.current.clear();
-  }, [
-    resetInfiniteQueryPagination,
-    refetchByUser,
-    trendingRefetch.refetchByUser,
-  ]);
-
-  const onEndReached = useCallback(() => {
-    if (hasNextPage && !isFetching) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetching, fetchNextPage]);
-
-  /**
-   * Rough heights per row type, in px.
-   *
-   * The feed mixes article rows, full-width ad carousels, Google banners and
-   * reward cards, whose heights differ by several multiples. Without an
-   * estimate LegendList guesses one size for all of them, which is what
-   * produces the scroll-position jumps and blank frames during a fast scroll.
-   * These do not need to be exact — they need to be in the right range.
-   */
-  const getEstimatedItemSize = useCallback((_index: number, item: ItemType) => {
-    const type = item && "type" in item ? item.type : undefined;
-    const kind = item && "_type" in item ? item._type : undefined;
-
-    if (type === "adCarousel") {
-      return 260;
-    }
-    if (type === "gAd") {
-      return 120;
-    }
-    if (kind === "relatedNews") {
-      return 220;
-    }
-    if (kind === "rewardTask") {
-      return 140;
-    }
-    // Article and video rows: a 100px thumbnail plus padding.
-    return 116;
-  }, []);
-
-  const getItemType = useCallback(
-    (item) =>
-      item?._type === "ad" && item?.type === "adCarousel"
-        ? `adCarousel-${item?.videoSource}`
-        : (item?.type ?? item?._type),
-    []
-  );
-
-  const renderItem = useCallback(
-    ({
-      item,
-      index,
-    }: LegendListRenderItemProps<
-      RouterOutputs["news"]["home"]["docs"][number]
-    >) => {
-      let content: JSX.Element | null = null;
-
-      if (
-        item &&
-        "type" in item &&
-        (item.type === "article" || item.type === "video")
-      ) {
-        content = <NewsItem latest news={item} />;
-      } else if (item && "_type" in item && item._type === "relatedNews") {
-        content = <RelatedNews news={"data" in item ? item.data : undefined} />;
-      } else if (item && "type" in item && item.type === "adCarousel") {
-        content = (
-          <AdCarousel
-            item={"payload" in item ? item.payload : undefined}
-            listRef={(itemRef: ComponentRef<typeof AdCarousel> | null) => {
-              mediaRefs.current[index] = itemRef;
-            }}
-          />
-        );
-      } else if (item && "_type" in item && item._type === "ad") {
-        if ("type" in item && item.type === "gAd") {
+          (item.type === "article" || item.type === "video")
+        ) {
+          content = <NewsItem latest news={item} />;
+        } else if (item && "_type" in item && item._type === "relatedNews") {
           content = (
-            <NewsItemGoogleAds
-              index={index}
-              item={item}
-              ref={(itemRef: NewsItemGoogleAdRef | null) => {
-                if (itemRef && item.id) {
-                  gBannerRefs.current.set(item.id, itemRef);
-                } else if (!itemRef && item.id) {
-                  gBannerRefs.current.delete(item.id);
-                }
-              }}
-              tab="latest"
+            <RelatedNews news={"data" in item ? item.data : undefined} />
+          );
+        } else if (item && "type" in item && item.type === "adCarousel") {
+          content = (
+            <AdCarousel
+              item={"payload" in item ? item.payload : undefined}
+              listRef={getMediaRefCallback(index)}
             />
           );
+        } else if (item && "_type" in item && item._type === "ad") {
+          if ("type" in item && item.type === "gAd") {
+            content = (
+              <NewsItemGoogleAds
+                index={index}
+                item={item}
+                ref={item.id ? getGAdRefCallback(item.id) : undefined}
+                tab="latest"
+              />
+            );
+          } else {
+            content = <NewsItemAd index={index} item={item} />;
+          }
+        } else if (item && "_type" in item && item._type === "rewardTask") {
+          content = <RewardTaskItemCard item={item} />;
         } else {
-          content = <NewsItemAd index={index} item={item} />;
+          content = null;
         }
-      } else if (item && "_type" in item && item._type === "rewardTask") {
-        content = <RewardTaskItemCard item={item} />;
-      } else {
-        content = null;
-      }
 
-      return <View className="px-3">{content}</View>;
-    },
-    []
-  );
+        return <View className="px-3">{content}</View>;
+      },
+      [getMediaRefCallback, getGAdRefCallback]
+    );
 
-  const FooterItem = useCallback(
-    () =>
-      hasNextPage && isFetching ? (
-        <View className="flex items-center justify-center py-4">
-          <Spinner size="lg" />
-        </View>
-      ) : null,
-    [hasNextPage, isFetching]
-  );
+    const FooterItem = useCallback(
+      () =>
+        hasNextPage && isFetching ? (
+          <View className="flex items-center justify-center py-4">
+            <Spinner size="lg" />
+          </View>
+        ) : null,
+      [hasNextPage, isFetching]
+    );
 
-  const onViewableItemsChanged = useRef(({ changed }) => {
-    for (const item of changed) {
-      if (item.item.type === "adCarousel") {
-        const cell = mediaRefs?.current[item.index];
-        if (!item.isViewable && cell) {
-          cell?.pause();
+    const onViewableItemsChanged = useRef(({ changed }) => {
+      for (const item of changed) {
+        if (item.item.type === "adCarousel") {
+          const cell = mediaRefs?.current[item.index];
+          if (!item.isViewable && cell) {
+            cell?.pause();
+          }
         }
-      }
 
-      // When a gAd becomes visible, preload the next 2 gAd slots ahead by
-      // walking the feed data. Refs are registered by id so position-safe.
-      if (
-        item.isViewable &&
-        item.item?._type === "ad" &&
-        item.item?.type === "gAd" &&
-        item.item?.id
-      ) {
-        const feed = flattenedNewsRef.current;
-        if (feed) {
-          const startIdx = newsIndexByIdRef.current.get(item.item.id) ?? -1;
-          let preloaded = 0;
-          for (let i = startIdx + 1; i < feed.length && preloaded < 2; i++) {
-            const next = feed[i];
-            if (
-              next &&
-              "_type" in next &&
-              next._type === "ad" &&
-              "type" in next &&
-              next.type === "gAd" &&
-              "id" in next &&
-              next.id
-            ) {
-              const nextRef = gBannerRefs.current.get(next.id);
-              if (nextRef && !nextRef.isAdLoaded()) {
-                nextRef.loadAd();
-                preloaded++;
+        // When a gAd becomes visible, preload the next 2 gAd slots ahead by
+        // walking the feed data. Refs are registered by id so position-safe.
+        if (
+          item.isViewable &&
+          item.item?._type === "ad" &&
+          item.item?.type === "gAd" &&
+          item.item?.id
+        ) {
+          const feed = flattenedNewsRef.current;
+          if (feed) {
+            const startIdx = newsIndexByIdRef.current.get(item.item.id) ?? -1;
+            let preloaded = 0;
+            for (let i = startIdx + 1; i < feed.length && preloaded < 2; i++) {
+              const next = feed[i];
+              if (
+                next &&
+                "_type" in next &&
+                next._type === "ad" &&
+                "type" in next &&
+                next.type === "gAd" &&
+                "id" in next &&
+                next.id
+              ) {
+                const nextRef = gBannerRefs.current.get(next.id);
+                if (nextRef && !nextRef.isAdLoaded()) {
+                  nextRef.loadAd();
+                  preloaded++;
+                }
               }
             }
           }
         }
       }
-    }
-  });
+    });
 
-  // Paired with IMPRESSION_VIEWABILITY_CONFIG, so `isViewable` here already
-  // means 50%-for-a-second rather than merely on screen.
-  const onImpressionItemsChanged = useRef(
-    ({ changed }: { changed: ImpressionToken[] }) => {
-      for (const item of changed) {
-        if (
-          item.isViewable &&
-          item.item &&
-          "type" in item.item &&
-          (item.item.type === "article" || item.item.type === "video") &&
-          item.item.id
-        ) {
-          trackImpressionRef.current(
-            { id: item.item.id, slug: item.item.slug },
-            item.index,
-            "HomeFeed"
-          );
+    // Paired with IMPRESSION_VIEWABILITY_CONFIG, so `isViewable` here already
+    // means 50%-for-a-second rather than merely on screen.
+    const onImpressionItemsChanged = useRef(
+      ({ changed }: { changed: ImpressionToken[] }) => {
+        for (const item of changed) {
+          if (
+            item.isViewable &&
+            item.item &&
+            "type" in item.item &&
+            (item.item.type === "article" || item.item.type === "video") &&
+            item.item.id
+          ) {
+            trackImpressionRef.current(
+              { id: item.item.id, slug: item.item.slug },
+              item.index,
+              "HomeFeed"
+            );
+          }
         }
       }
+    );
+
+    const viewabilityConfigCallbackPairs = useRef([
+      {
+        viewabilityConfig: MECHANICS_VIEWABILITY_CONFIG,
+        onViewableItemsChanged: onViewableItemsChanged.current,
+      },
+      {
+        viewabilityConfig: IMPRESSION_VIEWABILITY_CONFIG,
+        onViewableItemsChanged: onImpressionItemsChanged.current,
+      },
+    ]);
+    // #endregion
+    useScrollToTop(ref);
+
+    // Emits nav_tti for /Tab/Home/NewsHome once the feed has rendered.
+    useMarkInteractive(!isPending);
+
+    // Only the main feed gates first paint. The header-only queries (video
+    // news, partner books, trending) stream into their sections when ready.
+    if (isPending) {
+      return <HomeListSkeleton />;
     }
-  );
 
-  const viewabilityConfigCallbackPairs = useRef([
-    {
-      viewabilityConfig: MECHANICS_VIEWABILITY_CONFIG,
-      onViewableItemsChanged: onViewableItemsChanged.current,
-    },
-    {
-      viewabilityConfig: IMPRESSION_VIEWABILITY_CONFIG,
-      onViewableItemsChanged: onImpressionItemsChanged.current,
-    },
-  ]);
-  // #endregion
-  useScrollToTop(ref);
-
-  // Emits nav_tti for /Tab/Home/NewsHome once the feed has rendered.
-  useMarkInteractive(!isPending);
-
-  // Only the main feed gates first paint. The header-only queries (video
-  // news, partner books, trending) stream into their sections when ready.
-  if (isPending) {
-    return <HomeListSkeleton />;
+    return (
+      <LegendList
+        contentContainerStyle={{
+          paddingBottom: tabBarHeight + 20,
+          paddingTop: 15,
+        }}
+        data={flattenedNews}
+        getEstimatedItemSize={getEstimatedItemSize}
+        getItemType={getItemType}
+        ItemSeparatorComponent={MemoizedSeparator}
+        keyExtractor={keyExtractor}
+        ListFooterComponent={FooterItem}
+        ListHeaderComponent={
+          <MemoizedListHeader
+            books={flattenedPartnerContent ?? EMPTY_BOOKS}
+            news={trendingNews.data ?? EMPTY_DOCS}
+            /**
+             * Always empty: Special Coverage is video news, and video is
+             * switched off server-side — the News collection offers only
+             * "article" and its beforeValidate hook refuses anything else, so
+             * the `useAllNews({ type: "video" })` that used to feed this could
+             * only ever return zero rows. It was an infinite query firing on
+             * every mount of the home feed for a section that renders `null`
+             * when empty. Switch video back on in the News collection and
+             * restore that hook to bring the section back.
+             */
+            specialCoverage={EMPTY_DOCS}
+          />
+        }
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        onRefresh={handleRefresh}
+        recycleItems
+        ref={ref}
+        refreshing={isRefetchingByUser}
+        renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
+        // suggestEstimatedItemSize
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
+      />
+    );
   }
-
-  return (
-    <LegendList
-      contentContainerStyle={{
-        paddingBottom: tabBarHeight + 20,
-        paddingTop: 15,
-      }}
-      data={flattenedNews}
-      getEstimatedItemSize={getEstimatedItemSize}
-      getItemType={getItemType}
-      ItemSeparatorComponent={MemoizedSeparator}
-      keyExtractor={keyExtractor}
-      ListFooterComponent={FooterItem}
-      ListHeaderComponent={
-        <MemoizedListHeader
-          books={flattenedPartnerContent ?? EMPTY_BOOKS}
-          news={trendingNews.data ?? EMPTY_DOCS}
-          /**
-           * Always empty: Special Coverage is video news, and video is
-           * switched off server-side — the News collection offers only
-           * "article" and its beforeValidate hook refuses anything else, so
-           * the `useAllNews({ type: "video" })` that used to feed this could
-           * only ever return zero rows. It was an infinite query firing on
-           * every mount of the home feed for a section that renders `null`
-           * when empty. Switch video back on in the News collection and
-           * restore that hook to bring the section back.
-           */
-          specialCoverage={EMPTY_DOCS}
-        />
-      }
-      onEndReached={onEndReached}
-      onEndReachedThreshold={0.5}
-      onRefresh={handleRefresh}
-      recycleItems
-      ref={ref}
-      refreshing={isRefetchingByUser}
-      renderItem={renderItem}
-      showsVerticalScrollIndicator={false}
-      // suggestEstimatedItemSize
-      viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
-    />
-  );
-});
+);
 
 export default Latest;

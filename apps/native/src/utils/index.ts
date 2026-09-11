@@ -4,6 +4,7 @@ export { formatDistance as formatDistanceUtil } from "./formatDistance";
 export { getBaseUrl } from "./getBaseUrl";
 export { getImageData } from "./getImageData";
 export { isNetworkError } from "./isNetworkError";
+export { toInstant } from "./toInstant";
 
 /**
  * Avatar background colours, all verified to clear WCAG AA (4.5:1) against the

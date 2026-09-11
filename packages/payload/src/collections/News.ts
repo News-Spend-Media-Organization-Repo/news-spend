@@ -77,7 +77,9 @@ const News: CollectionConfig = {
     afterChange: [sendNotificationOnCreate],
   },
   versions: {
-    drafts: true,
+    drafts: {
+      schedulePublish: true,
+    },
   },
   fields: [
     {

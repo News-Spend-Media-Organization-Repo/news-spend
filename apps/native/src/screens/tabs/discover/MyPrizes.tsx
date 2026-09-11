@@ -6,6 +6,11 @@ import { formatDistanceToNowStrict } from "date-fns/formatDistanceToNowStrict";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { cn } from "heroui-native/utils";
+import { ActivityIndicator, RefreshControl, View } from "react-native";
+import { ScreenHeader } from "#/components";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import {
   CaretRightIcon,
   CoinsIcon,
@@ -14,12 +19,8 @@ import {
   PackageIcon,
   TicketIcon,
 } from "#/lib/icons";
-import { ActivityIndicator, RefreshControl, View } from "react-native";
-import { ScreenHeader } from "#/components";
-import { Icon } from "#/components/heroui/icon";
-import { Screen } from "#/components/heroui/screen";
-import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
+import { toInstant } from "#/utils/toInstant";
 
 type Winning = {
   id: string;
@@ -62,7 +63,7 @@ function statusLine(prize: Winning): { label: string; tone: string } {
   }
   if (prize.claimStatus === "unclaimed") {
     const deadline = prize.claimDeadline
-      ? `Claim within ${formatDistanceToNowStrict(new Date(prize.claimDeadline))}`
+      ? `Claim within ${formatDistanceToNowStrict(toInstant(prize.claimDeadline))}`
       : "Ready to claim";
     return { label: deadline, tone: "urgent" };
   }
@@ -96,7 +97,7 @@ function statusLine(prize: Winning): { label: string; tone: string } {
   }
   if (prize.claimStatus === "claimed") {
     const on = prize.selectedAt
-      ? ` · ${format(new Date(prize.selectedAt), "d MMM")}`
+      ? ` · ${format(toInstant(prize.selectedAt), "d MMM")}`
       : "";
     // What "done" means depends on how it was delivered.
     const verb =

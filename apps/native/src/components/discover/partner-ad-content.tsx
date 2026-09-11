@@ -177,9 +177,11 @@ export function PartnerAdContent({
         ) : (
           <Image
             aria-label="Advertisement banner"
+            cachePolicy="memory-disk"
             className="w-full"
             contentFit="contain"
             placeholder={{ blurhash }}
+            recyclingKey={ad.id}
             source={imageUrl}
             style={{ height: height * 0.3 }}
           />
@@ -194,9 +196,11 @@ export function PartnerAdContent({
       <View className="items-center justify-center">
         <Image
           aria-label="Partner logo"
+          cachePolicy="memory-disk"
           className="size-30"
           contentFit="contain"
           placeholder={{ blurhash: partnerLogo?.blurhash }}
+          recyclingKey={partner?.id}
           source={{ uri: partnerLogo?.url ?? undefined }}
         />
         <Text className="text-center font-bold text-lg">{ad.title}</Text>

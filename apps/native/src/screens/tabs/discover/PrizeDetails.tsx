@@ -2,20 +2,20 @@ import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns/format";
 import { Card } from "heroui-native/card";
+import { ActivityIndicator, View } from "react-native";
+import { ScreenHeader } from "#/components";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
 import {
   CoinsIcon,
   DeviceMobileIcon,
   GiftIcon,
   PackageIcon,
 } from "#/lib/icons";
-import { ActivityIndicator, View } from "react-native";
-
-import { ScreenHeader } from "#/components";
-import { Button } from "#/components/heroui/button";
-import { Icon } from "#/components/heroui/icon";
-import { Screen } from "#/components/heroui/screen";
-import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
+import { toInstant } from "#/utils/toInstant";
 
 const PRIZE_ICON: Record<string, typeof GiftIcon> = {
   points: CoinsIcon,
@@ -25,7 +25,7 @@ const PRIZE_ICON: Record<string, typeof GiftIcon> = {
 };
 
 const when = (value: string | null | undefined) =>
-  value ? format(new Date(value), "d MMM yyyy, HH:mm") : null;
+  value ? format(toInstant(value), "d MMM yyyy, HH:mm") : null;
 
 /** One label-and-value line. Renders nothing at all when there is no value. */
 function Detail({
