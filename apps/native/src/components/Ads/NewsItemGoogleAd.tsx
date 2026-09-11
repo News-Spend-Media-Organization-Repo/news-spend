@@ -14,6 +14,7 @@ import {
   NativeAdView,
   NativeAsset,
   NativeAssetType,
+  NativeMediaView,
 } from "react-native-google-mobile-ads";
 import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
@@ -305,11 +306,15 @@ const NewsItemGoogleAds = memo(
               </NativeAsset>
 
               <View className="flex-row items-center justify-between">
-                <NativeAsset assetType={NativeAssetType.STORE}>
-                  <Text className="font-medium text-gray-50">
-                    {nativeAd.store}
-                  </Text>
-                </NativeAsset>
+                {nativeAd.store ? (
+                  <NativeAsset assetType={NativeAssetType.STORE}>
+                    <Text className="font-medium text-gray-50">
+                      {nativeAd.store}
+                    </Text>
+                  </NativeAsset>
+                ) : (
+                  <View />
+                )}
                 <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
                   <Text className="rounded-full bg-s-300 px-2 py-1 font-medium text-white text-xs">
                     {nativeAd.callToAction}
@@ -318,6 +323,20 @@ const NewsItemGoogleAds = memo(
               </View>
             </View>
           </View>
+
+          {/*
+            AdMob's own docs list the primary image/video as one of three
+            required native-ad assets (headline, call-to-action, media) —
+            this layout had no MediaView at all, so any ad built around its
+            media asset (most of them) had nothing to show for it. Almost
+            certainly the dominant cause of "matched but never shown" —
+            AdMob's console reports ~80-90% match rate but only ~35-40% of
+            those matched ads ever produced an impression.
+          */}
+          <NativeMediaView
+            resizeMode="cover"
+            style={{ aspectRatio: 16 / 9, borderRadius: 10, width: "100%" }}
+          />
         </View>
       </NativeAdView>
     );
