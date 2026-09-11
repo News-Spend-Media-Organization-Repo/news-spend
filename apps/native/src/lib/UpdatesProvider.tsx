@@ -34,7 +34,6 @@ export const useUpdates = () => {
     availableUpdate,
     isUpdateAvailable,
     isUpdatePending,
-    isDownloading,
     downloadedUpdate,
   } = useExpoUpdates();
 
@@ -73,12 +72,22 @@ export const useUpdates = () => {
     });
   }, [isUpdateAvailable, availableUpdate, isDevelopmentBuild]);
 
+  // Marks the initial on-load check as resolved as soon as a manifest is
+  // found, independent of whether the sheet should open yet.
   useEffect(() => {
     if (isUpdateAvailable && availableUpdate && !isDevelopmentBuild) {
-      setIsSheetOpen(true);
       initialCheckDone.current = true;
     }
   }, [isUpdateAvailable, availableUpdate, isDevelopmentBuild]);
+
+  // Only surface the sheet once the payload is actually on disk, so
+  // "Restart Now" is never a disabled button the user has to wait out —
+  // the download already happened silently underneath it.
+  useEffect(() => {
+    if (isReady && !isDevelopmentBuild) {
+      setIsSheetOpen(true);
+    }
+  }, [isReady, isDevelopmentBuild]);
 
   // When the app comes to the foreground, check for updates.
   // ON_LOAD only fires on cold start, this covers users who keep
@@ -128,10 +137,8 @@ export const useUpdates = () => {
     // new type on every render, remounting the sheet mid-animation.
     updateSheet: (
       <UpdateSheet
-        isDownloading={isDownloading}
         isMandatory={isMandatory}
         isOpen={isSheetOpen}
-        isReady={isReady}
         onOpenChange={handleOpenChange}
         onRestart={handleRestart}
       />
