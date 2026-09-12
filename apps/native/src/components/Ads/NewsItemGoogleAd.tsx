@@ -312,30 +312,30 @@ const NewsItemGoogleAds = memo(
       isAdLoaded: () => loadedRef.current,
     }));
 
-    // Fires on mount AND on every genuine recycle to a different ad item.
-    // Guard with prevItem.id so re-renders of the same item don't retrigger.
-    useRecyclingEffect(({ item: recycledItem, prevItem }) => {
-      const isSameItem = prevItem != null && prevItem.id === recycledItem.id;
-      if (isSameItem) {
-        return;
-      }
+    // Fires on mount AND on every genuine recycle to a different ad item —
+    // in principle. Confirmed by a live cold-start repro that it sometimes
+    // never fires at all: a slot rendered its initial "loading" placeholder
+    // once and then nothing, ever — no recycle, no loadAd() call, no
+    // timeout, because nothing started one. That's the actual "stuck past
+    // expected timeout" bug: not a flaw in the retry/timeout logic, but the
+    // trigger for it never firing in the first place. The plain useEffect
+    // below is the fallback — React's own mount guarantee doesn't depend on
+    // this library's recycling-detection internals.
+    const activateItem = useCallback(
+      (recycledItem: { id: string }) => {
+        const cached = getCachedAd(tabRef.current, recycledItem.id);
+        attemptsRef.current = 0;
+        loadedRef.current = !!cached;
+        loadingRef.current = false;
+        setFailed(false);
+        failedRef.current = false;
 
-      // A recycle hands this cell a different ad slot, so whatever was in
-      // flight for the previous one is now irrelevant.
-      generationRef.current += 1;
-      clearTimers();
+        if (cached) {
+          setNativeAd(cached as NativeAd);
+          setLoading(false);
+          return;
+        }
 
-      const cached = getCachedAd(tabRef.current, recycledItem.id);
-      attemptsRef.current = 0;
-      loadedRef.current = !!cached;
-      loadingRef.current = false;
-      setFailed(false);
-      failedRef.current = false;
-
-      if (cached) {
-        setNativeAd(cached as NativeAd);
-        setLoading(false);
-      } else {
         setNativeAd(null);
         setLoading(true);
         loadAd();
@@ -359,8 +359,39 @@ const NewsItemGoogleAds = memo(
             });
           }
         }, STUCK_WATCHDOG_MS);
+      },
+      [loadAd]
+    );
+
+    useRecyclingEffect(({ item: recycledItem, prevItem }) => {
+      const recycled = recycledItem as { id: string };
+      const prev = prevItem as { id: string } | null;
+      const isSameItem = prev != null && prev.id === recycled.id;
+      if (isSameItem) {
+        return;
       }
+      // A recycle hands this cell a different ad slot, so whatever was in
+      // flight for the previous one is now irrelevant.
+      generationRef.current += 1;
+      clearTimers();
+      activateItem(recycled);
     });
+
+    // Fallback: guaranteed by React itself to run once on mount, regardless
+    // of whether useRecyclingEffect's own mount detection does. Only acts if
+    // nothing has claimed this slot yet, so it's a no-op on the (usual) path
+    // where useRecyclingEffect already did its job.
+    const mountFallbackRan = useRef(false);
+    useEffect(() => {
+      if (mountFallbackRan.current) {
+        return;
+      }
+      mountFallbackRan.current = true;
+      if (loadedRef.current || loadingRef.current) {
+        return;
+      }
+      activateItem(itemRef.current);
+    }, [activateItem]);
 
     // Nothing will ever fill this slot: take up no space at all. A 90px box
     // reading "Advertisement" with nothing in it is worse than no box.
