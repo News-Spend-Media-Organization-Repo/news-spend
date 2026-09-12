@@ -1,4 +1,5 @@
 import { useRecyclingEffect } from "@legendapp/list/react-native";
+import * as Sentry from "@sentry/react-native";
 import {
   memo,
   useCallback,
@@ -52,6 +53,21 @@ const REQUEST_TIMEOUT_MS = 10_000;
  */
 const RETRY_BACKOFF_MS = [1000, 3000, 9000];
 
+/**
+ * Well past the ~40s structural worst case (3 attempts x 10s timeout, plus
+ * backoff). If a slot is still neither loaded nor terminally failed by
+ * this point, something outside the retry/timeout logic itself is wrong —
+ * captured to Sentry with the full breadcrumb trail for diagnosis, since
+ * `console.log` is silently dropped in Release builds (no native log
+ * bridge), which made this invisible to `xcrun simctl log stream` and
+ * therefore untestable locally or on a device console.
+ */
+const STUCK_WATCHDOG_MS = 60_000;
+
+function logAdEvent(message: string, data?: Record<string, unknown>) {
+  Sentry.addBreadcrumb({ category: "gAd", data, level: "info", message });
+}
+
 const NewsItemGoogleAds = memo(
   ({ item, index, tab, ref: parentRef }: NewsItemGoogleAdProp) => {
     const [loading, setLoading] = useState(false);
@@ -83,6 +99,9 @@ const NewsItemGoogleAds = memo(
      * list's life. That is the blank-ad symptom.
      */
     const [failed, setFailed] = useState(false);
+    // Mirrors `failed` for the watchdog below, which fires from a stale
+    // closure and can't rely on state captured at schedule time.
+    const failedRef = useRef(false);
 
     /**
      * Bumped whenever a request is superseded (timeout, recycle, unmount).
@@ -95,6 +114,7 @@ const NewsItemGoogleAds = memo(
     const generationRef = useRef(0);
     const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const clearTimers = useCallback(() => {
       if (retryTimerRef.current) {
@@ -105,18 +125,32 @@ const NewsItemGoogleAds = memo(
         clearTimeout(timeoutTimerRef.current);
         timeoutTimerRef.current = null;
       }
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
     }, []);
 
     const loadAd = useCallback(() => {
+      logAdEvent("loadAd() called", {
+        attempts: attemptsRef.current,
+        itemId: itemRef.current?.id,
+        loaded: loadedRef.current,
+        loading: loadingRef.current,
+      });
       if (loadedRef.current || loadingRef.current) {
         return;
       }
       if (attemptsRef.current >= MAX_RETRIES) {
         // Out of attempts: collapse the slot rather than leaving a labelled
         // empty box behind.
+        logAdEvent("out of attempts at entry, collapsing", {
+          itemId: itemRef.current?.id,
+        });
         loadingRef.current = false;
         setLoading(false);
         setFailed(true);
+        failedRef.current = true;
         return;
       }
 
@@ -124,6 +158,11 @@ const NewsItemGoogleAds = memo(
       attemptsRef.current += 1;
       loadingRef.current = true;
       setLoading(true);
+      logAdEvent("starting attempt", {
+        attempt: attemptsRef.current,
+        generation,
+        itemId: itemRef.current?.id,
+      });
 
       /** True once this request has been superseded or the view has gone. */
       const isStale = () => generationRef.current !== generation;
@@ -141,6 +180,11 @@ const NewsItemGoogleAds = memo(
           RETRY_BACKOFF_MS[attemptsRef.current - 1] ??
           RETRY_BACKOFF_MS.at(-1) ??
           1000;
+        logAdEvent("scheduling retry", {
+          attempts: attemptsRef.current,
+          delay,
+          itemId: itemRef.current?.id,
+        });
         retryTimerRef.current = setTimeout(() => {
           retryTimerRef.current = null;
           if (isStale()) {
@@ -152,6 +196,11 @@ const NewsItemGoogleAds = memo(
 
       timeoutTimerRef.current = setTimeout(() => {
         timeoutTimerRef.current = null;
+        logAdEvent("TIMEOUT fired", {
+          currentGeneration: generationRef.current,
+          generation,
+          itemId: itemRef.current?.id,
+        });
         if (isStale()) {
           return;
         }
@@ -159,20 +208,35 @@ const NewsItemGoogleAds = memo(
         generationRef.current += 1;
         loadingRef.current = false;
         if (attemptsRef.current >= MAX_RETRIES) {
+          logAdEvent("out of attempts after timeout, collapsing", {
+            itemId: itemRef.current?.id,
+          });
           setLoading(false);
           setFailed(true);
+          failedRef.current = true;
           return;
         }
         loadAd();
       }, REQUEST_TIMEOUT_MS);
 
+      logAdEvent("calling initializeAdsWhenPermitted()", {
+        itemId: itemRef.current?.id,
+      });
       initializeAdsWhenPermitted()
-        .then(() =>
-          NativeAd.createForAdRequest(adUnits.native, {
+        .then(() => {
+          logAdEvent("initializeAdsWhenPermitted() resolved", {
+            itemId: itemRef.current?.id,
+          });
+          return NativeAd.createForAdRequest(adUnits.native, {
             adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_RIGHT,
-          })
-        )
+          });
+        })
         .then((ad) => {
+          logAdEvent("createForAdRequest RESOLVED", {
+            hasVideo: ad.mediaContent?.hasVideoContent,
+            itemId: itemRef.current?.id,
+            stale: isStale(),
+          });
           if (timeoutTimerRef.current) {
             clearTimeout(timeoutTimerRef.current);
             timeoutTimerRef.current = null;
@@ -183,15 +247,38 @@ const NewsItemGoogleAds = memo(
             ad.destroy();
             return;
           }
+
+          // Image ads only — this layout has no video player, and a video
+          // asset rendered through NativeMediaView with nothing controlling
+          // playback is worse than no ad. Treated as a soft failure: same
+          // backoff and retry budget as a request that came back empty.
+          if (ad.mediaContent?.hasVideoContent) {
+            ad.destroy();
+            if (attemptsRef.current >= MAX_RETRIES) {
+              loadingRef.current = false;
+              setLoading(false);
+              setFailed(true);
+              failedRef.current = true;
+              return;
+            }
+            scheduleRetry();
+            return;
+          }
+
           attemptsRef.current = 0;
           setCachedAd(tabRef.current, itemRef.current.id, ad);
           loadedRef.current = true;
           loadingRef.current = false;
           setNativeAd(ad);
           setFailed(false);
+          failedRef.current = false;
           setLoading(false);
         })
-        .catch(() => {
+        .catch((err) => {
+          logAdEvent("REJECTED", {
+            error: err?.message ?? String(err),
+            itemId: itemRef.current?.id,
+          });
           if (timeoutTimerRef.current) {
             clearTimeout(timeoutTimerRef.current);
             timeoutTimerRef.current = null;
@@ -203,6 +290,7 @@ const NewsItemGoogleAds = memo(
             loadingRef.current = false;
             setLoading(false);
             setFailed(true);
+            failedRef.current = true;
             return;
           }
           scheduleRetry();
@@ -242,6 +330,7 @@ const NewsItemGoogleAds = memo(
       loadedRef.current = !!cached;
       loadingRef.current = false;
       setFailed(false);
+      failedRef.current = false;
 
       if (cached) {
         setNativeAd(cached as NativeAd);
@@ -250,6 +339,26 @@ const NewsItemGoogleAds = memo(
         setNativeAd(null);
         setLoading(true);
         loadAd();
+
+        const watchdogGeneration = generationRef.current;
+        watchdogTimerRef.current = setTimeout(() => {
+          watchdogTimerRef.current = null;
+          // Superseded by a later recycle: whatever is stuck now belongs to
+          // a slot this cell no longer represents.
+          if (generationRef.current !== watchdogGeneration) {
+            return;
+          }
+          if (!(loadedRef.current || failedRef.current)) {
+            Sentry.captureMessage("gAd stuck past expected timeout", {
+              extra: {
+                attempts: attemptsRef.current,
+                itemId: recycledItem?.id,
+                loading: loadingRef.current,
+              },
+              level: "warning",
+            });
+          }
+        }, STUCK_WATCHDOG_MS);
       }
     });
 
