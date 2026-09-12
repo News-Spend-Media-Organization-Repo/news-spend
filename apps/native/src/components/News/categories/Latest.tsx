@@ -15,7 +15,6 @@ import { subscribeKey } from "valtio/utils";
 import type { AdCarouselRef } from "#/components/Ads/AdCarousel";
 import AdCarousel from "#/components/Ads/AdCarousel";
 import NewsItemAd from "#/components/Ads/NewsItemAd";
-import type { NewsItemGoogleAdRef } from "#/components/Ads/NewsItemGoogleAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
@@ -26,6 +25,7 @@ import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { routeState, useTabBarHeight } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
+import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
@@ -105,8 +105,6 @@ const Latest = memo(
     ref: RefObject<LegendListRef>;
   }) => {
     const mediaRefs = useRef<(AdCarouselRef | null)[]>([]);
-    // Keyed by ad item id: stable across recycles, unlike positional arrays
-    const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
 
     // `renderItem` is a plain callback handed to LegendList, not a component —
     // React Compiler's auto-memoization only reaches components and hooks, so
@@ -128,23 +126,6 @@ const Latest = memo(
       return cb;
     }, []);
 
-    const gAdRefCallbacks = useRef<
-      Map<string, (itemRef: NewsItemGoogleAdRef | null) => void>
-    >(new Map());
-    const getGAdRefCallback = useCallback((id: string) => {
-      let cb = gAdRefCallbacks.current.get(id);
-      if (!cb) {
-        cb = (itemRef) => {
-          if (itemRef) {
-            gBannerRefs.current.set(id, itemRef);
-          } else {
-            gBannerRefs.current.delete(id);
-          }
-        };
-        gAdRefCallbacks.current.set(id, cb);
-      }
-      return cb;
-    }, []);
     const tabBarHeight = useTabBarHeight();
     const { trackImpression } = useNewsAnalytics();
     const trackImpressionRef = useRef(trackImpression);
@@ -253,17 +234,30 @@ const Latest = memo(
     }, [news, trendingIds]);
     flattenedNewsRef.current = flattenedNews;
 
-    // id → index lookup so the gAd-preload walk in onViewableItemsChanged
-    // doesn't do an O(n) findIndex per viewability change.
-    const newsIndexByIdRef = useRef<Map<string, number>>(new Map());
-    useMemo(() => {
-      const map = newsIndexByIdRef.current;
-      map.clear();
-      flattenedNews?.forEach((item, index) => {
-        if (item && "id" in item && item.id) {
-          map.set(item.id, index);
+    // Eagerly preload every gAd slot already loaded into the feed, as soon
+    // as its page arrives — independent of scroll position or whether that
+    // row has even mounted yet. Matches Google's own guidance for ad
+    // preloading in a list (a pool populated ahead of need, not tied to
+    // visibility): a viewability-driven "preload the next 2 ahead" walk can
+    // only ever reach a slot that has already mounted (its ref exists),
+    // which for a virtualized list is rarely more than one screen away —
+    // in practice that made ads start loading only once scrolled into
+    // view. ensureNativeAdLoaded is cache/in-flight-aware, so calling it
+    // repeatedly for ids already loaded or in progress is a cheap no-op.
+    useEffect(() => {
+      for (const docItem of flattenedNews ?? []) {
+        if (
+          docItem &&
+          "_type" in docItem &&
+          docItem._type === "ad" &&
+          "type" in docItem &&
+          docItem.type === "gAd" &&
+          "id" in docItem &&
+          docItem.id
+        ) {
+          ensureNativeAdLoaded("latest", docItem.id);
         }
-      });
+      }
     }, [flattenedNews]);
 
     // Pull-to-refresh is a deliberate user action, unlike the passive
@@ -321,7 +315,6 @@ const Latest = memo(
       refetchByUser();
       trendingRefetch.refetchByUser();
       clearTabAdCache("latest");
-      gBannerRefs.current.clear();
     }, [
       resetInfiniteQueryPagination,
       refetchByUser,
@@ -404,12 +397,7 @@ const Latest = memo(
         } else if (item && "_type" in item && item._type === "ad") {
           if ("type" in item && item.type === "gAd") {
             content = (
-              <NewsItemGoogleAds
-                index={index}
-                item={item}
-                ref={item.id ? getGAdRefCallback(item.id) : undefined}
-                tab="latest"
-              />
+              <NewsItemGoogleAds index={index} item={item} tab="latest" />
             );
           } else {
             content = <NewsItemAd index={index} item={item} />;
@@ -422,7 +410,7 @@ const Latest = memo(
 
         return <View className="px-3">{content}</View>;
       },
-      [getMediaRefCallback, getGAdRefCallback]
+      [getMediaRefCallback]
     );
 
     const FooterItem = useCallback(
@@ -441,39 +429,6 @@ const Latest = memo(
           const cell = mediaRefs?.current[item.index];
           if (!item.isViewable && cell) {
             cell?.pause();
-          }
-        }
-
-        // When a gAd becomes visible, preload the next 2 gAd slots ahead by
-        // walking the feed data. Refs are registered by id so position-safe.
-        if (
-          item.isViewable &&
-          item.item?._type === "ad" &&
-          item.item?.type === "gAd" &&
-          item.item?.id
-        ) {
-          const feed = flattenedNewsRef.current;
-          if (feed) {
-            const startIdx = newsIndexByIdRef.current.get(item.item.id) ?? -1;
-            let preloaded = 0;
-            for (let i = startIdx + 1; i < feed.length && preloaded < 2; i++) {
-              const next = feed[i];
-              if (
-                next &&
-                "_type" in next &&
-                next._type === "ad" &&
-                "type" in next &&
-                next.type === "gAd" &&
-                "id" in next &&
-                next.id
-              ) {
-                const nextRef = gBannerRefs.current.get(next.id);
-                if (nextRef && !nextRef.isAdLoaded()) {
-                  nextRef.loadAd();
-                  preloaded++;
-                }
-              }
-            }
           }
         }
       }
