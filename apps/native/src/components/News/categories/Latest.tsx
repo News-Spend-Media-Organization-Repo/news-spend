@@ -352,8 +352,8 @@ const Latest = memo(
           return 260;
         }
         if (type === "gAd") {
-          // Icon+text row plus a 16:9 NativeMediaView spanning the width.
-          return 320;
+          // Same compact thumbnail+text row shape as an article/video row.
+          return 116;
         }
         if (kind === "relatedNews") {
           return 220;

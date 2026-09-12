@@ -21,7 +21,6 @@ import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { getCachedAd, setCachedAd } from "#/utils/ad-cache";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
-import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
 
 export type NewsItemGoogleAdProp = {
@@ -74,6 +73,8 @@ const NewsItemGoogleAds = memo(
     const [nativeAd, setNativeAd] = useState<NativeAd | null>(() =>
       getCachedAd(tab, item.id)
     );
+    // Measured once via onLayout below; see the comment there.
+    const [adViewHeight, setAdViewHeight] = useState(0);
 
     // loadingRef is the source of truth: never synced from state, always set imperatively.
     // This ensures loadAd() guards are accurate even when called synchronously inside
@@ -410,73 +411,77 @@ const NewsItemGoogleAds = memo(
     return (
       <NativeAdView
         nativeAd={nativeAd}
-        style={{ width: "100%", minHeight: 90 }}
+        onLayout={(e) => {
+          // AdMob's native ad validator flags "advertiser assets outside
+          // native ad view" whenever this container's resolved height has a
+          // fractional pixel component — `minHeight` alone can leave it
+          // measuring a hair short of its (auto-sized) children, which is
+          // enough for the assets to read as spilling past the boundary.
+          // Pinning to the ceil'd measured height fixes it.
+          const measuredHeight = Math.ceil(e.nativeEvent.layout.height);
+          if (measuredHeight !== adViewHeight) {
+            setAdViewHeight(measuredHeight);
+          }
+        }}
+        style={{
+          height: adViewHeight || undefined,
+          minHeight: adViewHeight ? undefined : 90,
+          width: "100%",
+        }}
       >
-        <View className="gap-2.5">
-          <View className="flex-row gap-4">
-            {nativeAd.icon ? (
-              <NativeAsset assetType={NativeAssetType.ICON}>
-                <Image
-                  className="size-25 rounded-lg"
-                  source={{ uri: nativeAd.icon.url }}
-                />
-              </NativeAsset>
-            ) : null}
-
-            <View className="flex-1 gap-2.5">
-              <View className="flex-row justify-between gap-2">
-                <NativeAsset assetType={NativeAssetType.HEADLINE}>
-                  <Text
-                    className="flex-1 font-bold text-p-500"
-                    ellipsizeMode="tail"
-                    numberOfLines={2}
-                  >
-                    {nativeAd.headline}
-                  </Text>
-                </NativeAsset>
-                <Text className="shrink-0 self-start rounded-sm border border-gray-50 px-1 text-s-300 text-xs">
-                  AD
-                </Text>
-              </View>
-
-              <NativeAsset assetType={NativeAssetType.BODY}>
-                <Text className="text-sm" numberOfLines={2}>
-                  {nativeAd.body}
-                </Text>
-              </NativeAsset>
-
-              <View className="flex-row items-center justify-between">
-                {nativeAd.store ? (
-                  <NativeAsset assetType={NativeAssetType.STORE}>
-                    <Text className="font-medium text-gray-50">
-                      {nativeAd.store}
-                    </Text>
-                  </NativeAsset>
-                ) : (
-                  <View />
-                )}
-                <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
-                  <Text className="rounded-full bg-s-300 px-2 py-1 font-medium text-white text-xs">
-                    {nativeAd.callToAction}
-                  </Text>
-                </NativeAsset>
-              </View>
-            </View>
-          </View>
-
+        <View className="flex-row gap-4">
           {/*
-            AdMob's own docs list the primary image/video as one of three
-            required native-ad assets (headline, call-to-action, media) —
-            this layout had no MediaView at all, so any ad built around its
-            media asset (most of them) had nothing to show for it. Almost
-            certainly the dominant cause of "matched but never shown" —
-            AdMob's console reports ~80-90% match rate but only ~35-40% of
-            those matched ads ever produced an impression.
+            Sized and placed exactly like a NewsItem/NewsItemAd thumbnail —
+            this ad is meant to read as a normal feed row, not stand out
+            with its own banner layout. Media (not icon) is the thumbnail:
+            AdMob requires every native ad to carry a media asset (one of
+            three required assets alongside headline/CTA), so it's the one
+            guaranteed to be there — this layout previously omitted it
+            entirely, which was the dominant cause of "matched but never
+            shown" (AdMob console: ~80-90% match rate, ~35-40% show rate).
           */}
           <NativeMediaView
             resizeMode="cover"
-            style={{ aspectRatio: 16 / 9, borderRadius: 10, width: "100%" }}
+            style={{ borderRadius: 10, height: 100, width: 100 }}
           />
+
+          <View className="flex-1 justify-center gap-4">
+            <View className="flex-row justify-between gap-2">
+              <NativeAsset assetType={NativeAssetType.HEADLINE}>
+                <Text
+                  className="flex-1 font-bold text-p-500"
+                  ellipsizeMode="tail"
+                  numberOfLines={2}
+                >
+                  {nativeAd.headline}
+                </Text>
+              </NativeAsset>
+              <Text className="shrink-0 self-start rounded-sm border border-gray-50 px-1 text-s-300 text-xs">
+                AD
+              </Text>
+            </View>
+
+            <NativeAsset assetType={NativeAssetType.BODY}>
+              <Text ellipsizeMode="tail" numberOfLines={2}>
+                {nativeAd.body}
+              </Text>
+            </NativeAsset>
+
+            <View className="flex-row items-center justify-between">
+              {nativeAd.store ? (
+                <NativeAsset assetType={NativeAssetType.STORE}>
+                  <Text className="text-p-500">{nativeAd.store}</Text>
+                </NativeAsset>
+              ) : (
+                <View />
+              )}
+              <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
+                <Text className="rounded-full bg-s-300 px-2 py-1 text-white text-xs">
+                  {nativeAd.callToAction}
+                </Text>
+              </NativeAsset>
+            </View>
+          </View>
         </View>
       </NativeAdView>
     );
