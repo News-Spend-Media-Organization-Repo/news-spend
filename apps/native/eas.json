@@ -59,6 +59,18 @@
         "APP_VARIANT": "production"
       }
     },
+    "adsSimulatorCheck": {
+      "ios": {
+        "simulator": true
+      },
+      "developmentClient": false,
+      "distribution": "internal",
+      "channel": "production",
+      "environment": "production",
+      "env": {
+        "APP_VARIANT": "production"
+      }
+    },
     "screenshots": {
       "ios": {
         "simulator": true
