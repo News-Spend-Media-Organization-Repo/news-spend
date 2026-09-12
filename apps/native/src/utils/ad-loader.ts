@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { Platform } from "react-native";
 import {
   NativeAd,
   NativeAdChoicesPlacement,
@@ -39,15 +40,21 @@ function delay(ms: number): Promise<void> {
  * it. The underlying native request has no cancellation API, so a timed-out
  * attempt can still resolve later — that ad belongs to nobody by then, so it
  * gets destroyed rather than leaked.
+ *
+ * SDK initialization is awaited *before* the timeout is armed, deliberately.
+ * On iOS that step blocks on the App Tracking Transparency prompt, which is
+ * gated on a human reading a dialog — folding that wait into a 10s ad-request
+ * budget made every attempt on a first run time out before a request was even
+ * sent, and the slot collapsed as if it were a no-fill.
  */
-function requestOnce(): Promise<NativeAd> {
+async function requestOnce(): Promise<NativeAd> {
+  await initializeAdsWhenPermitted();
+
   let settled = false;
 
-  const adPromise = initializeAdsWhenPermitted().then(() =>
-    NativeAd.createForAdRequest(adUnits.native, {
-      adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_RIGHT,
-    })
-  );
+  const adPromise = NativeAd.createForAdRequest(adUnits.native, {
+    adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_RIGHT,
+  });
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -67,13 +74,6 @@ function requestOnce(): Promise<NativeAd> {
           return;
         }
         settled = true;
-        // Image ads only — no video player in any layout that renders
-        // these. Treated as a soft failure, same retry budget as no-fill.
-        if (ad.mediaContent?.hasVideoContent) {
-          ad.destroy();
-          reject(new Error("video ad rejected — image only"));
-          return;
-        }
         resolve(ad);
       },
       (err) => {
@@ -92,24 +92,61 @@ async function loadWithRetries(
   tab: string | undefined,
   id: string
 ): Promise<NativeAd | null> {
+  const failures: string[] = [];
+
+  /**
+   * The best video ad seen so far. This layout is built for a still image, so
+   * an image ad is preferred — but *only* preferred. Rejecting video outright
+   * spent the whole retry budget refusing perfectly servable fill, which on
+   * iOS (where native inventory skews heavily to video) meant slots that had
+   * an ad available collapsed anyway.
+   */
+  let videoFallback: NativeAd | null = null;
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const ad = await requestOnce();
+
+      if (ad.mediaContent?.hasVideoContent && attempt < MAX_RETRIES) {
+        // Keep it in hand and spend a retry looking for an image ad.
+        if (videoFallback) {
+          videoFallback.destroy();
+        }
+        videoFallback = ad;
+        failures.push(`attempt ${attempt}: video ad, retrying for image`);
+        await delay(RETRY_BACKOFF_MS[attempt - 1] ?? 1000);
+        continue;
+      }
+
+      if (videoFallback && videoFallback !== ad) {
+        videoFallback.destroy();
+      }
       setCachedAd(tab, id, ad);
       return ad;
     } catch (error) {
-      Sentry.addBreadcrumb({
-        category: "gAd",
-        data: { attempt, error: (error as Error)?.message, id },
-        level: "info",
-        message: "attempt failed",
-      });
+      failures.push(`attempt ${attempt}: ${(error as Error)?.message}`);
       if (attempt < MAX_RETRIES) {
-        const backoff = RETRY_BACKOFF_MS[attempt - 1] ?? 1000;
-        await delay(backoff);
+        await delay(RETRY_BACKOFF_MS[attempt - 1] ?? 1000);
       }
     }
   }
+
+  // Every attempt for an image ad came back empty, but a video one did
+  // arrive: showing it beats collapsing the slot.
+  if (videoFallback) {
+    setCachedAd(tab, id, videoFallback);
+    return videoFallback;
+  }
+
+  // Breadcrumbs alone never leave the device — they only ride along with an
+  // event — so a total failure is reported as its own event. Without this,
+  // "the slot collapsed" is indistinguishable from no-fill, a timeout, an
+  // init failure, or a misconfigured ad unit.
+  Sentry.captureMessage("gAd failed after all retries", {
+    level: "warning",
+    tags: { adPlatform: Platform.OS, adTab: tab ?? "default" },
+    extra: { adUnit: adUnits.native, failures, slotId: id },
+  });
   return null;
 }
 
