@@ -1,7 +1,6 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { Dialog } from "heroui-native/dialog";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
-import { XIcon } from "#/lib/icons";
 import {
   type ReactNode,
   useCallback,
@@ -16,13 +15,13 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-
 import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
 import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
 import { useGoogleAd } from "#/hooks/discover/useGoogleAd";
 import { usePartnerAd } from "#/hooks/discover/usePartnerAd";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { XIcon } from "#/lib/icons";
 import { navigate } from "#/navigation/navigationUtils";
 
 import { PartnerAdContent } from "./partner-ad-content";
@@ -258,14 +257,32 @@ export function PartnerAdDialog({
       onAdClick(ad);
       return;
     }
-    const link =
+
+    /*
+     * The store link is preferred where there is one, falling back to the
+     * campaign's landing page.
+     *
+     * `??` alone was not enough: the CMS url fields save "" rather than null
+     * when an author leaves them blank, and "" is not nullish, so the
+     * fallback never ran and the tap opened nothing at all. The Ogwugo
+     * campaign is live in exactly that state — both store fields empty
+     * strings, a perfectly good website, and a dead call to action.
+     */
+    const firstUsable = (...candidates: (string | null | undefined)[]) =>
+      candidates.map((c) => c?.trim()).find((c) => Boolean(c));
+
+    const link = firstUsable(
       Platform.select({
         ios: ad?.links?.iosAppStore,
         android: ad?.links?.androidPlayStore,
-      }) ?? ad?.links?.website;
+      }),
+      ad?.links?.website
+    );
 
     if (link) {
-      Linking.openURL(link);
+      Linking.openURL(link).catch(() => {
+        // A malformed or unopenable URL should not take the app down.
+      });
     }
   }, [onAdClick, ad]);
 
