@@ -4,10 +4,12 @@ import {
 } from "@legendapp/list/react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CaretDownIcon } from "#/lib/icons";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, type TextInput, View } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import {
+  KeyboardChatScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 import CommentCard from "#/components/comment/CommentCard";
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
@@ -16,6 +18,7 @@ import { CommentBox } from "#/components/index";
 import { Image } from "#/components/ui";
 import useGetComments from "#/hooks/comments/useGetComments";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { CaretDownIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
 
@@ -88,6 +91,31 @@ const Comments = () => {
 
   const keyExtractor = useCallback((item) => item.id, []);
 
+  /*
+   * The composer sits between the list and the bottom of the screen, so the
+   * list only needs to move by (keyboardHeight - composerHeight) — that
+   * difference is what `offset` means here. Measured rather than guessed
+   * because the composer grows with multiline input.
+   */
+  const [composerHeight, setComposerHeight] = useState(0);
+
+  const renderScrollComponent = useCallback(
+    (props: object) => (
+      <KeyboardChatScrollView
+        {...props}
+        /*
+         * "always", not "whenAtEnd": comments are sorted newest-first, so the
+         * end of this list is the *oldest* comment. Lifting only at the end
+         * would mean the content never moves for anyone reading the newest
+         * comments, which is everyone.
+         */
+        keyboardLiftBehavior="always"
+        offset={composerHeight}
+      />
+    ),
+    [composerHeight]
+  );
+
   // if ((news.isError || isError) && isConnected) {
   //   return (
   //     <YStack flex={1} justifyContent="center" ai="center">
@@ -113,12 +141,9 @@ const Comments = () => {
       disableKeyboardAvoidingView
       statusBarStyle="auto"
     >
-      <KeyboardAvoidingView
-        behavior="padding"
-        // keyboardVerticalOffset={10}
-        style={{ flex: 1 }}
-      >
+      <View style={{ flex: 1 }}>
         <LegendList
+          contentContainerStyle={{ paddingBottom: composerHeight }}
           data={allPages}
           keyExtractor={keyExtractor}
           ListEmptyComponent={
@@ -166,10 +191,26 @@ const Comments = () => {
           recycleItems={false}
           refreshing={isRefetchingByUser}
           renderItem={renderItem}
+          renderScrollComponent={renderScrollComponent}
           showsVerticalScrollIndicator={false}
+          /*
+           * Explicit, because the custom scroll component below does not
+           * carry the implicit flex sizing LegendList gets from a plain
+           * ScrollView — without it the list measures 0 high and renders
+           * nothing at all.
+           */
+          style={{ flex: 1 }}
         />
-        <CommentBox inputRef={ref} newsId={newsId} newsSlug={newsSlug} />
-      </KeyboardAvoidingView>
+        <KeyboardStickyView>
+          <View
+            onLayout={(e) =>
+              setComposerHeight(Math.ceil(e.nativeEvent.layout.height))
+            }
+          >
+            <CommentBox inputRef={ref} newsId={newsId} newsSlug={newsSlug} />
+          </View>
+        </KeyboardStickyView>
+      </View>
     </Screen>
   );
 };
