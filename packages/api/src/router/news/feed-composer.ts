@@ -219,7 +219,9 @@ export class FeedComposer {
         }
 
         case "relatedNews": {
-          const taskContentForRelated = this.adManager.getPartnerContent();
+          const taskContentForRelated = data.relatedSeed
+            ? this.adManager.getSeededPartnerContent(data.relatedSeed)
+            : this.adManager.getPartnerContent();
           return buildRelatedNews(
             data.relatedNews,
             taskContentForRelated,
