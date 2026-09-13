@@ -4,6 +4,7 @@ import type { Payload } from "payload";
 import { withCache } from "../../lib/cache";
 import { type AdItem, buildGoogleAd, buildInHouseAd } from "./content-builders";
 import { fetchPartnerContent } from "./content-fetchers";
+import { createRandom, hashSeed } from "./seeded-random";
 
 export type AdConfig = {
   inHouseAdProbability: number;
@@ -127,6 +128,50 @@ export class AdManager {
    */
   getPartnerContent(): PartnerContent | undefined {
     return this.nextFromPool();
+  }
+
+  /**
+   * Picks partner content deterministically from a seed.
+   *
+   * The related-news block embeds a reward task, and that task has to be the
+   * same one every time the feed recomposes — otherwise one slot inside an
+   * otherwise-stable block keeps rotating, which is exactly the churn the
+   * seeding is meant to stop.
+   *
+   * Two deliberate differences from `getPartnerContent`:
+   *
+   * - It ignores the without-replacement draw state. `drawn` depends on how
+   *   many unseeded `pickAd` draws happened earlier in this compose, so a
+   *   seeded roll over the surviving candidates would still land somewhere
+   *   different each time. Share of voice still decides the pick, just over
+   *   the full eligible set. The cost is that this one slot can repeat an
+   *   item already used inline on the same page.
+   * - Candidates are ordered by id rather than pool order, so the pick
+   *   survives the pool being refetched (it is cached for only 5 minutes) in
+   *   a different order.
+   */
+  getSeededPartnerContent(seed: string): PartnerContent | undefined {
+    const candidates = this.eligible
+      .map((index) => this.pool[index] as PartnerContent)
+      .filter((item): item is PartnerContent => Boolean(item))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    let total = 0;
+    for (const candidate of candidates) {
+      total += weightOf(candidate);
+    }
+    if (total <= 0) {
+      return;
+    }
+
+    let roll = createRandom(hashSeed(`${seed}:task`))() * total;
+    for (const candidate of candidates) {
+      roll -= weightOf(candidate);
+      if (roll <= 0) {
+        return candidate;
+      }
+    }
+    return candidates.at(-1);
   }
 
   /**
