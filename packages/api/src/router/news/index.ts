@@ -283,6 +283,21 @@ const home = publicProcedure
     const limit = input?.limit || 12;
     const page = input?.page || 1;
 
+    /*
+     * Which related articles appear, in what order, and whether the block
+     * appears at all, all derive from this. Passive refetches (tab switch,
+     * app foreground, article-back) land on the same day bucket and so get
+     * the identical block back even when the 90s composed-feed cache has
+     * expired underneath them — previously that expiry reshuffled "People
+     * are also reading" while the articles around it stayed put, which is
+     * what a returning user actually notices. A deliberate pull-to-refresh
+     * sets forceRefresh and gets genuinely new picks, the same bargain the
+     * ad cache already makes.
+     */
+    const relatedSeed = input?.forceRefresh
+      ? `fresh:${Date.now()}`
+      : `day:${Math.floor(Date.now() / 86_400_000)}:${page}:${limit}`;
+
     const buildComposedFeed = async () => {
       // 1. Fetch main news, the heaviest query
       const news = await fetchMainNews({
@@ -294,7 +309,7 @@ const home = publicProcedure
 
       // 2. Fetch supporting data in parallel (lightweight, randomized per request)
       const [related, promotionMedia] = await Promise.all([
-        fetchRelatedNews({ payload, limit: 3 }),
+        fetchRelatedNews({ payload, limit: 3, seed: relatedSeed }),
         fetchPromoMedia({ payload, limit: 1 }),
       ]);
 
@@ -306,6 +321,7 @@ const home = publicProcedure
         mainNews: news.docs,
         relatedNews: related.docs,
         promotionMedia: promotionMedia.docs,
+        relatedSeed,
       };
 
       const composedFeed = composeFeed(

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-
 import type { News, PartnerContent } from "@news-spend-media/payload/types";
+import { createRandom, hashSeed, shuffleWith } from "./seeded-random";
 
 export type RelatedNewsItem = {
   _type: "relatedNews";
@@ -50,19 +50,20 @@ export type FeedItem =
  */
 export function buildRelatedNews(
   docs: News[],
-  randomTaskItem?: PartnerContent
+  randomTaskItem?: PartnerContent,
+  seed?: string
 ): RelatedNewsItem {
-  // console.log("buildRelatedNews called", docs);
+  const rng = seed ? createRandom(hashSeed(seed)) : Math.random;
 
   let shuffledDocs: (
     | News
     | PartnerContent
     | (PartnerContent & { _type: string })
-  )[] = docs.sort(() => Math.random() - 0.5);
+  )[] = shuffleWith(docs, rng);
 
   if (randomTaskItem) {
     // Insert randomTaskItem at a random position in the array
-    const insertIndex = Math.floor(Math.random() * (shuffledDocs.length + 1));
+    const insertIndex = Math.floor(rng() * (shuffledDocs.length + 1));
     shuffledDocs = [
       ...shuffledDocs.slice(0, insertIndex),
       { _type: "rewardTask", ...randomTaskItem },
@@ -72,7 +73,16 @@ export function buildRelatedNews(
 
   return {
     _type: "relatedNews",
-    id: `related-${randomUUID()}`,
+    /*
+     * Derived from the seed, not a fresh UUID. The client keys feed rows by
+     * this id, so a new one on every recompose made LegendList tear the row
+     * down and mount a replacement — the visible "related news changed"
+     * even when the articles inside it were identical. A stable id lets the
+     * row update in place.
+     */
+    id: seed
+      ? `related-${hashSeed(seed).toString(36)}`
+      : `related-${randomUUID()}`,
     data: shuffledDocs,
   };
 }
