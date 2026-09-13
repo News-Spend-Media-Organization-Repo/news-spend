@@ -17,6 +17,7 @@ import {
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CommentCard from "#/components/comment/CommentCard";
+import { CommentEditScrim } from "#/components/comment/CommentEditScrim";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
@@ -300,6 +301,8 @@ const Comments = () => {
            */
           style={{ flex: 1 }}
         />
+
+        <CommentEditScrim />
 
         <View className="h-px bg-[#ECECEE]" />
         {/*

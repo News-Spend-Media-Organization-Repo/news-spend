@@ -21,6 +21,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
+import { CommentEditScrim } from "#/components/comment/CommentEditScrim";
 import { HighlightedReply } from "#/components/comment/HighlightedReply";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
@@ -325,6 +326,8 @@ function CommentReplies() {
           showsVerticalScrollIndicator={false}
           style={{ flex: 1 }}
         />
+
+        <CommentEditScrim />
 
         <View className="h-px bg-[#ECECEE]" />
         {/*

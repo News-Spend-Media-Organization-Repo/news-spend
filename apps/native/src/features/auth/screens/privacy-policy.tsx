@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { useHasNavigationHeader } from "#/hooks/useNavigationHeader";
 import { ArrowLeftIcon } from "#/lib/icons";
 
 const privacyPolicyContent = [
@@ -79,17 +80,24 @@ const privacyPolicyContent = [
 
 const PrivacyPolicy = () => {
   const navigation = useNavigation("PrivacyPolicy");
+  const hasHeader = useHasNavigationHeader();
 
   return (
     <Screen
       className="px-5"
       contentContainerClassName="gap-6 py-4"
       preset="scroll"
-      safeAreaEdges={["bottom"]}
+      safeAreaEdges={hasHeader ? ["bottom"] : ["top", "bottom"]}
+      statusBarStyle={hasHeader ? "light" : "auto"}
     >
-      <Pressable hitSlop={10} onPress={() => navigation.goBack()}>
-        <Icon className="size-6" name={ArrowLeftIcon} />
-      </Pressable>
+      {/* This screen is registered in the auth stack (no header) and in the
+          settings stack (dark header, own back). Rendering our own back
+          under that header gave two of them. */}
+      {!hasHeader && (
+        <Pressable hitSlop={10} onPress={() => navigation.goBack()}>
+          <Icon className="size-6" name={ArrowLeftIcon} />
+        </Pressable>
+      )}
       <Text variant="HeadingMedium">Privacy Policy</Text>
       {privacyPolicyContent.map((section) => (
         <View className="gap-2" key={section.title}>

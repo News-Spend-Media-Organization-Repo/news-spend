@@ -240,24 +240,31 @@ export const CommentBox = ({
         </>
       )}
 
-      {/* A line of type and a word, not a pill with a circular button. The
-          composer should read as part of the page until you tap it. */}
-      <View className="flex-row items-center gap-3.5 px-5 py-3.5">
-        <TextInput
-          autoFocus={isEdit}
-          className="flex-1 text-[15px] text-foreground"
-          multiline
-          onChangeText={setDraft}
-          placeholder={placeholder}
-          placeholderTextColor="#A1A1AA"
-          ref={inputRef as never}
-          style={{ maxHeight: 120, paddingTop: 0, paddingBottom: 0 }}
-          value={draft}
-        />
+      {/* A soft field rather than a bare line — enough edge to read as
+          tappable — but no pill button or circular send icon. */}
+      <View className="flex-row items-end gap-3 px-4 py-2.5">
+        <View className="min-h-10 flex-1 justify-center rounded-[20px] bg-background px-4 py-2">
+          <TextInput
+            autoFocus={isEdit}
+            className="text-[15px] text-foreground"
+            multiline
+            onChangeText={setDraft}
+            placeholder={placeholder}
+            placeholderTextColor="#A1A1AA"
+            ref={inputRef as never}
+            style={{ maxHeight: 120, paddingTop: 0, paddingBottom: 0 }}
+            value={draft}
+          />
+        </View>
         {isPending ? (
-          <ActivityIndicator color="#A1A1AA" size="small" />
+          <View className="h-10 justify-center">
+            <ActivityIndicator color="#A1A1AA" size="small" />
+          </View>
         ) : (
           <Pressable
+            accessibilityLabel={isEdit ? "Save comment" : "Post comment"}
+            accessibilityRole="button"
+            className="h-10 justify-center"
             disabled={!draft}
             hitSlop={12}
             onPress={isEdit ? handleSave : handlePost}
@@ -277,23 +284,8 @@ export const CommentBox = ({
     </View>
   );
 
-  if (isEdit) {
-    return (
-      <>
-        {/* Absolutely positioned so it dims the screen without pulling
-            composerContent out of the KeyboardAvoidingView's flex flow,
-            because composerContent must stay a normal flex child (like the
-            new-comment case) so it still gets pushed up above the
-            keyboard. */}
-        <Pressable
-          className="absolute inset-0"
-          onPress={handleCancel}
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        />
-        {composerContent}
-      </>
-    );
-  }
-
+  // The edit scrim lives on the screen (CommentEditScrim), not here: inside
+  // the composer's keyboard wrapper an absolute inset-0 covers only the
+  // composer, so it dimmed nothing.
   return composerContent;
 };
