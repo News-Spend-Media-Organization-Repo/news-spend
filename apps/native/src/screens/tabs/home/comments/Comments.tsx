@@ -15,6 +15,7 @@ import {
   KeyboardChatScrollView,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CommentCard from "#/components/comment/CommentCard";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
@@ -78,6 +79,7 @@ const Comments = () => {
       },
     })
   );
+  const insets = useSafeAreaInsets();
   const [sort, setSort] = useState<CommentSort>("recent");
   const [menuOpen, setMenuOpen] = useState(false);
   const {
@@ -170,7 +172,7 @@ const Comments = () => {
 
   return (
     <Screen
-      contentContainerClassName="py-safe"
+      contentContainerClassName="pt-safe"
       disableKeyboardAvoidingView
       statusBarStyle="auto"
     >
@@ -300,11 +302,21 @@ const Comments = () => {
         />
 
         <View className="h-px bg-[#ECECEE]" />
-        <KeyboardStickyView>
+        {/*
+          The bottom safe-area inset lives on the composer, not on Screen.
+          As Screen padding it was a transparent strip *below* the composer:
+          the keyboard lifted the composer off it, leaving a gap above the
+          keyboard and a window the list scrolled through. Owning it here
+          keeps the strip opaque and part of the composer, and the `opened`
+          offset drops it behind the keyboard so the input sits flush.
+        */}
+        <KeyboardStickyView offset={{ closed: 0, opened: insets.bottom }}>
           <View
+            className="bg-surface"
             onLayout={(e) =>
               setComposerHeight(Math.ceil(e.nativeEvent.layout.height))
             }
+            style={{ paddingBottom: insets.bottom }}
           >
             <CommentBox inputRef={ref} newsId={newsId} newsSlug={newsSlug} />
           </View>
