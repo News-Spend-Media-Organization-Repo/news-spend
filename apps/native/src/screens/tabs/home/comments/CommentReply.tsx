@@ -1,26 +1,57 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNetInfo } from "@react-native-community/netinfo";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   type InfiniteData,
   useInfiniteQuery,
   useQueries,
 } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
-import { ActivityIndicator, type TextInput, View } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { formatDistanceToNowStrict } from "date-fns/formatDistanceToNowStrict";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  type TextInput,
+  View,
+} from "react-native";
+import {
+  KeyboardChatScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 import { CommentBox } from "#/components/CommentBox";
 import CommentCard from "#/components/comment/CommentCard";
 import { HighlightedReply } from "#/components/comment/HighlightedReply";
-import Reply from "#/components/comment/Reply";
-
+import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import CommentsMenuSheet from "#/components/sheets/CommentsMenuSheet";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import {
+  CaretLeftIcon,
+  DotsThreeVerticalIcon,
+  HeartStraightIcon,
+} from "#/lib/icons";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+import { startReply } from "#/state/commentState";
+
+const ThreadSeparator = () => <View className="h-px bg-[#ECECEE]" />;
 
 function CommentReplies() {
+  const navigation = useNavigation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [composerHeight, setComposerHeight] = useState(0);
+  const renderScrollComponent = useCallback(
+    (props: object) => (
+      <KeyboardChatScrollView
+        {...props}
+        keyboardLiftBehavior="always"
+        offset={composerHeight}
+      />
+    ),
+    [composerHeight]
+  );
+
   const { commentId, highlightCommentId, ...rest } = useRoute("CommentReply")
     .params as {
     commentId: string;
@@ -159,58 +190,158 @@ function CommentReplies() {
     );
   }
 
+  const parentUser = typeof data.user === "object" ? data.user : null;
+  const parentName = parentUser?.username
+    ? parentUser.username.charAt(0).toUpperCase() + parentUser.username.slice(1)
+    : "User";
+  const replyCount = data.totalReplies ?? allPages.length;
+
   return (
     <Screen
       contentContainerClassName="py-safe"
       disableKeyboardAvoidingView
       statusBarStyle="auto"
     >
-      <KeyboardAvoidingView
-        behavior="padding"
-        // keyboardVerticalOffset={50}
-        style={{ flex: 1 }}
-      >
+      <View style={{ flex: 1 }}>
+        <View className="flex-row items-center justify-between px-4 py-1.5">
+          <Pressable
+            accessibilityLabel="Back"
+            accessibilityRole="button"
+            hitSlop={14}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon color="#18181B" name={CaretLeftIcon} size={22} />
+          </Pressable>
+          <Pressable
+            accessibilityLabel="More options"
+            accessibilityRole="button"
+            hitSlop={14}
+            onPress={() => setMenuOpen(true)}
+          >
+            <Icon color="#18181B" name={DotsThreeVerticalIcon} size={20} />
+          </Pressable>
+        </View>
+
+        <View className="gap-1.5 px-5 pt-1.5 pb-4">
+          <Text className="font-bold text-[30px] text-foreground leading-[34px]">
+            Replies
+          </Text>
+          <Text className="text-[#71717A] text-[13px]">
+            to {parentName} · {replyCount}{" "}
+            {replyCount === 1 ? "reply" : "replies"}
+          </Text>
+        </View>
+
+        {/* The comment being replied to, quoted behind a rule rather than
+            boxed — it is context, not another row in the list. */}
+        <View className="flex-row gap-3.5 px-5 pb-4">
+          <View className="w-0.5 rounded-full bg-s-300" />
+          <View className="flex-1 gap-1.5">
+            <View className="flex-row items-center gap-2">
+              <Text className="font-bold text-[15px] text-foreground">
+                {parentName}
+              </Text>
+              <Text className="text-[#A1A1AA] text-xs">
+                {formatDistanceToNowStrict(new Date(data.createdAt), {
+                  addSuffix: true,
+                })}
+              </Text>
+            </View>
+            <Text className="text-[15px] text-foreground leading-[23px]">
+              {data.text}
+            </Text>
+            <View className="flex-row items-center gap-1.5 pt-0.5">
+              <Icon
+                color={data.userReaction === "like" ? "#ECB365" : "#A1A1AA"}
+                name={HeartStraightIcon}
+                size={15}
+                weight={data.userReaction === "like" ? "fill" : "regular"}
+              />
+              <Text className="text-[#71717A] text-xs">
+                {data.likesCount ?? 0}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="flex-row items-center gap-3 px-5 pb-1">
+          <View className="h-px flex-1 bg-[#ECECEE]" />
+          <Text className="font-bold text-[#A1A1AA] text-[10px] tracking-wider">
+            {replyCount} {replyCount === 1 ? "REPLY" : "REPLIES"}
+          </Text>
+          <View className="h-px flex-1 bg-[#ECECEE]" />
+        </View>
+
         <LegendList
+          contentContainerStyle={{ paddingBottom: composerHeight + 8 }}
           data={allPages}
+          ItemSeparatorComponent={ThreadSeparator}
           keyExtractor={(item) => (typeof item === "string" ? item : item.id)}
           ListEmptyComponent={
             replies.isLoading ? (
-              <ActivityIndicator />
+              <View className="py-6">
+                <ActivityIndicator />
+              </View>
             ) : showHighlight ? null : (
-              <View className="flex-1 items-center justify-center">
-                <Text>No replies yet</Text>
+              <View className="items-center py-10">
+                <Text className="text-[#71717A] text-sm">No replies yet</Text>
               </View>
             )
           }
           ListFooterComponent={
-            replies.isFetchingNextPage ? <ActivityIndicator /> : null
+            replies.isFetchingNextPage ? (
+              <View className="py-4">
+                <ActivityIndicator />
+              </View>
+            ) : null
           }
           ListHeaderComponent={
-            <>
-              <CommentCard comment={data} ref={ref} />
-              {showHighlight && highlightedCommentQuery.data ? (
-                <HighlightedReply
-                  comment={highlightedCommentQuery.data}
-                  inputRef={ref}
-                />
-              ) : null}
-            </>
+            showHighlight && highlightedCommentQuery.data ? (
+              <HighlightedReply
+                comment={highlightedCommentQuery.data}
+                inputRef={ref}
+              />
+            ) : null
           }
-          ListHeaderComponentStyle={{ marginVertical: 15 }}
-          // showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           onRefresh={refetchByUser}
           recycleItems={false}
           refreshing={isRefetchingByUser && !replies.isFetchingNextPage}
-          renderItem={({ item }) => <Reply comment={item} ref={ref} />}
-          // ItemSeparatorComponent={() => <Stack h={15} />}
+          renderItem={({ item }) => (
+            <CommentCard
+              comment={item}
+              onReplyPress={() => {
+                startReply(item, data);
+                ref.current?.focus();
+              }}
+              parentId={commentId}
+              variant="thread"
+            />
+          )}
+          renderScrollComponent={renderScrollComponent}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
         />
-        <CommentBox
-          inputRef={ref}
-          newsId={typeof data?.news === "string" ? data?.news : data?.news?.id}
-        />
-      </KeyboardAvoidingView>
+
+        <View className="h-px bg-[#ECECEE]" />
+        <KeyboardStickyView>
+          <View
+            onLayout={(e) =>
+              setComposerHeight(Math.ceil(e.nativeEvent.layout.height))
+            }
+          >
+            <CommentBox
+              inputRef={ref}
+              newsId={
+                typeof data?.news === "string" ? data?.news : data?.news?.id
+              }
+            />
+          </View>
+        </KeyboardStickyView>
+      </View>
+
+      <CommentsMenuSheet onOpenChange={setMenuOpen} open={menuOpen} />
     </Screen>
   );
 }

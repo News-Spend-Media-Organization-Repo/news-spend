@@ -1,16 +1,8 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { InputGroup } from "heroui-native/input-group";
 import { Separator } from "heroui-native/separator";
-import { PaperPlaneTiltIcon, XIcon } from "#/lib/icons";
 import { type RefObject, useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  type TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { useSnapshot } from "valtio";
-
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { toast } from "#/components/heroui/toast";
@@ -18,6 +10,7 @@ import useUpdateComment from "#/hooks/comments/useUpdateComment";
 import { useCreateComment } from "#/hooks/news";
 import { useKeyboardDismiss } from "#/hooks/use-keyboard-dismiss";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { XIcon } from "#/lib/icons";
 import { authState } from "#/state/auth";
 import {
   commentState,
@@ -28,7 +21,6 @@ import {
 } from "#/state/commentState";
 import { apiErrorMessage } from "#/utils/apiErrorMessage";
 import { getUsername, isRefObject } from "#/utils/comment-utils";
-import { Button } from "./heroui/button";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -232,7 +224,7 @@ export const CommentBox = ({
   // ---------------------------------------------------------------------------
 
   const composerContent = (
-    <View className="w-full bg-background">
+    <View className="w-full bg-surface">
       {isReply && (
         <ReplyChip onDismiss={handleCancel} username={targetUsername} />
       )}
@@ -248,35 +240,39 @@ export const CommentBox = ({
         </>
       )}
 
-      <View className="gap-2.5 px-2.5 pt-2 pb-2">
-        <InputGroup>
-          <InputGroup.Input
-            autoFocus={isEdit}
-            className="rounded-lg align-top text-base"
-            multiline
-            numberOfLines={4}
-            onChangeText={setDraft}
-            placeholder={placeholder}
-            placeholderTextColorClassName="accent-gray-400"
-            ref={inputRef as never}
-            selectionColorClassName="accent-gray-400"
-            value={draft}
-          />
-          <InputGroup.Suffix>
-            <Button
-              hitSlop={20}
-              isDisabled={!draft}
-              onPress={isEdit ? handleSave : handlePost}
-              size="sm"
+      {/* A line of type and a word, not a pill with a circular button. The
+          composer should read as part of the page until you tap it. */}
+      <View className="flex-row items-center gap-3.5 px-5 py-3.5">
+        <TextInput
+          autoFocus={isEdit}
+          className="flex-1 text-[15px] text-foreground"
+          multiline
+          onChangeText={setDraft}
+          placeholder={placeholder}
+          placeholderTextColor="#A1A1AA"
+          ref={inputRef as never}
+          style={{ maxHeight: 120, paddingTop: 0, paddingBottom: 0 }}
+          value={draft}
+        />
+        {isPending ? (
+          <ActivityIndicator color="#A1A1AA" size="small" />
+        ) : (
+          <Pressable
+            disabled={!draft}
+            hitSlop={12}
+            onPress={isEdit ? handleSave : handlePost}
+          >
+            <Text
+              className={
+                draft
+                  ? "font-bold text-[15px] text-p-500"
+                  : "font-bold text-[#A1A1AA] text-[15px]"
+              }
             >
-              {isPending ? (
-                <ActivityIndicator color="#888" size="small" />
-              ) : (
-                <Icon color="white" name={PaperPlaneTiltIcon} size={20} />
-              )}
-            </Button>
-          </InputGroup.Suffix>
-        </InputGroup>
+              {isEdit ? "Save" : "Post"}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
