@@ -35,6 +35,8 @@ const allCommentsInput = z.object({
   limit: z.number().min(1).max(100).nullish().default(10),
   newsId: z.string(),
   parentId: z.string().optional(),
+  /** Ordering for top-level comments. Replies are always chronological. */
+  sort: z.enum(["recent", "top"]).nullish().default("recent"),
 });
 
 // Types
@@ -143,13 +145,16 @@ const allComments = publicProcedure
       collection: "comments",
       where,
       /*
-       * Top-level comments are newest-first, the usual "what's being said
-       * now" ordering. Replies are oldest-first: a thread is a conversation
-       * and reads from the start, and it has to match the inline preview on
-       * the list screen - otherwise the two replies shown under a comment
-       * are not the two at the top of the thread you land on.
+       * Replies are always oldest-first: a thread is a conversation and
+       * reads from the start, and it has to match the inline preview on the
+       * list screen - otherwise the two replies shown under a comment are
+       * not the two at the top of the thread you land on.
+       *
+       * Top-level comments default to newest-first. "top" orders by
+       * likesCount, with recency breaking ties so a wall of zero-like
+       * comments still reads newest-first rather than arbitrarily.
        */
-      sort: input.parentId ? "createdAt" : "-createdAt",
+      sort: replySort(input),
       limit: input.limit || 10,
       page: input.page || 1,
       depth: 0,
@@ -296,6 +301,17 @@ async function fetchPreviewReplies({
   }
 
   return byParent;
+}
+
+/** Ordering for a comment list request. Replies ignore `sort` by design. */
+function replySort(input: {
+  parentId?: string;
+  sort?: "recent" | "top" | null;
+}) {
+  if (input.parentId) {
+    return "createdAt";
+  }
+  return input.sort === "top" ? ["-likesCount", "-createdAt"] : "-createdAt";
 }
 
 const getComment = publicProcedure
