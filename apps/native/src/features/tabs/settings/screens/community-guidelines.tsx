@@ -100,7 +100,7 @@ const CommunityGuidelines = () => (
     className="px-5"
     contentContainerClassName="gap-6 py-4"
     preset="scroll"
-    safeAreaEdges={["bottom"]}
+    safeAreaEdges={["top", "bottom"]}
   >
     <Text variant="HeadingMedium">Community Guidelines</Text>
     {communityGuidelinesContent.map((section) => (

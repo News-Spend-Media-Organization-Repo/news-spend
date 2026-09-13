@@ -1,14 +1,12 @@
 import { useNavigation } from "@react-navigation/native";
 import { useMutation } from "@tanstack/react-query";
-import { DotsThreeVerticalIcon } from "#/lib/icons";
 import React from "react";
-import { Alert } from "react-native";
-
-import { Button } from "#/components/heroui/button";
+import { Alert, Pressable, View } from "react-native";
 import { Icon } from "#/components/heroui/icon";
 import { toast } from "#/components/heroui/toast";
 import CommentOptionSheet from "#/components/sheets/CommentOptionSheet";
 import PostReportSheet from "#/components/sheets/PostReportSheet";
+import { DotsThreeVerticalIcon } from "#/lib/icons";
 import type { RouterOutputs } from "#/lib/orpc";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
@@ -180,37 +178,42 @@ export function CommentOptionPopover({ comment }: { comment: Comment }) {
 
   return (
     <>
-      <Button
-        className="p-1"
-        hitSlop={8}
+      <Pressable
+        accessibilityLabel="Comment options"
+        accessibilityRole="button"
+        hitSlop={12}
         onPress={() => setOpen(true)}
-        variant="ghost"
       >
-        <Icon name={DotsThreeVerticalIcon} size={24} />
-      </Button>
+        <Icon color="#A1A1AA" name={DotsThreeVerticalIcon} size={18} />
+      </Pressable>
 
-      <CommentOptionSheet
-        comment={comment}
-        onBlock={handleBlock}
-        onOpenChange={setOpen}
-        onReport={() => {
-          if (!requireAccount()) {
-            return;
-          }
-          setOpen(false);
-          setShowReportSheet(true);
-        }}
-        open={open}
-      />
+      {/* Out of the layout flow: rendered as siblings of the trigger these
+          contributed width to the row they sit in, pushing the trigger ~20pt
+          in from the card's edge. */}
+      <View style={{ position: "absolute" }}>
+        <CommentOptionSheet
+          comment={comment}
+          onBlock={handleBlock}
+          onOpenChange={setOpen}
+          onReport={() => {
+            if (!requireAccount()) {
+              return;
+            }
+            setOpen(false);
+            setShowReportSheet(true);
+          }}
+          open={open}
+        />
 
-      <PostReportSheet
-        commentUserId={commentUserId}
-        commentUsername={commentUsername}
-        onOpenChange={setShowReportSheet}
-        open={showReportSheet}
-        postId={comment.id}
-        relationTo="comments"
-      />
+        <PostReportSheet
+          commentUserId={commentUserId}
+          commentUsername={commentUsername}
+          onOpenChange={setShowReportSheet}
+          open={showReportSheet}
+          postId={comment.id}
+          relationTo="comments"
+        />
+      </View>
     </>
   );
 }
