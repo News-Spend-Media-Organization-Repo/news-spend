@@ -4,23 +4,47 @@ import {
 } from "@legendapp/list/react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, type TextInput, View } from "react-native";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  type TextInput,
+  View,
+} from "react-native";
 import {
   KeyboardChatScrollView,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import CommentCard from "#/components/comment/CommentCard";
 import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { CommentBox } from "#/components/index";
-import { Image } from "#/components/ui";
-import useGetComments from "#/hooks/comments/useGetComments";
+import CommentsMenuSheet from "#/components/sheets/CommentsMenuSheet";
+import useGetComments, {
+  type CommentSort,
+} from "#/hooks/comments/useGetComments";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
-import { CaretDownIcon } from "#/lib/icons";
+import { CaretDownIcon, ChatIcon, DotsThreeVerticalIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
-import { getImageData } from "#/utils/getImageData";
+
+const HairlineSeparator = memo(() => <View className="h-px bg-[#ECECEE]" />);
+HairlineSeparator.displayName = "HairlineSeparator";
+
+/** Quiet empty state: one glyph, two lines, a text link. No card, no tips box. */
+const CommentsEmptyState = memo(() => (
+  <View className="items-center gap-2.5 px-10 pt-24">
+    <Icon color="#DEDEE0" name={ChatIcon} size={34} />
+    <Text className="font-bold text-[22px] text-foreground">
+      Nothing here yet
+    </Text>
+    <Text className="text-center text-[#71717A] text-sm leading-[21px]">
+      Be the first to share what you think about this story.
+    </Text>
+  </View>
+));
+CommentsEmptyState.displayName = "CommentsEmptyState";
 
 const Comments = () => {
   const queryClient = useQueryClient();
@@ -54,8 +78,16 @@ const Comments = () => {
       },
     })
   );
-  const { data, fetchNextPage, isFetchingNextPage, hasNextPage, refetch } =
-    useGetComments(newsId ?? "", false);
+  const [sort, setSort] = useState<CommentSort>("recent");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const {
+    data,
+    fetchNextPage,
+    isFetchingNextPage,
+    hasNextPage,
+    isPending: commentsPending,
+    refetch,
+  } = useGetComments(newsId ?? "", false, sort);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
@@ -133,7 +165,8 @@ const Comments = () => {
   }
 
   const allPages = data?.pages.flatMap((page) => page.docs) || [];
-  const { url, blurhash } = getImageData(news.data?.image);
+
+  const total = news.data?.totalComments ?? allPages.length;
 
   return (
     <Screen
@@ -142,48 +175,113 @@ const Comments = () => {
       statusBarStyle="auto"
     >
       <View style={{ flex: 1 }}>
+        {/* Fixed chrome. In this layout the title block stays put and only
+            the list scrolls, so the sort control is always reachable. */}
+        <View className="flex-row items-center justify-between px-4 py-1.5">
+          <Button
+            hitSlop={14}
+            onPress={() => navigation.goBack()}
+            size="sm"
+            variant="ghost"
+          >
+            <CaretDownIcon size={22} />
+          </Button>
+          <Button
+            hitSlop={14}
+            onPress={() => setMenuOpen(true)}
+            size="sm"
+            variant="ghost"
+          >
+            <DotsThreeVerticalIcon size={20} />
+          </Button>
+        </View>
+
+        <View className="gap-1.5 px-5 pt-1.5 pb-4">
+          <Text className="font-bold text-[30px] text-foreground leading-[34px]">
+            Comments
+          </Text>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3.5">
+              <Pressable
+                accessibilityLabel="Sort by newest"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={() => setSort("recent")}
+              >
+                <Text
+                  className={
+                    sort === "recent"
+                      ? "font-bold text-[13px] text-foreground"
+                      : "text-[#A1A1AA] text-[13px]"
+                  }
+                >
+                  Newest
+                </Text>
+              </Pressable>
+              <View className="size-[3px] rounded-full bg-border" />
+              <Pressable
+                accessibilityLabel="Sort by top"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={() => setSort("top")}
+              >
+                <Text
+                  className={
+                    sort === "top"
+                      ? "font-bold text-[13px] text-foreground"
+                      : "text-[#A1A1AA] text-[13px]"
+                  }
+                >
+                  Top
+                </Text>
+              </Pressable>
+            </View>
+            <Text className="text-[#A1A1AA] text-xs">
+              {total} {total === 1 ? "comment" : "comments"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Article context as a rule and two lines rather than a card — the
+            reader already knows what they tapped from. */}
+        <Pressable
+          className="flex-row gap-3 px-5 pb-4"
+          onPress={() => navigation.goBack()}
+        >
+          <View className="w-0.5 rounded-full bg-s-300" />
+          <View className="flex-1 gap-0.5">
+            <Text className="font-bold text-[#71717A] text-[10px] tracking-wide">
+              {typeof news.data?.category === "object"
+                ? news.data?.category?.title?.toUpperCase()
+                : null}
+            </Text>
+            <Text
+              className="font-medium text-[#3F3F46] text-[13px] leading-[18px]"
+              numberOfLines={2}
+            >
+              {news.data?.title}
+            </Text>
+          </View>
+        </Pressable>
+
+        <View className="h-px bg-[#ECECEE]" />
+
         <LegendList
           contentContainerStyle={{ paddingBottom: composerHeight }}
           data={allPages}
+          ItemSeparatorComponent={HairlineSeparator}
           keyExtractor={keyExtractor}
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center">
-              <Text>No comments yet</Text>
-            </View>
+            commentsPending || isFetchingNextPage ? null : (
+              <CommentsEmptyState />
+            )
           }
           ListFooterComponent={
-            isFetchingNextPage ? <ActivityIndicator /> : null
-          }
-          ListHeaderComponent={
-            <View className="mb-6 gap-3">
-              <View className="flex-row items-center px-2">
-                <Button
-                  hitSlop={14}
-                  onPress={() => navigation.goBack()}
-                  size="sm"
-                  variant="ghost"
-                >
-                  <CaretDownIcon size={20} />
-                </Button>
-                <Image
-                  className="h-full w-15 rounded-[10px]"
-                  contentFit="cover"
-                  placeholder={{
-                    blurhash,
-                  }}
-                  source={url}
-                />
-                <View className="flex-1 self-start px-2.5">
-                  <Text className="font-semibold leading-4.5" numberOfLines={3}>
-                    {news.data?.title}
-                  </Text>
-                </View>
+            isFetchingNextPage ? (
+              <View className="py-4">
+                <ActivityIndicator />
               </View>
-
-              <Text className="mt-2 pl-4 font-normal text-lg">
-                Comments ({allPages?.length ?? 0})
-              </Text>
-            </View>
+            ) : null
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
@@ -194,13 +292,14 @@ const Comments = () => {
           renderScrollComponent={renderScrollComponent}
           showsVerticalScrollIndicator={false}
           /*
-           * Explicit, because the custom scroll component below does not
-           * carry the implicit flex sizing LegendList gets from a plain
-           * ScrollView — without it the list measures 0 high and renders
-           * nothing at all.
+           * Explicit, because the custom scroll component does not carry the
+           * implicit flex sizing LegendList gets from a plain ScrollView —
+           * without it the list measures 0 high and renders nothing at all.
            */
           style={{ flex: 1 }}
         />
+
+        <View className="h-px bg-[#ECECEE]" />
         <KeyboardStickyView>
           <View
             onLayout={(e) =>
@@ -211,6 +310,8 @@ const Comments = () => {
           </View>
         </KeyboardStickyView>
       </View>
+
+      <CommentsMenuSheet onOpenChange={setMenuOpen} open={menuOpen} />
     </Screen>
   );
 };
