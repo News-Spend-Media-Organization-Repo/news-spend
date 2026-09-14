@@ -47,11 +47,29 @@ export async function admobSsvHandler(req: Request): Promise<Response> {
 
     /*
      * Failed verification on its own terms — a bad signature, a stale replay,
-     * a missing parameter. Refused flatly, and without saying which check
-     * failed: an unauthenticated caller probing this should not be handed a
-     * description of the lock.
+     * a missing parameter. Nothing is credited, and the answer is still 200.
+     *
+     * Two reasons, and neither is leniency. A signature that did not verify
+     * will not verify on the tenth attempt either, so this is exactly the
+     * "refusal we are sure of" that the status codes above exist to end: a
+     * 4xx would have Google redeliver a forged or malformed callback
+     * indefinitely. And AdMob will not accept a callback URL at all unless it
+     * answers 2xx to the console's own unsigned verification ping, so a 403
+     * here is not a strict endpoint — it is an endpoint that cannot be
+     * configured, and a Boost nobody can earn.
+     *
+     * Refusing is still the security boundary; the status code never was.
+     * Nothing below this branch runs, so no Boost is written and no database
+     * connection is opened. The body stays neutral rather than naming the
+     * check that failed, so a caller probing this is not handed a description
+     * of the lock, and the reason goes to our logs instead — a run of
+     * bad_signature is worth being able to see.
      */
-    return json({ message: "Unauthorized" }, 403);
+    console.warn("[admob-ssv] callback rejected", {
+      reason: verification.reason,
+    });
+
+    return json({ message: "Acknowledged", credited: false }, 200);
   }
 
   /*
