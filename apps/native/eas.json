@@ -56,7 +56,8 @@
       },
       "channel": "production",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.newsspend.com"
       }
     },
     "adsSimulatorCheck": {
