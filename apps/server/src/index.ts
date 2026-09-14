@@ -1,4 +1,5 @@
 import { createContext } from "@news-spend-media/api/context";
+import { admobSsvHandler } from "@news-spend-media/api/router/ads/admobSsv";
 import { router } from "@news-spend-media/api/router/index";
 import { diditWebhookHandler } from "@news-spend-media/api/router/verification/webhook";
 import { auth } from "@news-spend-media/auth";
@@ -414,6 +415,19 @@ const server = Bun.serve({
     if (url.pathname === "/api/verification/didit") {
       logRequest(req);
       return diditWebhookHandler(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    // Also ahead of the /api/ catch-all, and for the same reason as Didit
+    // above: Google signs the query string exactly as sent, and it must not be
+    // re-parsed on the way in. It stays outside the oRPC handler's shared
+    // rate-limit bucket too — Google chooses the call rate, and a limiter here
+    // would silently drop Boosts people earned.
+    if (url.pathname === "/api/ads/admob-ssv") {
+      logRequest(req);
+      return admobSsvHandler(req).then((res) => {
         logResponse(req, res.status, Date.now() - start);
         return res;
       });
