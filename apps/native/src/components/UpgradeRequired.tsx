@@ -12,7 +12,7 @@ import { upgradeState } from "#/state/upgrade";
  * for "Rate app", kept identical so there is one answer to "which listing".
  */
 const STORE_URL = Platform.select({
-  ios: "https://apps.apple.com/us/app/news-spend/id1550745257",
+  ios: "https://apps.apple.com/app/id6776046600",
   android: "market://details?id=com.newsspend.app",
 });
 
