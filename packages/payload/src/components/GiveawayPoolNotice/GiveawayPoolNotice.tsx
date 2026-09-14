@@ -1,6 +1,6 @@
 "use client";
 
-import { useDocumentInfo, useFormFields } from "@payloadcms/ui";
+import { Banner, useDocumentInfo, useFormFields } from "@payloadcms/ui";
 import type { UIFieldClientComponent } from "payload";
 import { useEffect, useState } from "react";
 
@@ -25,7 +25,7 @@ type PoolNotice = {
  * Shows what would refuse the draw (no prizes, an enabled tier with an empty
  * pool, bad unit counts) and what would merely thin it (fewer pooled units
  * than the percentages could award at the current headcount). Advisory only:
- * a fetch failure hides the notice rather than blocking the form.
+ * a fetch failure shows a soft error rather than blocking the form.
  */
 export const GiveawayPoolNotice: UIFieldClientComponent = () => {
   const { id } = useDocumentInfo();
@@ -34,6 +34,7 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
   );
 
   const [notice, setNotice] = useState<PoolNotice | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -45,15 +46,22 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
     fetch(`/api/giveaways/${id}/pool-notice`, { credentials: "include" })
       .then(async (res) => {
         if (!res.ok) {
-          return;
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.message ?? `HTTP ${res.status}`);
         }
         const body = (await res.json()) as PoolNotice;
         if (!cancelled) {
           setNotice(body);
         }
       })
-      .catch(() => {
-        // Intentionally hidden: the notice is advisory, never blocking.
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setFetchError(
+            err instanceof Error
+              ? err.message
+              : "Could not load prize pool info"
+          );
+        }
       });
 
     return () => {
@@ -61,65 +69,56 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
     };
   }, [id]);
 
-  if (!id || status === "completed" || status === "cancelled" || !notice) {
+  // Still loading or hidden states
+  if (!id || status === "completed" || status === "cancelled") {
+    return null;
+  }
+
+  // Fetch failed — show a soft error banner
+  if (fetchError) {
+    return (
+      <Banner type="info">Prize pool info unavailable: {fetchError}</Banner>
+    );
+  }
+
+  // Still loading
+  if (!notice) {
     return null;
   }
 
   if (notice.errors.length > 0) {
     return (
-      <div
-        style={{
-          background: "#fdecea",
-          border: "1px solid #f5c6cb",
-          borderRadius: 4,
-          padding: "12px 16px",
-        }}
-      >
-        <p style={{ margin: "0 0 8px", fontWeight: 600 }}>
+      <Banner type="error">
+        <strong>
           This draw cannot run yet ({notice.participants} participant
           {notice.participants === 1 ? "" : "s"} so far):
-        </p>
-        <ul style={{ margin: 0, paddingLeft: 20 }}>
-          {notice.errors.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
-        </ul>
-      </div>
+        </strong>{" "}
+        {notice.errors.join(" ")}
+      </Banner>
     );
   }
 
   if (notice.warnings.length > 0) {
     return (
-      <div
-        style={{
-          background: "#fff8e1",
-          border: "1px solid #ffe082",
-          borderRadius: 4,
-          padding: "12px 16px",
-        }}
-      >
-        <p style={{ margin: "0 0 8px", fontWeight: 600 }}>
+      <Banner type="info">
+        <strong>
           Prize pool looks thin ({notice.participants} participant
           {notice.participants === 1 ? "" : "s"} so far):
-        </p>
-        <ul style={{ margin: 0, paddingLeft: 20 }}>
-          {notice.warnings.map((warning) => (
-            <li key={warning}>{warning}</li>
-          ))}
-        </ul>
-      </div>
+        </strong>{" "}
+        {notice.warnings.join(" ")}
+      </Banner>
     );
   }
 
   return (
-    <p className="field-description">
+    <Banner type="success">
       Prize pool covers {notice.participants} participant
       {notice.participants === 1 ? "" : "s"}:{" "}
       {notice.tiers
         .map((tier) => `${tier.tier} × ${tier.effectiveCap}`)
         .join(", ")}
       .
-    </p>
+    </Banner>
   );
 };
 
