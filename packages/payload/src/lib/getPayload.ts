@@ -38,5 +38,16 @@ export const singleton = <Value>(
 export const getPayload = async (): Promise<Payload> =>
   singleton("payload", async () => {
     const config = configurePayload();
-    return await _getPayload({ config });
+    return await _getPayload({
+      config,
+      /**
+       * Start Payload's job workers (`jobs.autoRun`) in this process.
+       *
+       * Without this, crons are never initialized and queued jobs sit
+       * unprocessed for ever: the only other long-lived host is the CMS,
+       * which sets RUN_JOBS=false. Gated on the same flag so API/admin-only
+       * processes stay quiet.
+       */
+      cron: process.env.RUN_JOBS !== "false",
+    });
   });
