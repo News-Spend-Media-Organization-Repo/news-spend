@@ -199,6 +199,7 @@ export interface Config {
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
       deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
       cleanupAuditLogs: TaskCleanupAuditLogs;
+      schedulePublish: TaskSchedulePublish;
       inline: {
         input: unknown;
         output: unknown;
@@ -1117,9 +1118,17 @@ export interface GiveawayEngagement {
    */
   type: 'boost' | 'featured_offer';
   /**
-   * The partner item the user engaged with.
+   * Partner = a Connect Brand item, attributed to the content below. Google = a rewarded ad credited only by Google's server-side verification callback, which carries no item and is capped per giveaway instead.
+   */
+  source: 'partner' | 'google';
+  /**
+   * The partner item the user engaged with. Empty for a Google-sourced Boost, which has no partner-content record to point at.
    */
   content?: (string | null) | PartnerContent;
+  /**
+   * Google's transaction_id from the verification callback. Unique so a replayed callback URL cannot mint a second Boost from one impression. Empty for partner engagements, which dedupe on the item instead.
+   */
+  verificationId?: string | null;
   /**
    * Set once a CPA partner confirms the action. Not required for eligibility today: no partner platform is integrated yet.
    */
@@ -2426,7 +2435,8 @@ export interface PayloadJob {
           | 'pruneNewsAnalytics'
           | 'generateVideoThumbnail'
           | 'deleteVideoThumbTemp'
-          | 'cleanupAuditLogs';
+          | 'cleanupAuditLogs'
+          | 'schedulePublish';
         taskID: string;
         input?:
           | {
@@ -2473,6 +2483,7 @@ export interface PayloadJob {
         | 'generateVideoThumbnail'
         | 'deleteVideoThumbTemp'
         | 'cleanupAuditLogs'
+        | 'schedulePublish'
       )
     | null;
   queue?: string | null;
@@ -2905,7 +2916,9 @@ export interface GiveawayEngagementsSelect<T extends boolean = true> {
   giveaway?: T;
   user?: T;
   type?: T;
+  source?: T;
   content?: T;
+  verificationId?: T;
   conversion?: T;
   completionStatus?: T;
   completedAt?: T;
@@ -3750,6 +3763,18 @@ export interface ModerationSetting {
       }[]
     | null;
   /**
+   * Turn the digest email off entirely. New reports still trigger urgent alerts and are still listed in the admin panel.
+   */
+  digestEnabled?: boolean | null;
+  /**
+   * Daily sends every night at 23:00 Africa/Lagos; weekly sends on the day below at the same time.
+   */
+  digestFrequency?: ('daily' | 'weekly') | null;
+  /**
+   * Which day the weekly digest goes out, at 23:00 Africa/Lagos.
+   */
+  digestWeekday?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+  /**
    * Distinct reporters required before a comment is hidden pending review. Counts distinct people, so one user cannot bury a comment alone. Leave empty for the default (3).
    */
   autoHideThreshold?: number | null;
@@ -3846,6 +3871,9 @@ export interface ModerationSettingsSelect<T extends boolean = true> {
         tier?: T;
         id?: T;
       };
+  digestEnabled?: T;
+  digestFrequency?: T;
+  digestWeekday?: T;
   autoHideThreshold?: T;
   hideOnFirstReportReasons?: T;
   urgentReasons?: T;
@@ -4005,6 +4033,23 @@ export interface TaskCleanupAuditLogs {
   output: {
     deletedCount?: number | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSchedulePublish".
+ */
+export interface TaskSchedulePublish {
+  input: {
+    type?: ('publish' | 'unpublish') | null;
+    locale?: string | null;
+    doc?: {
+      relationTo: 'news';
+      value: string | News;
+    } | null;
+    global?: string | null;
+    user?: (string | null) | Admin;
+  };
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
