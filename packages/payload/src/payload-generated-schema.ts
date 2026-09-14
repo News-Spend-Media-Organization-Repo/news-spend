@@ -7,24 +7,24 @@
  */
 
 import type {} from "@payloadcms/db-postgres";
-import { relations, sql } from "@payloadcms/db-postgres/drizzle";
 import {
-  type AnyPgColumn,
-  boolean,
-  foreignKey,
-  index,
-  integer,
-  jsonb,
-  numeric,
-  pgEnum,
   pgTable,
-  serial,
-  text,
-  timestamp,
+  index,
   uniqueIndex,
+  foreignKey,
   uuid,
   varchar,
+  timestamp,
+  serial,
+  integer,
+  numeric,
+  jsonb,
+  boolean,
+  type AnyPgColumn,
+  text,
+  pgEnum,
 } from "@payloadcms/db-postgres/drizzle/pg-core";
+import { sql, relations } from "@payloadcms/db-postgres/drizzle";
 export const enum_activities_type = pgEnum("enum_activities_type", [
   "point",
   "badge",
@@ -163,6 +163,10 @@ export const enum_giveaway_engagements_type = pgEnum(
   "enum_giveaway_engagements_type",
   ["boost", "featured_offer"],
 );
+export const enum_giveaway_engagements_source = pgEnum(
+  "enum_giveaway_engagements_source",
+  ["partner", "google"],
+);
 export const enum_giveaway_engagements_completion_status = pgEnum(
   "enum_giveaway_engagements_completion_status",
   ["completed", "incomplete", "abandoned", "failed"],
@@ -285,14 +289,13 @@ export const enum_prize_catalogue_fulfilment_type = pgEnum(
   "enum_prize_catalogue_fulfilment_type",
   ["points", "airtime", "data", "gift_card", "physical", "experience"],
 );
-export const enum_news_type = pgEnum("enum_news_type", ["article", "video"]);
+export const enum_news_type = pgEnum("enum_news_type", ["article"]);
 export const enum_news_status = pgEnum("enum_news_status", [
   "draft",
   "published",
 ]);
 export const enum__news_v_version_type = pgEnum("enum__news_v_version_type", [
   "article",
-  "video",
 ]);
 export const enum__news_v_version_status = pgEnum(
   "enum__news_v_version_status",
@@ -624,9 +627,11 @@ export const enum_payload_jobs_log_task_slug = pgEnum(
     "checkPushReceipts",
     "processGiveaway",
     "cleanupAnonymousUsers",
+    "pruneNewsAnalytics",
     "generateVideoThumbnail",
     "deleteVideoThumbTemp",
     "cleanupAuditLogs",
+    "schedulePublish",
   ],
 );
 export const enum_payload_jobs_log_state = pgEnum(
@@ -644,9 +649,11 @@ export const enum_payload_jobs_task_slug = pgEnum(
     "checkPushReceipts",
     "processGiveaway",
     "cleanupAnonymousUsers",
+    "pruneNewsAnalytics",
     "generateVideoThumbnail",
     "deleteVideoThumbTemp",
     "cleanupAuditLogs",
+    "schedulePublish",
   ],
 );
 export const enum_moderation_settings_alert_roles = pgEnum(
@@ -685,6 +692,22 @@ export const enum_moderation_settings_urgent_reasons = pgEnum(
     "trolling",
     "illegal",
     "other",
+  ],
+);
+export const enum_moderation_settings_digest_frequency = pgEnum(
+  "enum_moderation_settings_digest_frequency",
+  ["daily", "weekly"],
+);
+export const enum_moderation_settings_digest_weekday = pgEnum(
+  "enum_moderation_settings_digest_weekday",
+  [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
   ],
 );
 
@@ -1484,9 +1507,13 @@ export const giveaway_engagements = pgTable(
         onDelete: "set null",
       }),
     type: enum_giveaway_engagements_type("type").notNull(),
+    source: enum_giveaway_engagements_source("source")
+      .notNull()
+      .default("partner"),
     content: uuid("content_id").references(() => partner_content.id, {
       onDelete: "set null",
     }),
+    verificationId: varchar("verification_id"),
     conversion: uuid("conversion_id").references(() => partner_conversions.id, {
       onDelete: "set null",
     }),
@@ -1520,7 +1547,11 @@ export const giveaway_engagements = pgTable(
     index("giveaway_engagements_giveaway_idx").on(columns.giveaway),
     index("giveaway_engagements_user_idx").on(columns.user),
     index("giveaway_engagements_type_idx").on(columns.type),
+    index("giveaway_engagements_source_idx").on(columns.source),
     index("giveaway_engagements_content_idx").on(columns.content),
+    uniqueIndex("giveaway_engagements_verification_id_idx").on(
+      columns.verificationId,
+    ),
     index("giveaway_engagements_conversion_idx").on(columns.conversion),
     index("giveaway_engagements_completion_status_idx").on(
       columns.completionStatus,
@@ -4229,7 +4260,7 @@ export const users = pgTable(
     image: varchar("image"),
     username: varchar("username").notNull(),
     wish: varchar("wish").notNull(),
-    phone: varchar("phone").notNull(),
+    phone: varchar("phone"),
     dateOfBirth: timestamp("date_of_birth", {
       mode: "string",
       withTimezone: true,
@@ -5242,6 +5273,13 @@ export const moderation_settings_urgent_reasons = pgTable(
 
 export const moderation_settings = pgTable("moderation_settings", {
   id: uuid("id").defaultRandom().primaryKey(),
+  digestEnabled: boolean("digest_enabled").default(true),
+  digestFrequency:
+    enum_moderation_settings_digest_frequency("digest_frequency").default(
+      "weekly",
+    ),
+  digestWeekday:
+    enum_moderation_settings_digest_weekday("digest_weekday").default("monday"),
   autoHideThreshold: numeric("auto_hide_threshold", { mode: "number" }),
   updatedAt: timestamp("updated_at", {
     mode: "string",
@@ -7186,6 +7224,7 @@ type DatabaseSchema = {
   enum_giveaway_draw_attempts_outcome: typeof enum_giveaway_draw_attempts_outcome;
   enum_giveaway_draw_attempts_last_checkpoint: typeof enum_giveaway_draw_attempts_last_checkpoint;
   enum_giveaway_engagements_type: typeof enum_giveaway_engagements_type;
+  enum_giveaway_engagements_source: typeof enum_giveaway_engagements_source;
   enum_giveaway_engagements_completion_status: typeof enum_giveaway_engagements_completion_status;
   enum_giveaway_fulfilment_attempts_provider: typeof enum_giveaway_fulfilment_attempts_provider;
   enum_giveaway_fulfilment_attempts_environment: typeof enum_giveaway_fulfilment_attempts_environment;
@@ -7256,6 +7295,8 @@ type DatabaseSchema = {
   enum_moderation_settings_additional_recipients_tier: typeof enum_moderation_settings_additional_recipients_tier;
   enum_moderation_settings_hide_on_first_report_reasons: typeof enum_moderation_settings_hide_on_first_report_reasons;
   enum_moderation_settings_urgent_reasons: typeof enum_moderation_settings_urgent_reasons;
+  enum_moderation_settings_digest_frequency: typeof enum_moderation_settings_digest_frequency;
+  enum_moderation_settings_digest_weekday: typeof enum_moderation_settings_digest_weekday;
   accounts: typeof accounts;
   accounts_rels: typeof accounts_rels;
   activities: typeof activities;

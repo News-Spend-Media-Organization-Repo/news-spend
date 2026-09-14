@@ -39,6 +39,14 @@ export const adUnits = isTest
       native: TestIds.NATIVE,
       rewarded: TestIds.REWARDED,
       rewardedInterstitial: TestIds.REWARDED_INTERSTITIAL,
+      /*
+       * Google's own unit, which no server-side verification callback can be
+       * attached to. So outside a production build a Boost ad plays, the
+       * reward is earned, and nothing is ever credited: the callback that does
+       * the crediting is never sent. Expected, and the reason a Google Boost
+       * can only be tested end to end on a production build.
+       */
+      boostRewardedInterstitial: TestIds.REWARDED_INTERSTITIAL,
     }
   : {
       banner: Platform.select({
@@ -56,5 +64,23 @@ export const adUnits = isTest
       rewardedInterstitial: Platform.select({
         ios: "ca-app-pub-3654282727219827/6477217937",
         android: "ca-app-pub-3654282727219827/4988042293",
+      }) as string,
+      /**
+       * The one rewarded unit carrying a server-side verification callback.
+       *
+       * Separate from `rewardedInterstitial` because the callback is
+       * configured per ad unit, and the general unit serves surfaces where a
+       * reward is entertainment rather than giveaway credit. Sharing one unit
+       * would put the callback behind every rewarded impression in the app and
+       * leave a single `custom_data` string deciding which of them earned a
+       * Boost. Splitting them means the surfaces that must not earn one cannot
+       * reach the endpoint at all.
+       *
+       * It also keeps Boost ad revenue separable in AdMob's own reporting,
+       * which a shared unit makes impossible after the fact.
+       */
+      boostRewardedInterstitial: Platform.select({
+        ios: "ca-app-pub-3654282727219827/9791357939",
+        android: "ca-app-pub-3654282727219827/7741365934",
       }) as string,
     };

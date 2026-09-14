@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -21,6 +22,7 @@ import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
 import { useGoogleAd } from "#/hooks/discover/useGoogleAd";
 import { usePartnerAd } from "#/hooks/discover/usePartnerAd";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { authClient } from "#/lib/authClient";
 import { XIcon } from "#/lib/icons";
 import { navigate } from "#/navigation/navigationUtils";
 
@@ -126,9 +128,39 @@ export function PartnerAdDialog({
   });
 
   // ── Google ad ────────────────────────────────────────────────────────────────
+
+  /**
+   * On the Boost surface, a Google reward is worth a Boost — but only once
+   * Google has told our server so itself.
+   *
+   * `forBoost` is already the flag meaning "this is the surface where an
+   * advertisement earns giveaway credit", so it governs this too rather than
+   * introducing a second way to say the same thing. Off it, the options stay
+   * undefined and Google sends no callback: a reward earned on the giveaway
+   * reveal is suspense, not eligibility, and must not arrive at the endpoint
+   * indistinguishable from a Boost.
+   *
+   * The giveaway is deliberately not named here. These are baked into the ad
+   * request at load time, which can be long before the ad is watched, so the
+   * server resolves which giveaway is open when the callback lands instead.
+   */
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id;
+
+  const serverSideVerification = useMemo(() => {
+    if (!(forBoost && userId)) {
+      return;
+    }
+    return {
+      userId: String(userId),
+      customData: JSON.stringify({ purpose: "boost" }),
+    };
+  }, [forBoost, userId]);
+
   const googleAd = useGoogleAd({
     onRewarded: () => onCountdownComplete?.(undefined),
     onClosed: cycleAdType,
+    serverSideVerification,
   });
 
   // ── YouTube state (kept here so it resets with dialog) ───────────────────────
