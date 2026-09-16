@@ -44,6 +44,7 @@ import * as migration_20260823_073220_partner_content_weight from './20260823_07
 import * as migration_20260823_090000_delete_cascade_notifications from './20260823_090000_delete_cascade_notifications';
 import * as migration_20260823_093000_delete_cascade_partners_giveaway from './20260823_093000_delete_cascade_partners_giveaway';
 import * as migration_20260905_120000_analytics_retention_and_feed_indexes from './20260905_120000_analytics_retention_and_feed_indexes';
+import * as migration_20260914_090000_engagement_source_and_ssv from './20260914_090000_engagement_source_and_ssv';
 
 export const migrations = [
   {
@@ -275,5 +276,10 @@ export const migrations = [
     up: migration_20260905_120000_analytics_retention_and_feed_indexes.up,
     down: migration_20260905_120000_analytics_retention_and_feed_indexes.down,
     name: '20260905_120000_analytics_retention_and_feed_indexes',
+  },
+  {
+    up: migration_20260914_090000_engagement_source_and_ssv.up,
+    down: migration_20260914_090000_engagement_source_and_ssv.down,
+    name: '20260914_090000_engagement_source_and_ssv',
   },
 ];

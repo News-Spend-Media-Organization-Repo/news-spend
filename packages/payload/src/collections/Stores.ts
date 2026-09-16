@@ -1,5 +1,6 @@
 import { type CollectionConfig, slugField } from "payload";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
+import { urlField } from "../fields/urlField";
 
 export const Stores: CollectionConfig = {
   slug: "stores",
@@ -27,22 +28,13 @@ export const Stores: CollectionConfig = {
       filterOptions: IMAGE_ONLY,
       required: true,
     },
-    {
+    urlField({
       name: "url",
-      type: "text",
+      required: true,
       admin: {
         description: "💡 Url of the store",
       },
-      validate: async (val: any) => {
-        try {
-          new URL(val);
-          return true;
-        } catch {
-          return "Please enter a valid URL";
-        }
-      },
-      required: true,
-    },
+    }),
     {
       name: "description",
       type: "textarea",

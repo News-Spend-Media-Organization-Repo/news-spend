@@ -1963,6 +1963,58 @@ describe("GiveawayEngine.validateDraw (spec 19)", () => {
   });
 });
 
+describe("GiveawayEngine.validatePrizePool (pool notice)", () => {
+  it("names an empty pool", async () => {
+    const { payload, giveaway } = createFakePayload({ prizes: [] });
+
+    const errors = await makeEngine(payload).validatePrizePool(giveaway);
+
+    expect(errors.join(" ")).toMatch(/No prizes have been configured/);
+  });
+
+  it("names an enabled tier with an empty pool", async () => {
+    const { payload, giveaway } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 1,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    const errors = await makeEngine(payload).validatePrizePool(giveaway);
+
+    expect(errors.join(" ")).toMatch(/tier1 is enabled .* Prize Pool is empty/);
+  });
+
+  it("reports nothing for a covered pool", async () => {
+    const { payload, giveaway } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 0,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 50,
+      },
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    await expect(
+      makeEngine(payload).validatePrizePool(giveaway)
+    ).resolves.toEqual([]);
+  });
+
+  it("ignores lifecycle state: a draft with no prizes is unfinished, not failed", async () => {
+    const { payload, giveaway } = createFakePayload({
+      giveaway: { status: "completed" },
+      prizes: [],
+    });
+
+    const errors = await makeEngine(payload).validatePrizePool(giveaway);
+
+    expect(errors.join(" ")).toMatch(/No prizes have been configured/);
+    expect(errors.join(" ")).not.toMatch(/cannot be repeated/);
+  });
+});
+
 describe("budget reserve (administrator setting, not in the spec)", () => {
   /** 100 participants, tier 3 at 10% → 10 winners before any budget limit. */
   function tenPercentOfHundred(giveaway: Row = {}, prizes?: Row[]) {

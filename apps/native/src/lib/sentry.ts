@@ -7,6 +7,9 @@ export let navigationIntegration: ReturnType<
   typeof Sentry.reactNavigationIntegration
 >;
 
+const SSL_HANDSHAKE_RE = /SSLHandshakeException/i;
+const API_CONNECT_RE = /Failed to connect to api\.newsspend\.com/i;
+
 /**
  * Which build this is, in Sentry's vocabulary.
  *
@@ -52,6 +55,30 @@ export const initSentry = () => {
     enableLogs: true,
     integrations: [navigationIntegration],
     environment: resolveEnvironment(),
+
+    /**
+     * Expected flows, not bugs. UPGRADE_REQUIRED already shows the blocking
+     * update screen via QueryCache/MutationCache; transient fetch failures
+     * already retry and surface through OfflineAlert. Reporting either as an
+     * issue is noise (NEWS-SPEND-MEDIA-E0/AJ/DA).
+     */
+    ignoreErrors: [
+      "This version of the app is no longer supported.",
+      "UPGRADE_REQUIRED",
+      SSL_HANDSHAKE_RE,
+      API_CONNECT_RE,
+    ],
+    beforeSend(event) {
+      const values = event.exception?.values ?? [];
+      if (
+        values.some((v) =>
+          v.value?.includes("This version of the app is no longer supported.")
+        )
+      ) {
+        return null;
+      }
+      return event;
+    },
 
     /**
      * Release and dist follow the store conventions Sentry expects: the

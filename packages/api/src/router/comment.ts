@@ -35,6 +35,8 @@ const allCommentsInput = z.object({
   limit: z.number().min(1).max(100).nullish().default(10),
   newsId: z.string(),
   parentId: z.string().optional(),
+  /** Ordering for top-level comments. Replies are always chronological. */
+  sort: z.enum(["recent", "top"]).nullish().default("recent"),
 });
 
 // Types
@@ -142,7 +144,17 @@ const allComments = publicProcedure
     const comments = await payload.find({
       collection: "comments",
       where,
-      sort: "-createdAt",
+      /*
+       * Replies are always oldest-first: a thread is a conversation and
+       * reads from the start, and it has to match the inline preview on the
+       * list screen - otherwise the two replies shown under a comment are
+       * not the two at the top of the thread you land on.
+       *
+       * Top-level comments default to newest-first. "top" orders by
+       * likesCount, with recency breaking ties so a wall of zero-like
+       * comments still reads newest-first rather than arbitrarily.
+       */
+      sort: replySort(input),
       limit: input.limit || 10,
       page: input.page || 1,
       depth: 0,
@@ -164,6 +176,25 @@ const allComments = publicProcedure
       getUsersMinimal(payload, userIds),
     ]);
 
+    /*
+     * Preview replies for the redesigned card, which shows the first couple
+     * of replies inline instead of making every thread a screen push.
+     *
+     * One query for the whole page rather than one per comment - a page of
+     * 10 comments would otherwise be 10 extra round trips. Ordered oldest
+     * first, because a preview of a conversation reads from the start;
+     * the full thread screen keeps its own ordering.
+     */
+    const previewByParent = input.parentId
+      ? new Map<string, typeof docs>()
+      : await fetchPreviewReplies({
+          blockedUserIds,
+          commentIds,
+          payload,
+          reportedCommentIds,
+          user,
+        });
+
     const enrichedDocs = docs.map((doc) => ({
       ...doc,
       user:
@@ -171,10 +202,117 @@ const allComments = publicProcedure
           ? (users.get(doc.user) ?? { id: doc.user, username: "" })
           : doc.user,
       userReaction: reactions.get(doc.id) ?? ("none" as const),
+      previewReplies: previewByParent.get(doc.id) ?? [],
     }));
 
     return { ...comments, docs: enrichedDocs };
   });
+
+/** How many replies each top-level comment carries inline on the list screen. */
+const PREVIEW_REPLIES_PER_COMMENT = 2;
+
+/**
+ * Fetches the first few replies for each of `commentIds` in a single query.
+ *
+ * Over-fetches (limit = parents x per-parent x 4) and trims per parent in
+ * memory, because there is no per-group limit in the query layer. The
+ * multiplier is slack for lopsided threads - one comment with 40 replies
+ * would otherwise swallow the whole budget and leave its siblings with
+ * nothing to preview.
+ */
+async function fetchPreviewReplies({
+  blockedUserIds,
+  commentIds,
+  payload,
+  reportedCommentIds,
+  user,
+}: {
+  blockedUserIds: string[];
+  commentIds: string[];
+  payload: Payload;
+  reportedCommentIds: string[];
+  user?: { id: string } | null;
+}) {
+  const byParent = new Map<string, Record<string, unknown>[]>();
+  if (commentIds.length === 0) {
+    return byParent;
+  }
+
+  const filters: Where[] = [
+    VISIBLE_COMMENTS_FILTER,
+    { parent: { in: commentIds } },
+  ];
+  if (blockedUserIds.length > 0) {
+    filters.push({ "user.id": { not_in: blockedUserIds } });
+  }
+  if (reportedCommentIds.length > 0) {
+    filters.push({ id: { not_in: reportedCommentIds } });
+  }
+
+  const replies = await payload.find({
+    collection: "comments",
+    depth: 0,
+    limit: commentIds.length * PREVIEW_REPLIES_PER_COMMENT * 4,
+    sort: "createdAt",
+    where: { and: filters },
+  });
+
+  const replyDocs = replies.docs as unknown as Array<
+    {
+      id: string;
+      parent?: string | { id: string };
+      user?: string | { id: string; username?: string };
+    } & Record<string, unknown>
+  >;
+
+  const [replyReactions, replyUsers] = await Promise.all([
+    getUserReactionsForComments(
+      payload,
+      user?.id,
+      replyDocs.map((d) => d.id)
+    ),
+    getUsersMinimal(
+      payload,
+      replyDocs
+        .map((d) => (typeof d.user === "string" ? d.user : d.user?.id))
+        .filter((id): id is string => Boolean(id))
+    ),
+  ]);
+
+  for (const reply of replyDocs) {
+    const parentId =
+      typeof reply.parent === "string" ? reply.parent : reply.parent?.id;
+    if (!parentId) {
+      continue;
+    }
+    const bucket = byParent.get(parentId) ?? [];
+    if (bucket.length >= PREVIEW_REPLIES_PER_COMMENT) {
+      continue;
+    }
+    bucket.push({
+      ...reply,
+      user:
+        typeof reply.user === "string"
+          ? (replyUsers.get(reply.user) ?? { id: reply.user, username: "" })
+          : reply.user,
+      userReaction: replyReactions.get(reply.id) ?? ("none" as const),
+    });
+    byParent.set(parentId, bucket);
+  }
+
+  return byParent;
+}
+
+/** Ordering for a comment list request. Replies ignore `sort` by design. */
+function replySort(input: {
+  parentId?: string;
+  sort?: "recent" | "top" | null;
+}) {
+  if (input.parentId) {
+    return "createdAt";
+  }
+  return input.sort === "top" ? ["-likesCount", "-createdAt"] : "-createdAt";
+}
 
 const getComment = publicProcedure
   .input(z.string())

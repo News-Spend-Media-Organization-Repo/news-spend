@@ -154,6 +154,62 @@ export const ENGAGEMENT_TYPE_OPTIONS = [
 ] as const;
 
 /**
+ * Where a Boost came from.
+ *
+ * `partner` is a Connect Brand item watched in-app, attributed to the
+ * `partner-content` record it played. `google` is a Google rewarded ad,
+ * which has no partner-content record at all: it is credited only when
+ * Google's own server-side verification callback confirms the impression,
+ * never on the app's say-so.
+ *
+ * The two are separated because the anti-abuse rule that guards them cannot
+ * be the same. A partner Boost dedupes on the item, so one item counts once
+ * per giveaway per user. A Google impression is interchangeable with every
+ * other Google impression, so there is nothing to dedupe on and a count cap
+ * takes its place. Collapsing them into one field would mean a Google Boost
+ * silently inheriting a rule that cannot hold it.
+ *
+ * Featured Offers are always `partner`; the Lucky App Wall has no Google
+ * inventory.
+ */
+export const ENGAGEMENT_SOURCES = ["partner", "google"] as const;
+export type EngagementSource = (typeof ENGAGEMENT_SOURCES)[number];
+
+export const ENGAGEMENT_SOURCE_OPTIONS = [
+  { label: "Partner item", value: "partner" },
+  { label: "Google rewarded ad, server-verified", value: "google" },
+] as const;
+
+/**
+ * How many Boosts one user may earn from Google rewarded ads in a giveaway.
+ *
+ * Set to the highest Boost requirement any tier asks for, which is the whole
+ * point of admitting Google inventory: Connect Brand campaigns cannot be
+ * relied on to keep three distinct items live for the length of every
+ * giveaway, and under three the top tier is unwinnable by anyone. A cap below
+ * that number would reintroduce exactly the hole it is here to close.
+ *
+ * It is a cap rather than no limit because a Google impression carries no
+ * identity: without one, a verified callback is only evidence that *an* ad
+ * played, so the count is the only thing standing between a user and an
+ * unbounded supply of eligibility.
+ */
+export const MAX_GOOGLE_BOOSTS_PER_GIVEAWAY = Math.max(
+  ...Object.values(PRIMARY_ELIGIBILITY).map((tier) => tier.boosts)
+);
+
+/**
+ * How long a Google verification callback stays acceptable, in milliseconds.
+ *
+ * Google signs a timestamp into the callback, so a replayed URL is only
+ * useful inside this window; past it the request is refused regardless of a
+ * valid signature. Generous enough to absorb a retry from Google's side and
+ * ordinary clock drift, short enough that a captured URL is not a permanent
+ * credential.
+ */
+export const GOOGLE_SSV_FRESHNESS_MS = 60 * 60 * 1000;
+
+/**
  * Engagement completion states. Only `completed` counts towards tier
  * eligibility (spec 7, 8).
  */

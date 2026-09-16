@@ -190,18 +190,27 @@ const baseConfig: Config = {
       generateVideoThumbnailTask,
       deleteVideoThumbTempTask,
     ],
-    autoRun: [
-      {
-        cron: "*/5 * * * *",
-        queue: "default",
-        limit: 10,
-      },
-      {
-        cron: "0 0,12 * * *",
-        queue: "maintenance",
-        limit: 10,
-      },
-    ],
+    // Workers run in every long-lived process using this config. The 1GB CMS
+    // must not be one of them: ffmpeg thumbnails, analytics pruning and the
+    // giveaway engine all execute here and spike toward the container cap.
+    // RUN_JOBS=false keeps a service as API/admin only; the API server keeps
+    // running the queues. Defaults to on so local dev is unaffected.
+    ...(process.env.RUN_JOBS === "false"
+      ? {}
+      : {
+          autoRun: [
+            {
+              cron: "*/5 * * * *",
+              queue: "default",
+              limit: 10,
+            },
+            {
+              cron: "0 0,12 * * *",
+              queue: "maintenance",
+              limit: 10,
+            },
+          ],
+        }),
     jobsCollectionOverrides: ({ defaultJobsCollection }) => {
       if (!defaultJobsCollection.admin) {
         defaultJobsCollection.admin = {};
@@ -218,6 +227,12 @@ const baseConfig: Config = {
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || "",
+      // Memory: bound the pg pool on small containers. Unset = adapter
+      // default (no behavior change for existing consumers); set e.g.
+      // PG_POOL_MAX=5 on the 1 GB Railway CMS to cap idle connections.
+      ...(process.env.PG_POOL_MAX
+        ? { max: Number(process.env.PG_POOL_MAX) }
+        : {}),
     },
     idType: "uuid",
     /**

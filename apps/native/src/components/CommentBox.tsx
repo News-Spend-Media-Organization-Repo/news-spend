@@ -1,16 +1,8 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { InputGroup } from "heroui-native/input-group";
 import { Separator } from "heroui-native/separator";
-import { PaperPlaneTiltIcon, XIcon } from "#/lib/icons";
 import { type RefObject, useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  type TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { useSnapshot } from "valtio";
-
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { toast } from "#/components/heroui/toast";
@@ -18,6 +10,7 @@ import useUpdateComment from "#/hooks/comments/useUpdateComment";
 import { useCreateComment } from "#/hooks/news";
 import { useKeyboardDismiss } from "#/hooks/use-keyboard-dismiss";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { XIcon } from "#/lib/icons";
 import { authState } from "#/state/auth";
 import {
   commentState,
@@ -28,7 +21,6 @@ import {
 } from "#/state/commentState";
 import { apiErrorMessage } from "#/utils/apiErrorMessage";
 import { getUsername, isRefObject } from "#/utils/comment-utils";
-import { Button } from "./heroui/button";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -232,7 +224,7 @@ export const CommentBox = ({
   // ---------------------------------------------------------------------------
 
   const composerContent = (
-    <View className="w-full bg-background">
+    <View className="w-full bg-surface">
       {isReply && (
         <ReplyChip onDismiss={handleCancel} username={targetUsername} />
       )}
@@ -248,56 +240,52 @@ export const CommentBox = ({
         </>
       )}
 
-      <View className="gap-2.5 px-2.5 pt-2 pb-2">
-        <InputGroup>
-          <InputGroup.Input
+      {/* A soft field rather than a bare line — enough edge to read as
+          tappable — but no pill button or circular send icon. */}
+      <View className="flex-row items-end gap-3 px-4 py-2.5">
+        <View className="min-h-10 flex-1 justify-center rounded-[20px] bg-background px-4 py-2">
+          <TextInput
             autoFocus={isEdit}
-            className="rounded-lg align-top text-base"
+            className="text-[15px] text-foreground"
             multiline
-            numberOfLines={4}
             onChangeText={setDraft}
             placeholder={placeholder}
-            placeholderTextColorClassName="accent-gray-400"
+            placeholderTextColor="#A1A1AA"
             ref={inputRef as never}
-            selectionColorClassName="accent-gray-400"
+            style={{ maxHeight: 120, paddingTop: 0, paddingBottom: 0 }}
             value={draft}
           />
-          <InputGroup.Suffix>
-            <Button
-              hitSlop={20}
-              isDisabled={!draft}
-              onPress={isEdit ? handleSave : handlePost}
-              size="sm"
+        </View>
+        {isPending ? (
+          <View className="h-10 justify-center">
+            <ActivityIndicator color="#A1A1AA" size="small" />
+          </View>
+        ) : (
+          <Pressable
+            accessibilityLabel={isEdit ? "Save comment" : "Post comment"}
+            accessibilityRole="button"
+            className="h-10 justify-center"
+            disabled={!draft}
+            hitSlop={12}
+            onPress={isEdit ? handleSave : handlePost}
+          >
+            <Text
+              className={
+                draft
+                  ? "font-bold text-[15px] text-p-500"
+                  : "font-bold text-[#A1A1AA] text-[15px]"
+              }
             >
-              {isPending ? (
-                <ActivityIndicator color="#888" size="small" />
-              ) : (
-                <Icon color="white" name={PaperPlaneTiltIcon} size={20} />
-              )}
-            </Button>
-          </InputGroup.Suffix>
-        </InputGroup>
+              {isEdit ? "Save" : "Post"}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
 
-  if (isEdit) {
-    return (
-      <>
-        {/* Absolutely positioned so it dims the screen without pulling
-            composerContent out of the KeyboardAvoidingView's flex flow,
-            because composerContent must stay a normal flex child (like the
-            new-comment case) so it still gets pushed up above the
-            keyboard. */}
-        <Pressable
-          className="absolute inset-0"
-          onPress={handleCancel}
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        />
-        {composerContent}
-      </>
-    );
-  }
-
+  // The edit scrim lives on the screen (CommentEditScrim), not here: inside
+  // the composer's keyboard wrapper an absolute inset-0 covers only the
+  // composer, so it dimmed nothing.
   return composerContent;
 };

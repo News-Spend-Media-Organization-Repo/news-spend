@@ -1,16 +1,17 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { View } from "react-native";
 import NewsItemAds from "#/components/Ads/NewsItemAd";
-import NewsItemGoogleAds, {
-  type NewsItemGoogleAdRef,
-} from "#/components/Ads/NewsItemGoogleAd";
+import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
+import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
+import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { useTabBarHeight } from "#/state/route-state";
 import { clearTabAdCache } from "#/utils/ad-cache";
+import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
@@ -19,19 +20,49 @@ const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
 type NewType = React.RefObject<LegendListRef>;
 
-const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
-  const tabBarHeight = useTabBarHeight();
-  const gBannerRefs = useRef<Map<string, NewsItemGoogleAdRef>>(new Map());
-  const { data, isPending, refetch, fetchNextPage, isFetching, hasNextPage } =
-    useAllNews({
-      category: route,
-      ad: !SCREENSHOT_MODE,
-    });
+/** Just the fields the gAd-preload walk reads — see its comment below. */
+type FeedAdItem = { _type?: string; type?: string; id?: string };
 
+const NewsCategory = ({
+  isActiveTab,
+  route,
+  ref,
+}: {
+  isActiveTab: boolean;
+  route: string;
+  ref?: NewType;
+}) => {
+  const tabBarHeight = useTabBarHeight();
+  const {
+    data,
+    dataUpdatedAt,
+    isPending,
+    refetch,
+    refetchFresh,
+    fetchNextPage,
+    isFetching,
+    hasNextPage,
+  } = useAllNews({
+    category: route,
+    ad: !SCREENSHOT_MODE,
+  });
+
+  // Pull-to-refresh is a deliberate user action, unlike the passive
+  // refetches below — it always bypasses the server's composed-feed cache
+  // and gets a genuinely fresh ad, not just whatever the last 90s window
+  // happened to cache.
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(() => {
-    refetch();
+    refetchFresh();
     clearTabAdCache(route);
-    gBannerRefs.current.clear();
+  });
+
+  // Fresh list on return — same as Latest. Covers article-back, bottom-tab
+  // switch, and switching back to this category tab.
+  useRefetchOnReturn({
+    dataUpdatedAt,
+    isActiveTab,
+    refetch,
+    staleTime: NEWS_FEED_STALE_TIME_MS,
   });
 
   const flattenedNewsRef = useRef<any[] | undefined>(undefined);
@@ -40,21 +71,7 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
     ({ item, index }) => {
       if (item._type === "ad") {
         if (item.type === "gAd") {
-          const adId = item.id ?? item._id;
-          return (
-            <NewsItemGoogleAds
-              index={index}
-              item={item}
-              ref={(itemRef) => {
-                if (itemRef && adId) {
-                  gBannerRefs.current.set(adId, itemRef);
-                } else if (!itemRef && adId) {
-                  gBannerRefs.current.delete(adId);
-                }
-              }}
-              tab={route}
-            />
-          );
+          return <NewsItemGoogleAds index={index} item={item} tab={route} />;
         }
         if (item.type === "inHouse") {
           return <NewsItemAds item={item} />;
@@ -88,6 +105,19 @@ const NewsCategory = ({ route, ref }: { route: string; ref?: NewType }) => {
   const keyExtractor = useCallback((item) => item._id ?? item.id, []);
   const flattenedNews = data?.pages.flatMap((page) => page.docs);
   flattenedNewsRef.current = flattenedNews;
+
+  // Eagerly preload every gAd slot already loaded into this tab's feed, as
+  // soon as its page arrives — same rationale as Latest.tsx. Independent
+  // of scroll position or whether that row has even mounted yet;
+  // ensureNativeAdLoaded is cache/in-flight-aware so repeat calls for ids
+  // already loaded or in progress are a cheap no-op.
+  useEffect(() => {
+    for (const docItem of (flattenedNews ?? []) as FeedAdItem[]) {
+      if (docItem._type === "ad" && docItem.type === "gAd" && docItem.id) {
+        ensureNativeAdLoaded(route, docItem.id);
+      }
+    }
+  }, [flattenedNews, route]);
 
   if (isPending) {
     return <NewsItemPlaceholder show />;

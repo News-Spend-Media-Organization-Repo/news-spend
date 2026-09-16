@@ -7,9 +7,10 @@ import { nextDigestTime } from "../../lib/nextDigestTime";
  *
  * Severe categories, configurable via the Moderation Settings global, queue
  * an immediate alert job, picked up by the next default-queue autoRun tick.
- * Everything else is batched into the daily digest at 11 PM Africa/Lagos: when
- * a digest job is already pending this does nothing, otherwise it queues one
- * with a waitUntil of the next 23:00.
+ * Everything else is batched into the digest (daily 23:00 or a weekly slot,
+ * per the Digest Schedule in Moderation Settings): when a digest job is
+ * already pending this does nothing, otherwise it queues one. When the digest
+ * is disabled, nothing is queued here; urgent alerts above are unaffected.
  */
 export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
   doc,
@@ -65,10 +66,18 @@ export const notifyAdminsOnReport: CollectionAfterChangeHook = async ({
       return;
     }
 
+    const digestSettings = await getModerationSettings(req.payload, req);
+    if (!digestSettings.digestEnabled) {
+      return;
+    }
+
     await req.payload.jobs.queue({
       task: "sendModerationDigest",
       input: {},
-      waitUntil: nextDigestTime(),
+      waitUntil: nextDigestTime(new Date(), {
+        frequency: digestSettings.digestFrequency,
+        weekday: digestSettings.digestWeekday,
+      }),
     });
   } catch (error) {
     req.payload.logger.error(

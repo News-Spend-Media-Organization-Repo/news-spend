@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { type CollectionConfig, slugField } from "payload";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
+import { urlField } from "../fields/urlField";
 
 export const Partners: CollectionConfig = {
   slug: "partners",
@@ -33,19 +34,10 @@ export const Partners: CollectionConfig = {
       name: "description",
       type: "textarea",
     },
-    {
+    urlField({
       name: "websiteUrl",
-      type: "text",
       required: true,
-      validate: (val: any) => {
-        try {
-          new URL(val);
-          return true;
-        } catch {
-          return "Please enter a valid URL";
-        }
-      },
-    },
+    }),
     {
       name: "status",
       type: "select",

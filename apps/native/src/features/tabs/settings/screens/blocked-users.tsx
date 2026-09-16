@@ -13,6 +13,7 @@ import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { toast } from "#/components/heroui/toast";
+import { useHasNavigationHeader } from "#/hooks/useNavigationHeader";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 
@@ -23,6 +24,7 @@ type BlockedUser = {
 };
 
 export default function BlockedUsers() {
+  const hasHeader = useHasNavigationHeader();
   const {
     data,
     isLoading,
@@ -121,7 +123,10 @@ export default function BlockedUsers() {
 
   if (isLoading) {
     return (
-      <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
+      <Screen
+        safeAreaEdges={hasHeader ? ["bottom"] : ["top", "bottom"]}
+        statusBarStyle={hasHeader ? "light" : "auto"}
+      >
         <View className="flex-1 items-center justify-center p-8">
           <Spinner size="lg" />
         </View>
@@ -131,7 +136,10 @@ export default function BlockedUsers() {
 
   if (blockedUsers.length === 0) {
     return (
-      <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
+      <Screen
+        safeAreaEdges={hasHeader ? ["bottom"] : ["top", "bottom"]}
+        statusBarStyle={hasHeader ? "light" : "auto"}
+      >
         <View className="flex-1 items-center justify-center p-8">
           <Text className="text-center text-muted">
             You haven&apos;t blocked any users yet.
@@ -146,7 +154,10 @@ export default function BlockedUsers() {
   }
 
   return (
-    <Screen safeAreaEdges={["bottom"]} statusBarStyle="light">
+    <Screen
+      safeAreaEdges={hasHeader ? ["bottom"] : ["top", "bottom"]}
+      statusBarStyle={hasHeader ? "light" : "auto"}
+    >
       <LegendList
         contentContainerStyle={{ padding: 16 }}
         data={blockedUsers}

@@ -1,6 +1,8 @@
 import type { NewsSelect } from "@news-spend-media/payload/types";
 import type { Payload, Where } from "payload";
 
+import { createRandom, hashSeed } from "./seeded-random";
+
 /**
  * Restricts partner content to what is actually sellable right now: status
  * "active", started (or with no start date), and not yet ended (or with no
@@ -56,6 +58,12 @@ export type FetchRelatedNewsParams = {
   depth?: number;
   sort?: string;
   select?: NewsSelect<false>;
+  /**
+   * Makes the "random" page deterministic. Callers that want the same block
+   * back across recomposes pass a stable seed; omitting it keeps the old
+   * per-call randomness.
+   */
+  seed?: string;
 };
 
 export type FetchPromoMediaParams = {
@@ -108,7 +116,11 @@ export async function fetchMainNews(params: FetchMainNewsParams) {
 }
 
 /**
- * Fetches related news from a random page for variety
+ * Fetches related news from a random page for variety.
+ *
+ * With a `seed`, the page is still arbitrary but stable: the same seed picks
+ * the same page every time, so a recompose after the feed cache expires
+ * returns the block the user was already looking at.
  */
 export async function fetchRelatedNews(params: FetchRelatedNewsParams) {
   const {
@@ -117,6 +129,7 @@ export async function fetchRelatedNews(params: FetchRelatedNewsParams) {
     depth = 1,
     sort = "-createdAt",
     select = LIST_VIEW_SELECT,
+    seed,
   } = params;
 
   // Get total count to calculate random page
@@ -126,7 +139,8 @@ export async function fetchRelatedNews(params: FetchRelatedNewsParams) {
   });
 
   const totalPages = Math.max(Math.ceil(total.totalDocs / limit), 1);
-  const randomPage = Math.floor(Math.random() * totalPages) + 1;
+  const rng = seed ? createRandom(hashSeed(seed)) : Math.random;
+  const randomPage = Math.floor(rng() * totalPages) + 1;
 
   return await payload.find({
     collection: "news",

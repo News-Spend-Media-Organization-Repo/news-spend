@@ -5,6 +5,7 @@ import { authenticated } from "../access/authenticated";
 import { authenticatedOrPublished } from "../access/authenticatedOrPublished";
 import { AdsBlock, ReadAlsoBlock } from "../blocks";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
+import { trimUrlHook } from "../fields/urlField";
 import { calculateNewsMetrics, sendNotificationOnCreate } from "../hooks";
 import type { Admin } from "../payload-types";
 
@@ -76,7 +77,9 @@ const News: CollectionConfig = {
     afterChange: [sendNotificationOnCreate],
   },
   versions: {
-    drafts: true,
+    drafts: {
+      schedulePublish: true,
+    },
   },
   fields: [
     {
@@ -175,6 +178,9 @@ const News: CollectionConfig = {
       name: "url",
       label: "Video URL",
       type: "text",
+      hooks: {
+        beforeChange: [trimUrlHook],
+      },
       validate: (val: any, { siblingData }: any) => {
         if (siblingData.type !== "video") {
           return true;

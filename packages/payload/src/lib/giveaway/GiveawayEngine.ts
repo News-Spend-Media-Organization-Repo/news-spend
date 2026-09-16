@@ -762,6 +762,20 @@ export class GiveawayEngine {
     }
 
     errors.push(...checkDrawableStatus(giveaway, { ignoreEndDate, resume }));
+    errors.push(...(await this.validatePrizePool(giveaway)));
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  /**
+   * The prize-pool half of draw validation, on its own so the admin pool
+   * notice can show exactly what would refuse a draw without implying
+   * anything about lifecycle state: a draft with no prizes yet is work in
+   * progress, not a failure.
+   */
+  async validatePrizePool(giveaway: Giveaway): Promise<string[]> {
+    const errors: string[] = [];
+    const giveawayId = giveaway.id;
 
     const prizeRows = await this.payload.find({
       collection: "giveaway-prizes",
@@ -825,7 +839,7 @@ export class GiveawayEngine {
       }
     }
 
-    return { valid: errors.length === 0, errors };
+    return errors;
   }
 
   private async executeDraw(ctx: RunContext): Promise<DrawResult> {

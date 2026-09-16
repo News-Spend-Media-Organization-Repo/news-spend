@@ -4,7 +4,6 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { format } from "date-fns/format";
 import { Separator } from "heroui-native/separator";
 import { SkeletonGroup } from "heroui-native/skeleton-group";
-import { ArrowLeftIcon, UserIcon } from "#/lib/icons";
 import { useEffect } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { Button } from "#/components/heroui/button";
@@ -20,7 +19,9 @@ import usePrefetchComments from "#/hooks/comments/usePrefetchComments";
 import { useNews } from "#/hooks/news";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { ArrowLeftIcon, UserIcon } from "#/lib/icons";
 import { getImageData } from "#/utils/getImageData";
+import { toInstant } from "#/utils/toInstant";
 import { useArticleActions } from "./hooks/use-article-actions";
 import { useArticleTracking } from "./hooks/use-article-tracking";
 
@@ -77,6 +78,13 @@ const SingleNews = () => {
         navigationBarButtonStyle="dark"
         statusBarStyle="auto"
       >
+        <Button
+          className="absolute top-safe-offset-2 left-2.5 z-20 size-8 rounded-full bg-white/80"
+          onPress={() => navigation.goBack()}
+          variant="ghost"
+        >
+          <ArrowLeftIcon color="#00223d" size={20} />
+        </Button>
         <Text className="text-center">Failed to load news article</Text>
       </Screen>
     );
@@ -86,6 +94,13 @@ const SingleNews = () => {
 
   return (
     <Screen navigationBarButtonStyle="dark" statusBarStyle="auto">
+      <Button
+        className="absolute top-safe-offset-2 left-2.5 z-20 size-8 rounded-full bg-white/80"
+        onPress={() => navigation.goBack()}
+        variant="ghost"
+      >
+        <ArrowLeftIcon color="#00223d" size={20} />
+      </Button>
       <SkeletonGroup className="flex-1" isLoading={!data}>
         <ScrollView
           className="bg-white"
@@ -104,14 +119,6 @@ const SingleNews = () => {
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-3">
-            <Button
-              className="absolute top-safe-offset-2 left-2.5 z-10 size-8 rounded-sm"
-              onPress={() => navigation.goBack()}
-              variant="ghost"
-            >
-              <ArrowLeftIcon color="#00223d" size={20} />
-            </Button>
-
             <SkeletonGroup.Item className="h-[30vh] w-full rounded-md">
               <Galeria urls={[url]}>
                 <Galeria.Image>
@@ -147,12 +154,9 @@ const SingleNews = () => {
               </SkeletonGroup.Item>
 
               <SkeletonGroup.Item className="h-4.25 w-32.5 rounded-md">
-                {data ? (
+                {data?.createdAt ? (
                   <Text className="text-[#737373] text-xs">
-                    {format(
-                      new Date(data.createdAt ?? new Date()),
-                      "do MMMM yyy | p"
-                    )}
+                    {format(toInstant(data.createdAt), "do MMMM yyy | p")}
                   </Text>
                 ) : null}
               </SkeletonGroup.Item>

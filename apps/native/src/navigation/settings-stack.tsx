@@ -3,13 +3,13 @@ import {
   type NativeStackHeaderProps,
 } from "@react-navigation/native-stack";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
-import { XIcon } from "#/lib/icons";
 import { Suspense } from "react";
 import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
 import { Icon } from "#/components/heroui/icon";
 import ScreenHeader from "#/components/ScreenHeader";
 import SettingsHome from "#/features/tabs/settings/screens/SettingsHome";
+import { XIcon } from "#/lib/icons";
 import { sharedScreens } from "./shared-screens";
 
 const ROUTE_TITLES = {
@@ -30,6 +30,10 @@ const ROUTE_TITLES = {
   ShareApp: "Share App",
   Socials: "Follow Us",
   IdentityVerification: "Verify Identity",
+  CommunityGuidelines: "Community Guidelines",
+  BlockedUsers: "Blocked Users",
+  Profile: "Profile",
+  Activities: "Activities",
 } as const;
 
 type RouteNames = keyof typeof ROUTE_TITLES;

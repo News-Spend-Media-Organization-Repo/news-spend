@@ -44,7 +44,7 @@ export default function TrendingNews({ news }: { news: News[] }) {
       showsHorizontalScrollIndicator={false}
       snapToAlignment="center"
       snapToInterval={FULL_SIZE}
-      style={{ height: ITEM_HEIGHT, marginTop: 10 }}
+      style={{ height: ITEM_HEIGHT }}
       // suggestEstimatedItemSize
     />
   );

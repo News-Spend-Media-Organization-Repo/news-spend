@@ -204,6 +204,12 @@ export const logout = async () => {
     authState.status = "signOut";
     routeState.reactNavTabName = undefined;
     storage.remove("pushToken");
+    // Server deletes the push-tokens row on sign-out, so the acknowledged
+    // (token, account, build) triple cached by usePushNotification is dead.
+    // Without this, re-login recomputes the identical triple, mistakes it for
+    // already-registered, and never re-saves — leaving the account with no
+    // token and no notifications.
+    storage.remove("pushTokenRegistration");
   }
 };
 

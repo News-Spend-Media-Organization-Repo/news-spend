@@ -69,19 +69,23 @@ export default function NewsHome() {
 
   const renderScene = useCallback(
     ({ route }: { route: Route }) => {
+      const isActiveTab = routes[index]?.key === route.key;
       switch (route.key) {
         case "latest":
-          return <Latest ref={createSetRef("latest")} />;
+          return (
+            <Latest isActiveTab={isActiveTab} ref={createSetRef("latest")} />
+          );
         default:
           return (
             <NewsCategoryComponent
+              isActiveTab={isActiveTab}
               ref={createSetRef(route.key)}
               route={route.key}
             />
           );
       }
     },
-    [createSetRef]
+    [createSetRef, index, routes]
   );
 
   const onIndexChange = useCallback(

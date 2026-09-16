@@ -1,6 +1,10 @@
-import { View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Pressable, View } from "react-native";
+import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { useHasNavigationHeader } from "#/hooks/useNavigationHeader";
+import { ArrowLeftIcon } from "#/lib/icons";
 
 const terms = [
   {
@@ -55,21 +59,35 @@ const terms = [
   },
 ];
 
-const TermOfUse = () => (
-  <Screen
-    className="px-5"
-    contentContainerClassName="gap-6 py-4"
-    preset="scroll"
-    safeAreaEdges={["bottom"]}
-  >
-    <Text variant="HeadingMedium">Terms of Use</Text>
-    {terms.map((term) => (
-      <View className="gap-1" key={term.title}>
-        <Text className="font-semibold">{term.title}</Text>
-        <Text variant="caption">{term.description}</Text>
-      </View>
-    ))}
-  </Screen>
-);
+const TermOfUse = () => {
+  const navigation = useNavigation("TermsOfUse");
+  const hasHeader = useHasNavigationHeader();
+
+  return (
+    <Screen
+      className="px-5"
+      contentContainerClassName="gap-6 py-4"
+      preset="scroll"
+      safeAreaEdges={hasHeader ? ["bottom"] : ["top", "bottom"]}
+      statusBarStyle={hasHeader ? "light" : "auto"}
+    >
+      {/* This screen is registered in the auth stack (no header) and in the
+          settings stack (dark header, own back). Rendering our own back
+          under that header gave two of them. */}
+      {!hasHeader && (
+        <Pressable hitSlop={10} onPress={() => navigation.goBack()}>
+          <Icon className="size-6" name={ArrowLeftIcon} />
+        </Pressable>
+      )}
+      <Text variant="HeadingMedium">Terms of Use</Text>
+      {terms.map((term) => (
+        <View className="gap-1" key={term.title}>
+          <Text className="font-semibold">{term.title}</Text>
+          <Text variant="caption">{term.description}</Text>
+        </View>
+      ))}
+    </Screen>
+  );
+};
 
 export default TermOfUse;

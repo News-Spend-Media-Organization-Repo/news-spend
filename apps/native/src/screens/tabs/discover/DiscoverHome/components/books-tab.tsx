@@ -1,9 +1,10 @@
 import type { LegendListRenderItemProps } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
+import { useFocusEffect } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { cn } from "heroui-native/utils";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 
@@ -46,6 +47,19 @@ function BooksTabComponent() {
   } = useInfiniteQuery(queryOptions);
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
+
+  // Fresh list on return — same as the home feed. Skipped on first focus
+  // since mounting already fetched.
+  const focusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnce.current) {
+        focusedOnce.current = true;
+        return;
+      }
+      refetch();
+    }, [refetch])
+  );
   const flatData = useMemo(
     () => data?.pages.flatMap((page) => page.docs) ?? [],
     [data]

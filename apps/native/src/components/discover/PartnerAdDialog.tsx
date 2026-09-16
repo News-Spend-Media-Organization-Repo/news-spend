@@ -1,11 +1,11 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { Dialog } from "heroui-native/dialog";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
-import { XIcon } from "#/lib/icons";
 import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -16,13 +16,14 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-
 import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
 import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
 import { useGoogleAd } from "#/hooks/discover/useGoogleAd";
 import { usePartnerAd } from "#/hooks/discover/usePartnerAd";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import { authClient } from "#/lib/authClient";
+import { XIcon } from "#/lib/icons";
 import { navigate } from "#/navigation/navigationUtils";
 
 import { PartnerAdContent } from "./partner-ad-content";
@@ -127,9 +128,39 @@ export function PartnerAdDialog({
   });
 
   // ── Google ad ────────────────────────────────────────────────────────────────
+
+  /**
+   * On the Boost surface, a Google reward is worth a Boost — but only once
+   * Google has told our server so itself.
+   *
+   * `forBoost` is already the flag meaning "this is the surface where an
+   * advertisement earns giveaway credit", so it governs this too rather than
+   * introducing a second way to say the same thing. Off it, the options stay
+   * undefined and Google sends no callback: a reward earned on the giveaway
+   * reveal is suspense, not eligibility, and must not arrive at the endpoint
+   * indistinguishable from a Boost.
+   *
+   * The giveaway is deliberately not named here. These are baked into the ad
+   * request at load time, which can be long before the ad is watched, so the
+   * server resolves which giveaway is open when the callback lands instead.
+   */
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id;
+
+  const serverSideVerification = useMemo(() => {
+    if (!(forBoost && userId)) {
+      return;
+    }
+    return {
+      userId: String(userId),
+      customData: JSON.stringify({ purpose: "boost" }),
+    };
+  }, [forBoost, userId]);
+
   const googleAd = useGoogleAd({
     onRewarded: () => onCountdownComplete?.(undefined),
     onClosed: cycleAdType,
+    serverSideVerification,
   });
 
   // ── YouTube state (kept here so it resets with dialog) ───────────────────────
@@ -258,14 +289,32 @@ export function PartnerAdDialog({
       onAdClick(ad);
       return;
     }
-    const link =
+
+    /*
+     * The store link is preferred where there is one, falling back to the
+     * campaign's landing page.
+     *
+     * `??` alone was not enough: the CMS url fields save "" rather than null
+     * when an author leaves them blank, and "" is not nullish, so the
+     * fallback never ran and the tap opened nothing at all. The Ogwugo
+     * campaign is live in exactly that state — both store fields empty
+     * strings, a perfectly good website, and a dead call to action.
+     */
+    const firstUsable = (...candidates: (string | null | undefined)[]) =>
+      candidates.map((c) => c?.trim()).find((c) => Boolean(c));
+
+    const link = firstUsable(
       Platform.select({
         ios: ad?.links?.iosAppStore,
         android: ad?.links?.androidPlayStore,
-      }) ?? ad?.links?.website;
+      }),
+      ad?.links?.website
+    );
 
     if (link) {
-      Linking.openURL(link);
+      Linking.openURL(link).catch(() => {
+        // A malformed or unopenable URL should not take the app down.
+      });
     }
   }, [onAdClick, ad]);
 

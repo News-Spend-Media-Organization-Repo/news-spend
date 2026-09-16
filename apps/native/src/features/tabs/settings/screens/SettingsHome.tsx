@@ -153,7 +153,7 @@ function SettingsHome() {
       }
       if (screen === "RateApp") {
         const storeUrl = Platform.select({
-          ios: "https://apps.apple.com/us/app/news-spend/id1550745257",
+          ios: "https://apps.apple.com/app/id6776046600",
           android: "market://details?id=com.newsspend.app",
         });
         try {

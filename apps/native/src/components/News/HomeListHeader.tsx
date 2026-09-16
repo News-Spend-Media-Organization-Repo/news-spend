@@ -19,6 +19,7 @@ export default function HomeListHeader({
 }) {
   return (
     <View className="mb-3 gap-4">
+      <Text className="px-4 font-semibold text-base">Trending News</Text>
       <TrendingNews news={news} />
 
       <TrendingBooks books={books} />

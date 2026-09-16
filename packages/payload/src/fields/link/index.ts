@@ -7,6 +7,8 @@ import type {
 } from "payload";
 import { deepMerge } from "payload";
 
+import { isValidUrlValue, trimUrlHook } from "../urlField";
+
 export type LinkFieldOverrides = {
   groupOverrides?: Partial<Omit<GroupField, "fields">>;
   internalLinkOverrides?: Partial<RelationshipField>;
@@ -72,10 +74,15 @@ export const linkField: LinkField = (overrides = {}) => {
                 (required || Boolean(siblingData.label)) &&
                 siblingData.linkType === "external",
             },
+            hooks: {
+              beforeChange: [trimUrlHook],
+            },
             label: "URL",
             name: "url",
             required: true,
             type: "text",
+            validate: (value: string | null | undefined) =>
+              isValidUrlValue(value) ? true : "Please enter a valid URL",
           },
           urlOverrides
         ),

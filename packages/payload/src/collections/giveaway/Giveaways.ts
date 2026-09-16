@@ -110,6 +110,88 @@ export const Giveaways: CollectionConfig = {
       },
     },
     {
+      /**
+       * Prize-pool notice for the admin giveaway screen.
+       *
+       * Read-only: it writes nothing and starts nothing. Returns the pool
+       * errors that would refuse a draw, plus the simulation warnings for a
+       * pool that is merely thin, computed against the current count of
+       * distinct valid-ticket holders so no estimate has to be typed in.
+       * Available to any admin, because a check people need permission for
+       * is a check they skip.
+       */
+      path: "/:id/pool-notice",
+      method: "get",
+      handler: async (req) => {
+        if (req.user?.collection !== "admins") {
+          return Response.json({ message: "Admins only." }, { status: 403 });
+        }
+
+        const id = req.routeParams?.id as string | undefined;
+        if (!id) {
+          return Response.json(
+            { message: "Missing giveaway id." },
+            { status: 400 }
+          );
+        }
+
+        const giveaway = await req.payload.findByID({
+          collection: "giveaways",
+          id,
+          depth: 0,
+        });
+        if (!giveaway) {
+          return Response.json(
+            { message: "Giveaway not found." },
+            { status: 404 }
+          );
+        }
+
+        const { GiveawayEngine } = await import(
+          "../../lib/giveaway/GiveawayEngine"
+        );
+        const { simulateDraw } = await import(
+          "../../lib/giveaway/simulateDraw"
+        );
+
+        const tickets = await req.payload.find({
+          collection: "giveaway-tickets",
+          where: {
+            and: [
+              { giveaway: { equals: id } },
+              { status: { equals: "valid" } },
+            ],
+          },
+          pagination: false,
+          depth: 0,
+        });
+
+        // One head per person: winner percentages apply to participants,
+        // not to tickets.
+        const participants = new Set(
+          tickets.docs
+            .map((ticket) =>
+              typeof ticket.user === "string"
+                ? ticket.user
+                : String((ticket.user as { id?: string } | null)?.id ?? "")
+            )
+            .filter(Boolean)
+        ).size;
+
+        const [errors, simulation] = await Promise.all([
+          new GiveawayEngine(req.payload).validatePrizePool(giveaway),
+          simulateDraw(req.payload, id, { participants }),
+        ]);
+
+        return Response.json({
+          participants,
+          errors,
+          warnings: simulation.warnings,
+          tiers: simulation.tiers,
+        });
+      },
+    },
+    {
       path: "/:id/run-draw",
       method: "post",
       handler: async (req) => {
@@ -618,6 +700,17 @@ export const Giveaways: CollectionConfig = {
         position: "sidebar",
         condition: (data) =>
           data?.status === "failed" || data?.status === "interrupted",
+      },
+    },
+    {
+      name: "poolNotice",
+      type: "ui",
+      label: "Prize Pool",
+      admin: {
+        components: {
+          Field:
+            "@news-spend-media/payload/components/GiveawayPoolNotice#GiveawayPoolNotice",
+        },
       },
     },
     {

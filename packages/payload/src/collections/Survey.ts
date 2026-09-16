@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 
+import { urlField } from "../fields/urlField";
+
 export const Survey: CollectionConfig = {
   slug: "survey",
   admin: {
@@ -16,19 +18,10 @@ export const Survey: CollectionConfig = {
       type: "text",
       required: true,
     },
-    {
+    urlField({
       name: "surveyLink",
-      type: "text",
       required: true,
-      validate: (val: any) => {
-        try {
-          new URL(val);
-          return true;
-        } catch {
-          return "Please enter a valid URL";
-        }
-      },
-    },
+    }),
     {
       name: "users",
       type: "relationship",

@@ -1,6 +1,19 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { useCallback, useEffect, useMemo } from "react";
+import {
+  AppState,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import YoutubePlayer from "react-native-youtube-iframe";
+import { Button } from "#/components/heroui/button";
+import { Image } from "#/components/heroui/image";
+import { Text } from "#/components/heroui/text";
+import { useVideoSettings } from "#/hooks/use-video-settings";
 import {
   CaretRightIcon,
   PauseIcon,
@@ -8,14 +21,6 @@ import {
   SpeakerHighIcon,
   SpeakerSlashIcon,
 } from "#/lib/icons";
-import { useCallback, useEffect, useMemo } from "react";
-import { useWindowDimensions, View } from "react-native";
-import YoutubePlayer from "react-native-youtube-iframe";
-
-import { Button } from "#/components/heroui/button";
-import { Image } from "#/components/heroui/image";
-import { Text } from "#/components/heroui/text";
-import { useVideoSettings } from "#/hooks/use-video-settings";
 import { getCtaLabel } from "#/utils";
 import { getImageData } from "#/utils/getImageData";
 
@@ -60,8 +65,14 @@ export function PartnerAdContent({
   const isImageAd = !(isUploadedVideoAd || isYouTubeAd);
 
   // ── Video player (only mounted for uploaded/external video ads) ──────────────
+  /*
+   * Muted from the start. Autoplay only works muted on both platforms, and an
+   * ad that starts talking the moment a dialog opens is hostile — the mute
+   * control below is the way up to sound, the same bargain Truecaller makes.
+   */
   const player = useVideoPlayer(null, (p) => {
     p.loop = true;
+    p.muted = true;
   });
   const { isPlaying } = useEvent(player, "playingChange", {
     isPlaying: player.playing,
@@ -85,10 +96,45 @@ export function PartnerAdContent({
   }, [isUploadedVideoAd, ad.videoUrl, ad.video]);
 
   useEffect(() => {
-    if (isUploadedVideoAd && videoUrl) {
-      player.replaceAsync({ uri: videoUrl, useCaching: !isDataSaverActive });
+    if (!(isUploadedVideoAd && videoUrl)) {
+      return;
     }
+    player
+      .replaceAsync({ uri: videoUrl, useCaching: !isDataSaverActive })
+      .then(() => {
+        /*
+         * Data saver is a deliberate choice to not spend mobile data on
+         * video, so it suppresses autoplay rather than just caching — the
+         * play control still works for anyone who wants it.
+         */
+        if (!isDataSaverActive) {
+          player.play();
+        }
+      })
+      .catch(() => {
+        // A source that won't load leaves the poster frame and controls.
+      });
   }, [isUploadedVideoAd, videoUrl, player, isDataSaverActive]);
+
+  /*
+   * Stop on background and on unmount. Without this a dismissed ad kept
+   * playing behind the dialog, and an ad left rolling while the app is
+   * backgrounded burns data and battery for something nobody is watching.
+   */
+  useEffect(() => {
+    if (!isUploadedVideoAd) {
+      return;
+    }
+    const subscription = AppState.addEventListener("change", (next) => {
+      if (next !== "active") {
+        player.pause();
+      }
+    });
+    return () => {
+      subscription.remove();
+      player.pause();
+    };
+  }, [isUploadedVideoAd, player]);
 
   const togglePlaying = useCallback(() => {
     if (isPlaying) {
@@ -117,9 +163,14 @@ export function PartnerAdContent({
   );
 
   return (
+    /*
+     * The click targets are the media and the CTA, nothing else. This used to
+     * be onTouchEnd on the whole container, which meant pause and mute opened
+     * the advertiser's link too, and any touch release — a scroll included —
+     * counted as a click on the ad.
+     */
     <View
       className="h-full gap-9 bg-white py-2"
-      onTouchEnd={onAdClick}
       style={{ borderTopLeftRadius: 10, borderTopRightRadius: 10 }}
     >
       {/* ── Media ─────────────────────────────────────────────────────────── */}
@@ -131,13 +182,25 @@ export function PartnerAdContent({
             className="relative mx-2 w-full"
             style={{ height: (width / 16) * 9 }}
           >
-            <VideoView
-              aria-label="Video advertisement"
-              nativeControls={false}
-              player={player}
-              style={{ minHeight: "100%", width: "100%" }}
-            />
-            <View className="absolute inset-0 flex-row items-end justify-start bg-transparent">
+            <Pressable
+              accessibilityLabel="Open advertisement"
+              accessibilityRole="button"
+              onPress={onAdClick}
+              style={StyleSheet.absoluteFill}
+            >
+              <VideoView
+                aria-label="Video advertisement"
+                nativeControls={false}
+                player={player}
+                style={{ minHeight: "100%", width: "100%" }}
+              />
+            </Pressable>
+            {/* box-none: taps on the bare overlay fall through to the video's
+                press target, taps on the controls stay with the controls. */}
+            <View
+              className="absolute inset-0 flex-row items-end justify-start bg-transparent"
+              pointerEvents="box-none"
+            >
               <Button
                 aria-label={isPlaying ? "Pause video" : "Play video"}
                 className="rounded-none bg-black/50"
@@ -175,14 +238,23 @@ export function PartnerAdContent({
             videoId={videoId ?? ""}
           />
         ) : (
-          <Image
-            aria-label="Advertisement banner"
+          <Pressable
+            accessibilityLabel="Open advertisement"
+            accessibilityRole="button"
             className="w-full"
-            contentFit="contain"
-            placeholder={{ blurhash }}
-            source={imageUrl}
-            style={{ height: height * 0.3 }}
-          />
+            onPress={onAdClick}
+          >
+            <Image
+              aria-label="Advertisement banner"
+              cachePolicy="memory-disk"
+              className="w-full"
+              contentFit="contain"
+              placeholder={{ blurhash }}
+              recyclingKey={ad.id}
+              source={imageUrl}
+              style={{ height: height * 0.3 }}
+            />
+          </Pressable>
         )}
 
         {showAdLabel ? (
@@ -194,9 +266,11 @@ export function PartnerAdContent({
       <View className="items-center justify-center">
         <Image
           aria-label="Partner logo"
+          cachePolicy="memory-disk"
           className="size-30"
           contentFit="contain"
           placeholder={{ blurhash: partnerLogo?.blurhash }}
+          recyclingKey={partner?.id}
           source={{ uri: partnerLogo?.url ?? undefined }}
         />
         <Text className="text-center font-bold text-lg">{ad.title}</Text>

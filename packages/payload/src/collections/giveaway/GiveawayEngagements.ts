@@ -3,6 +3,7 @@ import type { CollectionConfig } from "payload";
 import {
   ADMIN_GROUP_RECORDS,
   COMPLETION_STATUS_OPTIONS,
+  ENGAGEMENT_SOURCE_OPTIONS,
   ENGAGEMENT_TYPE_OPTIONS,
 } from "./constants";
 
@@ -32,6 +33,7 @@ export const GiveawayEngagements: CollectionConfig = {
       "giveaway",
       "user",
       "type",
+      "source",
       "content",
       "completionStatus",
       "completedAt",
@@ -73,12 +75,35 @@ export const GiveawayEngagements: CollectionConfig = {
       },
     },
     {
+      name: "source",
+      type: "select",
+      required: true,
+      defaultValue: "partner",
+      index: true,
+      options: [...ENGAGEMENT_SOURCE_OPTIONS],
+      admin: {
+        description:
+          "Partner = a Connect Brand item, attributed to the content below. Google = a rewarded ad credited only by Google's server-side verification callback, which carries no item and is capped per giveaway instead.",
+      },
+    },
+    {
       name: "content",
       type: "relationship",
       relationTo: "partner-content",
       index: true,
       admin: {
-        description: "The partner item the user engaged with.",
+        description:
+          "The partner item the user engaged with. Empty for a Google-sourced Boost, which has no partner-content record to point at.",
+      },
+    },
+    {
+      name: "verificationId",
+      type: "text",
+      unique: true,
+      index: true,
+      admin: {
+        description:
+          "Google's transaction_id from the verification callback. Unique so a replayed callback URL cannot mint a second Boost from one impression. Empty for partner engagements, which dedupe on the item instead.",
       },
     },
     {

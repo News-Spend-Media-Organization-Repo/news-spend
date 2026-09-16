@@ -63,13 +63,63 @@ const ModerationSettings: GlobalConfig = {
                   options: [
                     { label: "All moderation email", value: "all" },
                     { label: "Urgent reports only", value: "urgent" },
-                    { label: "Daily digest only", value: "digest" },
+                    { label: "Digest only", value: "digest" },
                   ],
                 },
               ],
               admin: {
                 description:
                   "Extra addresses that are not admin accounts, such as shared inboxes, on-call rotations, or outsourced moderators. Merged with anything in the MODERATION_ALERT_EMAILS env var.",
+              },
+            },
+          ],
+        },
+        {
+          label: "Digest Schedule",
+          description:
+            "How often the content-report digest email goes out. Urgent alerts are unaffected and always send immediately.",
+          fields: [
+            {
+              name: "digestEnabled",
+              type: "checkbox",
+              defaultValue: true,
+              admin: {
+                description:
+                  "Turn the digest email off entirely. New reports still trigger urgent alerts and are still listed in the admin panel.",
+              },
+            },
+            {
+              name: "digestFrequency",
+              type: "select",
+              defaultValue: "weekly",
+              options: [
+                { label: "Daily", value: "daily" },
+                { label: "Weekly", value: "weekly" },
+              ],
+              admin: {
+                description:
+                  "Daily sends every night at 23:00 Africa/Lagos; weekly sends on the day below at the same time.",
+              },
+            },
+            {
+              name: "digestWeekday",
+              type: "select",
+              defaultValue: "monday",
+              options: [
+                { label: "Monday", value: "monday" },
+                { label: "Tuesday", value: "tuesday" },
+                { label: "Wednesday", value: "wednesday" },
+                { label: "Thursday", value: "thursday" },
+                { label: "Friday", value: "friday" },
+                { label: "Saturday", value: "saturday" },
+                { label: "Sunday", value: "sunday" },
+              ],
+              admin: {
+                condition: (_data, siblingData) =>
+                  (siblingData as { digestFrequency?: string } | undefined)
+                    ?.digestFrequency !== "daily",
+                description:
+                  "Which day the weekly digest goes out, at 23:00 Africa/Lagos.",
               },
             },
           ],
@@ -104,7 +154,7 @@ const ModerationSettings: GlobalConfig = {
         {
           label: "Urgent Alerts",
           description:
-            "Which reports bypass the nightly digest and email moderators immediately.",
+            "Which reports bypass the scheduled digest and email moderators immediately.",
           fields: [
             {
               name: "urgentReasons",

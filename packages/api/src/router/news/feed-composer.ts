@@ -7,6 +7,7 @@ import {
   buildRelatedNews,
   buildRewardTask,
 } from "./content-builders";
+import { createRandom, hashSeed } from "./seeded-random";
 
 export type FeedRule = {
   type: "ad" | "promotionMedia" | "rewardTask" | "relatedNews";
@@ -29,6 +30,12 @@ export type FeedComposerData = {
   mainNews: News[];
   relatedNews: News[];
   promotionMedia: PartnerContent[];
+  /**
+   * Seeds the related-news block's page pick and shuffle. A stable seed
+   * means a recompose yields the identical block instead of reshuffling it
+   * under a user who just returned to the app.
+   */
+  relatedSeed?: string;
 };
 
 /**
@@ -89,7 +96,7 @@ export class FeedComposer {
    * Synchronous, with no DB queries during composition.
    */
   composeFeed(data: FeedComposerData): FeedItem[] {
-    const { mainNews, relatedNews, promotionMedia } = data;
+    const { mainNews, relatedNews, promotionMedia, relatedSeed } = data;
     const feed: FeedItem[] = [];
 
     // Sort rules by priority (lower number = higher priority)
@@ -112,6 +119,7 @@ export class FeedComposer {
           const injectedContent = this.createContentForRule(rule, {
             relatedNews,
             promotionMedia,
+            relatedSeed,
           });
           if (injectedContent) {
             feed.push(injectedContent);
@@ -126,10 +134,11 @@ export class FeedComposer {
     // Process end rules
     const endRules = sortedRules.filter((rule) => rule.position === "end");
     for (const rule of endRules) {
-      if (Math.random() < rule.probability) {
+      if (this.rollForRule(rule, relatedSeed) < rule.probability) {
         const injectedContent = this.createContentForRule(rule, {
           relatedNews,
           promotionMedia,
+          relatedSeed,
         });
         if (injectedContent) {
           feed.push(injectedContent);
@@ -138,6 +147,21 @@ export class FeedComposer {
     }
 
     return feed;
+  }
+
+  /**
+   * The roll deciding whether an end-positioned rule fires.
+   *
+   * Seeded for relatedNews so the block's presence is as stable as its
+   * contents: an unseeded roll against a 0.9 probability dropped the block
+   * entirely on roughly one recompose in ten, which reads to a returning
+   * user as the related news vanishing rather than merely changing.
+   */
+  private rollForRule(rule: FeedRule, relatedSeed?: string): number {
+    if (relatedSeed && rule.type === "relatedNews") {
+      return createRandom(hashSeed(`${relatedSeed}:present`))();
+    }
+    return Math.random();
   }
 
   /**
@@ -163,7 +187,11 @@ export class FeedComposer {
    */
   private createContentForRule(
     rule: FeedRule,
-    data: { relatedNews: News[]; promotionMedia: PartnerContent[] }
+    data: {
+      relatedNews: News[];
+      promotionMedia: PartnerContent[];
+      relatedSeed?: string;
+    }
   ): FeedItem | null {
     try {
       switch (rule.type) {
@@ -191,8 +219,14 @@ export class FeedComposer {
         }
 
         case "relatedNews": {
-          const taskContentForRelated = this.adManager.getPartnerContent();
-          return buildRelatedNews(data.relatedNews, taskContentForRelated);
+          const taskContentForRelated = data.relatedSeed
+            ? this.adManager.getSeededPartnerContent(data.relatedSeed)
+            : this.adManager.getPartnerContent();
+          return buildRelatedNews(
+            data.relatedNews,
+            taskContentForRelated,
+            data.relatedSeed
+          );
         }
 
         default:

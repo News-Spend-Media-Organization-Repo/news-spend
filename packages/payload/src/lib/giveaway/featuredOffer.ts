@@ -90,6 +90,9 @@ export async function recordFeaturedOffer(
         giveaway: giveaway.id,
         user: userId,
         type: "featured_offer",
+        // The Lucky App Wall has no Google inventory: an offer is always an
+        // item, and always attributed to the one that was completed.
+        source: "partner",
         content: contentId,
         completionStatus: "completed",
         completedAt: new Date().toISOString(),

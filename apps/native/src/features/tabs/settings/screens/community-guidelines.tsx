@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { useHasNavigationHeader } from "#/hooks/useNavigationHeader";
 
 const communityGuidelinesContent = [
   {
@@ -95,30 +96,37 @@ const communityGuidelinesContent = [
   },
 ];
 
-const CommunityGuidelines = () => (
-  <Screen
-    className="px-5"
-    contentContainerClassName="gap-6 py-4"
-    preset="scroll"
-    safeAreaEdges={["bottom"]}
-  >
-    <Text variant="HeadingMedium">Community Guidelines</Text>
-    {communityGuidelinesContent.map((section) => (
-      <View className="gap-2" key={section.title}>
-        <Text className="font-semibold">{section.title}</Text>
-        <Text variant="caption">{section.description}</Text>
-        {section.bullets.length > 0 && (
-          <View className="gap-1 pl-4">
-            {section.bullets.map((bullet) => (
-              <Text key={bullet} variant="caption">
-                • {bullet}
-              </Text>
-            ))}
-          </View>
-        )}
-      </View>
-    ))}
-  </Screen>
-);
+const CommunityGuidelines = () => {
+  // Settings pushes this under a dark header; the comments menu pushes it
+  // bare. Only own the top inset and the status bar in the second case.
+  const hasHeader = useHasNavigationHeader();
+
+  return (
+    <Screen
+      className="px-5"
+      contentContainerClassName="gap-6 py-4"
+      preset="scroll"
+      safeAreaEdges={hasHeader ? ["bottom"] : ["top", "bottom"]}
+      statusBarStyle={hasHeader ? "light" : "auto"}
+    >
+      <Text variant="HeadingMedium">Community Guidelines</Text>
+      {communityGuidelinesContent.map((section) => (
+        <View className="gap-2" key={section.title}>
+          <Text className="font-semibold">{section.title}</Text>
+          <Text variant="caption">{section.description}</Text>
+          {section.bullets.length > 0 && (
+            <View className="gap-1 pl-4">
+              {section.bullets.map((bullet) => (
+                <Text key={bullet} variant="caption">
+                  • {bullet}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+      ))}
+    </Screen>
+  );
+};
 
 export default CommunityGuidelines;

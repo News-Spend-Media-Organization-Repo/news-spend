@@ -6,6 +6,7 @@ import React from "react";
 import { View } from "react-native";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
+import { toInstant } from "#/utils/toInstant";
 import { getActionMeta } from "../constants";
 
 type ActivityRowProps = {
@@ -32,7 +33,7 @@ export const ActivityRow = React.memo(({ item, onPress }: ActivityRowProps) => {
             {meta.label}
           </Text>
           <Text className="text-secondary text-xs">
-            {format(new Date(item.createdAt), "dd MMM · hh:mm a")}
+            {format(toInstant(item.createdAt), "dd MMM · hh:mm a")}
           </Text>
         </View>
 

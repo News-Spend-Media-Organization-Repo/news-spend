@@ -3,9 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInDays } from "date-fns/differenceInDays";
 import { differenceInHours } from "date-fns/differenceInHours";
 import { Card } from "heroui-native/card";
-import { CoinsIcon } from "#/lib/icons";
 import { View } from "react-native";
-
 import { ScreenHeader } from "#/components";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
@@ -13,11 +11,14 @@ import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { toast } from "#/components/heroui/toast";
 import { useFocusBackHandler } from "#/hooks/useBackHandler";
+import { authClient } from "#/lib/authClient";
+import { CoinsIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 
 const BoostLuck = () => {
   const navigation = useNavigation("BoostLuck");
   const queryClient = useQueryClient();
+  const { data: session } = authClient.useSession();
   const { data } = useQuery(orpc.giveaway.progress.queryOptions());
   const boostLuckMutation = useMutation(
     orpc.giveaway.recordEngagement.mutationOptions({
@@ -60,18 +61,45 @@ const BoostLuck = () => {
   useFocusBackHandler(goToDiscoverHome);
 
   /**
-   * A Boost is recorded against the partner item that was watched.
+   * A partner Boost is recorded against the item that was watched; a Google
+   * one is not recorded from here at all.
    *
-   * A Google ad arrives here with no item, because it has no partner-content
-   * record for the engine to count against, and the engine deliberately
-   * refuses an engagement it cannot attribute, since three boosts must mean
-   * three different items rather than one watched three times. Saying so is
-   * better than a silent no-op that leaves the counter stuck.
+   * A Google ad arrives with no item, because it has no partner-content record
+   * to attribute a Boost to. It still earns one — Google's own verification
+   * callback tells the server the impression happened, which is the only
+   * account of it the server will take, since this screen saying so would be
+   * worth nothing. So there is deliberately no mutation on this branch: the
+   * credit is already on its way by a route the app is not part of.
+   *
+   * The confirmation says as much rather than claiming the Boost has landed.
+   * The callback usually arrives within seconds, but it is a separate network
+   * hop that can be refused for reasons this screen cannot see, and promising
+   * a result we have not been told is worse than a short wait.
    */
   const onCountdownComplete = (ad?: { id: string }) => {
     if (!ad?.id) {
-      toast.info("Watch a sponsor ad to earn a boost", {
-        description: "That one doesn't count towards your entries.",
+      /*
+       * Nobody to credit, so nothing was asked for.
+       *
+       * The verification options carry the account the Boost belongs to, and
+       * without a session there are none to send: the ad plays on the general
+       * unit and Google never calls us. This screen is reachable signed out,
+       * including by deep link, so saying the Boost is on its way would be a
+       * promise nothing is going to keep. The partner path already refuses
+       * this out loud, from the server.
+       */
+      if (!session?.user) {
+        toast.info("Sign in to earn boosts", {
+          description: "That one couldn't be counted towards your entries.",
+        });
+        return;
+      }
+
+      toast.success("Luck Boosted!", {
+        description: "Counting once our ad partner confirms it.",
+      });
+      queryClient.invalidateQueries({
+        queryKey: orpc.giveaway.progress.queryKey(),
       });
       return;
     }
@@ -80,16 +108,16 @@ const BoostLuck = () => {
   };
 
   /**
-   * Boosts earned in the open giveaway, against what the top tier asks for.
+   * Boosts earned in the open giveaway, against the most any tier asks for.
    *
    * Both come from the server: the count is per giveaway and resets with it,
    * and the threshold is a platform rule the server owns, so a copy here would
    * drift the moment it moves.
    *
-   * Deliberately not rendered. These decide which state the screen is in and
-   * nothing more: putting "2 of 3 boosts earned" on screen reads as the app
-   * scoring someone's behaviour back at them, the same reason the running
-   * total was taken off the success toast above.
+   * Neither the numbers nor the tier they come from are rendered. The app
+   * deliberately says nothing to a reader about tiers, thresholds or their
+   * progress towards one: these decide which state the screen is in and
+   * nothing more.
    */
   const boostsDone = data?.participation?.boosts ?? 0;
   const boostsNeeded =
@@ -190,16 +218,17 @@ const BoostLuck = () => {
         <View className="gap-4">
           <Text className="text-center">
             {boostsComplete
-              ? "Your boosts are in for this giveaway. Featured Offers are the other half of Tier 1."
+              ? "Nothing more to boost for now. Featured Offers are another way to improve your entries."
               : "Our sponsors wish you good luck."}
           </Text>
 
           {/*
-            Once the boosts are in, this says so and offers the app wall by
-            name, rather than keeping a "Boost Your Entries" button that
-            quietly navigates somewhere else. A boost past the threshold
-            changes nothing, so the old button was an offer that could not be
-            taken — and being moved without explanation read as a bug.
+            With nothing left to boost, this offers the app wall by name
+            rather than keeping a "Boost Your Entries" button that quietly
+            navigates somewhere else. A boost past the threshold changes
+            nothing, so the old button was an offer that could not be taken
+            — and being moved without explanation read as a bug. The copy
+            says what is on offer, never what was completed or why it stopped.
           */}
           {boostsComplete ? (
             <Button
@@ -213,26 +242,29 @@ const BoostLuck = () => {
             </Button>
           ) : (
             /*
-              Pinned to in-house content, because this is the one surface whose
-              purpose is earning a Boost.
+              Both kinds of advertisement earn a Boost here, so the rotation is
+              left alone.
 
-              The rotation is otherwise 40% partner / 60% Google, and a Google
-              ad cannot earn a Boost at all: it has no partner-content record
-              for the engine to attribute one to, so it is refused. Left
-              sampling, roughly three in five attempts here spent fifteen
-              seconds to earn nothing, or bounced the person to the Lucky App
-              Wall instead. The Google inventory still runs everywhere else.
+              This was pinned to partner inventory for a while, because a
+              Google ad could not earn a Boost at all and roughly three in five
+              attempts spent fifteen seconds to earn nothing. Pinning fixed
+              that at the cost of capping Boost supply at however many Connect
+              Brand campaigns happened to be live — and a Boost counts once per
+              item, so under three distinct campaigns the top tier was
+              unreachable by anyone. Google rewarded ads now earn a Boost
+              through server-side verification, which removes the reason to
+              pin.
             */
             <PartnerAdDialog
               asChild
               // The screen handles an empty rotation itself, with a reason.
               fallbackToAppWall={false}
               // Skip anything whose Boost is already earned: a repeat here
-              // costs a full advertisement and is then refused.
+              // costs a full advertisement and is then refused. Also what
+              // marks this as the surface where a Google reward is verified.
               forBoost
               onCountdownComplete={onCountdownComplete}
               onUnavailable={onAdsUnavailable}
-              preferAdType="custom"
             >
               <Button className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
                 <CoinsIcon color="white" size={20} />

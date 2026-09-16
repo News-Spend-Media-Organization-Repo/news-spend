@@ -11,6 +11,20 @@ export type AdditionalRecipient = {
   tier: "all" | "urgent" | "digest";
 };
 
+/** Digest cadence; weekly unless the global explicitly chooses daily. */
+export type DigestFrequency = "daily" | "weekly";
+
+/** Weekday names as stored by the global; index 0 is Sunday. */
+export const DIGEST_WEEKDAYS = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+
 /**
  * Moderation configuration with every default already applied, so callers
  * never have to reason about which fields the global left empty.
@@ -19,6 +33,9 @@ export type ResolvedModerationSettings = {
   alertRoles: Set<string>;
   additionalRecipients: AdditionalRecipient[];
   autoHideThreshold: number;
+  digestEnabled: boolean;
+  digestFrequency: DigestFrequency;
+  digestWeekday: number;
   hideOnFirstReportReasons: Set<string>;
   urgentReasons: Set<string>;
 };
@@ -31,6 +48,9 @@ export type ModerationSettingsDoc = {
     tier?: string | null;
   }> | null;
   autoHideThreshold?: number | null;
+  digestEnabled?: boolean | null;
+  digestFrequency?: string | null;
+  digestWeekday?: string | null;
   hideOnFirstReportReasons?: string[] | null;
   urgentReasons?: string[] | null;
 };
@@ -63,6 +83,10 @@ export function applySettingsDefaults(
 
   const threshold = doc?.autoHideThreshold;
 
+  const weekdayIndex = DIGEST_WEEKDAYS.indexOf(
+    (doc?.digestWeekday ?? "monday") as (typeof DIGEST_WEEKDAYS)[number]
+  );
+
   return {
     alertRoles: new Set(nonEmpty(doc?.alertRoles) ?? DEFAULT_ALERT_ROLES),
     additionalRecipients: additional,
@@ -71,6 +95,9 @@ export function applySettingsDefaults(
       typeof threshold === "number" && threshold >= 1
         ? threshold
         : DEFAULT_AUTO_HIDE_THRESHOLD,
+    digestEnabled: doc?.digestEnabled ?? true,
+    digestFrequency: doc?.digestFrequency === "daily" ? "daily" : "weekly",
+    digestWeekday: weekdayIndex >= 0 ? weekdayIndex : 1,
     hideOnFirstReportReasons: new Set(
       nonEmpty(doc?.hideOnFirstReportReasons) ?? HIDE_ON_FIRST_REPORT_REASONS
     ),

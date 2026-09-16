@@ -10,12 +10,21 @@ type CacheOptions = {
   ttl: number;
   /** Optional prefix for logging / debugging */
   label?: string;
+  /**
+   * Skip the cache read and always call `fn()`, but still write the fresh
+   * result back under the normal TTL so subsequent non-forced calls benefit.
+   *
+   * For a deliberate user action (pull-to-refresh) that should bypass a
+   * cache built for passive/automatic refetches, without permanently
+   * disabling the cache for everyone else.
+   */
+  forceRefresh?: boolean;
 };
 
 /**
  * Read-through cache wrapper.
  *
- * 1. Try to read `key` from Redis
+ * 1. Try to read `key` from Redis (skipped when `options.forceRefresh`)
  * 2. If hit, return parsed JSON
  * 3. If miss, call `fn()`, store the result with TTL, and return it
  * 4. If Redis is unavailable at any point, just call `fn()` directly
@@ -31,15 +40,17 @@ export async function withCache<T>(
   fn: () => Promise<T>
 ): Promise<T> {
   // Try to read from cache
-  try {
-    const { getRedis } = await import("./redis");
-    const redis = getRedis();
-    const cached = await redis.get(key);
-    if (cached !== null) {
-      return JSON.parse(cached) as T;
+  if (!options.forceRefresh) {
+    try {
+      const { getRedis } = await import("./redis");
+      const redis = getRedis();
+      const cached = await redis.get(key);
+      if (cached !== null) {
+        return JSON.parse(cached) as T;
+      }
+    } catch {
+      // Redis unavailable or parse error: fall through to fn()
     }
-  } catch {
-    // Redis unavailable or parse error: fall through to fn()
   }
 
   // Cache miss or Redis error: execute the function
