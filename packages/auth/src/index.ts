@@ -208,14 +208,24 @@ export const auth = betterAuth({
       }
 
       if (ctx.path.startsWith("/sign-out")) {
-        // delete user push token if exist
+        // Delete the signed-out user's push token, if any. Scoped by
+        // user_id (not just token) and awaited: the token value alone can
+        // already belong to a different account by the time this runs — the
+        // same device signing into a new account reassigns the row to the
+        // new user id (see createPushToken) — and an unscoped or
+        // fire-and-forget delete could win that race and silently wipe the
+        // new account's freshly (re)registered token.
         const pushToken = ctx.body?.pushToken;
-        if (pushToken) {
-          pool
-            .query("DELETE FROM push_tokens WHERE token = $1", [pushToken])
-            .catch((e) => {
-              logger.error({ err: e }, "Failed to delete push token");
-            });
+        const userId = ctx.body?.userId;
+        if (pushToken && userId) {
+          try {
+            await pool.query(
+              "DELETE FROM push_tokens WHERE token = $1 AND user_id = $2",
+              [pushToken, userId]
+            );
+          } catch (e) {
+            logger.error({ err: e }, "Failed to delete push token");
+          }
         }
       }
     }),

@@ -169,11 +169,13 @@ export const logout = async () => {
   try {
     if (authState.session?.user) {
       const pushToken = storage.getString("pushToken");
+      const userId = authState.session.user.id;
       const { data, error } = await authClient.signOut({
         fetchOptions: {
           // @ts-expect-error
           body: {
             pushToken,
+            userId,
           },
           onSuccess(_context) {
             authState.session = null;
