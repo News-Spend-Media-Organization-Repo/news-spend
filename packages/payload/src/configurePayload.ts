@@ -249,6 +249,14 @@ const baseConfig: Config = {
   sharp,
   upload: {
     debug: process.env.NODE_ENV === "development",
+    /**
+     * Payload 3.90 caps multipart requests at 50 MiB by default and aborts
+     * anything larger. The editor-facing guidance on PartnerContent's video
+     * field says "max 50MB", so a file sitting exactly at that ceiling plus
+     * multipart overhead would now be rejected. A little headroom keeps the
+     * documented limit intact without leaving uploads unbounded.
+     */
+    requestSizeLimit: 55 * 1024 * 1024,
   },
   plugins: [
     cpanelSftpStorage({

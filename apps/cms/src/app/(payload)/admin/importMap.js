@@ -1,4 +1,5 @@
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { GiveawayPoolNotice as GiveawayPoolNotice_039e4656eecbbc5bdb2169ba980cec4a } from '@news-spend-media/payload/components/GiveawayPoolNotice'
 import { RunGiveawayDraw as RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7 } from '@news-spend-media/payload/components/RunGiveawayDraw'
 import { ResendWinnerReport as ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d } from '@news-spend-media/payload/components/ResendWinnerReport'
 import { AirtimeProductField as AirtimeProductField_3c52db217dc7f111e854dfdb8516a078 } from '@news-spend-media/payload/components/ReloadlyProductSelector'
@@ -41,6 +42,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 /** @type import('payload').ImportMap */
 export const importMap = {
   "@payloadcms/next/client#SlugField": SlugField_2b8867833a34864a02ddf429b0728a40,
+  "@news-spend-media/payload/components/GiveawayPoolNotice#GiveawayPoolNotice": GiveawayPoolNotice_039e4656eecbbc5bdb2169ba980cec4a,
   "@news-spend-media/payload/components/RunGiveawayDraw#RunGiveawayDraw": RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7,
   "@news-spend-media/payload/components/ResendWinnerReport#ResendWinnerReport": ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d,
   "@news-spend-media/payload/components/ReloadlyProductSelector#AirtimeProductField": AirtimeProductField_3c52db217dc7f111e854dfdb8516a078,
