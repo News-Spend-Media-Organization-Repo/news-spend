@@ -23,8 +23,8 @@ jest.mock("../orpc", () => ({
  */
 class ORPCError extends Error {
   readonly code: string;
-  constructor(code: string) {
-    super(code);
+  constructor(code: string, message = code) {
+    super(message);
     this.name = "ORPCError";
     this.code = code;
   }
@@ -123,6 +123,23 @@ describe("newsAnalyticsClient delivery", () => {
     client.enqueue(makeEvent("a1", "user-1"));
 
     await client.flush();
+
+    expect(queued()).toHaveLength(1);
+    expect(queued()[0]?.failures).toBeUndefined();
+  });
+
+  it("keeps a batch an edge proxy blocked, and does not count it as a failure", async () => {
+    // What the app got from staging while Railway's Under Attack Mode was on: a
+    // plain-text 429 that is not oRPC, reported as a malformed response.
+    mockTrack.mockRejectedValue(
+      new ORPCError("MALFORMED_ORPC_RESPONSE", "Too Many Requests")
+    );
+    const client = load();
+    client.enqueue(makeEvent("a1", "user-1"));
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await client.flush();
+    }
 
     expect(queued()).toHaveLength(1);
     expect(queued()[0]?.failures).toBeUndefined();

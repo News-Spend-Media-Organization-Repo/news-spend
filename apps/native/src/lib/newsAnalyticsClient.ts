@@ -88,6 +88,15 @@ const PERMANENT_CODES = new Set([
 const TRANSIENT_CODES = new Set(["TOO_MANY_REQUESTS", "REQUEST_TIMEOUT"]);
 
 /**
+ * A 429 from the edge in front of the server (Railway's Under Attack Mode
+ * answers non-browser clients this way) is not an oRPC reply, so it surfaces as
+ * MALFORMED_ORPC_RESPONSE with the HTTP status text as its message. Nothing is
+ * wrong with the events; the door is shut. Waiting is right, and counting it as
+ * a failure would throw the events away after a few tries.
+ */
+const EDGE_BLOCK_MESSAGE = /too many requests/i;
+
+/**
  * What a failed request means for the events in it.
  *
  * - `permanent`: the server refused the request itself. Resending the same
@@ -106,6 +115,13 @@ function classifyFailure(error: unknown): FailureKind {
   }
   const code = orpcCodeOf(error);
   if (code !== undefined && TRANSIENT_CODES.has(code)) {
+    return "transient";
+  }
+  if (
+    code === "MALFORMED_ORPC_RESPONSE" &&
+    error instanceof Error &&
+    EDGE_BLOCK_MESSAGE.test(error.message)
+  ) {
     return "transient";
   }
   return code !== undefined && PERMANENT_CODES.has(code)
