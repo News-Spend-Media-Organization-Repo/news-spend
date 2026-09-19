@@ -134,6 +134,29 @@ describe("the built config", () => {
     }
   });
 
+  test("media stays readable for a partner but out of their navigation", () => {
+    const media = config.collections.find((c) => c.slug === "media");
+    expect(media?.access?.read).toBeDefined();
+    const hidden = media?.admin?.hidden;
+    expect(typeof hidden).toBe("function");
+    if (typeof hidden === "function") {
+      expect(hidden({ user: partner } as never)).toBe(true);
+      expect(hidden({ user: staff } as never)).toBe(false);
+    }
+  });
+
+  test("the collections a partner is meant to see stay in their navigation", () => {
+    for (const slug of ["partners", "partner-conversions", "shop-analytics"]) {
+      const collection = config.collections.find((c) => c.slug === slug);
+      const hidden = collection?.admin?.hidden;
+      expect(
+        typeof hidden === "function"
+          ? hidden({ user: partner } as never)
+          : hidden
+      ).toBeFalsy();
+    }
+  });
+
   test("every global is closed to a partner", async () => {
     for (const global of config.globals) {
       expect(await global.access?.read?.(args(partner))).toBe(false);

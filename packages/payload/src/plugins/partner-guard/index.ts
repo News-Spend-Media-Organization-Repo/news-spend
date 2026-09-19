@@ -50,6 +50,13 @@ export const PARTNER_ACCESS: Readonly<
   "payload-locked-documents": ["create", "read", "update", "delete"],
 };
 
+/**
+ * Readable by a partner but not something they browse. Media is here because
+ * their partner record populates its logo through it; the list of every
+ * uploaded file is not theirs to page through, so it stays out of the nav.
+ */
+const PARTNER_HIDDEN_FROM_NAV: ReadonlySet<string> = new Set(["media"]);
+
 const COLLECTION_OPERATIONS: readonly CollectionOperation[] = [
   "create",
   "read",
@@ -88,7 +95,7 @@ const hideFromPartner =
  * default still applies.
  */
 const collectionPatch = (
-  collection: Pick<CollectionConfig, "access" | "admin" | "versions">,
+  collection: Pick<CollectionConfig, "slug" | "access" | "admin" | "versions">,
   allowed: readonly CollectionOperation[]
 ) => {
   const access = { ...collection.access };
@@ -104,13 +111,14 @@ const collectionPatch = (
 
   return {
     access,
-    // Hide what a partner cannot read from their navigation.
-    admin: allowed.includes("read")
-      ? collection.admin
-      : {
-          ...collection.admin,
-          hidden: hideFromPartner(collection.admin?.hidden),
-        },
+    // Hide what a partner cannot read, or does not browse, from their nav.
+    admin:
+      allowed.includes("read") && !PARTNER_HIDDEN_FROM_NAV.has(collection.slug)
+        ? collection.admin
+        : {
+            ...collection.admin,
+            hidden: hideFromPartner(collection.admin?.hidden),
+          },
   };
 };
 
