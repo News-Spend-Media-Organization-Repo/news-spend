@@ -53,7 +53,10 @@ async function requestOnce(): Promise<NativeAd> {
   let settled = false;
 
   const adPromise = NativeAd.createForAdRequest(adUnits.native, {
-    adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_RIGHT,
+    // Bottom-left: the only corner of the feed row without content — the
+    // AD badge owns top-right, the Install pill owns bottom-right, and
+    // top-left would sit on the thumbnail image.
+    adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_LEFT,
   });
 
   return new Promise((resolve, reject) => {

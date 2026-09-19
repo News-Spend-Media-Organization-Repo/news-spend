@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 const mockCreateForAdRequest = jest.fn();
 const mockDestroy = jest.fn();
@@ -11,9 +11,32 @@ jest.mock("react-native-google-mobile-ads", () => ({
   NativeAd: {
     createForAdRequest: (...args: unknown[]) => mockCreateForAdRequest(...args),
   },
-  NativeAdChoicesPlacement: { BOTTOM_RIGHT: 1 },
-  NativeAdView: ({ children }: { children: React.ReactNode }) => children,
+  NativeAdChoicesPlacement: { BOTTOM_LEFT: 3, BOTTOM_RIGHT: 1 },
+  NativeAdView: ({
+    children,
+    onLayout,
+    style,
+  }: {
+    children: React.ReactNode;
+    onLayout?: (e: unknown) => void;
+    style?: unknown;
+  }) => {
+    // Forwards the sizing props the component under test manages, so tests
+    // can both drive measurements in (onLayout) and read the pin out
+    // (style.height). The real view sizes itself natively; there is no
+    // layout engine under jest, so nothing here measures on its own.
+    const { View } = require("react-native");
+    return (
+      <View testID="native-ad-view" style={style} onLayout={onLayout}>
+        {children}
+      </View>
+    );
+  },
   NativeAsset: ({ children }: { children: React.ReactNode }) => children,
+  NativeMediaView: (props: Record<string, unknown>) => {
+    const { View } = require("react-native");
+    return <View testID="native-media-view" {...props} />;
+  },
   NativeAssetType: {
     ICON: "icon",
     HEADLINE: "headline",
@@ -25,6 +48,15 @@ jest.mock("react-native-google-mobile-ads", () => ({
 
 jest.mock("#/lib/adsInit", () => ({
   initializeAdsWhenPermitted: () => Promise.resolve(),
+}));
+
+// ad-loader only reports load exhaustion through Sentry. The real SDK's ESM
+// dependency chain cannot be transformed under jest (a pre-existing version
+// skew between @sentry/react-native and the hoisted @sentry/core, unrelated
+// to ads), so it stays out of the unit test.
+jest.mock("@sentry/react-native", () => ({
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
 }));
 
 jest.mock("#/lib/adUnits", () => ({ adUnits: { native: "unit" } }));
@@ -41,18 +73,23 @@ jest.mock("../../heroui/image", () => ({
 /**
  * `useRecyclingEffect` is the component's only entry point into loading — it
  * fires on mount as well as on a genuine recycle. The real hook needs a
- * LegendList recycling context, so this stands in for the mount case.
+ * LegendList recycling context, so this stands in for both: it announces the
+ * module-level item on mount and re-announces whenever a test swaps it,
+ * which is what a cell recycle looks like to the component.
  */
 jest.mock("@legendapp/list/react-native", () => {
   const { useEffect, useRef } = require("react");
   return {
     useRecyclingEffect: (fn: (args: unknown) => void) => {
-      const fired = useRef(false);
+      const announced = useRef<{ id: string } | null>(null);
       useEffect(() => {
-        if (fired.current) {
+        if (
+          announced.current != null &&
+          announced.current.id === mockCurrentItem.id
+        ) {
           return;
         }
-        fired.current = true;
+        announced.current = mockCurrentItem;
         fn({ item: mockCurrentItem, prevItem: null });
       });
     },
@@ -150,6 +187,9 @@ describe("NewsItemGoogleAds", () => {
   });
 
   it("destroys an ad that arrives after its request was superseded", async () => {
+    // Supersede by timeout: the loader gives each attempt 10s, and a timed
+    // out request is not cancellable, so a late arrival belongs to nobody
+    // and must be released rather than leaked onto the native side.
     let resolveAd: ((ad: unknown) => void) | undefined;
     mockCreateForAdRequest.mockReturnValue(
       new Promise((resolve) => {
@@ -168,12 +208,62 @@ describe("NewsItemGoogleAds", () => {
     // The cell goes away with the request still in flight.
     view.unmount();
 
+    // The attempt times out while the native request is still pending.
+    await advance(10_000);
+    await flush();
+
+    // ...and only then does the orphaned native request settle.
     await act(async () => {
       resolveAd?.({ headline: "late", destroy: mockDestroy });
       await Promise.resolve();
     });
 
-    // The orphan is released rather than leaked onto the native side.
     expect(mockDestroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the pinned height when the cell recycles to a different ad", async () => {
+    mockCreateForAdRequest.mockResolvedValue({
+      headline: "Tall ad",
+      body: "Body",
+      store: "Play",
+      callToAction: "Install",
+      destroy: mockDestroy,
+    });
+
+    mockCurrentItem = { id: "ad-tall" };
+    const view = render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+    expect(screen.getByText("Tall ad")).toBeTruthy();
+
+    // The slot measures tall — a bigger creative, a mid-layout measurement —
+    // and pins the container to it.
+    fireEvent(screen.getByTestId("native-ad-view"), "layout", {
+      nativeEvent: { layout: { height: 400, width: 300, x: 0, y: 0 } },
+    });
+    expect(screen.getByTestId("native-ad-view").props.style.height).toBe(400);
+
+    // The cell recycles to a different, compact ad.
+    mockCreateForAdRequest.mockResolvedValue({
+      headline: "Compact ad",
+      body: "Small",
+      store: "Play",
+      callToAction: "Get",
+      destroy: mockDestroy,
+    });
+    mockCurrentItem = { id: "ad-compact" };
+    view.rerender(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+
+    expect(screen.getByText("Compact ad")).toBeTruthy();
+    // The stale pin is dropped so the new ad measures itself. Without the
+    // reset it keeps the 400px box and floats in blank space below its
+    // content — the reported rendering bug.
+    expect(
+      screen.getByTestId("native-ad-view").props.style.height
+    ).toBeUndefined();
   });
 });

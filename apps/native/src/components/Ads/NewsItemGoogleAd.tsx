@@ -44,6 +44,14 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
       const generation = ++generationRef.current;
       const cached = getCachedAd(activateTab, activateId);
       setFailed(false);
+      // Drop any height pinned by the previous slot. The onLayout pin below
+      // can only ever grow: once `height` is set, every later measurement
+      // reports the pinned height back, so `measuredHeight !== adViewHeight`
+      // is never true again and the container never shrinks. In a recycled
+      // list that strands each compact ad inside the tallest box its cell
+      // ever measured — content clustered at the top, AdChoices badge
+      // floating in blank space below. Every activation re-measures fresh.
+      setAdViewHeight(0);
       if (cached) {
         setNativeAd(cached);
         return;

@@ -47,15 +47,27 @@ const SingleNews = () => {
     hasScrolledThreshold,
     inRapidScroll,
     isTracking,
+    trackLike,
+    trackDislike,
     trackShare,
     trackComment,
   } = useArticleTracking(data);
 
+  // Tapping a reaction you already hold removes it, so only the tap that adds
+  // one is an event. The callbacks run after the sign-in check, so a signed-out
+  // reader who is sent to the sign-in screen is not counted either.
   const { handleLike, handleDislike } = useArticleActions(
-    data
-    // pass analytics callbacks as optional deps
-    // if you want to keep trackLike/trackDislike wired in,
-    // expose them from useArticleTracking instead
+    data,
+    () => {
+      if (data?.userReaction !== "like") {
+        trackLike();
+      }
+    },
+    () => {
+      if (data?.userReaction !== "dislike") {
+        trackDislike();
+      }
+    }
   );
 
   // Emits nav_tti for /Tab/Home/News once the article content has rendered.

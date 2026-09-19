@@ -3,6 +3,7 @@ import { useCallback, useRef } from "react";
 
 import { orpc } from "#/lib/orpc";
 import { NEWS_FEED_STALE_TIME_MS } from "./constants";
+import { allFeedInput } from "./feedKeys";
 
 export default function useAllNews({
   category,
@@ -21,14 +22,13 @@ export default function useAllNews({
 
   const query = useInfiniteQuery(
     orpc.news.all.infiniteOptions({
-      input: (pageParam: number | undefined) => ({
-        category,
-        type,
-        limit: 10,
-        includeAds: ad,
-        page: pageParam,
-        forceRefresh: forceRefreshRef.current,
-      }),
+      input: (pageParam: number | undefined) =>
+        allFeedInput(pageParam, {
+          category,
+          type,
+          includeAds: ad,
+          forceRefresh: forceRefreshRef.current,
+        }),
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: NEWS_FEED_STALE_TIME_MS,
