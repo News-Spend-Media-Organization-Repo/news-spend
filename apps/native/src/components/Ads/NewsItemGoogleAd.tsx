@@ -10,7 +10,6 @@ import {
 } from "react-native-google-mobile-ads";
 import { getCachedAd } from "#/utils/ad-cache";
 import { ensureNativeAdLoaded } from "#/utils/ad-loader";
-import { nativeAdDiagnostics } from "#/utils/nativeAdDiagnostics";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Text } from "../heroui/text";
 
@@ -167,10 +166,6 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
         if (measuredHeight !== adViewHeight) {
           setAdViewHeight(measuredHeight);
         }
-        nativeAdDiagnostics.recordAdViewLayout(e.nativeEvent.layout, {
-          hasVideoContent: nativeAd.mediaContent?.hasVideoContent ?? false,
-          aspectRatio: nativeAd.mediaContent?.aspectRatio ?? null,
-        });
       }}
       style={{
         height: adViewHeight || undefined,
@@ -179,16 +174,12 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
         width: "100%",
       }}
     >
-      <View
-        className="flex-row gap-4"
-        onLayout={(e) =>
-          nativeAdDiagnostics.recordContentLayout(e.nativeEvent.layout)
-        }
-      >
+      <View className="flex-row gap-4">
         {/*
           Placed like a NewsItem/NewsItemAd thumbnail, but larger: 120 is the
-          smallest media view Google will serve video to (see MEDIA_SIZE). This ad is meant to read as a normal feed row, not stand
-          out with its own banner layout. Media (not icon) is the thumbnail:
+          smallest media view Google will serve video to (see MEDIA_SIZE). This
+          ad is meant to read as a normal feed row, not stand out with its own
+          banner layout. Media (not icon) is the thumbnail:
           AdMob requires every native ad to carry a media asset (one of
           three required assets alongside headline/CTA), so it's the one
           guaranteed to be there — this layout previously omitted it
@@ -196,9 +187,6 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
           shown" (AdMob console: ~80-90% match rate, ~35-40% show rate).
         */}
         <NativeMediaView
-          onLayout={(e) =>
-            nativeAdDiagnostics.recordMediaLayout(e.nativeEvent.layout)
-          }
           resizeMode="cover"
           style={{ borderRadius: 10, height: MEDIA_SIZE, width: MEDIA_SIZE }}
         />
