@@ -32,6 +32,15 @@ type CreativeInfo = {
 };
 
 /**
+ * How long to wait after the last ad view layout before reporting. React Native
+ * delivers a parent's layout event before its children's, so reporting on the
+ * ad view's own event went out before the media view and content row had been
+ * measured, and both read null. The ad view also lays out twice (once, then
+ * again when its height is pinned), so the report waits for that to settle.
+ */
+const SETTLE_MS = 800;
+
+/**
  * Collects the media view's, the content row's and the ad view's layout, then
  * sends one report per kind of creative per launch: a video and a still image
  * can differ, and one of each is enough to compare.
@@ -45,6 +54,7 @@ export function createNativeAdDiagnostics(
   enabled: () => boolean = nativeAdDiagnosticsEnabled
 ) {
   const reported = new Set<string>();
+  const pending = new Map<string, ReturnType<typeof setTimeout>>();
   let media: Size | null = null;
   let content: Rect | null = null;
 
@@ -63,25 +73,37 @@ export function createNativeAdDiagnostics(
       if (reported.has(kind)) {
         return;
       }
-      reported.add(kind);
 
-      report(kind, {
-        adView,
-        content,
-        mediaView: media,
-        // What the validator checks: does anything reach past the ad view?
-        contentBottomPastAdView: content
-          ? content.y + content.height - adView.height
-          : null,
-        contentRightPastAdView: content
-          ? content.x + content.width - adView.width
-          : null,
-        creative,
-        os: `${Platform.OS} ${Platform.Version}`,
-        pixelRatio: PixelRatio.get(),
-        fontScale: PixelRatio.getFontScale(),
-        window: Dimensions.get("window"),
-      });
+      // Restarted on every layout, so the report carries the settled numbers.
+      const previous = pending.get(kind);
+      if (previous) {
+        clearTimeout(previous);
+      }
+      pending.set(
+        kind,
+        setTimeout(() => {
+          pending.delete(kind);
+          reported.add(kind);
+
+          report(kind, {
+            adView,
+            content,
+            mediaView: media,
+            // What the validator checks: does anything reach past the ad view?
+            contentBottomPastAdView: content
+              ? content.y + content.height - adView.height
+              : null,
+            contentRightPastAdView: content
+              ? content.x + content.width - adView.width
+              : null,
+            creative,
+            os: `${Platform.OS} ${Platform.Version}`,
+            pixelRatio: PixelRatio.get(),
+            fontScale: PixelRatio.getFontScale(),
+            window: Dimensions.get("window"),
+          });
+        }, SETTLE_MS)
+      );
     },
   };
 }
