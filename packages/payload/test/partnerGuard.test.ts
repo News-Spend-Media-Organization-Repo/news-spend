@@ -157,6 +157,25 @@ describe("the built config", () => {
     }
   });
 
+  test("the migration ledger is reachable by a super-admin and no one else", async () => {
+    const migrations = config.collections.find(
+      (c) => c.slug === "payload-migrations"
+    );
+    const superAdmin = {
+      collection: "admins",
+      id: "sa-1",
+      role: "super-admin",
+    };
+    const others = [staff, partner, null];
+
+    for (const op of ["create", "read", "update", "delete"] as const) {
+      expect(await migrations?.access?.[op]?.(args(superAdmin))).toBe(true);
+      for (const user of others) {
+        expect(await migrations?.access?.[op]?.(args(user))).toBe(false);
+      }
+    }
+  });
+
   test("every global is closed to a partner", async () => {
     for (const global of config.globals) {
       expect(await global.access?.read?.(args(partner))).toBe(false);

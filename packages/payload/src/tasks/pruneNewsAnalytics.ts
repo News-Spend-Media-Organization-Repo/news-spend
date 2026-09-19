@@ -6,10 +6,17 @@ import type { TaskConfig } from "payload";
  *
  * Must stay comfortably above the 90-day ceiling `newsAnalyticsRouter`'s
  * `articleStats` and `topArticles` accept, or the dashboards start reporting
- * a window the data no longer covers. 180 leaves a wide margin and still
- * bounds the table.
+ * a window the data no longer covers.
+ *
+ * Two years. The table is small (about 100 events a day at the time of
+ * writing, under 10 MB in total), so keeping raw events is cheap, and it means
+ * long-range views and partner reporting can be built from them without a
+ * separate rollup table first. Anything pruned is gone for good, which is the
+ * reason not to prune early. Override with NEWS_ANALYTICS_RETENTION_DAYS; if
+ * the table ever outgrows this, that is the moment to add a rollup and shorten
+ * it.
  */
-const DEFAULT_RETENTION_DAYS = 180;
+const DEFAULT_RETENTION_DAYS = 730;
 
 /** Rows removed per statement, so a large backlog never holds a long lock. */
 const BATCH_SIZE = 10_000;
