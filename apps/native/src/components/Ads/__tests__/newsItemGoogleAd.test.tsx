@@ -157,10 +157,32 @@ describe("NewsItemGoogleAds", () => {
     render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
     await flush();
 
-    // Below 120 in either dimension Google serves no video to the slot.
+    // Below 120 in either dimension Google serves no video to the slot. And
+    // strictly above it: a nominal 120 measured 120 on an iPhone 17 Pro and was
+    // still flagged, since native frames are floats and a strict check can
+    // land either side of the line.
     const media = screen.getByTestId("native-media-view").props.style;
-    expect(media.width).toBeGreaterThanOrEqual(120);
-    expect(media.height).toBeGreaterThanOrEqual(120);
+    expect(media.width).toBeGreaterThan(120);
+    expect(media.height).toBeGreaterThan(120);
+  });
+
+  it("keeps the assets strictly inside the ad view, not flush with its edges", async () => {
+    mockCreateForAdRequest.mockResolvedValue({
+      headline: "Buy this",
+      body: "Really do",
+      store: "Play",
+      callToAction: "Install",
+      icon: null,
+      destroy: mockDestroy,
+    });
+
+    mockCurrentItem = { id: "ad-inset" };
+    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await flush();
+
+    // A content row that reaches the boundary can land a fraction past it.
+    const adView = screen.getByTestId("native-ad-view").props.style;
+    expect(adView.padding).toBeGreaterThanOrEqual(1);
   });
 
   it("reserves room under the thumbnail for the AdChoices icon", async () => {
