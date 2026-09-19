@@ -38,13 +38,32 @@ describe("createNativeAdDiagnostics", () => {
     expect(report.mock.calls.map(([kind]) => kind)).toEqual(["image", "video"]);
   });
 
-  it("waits until the media view has been measured", () => {
+  it("reports without a media or content measurement, which may never arrive", () => {
     const report = jest.fn();
     const diagnostics = createNativeAdDiagnostics(report, () => true);
 
     diagnostics.recordAdViewLayout({ width: 378, height: 140 }, IMAGE);
 
-    expect(report).not.toHaveBeenCalled();
+    expect(report).toHaveBeenCalledWith(
+      "image",
+      expect.objectContaining({
+        mediaView: null,
+        content: null,
+        contentBottomPastAdView: null,
+      })
+    );
+  });
+
+  it("says how far the content reaches past the ad view, which is what the validator checks", () => {
+    const report = jest.fn();
+    const diagnostics = createNativeAdDiagnostics(report, () => true);
+    diagnostics.recordContentLayout({ x: 0, y: 0, width: 378, height: 140.33 });
+
+    diagnostics.recordAdViewLayout({ width: 378, height: 140 }, IMAGE);
+
+    const details = report.mock.calls[0]?.[1];
+    expect(details.contentBottomPastAdView).toBeCloseTo(0.33);
+    expect(details.contentRightPastAdView).toBe(0);
   });
 
   it("reports nothing where it is not enabled", () => {

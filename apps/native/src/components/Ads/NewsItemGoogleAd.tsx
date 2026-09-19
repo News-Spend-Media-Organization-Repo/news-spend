@@ -161,7 +161,12 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
         width: "100%",
       }}
     >
-      <View className="flex-row gap-4">
+      <View
+        className="flex-row gap-4"
+        onLayout={(e) =>
+          nativeAdDiagnostics.recordContentLayout(e.nativeEvent.layout)
+        }
+      >
         {/*
           Placed like a NewsItem/NewsItemAd thumbnail, but 20px larger: 120 is
           the smallest media view Google will serve video to (see
