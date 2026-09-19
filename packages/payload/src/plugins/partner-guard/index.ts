@@ -6,7 +6,7 @@ import type {
   SanitizedConfig,
 } from "payload";
 
-import { isPartnerUser } from "../../access/adminRoles";
+import { isPartnerUser, isSuperAdmin } from "../../access/adminRoles";
 
 type CollectionOperation =
   | "create"
@@ -56,6 +56,18 @@ export const PARTNER_ACCESS: Readonly<
  * uploaded file is not theirs to page through, so it stays out of the nav.
  */
 const PARTNER_HIDDEN_FROM_NAV: ReadonlySet<string> = new Set(["media"]);
+
+/**
+ * Payload's own collections that no one but a super-admin should reach over
+ * REST, partner or not.
+ *
+ * The migration ledger decides which migrations run on the next start. Payload
+ * leaves it on "any signed-in user", so any staff account could add, edit or
+ * delete rows and change what runs against production. The migration runner
+ * itself talks to the database directly, not through this rule, so closing the
+ * REST surface does not affect migrating.
+ */
+const SUPER_ADMIN_ONLY: ReadonlySet<string> = new Set(["payload-migrations"]);
 
 const COLLECTION_OPERATIONS: readonly CollectionOperation[] = [
   "create",
@@ -187,6 +199,17 @@ export const guardInternalCollections = (
         collection,
         collectionPatch(collection, PARTNER_ACCESS[collection.slug] ?? [])
       );
+    }
+    if (SUPER_ADMIN_ONLY.has(collection.slug)) {
+      Object.assign(collection, {
+        access: {
+          ...collection.access,
+          create: isSuperAdmin,
+          read: isSuperAdmin,
+          update: isSuperAdmin,
+          delete: isSuperAdmin,
+        },
+      });
     }
   }
   for (const global of config.globals) {
