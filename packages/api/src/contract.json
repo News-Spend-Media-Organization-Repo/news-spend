@@ -403,29 +403,6 @@
       }
     }
   },
-  "partnerAnalytics": {
-    "overview": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {},
-        "route": {}
-      }
-    },
-    "trends": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {},
-        "route": {}
-      }
-    },
-    "byStore": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {},
-        "route": {}
-      }
-    }
-  },
   "partnerContent": {
     "all": {
       "~orpc": {

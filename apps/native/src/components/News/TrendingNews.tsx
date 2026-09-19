@@ -8,6 +8,7 @@ import { Card } from "heroui-native/card";
 import { useCallback } from "react";
 import { Dimensions, Pressable, type ScrollViewProps } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import { useImpressionViewability } from "#/hooks/news/useImpressionViewability";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
@@ -23,6 +24,8 @@ const FULL_SIZE = ITEM_WIDTH + SPACING * 2;
 const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
 export default function TrendingNews({ news }: { news: News[] }) {
+  const viewabilityConfigCallbackPairs =
+    useImpressionViewability("HomeTrending");
   const renderItem = useCallback(
     ({ item }: LegendListRenderItemProps<News>) => (
       <TrendingNewsItem item={item} />
@@ -45,6 +48,7 @@ export default function TrendingNews({ news }: { news: News[] }) {
       snapToAlignment="center"
       snapToInterval={FULL_SIZE}
       style={{ height: ITEM_HEIGHT }}
+      viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
       // suggestEstimatedItemSize
     />
   );

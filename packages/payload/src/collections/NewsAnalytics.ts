@@ -1,10 +1,15 @@
 import type { CollectionConfig } from "payload";
+import { isStaff } from "../access/adminRoles";
 
 const NewsAnalytics: CollectionConfig = {
   slug: "news-analytics",
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: () => true,
+    // Whole-catalogue engagement data: internal staff only, never a partner.
+    read: isStaff,
+    // Events arrive through the API server's bulk INSERT, which bypasses
+    // Payload, so nothing needs to be creatable over REST. It used to be open
+    // to anyone, which let a caller write arbitrary events.
+    create: () => false,
     update: () => false,
     delete: () => false,
   },

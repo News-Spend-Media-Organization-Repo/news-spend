@@ -2,6 +2,14 @@ import type { News } from "@news-spend-media/payload/types";
 import { useRoute } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import { BottomSheet } from "heroui-native/bottom-sheet";
+import { useState } from "react";
+import { FlatList, ToastAndroid, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Share, { type Social } from "react-native-share";
+import BannerAds from "#/components/Ads/BannerAds";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
 import {
   CopyIcon,
   DotsThreeOutlineVerticalIcon,
@@ -11,15 +19,7 @@ import {
   TwitterLogoIcon,
   WhatsappLogoIcon,
 } from "#/lib/icons";
-import { useState } from "react";
-import { FlatList, ToastAndroid, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Share, { type Social } from "react-native-share";
-
-import BannerAds from "#/components/Ads/BannerAds";
-import { Button } from "#/components/heroui/button";
-import { Icon } from "#/components/heroui/icon";
-import { Text } from "#/components/heroui/text";
+import { handOffShare } from "#/utils/handOffShare";
 
 export const ShareNews = ({
   news,
@@ -40,74 +40,70 @@ export const ShareNews = ({
     {
       text: "Facebook",
       Icon: FacebookLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.FACEBOOK as Social,
-            appId: "",
-          });
-          result.success && onShare?.("facebook");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.FACEBOOK as Social,
+              appId: "",
+            }),
+          "facebook",
+          onShare
+        ),
     },
     {
       text: "Messenger",
       Icon: MessengerLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.MESSENGER as Social,
-            appId: "",
-          });
-          result.success && onShare?.("messenger");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.MESSENGER as Social,
+              appId: "",
+            }),
+          "messenger",
+          onShare
+        ),
     },
     {
       text: "Whatsapp",
       Icon: WhatsappLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.WHATSAPP as Social,
-            appId: "",
-          });
-          result.success && onShare?.("whatsapp");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.WHATSAPP as Social,
+              appId: "",
+            }),
+          "whatsapp",
+          onShare
+        ),
     },
     {
       text: "Twitter",
       Icon: TwitterLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.TWITTER as Social,
-            appId: "",
-          });
-          result.success && onShare?.("twitter");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.TWITTER as Social,
+              appId: "",
+            }),
+          "twitter",
+          onShare
+        ),
     },
     {
       text: "Copy link",
@@ -116,7 +112,7 @@ export const ShareNews = ({
         try {
           await Clipboard.setStringAsync(`${news.title} \n ${url}`);
           ToastAndroid.show("Link copied to clipboard", ToastAndroid.SHORT);
-          // onShare?.("copy_link");
+          onShare?.("copy_link");
         } catch (error) {
           console.error(error);
         }

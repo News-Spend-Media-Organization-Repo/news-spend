@@ -26,6 +26,12 @@ export async function requireAdmin(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Partners sign in to the same panel. These routes spend money or third-
+    // party quota, and nothing a partner does needs them.
+    if (user.role === "partner") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     return null;
   } catch {
     // A failure to establish identity is not a licence to proceed.

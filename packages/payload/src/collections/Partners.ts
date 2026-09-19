@@ -1,11 +1,20 @@
 import { randomUUID } from "node:crypto";
 
 import { type CollectionConfig, slugField } from "payload";
+import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
 
 export const Partners: CollectionConfig = {
   slug: "partners",
+  // A partner signs in to the admin panel and may see their own company
+  // record, never another partner's or any edit to it.
+  access: {
+    read: readOwnPartnerOrStaff("id"),
+    create: isStaff,
+    update: isStaff,
+    delete: isStaff,
+  },
   admin: {
     group: "Partners",
     useAsTitle: "companyName",
@@ -154,6 +163,9 @@ export const Partners: CollectionConfig = {
         {
           name: "webhookSecret",
           type: "text",
+          // Credentials, so staff only: a partner reading their own record
+          // must not be handed the key that authenticates postbacks.
+          access: { read: isStaff },
           admin: {
             description: "Secret key for webhook verification",
             condition: (data) =>
@@ -175,6 +187,7 @@ export const Partners: CollectionConfig = {
         {
           name: "apiKey",
           type: "text",
+          access: { read: isStaff },
           admin: {
             readOnly: true,
             description: "API key for partner authentication",

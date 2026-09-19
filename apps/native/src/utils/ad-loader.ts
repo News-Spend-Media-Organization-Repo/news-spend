@@ -53,9 +53,10 @@ async function requestOnce(): Promise<NativeAd> {
   let settled = false;
 
   const adPromise = NativeAd.createForAdRequest(adUnits.native, {
-    // Bottom-left: the only corner of the feed row without content — the
-    // AD badge owns top-right, the Install pill owns bottom-right, and
-    // top-left would sit on the thumbnail image.
+    // Bottom-left: the AD badge owns top-right, the Install pill owns
+    // bottom-right, and top-left would sit on the thumbnail image. The row
+    // reserves a strip under the thumbnail for it (ADCHOICES_GUTTER in
+    // NewsItemGoogleAd), so the icon never lands on the creative.
     adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_LEFT,
   });
 

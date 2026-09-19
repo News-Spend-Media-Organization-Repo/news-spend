@@ -27,6 +27,9 @@ export function useReadingTracker(
   const lastScrollY = useRef(0);
   const lastScrollTime = useRef<number | null>(null);
   const speedSamples = useRef<number[]>([]);
+  // Deepest point reached, 0 to 1. Reported with a read so the depth is
+  // measured, not assumed.
+  const maxScrollDepth = useRef(0);
   const { user } = useSnapshot(authState);
 
   const stopTracking = useCallback(() => {
@@ -111,6 +114,10 @@ export function useReadingTracker(
       // Track scroll depth threshold
       const scrolledPercentage =
         (scrollY + layoutMeasurement.height) / contentSize.height;
+      maxScrollDepth.current = Math.max(
+        maxScrollDepth.current,
+        Math.min(1, scrolledPercentage)
+      );
       if (!hasScrolledThreshold && scrolledPercentage >= SCROLL_THRESHOLD) {
         setHasScrolledThreshold(true);
         hasScrolledThresholdRef.current = true;
@@ -178,5 +185,6 @@ export function useReadingTracker(
     isTracking,
     handleScroll,
     stopTracking,
+    getMaxScrollDepth: () => maxScrollDepth.current,
   };
 }

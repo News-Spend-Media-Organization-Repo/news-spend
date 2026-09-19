@@ -8,7 +8,6 @@ import { giveawayRouter } from "./giveaway";
 import { newsRouter } from "./news";
 import { notificationSettingsRouter } from "./notificationSettings";
 import { notificationsRouter } from "./notifications";
-import { partnerAnalyticsRouter } from "./partner-analytics";
 import { partnerConversionRouter } from "./partner-conversions";
 import { partnerContentRouter } from "./partnerContent";
 import { postReportRouter } from "./postReport";
@@ -30,7 +29,6 @@ export const router = {
   news: newsRouter,
   notificationSettings: notificationSettingsRouter,
   notifications: notificationsRouter,
-  partnerAnalytics: partnerAnalyticsRouter,
   partnerContent: partnerContentRouter,
   partnerConversions: partnerConversionRouter,
   postReport: postReportRouter,

@@ -27,7 +27,7 @@ jest.mock("react-native-google-mobile-ads", () => ({
     // layout engine under jest, so nothing here measures on its own.
     const { View } = require("react-native");
     return (
-      <View testID="native-ad-view" style={style} onLayout={onLayout}>
+      <View onLayout={onLayout} style={style} testID="native-ad-view">
         {children}
       </View>
     );
@@ -96,8 +96,8 @@ jest.mock("@legendapp/list/react-native", () => {
   };
 });
 
-import NewsItemGoogleAds from "../NewsItemGoogleAd";
 import { clearTabAdCache } from "#/utils/ad-cache";
+import NewsItemGoogleAds from "../NewsItemGoogleAd";
 
 /** Let every pending promise callback run, then drain scheduled timers. */
 const flush = async () => {
@@ -141,6 +141,70 @@ describe("NewsItemGoogleAds", () => {
     await flush();
 
     expect(screen.getByText("Buy this")).toBeTruthy();
+  });
+
+  it("keeps the media view at Google's 120x120 floor so video can serve", async () => {
+    mockCreateForAdRequest.mockResolvedValue({
+      headline: "Buy this",
+      body: "Really do",
+      store: "Play",
+      callToAction: "Install",
+      icon: null,
+      destroy: mockDestroy,
+    });
+
+    mockCurrentItem = { id: "ad-size" };
+    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await flush();
+
+    // Below 120 in either dimension Google serves no video to the slot. And
+    // strictly above it: a nominal 120 measured 120 on an iPhone 17 Pro and was
+    // still flagged, since native frames are floats and a strict check can
+    // land either side of the line.
+    const media = screen.getByTestId("native-media-view").props.style;
+    expect(media.width).toBeGreaterThan(120);
+    expect(media.height).toBeGreaterThan(120);
+  });
+
+  it("keeps the assets strictly inside the ad view, not flush with its edges", async () => {
+    mockCreateForAdRequest.mockResolvedValue({
+      headline: "Buy this",
+      body: "Really do",
+      store: "Play",
+      callToAction: "Install",
+      icon: null,
+      destroy: mockDestroy,
+    });
+
+    mockCurrentItem = { id: "ad-inset" };
+    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await flush();
+
+    // A content row that reaches the boundary can land a fraction past it.
+    const adView = screen.getByTestId("native-ad-view").props.style;
+    expect(adView.padding).toBeGreaterThanOrEqual(1);
+  });
+
+  it("reserves room under the thumbnail for the AdChoices icon", async () => {
+    mockCreateForAdRequest.mockResolvedValue({
+      headline: "Buy this",
+      body: "Really do",
+      store: "Play",
+      callToAction: "Install",
+      icon: null,
+      destroy: mockDestroy,
+    });
+
+    mockCurrentItem = { id: "ad-gutter" };
+    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await flush();
+
+    // AdChoices is pinned bottom-left of the ad view; with a short text
+    // column the row would otherwise end at the thumbnail and the icon would
+    // sit on the creative.
+    const media = screen.getByTestId("native-media-view").props.style;
+    const adView = screen.getByTestId("native-ad-view").props.style;
+    expect(adView.minHeight - media.height).toBeGreaterThanOrEqual(20);
   });
 
   it("collapses the slot instead of stranding an empty placeholder", async () => {

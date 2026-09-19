@@ -1,10 +1,14 @@
 import type { CollectionConfig } from "payload";
+import { readOwnPartnerOrStaff } from "../access/adminRoles";
 
 const ShopAnalytics: CollectionConfig = {
   slug: "shop-analytics",
+  // Events are written by the API server through the local API, which skips
+  // access rules, so nothing needs to be creatable over REST. It used to be
+  // open to anyone, which let a caller forge or read any store's numbers.
   access: {
-    read: () => true,
-    create: () => true,
+    read: readOwnPartnerOrStaff("store"),
+    create: () => false,
     update: () => false,
     delete: () => false,
   },
