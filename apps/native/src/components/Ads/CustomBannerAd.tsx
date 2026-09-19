@@ -1,6 +1,6 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useQuery } from "@tanstack/react-query";
-import { memo, useMemo } from "react";
+import { memo, useId, useMemo } from "react";
 import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 import { BannerAd as GoogleBannerAd } from "react-native-google-mobile-ads";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
@@ -16,21 +16,45 @@ type AllowedAdSizeKeys = NonNullable<BannerSize>;
 
 const { width: screenWidth } = Dimensions.get("window");
 
+const BANNER_STALE_TIME_MS = 5 * 60 * 1000;
+
 const HORIZONTAL_INSET = 0;
 const AVAILABLE_WIDTH = screenWidth - HORIZONTAL_INSET * 2;
 
 const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
+  const id = useId();
+
   const queryOptions = orpc.partnerContent.getOne.queryOptions({
     input: {
       placement: ["banner-news-post"],
       adSize: size,
       type: ["banner"],
     },
-    staleTime: 0,
+    /**
+     * A banner is picked once per mount and then left alone.
+     *
+     * This was `staleTime: 0`, and `focusManager` is wired to AppState (see
+     * useAppStateFocusManager), so every background/foreground cycle marked
+     * the query stale and refetched it — the creative visibly swapped each
+     * time the reader came back to an article they were halfway through.
+     * Rotation belongs to a new mount, not to the app regaining focus.
+     */
+    staleTime: BANNER_STALE_TIME_MS,
   });
 
+  /**
+   * Keyed per slot, the way usePartnerAd is.
+   *
+   * `getOne` picks at random server-side, but every banner of the same size in
+   * an article sent the identical input and so shared one cache entry — an
+   * article with two MEDIUM_RECTANGLE slots showed the same partner twice and
+   * billed the impression against a single pick. The instance id splits them
+   * into independent picks.
+   */
   const { data, isPending } = useQuery({
     ...queryOptions,
+    queryKey: [...queryOptions.queryKey, id],
+    refetchOnWindowFocus: false,
   });
 
   const { handleClick } = usePartnerClick();

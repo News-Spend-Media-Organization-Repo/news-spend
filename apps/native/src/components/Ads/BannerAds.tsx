@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import {
   BannerAdSize,
   BannerAd as GoogleBannerAd,
@@ -22,11 +22,21 @@ type BannerAdsProps = {
 };
 
 function BannerAds({ size }: BannerAdsProps) {
+  /**
+   * The Google-vs-partner split is decided once, when the slot mounts.
+   *
+   * Held in state rather than re-rolled in the render body: a bare
+   * `Math.random()` here is only stable because `memo` happens to block
+   * re-renders today, and the moment anything gives this component a new prop
+   * the slot would silently swap between a Google banner and a partner one
+   * mid-read — unmounting the partner query and buying a fresh creative with
+   * it. The lazy initializer keeps the roll to one per mount.
+   */
+  const [useGoogleAd] = useState(() => Math.random() < 0.4);
+
   if (SCREENSHOT_MODE) {
     return null;
   }
-
-  const useGoogleAd = Math.random() < 0.4;
 
   if (size in sizeMap) {
     return useGoogleAd ? (
