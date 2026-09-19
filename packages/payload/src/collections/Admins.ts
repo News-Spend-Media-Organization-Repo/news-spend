@@ -1,14 +1,30 @@
 import type { CollectionConfig } from "payload";
+import { isSuperAdmin } from "../access/adminRoles";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 
 const Admins: CollectionConfig = {
   slug: "admins",
   auth: true,
   access: {
-    read: () => true,
-    create: () => true,
-    update: ({ req: { user } }) => user?.collection === "admins",
-    delete: ({ req: { user } }) => user?.collection === "admins",
+    // Partners sign in here too, so they may read only their own record.
+    read: ({ req: { user } }) => {
+      if (user?.collection !== "admins") {
+        return false;
+      }
+      return user.role === "partner" ? { id: { equals: user.id } } : true;
+    },
+    // Creating an account chooses its role, so it is a super-admin decision.
+    // The first-user flow is unaffected: Payload creates that account with
+    // access overridden.
+    create: isSuperAdmin,
+    // Everyone may edit their own profile; only a super-admin edits others.
+    update: ({ req: { user } }) => {
+      if (user?.collection !== "admins") {
+        return false;
+      }
+      return user.role === "super-admin" ? true : { id: { equals: user.id } };
+    },
+    delete: isSuperAdmin,
   },
   admin: {
     useAsTitle: "fullName",
@@ -21,6 +37,12 @@ const Admins: CollectionConfig = {
       type: "select",
       required: true,
       defaultValue: "viewer",
+      // Without this, anyone allowed to edit their own profile could promote
+      // themselves to super-admin.
+      access: {
+        create: isSuperAdmin,
+        update: isSuperAdmin,
+      },
       options: [
         { label: "Super Admin", value: "super-admin" },
         { label: "Content Manager", value: "content-manager" },
@@ -34,6 +56,12 @@ const Admins: CollectionConfig = {
       type: "relationship",
       relationTo: "partners",
       hasMany: false,
+      // Which partner's numbers this account sees, so a partner must not be
+      // able to point their own account at another partner.
+      access: {
+        create: isSuperAdmin,
+        update: isSuperAdmin,
+      },
       admin: {
         condition: (data) => data.role === "partner",
       },

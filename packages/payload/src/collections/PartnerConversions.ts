@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload";
+import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
 
 export const PartnerConversions: CollectionConfig = {
   slug: "partner-conversions",
@@ -14,8 +15,14 @@ export const PartnerConversions: CollectionConfig = {
     ],
     useAsTitle: "clickId",
   },
+  // Rows carry click ids, partner order ids and the points awarded, so they
+  // are not public. The API server writes through the local API, which skips
+  // these rules; they govern the REST/GraphQL surface and the admin panel.
   access: {
-    read: () => true,
+    read: readOwnPartnerOrStaff("partner"),
+    create: isStaff,
+    update: isStaff,
+    delete: isStaff,
   },
   fields: [
     {
