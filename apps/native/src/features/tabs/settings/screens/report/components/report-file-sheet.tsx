@@ -3,10 +3,11 @@ import * as ImagePicker from "expo-image-picker";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { ListGroup } from "heroui-native/list-group";
 import { Separator } from "heroui-native/separator";
-import { FileArrowUpIcon, XIcon } from "#/lib/icons";
-import { Alert, Pressable, View } from "react-native";
+import { Alert, Keyboard, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "#/components/heroui/text";
+import { FileArrowUpIcon, XIcon } from "#/lib/icons";
+import { ensureCameraPermission } from "#/utils/ensureCameraPermission";
 
 type ReportType = "shortMessage" | "picture" | "video";
 
@@ -126,55 +127,59 @@ export default function ReportFileSheet({
     setOpen(false);
   };
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-    });
+  /**
+   * One capture from the camera. Permission is checked first because
+   * `launchCameraAsync` throws instead of asking, and a throw here used to
+   * escape as an unhandled rejection and leave the reader with a sheet that
+   * did nothing.
+   */
+  const captureWithCamera = async (
+    mediaType: "images" | "videos",
+    noun: "image" | "video"
+  ) => {
+    try {
+      if (!(await ensureCameraPermission())) {
+        return;
+      }
 
-    if (result.canceled) {
-      Alert.alert('You did not select any "image".');
-    } else {
-      setFiles([
-        ...files,
-        {
-          uri: result.assets[0].uri,
-          name: result.assets[0].fileName ?? "",
-          type: result.assets[0].mimeType ?? "",
-          size: result.assets[0].fileSize ?? 0,
-        },
-      ]);
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: [mediaType],
+      });
+
+      if (result.canceled) {
+        Alert.alert(`You did not select any "${noun}".`);
+      } else {
+        setFiles([
+          ...files,
+          {
+            uri: result.assets[0].uri,
+            name: result.assets[0].fileName ?? "",
+            type: result.assets[0].mimeType ?? "",
+            size: result.assets[0].fileSize ?? 0,
+          },
+        ]);
+      }
+
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Couldn't open the camera", "Please try again.");
     }
-
-    setOpen(false);
   };
 
-  const pickVideo = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["videos"],
-    });
-
-    if (result.canceled) {
-      Alert.alert('You did not select any "video".');
-    } else {
-      setFiles([
-        ...files,
-        {
-          uri: result.assets[0].uri,
-          name: result.assets[0].fileName ?? "",
-          type: result.assets[0].mimeType ?? "",
-          size: result.assets[0].fileSize ?? 0,
-        },
-      ]);
-    }
-
-    setOpen(false);
-  };
+  const pickImage = () => captureWithCamera("images", "image");
+  const pickVideo = () => captureWithCamera("videos", "video");
 
   return (
     <>
       <Pressable
         className="rounded-xl border-2 border-gray-300 border-dashed p-4"
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          // The sheet is no longer in an overlay window (see below), so a
+          // keyboard left up from the form above would draw over it.
+          Keyboard.dismiss();
+          setOpen(true);
+        }}
       >
         <View className="flex-row items-center justify-between">
           <Text>Click here to upload file</Text>
@@ -239,9 +244,12 @@ export default function ReportFileSheet({
       </Pressable>
 
       <BottomSheet isOpen={open} onOpenChange={setOpen}>
-        {/* disableFullWindowOverlay in dev: default FullWindowOverlay renders
-        in a separate native window and blocks the RN element inspector. */}
-        <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
+        {/* No FullWindowOverlay, in dev or otherwise. Every option in this sheet
+        hands off to a native picker (the photo library, the camera, the Files
+        browser), and the overlay is a separate native window that sits above
+        native modals, so the sheet stayed drawn on top of the picker it had just
+        opened. As a regular view it is presented behind the picker. */}
+        <BottomSheet.Portal disableFullWindowOverlay>
           <BottomSheet.Overlay />
           <BottomSheet.Content style={{ paddingBottom: insets.bottom }}>
             <ListGroup variant="transparent">
