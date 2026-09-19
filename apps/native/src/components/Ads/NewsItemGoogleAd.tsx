@@ -13,6 +13,26 @@ import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Text } from "../heroui/text";
 
+/**
+ * Google will not serve video to a media view smaller than 120 in either
+ * dimension (dp on Android, points on iOS), and the SDK warns that smaller
+ * slots "will be demonetized". At 100 this placement was shutting out every
+ * video creative, and the native ad validator flagged it on each ad. The size
+ * is a policy floor, not a styling choice, so it applies to every ad rather
+ * than only those that turn out to carry video.
+ */
+const MEDIA_SIZE = 120;
+
+/**
+ * Space kept clear beneath the thumbnail for the SDK's AdChoices icon, which
+ * ad-loader pins to the bottom-left corner of the ad view. Google's guidance
+ * is to leave room in the chosen corner instead of letting the icon land on
+ * the creative, where it can be hard to see. Reserving it as a minimum height,
+ * not padding, means a tall text column still gets its own height for free.
+ */
+const ADCHOICES_GUTTER = 20;
+const MIN_AD_HEIGHT = MEDIA_SIZE + ADCHOICES_GUTTER;
+
 export type NewsItemGoogleAdProp = {
   index: number;
   item: any;
@@ -101,15 +121,15 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
     activateItem(item.id, tab);
   }, []);
 
-  // Nothing will ever fill this slot: take up no space at all. A 90px box
-  // reading "Advertisement" with nothing in it is worse than no box.
+  // Nothing will ever fill this slot: take up no space at all. A placeholder
+  // box reading "Advertisement" with nothing in it is worse than no box.
   if (failed && !nativeAd) {
     return null;
   }
 
   if (!nativeAd) {
     return (
-      <View className="min-h-22.5 items-center justify-center bg-background px-2.5 opacity-60">
+      <View className="min-h-35 items-center justify-center bg-background px-2.5 opacity-60">
         <Text className="font-bold text-p-500">Advertisement</Text>
       </View>
     );
@@ -132,15 +152,16 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
       }}
       style={{
         height: adViewHeight || undefined,
-        minHeight: adViewHeight ? undefined : 90,
+        minHeight: adViewHeight ? undefined : MIN_AD_HEIGHT,
         width: "100%",
       }}
     >
       <View className="flex-row gap-4">
         {/*
-          Sized and placed exactly like a NewsItem/NewsItemAd thumbnail —
-          this ad is meant to read as a normal feed row, not stand out
-          with its own banner layout. Media (not icon) is the thumbnail:
+          Placed like a NewsItem/NewsItemAd thumbnail, but 20px larger: 120 is
+          the smallest media view Google will serve video to (see
+          MEDIA_SIZE). This ad is meant to read as a normal feed row, not stand
+          out with its own banner layout. Media (not icon) is the thumbnail:
           AdMob requires every native ad to carry a media asset (one of
           three required assets alongside headline/CTA), so it's the one
           guaranteed to be there — this layout previously omitted it
@@ -149,7 +170,7 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
         */}
         <NativeMediaView
           resizeMode="cover"
-          style={{ borderRadius: 10, height: 100, width: 100 }}
+          style={{ borderRadius: 10, height: MEDIA_SIZE, width: MEDIA_SIZE }}
         />
 
         <View className="flex-1 justify-center gap-4">
