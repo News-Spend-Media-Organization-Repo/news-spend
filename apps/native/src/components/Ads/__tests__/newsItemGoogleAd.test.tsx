@@ -11,7 +11,7 @@ jest.mock("react-native-google-mobile-ads", () => ({
   NativeAd: {
     createForAdRequest: (...args: unknown[]) => mockCreateForAdRequest(...args),
   },
-  NativeAdChoicesPlacement: { BOTTOM_RIGHT: 1 },
+  NativeAdChoicesPlacement: { BOTTOM_LEFT: 3, BOTTOM_RIGHT: 1 },
   NativeAdView: ({
     children,
     onLayout,
