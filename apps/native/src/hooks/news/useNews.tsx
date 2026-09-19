@@ -10,6 +10,7 @@ import {
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { routeState } from "#/state/route-state";
 import { storage } from "#/utils/storage";
+import { categoryFeedInfiniteKey, homeFeedInfiniteKey } from "./feedKeys";
 
 export default function useNews(slug: string, type?: "article" | "video") {
   const route = useRoute();
@@ -32,17 +33,7 @@ export default function useNews(slug: string, type?: "article" | "video") {
           if (routeState.tabName === "latest") {
             // TODO: change limit to constant
             const data = queryClient
-              .getQueryData(
-                orpc.news.home.infiniteKey({
-                  input: (pageParam) => ({
-                    limit: 10,
-                    page: pageParam,
-                    // type: "article",
-                    // includeAds: true,
-                  }),
-                  initialPageParam: undefined,
-                })
-              )
+              .getQueryData(homeFeedInfiniteKey())
               ?.pages.flatMap((page) => page.docs);
 
             const news = data?.find((newsItem) => newsItem.slug === slug);
@@ -57,15 +48,10 @@ export default function useNews(slug: string, type?: "article" | "video") {
           );
           const allNews = queryClient
             .getQueryData<InfiniteData<RouterOutputs["news"]["all"]>>(
-              orpc.news.all.infiniteKey({
-                initialPageParam: undefined,
-                input: (pageParam) => ({
-                  limit: 10,
-                  page: pageParam,
-                  includeAds: true,
-                  category: (category?.category as unknown as Category)?.id,
-                }),
-              })
+              categoryFeedInfiniteKey(
+                (category?.category as unknown as Category)?.id,
+                true
+              )
             )
             ?.pages.flatMap((page) => page.docs);
 
@@ -75,8 +61,8 @@ export default function useNews(slug: string, type?: "article" | "video") {
       initialDataUpdatedAt: () => {
         if (route.name === "News") {
           if (routeState.tabName === "latest") {
-            const qKey = orpc.news.home.queryKey({ input: { limit: 10 } });
-            return queryClient.getQueryState(qKey)?.dataUpdatedAt;
+            return queryClient.getQueryState(homeFeedInfiniteKey())
+              ?.dataUpdatedAt;
           }
           const categories = JSON.parse(
             storage.getString("CATEGORIES") ?? "[]"
@@ -85,13 +71,12 @@ export default function useNews(slug: string, type?: "article" | "video") {
             ({ category }) => (category as Category).id === routeState.tabName
           );
 
-          const qKey = orpc.news.all.queryKey({
-            input: {
-              category: (category?.category as unknown as Category)?.id,
-              limit: 10,
-            },
-          });
-          return queryClient.getQueryState(qKey)?.dataUpdatedAt;
+          return queryClient.getQueryState(
+            categoryFeedInfiniteKey(
+              (category?.category as unknown as Category)?.id,
+              true
+            )
+          )?.dataUpdatedAt;
         }
       },
     })

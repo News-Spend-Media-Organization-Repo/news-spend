@@ -17,6 +17,7 @@ import AdCarousel from "#/components/Ads/AdCarousel";
 import NewsItemAd from "#/components/Ads/NewsItemAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
+import { homeFeedInfiniteKey, homeFeedInput } from "#/hooks/news/feedKeys";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
@@ -172,11 +173,8 @@ const Latest = memo(
       refetch,
     } = useInfiniteQuery(
       orpc.news.home.infiniteOptions({
-        input: (pageParam: number | undefined) => ({
-          limit: 10,
-          page: pageParam,
-          forceRefresh: forceRefreshRef.current,
-        }),
+        input: (pageParam: number | undefined) =>
+          homeFeedInput(pageParam, forceRefreshRef.current),
         getNextPageParam: (lastPage) => lastPage.nextPage,
         initialPageParam: undefined,
         staleTime: NEWS_FEED_STALE_TIME_MS,
@@ -282,13 +280,7 @@ const Latest = memo(
 
     // #region Callbacks
     const resetInfiniteQueryPagination = useCallback(() => {
-      const qKey = orpc.news.home.infiniteKey({
-        input: (pageParam: number | undefined) => ({
-          limit: 10,
-          page: pageParam,
-        }),
-        initialPageParam: undefined,
-      });
+      const qKey = homeFeedInfiniteKey();
 
       queryClient.setQueryData(qKey, (oldData) => {
         if (!oldData) {
