@@ -10,6 +10,7 @@ import {
 } from "react-native-google-mobile-ads";
 import { getCachedAd } from "#/utils/ad-cache";
 import { ensureNativeAdLoaded } from "#/utils/ad-loader";
+import { nativeAdDiagnostics } from "#/utils/nativeAdDiagnostics";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Text } from "../heroui/text";
 
@@ -149,6 +150,10 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
         if (measuredHeight !== adViewHeight) {
           setAdViewHeight(measuredHeight);
         }
+        nativeAdDiagnostics.recordAdViewLayout(e.nativeEvent.layout, {
+          hasVideoContent: nativeAd.mediaContent?.hasVideoContent ?? false,
+          aspectRatio: nativeAd.mediaContent?.aspectRatio ?? null,
+        });
       }}
       style={{
         height: adViewHeight || undefined,
@@ -169,6 +174,9 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
           shown" (AdMob console: ~80-90% match rate, ~35-40% show rate).
         */}
         <NativeMediaView
+          onLayout={(e) =>
+            nativeAdDiagnostics.recordMediaLayout(e.nativeEvent.layout)
+          }
           resizeMode="cover"
           style={{ borderRadius: 10, height: MEDIA_SIZE, width: MEDIA_SIZE }}
         />
