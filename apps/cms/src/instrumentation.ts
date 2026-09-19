@@ -3,6 +3,17 @@ import * as Sentry from "@sentry/nextjs";
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");
+
+    // Sample RSS/heap once per process. `register` can run more than once
+    // across module graphs, so the flag keeps a single interval alive.
+    const g = globalThis as typeof globalThis & {
+      __cmsMemorySamplerStarted?: boolean;
+    };
+    if (!g.__cmsMemorySamplerStarted) {
+      g.__cmsMemorySamplerStarted = true;
+      const { startMemorySampling } = await import("./memory-sample");
+      startMemorySampling();
+    }
   }
 
   if (process.env.NEXT_RUNTIME === "edge") {

@@ -329,6 +329,7 @@ export interface Admin {
   resetPasswordExpiration?: string | null;
   salt?: string | null;
   hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
   sessions?:
@@ -426,6 +427,7 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
+  _objectKey?: string | null;
   blurhash?: string | null;
   createdBy?: {
     relationTo: 'admins';
@@ -2771,6 +2773,7 @@ export interface AdminsSelect<T extends boolean = true> {
   resetPasswordExpiration?: T;
   salt?: T;
   hash?: T;
+  resetPasswordRequestedAt?: T;
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
@@ -3154,6 +3157,7 @@ export interface PrizeCatalogueSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   caption?: T;
+  _objectKey?: T;
   blurhash?: T;
   createdBy?: T;
   lastModifiedBy?: T;
@@ -4047,7 +4051,10 @@ export interface TaskSchedulePublish {
       value: string | News;
     } | null;
     global?: string | null;
-    user?: (string | null) | Admin;
+    user?: {
+      relationTo: 'admins';
+      value: string | Admin;
+    } | null;
   };
   output?: unknown;
 }
