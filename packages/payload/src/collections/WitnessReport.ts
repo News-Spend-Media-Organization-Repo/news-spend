@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload";
 
+import { isStaff } from "../access/adminRoles";
 import { notifyAdminsOnWitnessReport } from "../hooks/witnessReport/notifyAdmins";
 
 const WitnessReport: CollectionConfig = {
@@ -7,9 +8,13 @@ const WitnessReport: CollectionConfig = {
   admin: {
     useAsTitle: "title",
   },
+  // Holds the reporter's name and account of what they saw, so it is not
+  // public. Reports arrive through the API server's local API, which skips
+  // access rules; this used to be open to anyone, which let a caller read
+  // every report and file new ones, each of which emails every admin.
   access: {
-    read: () => true,
-    create: () => true,
+    read: isStaff,
+    create: () => false,
   },
   hooks: {
     afterChange: [notifyAdminsOnWitnessReport],

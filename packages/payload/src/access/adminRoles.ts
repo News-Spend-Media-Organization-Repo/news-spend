@@ -49,3 +49,45 @@ export const readOwnPartnerOrStaff =
 
     return partnerId ? { [field]: { equals: partnerId } } : false;
   };
+
+/**
+ * Read access for uploaded files: staff see all of them, a partner sees only
+ * their own logo, and everyone else, signed out included, sees nothing.
+ *
+ * The collection also holds files reporters upload through iWitness, so a
+ * listing of it is not something to hand out. Files are served from the CDN,
+ * not through this rule, so closing the listing does not break images.
+ */
+export const readStaffOrOwnPartnerLogo = async ({
+  req,
+}: AccessArgs): Promise<boolean | Where> => {
+  const { user } = req;
+  if (user?.collection !== "admins") {
+    return false;
+  }
+  if (user.role !== "partner") {
+    return true;
+  }
+
+  const partner = user.partner;
+  const partnerId =
+    typeof partner === "object" && partner !== null ? partner.id : partner;
+  if (!partnerId) {
+    return false;
+  }
+
+  try {
+    const { logo } = await req.payload.findByID({
+      collection: "partners",
+      id: partnerId,
+      depth: 0,
+      select: { logo: true },
+      req,
+    });
+    const logoId = typeof logo === "object" && logo !== null ? logo.id : logo;
+    return logoId ? { id: { equals: logoId } } : false;
+  } catch {
+    // A partner record that cannot be loaded grants nothing.
+    return false;
+  }
+};

@@ -17,6 +17,8 @@ import {
 import type { CollectionConfig } from "payload";
 import slugify from "slugify";
 
+import { readStaffOrOwnPartnerLogo } from "../access/adminRoles";
+
 const execAsync = promisify(child_process.exec);
 
 const REGEX_FILENAME = /^(?<name>.+?)(?<ext>\.[^.]*?)?$/;
@@ -34,8 +36,10 @@ async function generateVideoThumbnail(
 
 export const Media: CollectionConfig = {
   slug: "media",
+  // Also holds files reporters upload through iWitness. Files are served from
+  // the CDN rather than through this rule, so only the REST listing is closed.
   access: {
-    read: () => true,
+    read: readStaffOrOwnPartnerLogo,
   },
   hooks: {
     beforeChange: [

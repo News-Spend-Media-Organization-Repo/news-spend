@@ -7,9 +7,11 @@ import {
   readOwnPartnerOrStaff,
 } from "../src/access/adminRoles";
 import Admins from "../src/collections/Admins";
+import { Media } from "../src/collections/Media";
 import NewsAnalytics from "../src/collections/NewsAnalytics";
 import { PartnerConversions } from "../src/collections/PartnerConversions";
 import ShopAnalytics from "../src/collections/ShopAnalytics";
+import WitnessReport from "../src/collections/WitnessReport";
 
 /**
  * These rules decide what a partner who signs in to the admin panel, or an
@@ -175,5 +177,61 @@ describe("analytics collections", () => {
       expect(await access?.[op]?.(reqFor(partner))).toBe(false);
       expect(await access?.[op]?.(reqFor(editor))).toBe(true);
     }
+  });
+});
+
+describe("iWitness data", () => {
+  test("witness-reports are not public and cannot be filed over REST", async () => {
+    const { access } = WitnessReport;
+    expect(await access?.read?.(reqFor(null))).toBe(false);
+    expect(await access?.read?.(reqFor(partner))).toBe(false);
+    expect(await access?.read?.(reqFor(editor))).toBe(true);
+    expect(await access?.create?.(reqFor(null))).toBe(false);
+    expect(await access?.create?.(reqFor(superAdmin))).toBe(false);
+  });
+
+  describe("media listing", () => {
+    const withPartner = (
+      user: TestUser | null,
+      findByID: () => Promise<{ logo?: unknown }>
+    ) =>
+      ({
+        req: { user, payload: { findByID } },
+      }) as unknown as Parameters<Access>[0];
+    const read = Media.access?.read;
+
+    test("is closed to the public and open to staff", async () => {
+      const noLookup = async () => ({});
+      expect(await read?.(withPartner(null, noLookup))).toBe(false);
+      expect(await read?.(withPartner(impostor, noLookup))).toBe(false);
+      expect(await read?.(withPartner(editor, noLookup))).toBe(true);
+    });
+
+    test("a partner sees only their own logo", async () => {
+      expect(
+        await read?.(withPartner(partner, async () => ({ logo: "logo-1" })))
+      ).toEqual({ id: { equals: "logo-1" } });
+      expect(
+        await read?.(
+          withPartner(partner, async () => ({ logo: { id: "logo-2" } }))
+        )
+      ).toEqual({ id: { equals: "logo-2" } });
+    });
+
+    test("a partner with no logo, no partner, or an unloadable record sees nothing", async () => {
+      expect(
+        await read?.(withPartner(partner, async () => ({ logo: null })))
+      ).toBe(false);
+      expect(
+        await read?.(
+          withPartner(admin("partner"), async () => ({ logo: "logo-1" }))
+        )
+      ).toBe(false);
+      expect(
+        await read?.(
+          withPartner(partner, () => Promise.reject(new Error("not found")))
+        )
+      ).toBe(false);
+    });
   });
 });
