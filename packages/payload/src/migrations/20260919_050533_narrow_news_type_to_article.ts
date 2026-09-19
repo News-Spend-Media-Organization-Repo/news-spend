@@ -11,12 +11,15 @@ import { sql } from "@payloadcms/db-postgres";
  * old two-value enums, hence this file. The DDL below is Payload's own
  * narrowing output for this exact change.
  *
- * The UPDATE first retypes one stale draft version row (a snapshot from when
- * its parent was a video; the parent is an article today). Without it the
- * USING cast below fails and aborts the deploy migration.
+ * The UPDATEs first retype video rows that predate the switch-off: one stale
+ * draft version row on production (its parent is an article today), plus one
+ * published row and its versions on staging. Without them the USING casts
+ * below fail and abort the deploy migration. Video is no longer a valid type
+ * in the config, so 'article' is the only faithful value.
  */
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
+    UPDATE "news" SET "type" = 'article' WHERE "type" = 'video';
     UPDATE "_news_v" SET "version_type" = 'article' WHERE "version_type" = 'video';
     ALTER TABLE "news" ALTER COLUMN "type" SET DATA TYPE text;
     ALTER TABLE "news" ALTER COLUMN "type" SET DEFAULT 'article'::text;
