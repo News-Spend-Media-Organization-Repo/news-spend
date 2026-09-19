@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import { RELATED_ITEM_WIDTH_RATIO } from "#/hooks/news/relatedImpressions";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
@@ -92,7 +93,7 @@ const RelatedItem = memo(
       <Pressable
         className="mr-2.5 gap-2"
         onPress={onPress}
-        style={{ width: width * 0.42 }}
+        style={{ width: width * RELATED_ITEM_WIDTH_RATIO }}
       >
         <View className="items-center justify-center">
           <RelatedImage item={item} width={width} />

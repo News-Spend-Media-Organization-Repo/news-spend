@@ -10,7 +10,7 @@ import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import type { JSX, RefObject } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { View } from "react-native";
+import { Dimensions, View } from "react-native";
 import { subscribeKey } from "valtio/utils";
 import type { AdCarouselRef } from "#/components/Ads/AdCarousel";
 import AdCarousel from "#/components/Ads/AdCarousel";
@@ -18,6 +18,11 @@ import NewsItemAd from "#/components/Ads/NewsItemAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
 import { homeFeedInfiniteKey, homeFeedInput } from "#/hooks/news/feedKeys";
+import { relatedArticlesSeenOnArrival } from "#/hooks/news/relatedImpressions";
+import {
+  IMPRESSION_VIEWABILITY_CONFIG,
+  type ImpressionToken,
+} from "#/hooks/news/useImpressionViewability";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
@@ -48,33 +53,6 @@ const EMPTY_BOOKS: PartnerContent[] = [];
  */
 const MECHANICS_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 40,
-};
-
-/**
- * Drives impression counting, and follows the IAB display standard: at least
- * 50% of the item on screen for at least one continuous second.
- *
- * Separate from the config above because the two want opposite things. An
- * impression has to be earned — the old shared 40%-and-no-dwell rule counted
- * anything that swept past during a fast scroll, which inflates the
- * denominator of every rate computed from it. Ad impressions, when they land,
- * belong on this config rather than a fourth one: a number that is billed
- * against has to survive an advertiser measuring it themselves.
- */
-const IMPRESSION_VIEWABILITY_CONFIG = {
-  itemVisiblePercentThreshold: 50,
-  minimumViewTime: 1000,
-};
-
-/**
- * Only the fields the impression callback reads. The feed is a union of
- * articles, ads and injected rows, and naming the whole union here would
- * couple this file to the composer's output type for no benefit.
- */
-type ImpressionToken = {
-  index: number;
-  isViewable: boolean;
-  item?: { type?: string | null; id?: string; slug?: string | null } | null;
 };
 
 const MemoizedListHeader = memo(
@@ -431,9 +409,11 @@ const Latest = memo(
     const onImpressionItemsChanged = useRef(
       ({ changed }: { changed: ImpressionToken[] }) => {
         for (const item of changed) {
+          if (!(item.isViewable && item.item)) {
+            continue;
+          }
+
           if (
-            item.isViewable &&
-            item.item &&
             "type" in item.item &&
             (item.item.type === "article" || item.item.type === "video") &&
             item.item.id
@@ -443,6 +423,19 @@ const Latest = memo(
               item.index,
               "HomeFeed"
             );
+          } else if (item.item._type === "relatedNews") {
+            // Counted here, off the row's own visibility, rather than from the
+            // horizontal list inside it. See relatedArticlesSeenOnArrival.
+            for (const card of relatedArticlesSeenOnArrival(
+              item.item.data,
+              Dimensions.get("window").width
+            )) {
+              trackImpressionRef.current(
+                { id: card.id, slug: card.slug },
+                card.position,
+                "HomeRelated"
+              );
+            }
           }
         }
       }
