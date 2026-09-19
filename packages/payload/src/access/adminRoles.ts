@@ -11,6 +11,11 @@ type AccessArgs = { req: PayloadRequest };
 export const isSuperAdmin = ({ req: { user } }: AccessArgs): boolean =>
   user?.collection === "admins" && user.role === "super-admin";
 
+/** A signed-in admin whose role is `partner`. */
+export const isPartnerUser = (
+  user: { collection?: string; role?: unknown } | null | undefined
+): boolean => user?.collection === "admins" && user.role === "partner";
+
 /**
  * Internal staff: a signed-in admin who is not a partner.
  *

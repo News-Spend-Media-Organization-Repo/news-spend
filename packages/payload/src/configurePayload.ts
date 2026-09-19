@@ -66,6 +66,10 @@ import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
+import {
+  guardInternalCollections,
+  partnerGuardPlugin,
+} from "./plugins/partner-guard";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
@@ -320,6 +324,8 @@ const baseConfig: Config = {
     }),
     auditFieldsPlugin(),
     auditLogPlugin,
+    // Last, so it also covers collections the plugins above add.
+    partnerGuardPlugin,
   ],
   email: resendAdapter({
     defaultFromAddress:
@@ -361,7 +367,9 @@ export const configurePayload = (
     return globalForPayload.__payloadConfig;
   }
 
-  const config = buildConfig(deepMerge(baseConfig, overrides ?? {}));
+  const config = buildConfig(deepMerge(baseConfig, overrides ?? {})).then(
+    guardInternalCollections
+  );
 
   if (!overrides) {
     globalForPayload.__payloadConfig = config;
