@@ -19,6 +19,7 @@ import {
   TwitterLogoIcon,
   WhatsappLogoIcon,
 } from "#/lib/icons";
+import { handOffShare } from "#/utils/handOffShare";
 
 export const ShareNews = ({
   news,
@@ -39,74 +40,70 @@ export const ShareNews = ({
     {
       text: "Facebook",
       Icon: FacebookLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.FACEBOOK as Social,
-            appId: "",
-          });
-          result.success && onShare?.("facebook");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.FACEBOOK as Social,
+              appId: "",
+            }),
+          "facebook",
+          onShare
+        ),
     },
     {
       text: "Messenger",
       Icon: MessengerLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.MESSENGER as Social,
-            appId: "",
-          });
-          result.success && onShare?.("messenger");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.MESSENGER as Social,
+              appId: "",
+            }),
+          "messenger",
+          onShare
+        ),
     },
     {
       text: "Whatsapp",
       Icon: WhatsappLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.WHATSAPP as Social,
-            appId: "",
-          });
-          result.success && onShare?.("whatsapp");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.WHATSAPP as Social,
+              appId: "",
+            }),
+          "whatsapp",
+          onShare
+        ),
     },
     {
       text: "Twitter",
       Icon: TwitterLogoIcon,
-      onPress: async () => {
-        try {
-          const result = await Share.shareSingle({
-            message: `${news.title}`,
-            title: "Share via",
-            url,
-            social: Share.Social.TWITTER as Social,
-            appId: "",
-          });
-          result.success && onShare?.("twitter");
-        } catch (error: any) {
-          console.log(error.message);
-        }
-      },
+      onPress: () =>
+        handOffShare(
+          () =>
+            Share.shareSingle({
+              message: `${news.title}`,
+              title: "Share via",
+              url,
+              social: Share.Social.TWITTER as Social,
+              appId: "",
+            }),
+          "twitter",
+          onShare
+        ),
     },
     {
       text: "Copy link",
