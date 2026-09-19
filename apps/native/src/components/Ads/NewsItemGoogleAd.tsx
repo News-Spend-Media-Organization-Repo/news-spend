@@ -21,18 +21,35 @@ import { Text } from "../heroui/text";
  * video creative, and the native ad validator flagged it on each ad. The size
  * is a policy floor, not a styling choice, so it applies to every ad rather
  * than only those that turn out to carry video.
+ *
+ * Two points over the floor, not on it. Measured on an iPhone 17 Pro the media
+ * view was exactly 120 and the validator still said it was too small, while an
+ * iPhone X with the same layout passed. Native frames are floats, so a value
+ * that is nominally 120 can land a hair under, and a check that compares
+ * strictly then fails on some devices and not others. A margin removes the
+ * question.
  */
-const MEDIA_SIZE = 120;
+const MEDIA_SIZE = 122;
+
+/**
+ * Keeps every asset strictly inside the ad view instead of flush against its
+ * edges. The same measurement showed the content row touching the ad view's
+ * left, top and right edges exactly, and the validator's "Advertiser assets
+ * outside native ad view" is a containment check: an asset that reaches the
+ * boundary can land a fraction of a point past it. One point on every side is
+ * invisible and takes the boundary out of play.
+ */
+const ASSET_INSET = 1;
 
 /**
  * Space kept clear beneath the thumbnail for the SDK's AdChoices icon, which
  * ad-loader pins to the bottom-left corner of the ad view. Google's guidance
  * is to leave room in the chosen corner instead of letting the icon land on
- * the creative, where it can be hard to see. Reserving it as a minimum height,
- * not padding, means a tall text column still gets its own height for free.
+ * the creative, where it can be hard to see. Reserving it as a minimum height
+ * means a tall text column still gets its own height for free.
  */
 const ADCHOICES_GUTTER = 20;
-const MIN_AD_HEIGHT = MEDIA_SIZE + ADCHOICES_GUTTER;
+const MIN_AD_HEIGHT = MEDIA_SIZE + ADCHOICES_GUTTER + ASSET_INSET * 2;
 
 export type NewsItemGoogleAdProp = {
   index: number;
@@ -158,6 +175,7 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
       style={{
         height: adViewHeight || undefined,
         minHeight: adViewHeight ? undefined : MIN_AD_HEIGHT,
+        padding: ASSET_INSET,
         width: "100%",
       }}
     >
@@ -168,9 +186,8 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
         }
       >
         {/*
-          Placed like a NewsItem/NewsItemAd thumbnail, but 20px larger: 120 is
-          the smallest media view Google will serve video to (see
-          MEDIA_SIZE). This ad is meant to read as a normal feed row, not stand
+          Placed like a NewsItem/NewsItemAd thumbnail, but larger: 120 is the
+          smallest media view Google will serve video to (see MEDIA_SIZE). This ad is meant to read as a normal feed row, not stand
           out with its own banner layout. Media (not icon) is the thumbnail:
           AdMob requires every native ad to carry a media asset (one of
           three required assets alongside headline/CTA), so it's the one
