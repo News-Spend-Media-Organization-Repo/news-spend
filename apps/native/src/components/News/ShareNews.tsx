@@ -2,6 +2,14 @@ import type { News } from "@news-spend-media/payload/types";
 import { useRoute } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import { BottomSheet } from "heroui-native/bottom-sheet";
+import { useState } from "react";
+import { FlatList, ToastAndroid, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Share, { type Social } from "react-native-share";
+import BannerAds from "#/components/Ads/BannerAds";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
 import {
   CopyIcon,
   DotsThreeOutlineVerticalIcon,
@@ -11,15 +19,6 @@ import {
   TwitterLogoIcon,
   WhatsappLogoIcon,
 } from "#/lib/icons";
-import { useState } from "react";
-import { FlatList, ToastAndroid, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Share, { type Social } from "react-native-share";
-
-import BannerAds from "#/components/Ads/BannerAds";
-import { Button } from "#/components/heroui/button";
-import { Icon } from "#/components/heroui/icon";
-import { Text } from "#/components/heroui/text";
 
 export const ShareNews = ({
   news,
@@ -116,7 +115,7 @@ export const ShareNews = ({
         try {
           await Clipboard.setStringAsync(`${news.title} \n ${url}`);
           ToastAndroid.show("Link copied to clipboard", ToastAndroid.SHORT);
-          // onShare?.("copy_link");
+          onShare?.("copy_link");
         } catch (error) {
           console.error(error);
         }

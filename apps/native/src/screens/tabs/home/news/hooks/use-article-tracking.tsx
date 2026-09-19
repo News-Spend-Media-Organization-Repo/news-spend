@@ -39,6 +39,7 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
     isTracking,
     handleScroll,
     stopTracking,
+    getMaxScrollDepth,
   } = useReadingTracker(data, getUserPoint.data);
 
   // Track view + record view in one focus effect
@@ -71,6 +72,33 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
     }, [data, trackView, recordViewMutation.mutate])
   );
 
+  // A qualified read is a fact about how the article was read, so it is
+  // recorded for everyone. It used to be emitted only from the points path
+  // below, which meant readers who were signed out, had already earned the
+  // points, or had hit the daily cap never produced one.
+  const trackedReadFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !data ||
+      trackedReadFor.current === data.id ||
+      inRapidScroll ||
+      !hasScrolledThreshold ||
+      elapsedSeconds < minReadingSeconds
+    ) {
+      return;
+    }
+    trackedReadFor.current = data.id;
+    trackRead(elapsedSeconds, getMaxScrollDepth());
+  }, [
+    data,
+    inRapidScroll,
+    hasScrolledThreshold,
+    elapsedSeconds,
+    minReadingSeconds,
+    trackRead,
+    getMaxScrollDepth,
+  ]);
+
   // Award points once reading conditions are met
   useEffect(() => {
     const user = authState.user;
@@ -87,7 +115,6 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
       hasScrolledThreshold
     ) {
       stopTracking();
-      trackRead(elapsedSeconds, 0.85);
       addActivityMutation.mutate(
         {
           newsId: data.id,
@@ -124,7 +151,6 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
     addActivityMutation.isPending,
     addActivityMutation.isSuccess,
     addActivityMutation.isError,
-    trackRead,
     stopTracking,
     addActivityMutation.mutate,
   ]);
@@ -136,6 +162,8 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
     hasScrolledThreshold,
     inRapidScroll,
     isTracking,
+    trackLike,
+    trackDislike,
     trackShare,
     trackComment,
   };

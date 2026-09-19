@@ -1,5 +1,4 @@
 import { useCallback, useRef } from "react";
-import { useSnapshot } from "valtio";
 
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { authState } from "#/state/auth";
@@ -17,13 +16,6 @@ function getOrCreateDeviceId(): string {
   return id;
 }
 
-// Session ID: regenerated each app launch (kept in memory)
-let sessionId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-export function renewAnalyticsSession(): void {
-  sessionId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 const deviceId = getOrCreateDeviceId();
 
 type ArticleMeta = {
@@ -33,15 +25,17 @@ type ArticleMeta = {
 };
 
 export function useNewsAnalytics(article?: ArticleMeta) {
-  const { user } = useSnapshot(authState);
   // Track impressions seen this session to avoid duplicate events
   const impressionsSeen = useRef<Set<string>>(new Set());
 
+  // `userId` is read when the event happens, not when the queue is flushed:
+  // an event recorded while signed out must not be credited to whoever signs
+  // in before the next flush. The session is owned by the client.
   const buildBase = useCallback(
     (articleId: string) => ({
       articleId,
-      sessionId,
       deviceId,
+      userId: authState.user?.id,
     }),
     []
   );
@@ -74,8 +68,8 @@ export function useNewsAnalytics(article?: ArticleMeta) {
       metadata: { screen: "Article" },
     });
     // Flush immediately on explicit views
-    newsAnalyticsClient.flush(user?.id);
-  }, [article, buildBase, user?.id]);
+    newsAnalyticsClient.flush(authState.user?.id);
+  }, [article, buildBase]);
 
   const trackRead = useCallback(
     (timeSpent: number, scrollDepth: number) => {
@@ -87,9 +81,9 @@ export function useNewsAnalytics(article?: ArticleMeta) {
         event: "read",
         metadata: { timeSpent, scrollDepth, screen: "Article" },
       });
-      newsAnalyticsClient.flush(user?.id);
+      newsAnalyticsClient.flush(authState.user?.id);
     },
-    [article, buildBase, user?.id]
+    [article, buildBase]
   );
 
   const trackLike = useCallback(() => {
