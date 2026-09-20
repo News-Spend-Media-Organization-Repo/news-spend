@@ -71,10 +71,12 @@ export type {
   ConversionOutcomes,
   PartnerDay,
   PartnerFilter,
+  PostbackHealth,
   RecentConversion,
 } from "./partner";
 export {
   partnerDaily,
+  partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";

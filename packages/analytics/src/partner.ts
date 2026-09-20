@@ -275,3 +275,103 @@ export async function partnerRecentConversions(
     awardedAt: isoOrNull(r.awarded_at),
   }));
 }
+
+export type PostbackHealth = {
+  /** Postbacks that named a real click, in the period. */
+  total: number;
+  /** Accepted, and the conversion settled. */
+  accepted: number;
+  /** The partner itself reported the task failed. */
+  failedReported: number;
+  /** A repeat of one already processed. */
+  duplicate: number;
+  /** Refused because they could not be verified. */
+  rejected: number;
+  /** Rejected per postback, as a percentage. */
+  rejectedRate: number | null;
+  /**
+   * The latest postback we have ever recorded from the partner (or from any
+   * partner, for staff), regardless of the period: "nothing for a month" is the
+   * signal, and it should not vanish when the period is short.
+   */
+  lastReceivedAt: string | null;
+  /** Why they were rejected, from our own verification, most common first. */
+  rejectedReasons: { reason: string; count: number }[];
+};
+
+/**
+ * How a partner's postbacks are being received.
+ *
+ * A partner whose signing has broken looks exactly like a partner with no
+ * conversions, since a refused postback used to leave only a log line. This is
+ * what tells the two apart. Observed: rows the server wrote as it handled each
+ * one. Only postbacks naming a real click are here, because only those can be
+ * attributed. Nothing identifies a reader.
+ */
+export async function partnerPostbackHealth(
+  db: AnalyticsDb,
+  scope: AnalyticsScope,
+  filter: PartnerFilter
+): Promise<PostbackHealth> {
+  const partnerId = partnerFilter(scope, filter.partnerId);
+  const { timeZone, current } = filter.range;
+  const owner = partnerCondition(sql.raw("p.partner_id"), partnerId);
+
+  const [counts, last, reasons] = await Promise.all([
+    rowsOf<{
+      total: number;
+      accepted: number;
+      failed_reported: number;
+      duplicate: number;
+      rejected: number;
+    }>(
+      db,
+      sql`
+        SELECT COUNT(*)::int AS total,
+               COUNT(*) FILTER (WHERE p.outcome = 'accepted')::int AS accepted,
+               COUNT(*) FILTER (WHERE p.outcome = 'failed_reported')::int AS failed_reported,
+               COUNT(*) FILTER (WHERE p.outcome = 'duplicate')::int AS duplicate,
+               COUNT(*) FILTER (WHERE p.outcome = 'rejected')::int AS rejected
+        FROM partner_postbacks p
+        WHERE ${inWindow(sql.raw("p.received_at"), current, timeZone)}
+          ${owner}
+      `
+    ),
+    rowsOf<{ last_received: unknown }>(
+      db,
+      sql`SELECT MAX(p.received_at) AS last_received
+          FROM partner_postbacks p
+          WHERE TRUE ${owner}`
+    ),
+    rowsOf<{ reason: string | null; n: number }>(
+      db,
+      sql`
+        SELECT p.reason, COUNT(*)::int AS n
+        FROM partner_postbacks p
+        WHERE p.outcome = 'rejected'
+          AND ${inWindow(sql.raw("p.received_at"), current, timeZone)}
+          ${owner}
+        GROUP BY p.reason
+        ORDER BY n DESC, p.reason
+        LIMIT 5
+      `
+    ),
+  ]);
+
+  const row = counts[0];
+  const total = row?.total ?? 0;
+  const rejected = row?.rejected ?? 0;
+  return {
+    total,
+    accepted: row?.accepted ?? 0,
+    failedReported: row?.failed_reported ?? 0,
+    duplicate: row?.duplicate ?? 0,
+    rejected,
+    rejectedRate: percent(rejected, total),
+    lastReceivedAt: isoOrNull(last[0]?.last_received),
+    rejectedReasons: reasons.map((r) => ({
+      reason: r.reason ?? "no reason recorded",
+      count: r.n,
+    })),
+  };
+}

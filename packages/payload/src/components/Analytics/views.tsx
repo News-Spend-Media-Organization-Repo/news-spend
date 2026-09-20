@@ -13,6 +13,7 @@ import {
   newsTopArticles,
   newsTopCategories,
   partnerDaily,
+  partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
   READ_DEFINITION,
@@ -38,6 +39,7 @@ import {
   PartnerDailyPanel,
   PartnerKpis,
   PlatformsPanel,
+  PostbackHealthPanel,
   RecentConversionsPanel,
   ShopPanel,
   StepsPanel,
@@ -276,10 +278,11 @@ export async function PartnerPerformanceView(
     const id = String(docID ?? props.doc?.id ?? "");
     const filter = { range, partnerId: id };
 
-    const [summary, daily, recent] = await Promise.all([
+    const [summary, daily, recent, postbacks] = await Promise.all([
       partnerSummary(db, scope, filter),
       partnerDaily(db, scope, filter),
       partnerRecentConversions(db, scope, { partnerId: id, limit: 10 }),
+      partnerPostbackHealth(db, scope, filter),
     ]);
 
     return (
@@ -311,7 +314,13 @@ export async function PartnerPerformanceView(
               showPartner={false}
               timeZone={ANALYTICS_TIME_ZONE}
             />
-            <ShopPanel shop={summary.shop.current} />
+            <div className="ana-stack">
+              <PostbackHealthPanel
+                health={postbacks}
+                timeZone={ANALYTICS_TIME_ZONE}
+              />
+              <ShopPanel shop={summary.shop.current} />
+            </div>
           </div>
         </div>
       </>

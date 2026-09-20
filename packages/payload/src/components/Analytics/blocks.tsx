@@ -10,6 +10,7 @@ import type {
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
+  PostbackHealth,
   PushReport,
   RecentConversion,
   TopArticle,
@@ -1062,5 +1063,59 @@ export function GiveawayReportBody({
         <GiveawayAttentionPanel attention={report.attention} />
       </div>
     </>
+  );
+}
+
+export function PostbackHealthPanel({
+  health,
+  timeZone,
+}: {
+  health: PostbackHealth;
+  timeZone: string;
+}): ReactNode {
+  const last = health.lastReceivedAt
+    ? `Last postback ${formatDateTime(health.lastReceivedAt, timeZone)}.`
+    : "No postback has been received yet.";
+
+  return (
+    <Panel
+      hint="Conversion postbacks and how each was handled"
+      tag="observed"
+      title="Postbacks"
+    >
+      {health.total === 0 ? (
+        <div className="ana-empty">No postbacks in this period. {last}</div>
+      ) : (
+        <>
+          <Bars
+            rows={[
+              { label: "Accepted", value: health.accepted },
+              {
+                label: "Partner reported a failure",
+                value: health.failedReported,
+              },
+              { label: "Already processed", value: health.duplicate },
+              {
+                label: "Rejected",
+                value: health.rejected,
+                display: `${formatCount(health.rejected)} · ${formatPercent(health.rejectedRate)}`,
+              },
+            ]}
+          />
+          {health.rejected > 0 ? (
+            <div className="ana-notice">
+              {formatCount(health.rejected)} could not be verified, so they
+              awarded nothing.
+              {health.rejectedReasons.length > 0
+                ? ` Reasons: ${health.rejectedReasons
+                    .map((r) => `${r.reason} (${formatCount(r.count)})`)
+                    .join(", ")}.`
+                : ""}
+            </div>
+          ) : null}
+          <div className="ana-muted">{last}</div>
+        </>
+      )}
+    </Panel>
   );
 }

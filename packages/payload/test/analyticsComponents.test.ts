@@ -241,6 +241,22 @@ describe("a screen refuses a viewer it is not for, whatever the address", () => 
     }
   });
 
+  it("shows a partner how their postbacks are being received, and says so when none have arrived", async () => {
+    const { props, queries } = docProps(partnerA, PARTNER_A);
+
+    const out = html(await components.PartnerPerformanceView(props));
+
+    expect(out).toContain("Postbacks");
+    expect(out).toContain("No postback has been received yet");
+    const postbackQueries = queries.filter((q) =>
+      q.sql.includes("partner_postbacks")
+    );
+    expect(postbackQueries.length).toBeGreaterThan(0);
+    for (const q of postbackQueries) {
+      expect(q.params).toContain(PARTNER_A);
+    }
+  });
+
   it("refuses a partner who opens another partner's Performance address", async () => {
     const { props, queries } = docProps(partnerA, PARTNER_B);
 
