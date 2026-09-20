@@ -1,6 +1,7 @@
 import type { Platform } from "@news-spend-media/analytics";
 import {
   AnalyticsAccessError,
+  giveawayReport,
   IMPRESSION_DEFINITION,
   newsArticleReport,
   newsDaily,
@@ -31,6 +32,7 @@ import {
   CategoriesPanel,
   EngagementPanel,
   FunnelPanel,
+  GiveawayReportBody,
   NewsKpis,
   OutcomesPanel,
   PartnerDailyPanel,
@@ -311,6 +313,44 @@ export async function PartnerPerformanceView(
             />
             <ShopPanel shop={summary.shop.current} />
           </div>
+        </div>
+      </>
+    );
+  });
+}
+
+/** The Stats tab on a giveaway. Staff only. */
+export async function GiveawayStatsView(
+  props: DocumentViewServerProps
+): Promise<ReactNode> {
+  const { req, docID } = props.initPageResult;
+  const scope = scopeOfRequest(req);
+  if (scope?.kind !== "staff") {
+    return <Denied />;
+  }
+
+  return await guarded(async () => {
+    const { days } = parseAnalyticsParams(props.searchParams);
+    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const id = String(docID ?? props.doc?.id ?? "");
+    const report = await giveawayReport(dbOf(req), scope, id, { range });
+
+    return (
+      <>
+        <Styles />
+        <div className="ana ana-page">
+          <Header
+            hint={`${report.state?.name ?? "This giveaway"}. ${ZONE_NOTE} Everything here is observed: rows the server created.`}
+            title="Giveaway stats"
+            toolbar={
+              <Toolbar
+                basePath={`${ADMIN_PATH}/collections/giveaways/${id}/stats`}
+                days={days}
+                showPlatform={false}
+              />
+            }
+          />
+          <GiveawayReportBody report={report} timeZone={ANALYTICS_TIME_ZONE} />
         </div>
       </>
     );

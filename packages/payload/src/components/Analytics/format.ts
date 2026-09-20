@@ -64,3 +64,21 @@ export function formatDateTime(iso: string | null, timeZone: string): string {
     timeZone,
   }).format(new Date(iso));
 }
+
+/** Milliseconds as `7d 4h`, `5h 12m` or `12m`, for countdowns. */
+export function formatDuration(ms: number | null): string {
+  if (ms === null || ms <= 0) {
+    return "–";
+  }
+  const minutes = Math.floor(ms / 60_000);
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins}m`;
+}

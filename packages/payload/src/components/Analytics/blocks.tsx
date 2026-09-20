@@ -1,6 +1,9 @@
 import type {
   ArticleReport,
   ConversionOutcomes,
+  GiveawayAttention,
+  GiveawayReport,
+  GiveawayState,
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
@@ -14,6 +17,7 @@ import {
   describeChange,
   formatCount,
   formatDateTime,
+  formatDuration,
   formatPercent,
 } from "./format";
 import { Bars, DataTable, DayChart, Kpi, Panel, SERIES_COLORS } from "./ui";
@@ -456,5 +460,335 @@ export function ShopPanel({
         ]}
       />
     </Panel>
+  );
+}
+
+// --- giveaway ---------------------------------------------------------------
+
+const GIVEAWAY_STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  active: "Active",
+  ready: "Ready",
+  pool_building: "Pool building",
+  pool_locked: "Pool locked",
+  draw_in_progress: "Draw in progress",
+  interrupted: "Interrupted",
+  resumption_authorized: "Resumption authorized",
+  completed: "Completed",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
+
+export function GiveawayStatePanel({
+  state,
+}: {
+  state: GiveawayState;
+}): ReactNode {
+  return (
+    <div className="ana-grid ana-kpis">
+      <Kpi
+        label="State"
+        note={state.live ? "entries open" : "entries closed"}
+        tag="observed"
+        value={GIVEAWAY_STATUS_LABELS[state.status] ?? state.status}
+      />
+      <Kpi
+        label="Time to draw"
+        note={
+          state.endDate ? `closes ${state.endDate.slice(0, 10)}` : "no date set"
+        }
+        tag="observed"
+        value={formatDuration(state.msToDraw)}
+      />
+      <Kpi
+        label="Participants"
+        note="locked at draw"
+        tag="observed"
+        value={
+          state.totalValidParticipants === null
+            ? "–"
+            : formatCount(state.totalValidParticipants)
+        }
+      />
+    </div>
+  );
+}
+
+export function GiveawayTicketsPanel({
+  report,
+}: {
+  report: Pick<GiveawayReport, "tickets" | "ticketDaily">;
+}): ReactNode {
+  return (
+    <>
+      <div className="ana-grid ana-kpis">
+        <Kpi
+          label="Tickets issued"
+          note="valid tickets"
+          tag="observed"
+          value={formatCount(report.tickets.issued)}
+        />
+        <Kpi
+          label="Entrants"
+          note="holders of valid tickets"
+          tag="observed"
+          value={formatCount(report.tickets.entrants)}
+        />
+      </div>
+      <Panel hint="Valid tickets by day" tag="observed" title="Tickets">
+        <DayChart
+          days={report.ticketDaily}
+          series={[
+            { key: "issued", label: "Issued", color: SERIES_COLORS.deep },
+            { key: "entrants", label: "Entrants", color: SERIES_COLORS.gold },
+          ]}
+        />
+      </Panel>
+    </>
+  );
+}
+
+export function GiveawayEngagementsPanel({
+  report,
+}: {
+  report: Pick<GiveawayReport, "engagements">;
+}): ReactNode {
+  return (
+    <Panel
+      hint="Completed engagements only: only completed ones count towards tier eligibility. Tickets carry no source, so this is engagements, not tickets."
+      tag="observed"
+      title="Engagements by source"
+    >
+      <DayChart
+        days={report.engagements.days}
+        series={[
+          { key: "partner", label: "Partner item", color: SERIES_COLORS.deep },
+          {
+            key: "google",
+            label: "Google rewarded ad",
+            color: SERIES_COLORS.gold,
+          },
+        ]}
+      />
+      <div className="ana-muted">
+        {formatCount(report.engagements.totals.boost)} Boosts ·{" "}
+        {formatCount(report.engagements.totals.featuredOffer)} Featured Offers
+      </div>
+    </Panel>
+  );
+}
+
+export function GiveawayPoolPanel({
+  pool,
+}: {
+  pool: GiveawayReport["pool"];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Distinct eligible users per tier, locked when the draw begins"
+      tag="observed"
+      title="Pool composition"
+    >
+      <Bars
+        empty="The pool locks when the draw begins; nothing to show before then."
+        rows={pool.map((t) => ({
+          label: t.tier,
+          value: t.candidates,
+          display: `${formatCount(t.candidates)} candidates`,
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function GiveawayPrizesPanel({
+  prizes,
+}: {
+  prizes: GiveawayReport["prizes"];
+}): ReactNode {
+  return (
+    <Panel hint="Stock per tier" tag="observed" title="Prizes">
+      <DataTable
+        columns={[
+          { key: "tier", label: "Tier" },
+          { key: "max", label: "Stock", align: "right" },
+          { key: "awarded", label: "Awarded", align: "right" },
+          { key: "remaining", label: "Left", align: "right" },
+        ]}
+        empty="No prizes configured for this giveaway."
+        rows={prizes.map((p) => ({
+          key: p.tier,
+          cells: {
+            tier: p.tier,
+            max: formatCount(p.maxUnits),
+            awarded: formatCount(p.awarded),
+            remaining: formatCount(p.remaining),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function GiveawayWinnersPanel({
+  report,
+  timeZone,
+}: {
+  report: Pick<GiveawayReport, "winners" | "recentWinners">;
+  timeZone: string;
+}): ReactNode {
+  return (
+    <Panel
+      hint="Who won what, without naming anyone"
+      tag="observed"
+      title="Winners"
+    >
+      <Bars
+        empty="No winners yet."
+        rows={report.winners.byTier.map((t) => ({
+          label: t.tier,
+          value: t.winners,
+        }))}
+      />
+      <div className="ana-muted">By claim</div>
+      <Bars
+        empty="No winners yet."
+        rows={report.winners.byClaim.map((s) => ({
+          label: s.status,
+          value: s.winners,
+        }))}
+      />
+      <div className="ana-muted">By fulfilment</div>
+      <Bars
+        empty="No winners yet."
+        rows={report.winners.byFulfilment.map((s) => ({
+          label: s.status,
+          value: s.winners,
+        }))}
+      />
+      {report.recentWinners.length > 0 ? (
+        <>
+          <div className="ana-muted">Latest</div>
+          <DataTable
+            columns={[
+              { key: "prize", label: "Prize" },
+              { key: "when", label: "Won" },
+              { key: "claim", label: "Claim", align: "right" },
+              { key: "fulfilment", label: "Fulfilment", align: "right" },
+            ]}
+            empty="No winners yet."
+            rows={report.recentWinners.map((w, i) => ({
+              key: `${w.tier}-${i}`,
+              cells: {
+                prize: (
+                  <>
+                    {w.prize ?? "–"}
+                    <div className="ana-sub">{w.tier}</div>
+                  </>
+                ),
+                when: formatDateTime(w.selectedAt, timeZone),
+                claim: w.claimStatus,
+                fulfilment: w.fulfilmentStatus,
+              },
+            }))}
+          />
+        </>
+      ) : null}
+    </Panel>
+  );
+}
+
+export function GiveawayFulfilmentPanel({
+  fulfilment,
+}: {
+  fulfilment: GiveawayReport["fulfilment"];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Dispatch attempts through the prize provider"
+      tag="observed"
+      title="Fulfilment"
+    >
+      <Bars
+        empty="Nothing dispatched yet."
+        rows={[
+          { label: "Sent", value: fulfilment.sent },
+          { label: "Already sent", value: fulfilment.alreadySent },
+          {
+            label: "Failed, worth retrying",
+            value: fulfilment.retryableFailures,
+          },
+          {
+            label: "Failed, will not succeed",
+            value: fulfilment.permanentFailures,
+          },
+          { label: "Skipped", value: fulfilment.skipped },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function GiveawayAttentionPanel({
+  attention,
+}: {
+  attention: GiveawayAttention;
+}): ReactNode {
+  return (
+    <Panel
+      hint="Wins in this giveaway waiting on someone"
+      tag="observed"
+      title="Needs attention"
+    >
+      <Bars
+        empty="Nothing needs attention."
+        rows={[
+          { label: "On hold, account flagged", value: attention.onHold },
+          {
+            label: "Awaiting identity verification",
+            value: attention.awaitingVerification,
+          },
+          { label: "Disqualified after review", value: attention.disqualified },
+          {
+            label: "Fulfilment failing",
+            value: attention.fulfilmentFailing,
+          },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function GiveawayReportBody({
+  report,
+  timeZone,
+}: {
+  report: GiveawayReport;
+  timeZone: string;
+}): ReactNode {
+  if (!report.state) {
+    return (
+      <Panel hint="This giveaway no longer exists." title="No giveaway">
+        <div className="ana-empty">Check the address and try again.</div>
+      </Panel>
+    );
+  }
+  return (
+    <>
+      <GiveawayStatePanel state={report.state} />
+      <GiveawayTicketsPanel report={report} />
+      <div className="ana-grid ana-even">
+        <GiveawayEngagementsPanel report={report} />
+        <GiveawayPoolPanel pool={report.pool} />
+      </div>
+      <div className="ana-grid ana-even">
+        <GiveawayPrizesPanel prizes={report.prizes} />
+        <GiveawayFulfilmentPanel fulfilment={report.fulfilment} />
+      </div>
+      <div className="ana-grid ana-even">
+        <GiveawayWinnersPanel report={report} timeZone={timeZone} />
+        <GiveawayAttentionPanel attention={report.attention} />
+      </div>
+    </>
   );
 }

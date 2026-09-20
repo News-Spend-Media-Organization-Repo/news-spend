@@ -14,6 +14,7 @@ import {
   analyticsNavLink,
   analyticsPageView,
   articleStatsView,
+  giveawayStatsView,
   partnerPerformanceView,
 } from "../src/components/Analytics/tabs";
 
@@ -131,6 +132,16 @@ describe("tabs", () => {
     expect(showsPerformance(unassignedPartner)).toBe(false);
     expect(showsPerformance(appUser)).toBe(false);
   });
+
+  it("shows a giveaway's Stats tab to staff only", () => {
+    const shows = (user: unknown) =>
+      giveawayStatsView.tab.condition(args(user));
+
+    expect(shows(staff)).toBe(true);
+    expect(shows(partnerA)).toBe(false);
+    expect(shows(appUser)).toBe(false);
+    expect(shows(null)).toBe(false);
+  });
 });
 
 describe("a screen refuses a viewer it is not for, whatever the address", () => {
@@ -153,6 +164,31 @@ describe("a screen refuses a viewer it is not for, whatever the address", () => 
 
     expect(out).toContain(NO_ACCESS);
     expect(queries).toHaveLength(0);
+  });
+
+  it("won't show a giveaway's stats to a partner, and won't query", async () => {
+    const { props, queries } = docProps(
+      partnerA,
+      "22222222-2222-4222-8222-222222222222"
+    );
+
+    const out = html(await components.GiveawayStatsView(props));
+
+    expect(out).toContain(NO_ACCESS);
+    expect(queries).toHaveLength(0);
+  });
+
+  it("shows staff a giveaway's stats", async () => {
+    const { props, queries } = docProps(
+      staff,
+      "22222222-2222-4222-8222-222222222222"
+    );
+
+    const out = html(await components.GiveawayStatsView(props));
+
+    expect(out).not.toContain(NO_ACCESS);
+    expect(out).toContain("Giveaway stats");
+    expect(queries.length).toBeGreaterThan(0);
   });
 
   it("won't show the analytics page to a partner or anyone signed out", async () => {
@@ -321,6 +357,7 @@ describe("registration", () => {
     ...analyticsWidgets.map((w) => w.Component),
     articleStatsView.Component,
     partnerPerformanceView.Component,
+    giveawayStatsView.Component,
     analyticsPageView.Component,
     analyticsNavLink,
   ] as string[];
