@@ -62,6 +62,14 @@ import {
 } from "./collections";
 import Admins from "./collections/Admins";
 import UserBlocks from "./collections/UserBlocks";
+import {
+  analyticsDefaultLayout,
+  analyticsWidgets,
+} from "./components/Analytics/layout";
+import {
+  analyticsNavLink,
+  analyticsPageView,
+} from "./components/Analytics/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
@@ -122,11 +130,19 @@ const baseConfig: Config = {
         //   password: 'admin',
         // },
       }),
+    // What the home page shows, and who it is for. See the Analytics
+    // components; each widget checks the viewer's access itself.
+    dashboard: {
+      widgets: analyticsWidgets,
+      defaultLayout: analyticsDefaultLayout,
+    },
     components: {
       graphics: {
         Logo: "@news-spend-media/payload/components/Logo#Logo",
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
+      beforeNavLinks: [analyticsNavLink],
+      views: { analytics: analyticsPageView },
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],

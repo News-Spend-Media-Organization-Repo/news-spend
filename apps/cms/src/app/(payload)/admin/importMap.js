@@ -33,10 +33,20 @@ import { RelationshipFeatureClient as RelationshipFeatureClient_e70f5e05f09f93e0
 import { BlockquoteFeatureClient as BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { UploadFeatureClient as UploadFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { ArticleStatsView as ArticleStatsView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { VideoPreviewField as VideoPreviewField_a86bb0b13348b042ba24277762780641 } from '@news-spend-media/payload/components/VideoPreviewField'
+import { PartnerPerformanceView as PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { Icon as Icon_92876dd9c4e9e3a3794035e4edc8ede5 } from '@news-spend-media/payload/components/Icon'
 import { Logo as Logo_502ee6abc1f396666feea23035509da4 } from '@news-spend-media/payload/components/Logo'
+import { AnalyticsNavLink as AnalyticsNavLink_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { AdminErrorBoundary as AdminErrorBoundary_e5a9e14bdbe97e70ba60697217fe7688 } from '@payloadcms/plugin-sentry/client'
+import { AnalyticsPageView as AnalyticsPageView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { KpiWidget as KpiWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { FunnelWidget as FunnelWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { TopArticlesWidget as TopArticlesWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { SurfacesWidget as SurfacesWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { CategoriesWidget as CategoriesWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { PartnerPerformanceWidget as PartnerPerformanceWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -76,9 +86,19 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BlockquoteFeatureClient": BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#UploadFeatureClient": UploadFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@news-spend-media/payload/components/Analytics#ArticleStatsView": ArticleStatsView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField": VideoPreviewField_a86bb0b13348b042ba24277762780641,
+  "@news-spend-media/payload/components/Analytics#PartnerPerformanceView": PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Icon#Icon": Icon_92876dd9c4e9e3a3794035e4edc8ede5,
   "@news-spend-media/payload/components/Logo#Logo": Logo_502ee6abc1f396666feea23035509da4,
+  "@news-spend-media/payload/components/Analytics#AnalyticsNavLink": AnalyticsNavLink_bba5810d9f91b27f4c3b488ca576e350,
   "@payloadcms/plugin-sentry/client#AdminErrorBoundary": AdminErrorBoundary_e5a9e14bdbe97e70ba60697217fe7688,
+  "@news-spend-media/payload/components/Analytics#AnalyticsPageView": AnalyticsPageView_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#KpiWidget": KpiWidget_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#FunnelWidget": FunnelWidget_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#TopArticlesWidget": TopArticlesWidget_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#SurfacesWidget": SurfacesWidget_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#CategoriesWidget": CategoriesWidget_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#PartnerPerformanceWidget": PartnerPerformanceWidget_bba5810d9f91b27f4c3b488ca576e350,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

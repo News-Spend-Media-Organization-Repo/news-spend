@@ -183,6 +183,12 @@ export interface Config {
   };
   locale: null;
   widgets: {
+    'analytics-kpi': AnalyticsKpiWidget;
+    'analytics-funnel': AnalyticsFunnelWidget;
+    'analytics-top-articles': AnalyticsTopArticlesWidget;
+    'analytics-surfaces': AnalyticsSurfacesWidget;
+    'analytics-categories': AnalyticsCategoriesWidget;
+    'analytics-partner-performance': AnalyticsPartnerPerformanceWidget;
     collections: CollectionsWidget;
   };
   user: Admin;
@@ -3909,6 +3915,67 @@ export interface PayloadJobsStatsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-kpi_widget".
+ */
+export interface AnalyticsKpiWidget {
+  data?: {
+    metric?: ('views' | 'reads' | 'impressions' | 'readers' | 'shares' | 'ctr' | 'readRate') | null;
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'x-small' | 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-funnel_widget".
+ */
+export interface AnalyticsFunnelWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-top-articles_widget".
+ */
+export interface AnalyticsTopArticlesWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-surfaces_widget".
+ */
+export interface AnalyticsSurfacesWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-categories_widget".
+ */
+export interface AnalyticsCategoriesWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-partner-performance_widget".
+ */
+export interface AnalyticsPartnerPerformanceWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
