@@ -47,6 +47,7 @@ import * as migration_20260905_120000_analytics_retention_and_feed_indexes from 
 import * as migration_20260914_090000_engagement_source_and_ssv from './20260914_090000_engagement_source_and_ssv';
 import * as migration_20260919_031416_schema_catchup_payload_3_90 from './20260919_031416_schema_catchup_payload_3_90';
 import * as migration_20260919_050533_narrow_news_type_to_article from './20260919_050533_narrow_news_type_to_article';
+import * as migration_20260920_053947_analytics_event_ids from './20260920_053947_analytics_event_ids';
 
 export const migrations = [
   {
@@ -292,6 +293,11 @@ export const migrations = [
   {
     up: migration_20260919_050533_narrow_news_type_to_article.up,
     down: migration_20260919_050533_narrow_news_type_to_article.down,
-    name: '20260919_050533_narrow_news_type_to_article'
+    name: '20260919_050533_narrow_news_type_to_article',
+  },
+  {
+    up: migration_20260920_053947_analytics_event_ids.up,
+    down: migration_20260920_053947_analytics_event_ids.down,
+    name: '20260920_053947_analytics_event_ids'
   },
 ];

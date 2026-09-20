@@ -1848,7 +1848,18 @@ export interface NewsAnalytic {
     | number
     | boolean
     | null;
+  /**
+   * Minted by the app for this event and reused on every retry. Empty for events from builds that predate it.
+   */
+  eventId?: string | null;
+  /**
+   * When the reader did it, as the device reported, held to within 14 days before and 5 minutes after arrival.
+   */
   timestamp: string;
+  /**
+   * When the server received it. Empty for events stored before this was recorded.
+   */
+  receivedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -3266,7 +3277,9 @@ export interface NewsAnalyticsSelect<T extends boolean = true> {
   deviceId?: T;
   platform?: T;
   metadata?: T;
+  eventId?: T;
   timestamp?: T;
+  receivedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
