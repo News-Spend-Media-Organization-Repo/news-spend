@@ -7,6 +7,7 @@ import {
   type Doc,
   expectError,
   mockContext,
+  stubDrizzle,
 } from "../test-utils";
 import { partnerConversionRouter } from "./partner-conversions";
 
@@ -624,5 +625,129 @@ describe("partnerConversionRouter.trackClick: award on click", () => {
     );
 
     expect(payload.docs("activities")).toHaveLength(2);
+  });
+});
+
+// ---- what became of each postback is recorded ----
+
+describe("partnerConversionRouter.webhook records what became of each postback", () => {
+  const CLICK = "clk_abc1234567890123";
+  // The postback table stores the partner as a UUID.
+  const PARTNER_ID = "11111111-1111-4111-8111-111111111111";
+
+  const setup = (overrides: Doc = {}, headers: Headers = signedHeaders()) => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [
+          conversion({ partner: PARTNER_ID, ...overrides }),
+        ],
+        partners: [partner({ id: PARTNER_ID })],
+        "partner-content": [partnerContent({ points: 50 })],
+        activities: [],
+      },
+    });
+    const drizzle = stubDrizzle(payload);
+    const ctx = mockContext({ payload, headers });
+    return { payload, drizzle, ctx };
+  };
+
+  const input = (status: "success" | "failed" = "success") => ({
+    clickId: CLICK,
+    status,
+  });
+
+  /** The single INSERT into partner_postbacks, or undefined when there was none. */
+  const insertOf = (queries: { sql: string }[]) =>
+    queries.find((q) => q.sql.includes("partner_postbacks"));
+
+  it("records an accepted postback", async () => {
+    const { drizzle, ctx } = setup();
+
+    await call(partnerConversionRouter.webhook, input(), { context: ctx });
+
+    const insert = insertOf(drizzle.queries);
+    expect(insert?.sql).toContain("accepted");
+    expect(insert?.sql).toContain(PARTNER_ID);
+    expect(insert?.sql).toContain(CLICK);
+  });
+
+  it("records a failure the partner reported", async () => {
+    const { drizzle, ctx } = setup({}, signedHeaders({ status: "failed" }));
+
+    await call(partnerConversionRouter.webhook, input("failed"), {
+      context: ctx,
+    });
+
+    expect(insertOf(drizzle.queries)?.sql).toContain("failed_reported");
+  });
+
+  it("records a repeat of one already processed", async () => {
+    const { drizzle, ctx } = setup({ status: "awarded" });
+
+    await call(partnerConversionRouter.webhook, input(), { context: ctx });
+
+    expect(insertOf(drizzle.queries)?.sql).toContain("duplicate");
+  });
+
+  it("records a rejected postback with our own reason, and still refuses it", async () => {
+    const { drizzle, ctx } = setup(
+      {},
+      signedHeaders({ secret: "the-wrong-secret" })
+    );
+
+    const error = await expectError(
+      call(partnerConversionRouter.webhook, input(), { context: ctx })
+    );
+
+    expect(error).toMatchObject({ code: "UNAUTHORIZED" });
+    const insert = insertOf(drizzle.queries);
+    expect(insert?.sql).toContain("rejected");
+    expect(insert?.sql).toContain("signature does not match");
+  });
+
+  it("does not tell the caller why a postback was rejected", async () => {
+    const { ctx } = setup({}, signedHeaders({ secret: "wrong" }));
+
+    const error = await expectError(
+      call(partnerConversionRouter.webhook, input(), { context: ctx })
+    );
+
+    expect(JSON.stringify(error)).not.toContain("signature does not match");
+  });
+
+  it("records nothing for a click that does not exist, so the public endpoint cannot be used to fill the table", async () => {
+    const { drizzle, ctx } = setup({ clickId: "clk_someone_else" });
+
+    await expectError(
+      call(partnerConversionRouter.webhook, input(), { context: ctx })
+    );
+
+    expect(insertOf(drizzle.queries)).toBeUndefined();
+  });
+
+  it("keeps one row per click and outcome, so a retry is not counted again", async () => {
+    const { drizzle, ctx } = setup();
+
+    await call(partnerConversionRouter.webhook, input(), { context: ctx });
+
+    expect(insertOf(drizzle.queries)?.sql).toContain(
+      "ON CONFLICT (click_id, outcome) DO NOTHING"
+    );
+  });
+
+  it("never lets a failure to record change what the postback does", async () => {
+    // A database that refuses the insert must not turn a paid conversion into an
+    // error, or the partner would retry one we already settled.
+    const { payload, ctx } = setup();
+    Object.assign(payload.db, {
+      drizzle: { execute: () => Promise.reject(new Error("disk full")) },
+    });
+
+    const result = await call(partnerConversionRouter.webhook, input(), {
+      context: ctx,
+    });
+
+    expect(result).toMatchObject({ success: true, status: "converted" });
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("awarded");
   });
 });

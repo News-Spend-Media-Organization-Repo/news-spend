@@ -100,6 +100,7 @@ export interface Config {
     notifications: Notification;
     'partner-content': PartnerContent;
     'partner-conversions': PartnerConversion;
+    'partner-postbacks': PartnerPostback;
     partners: Partner;
     'promotion-media': PromotionMedia;
     'push-tokens': PushToken;
@@ -149,6 +150,7 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'partner-content': PartnerContentSelect<false> | PartnerContentSelect<true>;
     'partner-conversions': PartnerConversionsSelect<false> | PartnerConversionsSelect<true>;
+    'partner-postbacks': PartnerPostbacksSelect<false> | PartnerPostbacksSelect<true>;
     partners: PartnersSelect<false> | PartnersSelect<true>;
     'promotion-media': PromotionMediaSelect<false> | PromotionMediaSelect<true>;
     'push-tokens': PushTokensSelect<false> | PushTokensSelect<true>;
@@ -2139,6 +2141,31 @@ export interface NotificationInbox {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partner-postbacks".
+ */
+export interface PartnerPostback {
+  id: string;
+  partner: string | Partner;
+  clickId: string;
+  outcome: 'accepted' | 'failed_reported' | 'duplicate' | 'rejected';
+  /**
+   * Why it was rejected, from our own verification. Empty for the other outcomes.
+   */
+  reason?: string | null;
+  receivedAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "promotion-media".
  */
 export interface PromotionMedia {
@@ -2649,6 +2676,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'partner-conversions';
         value: string | PartnerConversion;
+      } | null)
+    | ({
+        relationTo: 'partner-postbacks';
+        value: string | PartnerPostback;
       } | null)
     | ({
         relationTo: 'partners';
@@ -3453,6 +3484,21 @@ export interface PartnerConversionsSelect<T extends boolean = true> {
   clickedAt?: T;
   convertedAt?: T;
   awardedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partner-postbacks_select".
+ */
+export interface PartnerPostbacksSelect<T extends boolean = true> {
+  partner?: T;
+  clickId?: T;
+  outcome?: T;
+  reason?: T;
+  receivedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

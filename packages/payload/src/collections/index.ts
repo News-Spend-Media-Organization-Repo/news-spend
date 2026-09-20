@@ -33,6 +33,7 @@ export {
 export { default as Notifications } from "./Notifications";
 export { PartnerContent } from "./PartnerContent";
 export { PartnerConversions } from "./PartnerConversions";
+export { default as PartnerPostbacks } from "./PartnerPostbacks";
 export { Partners } from "./Partners";
 export { default as PromotionMedia } from "./PromotionMedia";
 export { default as PushTokens } from "./PushTokens";
