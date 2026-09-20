@@ -10,6 +10,7 @@ import {
   feedbackSummary,
 } from "./audience";
 import type { AnalyticsDb } from "./db";
+import { giveawayReport } from "./giveaway";
 import {
   newsArticleReport,
   newsDaily,
@@ -130,6 +131,50 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         notification_id uuid NOT NULL, status enum_notification_deliveries_status NOT NULL DEFAULT 'pending',
         created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE witness_reports (id uuid PRIMARY KEY, created_at timestamptz NOT NULL);
+      CREATE TYPE enum_giveaway_tickets_status AS ENUM('valid','cancelled','refunded','reversed','unpaid','fraudulent');
+      CREATE TYPE enum_giveaway_engagements_source AS ENUM('partner','google');
+      CREATE TYPE enum_giveaway_engagements_type AS ENUM('boost','featured_offer');
+      CREATE TYPE enum_giveaway_engagements_completion AS ENUM('completed','incomplete','abandoned','failed');
+      CREATE TYPE enum_giveaway_tier AS ENUM('tier1','tier2','tier3');
+      CREATE TYPE enum_giveaway_winners_claim AS ENUM('unclaimed','claimed','expired','forfeited','disqualified');
+      CREATE TYPE enum_giveaway_winners_fulfilment AS ENUM('pending','awaiting_verification','on_hold','in_progress','fulfilled','cancelled');
+      CREATE TYPE enum_giveaway_attempt_outcome AS ENUM('sent','already_sent','retryable_failure','permanent_failure','skipped');
+      CREATE TABLE giveaways (
+        id uuid PRIMARY KEY, name varchar, status varchar NOT NULL DEFAULT 'draft',
+        start_date timestamptz NOT NULL, end_date timestamptz NOT NULL,
+        total_valid_participants numeric, draw_completed_at timestamptz);
+      CREATE TABLE giveaway_tickets (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        giveaway_id uuid NOT NULL, user_id uuid NOT NULL, quantity numeric NOT NULL,
+        status enum_giveaway_tickets_status NOT NULL DEFAULT 'valid',
+        purchased_at timestamptz NOT NULL);
+      CREATE TABLE giveaway_engagements (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        giveaway_id uuid NOT NULL, user_id uuid NOT NULL,
+        type enum_giveaway_engagements_type NOT NULL,
+        source enum_giveaway_engagements_source NOT NULL DEFAULT 'partner',
+        completion_status enum_giveaway_engagements_completion NOT NULL DEFAULT 'completed',
+        completed_at timestamptz NOT NULL);
+      CREATE TABLE giveaway_pool_snapshots (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        giveaway_id uuid NOT NULL, tier enum_giveaway_tier NOT NULL,
+        candidate_count numeric NOT NULL, locked_at timestamptz NOT NULL);
+      CREATE TABLE giveaway_prizes (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        giveaway_id uuid NOT NULL, tier enum_giveaway_tier NOT NULL,
+        max_units numeric NOT NULL, units_awarded numeric NOT NULL DEFAULT 0);
+      CREATE TABLE giveaway_winners (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        giveaway_id uuid NOT NULL, user_id uuid NOT NULL,
+        tier enum_giveaway_tier NOT NULL, prize_name varchar,
+        claim_status enum_giveaway_winners_claim NOT NULL DEFAULT 'unclaimed',
+        fulfilment_status enum_giveaway_winners_fulfilment NOT NULL DEFAULT 'pending',
+        selected_at timestamptz NOT NULL);
+      CREATE TABLE giveaway_fulfilment_attempts (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        winner_id uuid NOT NULL,
+        outcome enum_giveaway_attempt_outcome NOT NULL,
+        attempted_at timestamptz NOT NULL);
 
       INSERT INTO categories VALUES ('${CAT_ENERGY}', 'Energy'), ('${CAT_SPORT}', 'Sports');
       INSERT INTO news VALUES
@@ -270,6 +315,39 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       INSERT INTO witness_reports (id, created_at) VALUES
         ('f0000000-0000-4000-8000-000000000014', '2026-09-18T08:00:00Z'),
         ('f0000000-0000-4000-8000-000000000015', '2026-08-01T08:00:00Z');
+      INSERT INTO giveaways (id, name, status, start_date, end_date, total_valid_participants, draw_completed_at) VALUES
+        ('e1000000-0000-4000-8000-000000000001', 'Weekly draw', 'active', '2026-09-14T08:00:00Z', '2026-09-28T08:00:00Z', 40, NULL),
+        ('e1000000-0000-4000-8000-000000000009', 'Scheduled', 'active', '2026-09-22T08:00:00Z', '2026-09-29T08:00:00Z', NULL, NULL);
+      INSERT INTO giveaway_tickets (giveaway_id, user_id, quantity, status, purchased_at) VALUES
+        ('e1000000-0000-4000-8000-000000000001', '${USER}', 5, 'valid', '2026-09-15T08:00:00Z'),
+        ('e1000000-0000-4000-8000-000000000001', '${USER}', 3, 'valid', '2026-09-16T08:00:00Z'),
+        ('e1000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000002', 2, 'valid', '2026-09-19T08:00:00Z'),
+        ('e1000000-0000-4000-8000-000000000001', '${USER}', 1, 'cancelled', '2026-09-15T09:00:00Z');
+      INSERT INTO giveaway_engagements (giveaway_id, user_id, type, source, completion_status, completed_at) VALUES
+        ('e1000000-0000-4000-8000-000000000001', '${USER}', 'boost', 'partner', 'completed', '2026-09-15T08:00:00Z'),
+        ('e1000000-0000-4000-8000-000000000001', '${USER}', 'boost', 'google', 'completed', '2026-09-15T09:00:00Z'),
+        ('e1000000-0000-4000-8000-000000000001', '${USER}', 'featured_offer', 'partner', 'completed', '2026-09-16T08:00:00Z'),
+        ('e1000000-0000-4000-8000-000000000001', '${USER}', 'boost', 'partner', 'incomplete', '2026-09-16T09:00:00Z');
+      INSERT INTO giveaway_pool_snapshots (giveaway_id, tier, candidate_count, locked_at) VALUES
+        ('e1000000-0000-4000-8000-000000000001', 'tier1', 30, '2026-09-19T08:00:00Z'),
+        ('e1000000-0000-4000-8000-000000000001', 'tier2', 12, '2026-09-19T08:00:00Z');
+      INSERT INTO giveaway_prizes (giveaway_id, tier, max_units, units_awarded) VALUES
+        ('e1000000-0000-4000-8000-000000000001', 'tier1', 5, 2),
+        ('e1000000-0000-4000-8000-000000000001', 'tier2', 10, 0);
+      INSERT INTO giveaway_winners (id, giveaway_id, user_id, tier, prize_name, claim_status, fulfilment_status, selected_at) VALUES
+        ('e2000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier1', 'Airtime 1GB', 'unclaimed', 'pending', '2026-09-20T08:00:00Z'),
+        ('e2000000-0000-4000-8000-000000000002', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier1', 'Airtime 2GB', 'claimed', 'fulfilled', '2026-09-20T07:00:00Z'),
+        ('e2000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier2', 'Headphones', 'unclaimed', 'on_hold', '2026-09-19T08:00:00Z'),
+        ('e2000000-0000-4000-8000-000000000004', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier2', 'Headphones', 'disqualified', 'cancelled', '2026-09-19T07:00:00Z');
+      INSERT INTO giveaway_fulfilment_attempts (winner_id, outcome, attempted_at) VALUES
+        ('e2000000-0000-4000-8000-000000000001', 'sent', '2026-09-20T09:00:00Z'),
+        ('e2000000-0000-4000-8000-000000000001', 'retryable_failure', '2026-09-20T09:30:00Z'),
+        ('e2000000-0000-4000-8000-000000000002', 'sent', '2026-09-20T07:30:00Z'),
+        ('e2000000-0000-4000-8000-000000000003', 'skipped', '2026-09-19T10:00:00Z'),
+        -- a disqualified winner with two attempts: a join to attempts repeats the
+        -- winner once per attempt, which a plain count would count twice
+        ('e2000000-0000-4000-8000-000000000004', 'skipped', '2026-09-19T11:00:00Z'),
+        ('e2000000-0000-4000-8000-000000000004', 'already_sent', '2026-09-19T12:00:00Z');
     `);
   });
 
@@ -514,6 +592,106 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         delivered: 5,
         opened: 1,
         failed: 1,
+      });
+    });
+  });
+
+  describe("giveaway", () => {
+    const G1 = "e1000000-0000-4000-8000-000000000001";
+
+    it("reports a live giveaway's whole story", async () => {
+      const report = await giveawayReport(db, staff, G1, {
+        range,
+        now: NOW,
+      });
+
+      expect(report.state).toMatchObject({
+        name: "Weekly draw",
+        status: "active",
+        live: true,
+        msToDraw: 684_000_000,
+        totalValidParticipants: 40,
+        drawCompletedAt: null,
+      });
+      expect(report.tickets).toEqual({ issued: 10, entrants: 2 });
+      expect(report.ticketDaily.find((d) => d.date === "2026-09-15")).toEqual({
+        date: "2026-09-15",
+        issued: 5,
+        entrants: 1,
+      });
+      expect(report.ticketDaily.find((d) => d.date === "2026-09-19")).toEqual({
+        date: "2026-09-19",
+        issued: 2,
+        entrants: 1,
+      });
+      expect(report.engagements.totals).toEqual({
+        partner: 2,
+        google: 1,
+        boost: 2,
+        featuredOffer: 1,
+      });
+      expect(
+        report.engagements.days.find((d) => d.date === "2026-09-16")
+      ).toEqual({ date: "2026-09-16", partner: 1, google: 0 });
+      expect(report.pool).toEqual([
+        {
+          tier: "tier1",
+          candidates: 30,
+          lockedAt: "2026-09-19T08:00:00.000Z",
+        },
+        {
+          tier: "tier2",
+          candidates: 12,
+          lockedAt: "2026-09-19T08:00:00.000Z",
+        },
+      ]);
+      expect(report.prizes).toEqual([
+        { tier: "tier1", maxUnits: 5, awarded: 2, remaining: 3 },
+        { tier: "tier2", maxUnits: 10, awarded: 0, remaining: 10 },
+      ]);
+      expect(report.winners.total).toBe(4);
+      expect(report.winners.byTier).toEqual([
+        { tier: "tier1", winners: 2 },
+        { tier: "tier2", winners: 2 },
+      ]);
+      expect(report.recentWinners.map((w) => w.prize)).toEqual([
+        "Airtime 1GB",
+        "Airtime 2GB",
+        "Headphones",
+        "Headphones",
+      ]);
+      expect(report.fulfilment).toEqual({
+        sent: 2,
+        alreadySent: 1,
+        retryableFailures: 1,
+        permanentFailures: 0,
+        skipped: 2,
+      });
+      expect(report.attention).toEqual({
+        onHold: 1,
+        awaitingVerification: 0,
+        // One disqualified winner, who has two fulfilment attempts: counted once.
+        disqualified: 1,
+        fulfilmentFailing: 1,
+      });
+      expect(JSON.stringify(report)).not.toContain(USER);
+    });
+
+    it("does not call a giveaway live before its start date", async () => {
+      // Switched on (active) but opening on the 22nd; asked on the 20th.
+      const report = await giveawayReport(
+        db,
+        staff,
+        "e1000000-0000-4000-8000-000000000009",
+        { range, now: NOW }
+      );
+
+      expect(report.state).toMatchObject({
+        name: "Scheduled",
+        phase: "pending",
+        live: false,
+        msToDraw: null,
+        msToOpen: 165_600_000,
       });
     });
   });

@@ -29,6 +29,20 @@ export const partnerPerformanceView = {
   } satisfies DocumentTabConfig,
 };
 
+/**
+ * The Stats tab on a giveaway. Shown to staff only; the view checks again,
+ * because a tab that is not shown is still reachable by its address.
+ */
+export const giveawayStatsView = {
+  Component: `${PATH}#GiveawayStatsView`,
+  path: "/stats" as const,
+  tab: {
+    label: "Stats",
+    href: "/stats",
+    condition: ({ req }) => scopeOfRequest(req)?.kind === "staff",
+  } satisfies DocumentTabConfig,
+};
+
 /** The full analytics page, reached from the sidebar. */
 export const analyticsPageView = {
   Component: `${PATH}#AnalyticsPageView`,

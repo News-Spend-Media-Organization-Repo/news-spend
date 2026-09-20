@@ -22,6 +22,22 @@ export {
 } from "./audience";
 export type { AnalyticsDb } from "./db";
 export type {
+  EngagementDay,
+  EngagementTotals,
+  FulfilmentOutcomes,
+  GiveawayAttention,
+  GiveawayFilter,
+  GiveawayReport,
+  GiveawayState,
+  PoolTier,
+  PrizeTier,
+  RecentWinner,
+  TicketDay,
+  TicketTotals,
+  WinnerCounts,
+} from "./giveaway";
+export { giveawayReport } from "./giveaway";
+export type {
   ArticleReport,
   NewsCounts,
   NewsDay,
