@@ -18,6 +18,12 @@ const NewsAnalytics: CollectionConfig = {
     group: "Analytics",
     defaultColumns: ["article", "event", "platform", "timestamp"],
   },
+  indexes: [
+    // What makes a retried batch count once. Per device rather than global, so
+    // one device cannot suppress another's event by reusing its id. Rows with
+    // no event id (older app builds) are never in conflict: NULLs are distinct.
+    { fields: ["deviceId", "eventId"], unique: true },
+  ],
   fields: [
     {
       name: "article",
@@ -74,11 +80,33 @@ const NewsAnalytics: CollectionConfig = {
       },
     },
     {
+      name: "eventId",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description:
+          "Minted by the app for this event and reused on every retry. Empty for events from builds that predate it.",
+      },
+    },
+    {
       name: "timestamp",
       type: "date",
       required: true,
       defaultValue: () => new Date().toISOString(),
       index: true,
+      admin: {
+        description:
+          "When the reader did it, as the device reported, held to within 14 days before and 5 minutes after arrival.",
+      },
+    },
+    {
+      name: "receivedAt",
+      type: "date",
+      admin: {
+        readOnly: true,
+        description:
+          "When the server received it. Empty for events stored before this was recorded.",
+      },
     },
   ],
 };

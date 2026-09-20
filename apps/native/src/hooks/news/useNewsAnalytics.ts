@@ -1,7 +1,6 @@
 import { useCallback, useRef } from "react";
 
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
-import { authState } from "#/state/auth";
 import { storage } from "#/utils/storage";
 
 // Stable device ID: generated once and persisted
@@ -28,14 +27,13 @@ export function useNewsAnalytics(article?: ArticleMeta) {
   // Track impressions seen this session to avoid duplicate events
   const impressionsSeen = useRef<Set<string>>(new Set());
 
-  // `userId` is read when the event happens, not when the queue is flushed:
-  // an event recorded while signed out must not be credited to whoever signs
-  // in before the next flush. The session is owned by the client.
+  // Who did it is not recorded here: the server takes that from the session
+  // the request is sent under, so a value stamped by the app would be one the
+  // server had to ignore.
   const buildBase = useCallback(
     (articleId: string) => ({
       articleId,
       deviceId,
-      userId: authState.user?.id,
     }),
     []
   );
@@ -68,7 +66,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
       metadata: { screen: "Article" },
     });
     // Flush immediately on explicit views
-    newsAnalyticsClient.flush(authState.user?.id);
+    newsAnalyticsClient.flush();
   }, [article, buildBase]);
 
   const trackRead = useCallback(
@@ -81,7 +79,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
         event: "read",
         metadata: { timeSpent, scrollDepth, screen: "Article" },
       });
-      newsAnalyticsClient.flush(authState.user?.id);
+      newsAnalyticsClient.flush();
     },
     [article, buildBase]
   );

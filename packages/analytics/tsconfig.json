@@ -1,0 +1,11 @@
+{
+  "extends": "@news-spend-media/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "strictNullChecks": true,
+    // "bun" supplies the `bun:test` module types.
+    "types": ["node", "bun"]
+  },
+  "exclude": ["node_modules"]
+}

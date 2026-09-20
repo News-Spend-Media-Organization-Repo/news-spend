@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { type CollectionConfig, slugField } from "payload";
 import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
+import { partnerPerformanceView } from "../components/Analytics/tabs";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
 
@@ -19,6 +20,9 @@ export const Partners: CollectionConfig = {
     group: "Partners",
     useAsTitle: "companyName",
     defaultColumns: ["companyName", "status", "category", "contractSigned"],
+    components: {
+      views: { edit: { performance: partnerPerformanceView } },
+    },
   },
   fields: [
     {

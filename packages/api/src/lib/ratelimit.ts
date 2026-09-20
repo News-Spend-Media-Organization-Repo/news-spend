@@ -75,3 +75,18 @@ export const tweetRateLimitMiddleware = createRateLimitMiddleware({
   name: "tweet",
   maxRequests: 30,
 });
+
+/**
+ * A dedicated bucket for reader analytics.
+ *
+ * The app flushes every ten seconds and once more on backgrounding, which is
+ * about eight requests a minute; 30 leaves room for retries and a queue
+ * catching up after being offline, without letting one caller write unbounded
+ * events. It has its own name so a reader's analytics never spend the
+ * allowance they need to report or comment, and so tightening this never
+ * tightens them.
+ */
+export const newsTrackRateLimitMiddleware = createRateLimitMiddleware({
+  name: "news-track",
+  maxRequests: 30,
+});

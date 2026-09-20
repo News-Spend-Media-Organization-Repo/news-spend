@@ -4,6 +4,7 @@ import { type CollectionConfig, slugField, ValidationError } from "payload";
 import { authenticated } from "../access/authenticated";
 import { authenticatedOrPublished } from "../access/authenticatedOrPublished";
 import { AdsBlock, ReadAlsoBlock } from "../blocks";
+import { articleStatsView } from "../components/Analytics/tabs";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { trimUrlHook } from "../fields/urlField";
 import { calculateNewsMetrics, sendNotificationOnCreate } from "../hooks";
@@ -17,6 +18,9 @@ const News: CollectionConfig = {
   },
   admin: {
     useAsTitle: "title",
+    components: {
+      views: { edit: { stats: articleStatsView } },
+    },
   },
   hooks: {
     // beforeOperation: [

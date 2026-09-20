@@ -200,6 +200,19 @@
         "@types/node": "catalog:",
       },
     },
+    "packages/analytics": {
+      "name": "@news-spend-media/analytics",
+      "version": "0.0.0",
+      "dependencies": {
+        "@payloadcms/db-postgres": "catalog:",
+      },
+      "devDependencies": {
+        "@news-spend-media/config": "workspace:*",
+        "@types/bun": "catalog:",
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/api": {
       "name": "@news-spend-media/api",
       "dependencies": {
@@ -318,6 +331,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@hookform/resolvers": "catalog:",
+        "@news-spend-media/analytics": "workspace:*",
         "@news-spend-media/env": "workspace:*",
         "@news-spend-media/mail": "workspace:*",
         "@news-spend-media/payload-cpanel-storage": "workspace:*",
@@ -1122,6 +1136,8 @@
     "@nandorojo/galeria": ["@nandorojo/galeria@3.0.3", "", { "dependencies": { "framer-motion": "^10.9.1", "react-native-is-edge-to-edge": "^1.1.6" }, "peerDependencies": { "expo": "*", "react": "*", "react-dom": "*", "react-native": "*" }, "optionalPeers": ["react-dom"] }, "sha512-RXO8qg4jlY5XU0q2F95PpKcXT0TBQc32OSu6cZsSljLvhHd1G/PqVfHmDoYsajjwSjBfCrdx86/wdVnQPrVaTA=="],
 
     "@neon-rs/load": ["@neon-rs/load@0.0.4", "", {}, "sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw=="],
+
+    "@news-spend-media/analytics": ["@news-spend-media/analytics@workspace:packages/analytics"],
 
     "@news-spend-media/api": ["@news-spend-media/api@workspace:packages/api"],
 

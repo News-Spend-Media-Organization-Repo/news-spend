@@ -1,6 +1,6 @@
 import { addWeeks, startOfWeek } from "date-fns";
 import { APIError, type CollectionConfig, ValidationError } from "payload";
-
+import { giveawayStatsView } from "../../components/Analytics/tabs";
 import {
   ADMIN_GROUP,
   DRAW_CHECKPOINT_OPTIONS,
@@ -29,6 +29,9 @@ export const Giveaways: CollectionConfig = {
       "endDate",
       "totalValidParticipants",
     ],
+    components: {
+      views: { edit: { stats: giveawayStatsView } },
+    },
   },
   access: {
     read: () => true,

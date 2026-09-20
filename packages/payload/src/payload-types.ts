@@ -183,6 +183,19 @@ export interface Config {
   };
   locale: null;
   widgets: {
+    'analytics-kpi': AnalyticsKpiWidget;
+    'analytics-funnel': AnalyticsFunnelWidget;
+    'analytics-top-articles': AnalyticsTopArticlesWidget;
+    'analytics-surfaces': AnalyticsSurfacesWidget;
+    'analytics-categories': AnalyticsCategoriesWidget;
+    'analytics-partner-performance': AnalyticsPartnerPerformanceWidget;
+    'analytics-audience-kpi': AnalyticsAudienceKpiWidget;
+    'analytics-audience-growth': AnalyticsAudienceGrowthWidget;
+    'analytics-devices': AnalyticsDevicesWidget;
+    'analytics-countries': AnalyticsCountriesWidget;
+    'analytics-feedback': AnalyticsFeedbackWidget;
+    'analytics-attention': AnalyticsAttentionWidget;
+    'analytics-push': AnalyticsPushWidget;
     collections: CollectionsWidget;
   };
   user: Admin;
@@ -1848,7 +1861,18 @@ export interface NewsAnalytic {
     | number
     | boolean
     | null;
+  /**
+   * Minted by the app for this event and reused on every retry. Empty for events from builds that predate it.
+   */
+  eventId?: string | null;
+  /**
+   * When the reader did it, as the device reported, held to within 14 days before and 5 minutes after arrival.
+   */
   timestamp: string;
+  /**
+   * When the server received it. Empty for events stored before this was recorded.
+   */
+  receivedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -3266,7 +3290,9 @@ export interface NewsAnalyticsSelect<T extends boolean = true> {
   deviceId?: T;
   platform?: T;
   metadata?: T;
+  eventId?: T;
   timestamp?: T;
+  receivedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -3896,6 +3922,138 @@ export interface PayloadJobsStatsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-kpi_widget".
+ */
+export interface AnalyticsKpiWidget {
+  data?: {
+    metric?: ('views' | 'reads' | 'impressions' | 'readers' | 'shares' | 'ctr' | 'readRate') | null;
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'x-small' | 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-funnel_widget".
+ */
+export interface AnalyticsFunnelWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-top-articles_widget".
+ */
+export interface AnalyticsTopArticlesWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-surfaces_widget".
+ */
+export interface AnalyticsSurfacesWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-categories_widget".
+ */
+export interface AnalyticsCategoriesWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-partner-performance_widget".
+ */
+export interface AnalyticsPartnerPerformanceWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-audience-kpi_widget".
+ */
+export interface AnalyticsAudienceKpiWidget {
+  data?: {
+    metric?: ('registered' | 'newUsers' | 'active7' | 'active30' | 'emailVerifiedRate' | 'pushRate' | 'guests') | null;
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'x-small' | 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-audience-growth_widget".
+ */
+export interface AnalyticsAudienceGrowthWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-devices_widget".
+ */
+export interface AnalyticsDevicesWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-countries_widget".
+ */
+export interface AnalyticsCountriesWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-feedback_widget".
+ */
+export interface AnalyticsFeedbackWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-attention_widget".
+ */
+export interface AnalyticsAttentionWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-push_widget".
+ */
+export interface AnalyticsPushWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
