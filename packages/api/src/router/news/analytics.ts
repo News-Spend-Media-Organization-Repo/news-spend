@@ -1,6 +1,7 @@
 import z from "zod";
 
 import { publicProcedure } from "../../index";
+import { sanitizeEventMetadata } from "../../lib/eventMetadata";
 import { clampEventTime } from "../../lib/eventTime";
 import { newsTrackRateLimitMiddleware } from "../../lib/ratelimit";
 
@@ -72,9 +73,7 @@ const track = publicProcedure
       select: {},
     });
 
-    // `a` is annotated because a handler behind the rate-limit middleware sees
-    // `context.payload` loosely typed, which leaves `docs` as `any`.
-    const validIds = new Set(articles.docs.map((a: { id: string }) => a.id));
+    const validIds = new Set(articles.docs.map((a) => a.id));
     const accepted = events.filter((e) => validIds.has(e.articleId));
     // Events naming an article that no longer exists are dropped, not failed:
     // `failed` stays "we tried to write this and could not", so the client
@@ -109,7 +108,7 @@ const track = publicProcedure
         ${e.sessionId},
         ${e.deviceId},
         ${e.platform ?? null}::enum_news_analytics_platform,
-        ${JSON.stringify(e.metadata ?? {})}::jsonb,
+        ${JSON.stringify(sanitizeEventMetadata(e.metadata))}::jsonb,
         ${clampEventTime(e.timestamp, receivedAt).toISOString()}::timestamptz,
         ${receivedAt.toISOString()}::timestamptz,
         ${e.eventId ?? null}
