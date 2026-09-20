@@ -30,6 +30,7 @@ const CSS = `
 .ana-grid{display:grid;gap:16px}
 .ana-kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 .ana-two{grid-template-columns:2fr 1fr}
+.ana-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
 .ana-even{grid-template-columns:1fr 1fr}
 @media(max-width:900px){.ana-two,.ana-even{grid-template-columns:1fr}}
 .ana-card{border:1px solid var(--theme-elevation-150);border-radius:12px;background:var(--theme-elevation-0);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}

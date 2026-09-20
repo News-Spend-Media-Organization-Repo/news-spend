@@ -1,5 +1,7 @@
 import { type RateLimiter, ratelimit } from "@orpc/ratelimit";
 
+import type { Context } from "../context";
+
 /**
  * Resolve the limiter backend lazily so only the adapter matching the current
  * environment is loaded: `@orpc/bun` (Redis) when REDIS_URL is configured,
@@ -42,7 +44,10 @@ export function createRateLimitMiddleware(options?: {
   const limiter = options?.limiter ?? createDefaultLimiter(maxRequests, window);
   const prefix = options?.name ? `${options.name}:` : "";
 
-  return ratelimit({
+  // Typed to the app's context. Left to inference it widens to "any object",
+  // and every handler behind this middleware then sees a loosely typed
+  // `context`, which turns typed results such as `payload.find` into `any`.
+  return ratelimit<Context, unknown>({
     limiter,
     key: ({ context }) => {
       if (process.env.NODE_ENV === "development") {
@@ -53,9 +58,15 @@ export function createRateLimitMiddleware(options?: {
         return `${prefix}user:${context.user.id}`;
       }
 
+      // `request` can be absent (see createContext); a caller with no request
+      // and no user still gets a bucket, of their own "unknown" kind, rather
+      // than making the middleware throw.
       const ip =
-        context.request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        context.request.headers.get("cf-connecting-ip") ||
+        context.request?.headers
+          .get("x-forwarded-for")
+          ?.split(",")[0]
+          ?.trim() ||
+        context.request?.headers.get("cf-connecting-ip") ||
         "unknown";
       return `${prefix}anon:${ip}`;
     },

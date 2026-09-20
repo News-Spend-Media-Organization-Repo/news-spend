@@ -23,6 +23,7 @@ import {
 } from "./news";
 import {
   partnerDaily,
+  partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";
@@ -102,6 +103,12 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         status enum_partner_conversions_status NOT NULL DEFAULT 'clicked',
         points_awarded numeric DEFAULT 0, partner_order_id varchar,
         clicked_at timestamptz, converted_at timestamptz, awarded_at timestamptz);
+      CREATE TYPE enum_partner_postbacks_outcome AS ENUM('accepted','failed_reported','duplicate','rejected');
+      CREATE TABLE partner_postbacks (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        partner_id uuid NOT NULL, click_id varchar NOT NULL,
+        outcome enum_partner_postbacks_outcome NOT NULL, reason varchar,
+        received_at timestamptz NOT NULL);
       CREATE TABLE shop_analytics (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         store_id uuid, type enum_shop_analytics_type NOT NULL, timestamp timestamptz NOT NULL);
@@ -259,6 +266,17 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ('${USER}', '${P1}', NULL, 'clk-4', 'failed', 0, NULL, '2026-09-18T08:00:00Z', NULL, NULL),
         ('${USER}', '${P2}', NULL, 'clk-5', 'awarded', 400, 'ORD-5', '2026-09-19T09:00:00Z', '2026-09-19T09:10:00Z', '2026-09-19T09:11:00Z'),
         ('${USER}', '${P1}', NULL, 'clk-6', 'clicked', 0, NULL, '2026-09-10T08:00:00Z', NULL, NULL);
+      INSERT INTO partner_postbacks (partner_id, click_id, outcome, reason, received_at) VALUES
+        ('${P1}', 'a1', 'accepted', NULL, '2026-09-19T10:00:00Z'),
+        ('${P1}', 'a2', 'accepted', NULL, '2026-09-19T11:00:00Z'),
+        ('${P1}', 'f1', 'failed_reported', NULL, '2026-09-18T10:00:00Z'),
+        ('${P1}', 'd1', 'duplicate', NULL, '2026-09-19T12:00:00Z'),
+        ('${P1}', 'r1', 'rejected', 'signature does not match', '2026-09-19T13:00:00Z'),
+        ('${P1}', 'r2', 'rejected', 'signature does not match', '2026-09-19T14:00:00Z'),
+        ('${P1}', 'r3', 'rejected', 'missing signature', '2026-09-20T08:00:00Z'),
+        ('${P1}', 'old', 'accepted', NULL, '2026-08-01T10:00:00Z'),
+        ('${P2}', 'b1', 'accepted', NULL, '2026-09-19T10:00:00Z'),
+        ('${P2}', 'b2', 'rejected', 'partner has no webhook secret', '2026-09-19T11:00:00Z');
       INSERT INTO shop_analytics (store_id, type, timestamp) VALUES
         ('${P1}', 'view', '2026-09-19T10:00:00Z'), ('${P1}', 'view', '2026-09-19T10:01:00Z'),
         ('${P1}', 'click', '2026-09-19T10:02:00Z'), ('${P2}', 'view', '2026-09-19T10:00:00Z');
@@ -764,6 +782,58 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         content: "Weekend offer",
       });
       expect(JSON.stringify(rows)).not.toContain(USER);
+    });
+
+    it("tells a partner how their postbacks are being received", async () => {
+      const health = await partnerPostbackHealth(db, partner1, { range });
+
+      // 7 in the period: 2 accepted, 1 reported failed, 1 repeat, 3 rejected.
+      // The August one is outside it; the other partner's two are not theirs.
+      expect(health).toEqual({
+        total: 7,
+        accepted: 2,
+        failedReported: 1,
+        duplicate: 1,
+        rejected: 3,
+        rejectedRate: 42.9,
+        lastReceivedAt: "2026-09-20T08:00:00.000Z",
+        rejectedReasons: [
+          { reason: "signature does not match", count: 2 },
+          { reason: "missing signature", count: 1 },
+        ],
+      });
+    });
+
+    it("shows staff every partner's postbacks together, or one on request", async () => {
+      const all = await partnerPostbackHealth(db, staff, { range });
+      const two = await partnerPostbackHealth(db, staff, {
+        range,
+        partnerId: P2,
+      });
+
+      expect(all).toMatchObject({ total: 9, accepted: 3, rejected: 4 });
+      expect(all.rejectedReasons.map((r) => r.reason)).toEqual([
+        "signature does not match",
+        "missing signature",
+        "partner has no webhook secret",
+      ]);
+      expect(two).toMatchObject({ total: 2, accepted: 1, rejected: 1 });
+    });
+
+    it("still reports the latest postback when the period is quiet", async () => {
+      // A window with nothing in it, but the partner did post back before.
+      const quiet = resolveRange({
+        days: 7,
+        now: new Date("2026-12-01T10:00:00Z"),
+      });
+
+      const health = await partnerPostbackHealth(db, partner1, {
+        range: quiet,
+      });
+
+      expect(health.total).toBe(0);
+      expect(health.rejectedRate).toBeNull();
+      expect(health.lastReceivedAt).toBe("2026-09-20T08:00:00.000Z");
     });
   });
 });

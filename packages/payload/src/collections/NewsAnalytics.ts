@@ -44,7 +44,10 @@ const NewsAnalytics: CollectionConfig = {
         { label: "Like", value: "like" },
         { label: "Dislike", value: "dislike" },
         { label: "Share", value: "share" },
-        { label: "Comment", value: "comment" },
+        // The app sends this when a reader opens the comments, not when one is
+        // written. Written comments are in the `comments` collection, which is
+        // the trustworthy place to count them.
+        { label: "Comments opened", value: "comment" },
       ],
     },
     {

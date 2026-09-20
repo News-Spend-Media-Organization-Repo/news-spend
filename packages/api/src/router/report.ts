@@ -44,7 +44,21 @@ const create = rateLimitedPublicProcedure
     // upload files
     const { files, ...rest } = input;
 
-    const transactionID = await payload.db.beginTransaction();
+    // `beginTransaction` gives null when the adapter cannot open one, and
+    // Payload treats a missing id as "no transaction": create then runs on its
+    // own and commit or rollback do nothing. Keeping it as undefined says that
+    // in the types, and the two helpers below skip the calls it would ignore.
+    const transactionID = (await payload.db.beginTransaction()) ?? undefined;
+    const commit = async () => {
+      if (transactionID !== undefined) {
+        await payload.db.commitTransaction(transactionID);
+      }
+    };
+    const rollback = async () => {
+      if (transactionID !== undefined) {
+        await payload.db.rollbackTransaction(transactionID);
+      }
+    };
     let filesToUpload: Media[] = [];
     if (files?.length > 0) {
       try {
@@ -72,7 +86,7 @@ const create = rateLimitedPublicProcedure
         );
       } catch (error) {
         console.log(error);
-        await payload.db.rollbackTransaction(transactionID);
+        await rollback();
         throw errors.INTERNAL_SERVER_ERROR({
           message: "Failed to upload files",
         });
@@ -89,10 +103,10 @@ const create = rateLimitedPublicProcedure
         req: { transactionID },
       });
 
-      await payload.db.commitTransaction(transactionID);
+      await commit();
       return response;
     } catch (error) {
-      await payload.db.rollbackTransaction(transactionID);
+      await rollback();
       throw error;
     }
   });

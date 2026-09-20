@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   partnerDaily,
+  partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";
@@ -34,6 +35,11 @@ const reports = [
     "partnerRecentConversions",
     (db: ReturnType<typeof stubDb>["db"], partnerId?: string) =>
       partnerRecentConversions(db, PARTNER, { partnerId }),
+  ],
+  [
+    "partnerPostbackHealth",
+    (db: ReturnType<typeof stubDb>["db"], partnerId?: string) =>
+      partnerPostbackHealth(db, PARTNER, { range: range(), partnerId }),
   ],
 ] as const;
 
@@ -216,5 +222,80 @@ describe("partnerRecentConversions", () => {
     await partnerRecentConversions(db, STAFF, { limit: 100_000 });
 
     expect(queries[0]?.params).toContain(50);
+  });
+});
+
+describe("partnerPostbackHealth", () => {
+  const rowsFor = (q: { sql: string }) => {
+    if (q.sql.includes("MAX(")) {
+      return [{ last_received: new Date("2026-09-19T13:00:00Z") }];
+    }
+    if (q.sql.includes("GROUP BY p.reason")) {
+      return [
+        { reason: "signature does not match", n: 2 },
+        { reason: null, n: 1 },
+      ];
+    }
+    return [
+      { total: 7, accepted: 2, failed_reported: 1, duplicate: 1, rejected: 3 },
+    ];
+  };
+
+  it("counts each outcome, rates the rejections and lists the reasons", async () => {
+    const { db } = stubDb(rowsFor);
+
+    const health = await partnerPostbackHealth(db, STAFF, { range: range() });
+
+    expect(health).toEqual({
+      total: 7,
+      accepted: 2,
+      failedReported: 1,
+      duplicate: 1,
+      rejected: 3,
+      rejectedRate: 42.9,
+      lastReceivedAt: "2026-09-19T13:00:00.000Z",
+      rejectedReasons: [
+        { reason: "signature does not match", count: 2 },
+        { reason: "no reason recorded", count: 1 },
+      ],
+    });
+  });
+
+  it("is empty, with no rate, when nothing has been received", async () => {
+    const { db } = stubDb([]);
+
+    const health = await partnerPostbackHealth(db, STAFF, { range: range() });
+
+    expect(health).toMatchObject({
+      total: 0,
+      rejected: 0,
+      rejectedRate: null,
+      lastReceivedAt: null,
+      rejectedReasons: [],
+    });
+  });
+
+  it("finds the last postback regardless of the period, so a quiet month still shows", async () => {
+    const { db, queries } = stubDb(rowsFor);
+
+    await partnerPostbackHealth(db, STAFF, { range: range() });
+
+    const last = queries.find((q) => q.sql.includes("MAX("));
+    expect(last?.sql).not.toContain("received_at >=");
+    const windowed = queries.filter((q) => !q.sql.includes("MAX("));
+    for (const q of windowed) {
+      expect(q.sql).toContain("received_at");
+      expect(q.sql).toContain(">=");
+    }
+  });
+
+  it("does not identify a reader", async () => {
+    const { db, queries } = stubDb(rowsFor);
+
+    await partnerPostbackHealth(db, PARTNER, { range: range() });
+
+    for (const q of queries) {
+      expect(q.sql).not.toMatch(NAMES_A_READER);
+    }
   });
 });

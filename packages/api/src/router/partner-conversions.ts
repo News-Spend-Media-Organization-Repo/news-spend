@@ -7,6 +7,7 @@ import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
+import { recordPostback } from "../lib/postbackLog";
 
 // Input schema for tracking a click
 const trackClickInput = z.object({
@@ -290,6 +291,14 @@ export const handleWebhook = publicProcedure
             .findByID({ collection: "partners", id: String(partnerRef) })
             .catch(() => null);
 
+    // Which partner this postback is for, known because it names a real click.
+    // Unresolvable (a partner since deleted) means there is nobody to record it
+    // against, so it is not recorded.
+    const partnerId =
+      partnerDoc?.id !== undefined && partnerDoc?.id !== null
+        ? String(partnerDoc.id)
+        : undefined;
+
     const verdict = verifyPartnerSignature({
       headers: {
         signature: context.headers?.get("x-signature") ?? null,
@@ -305,6 +314,14 @@ export const handleWebhook = publicProcedure
         { clickId: input.clickId, reason: verdict.reason },
         "[partner] rejected an unverified conversion postback"
       );
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "rejected",
+          reason: verdict.reason,
+        });
+      }
       // Deliberately not saying which check failed; that is a tuning guide
       // for anyone probing it. The partner's own logs have the detail.
       throw errors.UNAUTHORIZED({
@@ -314,6 +331,13 @@ export const handleWebhook = publicProcedure
 
     // Check if already converted
     if (conversion.status === "converted" || conversion.status === "awarded") {
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "duplicate",
+        });
+      }
       return {
         success: true,
         message: "Already processed",
@@ -343,6 +367,14 @@ export const handleWebhook = publicProcedure
         },
       });
 
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "failed_reported",
+        });
+      }
+
       return {
         success: true,
         clickId: input.clickId,
@@ -356,6 +388,14 @@ export const handleWebhook = publicProcedure
       content,
       partnerOrderId: input.partnerOrderId,
     });
+
+    if (partnerId) {
+      await recordPostback(payload, {
+        partnerId,
+        clickId: input.clickId,
+        outcome: "accepted",
+      });
+    }
 
     return {
       success: true,

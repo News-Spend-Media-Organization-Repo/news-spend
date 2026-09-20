@@ -344,6 +344,39 @@ describe("newsAnalyticsRouter.track", () => {
       });
     });
 
+    it("accepts a batch with absurd metadata and stores only bounded values", async () => {
+      const { drizzle, ctx } = setup(authedUser);
+
+      // Refusing it would make the app drop the whole batch as a permanent
+      // failure, honest events included; so it is accepted and held in bounds.
+      const result = await call(
+        newsAnalyticsRouter.track,
+        {
+          events: [
+            {
+              ...view,
+              event: "read" as const,
+              metadata: {
+                timeSpent: 999_999_999_999,
+                scrollDepth: 5_000_000,
+                position: 7_000_000,
+                screen: "S".repeat(400),
+                shareMethod: "M".repeat(400),
+              },
+            },
+          ],
+        },
+        { context: ctx }
+      );
+
+      expect(result.inserted).toBe(1);
+      const sql = drizzle.queries[0]?.sql ?? "";
+      expect(sql).not.toContain("999999999999");
+      expect(sql).not.toContain("S".repeat(65));
+      expect(sql).not.toContain("M".repeat(65));
+      expect(sql).toContain("86400");
+    });
+
     it("rejects an event id that is too short to be unique", async () => {
       const { ctx } = setup(authedUser);
 

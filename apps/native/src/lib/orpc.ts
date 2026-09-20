@@ -69,6 +69,20 @@ const link = new RPCLink<ORPCClientContext>({
   plugins: [retryPlugin],
 });
 
+/**
+ * The OpenAPI client, which reads `contract.json`, exists for one call: the
+ * witness-report upload (`openapi.report.create`), which needs a multipart POST
+ * to a fixed path. Everything else goes through `client` above, which takes its
+ * types from the router itself and never reads the contract.
+ *
+ * So the contract is allowed to be out of date (it lacks giveaway and
+ * verification, and still lists the removed lottery), and it should stay that
+ * way unless `report.create` itself changes. Do NOT regenerate it wholesale: a
+ * current export writes route metadata in a different shape (`meta["~openapi"]`
+ * instead of `route`), and the committed shape is what this call works with
+ * today. If another procedure ever needs this client, add its entry by hand and
+ * test it against staging.
+ */
 const openapiLink = new OpenAPILink<ORPCClientContext>(
   contract as unknown as typeof router,
   {
