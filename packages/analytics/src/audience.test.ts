@@ -43,7 +43,7 @@ describe("audienceSummary", () => {
         new_previous: 30,
         active7: 200,
         active30: 500,
-        verified: 250,
+        email_verified: 250,
         push_enabled: 600,
         guests: 12,
       },
@@ -56,8 +56,8 @@ describe("audienceSummary", () => {
       newUsers: { current: 40, previous: 30 },
       active7: 200,
       active30: 500,
-      verified: 250,
-      verifiedRate: 25,
+      emailVerified: 250,
+      emailVerifiedRate: 25,
       pushEnabled: 600,
       pushRate: 60,
       guests: 12,
@@ -72,7 +72,7 @@ describe("audienceSummary", () => {
         new_previous: 0,
         active7: 0,
         active30: 0,
-        verified: 0,
+        email_verified: 0,
         push_enabled: 0,
         guests: 0,
       },
@@ -80,7 +80,7 @@ describe("audienceSummary", () => {
 
     const summary = await audienceSummary(db, STAFF, filter);
 
-    expect(summary.verifiedRate).toBeNull();
+    expect(summary.emailVerifiedRate).toBeNull();
     expect(summary.pushRate).toBeNull();
   });
 
@@ -113,7 +113,7 @@ describe("audienceSummary", () => {
         new_previous: 0,
         active7: 2,
         active30: 3,
-        verified: 1,
+        email_verified: 1,
         push_enabled: 2,
         guests: 40,
       },

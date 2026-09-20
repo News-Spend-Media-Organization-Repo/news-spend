@@ -1,4 +1,3 @@
-import type { SQL } from "@payloadcms/db-postgres/drizzle";
 import { sql } from "@payloadcms/db-postgres/drizzle";
 
 import type { AnalyticsDb } from "./db";
@@ -37,8 +36,10 @@ export type AttentionCounts = {
    */
   identityInReview: number;
   /**
-   * Flagged giveaway accounts nobody has reviewed. The flags table has no
-   * status of its own, so "open" means no reviewer is recorded.
+   * Giveaway accounts flagged suspicious that no administrator has reviewed.
+   * A suspicious account still takes part but any prize it wins is held for
+   * review, so these are waiting on a person. Accounts already disqualified
+   * are decided, and those marked ok are cleared: neither is counted.
    */
   flagsUnreviewed: number;
   /** Push deliveries that failed in the last 7 days. */
@@ -77,7 +78,8 @@ export async function needsAttention(
              (SELECT COUNT(*)::int FROM identity_checks
                WHERE status = 'In Review') AS identity_in_review,
              (SELECT COUNT(*)::int FROM giveaway_account_flags
-               WHERE reviewed_by_id IS NULL) AS flags_unreviewed,
+               WHERE trust_status = 'suspicious'
+                 AND reviewed_by_id IS NULL) AS flags_unreviewed,
              (SELECT COUNT(*)::int FROM notification_deliveries
                WHERE status = 'failed'
                  AND created_at >= ${since}::timestamptz) AS push_failed,
@@ -124,9 +126,16 @@ export type PushReport = {
 /**
  * Push campaigns sent in the period, with delivery outcomes.
  *
- * The per-campaign totals live only as virtual fields (computed at read time
- * by counting delivery rows), so they are counted here, from the same rows.
- * "Opened" is its own final state, not a subset of "delivered".
+ * The per-campaign totals live only as virtual fields, so they are counted
+ * here from the delivery rows. "Opened" is its own final state, not a subset of
+ * "delivered".
+ *
+ * Delivered and failed come from the push provider's receipts. **Opened is
+ * reported by the app**: the `trackOpen` endpoint is public and sets the
+ * status. It is real but not confirmed, and the panel says so.
+ *
+ * `campaigns` lists the latest few, but `totals` cover every campaign sent in
+ * the period, from a query of their own.
  */
 export async function pushReport(
   db: AnalyticsDb,
@@ -137,17 +146,18 @@ export async function pushReport(
   const { timeZone, current } = filter.range;
   const limit = Math.min(Math.max(Math.trunc(filter.limit ?? 10), 1), 50);
 
-  const rows = await rowsOf<{
-    id: string;
-    title: string | null;
-    sent_at: unknown;
-    delivered: number;
-    opened: number;
-    failed: number;
-    total: number;
-  }>(
-    db,
-    sql`
+  const [rows, [all]] = await Promise.all([
+    rowsOf<{
+      id: string;
+      title: string | null;
+      sent_at: unknown;
+      delivered: number;
+      opened: number;
+      failed: number;
+      total: number;
+    }>(
+      db,
+      sql`
       SELECT n.id, n.title, n.sent_at,
              COUNT(*) FILTER (WHERE d.status = 'delivered')::int AS delivered,
              COUNT(*) FILTER (WHERE d.status = 'opened')::int AS opened,
@@ -160,7 +170,27 @@ export async function pushReport(
       ORDER BY n.sent_at DESC, n.id
       LIMIT ${limit}
     `
-  );
+    ),
+    rowsOf<{
+      campaigns: number;
+      delivered: number;
+      opened: number;
+      failed: number;
+      total: number;
+    }>(
+      db,
+      sql`
+        SELECT COUNT(DISTINCT n.id)::int AS campaigns,
+               COUNT(*) FILTER (WHERE d.status = 'delivered')::int AS delivered,
+               COUNT(*) FILTER (WHERE d.status = 'opened')::int AS opened,
+               COUNT(*) FILTER (WHERE d.status = 'failed')::int AS failed,
+               COUNT(d.id)::int AS total
+        FROM notifications n
+        LEFT JOIN notification_deliveries d ON d.notification_id = n.id
+        WHERE ${inWindow(sql.raw("n.sent_at"), current, timeZone)}
+      `
+    ),
+  ]);
 
   const campaigns: PushCampaign[] = rows.map((r) => ({
     id: r.id,
@@ -173,18 +203,15 @@ export async function pushReport(
     openedRate: percent(r.opened, r.total),
   }));
 
-  const delivered = campaigns.reduce((sum, c) => sum + c.delivered, 0);
-  const opened = campaigns.reduce((sum, c) => sum + c.opened, 0);
-  const failed = campaigns.reduce((sum, c) => sum + c.failed, 0);
-  const total = campaigns.reduce((sum, c) => sum + c.total, 0);
+  const total = all?.total ?? 0;
   return {
     totals: {
-      campaigns: campaigns.length,
-      delivered,
-      opened,
-      failed,
-      openedRate: percent(opened, total),
-      failedRate: percent(failed, total),
+      campaigns: all?.campaigns ?? 0,
+      delivered: all?.delivered ?? 0,
+      opened: all?.opened ?? 0,
+      failed: all?.failed ?? 0,
+      openedRate: percent(all?.opened ?? 0, total),
+      failedRate: percent(all?.failed ?? 0, total),
     },
     campaigns,
   };

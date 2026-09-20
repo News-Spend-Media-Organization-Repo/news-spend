@@ -3990,7 +3990,7 @@ export interface AnalyticsPartnerPerformanceWidget {
  */
 export interface AnalyticsAudienceKpiWidget {
   data?: {
-    metric?: ('registered' | 'newUsers' | 'active7' | 'active30' | 'verifiedRate' | 'pushRate' | 'guests') | null;
+    metric?: ('registered' | 'newUsers' | 'active7' | 'active30' | 'emailVerifiedRate' | 'pushRate' | 'guests') | null;
     days?: ('7' | '30' | '90') | null;
   };
   width: 'x-small' | 'small' | 'medium';

@@ -40,10 +40,14 @@ export type AudienceSummary = {
   active7: number;
   /** Registered and active in the last 30 days, now. */
   active30: number;
-  /** Registered and identity-verified. */
-  verified: number;
-  /** Verified per registered account, as a percentage. */
-  verifiedRate: number | null;
+  /**
+   * Registered accounts whose email address is verified. `users._verified` is
+   * the auth library's `emailVerified`, so this says nothing about identity
+   * checks (those are `identity_checks`, and `verified_country`).
+   */
+  emailVerified: number;
+  /** Email-verified per registered account, as a percentage. */
+  emailVerifiedRate: number | null;
   /** Registered accounts with at least one active push token. */
   pushEnabled: number;
   /** Push-enabled per registered account, as a percentage. */
@@ -72,7 +76,7 @@ export async function audienceSummary(
     new_previous: number;
     active7: number;
     active30: number;
-    verified: number;
+    email_verified: number;
     push_enabled: number;
     guests: number;
   }>(
@@ -88,7 +92,7 @@ export async function audienceSummary(
              COUNT(*) FILTER (WHERE COALESCE(u.is_anonymous, FALSE) = FALSE
                AND u.last_active >= ${active30Since}::timestamptz)::int AS active30,
              COUNT(*) FILTER (WHERE COALESCE(u.is_anonymous, FALSE) = FALSE
-               AND COALESCE(u._verified, FALSE) = TRUE)::int AS verified,
+               AND COALESCE(u._verified, FALSE) = TRUE)::int AS email_verified,
              COUNT(*) FILTER (WHERE COALESCE(u.is_anonymous, FALSE) = FALSE
                AND EXISTS (SELECT 1 FROM push_tokens t
                            WHERE t.user_id = u.id AND t.status = 'active'))::int AS push_enabled,
@@ -98,7 +102,7 @@ export async function audienceSummary(
   );
 
   const registered = counts?.registered ?? 0;
-  const verified = counts?.verified ?? 0;
+  const emailVerified = counts?.email_verified ?? 0;
   const pushEnabled = counts?.push_enabled ?? 0;
   return {
     registered,
@@ -108,8 +112,8 @@ export async function audienceSummary(
     },
     active7: counts?.active7 ?? 0,
     active30: counts?.active30 ?? 0,
-    verified,
-    verifiedRate: percent(verified, registered),
+    emailVerified,
+    emailVerifiedRate: percent(emailVerified, registered),
     pushEnabled,
     pushRate: percent(pushEnabled, registered),
     guests: counts?.guests ?? 0,

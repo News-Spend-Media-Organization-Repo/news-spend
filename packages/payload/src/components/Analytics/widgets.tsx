@@ -230,9 +230,9 @@ export const AUDIENCE_KPI_METRICS: Record<string, AudienceMetric> = {
     format: count,
     note: () => "right now",
   },
-  verifiedRate: {
-    label: "Verified",
-    value: (s) => s.verifiedRate,
+  emailVerifiedRate: {
+    label: "Email verified",
+    value: (s) => s.emailVerifiedRate,
     format: formatPercent,
     note: () => "of registered",
   },
@@ -304,9 +304,7 @@ export const FeedbackWidget = (props: WidgetServerProps): Promise<ReactNode> =>
 
 // --- needs attention and push -------------------------------------------------
 
-export const AttentionWidget = (
-  props: WidgetServerProps
-): Promise<ReactNode> =>
+export const AttentionWidget = (props: WidgetServerProps): Promise<ReactNode> =>
   staffWidget(props, async ({ scope, db }) => (
     <NeedsAttentionPanel counts={await needsAttention(db, scope, {})} />
   ));

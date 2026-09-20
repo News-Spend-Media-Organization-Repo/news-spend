@@ -46,7 +46,7 @@ const audienceMetricField: Field = {
     { label: "New accounts", value: "newUsers" },
     { label: "Active, 7 days", value: "active7" },
     { label: "Active, 30 days", value: "active30" },
-    { label: "Verified", value: "verifiedRate" },
+    { label: "Email verified", value: "emailVerifiedRate" },
     { label: "Push enabled", value: "pushRate" },
     { label: "Guests now", value: "guests" },
   ],

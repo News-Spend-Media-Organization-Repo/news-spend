@@ -501,10 +501,10 @@ export function AudienceKpis({
         value={formatCount(summary.active30)}
       />
       <Kpi
-        label="Verified"
-        note={`${formatPercent(summary.verifiedRate)} of registered`}
+        label="Email verified"
+        note={`${formatPercent(summary.emailVerifiedRate)} of registered`}
         tag="observed"
-        value={formatCount(summary.verified)}
+        value={formatCount(summary.emailVerified)}
       />
       <Kpi
         label="Push enabled"
@@ -620,7 +620,11 @@ const QUEUE_ROWS: {
   slug: string;
   note?: string;
 }[] = [
-  { key: "commentsHidden", label: "Comments awaiting review", slug: "comments" },
+  {
+    key: "commentsHidden",
+    label: "Comments awaiting review",
+    slug: "comments",
+  },
   {
     key: "reportsPending",
     label: "Content reports pending",
@@ -633,7 +637,7 @@ const QUEUE_ROWS: {
   },
   {
     key: "flagsUnreviewed",
-    label: "Giveaway flags unreviewed",
+    label: "Suspicious accounts awaiting review",
     slug: "giveaway-account-flags",
   },
   {
@@ -694,8 +698,8 @@ export function PushPanel({
 }): ReactNode {
   return (
     <Panel
-      hint={`Delivered ${formatCount(report.totals.delivered)} · opened ${formatPercent(report.totals.openedRate)} · failed ${formatPercent(report.totals.failedRate)}`}
-      tag="observed"
+      hint={`${formatCount(report.totals.campaigns)} sent · delivered ${formatCount(report.totals.delivered)} · opened ${formatPercent(report.totals.openedRate)} · failed ${formatPercent(report.totals.failedRate)}. Opens are reported by the app.`}
+      tag="mixed"
       title="Push campaigns"
     >
       <DataTable

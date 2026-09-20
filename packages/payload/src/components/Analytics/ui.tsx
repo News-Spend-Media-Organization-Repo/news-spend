@@ -38,6 +38,7 @@ const CSS = `
 .ana-tag{font-size:11px;font-weight:500;border-radius:999px;padding:2px 8px;white-space:nowrap}
 .ana-tag[data-kind=observed]{background:rgba(21,127,59,.15);color:#3ea262}
 .ana-tag[data-kind=reported]{background:rgba(94,127,179,.2);color:${NAVY}}
+.ana-tag[data-kind=mixed]{background:rgba(217,162,59,.18);color:#c58a1c}
 .ana-kpi-value{font-size:28px;font-weight:700;line-height:1.1}
 .ana-delta{font-size:13px;font-weight:600}
 .ana-delta[data-tone=up]{color:#3ea262}
@@ -81,7 +82,7 @@ export function Panel({
 }: {
   title: string;
   hint?: string;
-  tag?: "observed" | "reported";
+  tag?: keyof typeof TAG_LABELS;
   children: ReactNode;
 }): ReactNode {
   return (
@@ -98,14 +99,20 @@ export function Panel({
   );
 }
 
+const TAG_LABELS = {
+  observed: "Observed",
+  reported: "Reported",
+  mixed: "Observed + reported",
+} as const;
+
 export function TrustTag({
   kind,
 }: {
-  kind: "observed" | "reported";
+  kind: keyof typeof TAG_LABELS;
 }): ReactNode {
   return (
     <span className="ana-tag" data-kind={kind}>
-      {kind === "observed" ? "Observed" : "Reported"}
+      {TAG_LABELS[kind]}
     </span>
   );
 }
@@ -121,7 +128,7 @@ export function Kpi({
   value: string;
   change?: Change;
   note?: string;
-  tag?: "observed" | "reported";
+  tag?: keyof typeof TAG_LABELS;
 }): ReactNode {
   return (
     <div className="ana-card">

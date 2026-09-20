@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { SQL } from "bun";
+import { needsAttention, pushReport } from "./attention";
 import {
   audienceCountries,
   audienceDaily,
@@ -9,7 +10,6 @@ import {
   feedbackSummary,
 } from "./audience";
 import type { AnalyticsDb } from "./db";
-import { needsAttention, pushReport } from "./attention";
 import {
   newsArticleReport,
   newsDaily,
@@ -119,10 +119,11 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TYPE enum_content_reports_status AS ENUM('pending','resolved','dismissed');
       CREATE TYPE enum_identity_checks_status AS ENUM('Not Started','In Progress','In Review','Approved','Declined','Abandoned','Expired');
       CREATE TYPE enum_notification_deliveries_status AS ENUM('pending','delivered','opened','failed');
+      CREATE TYPE enum_giveaway_account_flags_trust_status AS ENUM('ok','suspicious','disqualified');
       CREATE TABLE comments (id uuid PRIMARY KEY, moderation_status enum_comments_moderation_status NOT NULL DEFAULT 'visible');
       CREATE TABLE content_reports (id uuid PRIMARY KEY, status enum_content_reports_status NOT NULL DEFAULT 'pending');
       CREATE TABLE identity_checks (id uuid PRIMARY KEY, status enum_identity_checks_status NOT NULL DEFAULT 'Not Started');
-      CREATE TABLE giveaway_account_flags (id uuid PRIMARY KEY, reviewed_by_id uuid);
+      CREATE TABLE giveaway_account_flags (id uuid PRIMARY KEY, trust_status enum_giveaway_account_flags_trust_status NOT NULL DEFAULT 'suspicious', reviewed_by_id uuid);
       CREATE TABLE notifications (id uuid PRIMARY KEY, title varchar, sent_at timestamptz);
       CREATE TABLE notification_deliveries (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -246,9 +247,12 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ('f0000000-0000-4000-8000-000000000006', 'In Review'),
         ('f0000000-0000-4000-8000-000000000007', 'In Progress'),
         ('f0000000-0000-4000-8000-000000000008', 'Approved');
-      INSERT INTO giveaway_account_flags (id, reviewed_by_id) VALUES
-        ('f0000000-0000-4000-8000-000000000009', NULL),
-        ('f0000000-0000-4000-8000-000000000010', 'd0000000-0000-4000-8000-000000000001');
+      INSERT INTO giveaway_account_flags (id, trust_status, reviewed_by_id) VALUES
+        ('f0000000-0000-4000-8000-000000000009', 'suspicious', NULL),
+        ('f0000000-0000-4000-8000-000000000010', 'suspicious', 'd0000000-0000-4000-8000-000000000001'),
+        ('f0000000-0000-4000-8000-000000000016', 'disqualified', NULL),
+        ('f0000000-0000-4000-8000-000000000017', 'ok', NULL),
+        ('f0000000-0000-4000-8000-000000000018', 'suspicious', NULL);
       INSERT INTO notifications (id, title, sent_at) VALUES
         ('f0000000-0000-4000-8000-000000000011', 'Morning brief', '2026-09-19T07:00:00Z'),
         ('f0000000-0000-4000-8000-000000000012', 'Old news', '2026-09-10T07:00:00Z'),
@@ -258,6 +262,9 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ('f0000000-0000-4000-8000-000000000011', 'delivered', '2026-09-19T07:01:00Z'),
         ('f0000000-0000-4000-8000-000000000011', 'opened', '2026-09-19T08:00:00Z'),
         ('f0000000-0000-4000-8000-000000000011', 'failed', '2026-09-19T07:01:00Z'),
+        ('f0000000-0000-4000-8000-000000000013', 'delivered', '2026-09-18T07:01:00Z'),
+        ('f0000000-0000-4000-8000-000000000013', 'delivered', '2026-09-18T07:01:00Z'),
+        ('f0000000-0000-4000-8000-000000000013', 'delivered', '2026-09-18T07:01:00Z'),
         ('f0000000-0000-4000-8000-000000000012', 'failed', '2026-09-10T07:01:00Z'),
         ('f0000000-0000-4000-8000-000000000012', 'failed', '2026-09-01T07:01:00Z');
       INSERT INTO witness_reports (id, created_at) VALUES
@@ -388,8 +395,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         newUsers: { current: 2, previous: 1 },
         active7: 2,
         active30: 3,
-        verified: 2,
-        verifiedRate: 50,
+        emailVerified: 2,
+        emailVerifiedRate: 50,
         pushEnabled: 2,
         pushRate: 50,
         guests: 1,
@@ -459,7 +466,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         commentsHidden: 2,
         reportsPending: 1,
         identityInReview: 1,
-        flagsUnreviewed: 1,
+        flagsUnreviewed: 2,
         pushFailed: 1,
         witnessWeek: 1,
       });
@@ -479,14 +486,34 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         total: 4,
         openedRate: 25,
       });
-      expect(report.campaigns[1]?.openedRate).toBeNull();
-      expect(report.totals).toMatchObject({
+      expect(report.campaigns[1]).toMatchObject({
+        title: "Evening",
+        delivered: 3,
+        opened: 0,
+        total: 3,
+        openedRate: 0,
+      });
+      // 5 delivered, 1 opened, 1 failed, out of 7 deliveries, over both campaigns.
+      expect(report.totals).toEqual({
         campaigns: 2,
-        delivered: 2,
+        delivered: 5,
         opened: 1,
         failed: 1,
-        openedRate: 25,
-        failedRate: 25,
+        openedRate: 14.3,
+        failedRate: 14.3,
+      });
+    });
+
+    it("totals every campaign even when only some are listed", async () => {
+      // Only the newest is listed; the totals still cover both.
+      const report = await pushReport(db, staff, { range, limit: 1 });
+
+      expect(report.campaigns.map((c) => c.title)).toEqual(["Morning brief"]);
+      expect(report.totals).toMatchObject({
+        campaigns: 2,
+        delivered: 5,
+        opened: 1,
+        failed: 1,
       });
     });
   });
