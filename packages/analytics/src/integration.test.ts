@@ -9,6 +9,7 @@ import {
   feedbackSummary,
 } from "./audience";
 import type { AnalyticsDb } from "./db";
+import { needsAttention, pushReport } from "./attention";
 import {
   newsArticleReport,
   newsDaily,
@@ -114,6 +115,20 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TABLE feedback (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         type varchar NOT NULL, rating numeric NOT NULL, created_at timestamptz NOT NULL);
+      CREATE TYPE enum_comments_moderation_status AS ENUM('visible','hidden');
+      CREATE TYPE enum_content_reports_status AS ENUM('pending','resolved','dismissed');
+      CREATE TYPE enum_identity_checks_status AS ENUM('Not Started','In Progress','In Review','Approved','Declined','Abandoned','Expired');
+      CREATE TYPE enum_notification_deliveries_status AS ENUM('pending','delivered','opened','failed');
+      CREATE TABLE comments (id uuid PRIMARY KEY, moderation_status enum_comments_moderation_status NOT NULL DEFAULT 'visible');
+      CREATE TABLE content_reports (id uuid PRIMARY KEY, status enum_content_reports_status NOT NULL DEFAULT 'pending');
+      CREATE TABLE identity_checks (id uuid PRIMARY KEY, status enum_identity_checks_status NOT NULL DEFAULT 'Not Started');
+      CREATE TABLE giveaway_account_flags (id uuid PRIMARY KEY, reviewed_by_id uuid);
+      CREATE TABLE notifications (id uuid PRIMARY KEY, title varchar, sent_at timestamptz);
+      CREATE TABLE notification_deliveries (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        notification_id uuid NOT NULL, status enum_notification_deliveries_status NOT NULL DEFAULT 'pending',
+        created_at timestamptz NOT NULL DEFAULT now());
+      CREATE TABLE witness_reports (id uuid PRIMARY KEY, created_at timestamptz NOT NULL);
 
       INSERT INTO categories VALUES ('${CAT_ENERGY}', 'Energy'), ('${CAT_SPORT}', 'Sports');
       INSERT INTO news VALUES
@@ -219,6 +234,35 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ('general', 3, '2026-09-17T08:00:00Z'),
         ('bug', 2, '2026-09-10T08:00:00Z'),
         ('feature', 1, '2026-09-19T08:00:00Z');
+
+      INSERT INTO comments (id, moderation_status) VALUES
+        ('f0000000-0000-4000-8000-000000000001', 'hidden'),
+        ('f0000000-0000-4000-8000-000000000002', 'hidden'),
+        ('f0000000-0000-4000-8000-000000000003', 'visible');
+      INSERT INTO content_reports (id, status) VALUES
+        ('f0000000-0000-4000-8000-000000000004', 'pending'),
+        ('f0000000-0000-4000-8000-000000000005', 'resolved');
+      INSERT INTO identity_checks (id, status) VALUES
+        ('f0000000-0000-4000-8000-000000000006', 'In Review'),
+        ('f0000000-0000-4000-8000-000000000007', 'In Progress'),
+        ('f0000000-0000-4000-8000-000000000008', 'Approved');
+      INSERT INTO giveaway_account_flags (id, reviewed_by_id) VALUES
+        ('f0000000-0000-4000-8000-000000000009', NULL),
+        ('f0000000-0000-4000-8000-000000000010', 'd0000000-0000-4000-8000-000000000001');
+      INSERT INTO notifications (id, title, sent_at) VALUES
+        ('f0000000-0000-4000-8000-000000000011', 'Morning brief', '2026-09-19T07:00:00Z'),
+        ('f0000000-0000-4000-8000-000000000012', 'Old news', '2026-09-10T07:00:00Z'),
+        ('f0000000-0000-4000-8000-000000000013', 'Evening', '2026-09-18T07:00:00Z');
+      INSERT INTO notification_deliveries (notification_id, status, created_at) VALUES
+        ('f0000000-0000-4000-8000-000000000011', 'delivered', '2026-09-19T07:01:00Z'),
+        ('f0000000-0000-4000-8000-000000000011', 'delivered', '2026-09-19T07:01:00Z'),
+        ('f0000000-0000-4000-8000-000000000011', 'opened', '2026-09-19T08:00:00Z'),
+        ('f0000000-0000-4000-8000-000000000011', 'failed', '2026-09-19T07:01:00Z'),
+        ('f0000000-0000-4000-8000-000000000012', 'failed', '2026-09-10T07:01:00Z'),
+        ('f0000000-0000-4000-8000-000000000012', 'failed', '2026-09-01T07:01:00Z');
+      INSERT INTO witness_reports (id, created_at) VALUES
+        ('f0000000-0000-4000-8000-000000000014', '2026-09-18T08:00:00Z'),
+        ('f0000000-0000-4000-8000-000000000015', '2026-08-01T08:00:00Z');
     `);
   });
 
@@ -404,6 +448,46 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         { type: "general", count: 2, average: 4 },
         { type: "feature", count: 1, average: 1 },
       ]);
+    });
+  });
+
+  describe("attention", () => {
+    it("counts every queue without naming anyone", async () => {
+      const counts = await needsAttention(db, staff, { now: NOW });
+
+      expect(counts).toEqual({
+        commentsHidden: 2,
+        reportsPending: 1,
+        identityInReview: 1,
+        flagsUnreviewed: 1,
+        pushFailed: 1,
+        witnessWeek: 1,
+      });
+    });
+
+    it("rates the period's campaigns from their deliveries", async () => {
+      const report = await pushReport(db, staff, { range });
+
+      expect(report.campaigns.map((c) => c.title)).toEqual([
+        "Morning brief",
+        "Evening",
+      ]);
+      expect(report.campaigns[0]).toMatchObject({
+        delivered: 2,
+        opened: 1,
+        failed: 1,
+        total: 4,
+        openedRate: 25,
+      });
+      expect(report.campaigns[1]?.openedRate).toBeNull();
+      expect(report.totals).toMatchObject({
+        campaigns: 2,
+        delivered: 2,
+        opened: 1,
+        failed: 1,
+        openedRate: 25,
+        failedRate: 25,
+      });
     });
   });
 

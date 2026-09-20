@@ -52,6 +52,8 @@ import { GrowthWidget as GrowthWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@
 import { DevicesWidget as DevicesWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { CountriesWidget as CountriesWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { FeedbackWidget as FeedbackWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { AttentionWidget as AttentionWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { PushWidget as PushWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -110,5 +112,7 @@ export const importMap = {
   "@news-spend-media/payload/components/Analytics#DevicesWidget": DevicesWidget_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#CountriesWidget": CountriesWidget_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#FeedbackWidget": FeedbackWidget_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#AttentionWidget": AttentionWidget_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#PushWidget": PushWidget_bba5810d9f91b27f4c3b488ca576e350,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

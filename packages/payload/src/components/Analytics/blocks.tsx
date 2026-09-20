@@ -1,11 +1,13 @@
 import type {
   ArticleReport,
+  AttentionCounts,
   AudienceSummary,
   ConversionOutcomes,
   FeedbackSummary,
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
+  PushReport,
   RecentConversion,
   TopArticle,
 } from "@news-spend-media/analytics";
@@ -604,6 +606,114 @@ export function FeedbackPanel({
           label: t.type,
           value: t.count,
           display: `${formatCount(t.count)} · avg ${t.average ?? "–"}`,
+        }))}
+      />
+    </Panel>
+  );
+}
+
+// --- needs attention and push ------------------------------------------------
+
+const QUEUE_ROWS: {
+  key: keyof AttentionCounts;
+  label: string;
+  slug: string;
+  note?: string;
+}[] = [
+  { key: "commentsHidden", label: "Comments awaiting review", slug: "comments" },
+  {
+    key: "reportsPending",
+    label: "Content reports pending",
+    slug: "contentReports",
+  },
+  {
+    key: "identityInReview",
+    label: "Identity checks in review",
+    slug: "identity-checks",
+  },
+  {
+    key: "flagsUnreviewed",
+    label: "Giveaway flags unreviewed",
+    slug: "giveaway-account-flags",
+  },
+  {
+    key: "pushFailed",
+    label: "Failed push deliveries, 7 days",
+    slug: "notification-deliveries",
+  },
+  {
+    key: "witnessWeek",
+    label: "Witness reports, 7 days",
+    slug: "witness-reports",
+    note: "A count, not a queue: witness reports carry no status.",
+  },
+];
+
+export function NeedsAttentionPanel({
+  counts,
+}: {
+  counts: AttentionCounts;
+}): ReactNode {
+  return (
+    <Panel
+      hint="Each count links to its list"
+      tag="observed"
+      title="Needs attention"
+    >
+      <DataTable
+        columns={[
+          { key: "area", label: "Area" },
+          { key: "open", label: "Open", align: "right" },
+        ]}
+        empty="Nothing needs attention."
+        rows={QUEUE_ROWS.map((row) => ({
+          key: row.key,
+          cells: {
+            area: (
+              <>
+                <a href={`${ADMIN_PATH}/collections/${row.slug}`}>
+                  {row.label}
+                </a>
+                {row.note ? <div className="ana-sub">{row.note}</div> : null}
+              </>
+            ),
+            open: formatCount(counts[row.key]),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function PushPanel({
+  report,
+  timeZone,
+}: {
+  report: PushReport;
+  timeZone: string;
+}): ReactNode {
+  return (
+    <Panel
+      hint={`Delivered ${formatCount(report.totals.delivered)} · opened ${formatPercent(report.totals.openedRate)} · failed ${formatPercent(report.totals.failedRate)}`}
+      tag="observed"
+      title="Push campaigns"
+    >
+      <DataTable
+        columns={[
+          { key: "campaign", label: "Campaign" },
+          { key: "sent", label: "Sent" },
+          { key: "delivered", label: "Delivered", align: "right" },
+          { key: "opened", label: "Opened", align: "right" },
+        ]}
+        empty="No campaigns sent in this period."
+        rows={report.campaigns.map((c) => ({
+          key: c.id,
+          cells: {
+            campaign: c.title ?? "Untitled",
+            sent: formatDateTime(c.sentAt, timeZone),
+            delivered: formatCount(c.delivered),
+            opened: formatPercent(c.openedRate),
+          },
         }))}
       />
     </Panel>

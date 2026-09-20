@@ -10,6 +10,7 @@ import {
   audienceDevices,
   audienceSummary,
   feedbackSummary,
+  needsAttention,
   newsDaily,
   newsSummary,
   newsSurfaces,
@@ -17,6 +18,7 @@ import {
   newsTopCategories,
   partnerRecentConversions,
   partnerSummary,
+  pushReport,
   resolveRange,
 } from "@news-spend-media/analytics";
 import type { WidgetServerProps } from "payload";
@@ -30,7 +32,9 @@ import {
   FeedbackPanel,
   FunnelPanel,
   GrowthPanel,
+  NeedsAttentionPanel,
   PartnerKpis,
+  PushPanel,
   RecentConversionsPanel,
   SurfacesPanel,
   TopArticlesPanel,
@@ -296,6 +300,23 @@ export const CountriesWidget = (props: WidgetServerProps): Promise<ReactNode> =>
 export const FeedbackWidget = (props: WidgetServerProps): Promise<ReactNode> =>
   staffWidget(props, async ({ scope, db, range }) => (
     <FeedbackPanel feedback={await feedbackSummary(db, scope, { range })} />
+  ));
+
+// --- needs attention and push -------------------------------------------------
+
+export const AttentionWidget = (
+  props: WidgetServerProps
+): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db }) => (
+    <NeedsAttentionPanel counts={await needsAttention(db, scope, {})} />
+  ));
+
+export const PushWidget = (props: WidgetServerProps): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db, range }) => (
+    <PushPanel
+      report={await pushReport(db, scope, { range, limit: 10 })}
+      timeZone={ANALYTICS_TIME_ZONE}
+    />
   ));
 
 /**

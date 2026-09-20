@@ -244,6 +244,8 @@ describe("a widget added by hand shows nothing it should not", () => {
     ["DevicesWidget", components.DevicesWidget],
     ["CountriesWidget", components.CountriesWidget],
     ["FeedbackWidget", components.FeedbackWidget],
+    ["AttentionWidget", components.AttentionWidget],
+    ["PushWidget", components.PushWidget],
   ] as const;
 
   it.each(

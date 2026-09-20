@@ -14,6 +14,8 @@ export {
   feedbackSummary,
 } from "./audience";
 export type { AnalyticsDb } from "./db";
+export type { AttentionCounts, AttentionFilter, PushCampaign, PushReport } from "./attention";
+export { needsAttention, pushReport } from "./attention";
 export type {
   ArticleReport,
   NewsCounts,

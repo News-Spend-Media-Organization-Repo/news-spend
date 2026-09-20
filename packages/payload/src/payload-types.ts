@@ -194,6 +194,8 @@ export interface Config {
     'analytics-devices': AnalyticsDevicesWidget;
     'analytics-countries': AnalyticsCountriesWidget;
     'analytics-feedback': AnalyticsFeedbackWidget;
+    'analytics-attention': AnalyticsAttentionWidget;
+    'analytics-push': AnalyticsPushWidget;
     collections: CollectionsWidget;
   };
   user: Admin;
@@ -4032,6 +4034,26 @@ export interface AnalyticsFeedbackWidget {
     days?: ('7' | '30' | '90') | null;
   };
   width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-attention_widget".
+ */
+export interface AnalyticsAttentionWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-push_widget".
+ */
+export interface AnalyticsPushWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

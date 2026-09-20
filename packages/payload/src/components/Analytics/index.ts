@@ -5,6 +5,7 @@ export {
   PartnerPerformanceView,
 } from "./views";
 export {
+  AttentionWidget,
   AudienceKpiWidget,
   CategoriesWidget,
   CountriesWidget,
@@ -14,6 +15,7 @@ export {
   GrowthWidget,
   KpiWidget,
   PartnerPerformanceWidget,
+  PushWidget,
   SurfacesWidget,
   TopArticlesWidget,
 } from "./widgets";

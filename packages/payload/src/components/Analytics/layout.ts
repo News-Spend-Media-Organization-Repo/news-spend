@@ -139,6 +139,19 @@ export const analyticsWidgets: Widget[] = [
     minWidth: "small",
     maxWidth: "medium",
   },
+  {
+    slug: "analytics-attention",
+    label: "Needs attention",
+    Component: `${PATH}#AttentionWidget`,
+    minWidth: "medium",
+  },
+  {
+    slug: "analytics-push",
+    label: "Push campaigns",
+    Component: `${PATH}#PushWidget`,
+    fields: [daysField],
+    minWidth: "medium",
+  },
 ];
 
 type KpiMetric = NonNullable<NonNullable<AnalyticsKpiWidget["data"]>["metric"]>;
