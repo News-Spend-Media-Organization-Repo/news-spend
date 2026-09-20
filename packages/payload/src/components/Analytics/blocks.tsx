@@ -1,6 +1,8 @@
 import type {
   ArticleReport,
+  AudienceSummary,
   ConversionOutcomes,
+  FeedbackSummary,
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
@@ -454,6 +456,155 @@ export function ShopPanel({
           { label: "Views", value: shop.views },
           { label: "Clicks", value: shop.clicks },
         ]}
+      />
+    </Panel>
+  );
+}
+
+// --- audience ---------------------------------------------------------------
+
+export function AudienceKpis({
+  summary,
+}: {
+  summary: AudienceSummary;
+}): ReactNode {
+  return (
+    <div className="ana-grid ana-kpis">
+      <Kpi
+        label="Registered"
+        note="accounts, all time"
+        tag="observed"
+        value={formatCount(summary.registered)}
+      />
+      <Kpi
+        change={describeChange(
+          summary.newUsers.current,
+          summary.newUsers.previous
+        )}
+        label="New"
+        note="vs previous period"
+        tag="observed"
+        value={formatCount(summary.newUsers.current)}
+      />
+      <Kpi
+        label="Active, 7 days"
+        note="right now"
+        tag="observed"
+        value={formatCount(summary.active7)}
+      />
+      <Kpi
+        label="Active, 30 days"
+        note="right now"
+        tag="observed"
+        value={formatCount(summary.active30)}
+      />
+      <Kpi
+        label="Verified"
+        note={`${formatPercent(summary.verifiedRate)} of registered`}
+        tag="observed"
+        value={formatCount(summary.verified)}
+      />
+      <Kpi
+        label="Push enabled"
+        note={`${formatPercent(summary.pushRate)} of registered`}
+        tag="observed"
+        value={formatCount(summary.pushEnabled)}
+      />
+      <Kpi
+        label="Guests now"
+        note="snapshot; guests are deleted daily"
+        tag="observed"
+        value={formatCount(summary.guests)}
+      />
+    </div>
+  );
+}
+
+export function GrowthPanel({
+  days,
+}: {
+  days: { date: string; newUsers: number }[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="New registered accounts by day"
+      tag="observed"
+      title="Audience growth"
+    >
+      <DayChart
+        days={days}
+        series={[
+          {
+            key: "newUsers",
+            label: "New accounts",
+            color: SERIES_COLORS.deep,
+          },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function DevicesPanel({
+  byType,
+  byVersion,
+}: {
+  byType: { label: string; tokens: number }[];
+  byVersion: { label: string; tokens: number }[];
+}): ReactNode {
+  return (
+    <Panel hint="Where active push tokens live" tag="observed" title="Devices">
+      <div className="ana-muted">By device type</div>
+      <Bars
+        empty="No active push tokens."
+        rows={byType.map((d) => ({ label: d.label, value: d.tokens }))}
+      />
+      <div className="ana-muted">By app version</div>
+      <Bars
+        empty="No active push tokens."
+        rows={byVersion.map((d) => ({ label: d.label, value: d.tokens }))}
+      />
+    </Panel>
+  );
+}
+
+export function CountriesPanel({
+  countries,
+}: {
+  countries: { country: string; users: number }[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Checked identity country first, self-reported fills the rest"
+      tag="observed"
+      title="Top countries"
+    >
+      <Bars
+        empty="No country recorded yet."
+        rows={countries.map((c) => ({ label: c.country, value: c.users }))}
+      />
+    </Panel>
+  );
+}
+
+export function FeedbackPanel({
+  feedback,
+}: {
+  feedback: FeedbackSummary;
+}): ReactNode {
+  return (
+    <Panel
+      hint={`Average ${feedback.average ?? "–"} across ${formatCount(feedback.total)} reports`}
+      tag="observed"
+      title="Feedback"
+    >
+      <Bars
+        empty="No feedback in this period."
+        rows={feedback.byType.map((t) => ({
+          label: t.type,
+          value: t.count,
+          display: `${formatCount(t.count)} · avg ${t.average ?? "–"}`,
+        }))}
       />
     </Panel>
   );

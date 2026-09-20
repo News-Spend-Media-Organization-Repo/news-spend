@@ -189,6 +189,11 @@ export interface Config {
     'analytics-surfaces': AnalyticsSurfacesWidget;
     'analytics-categories': AnalyticsCategoriesWidget;
     'analytics-partner-performance': AnalyticsPartnerPerformanceWidget;
+    'analytics-audience-kpi': AnalyticsAudienceKpiWidget;
+    'analytics-audience-growth': AnalyticsAudienceGrowthWidget;
+    'analytics-devices': AnalyticsDevicesWidget;
+    'analytics-countries': AnalyticsCountriesWidget;
+    'analytics-feedback': AnalyticsFeedbackWidget;
     collections: CollectionsWidget;
   };
   user: Admin;
@@ -3976,6 +3981,57 @@ export interface AnalyticsPartnerPerformanceWidget {
     days?: ('7' | '30' | '90') | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-audience-kpi_widget".
+ */
+export interface AnalyticsAudienceKpiWidget {
+  data?: {
+    metric?: ('registered' | 'newUsers' | 'active7' | 'active30' | 'verifiedRate' | 'pushRate' | 'guests') | null;
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'x-small' | 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-audience-growth_widget".
+ */
+export interface AnalyticsAudienceGrowthWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-devices_widget".
+ */
+export interface AnalyticsDevicesWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-countries_widget".
+ */
+export interface AnalyticsCountriesWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-feedback_widget".
+ */
+export interface AnalyticsFeedbackWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
+  };
+  width: 'small' | 'medium';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

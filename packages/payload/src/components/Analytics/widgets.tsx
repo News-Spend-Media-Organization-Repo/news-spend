@@ -1,6 +1,15 @@
-import type { NewsMetrics, StaffScope } from "@news-spend-media/analytics";
+import type {
+  AudienceSummary,
+  NewsMetrics,
+  StaffScope,
+} from "@news-spend-media/analytics";
 import {
   AnalyticsAccessError,
+  audienceCountries,
+  audienceDaily,
+  audienceDevices,
+  audienceSummary,
+  feedbackSummary,
   newsDaily,
   newsSummary,
   newsSurfaces,
@@ -16,7 +25,11 @@ import type { ReactNode } from "react";
 import { ANALYTICS_TIME_ZONE, dbOf, scopeOfRequest } from "./access";
 import {
   CategoriesPanel,
+  CountriesPanel,
+  DevicesPanel,
+  FeedbackPanel,
   FunnelPanel,
+  GrowthPanel,
   PartnerKpis,
   RecentConversionsPanel,
   SurfacesPanel,
@@ -175,6 +188,114 @@ export const CategoriesWidget = (
     <CategoriesPanel
       categories={await newsTopCategories(db, scope, { range, limit: 5 })}
     />
+  ));
+
+// --- audience ---------------------------------------------------------------
+
+type AudienceMetric = {
+  label: string;
+  value: (s: AudienceSummary) => number | null;
+  before?: (s: AudienceSummary) => number | null;
+  format: (v: number | null) => string;
+  note: (range: { days: number }) => string;
+};
+
+export const AUDIENCE_KPI_METRICS: Record<string, AudienceMetric> = {
+  registered: {
+    label: "Registered",
+    value: (s) => s.registered,
+    format: count,
+    note: () => "accounts, all time",
+  },
+  newUsers: {
+    label: "New accounts",
+    value: (s) => s.newUsers.current,
+    before: (s) => s.newUsers.previous,
+    format: count,
+    note: (range) => `last ${range.days} days`,
+  },
+  active7: {
+    label: "Active, 7 days",
+    value: (s) => s.active7,
+    format: count,
+    note: () => "right now",
+  },
+  active30: {
+    label: "Active, 30 days",
+    value: (s) => s.active30,
+    format: count,
+    note: () => "right now",
+  },
+  verifiedRate: {
+    label: "Verified",
+    value: (s) => s.verifiedRate,
+    format: formatPercent,
+    note: () => "of registered",
+  },
+  pushRate: {
+    label: "Push enabled",
+    value: (s) => s.pushRate,
+    format: formatPercent,
+    note: () => "of registered",
+  },
+  guests: {
+    label: "Guests now",
+    value: (s) => s.guests,
+    format: count,
+    note: () => "snapshot; deleted daily",
+  },
+};
+
+export async function AudienceKpiWidget(
+  props: WidgetServerProps
+): Promise<ReactNode> {
+  const metric =
+    AUDIENCE_KPI_METRICS[dataOf(props).metric ?? "registered"] ??
+    AUDIENCE_KPI_METRICS.registered;
+  if (!metric) {
+    return <Denied />;
+  }
+  return await staffWidget(props, async ({ scope, db, range }) => {
+    const summary = await audienceSummary(db, scope, { range });
+    const now = metric.value(summary);
+    const before = metric.before?.(summary) ?? null;
+    return (
+      <Kpi
+        change={
+          before !== null && now !== null
+            ? describeChange(now, before)
+            : undefined
+        }
+        label={metric.label}
+        note={metric.note(range)}
+        tag="observed"
+        value={metric.format(now)}
+      />
+    );
+  });
+}
+
+export const GrowthWidget = (props: WidgetServerProps): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db, range }) => (
+    <GrowthPanel days={await audienceDaily(db, scope, { range })} />
+  ));
+
+export const DevicesWidget = (props: WidgetServerProps): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db, range }) => {
+    const { byType, byVersion } = await audienceDevices(db, scope, { range });
+    return <DevicesPanel byType={byType} byVersion={byVersion} />;
+  });
+
+export const CountriesWidget = (props: WidgetServerProps): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db, range }) => (
+    <CountriesPanel
+      countries={await audienceCountries(db, scope, { range, limit: 8 })}
+    />
+  ));
+
+export const FeedbackWidget = (props: WidgetServerProps): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db, range }) => (
+    <FeedbackPanel feedback={await feedbackSummary(db, scope, { range })} />
   ));
 
 /**

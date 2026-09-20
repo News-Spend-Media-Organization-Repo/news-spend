@@ -1,3 +1,18 @@
+export type {
+  AudienceDay,
+  AudienceFilter,
+  AudienceSummary,
+  CountryBreakdown,
+  DeviceBreakdown,
+  FeedbackSummary,
+} from "./audience";
+export {
+  audienceCountries,
+  audienceDaily,
+  audienceDevices,
+  audienceSummary,
+  feedbackSummary,
+} from "./audience";
 export type { AnalyticsDb } from "./db";
 export type {
   ArticleReport,

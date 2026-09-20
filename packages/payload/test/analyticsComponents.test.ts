@@ -85,6 +85,9 @@ describe("the default home layout", () => {
 
     expect(slugs).toContain("analytics-funnel");
     expect(slugs).toContain("analytics-top-articles");
+    expect(slugs).toContain("analytics-audience-kpi");
+    expect(slugs).toContain("analytics-audience-growth");
+    expect(slugs).toContain("analytics-devices");
     expect(slugs).toContain("collections");
   });
 
@@ -236,6 +239,11 @@ describe("a widget added by hand shows nothing it should not", () => {
     ["TopArticlesWidget", components.TopArticlesWidget],
     ["SurfacesWidget", components.SurfacesWidget],
     ["CategoriesWidget", components.CategoriesWidget],
+    ["AudienceKpiWidget", components.AudienceKpiWidget],
+    ["GrowthWidget", components.GrowthWidget],
+    ["DevicesWidget", components.DevicesWidget],
+    ["CountriesWidget", components.CountriesWidget],
+    ["FeedbackWidget", components.FeedbackWidget],
   ] as const;
 
   it.each(

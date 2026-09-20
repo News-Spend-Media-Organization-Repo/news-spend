@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { SQL } from "bun";
-
+import {
+  audienceCountries,
+  audienceDaily,
+  audienceDevices,
+  audienceSummary,
+  feedbackSummary,
+} from "./audience";
 import type { AnalyticsDb } from "./db";
 import {
   newsArticleReport,
@@ -78,6 +84,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TYPE enum_news_analytics_platform AS ENUM('android','ios','web');
       CREATE TYPE enum_partner_conversions_status AS ENUM('clicked','converted','awarded','failed');
       CREATE TYPE enum_shop_analytics_type AS ENUM('view','click');
+      CREATE TYPE enum_push_tokens_device_type AS ENUM('ios','android','web');
       CREATE TABLE categories (id uuid PRIMARY KEY, title varchar NOT NULL);
       CREATE TABLE news (id uuid PRIMARY KEY, title varchar, slug varchar, published_at timestamptz, category_id uuid);
       CREATE TABLE news_analytics (
@@ -96,6 +103,17 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TABLE shop_analytics (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         store_id uuid, type enum_shop_analytics_type NOT NULL, timestamp timestamptz NOT NULL);
+      CREATE TABLE users (
+        id uuid PRIMARY KEY, is_anonymous boolean, created_at timestamptz NOT NULL,
+        last_active timestamptz, _verified boolean NOT NULL DEFAULT FALSE,
+        country varchar, verified_country varchar);
+      CREATE TABLE push_tokens (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid NOT NULL, status varchar NOT NULL DEFAULT 'active',
+        device_type enum_push_tokens_device_type, app_version varchar);
+      CREATE TABLE feedback (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        type varchar NOT NULL, rating numeric NOT NULL, created_at timestamptz NOT NULL);
 
       INSERT INTO categories VALUES ('${CAT_ENERGY}', 'Energy'), ('${CAT_SPORT}', 'Sports');
       INSERT INTO news VALUES
@@ -183,6 +201,24 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       INSERT INTO shop_analytics (store_id, type, timestamp) VALUES
         ('${P1}', 'view', '2026-09-19T10:00:00Z'), ('${P1}', 'view', '2026-09-19T10:01:00Z'),
         ('${P1}', 'click', '2026-09-19T10:02:00Z'), ('${P2}', 'view', '2026-09-19T10:00:00Z');
+
+      INSERT INTO users (id, is_anonymous, created_at, last_active, _verified, country, verified_country) VALUES
+        ('e0000000-0000-4000-8000-000000000001', FALSE, '2026-09-15T08:00:00Z', '2026-09-19T09:00:00Z', TRUE, 'NG', 'NG'),
+        ('e0000000-0000-4000-8000-000000000002', FALSE, '2026-09-10T08:00:00Z', '2026-09-01T08:00:00Z', FALSE, 'GH', NULL),
+        ('e0000000-0000-4000-8000-000000000003', FALSE, '2026-08-01T08:00:00Z', '2026-09-18T08:00:00Z', TRUE, NULL, 'US'),
+        ('e0000000-0000-4000-8000-000000000004', TRUE, '2026-09-19T08:00:00Z', '2026-09-19T08:00:00Z', FALSE, 'NG', NULL),
+        ('e0000000-0000-4000-8000-000000000005', FALSE, '2026-09-19T08:00:00Z', NULL, FALSE, '', NULL);
+      INSERT INTO push_tokens (user_id, status, device_type, app_version) VALUES
+        ('e0000000-0000-4000-8000-000000000001', 'active', 'ios', '2.4.6'),
+        ('e0000000-0000-4000-8000-000000000002', 'inactive', 'android', '2.4.5'),
+        ('e0000000-0000-4000-8000-000000000003', 'active', 'android', '2.4.6'),
+        ('e0000000-0000-4000-8000-000000000004', 'active', 'ios', '2.4.5'),
+        ('e0000000-0000-4000-8000-000000000001', 'active', NULL, '2.4.6');
+      INSERT INTO feedback (type, rating, created_at) VALUES
+        ('general', 5, '2026-09-16T08:00:00Z'),
+        ('general', 3, '2026-09-17T08:00:00Z'),
+        ('bug', 2, '2026-09-10T08:00:00Z'),
+        ('feature', 1, '2026-09-19T08:00:00Z');
     `);
   });
 
@@ -294,6 +330,80 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     expect(report.engagement.shareMethods[0]).toEqual({
       method: "whatsapp",
       shares: 2,
+    });
+  });
+
+  describe("audience", () => {
+    const audience = { range, now: NOW };
+
+    it("counts the audience without naming anyone", async () => {
+      const summary = await audienceSummary(db, staff, audience);
+
+      expect(summary).toEqual({
+        registered: 4,
+        newUsers: { current: 2, previous: 1 },
+        active7: 2,
+        active30: 3,
+        verified: 2,
+        verifiedRate: 50,
+        pushEnabled: 2,
+        pushRate: 50,
+        guests: 1,
+      });
+    });
+
+    it("fills each day with new signups", async () => {
+      const days = await audienceDaily(db, staff, audience);
+
+      expect(days).toHaveLength(7);
+      expect(days.find((d) => d.date === "2026-09-15")).toEqual({
+        date: "2026-09-15",
+        newUsers: 1,
+      });
+      expect(days.find((d) => d.date === "2026-09-19")).toEqual({
+        date: "2026-09-19",
+        newUsers: 1,
+      });
+      expect(days.find((d) => d.date === "2026-09-14")).toEqual({
+        date: "2026-09-14",
+        newUsers: 0,
+      });
+    });
+
+    it("splits active tokens by device and version", async () => {
+      const devices = await audienceDevices(db, staff, audience);
+
+      expect(devices.byType).toEqual([
+        { label: "ios", tokens: 2 },
+        { label: "android", tokens: 1 },
+        { label: "unknown", tokens: 1 },
+      ]);
+      expect(devices.byVersion).toEqual([
+        { label: "2.4.6", tokens: 3 },
+        { label: "2.4.5", tokens: 1 },
+      ]);
+    });
+
+    it("prefers the checked country and groups the rest", async () => {
+      const countries = await audienceCountries(db, staff, audience);
+
+      expect(countries).toEqual([
+        { country: "GH", users: 1 },
+        { country: "NG", users: 1 },
+        { country: "unknown", users: 1 },
+        { country: "US", users: 1 },
+      ]);
+    });
+
+    it("averages feedback over the period only", async () => {
+      const feedback = await feedbackSummary(db, staff, audience);
+
+      expect(feedback.total).toBe(3);
+      expect(feedback.average).toBe(3);
+      expect(feedback.byType).toEqual([
+        { type: "general", count: 2, average: 4 },
+        { type: "feature", count: 1, average: 1 },
+      ]);
     });
   });
 
