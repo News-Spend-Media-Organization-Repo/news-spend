@@ -230,7 +230,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ('${P1}', 'click', '2026-09-19T10:02:00Z'), ('${P2}', 'view', '2026-09-19T10:00:00Z');
 
       INSERT INTO giveaways (id, name, status, start_date, end_date, total_valid_participants, draw_completed_at) VALUES
-        ('e1000000-0000-4000-8000-000000000001', 'Weekly draw', 'active', '2026-09-14T08:00:00Z', '2026-09-28T08:00:00Z', 40, NULL);
+        ('e1000000-0000-4000-8000-000000000001', 'Weekly draw', 'active', '2026-09-14T08:00:00Z', '2026-09-28T08:00:00Z', 40, NULL),
+        ('e1000000-0000-4000-8000-000000000009', 'Scheduled', 'active', '2026-09-22T08:00:00Z', '2026-09-29T08:00:00Z', NULL, NULL);
       INSERT INTO giveaway_tickets (giveaway_id, user_id, quantity, status, purchased_at) VALUES
         ('e1000000-0000-4000-8000-000000000001', '${USER}', 5, 'valid', '2026-09-15T08:00:00Z'),
         ('e1000000-0000-4000-8000-000000000001', '${USER}', 3, 'valid', '2026-09-16T08:00:00Z'),
@@ -250,12 +251,17 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       INSERT INTO giveaway_winners (id, giveaway_id, user_id, tier, prize_name, claim_status, fulfilment_status, selected_at) VALUES
         ('e2000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier1', 'Airtime 1GB', 'unclaimed', 'pending', '2026-09-20T08:00:00Z'),
         ('e2000000-0000-4000-8000-000000000002', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier1', 'Airtime 2GB', 'claimed', 'fulfilled', '2026-09-20T07:00:00Z'),
-        ('e2000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier2', 'Headphones', 'unclaimed', 'on_hold', '2026-09-19T08:00:00Z');
+        ('e2000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier2', 'Headphones', 'unclaimed', 'on_hold', '2026-09-19T08:00:00Z'),
+        ('e2000000-0000-4000-8000-000000000004', 'e1000000-0000-4000-8000-000000000001', '${USER}', 'tier2', 'Headphones', 'disqualified', 'cancelled', '2026-09-19T07:00:00Z');
       INSERT INTO giveaway_fulfilment_attempts (winner_id, outcome, attempted_at) VALUES
         ('e2000000-0000-4000-8000-000000000001', 'sent', '2026-09-20T09:00:00Z'),
         ('e2000000-0000-4000-8000-000000000001', 'retryable_failure', '2026-09-20T09:30:00Z'),
         ('e2000000-0000-4000-8000-000000000002', 'sent', '2026-09-20T07:30:00Z'),
-        ('e2000000-0000-4000-8000-000000000003', 'skipped', '2026-09-19T10:00:00Z');
+        ('e2000000-0000-4000-8000-000000000003', 'skipped', '2026-09-19T10:00:00Z'),
+        -- a disqualified winner with two attempts: a join to attempts repeats the
+        -- winner once per attempt, which a plain count would count twice
+        ('e2000000-0000-4000-8000-000000000004', 'skipped', '2026-09-19T11:00:00Z'),
+        ('e2000000-0000-4000-8000-000000000004', 'already_sent', '2026-09-19T12:00:00Z');
     `);
   });
 
@@ -423,30 +429,50 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         { tier: "tier1", maxUnits: 5, awarded: 2, remaining: 3 },
         { tier: "tier2", maxUnits: 10, awarded: 0, remaining: 10 },
       ]);
-      expect(report.winners.total).toBe(3);
+      expect(report.winners.total).toBe(4);
       expect(report.winners.byTier).toEqual([
         { tier: "tier1", winners: 2 },
-        { tier: "tier2", winners: 1 },
+        { tier: "tier2", winners: 2 },
       ]);
       expect(report.recentWinners.map((w) => w.prize)).toEqual([
         "Airtime 1GB",
         "Airtime 2GB",
         "Headphones",
+        "Headphones",
       ]);
       expect(report.fulfilment).toEqual({
         sent: 2,
-        alreadySent: 0,
+        alreadySent: 1,
         retryableFailures: 1,
         permanentFailures: 0,
-        skipped: 1,
+        skipped: 2,
       });
       expect(report.attention).toEqual({
         onHold: 1,
         awaitingVerification: 0,
-        disqualified: 0,
+        // One disqualified winner, who has two fulfilment attempts: counted once.
+        disqualified: 1,
         fulfilmentFailing: 1,
       });
       expect(JSON.stringify(report)).not.toContain(USER);
+    });
+
+    it("does not call a giveaway live before its start date", async () => {
+      // Switched on (active) but opening on the 22nd; asked on the 20th.
+      const report = await giveawayReport(
+        db,
+        staff,
+        "e1000000-0000-4000-8000-000000000009",
+        { range, now: NOW }
+      );
+
+      expect(report.state).toMatchObject({
+        name: "Scheduled",
+        phase: "pending",
+        live: false,
+        msToDraw: null,
+        msToOpen: 165_600_000,
+      });
     });
   });
 

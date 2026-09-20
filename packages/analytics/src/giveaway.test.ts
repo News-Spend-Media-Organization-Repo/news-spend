@@ -151,3 +151,106 @@ describe("giveawayReport", () => {
     expect(report.tickets).toEqual({ issued: 0, entrants: 0 });
   });
 });
+
+describe("giveaway phase", () => {
+  // `active` is an administrative switch, not a statement about the clock: a
+  // giveaway can be switched on ahead of its start date, and the app and the
+  // purchase paths refuse entries until then.
+  const NOW = new Date("2026-09-20T10:00:00Z");
+
+  const stateFor = async (status: string, start: string, end: string) => {
+    const { db } = stubDb((q) =>
+      q.sql.includes("FROM giveaways")
+        ? [
+            {
+              id: GIVEAWAY,
+              name: "G",
+              status,
+              start_date: start,
+              end_date: end,
+              total_valid_participants: null,
+              draw_completed_at: null,
+            },
+          ]
+        : []
+    );
+    const report = await giveawayReport(db, STAFF, GIVEAWAY, {
+      ...filter,
+      now: NOW,
+    });
+    return report.state;
+  };
+
+  it("is open between its start and its end, with a countdown to the close", async () => {
+    const state = await stateFor(
+      "active",
+      "2026-09-15T00:00:00Z",
+      "2026-09-28T00:00:00Z"
+    );
+
+    expect(state).toMatchObject({
+      phase: "open",
+      live: true,
+      msToDraw: 655_200_000,
+      msToOpen: null,
+    });
+  });
+
+  it("is pending when switched on before its start date, with a countdown to the open", async () => {
+    const state = await stateFor(
+      "active",
+      "2026-09-22T10:00:00Z",
+      "2026-09-29T10:00:00Z"
+    );
+
+    expect(state).toMatchObject({
+      phase: "pending",
+      live: false,
+      msToDraw: null,
+      msToOpen: 172_800_000,
+    });
+  });
+
+  it("is closed once past its end and not yet drawn", async () => {
+    const state = await stateFor(
+      "active",
+      "2026-09-10T00:00:00Z",
+      "2026-09-19T10:00:00Z"
+    );
+
+    expect(state).toMatchObject({
+      phase: "closed",
+      live: false,
+      msToDraw: null,
+      msToOpen: null,
+    });
+  });
+
+  it("is inactive when not switched on, whatever the dates say", async () => {
+    for (const status of ["draft", "completed", "cancelled", "ready"]) {
+      const state = await stateFor(
+        status,
+        "2026-09-15T00:00:00Z",
+        "2026-09-28T00:00:00Z"
+      );
+
+      expect(state).toMatchObject({ phase: "inactive", live: false });
+    }
+  });
+
+  it("treats the start instant as open and the end instant as closed", async () => {
+    const atStart = await stateFor(
+      "active",
+      "2026-09-20T10:00:00Z",
+      "2026-09-28T00:00:00Z"
+    );
+    const atEnd = await stateFor(
+      "active",
+      "2026-09-10T00:00:00Z",
+      "2026-09-20T10:00:00Z"
+    );
+
+    expect(atStart?.phase).toBe("open");
+    expect(atEnd?.phase).toBe("closed");
+  });
+});

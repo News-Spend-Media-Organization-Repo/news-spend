@@ -488,7 +488,14 @@ export function GiveawayStatePanel({
     <div className="ana-grid ana-kpis">
       <Kpi
         label="State"
-        note={state.live ? "entries open" : "entries closed"}
+        note={
+          {
+            open: "entries open",
+            pending: `opens in ${formatDuration(state.msToOpen)}`,
+            closed: "entries closed, awaiting the draw",
+            inactive: "entries closed",
+          }[state.phase]
+        }
         tag="observed"
         value={GIVEAWAY_STATUS_LABELS[state.status] ?? state.status}
       />

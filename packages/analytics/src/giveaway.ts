@@ -30,10 +30,21 @@ export type GiveawayState = {
   status: string;
   startDate: string | null;
   endDate: string | null;
-  /** True while the countdown is running and entries are open. */
+  /**
+   * Where the giveaway is against the clock, by the same rule the app and the
+   * purchase paths use (`giveawayWindow`): `active` is an administrative switch,
+   * not a statement about time, so a giveaway can be switched on ahead of its
+   * start date. `pending` is switched on but not yet open, `open` accepts
+   * entries, `closed` is past its end and awaiting its draw, `inactive` is not
+   * switched on (draft, drawn, cancelled, and so on).
+   */
+  phase: "pending" | "open" | "closed" | "inactive";
+  /** True only while entries are actually open. */
   live: boolean;
-  /** Milliseconds until the draw closes, or null once it has. */
+  /** Milliseconds until entries close, while they are open. */
   msToDraw: number | null;
+  /** Milliseconds until entries open, while switched on but not yet open. */
+  msToOpen: number | null;
   totalValidParticipants: number | null;
   drawCompletedAt: string | null;
 };
@@ -64,17 +75,29 @@ async function giveawayState(
     return null;
   }
 
+  const start = row.start_date ? new Date(String(row.start_date)) : null;
   const end = row.end_date ? new Date(String(row.end_date)) : null;
-  const live =
-    row.status === "active" && end !== null && end.getTime() > now.getTime();
+  let phase: GiveawayState["phase"] = "inactive";
+  if (row.status === "active" && start !== null && end !== null) {
+    if (start.getTime() > now.getTime()) {
+      phase = "pending";
+    } else if (end.getTime() <= now.getTime()) {
+      phase = "closed";
+    } else {
+      phase = "open";
+    }
+  }
   return {
     id: row.id,
     name: row.name,
     status: row.status,
     startDate: isoOrNull(row.start_date),
     endDate: isoOrNull(row.end_date),
-    live,
-    msToDraw: live && end ? end.getTime() - now.getTime() : null,
+    phase,
+    live: phase === "open",
+    msToDraw: phase === "open" && end ? end.getTime() - now.getTime() : null,
+    msToOpen:
+      phase === "pending" && start ? start.getTime() - now.getTime() : null,
     totalValidParticipants:
       row.total_valid_participants === null
         ? null
@@ -428,7 +451,10 @@ export type GiveawayAttention = {
   onHold: number;
   /** Wins waiting on an identity step. */
   awaitingVerification: number;
-  /** Wins taken away after review. */
+  /**
+   * Wins taken away after review. Counted per winner: the join to fulfilment
+   * attempts repeats a winner once per attempt, so it must be a distinct count.
+   */
   disqualified: number;
   /** Winners with at least one retryable fulfilment failure. */
   fulfilmentFailing: number;
@@ -450,7 +476,7 @@ async function giveawayAttention(
     ),
     rowsOf<{ disqualified: number; failing: number }>(
       db,
-      sql`SELECT COUNT(*) FILTER (WHERE w.claim_status = 'disqualified')::int AS disqualified,
+      sql`SELECT COUNT(DISTINCT w.id) FILTER (WHERE w.claim_status = 'disqualified')::int AS disqualified,
                  COUNT(DISTINCT w.id) FILTER (WHERE a.outcome = 'retryable_failure')::int AS failing
            FROM giveaway_winners w
            LEFT JOIN giveaway_fulfilment_attempts a ON a.winner_id = w.id
