@@ -44,11 +44,12 @@ export type AnalyticsEvent = {
   };
   timestamp: string;
   /**
-   * Who was signed in when this happened. Stamped at enqueue time so a queued
-   * event is never credited to whoever happens to be signed in at flush time.
-   * Absent on events queued by older builds, which fall back to the flusher.
+   * Minted when the event happens and sent unchanged on every retry, so the
+   * server can tell an event it already stored from a new one. That is what
+   * lets a batch whose reply was lost be sent again without counting twice.
+   * Absent on events queued by older builds; it is added when they are sent.
    */
-  userId?: string;
+  eventId?: string;
   /** Times the server answered that it could not store this event. */
   failures?: number;
 };
@@ -129,10 +130,14 @@ function classifyFailure(error: unknown): FailureKind {
     : "server";
 }
 
-/** The server's event schema has no `userId` or `failures`; send only its fields. */
+/**
+ * The server's event schema has no `failures` (and no user: the server takes
+ * that from the session); send only its fields.
+ */
 function toWireEvent({
   articleId,
   event,
+  eventId,
   sessionId,
   deviceId,
   platform,
@@ -142,12 +147,23 @@ function toWireEvent({
   return {
     articleId,
     event,
+    eventId,
     sessionId,
     deviceId,
     platform,
     metadata,
     timestamp,
   };
+}
+
+/**
+ * Gives an id to any event that has none, which is those queued by a build that
+ * predates ids. Done before sending, and the events are put back with it if the
+ * send fails, so the id an event was first sent under is the one it is retried
+ * under.
+ */
+function withEventIds(events: AnalyticsEvent[]): AnalyticsEvent[] {
+  return events.map((e) => (e.eventId ? e : { ...e, eventId: createId() }));
 }
 
 /** Counts one more refusal against each event and drops those out of chances. */
@@ -218,12 +234,16 @@ class NewsAnalyticsClient {
   // --- Public API ---
 
   enqueue(
-    event: Omit<AnalyticsEvent, "platform" | "timestamp" | "sessionId">
+    event: Omit<
+      AnalyticsEvent,
+      "platform" | "timestamp" | "sessionId" | "eventId" | "failures"
+    >
   ): void {
     const now = Date.now();
     const queue = this.loadQueue();
     queue.push({
       ...event,
+      eventId: createId(),
       sessionId: this.sessionAt(now),
       platform: this.platform,
       timestamp: new Date(now).toISOString(),
@@ -232,32 +252,22 @@ class NewsAnalyticsClient {
   }
 
   /**
-   * Sends up to one batch. `fallbackUserId` only covers events that carry no
-   * `userId` of their own, i.e. those queued by an older build.
+   * Sends up to one batch. The server works out who the events belong to from
+   * the session the request carries, so there is nothing to say about that
+   * here.
    */
-  async flush(fallbackUserId?: string): Promise<void> {
+  async flush(): Promise<void> {
     const queue = this.loadQueue();
     if (queue.length === 0) {
       return;
     }
 
     // Take up to MAX_BATCH_SIZE events
-    const batch = queue.splice(0, MAX_BATCH_SIZE);
+    const batch = withEventIds(queue.splice(0, MAX_BATCH_SIZE));
     // Persist remaining events immediately
     this.saveQueue(queue);
 
-    // The server attributes a whole request to one user, so send each user's
-    // events separately.
-    const byUser = new Map<string | undefined, AnalyticsEvent[]>();
-    for (const e of batch) {
-      const userId = e.userId ?? fallbackUserId;
-      byUser.set(userId, [...(byUser.get(userId) ?? []), e]);
-    }
-
-    const retry: AnalyticsEvent[] = [];
-    for (const [userId, events] of byUser) {
-      retry.push(...(await this.send(userId, events)));
-    }
+    const retry = await this.send(batch);
 
     if (retry.length > 0) {
       // Put them back ahead of anything queued while the request was out.
@@ -265,15 +275,11 @@ class NewsAnalyticsClient {
     }
   }
 
-  /** Sends one user's events. Returns the ones that should be tried again. */
-  private async send(
-    userId: string | undefined,
-    events: AnalyticsEvent[]
-  ): Promise<AnalyticsEvent[]> {
+  /** Sends a batch. Returns the events that should be tried again. */
+  private async send(events: AnalyticsEvent[]): Promise<AnalyticsEvent[]> {
     try {
       const result = await client.news.analytics.track({
         events: events.map(toWireEvent),
-        userId,
       });
       // The request succeeded but the insert did not: the batch is atomic, so
       // none of it landed. The old code read only the HTTP status and lost it.
@@ -292,13 +298,13 @@ class NewsAnalyticsClient {
 
   // --- Lifecycle ---
 
-  start(getUserId: () => string | undefined): void {
+  start(): void {
     if (this.flushTimer) {
       return;
     }
 
     this.flushTimer = setInterval(() => {
-      this.flush(getUserId());
+      this.flush();
     }, FLUSH_INTERVAL_MS);
 
     // Flush on app background
@@ -306,7 +312,7 @@ class NewsAnalyticsClient {
       "change",
       (state: AppStateStatus) => {
         if (state === "background" || state === "inactive") {
-          this.flush(getUserId());
+          this.flush();
         }
       }
     );
