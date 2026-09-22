@@ -90,6 +90,15 @@ RUN apt-get update && apt-get -yqq --no-install-recommends install \
 # path so the same line works on amd64 and arm64.
 ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so.2
 
+# sharp caps libvips at one thread under glibc but lifts the cap when it sees
+# jemalloc, falling back to one thread per CPU — and Railway exposes 48. Payload
+# resizes every imageSize concurrently, so an upload ran ~5 pipelines × 48
+# threads and the per-upload peak rose from +228 MB to +296 MB, enough to get
+# the 0.5 GB staging CMS OOM-killed on each upload. Two threads gave the lowest
+# peak measured (+198 MB) and kept jemalloc returning pages (no drift over 12
+# uploads); one thread measured the same within noise but is slower.
+ENV VIPS_CONCURRENCY=2
+
 COPY --from=builder /app/apps/cms/.next/standalone ./
 COPY --from=builder /app/apps/cms/.next/static ./apps/cms/.next/static
 COPY --from=builder /app/apps/cms/public ./apps/cms/public
