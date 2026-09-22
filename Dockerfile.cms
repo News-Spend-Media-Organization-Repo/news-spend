@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.0 AS builder
+FROM oven/bun:1.4.2 AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
@@ -69,7 +69,7 @@ ARG RAILWAY_DEPLOYMENT_ID
 ENV RAILWAY_DEPLOYMENT_ID=$RAILWAY_DEPLOYMENT_ID
 RUN bun turbo build --filter=@news-spend-media/cms...
 
-FROM oven/bun:1.4.0 AS runtime
+FROM oven/bun:1.4.2 AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get -yqq --no-install-recommends install \
     ca-certificates \
