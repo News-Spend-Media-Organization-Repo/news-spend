@@ -1,0 +1,1 @@
+export { PartnerIntegrationGuideView } from "./views";

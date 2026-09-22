@@ -510,6 +510,78 @@ describe("partnerConversionRouter.webhook: verification", () => {
   });
 });
 
+describe("partnerConversionRouter.webhook: dry run", () => {
+  it("confirms a valid signature without settling the conversion", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+      },
+    });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
+
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: "clk_abc1234567890123", status: "success", dryRun: true },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({
+      success: true,
+      clickId: "clk_abc1234567890123",
+      dryRun: true,
+      message: "Signature verified. No conversion was settled.",
+    });
+    // Nothing changed: still "clicked", no points, no activity.
+    const untouchedConv = payload.docs("partner-conversions")[0];
+    expect(untouchedConv?.status).toBe("clicked");
+    expect(untouchedConv?.pointsAwarded).toBe(0);
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("still refuses an unsigned dry run", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+      },
+    });
+    const ctx = mockContext({ payload, headers: new Headers() });
+
+    const error = await expectError(
+      call(
+        partnerConversionRouter.webhook,
+        { clickId: "clk_abc1234567890123", status: "success", dryRun: true },
+        { context: ctx }
+      )
+    );
+
+    expect(error).toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("does not record a postback outcome for a dry run", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+      },
+    });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
+    const drizzle = stubDrizzle(payload);
+
+    await call(
+      partnerConversionRouter.webhook,
+      { clickId: "clk_abc1234567890123", status: "success", dryRun: true },
+      { context: ctx }
+    );
+
+    expect(drizzle.queries).toHaveLength(0);
+  });
+});
+
 describe("partnerConversionRouter.trackClick: award on click", () => {
   function clickPayload(partnerOverrides: Doc = {}) {
     return createFakePayload({

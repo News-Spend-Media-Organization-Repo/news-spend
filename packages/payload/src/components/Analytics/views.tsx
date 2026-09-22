@@ -318,6 +318,7 @@ export async function PartnerPerformanceView(
               <PostbackHealthPanel
                 health={postbacks}
                 timeZone={ANALYTICS_TIME_ZONE}
+                waiting={summary.conversions.current.waiting}
               />
               <ShopPanel shop={summary.shop.current} />
             </div>

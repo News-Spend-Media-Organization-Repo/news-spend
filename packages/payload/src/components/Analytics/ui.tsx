@@ -63,6 +63,7 @@ const CSS = `
 .ana-table a:hover{text-decoration:underline}
 .ana-sub{color:var(--theme-elevation-500);font-size:12px}
 .ana-notice{border:1px solid rgba(217,162,59,.5);background:rgba(217,162,59,.12);border-radius:10px;padding:10px 14px;font-size:13px}
+.ana-notice[data-tone=bad]{border-color:rgba(208,71,60,.6);background:rgba(208,71,60,.14)}
 .ana-pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;background:var(--theme-elevation-100)}
 .ana-pill[data-tone=ok]{background:rgba(21,127,59,.15);color:#3ea262}
 .ana-pill[data-tone=warn]{background:rgba(217,162,59,.2);color:#c58a1c}

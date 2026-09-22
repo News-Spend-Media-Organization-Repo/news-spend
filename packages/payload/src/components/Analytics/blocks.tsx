@@ -1066,16 +1066,56 @@ export function GiveawayReportBody({
   );
 }
 
+/** Enough postbacks that a rejection rate means something, not noise from one retry. */
+const MIN_SAMPLE = 5;
+/** A partner signing incorrectly rejects (almost) everything, not half. */
+const REJECTED_RATE_THRESHOLD = 50;
+/** Enough waiting clicks that "nothing back yet" stops being just a slow partner. */
+const MIN_STALLED_CLICKS = 5;
+
+/**
+ * Whether this partner's postbacks look broken, from the numbers already on
+ * the page. Two independent checks, because they catch different failures:
+ * a high rejection rate means postbacks are arriving but failing
+ * verification (wrong secret, stale clock); a pile of waiting clicks with
+ * nothing received means the partner isn't calling the webhook at all. No
+ * background job watches for this — it's read here, live, whenever someone
+ * opens the tab.
+ */
+function postbackTrouble(
+  health: PostbackHealth,
+  waiting: number
+): string | null {
+  if (
+    health.total >= MIN_SAMPLE &&
+    health.rejectedRate !== null &&
+    health.rejectedRate >= REJECTED_RATE_THRESHOLD
+  ) {
+    return `${formatPercent(health.rejectedRate)} of postbacks are being rejected. That usually means the wrong secret is being signed with, or a clock that's drifted.`;
+  }
+
+  const received = health.accepted + health.failedReported;
+  if (waiting >= MIN_STALLED_CLICKS && received === 0) {
+    return `${formatCount(waiting)} clicks were sent to this partner with nothing confirmed back. Their webhook may not be wired up.`;
+  }
+
+  return null;
+}
+
 export function PostbackHealthPanel({
   health,
   timeZone,
+  waiting = 0,
 }: {
   health: PostbackHealth;
   timeZone: string;
+  /** Clicks sent to the partner that are still only "clicked" for this period. */
+  waiting?: number;
 }): ReactNode {
   const last = health.lastReceivedAt
     ? `Last postback ${formatDateTime(health.lastReceivedAt, timeZone)}.`
     : "No postback has been received yet.";
+  const trouble = postbackTrouble(health, waiting);
 
   return (
     <Panel
@@ -1083,6 +1123,11 @@ export function PostbackHealthPanel({
       tag="observed"
       title="Postbacks"
     >
+      {trouble ? (
+        <div className="ana-notice" data-tone="bad">
+          <strong>Looks broken.</strong> {trouble}
+        </div>
+      ) : null}
       {health.total === 0 ? (
         <div className="ana-empty">No postbacks in this period. {last}</div>
       ) : (

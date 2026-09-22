@@ -35,18 +35,23 @@ export function usePartnerClick() {
       return;
     }
 
-    const partner = typeof item.partner === "object" ? item.partner : undefined;
     /**
-     * Guests are excluded, not merely unlucky: `trackClick` is a
+     * Every partner tap is tracked, not just webhook/postback ones.
+     *
+     * A "manual" partner is exactly the case `awardOnClick` exists for — a
+     * partner with no way to confirm a conversion — and that setting is only
+     * read inside `trackClick`'s handler. Skipping the call for anything but
+     * webhook/postback partners made `awardOnClick` unreachable for the
+     * partners it was built for: the offer just opened, with nothing ever
+     * recorded and no way for it to be completed regardless of the setting.
+     *
+     * Guests are still excluded, not merely unlucky: `trackClick` is a
      * no-guest procedure and rejects them outright. Attempting it anyway
      * spent a round trip to earn a FORBIDDEN, which the catch below then
      * reported as "Connection slow" — a wrong explanation for a request
      * that was never going to succeed.
      */
-    const isCPA =
-      !authState.user?.isAnonymous &&
-      (partner?.integrationMethod === "webhook" ||
-        partner?.integrationMethod === "postback");
+    const shouldTrackClick = !authState.user?.isAnonymous;
 
     // Store links have to leave the app: the App Store / Play Store cannot
     // render in a WebView. Website links stay in the in-app browser.
@@ -62,7 +67,7 @@ export function usePartnerClick() {
 
     const isStoreLink = Boolean(storeUrl);
 
-    if (isCPA) {
+    if (shouldTrackClick) {
       const clickId = mintClickId();
       const separator = url.includes("?") ? "&" : "?";
       url = `${url}${separator}clickId=${clickId}`;

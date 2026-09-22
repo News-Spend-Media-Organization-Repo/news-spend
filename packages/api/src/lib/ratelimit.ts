@@ -101,3 +101,19 @@ export const newsTrackRateLimitMiddleware = createRateLimitMiddleware({
   name: "news-track",
   maxRequests: 30,
 });
+
+/**
+ * A dedicated bucket for the partner conversion webhook.
+ *
+ * It is a `publicProcedure` with no login, so it was previously bounded only
+ * by whether a postback's signature verified — an unsigned flood still reaches
+ * the handler, does a DB lookup by clickId, and (on a rejection) writes a
+ * `partner_postbacks` row before being turned away. Its own bucket keeps that
+ * cost capped without spending the shared default allowance a caller might
+ * need elsewhere. Sized above a legitimate partner's real traffic (retries on
+ * their side included), not tuned to typical volume.
+ */
+export const partnerWebhookRateLimitMiddleware = createRateLimitMiddleware({
+  name: "partner-webhook",
+  maxRequests: 60,
+});
