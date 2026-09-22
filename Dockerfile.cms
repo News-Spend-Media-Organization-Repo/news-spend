@@ -74,8 +74,21 @@ WORKDIR /app
 RUN apt-get update && apt-get -yqq --no-install-recommends install \
     ca-certificates \
     ffmpeg \
+    libjemalloc2 \
     libvips \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s "/usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2" /usr/local/lib/libjemalloc.so.2
+
+# Every media upload runs six libvips pipelines at once (the original, four
+# imageSizes and the blurhash decode). Under glibc malloc those native
+# allocations fragment across per-thread arenas and the freed pages are never
+# returned, so RSS steps up with each upload while the JS heap stays flat. The
+# CMS climbed into its 1 GB limit and was OOM-killed repeatedly. jemalloc
+# returns the pages: in a replay of the upload pipeline on this base image,
+# growth over 20 uploads fell from +344 MB to +35 MB. sharp's own cache and
+# concurrency settings made no difference. The symlink resolves the multiarch
+# path so the same line works on amd64 and arm64.
+ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so.2
 
 COPY --from=builder /app/apps/cms/.next/standalone ./
 COPY --from=builder /app/apps/cms/.next/static ./apps/cms/.next/static
