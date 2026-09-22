@@ -4,9 +4,10 @@ import type { TaskConfig } from "payload";
 /**
  * How long an analytics event is kept, in days.
  *
- * Must stay comfortably above the 90-day ceiling `newsAnalyticsRouter`'s
- * `articleStats` and `topArticles` accept, or the dashboards start reporting
- * a window the data no longer covers.
+ * Must stay comfortably above the longest period the analytics dashboards
+ * offer (`RANGE_DAYS` in `@news-spend-media/analytics`, 90 days, and the same
+ * again for the comparison period), or they start reporting a window the data
+ * no longer covers.
  *
  * Two years. The table is small (about 100 events a day at the time of
  * writing, under 10 MB in total), so keeping raw events is cheap, and it means

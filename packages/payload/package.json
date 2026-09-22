@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "catalog:",
+    "@news-spend-media/analytics": "workspace:*",
     "@news-spend-media/env": "workspace:*",
     "@news-spend-media/mail": "workspace:*",
     "@news-spend-media/payload-cpanel-storage": "workspace:*",

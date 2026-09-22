@@ -53,4 +53,54 @@ describe("createRateLimitMiddleware", () => {
       expect(error).toMatchObject({ code: "TOO_MANY_REQUESTS" });
     }
   });
+
+  describe("keying an anonymous caller", () => {
+    const withIp = (ip: string) =>
+      mockContext({ headers: new Headers({ "x-forwarded-for": ip }) });
+
+    it("gives each address its own allowance", async () => {
+      const procedure = rateLimitedProcedure();
+      const a = withIp("203.0.113.1");
+      const b = withIp("203.0.113.2");
+
+      await call(procedure, {}, { context: a });
+      await call(procedure, {}, { context: a });
+
+      // `a` is spent, `b` is untouched.
+      await expect(call(procedure, {}, { context: b })).resolves.toEqual({
+        pong: true,
+      });
+    });
+
+    it("uses the first address when a proxy chain is listed", async () => {
+      const procedure = rateLimitedProcedure();
+      const first = withIp("203.0.113.9, 10.0.0.1");
+      const sameClient = withIp("203.0.113.9, 10.0.0.2");
+
+      await call(procedure, {}, { context: first });
+      await call(procedure, {}, { context: first });
+
+      await expect(
+        call(procedure, {}, { context: sameClient })
+      ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+    });
+
+    it("still limits a caller that has no request at all, instead of throwing", async () => {
+      // `createContext` can produce no request; the key must not depend on one.
+      const procedure = rateLimitedProcedure();
+      const ctx = {
+        ...mockContext(),
+        request: undefined,
+      } as unknown as Context;
+
+      await call(procedure, {}, { context: ctx });
+      await call(procedure, {}, { context: ctx });
+
+      await expect(call(procedure, {}, { context: ctx })).rejects.toMatchObject(
+        {
+          code: "TOO_MANY_REQUESTS",
+        }
+      );
+    });
+  });
 });

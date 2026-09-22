@@ -3643,7 +3643,6 @@ export const partners = pgTable(
     webhookUrl: varchar("webhook_url"),
     webhookSecret: varchar("webhook_secret"),
     awardOnClick: boolean("award_on_click").default(false),
-    apiKey: varchar("api_key"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,

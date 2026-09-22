@@ -340,20 +340,6 @@
           "meta": {},
           "route": {}
         }
-      },
-      "articleStats": {
-        "~orpc": {
-          "errorMap": {},
-          "meta": {},
-          "route": {}
-        }
-      },
-      "topArticles": {
-        "~orpc": {
-          "errorMap": {},
-          "meta": {},
-          "route": {}
-        }
       }
     }
   },

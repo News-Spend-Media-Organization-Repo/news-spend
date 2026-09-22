@@ -7,6 +7,8 @@ import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
+import { recordPostback } from "../lib/postbackLog";
+import { partnerWebhookRateLimitMiddleware } from "../lib/ratelimit";
 
 // Input schema for tracking a click
 const trackClickInput = z.object({
@@ -159,6 +161,17 @@ const webhookInput = z.object({
   status: z.enum(["success", "failed"]),
   partnerOrderId: z.string().optional(),
   metadata: z.record(z.string(), z.string()).optional(),
+  /**
+   * Validate the request without settling anything.
+   *
+   * For a partner testing their own signing code against the real endpoint:
+   * with this set, a valid signature is confirmed and nothing else happens —
+   * no conversion is settled, no points are awarded, and no postback outcome
+   * is recorded. Still requires a real `clickId` (there is no fake one to
+   * hand out; using a partner's own recent test click is the intended way to
+   * exercise this).
+   */
+  dryRun: z.boolean().optional(),
 });
 
 /**
@@ -243,6 +256,7 @@ async function settleConversion(
 
 // Webhook for partner to confirm conversions
 export const handleWebhook = publicProcedure
+  .use(partnerWebhookRateLimitMiddleware)
   .meta(
     openapi({
       method: "POST",
@@ -290,6 +304,14 @@ export const handleWebhook = publicProcedure
             .findByID({ collection: "partners", id: String(partnerRef) })
             .catch(() => null);
 
+    // Which partner this postback is for, known because it names a real click.
+    // Unresolvable (a partner since deleted) means there is nobody to record it
+    // against, so it is not recorded.
+    const partnerId =
+      partnerDoc?.id !== undefined && partnerDoc?.id !== null
+        ? String(partnerDoc.id)
+        : undefined;
+
     const verdict = verifyPartnerSignature({
       headers: {
         signature: context.headers?.get("x-signature") ?? null,
@@ -305,6 +327,14 @@ export const handleWebhook = publicProcedure
         { clickId: input.clickId, reason: verdict.reason },
         "[partner] rejected an unverified conversion postback"
       );
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "rejected",
+          reason: verdict.reason,
+        });
+      }
       // Deliberately not saying which check failed; that is a tuning guide
       // for anyone probing it. The partner's own logs have the detail.
       throw errors.UNAUTHORIZED({
@@ -312,8 +342,28 @@ export const handleWebhook = publicProcedure
       });
     }
 
+    // A dry run only proves the signature is right. Stops here, deliberately
+    // before the duplicate check and every write below: nothing about this
+    // click's real state should change because a partner was testing their
+    // signing code against it.
+    if (input.dryRun) {
+      return {
+        success: true,
+        clickId: input.clickId,
+        dryRun: true as const,
+        message: "Signature verified. No conversion was settled.",
+      };
+    }
+
     // Check if already converted
     if (conversion.status === "converted" || conversion.status === "awarded") {
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "duplicate",
+        });
+      }
       return {
         success: true,
         message: "Already processed",
@@ -343,6 +393,14 @@ export const handleWebhook = publicProcedure
         },
       });
 
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "failed_reported",
+        });
+      }
+
       return {
         success: true,
         clickId: input.clickId,
@@ -356,6 +414,14 @@ export const handleWebhook = publicProcedure
       content,
       partnerOrderId: input.partnerOrderId,
     });
+
+    if (partnerId) {
+      await recordPostback(payload, {
+        partnerId,
+        clickId: input.clickId,
+        outcome: "accepted",
+      });
+    }
 
     return {
       success: true,

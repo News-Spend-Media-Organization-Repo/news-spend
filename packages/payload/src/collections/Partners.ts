@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 
 import { type CollectionConfig, slugField } from "payload";
 import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
+import { partnerPerformanceView } from "../components/Analytics/tabs";
+import { partnerIntegrationGuideView } from "../components/PartnerIntegrationGuide/tabs";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
 
@@ -19,6 +21,14 @@ export const Partners: CollectionConfig = {
     group: "Partners",
     useAsTitle: "companyName",
     defaultColumns: ["companyName", "status", "category", "contractSigned"],
+    components: {
+      views: {
+        edit: {
+          performance: partnerPerformanceView,
+          integrationGuide: partnerIntegrationGuideView,
+        },
+      },
+    },
   },
   fields: [
     {
@@ -141,8 +151,7 @@ export const Partners: CollectionConfig = {
           defaultValue: "manual",
           options: [
             { label: "📧 Manual (Email/Spreadsheet)", value: "manual" },
-            { label: "🔗 Webhook (Real-time API)", value: "webhook" },
-            { label: "📤 Postback URL", value: "postback" },
+            { label: "🔗 Webhook / Postback URL", value: "webhook" },
             { label: "📁 CSV Upload", value: "csv" },
           ],
           admin: {
@@ -184,26 +193,12 @@ export const Partners: CollectionConfig = {
               "ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.",
           },
         },
-        {
-          name: "apiKey",
-          type: "text",
-          access: { read: isStaff },
-          admin: {
-            readOnly: true,
-            description: "API key for partner authentication",
-          },
-        },
       ],
     },
   ],
   hooks: {
     beforeChange: [
-      ({ data, operation, req }) => {
-        // Auto-generate API key for new partners
-        if (operation === "create" && !data.apiKey) {
-          data.apiKey = `pk_${randomUUID().replace(/-/g, "")}`;
-        }
-
+      ({ data }) => {
         // Auto-generate webhook secret for webhook/postback partners
         if (
           (data.integrationMethod === "webhook" ||
@@ -213,47 +208,24 @@ export const Partners: CollectionConfig = {
           data.webhookSecret = randomUUID().replace(/-/g, "");
         }
 
-        // Auto-generate webhook URL (after partner is created with ID)
+        // Auto-generate webhook URL.
+        //
+        // No partner-id segment: the mounted route is just
+        // `/partner-conversions/webhook` (see partner-conversions.ts), and the
+        // handler resolves which partner a postback belongs to from the
+        // clickId in its body, not from the URL. An id segment here doesn't
+        // exist as a real path and 404s if a partner posts to it literally.
         if (
           (data.integrationMethod === "webhook" ||
             data.integrationMethod === "postback") &&
           !data.webhookUrl
         ) {
           const baseUrl =
-            process.env.NEXT_PUBLIC_API_URL ||
-            "https://api.news-spend-media.com";
-          const partnerId = data.id || "PENDING";
-          data.webhookUrl = `${baseUrl}/api/partner-conversions/webhook/${partnerId}`;
+            process.env.NEXT_PUBLIC_API_URL || "https://api.newsspend.com";
+          data.webhookUrl = `${baseUrl}/api/partner-conversions/webhook`;
         }
 
         return data;
-      },
-    ],
-    afterChange: [
-      async ({ doc, operation, req }) => {
-        // If webhookUrl was PENDING, update it now that we have the ID
-        if (operation === "create" && doc.webhookUrl?.includes("PENDING")) {
-          const baseUrl =
-            process.env.NEXT_PUBLIC_API_URL ||
-            "https://api.news-spend-media.com";
-          const webhookUrl = `${baseUrl}/api/partner-conversions/webhook/${doc.id}`;
-
-          /**
-           * `req` is passed so this runs inside the transaction that created
-           * the partner. Without it the update opens its own connection, which
-           * cannot see the uncommitted row, and every attempt to create a
-           * webhook or postback partner fails with "Not Found". The create is
-           * rolled back and the partner never exists.
-           */
-          await req.payload.update({
-            collection: "partners",
-            id: doc.id,
-            data: {
-              webhookUrl,
-            },
-            req,
-          });
-        }
       },
     ],
   },

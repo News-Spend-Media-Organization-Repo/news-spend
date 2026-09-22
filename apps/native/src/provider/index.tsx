@@ -21,7 +21,6 @@ import { detourConfig } from "#/lib/detour";
 import { IconContext } from "#/lib/icons";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { useUpdates } from "#/lib/UpdatesProvider";
-import { authState } from "#/state/auth";
 import { useAfterStartup } from "#/utils/afterStartup";
 
 type Props = {
@@ -74,7 +73,7 @@ export const Provider = ({ children }: Props) => {
     if (!startupSettled) {
       return;
     }
-    newsAnalyticsClient.start(() => authState.user?.id);
+    newsAnalyticsClient.start();
     return () => newsAnalyticsClient.stop();
   }, [startupSettled]);
 
