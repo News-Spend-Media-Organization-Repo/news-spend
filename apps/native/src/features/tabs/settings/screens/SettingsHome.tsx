@@ -225,7 +225,7 @@ function ListHeader({ onPress }: ListHeaderProps) {
     })
   );
 
-  const maxValue = 60_000;
+  const maxValue = 300_000;
   const progressPercentage = Math.round(((totalPoints ?? 0) / maxValue) * 100);
 
   return (

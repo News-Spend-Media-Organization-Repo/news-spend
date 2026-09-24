@@ -95,7 +95,6 @@ export { ThumbsUpIcon } from "phosphor-react-native/src/icons/ThumbsUp";
 export { TicketIcon } from "phosphor-react-native/src/icons/Ticket";
 export { TrashIcon } from "phosphor-react-native/src/icons/Trash";
 export { TrophyIcon } from "phosphor-react-native/src/icons/Trophy";
-export { TwitterLogoIcon } from "phosphor-react-native/src/icons/TwitterLogo";
 export { UserIcon } from "phosphor-react-native/src/icons/User";
 export { UserMinusIcon } from "phosphor-react-native/src/icons/UserMinus";
 export { UsersIcon } from "phosphor-react-native/src/icons/Users";
@@ -104,3 +103,4 @@ export { WarningCircleIcon } from "phosphor-react-native/src/icons/WarningCircle
 export { WhatsappLogoIcon } from "phosphor-react-native/src/icons/WhatsappLogo";
 export { X, XIcon } from "phosphor-react-native/src/icons/X";
 export { XCircleIcon } from "phosphor-react-native/src/icons/XCircle";
+export { XLogoIcon } from "phosphor-react-native/src/icons/XLogo";

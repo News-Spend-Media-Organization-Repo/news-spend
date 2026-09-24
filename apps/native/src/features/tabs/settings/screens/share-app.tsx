@@ -23,9 +23,10 @@ import { toast } from "#/components/heroui/toast";
 import useAddActivity from "#/hooks/point/useAddActivity";
 import { authState } from "#/state/auth";
 
+// TODO: make the share message configurable from the CMS
 const msg =
-  "News-spend media gives me all the latest news and helps me to achieve my dreams. I have been enjoying it and would like to share it with you. Get it from this link";
-const url = "https://link.newsspend.com/";
+  "News spend is giving out free Scholarships, Electronic gadgets Business grants and information to help users achieve their dreams. I thought you or someone you know may be interested. You can get it here:";
+const url = "https://newsspend.com/download";
 
 const ShareApp = () => {
   const addActivityMutation = useAddActivity();
@@ -135,7 +136,7 @@ const ShareApp = () => {
         Icon: CopyIcon,
         onPress: async () => {
           try {
-            await Clipboard.setStringAsync(`${msg} \n ${url}`);
+            await Clipboard.setStringAsync(`${msg} ${url}`);
             toast.success("Link copied to clipboard");
           } catch (error) {
             console.error(error);
