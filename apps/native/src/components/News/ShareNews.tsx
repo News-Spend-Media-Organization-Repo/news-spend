@@ -16,10 +16,11 @@ import {
   FacebookLogoIcon,
   MessengerLogoIcon,
   ShareNetworkIcon,
-  TwitterLogoIcon,
   WhatsappLogoIcon,
+  XLogoIcon,
 } from "#/lib/icons";
 import { handOffShare } from "#/utils/handOffShare";
+import { shareToSocialApp } from "#/utils/shareToSocialApp";
 
 export const ShareNews = ({
   news,
@@ -41,18 +42,7 @@ export const ShareNews = ({
       text: "Facebook",
       Icon: FacebookLogoIcon,
       onPress: () =>
-        handOffShare(
-          () =>
-            Share.shareSingle({
-              message: `${news.title}`,
-              title: "Share via",
-              url,
-              social: Share.Social.FACEBOOK as Social,
-              appId: "",
-            }),
-          "facebook",
-          onShare
-        ),
+        shareToSocialApp("facebook", { message: news.title, url }, onShare),
     },
     {
       text: "Messenger",
@@ -89,21 +79,10 @@ export const ShareNews = ({
         ),
     },
     {
-      text: "Twitter",
-      Icon: TwitterLogoIcon,
+      text: "X",
+      Icon: XLogoIcon,
       onPress: () =>
-        handOffShare(
-          () =>
-            Share.shareSingle({
-              message: `${news.title}`,
-              title: "Share via",
-              url,
-              social: Share.Social.TWITTER as Social,
-              appId: "",
-            }),
-          "twitter",
-          onShare
-        ),
+        shareToSocialApp("twitter", { message: news.title, url }, onShare),
     },
     {
       text: "Copy link",
