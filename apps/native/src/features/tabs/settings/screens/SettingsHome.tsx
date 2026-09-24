@@ -9,6 +9,16 @@ import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import { cn } from "heroui-native/utils";
+import { Fragment, useCallback, useState } from "react";
+import { Alert, Linking, Platform, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSnapshot } from "valtio";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { ProgressBar } from "#/components/heroui/progress";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import {
   ArrowClockwiseIcon,
   ArticleIcon,
@@ -24,16 +34,6 @@ import {
   UserIcon,
   UserMinusIcon,
 } from "#/lib/icons";
-import { Fragment, useCallback, useState } from "react";
-import { Alert, Linking, Platform, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSnapshot } from "valtio";
-import { Button } from "#/components/heroui/button";
-import { Icon } from "#/components/heroui/icon";
-import { ProgressBar } from "#/components/heroui/progress";
-import { Screen } from "#/components/heroui/screen";
-import { Text } from "#/components/heroui/text";
-import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { orpc } from "#/lib/orpc";
 import { authState, logout } from "#/state/auth";
 import { avatarColor } from "#/utils/index";
@@ -179,7 +179,11 @@ function SettingsHome() {
   return (
     <Screen statusBarStyle="light">
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+        contentContainerStyle={{
+          // Clear the floating Sign In / Log Out CTA (48pt button raised
+          // 65pt on iOS to sit above the native tab bar).
+          paddingBottom: (Platform.OS === "ios" ? 170 : 100) + insets.bottom,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <ListHeader onPress={handlePress} />
@@ -193,6 +197,10 @@ function SettingsHome() {
         className="absolute right-0 bottom-safe-offset-4 left-0 mx-4"
         // isDisabled={isLoggingOut}
         onPress={isGuest ? handleSignIn : handleLogout}
+        // The native tab bar is translucent on iOS and content extends
+        // beneath it, while safe-area insets only cover the home indicator.
+        // Clear the standard 49pt bar plus the existing margin.
+        style={{ marginBottom: Platform.OS === "ios" ? 65 : 0 }}
       >
         {isLoggingOut ? <Spinner /> : null}
         <Button.Label>{isGuest ? "Sign In" : "Log Out"}</Button.Label>
@@ -273,14 +281,7 @@ function ListHeader({ onPress }: ListHeaderProps) {
             </View>
             <Text>Rewards Points</Text>
           </View>
-          <Button
-            onPress={() =>
-              navigation.navigate("Tab", {
-                screen: "Discover",
-                params: { initial: false, screen: "PlayLottery" },
-              })
-            }
-          >
+          <Button onPress={() => navigation.navigate("PlayLottery")}>
             <Button.Label>Use Points</Button.Label>
           </Button>
         </Card.Body>

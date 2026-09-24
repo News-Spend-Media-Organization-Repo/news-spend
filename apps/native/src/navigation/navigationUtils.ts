@@ -6,15 +6,9 @@ import {
 } from "@react-navigation/native";
 
 import { navigationIntegration } from "#/lib/sentry";
-import {
-  routeState,
-  setReactNavTabName,
-  setRouteName,
-} from "#/state/route-state";
+import { routeState, setRouteName } from "#/state/route-state";
 import { getActiveRouteName } from "#/utils/getActiveRouteName";
 import type { storage } from "#/utils/storage";
-
-import { CONSTANTS } from "./constants";
 
 export const navigationRef = createNavigationContainerRef();
 type MMKVStorage = typeof storage;
@@ -99,19 +93,13 @@ export function useNavigationPersistence(
     try {
       const { routeName } = routeState;
 
-      const newRouteName = getActiveRouteName(
-        state
-      ) as (typeof CONSTANTS.TAB_SCREENS)[number];
+      const newRouteName = getActiveRouteName(state);
 
       if (routeName !== newRouteName) {
         setRouteName(newRouteName);
 
         if (__DEV__) {
           console.log("Route changed to:", newRouteName);
-        }
-
-        if (CONSTANTS.TAB_SCREENS.includes(newRouteName)) {
-          setReactNavTabName(newRouteName);
         }
       }
     } catch (error) {
@@ -124,19 +112,6 @@ export function useNavigationPersistence(
 
     // Set initial route name
     setRouteName(currentRouteName);
-
-    // Set initial tab name if it's a tab screen
-    const isTabScreen =
-      currentRouteName &&
-      CONSTANTS.TAB_SCREENS.includes(
-        currentRouteName as (typeof CONSTANTS.TAB_SCREENS)[number]
-      );
-
-    setReactNavTabName(
-      isTabScreen
-        ? (currentRouteName as (typeof CONSTANTS.TAB_SCREENS)[number])
-        : "NewsHome"
-    );
 
     // Register Sentry navigation integration in production
     const isDev = process.env.NODE_ENV === "development";

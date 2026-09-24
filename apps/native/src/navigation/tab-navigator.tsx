@@ -1,14 +1,18 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { HouseIcon, ShoppingCartIcon, TagIcon, UserIcon } from "#/lib/icons";
+import { Platform } from "react-native";
 
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
 import SettingsStack from "./settings-stack";
 import ShopStack from "./shop-stack";
-import TabBar from "./tab-bar";
+
+// Dark navy backing the native bar (matches splash + p-500).
+const TAB_BAR_BACKGROUND = "#00233D";
 
 export default createBottomTabNavigator({
-  tabBar: (props) => <TabBar {...props} />,
+  // No `tabBar` prop: with `implementation: "native"` that is what hides the
+  // native UITabBarController / BottomNavigationView and renders a JS bar
+  // instead. Omitting it reveals the platform bar.
   implementation: "native",
   backBehavior: "history",
   screens: {
@@ -19,15 +23,14 @@ export default createBottomTabNavigator({
       },
       screen: NewsStack,
       options: {
-        tabBarIcon(props) {
-          return (
-            <HouseIcon
-              color={props.color.toString()}
-              size={props.size}
-              weight="regular"
-            />
-          );
-        },
+        tabBarIcon: ({ focused }) =>
+          Platform.select({
+            ios: {
+              type: "sfSymbol",
+              name: focused ? "house.fill" : "house",
+            },
+            android: { type: "materialSymbol", name: "house" },
+          }),
       },
     },
     Discover: {
@@ -37,15 +40,14 @@ export default createBottomTabNavigator({
       },
       screen: DiscoverStack,
       options: {
-        tabBarIcon(props) {
-          return (
-            <TagIcon
-              color={props.color.toString()}
-              size={props.size}
-              weight="regular"
-            />
-          );
-        },
+        tabBarIcon: ({ focused }) =>
+          Platform.select({
+            ios: {
+              type: "sfSymbol",
+              name: focused ? "tag.fill" : "tag",
+            },
+            android: { type: "materialSymbol", name: "tag" },
+          }),
       },
     },
     Shop: {
@@ -55,15 +57,14 @@ export default createBottomTabNavigator({
       },
       screen: ShopStack,
       options: {
-        tabBarIcon(props) {
-          return (
-            <ShoppingCartIcon
-              color={props.color.toString()}
-              size={props.size}
-              weight="regular"
-            />
-          );
-        },
+        tabBarIcon: ({ focused }) =>
+          Platform.select({
+            ios: {
+              type: "sfSymbol",
+              name: focused ? "cart.fill" : "cart",
+            },
+            android: { type: "materialSymbol", name: "shopping_cart" },
+          }),
       },
     },
     Me: {
@@ -73,39 +74,34 @@ export default createBottomTabNavigator({
       },
       screen: SettingsStack,
       options: {
-        headerShown: false,
         title: "Me",
-        tabBarIcon(props) {
-          return (
-            <UserIcon
-              color={props.color.toString()}
-              focused={props.focused}
-              // size={props.size}
-              weight="regular"
-            />
-          );
-        },
+        tabBarIcon: ({ focused }) =>
+          Platform.select({
+            ios: {
+              type: "sfSymbol",
+              name: focused ? "person.fill" : "person",
+            },
+            android: { type: "materialSymbol", name: "person" },
+          }),
       },
     },
   },
   screenOptions: {
     headerShown: false,
-    tabBarHideOnKeyboard: true,
-    /**
-     * Suspend a tab's React tree while it is off screen.
-     *
-     * Every tab holds live lists, carousels and ad slots, and without this
-     * they keep re-rendering behind whichever tab is in front — Discover's
-     * carousels animate while you are reading news, and vice versa.
-     */
-    freezeOnBlur: true,
-    animation: "none",
     tabBarStyle: {
-      backgroundColor: "red",
-      borderTopWidth: 0,
-      elevation: 0, // Android
-      shadowOpacity: 0, // iOS
+      backgroundColor: TAB_BAR_BACKGROUND,
     },
+    // iOS 26+ renders a light adaptive glass bar: the active tab needs a
+    // dark tint to read on it. Android keeps the solid navy bar, so the
+    // active tab stays white there.
+    tabBarActiveTintColor: Platform.select({
+      ios: TAB_BAR_BACKGROUND,
+      android: "#FFFFFF",
+    }),
+    tabBarInactiveTintColor: "#9CA3AF",
+    // Android Material 3 pill behind the active icon.
+    tabBarActiveIndicatorColor: "rgba(255,255,255,0.24)",
+    tabBarRippleColor: "rgba(255,255,255,0.32)",
   },
   initialRouteName: "Home",
 });

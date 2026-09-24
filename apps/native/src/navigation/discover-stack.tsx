@@ -4,7 +4,6 @@ import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
 import { Text } from "#/components/heroui/text";
 import Discover from "#/screens/tabs/discover/DiscoverHome";
-import { sharedScreens } from "./shared-screens";
 
 function DiscoverHeader() {
   return (
@@ -35,7 +34,6 @@ export default createNativeStackNavigator({
         header: DiscoverHeader,
       },
     },
-    ...sharedScreens,
   },
   screenOptions: {
     headerShown: false,

@@ -5,6 +5,7 @@ import { useSnapshot } from "valtio";
 import { authState } from "#/state/auth";
 
 import { commonAuthScreens } from "./common";
+import { sharedScreens } from "./shared-screens";
 import TabLayout from "./tab-navigator";
 
 function useIsSignedIn() {
@@ -27,6 +28,7 @@ const RootStackNavigator = createNativeStackNavigator({
       if: useIsSignedIn,
       screens: {
         Tab: TabLayout,
+        ...sharedScreens,
         ...commonAuthScreens,
       },
     },

@@ -4,21 +4,16 @@ export const routeState = proxy<{
   routeName: string | undefined;
   tabName: string | undefined;
   swipe: boolean;
-  reactNavTabName: string | undefined;
 }>({
   routeName: undefined,
   swipe: true,
   tabName: "latest",
-  reactNavTabName: undefined,
 });
 
 export const setRouteName = (routeName: string | undefined) => {
   routeState.routeName = routeName;
 };
 
-export const setReactNavTabName = (tabName: string | undefined) => {
-  routeState.reactNavTabName = tabName;
-};
 export const setTabName = (tabName: string | undefined) => {
   routeState.tabName = tabName;
 };
@@ -40,11 +35,9 @@ export const setTabBarHeight = (height: number) => {
 };
 
 /**
- * The tab bar's real measured height (set by TabBar's own onLayout).
- * Use this instead of @react-navigation/bottom-tabs' useBottomTabBarHeight:
- * that hook reflects the library's static default estimate, not our actual
- * custom-rendered bar, and our bar is a floating overlay (position: absolute)
- * rather than an in-flow sibling, so screens must explicitly pad for it or
- * their bottom content renders underneath it.
+ * Legacy manual tab bar height. With full native tabs the platform bar is
+ * in-flow (not an overlay), so screens above it need no extra clearance and
+ * nothing reports a height here anymore — this stays 0 and the `+ N`
+ * constants at call sites act as plain breathing room.
  */
 export const useTabBarHeight = () => useSnapshot(tabBarState).height;

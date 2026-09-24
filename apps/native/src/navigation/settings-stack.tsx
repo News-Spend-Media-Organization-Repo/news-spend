@@ -2,15 +2,11 @@ import {
   createNativeStackNavigator,
   type NativeStackHeaderProps,
 } from "@react-navigation/native-stack";
-import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Suspense } from "react";
 import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
-import { Icon } from "#/components/heroui/icon";
 import ScreenHeader from "#/components/ScreenHeader";
 import SettingsHome from "#/features/tabs/settings/screens/SettingsHome";
-import { XIcon } from "#/lib/icons";
-import { sharedScreens } from "./shared-screens";
 
 const ROUTE_TITLES = {
   Report: "IWitness Report",
@@ -63,26 +59,12 @@ export default createNativeStackNavigator({
       },
       options: {
         headerShown: true,
-        header({ navigation }) {
-          return (
-            <ScreenHeader
-              left={null}
-              right={
-                <PressableFeedback
-                  hitSlop={20}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Icon color="white" name={XIcon} />
-                </PressableFeedback>
-              }
-              title="Me"
-            />
-          );
+        header() {
+          return <ScreenHeader left={null} title="Me" />;
         },
         animation: "slide_from_right",
       },
     },
-    ...sharedScreens,
   },
   screenOptions: {
     headerShown: true,
