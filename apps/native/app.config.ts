@@ -64,6 +64,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
       fallbackToCacheTimeout: 0,
       url: "https://u.expo.dev/f652bbae-90d7-4074-b356-70438f948249",
+      // Local builds get no channel from EAS, and the update server 400s
+      // channel-less manifest requests — so a sideloaded build would never
+      // see OTA updates. Bake the preview channel into local preview builds
+      // (EAS builds set their own channel from the build profile).
+      requestHeaders:
+        APP_VARIANT === "preview"
+          ? { "expo-channel-name": "preview" }
+          : undefined,
     },
 
     plugins: [
