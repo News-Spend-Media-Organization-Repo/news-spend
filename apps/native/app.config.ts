@@ -66,7 +66,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       url: "https://u.expo.dev/f652bbae-90d7-4074-b356-70438f948249",
     },
 
-    plugins: config.plugins ?? [],
+    plugins: [
+      ...(config.plugins ?? []),
+      // iOS 27 SDK requires the UIScene life cycle; Expo SDK 57 doesn't ship
+      // it. Remove once Expo provides official scene support.
+      "./plugins/with-ios-scene-delegate",
+    ],
 
     // Android configuration
     android: {
