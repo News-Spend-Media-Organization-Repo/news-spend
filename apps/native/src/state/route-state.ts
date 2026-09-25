@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { proxy, useSnapshot } from "valtio";
 
 export const routeState = proxy<{
@@ -25,7 +26,13 @@ export const setSwipe = (swipe: boolean) => {
 export const tabBarState = proxy<{
   height: number;
 }>({
-  height: 0,
+  // The native bar can't report its height (the library's own
+  // useBottomTabBarHeight resolves to 0 under the native implementation),
+  // and on iOS content extends beneath the translucent bar — so lists need
+  // explicit bottom clearance again. Standard platform heights: 49pt bar +
+  // 34pt home indicator on iOS, 80dp Material bar on Android. Slightly roomy
+  // on indicator-less phones; the call-site `+ N` constants add margin.
+  height: Platform.select({ ios: 83, android: 80, default: 83 }),
 });
 
 export const setTabBarHeight = (height: number) => {
@@ -35,9 +42,7 @@ export const setTabBarHeight = (height: number) => {
 };
 
 /**
- * Legacy manual tab bar height. With full native tabs the platform bar is
- * in-flow (not an overlay), so screens above it need no extra clearance and
- * nothing reports a height here anymore — this stays 0 and the `+ N`
- * constants at call sites act as plain breathing room.
+ * Bottom clearance for the native tab bar. See tabBarState above for why
+ * this is an estimate rather than a measurement.
  */
 export const useTabBarHeight = () => useSnapshot(tabBarState).height;
