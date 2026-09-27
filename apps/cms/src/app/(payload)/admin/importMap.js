@@ -3,7 +3,7 @@ import { GiveawayPoolNotice as GiveawayPoolNotice_039e4656eecbbc5bdb2169ba980cec
 import { RunGiveawayDraw as RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7 } from '@news-spend-media/payload/components/RunGiveawayDraw'
 import { ResendWinnerReport as ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d } from '@news-spend-media/payload/components/ResendWinnerReport'
 import { GiveawayStatsView as GiveawayStatsView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
-import { PartnerIntegrationGuideView as PartnerIntegrationGuideView_6f6a1e0e1c8b0f7f9a5b4d2c3e1a0f9b } from '@news-spend-media/payload/components/PartnerIntegrationGuide'
+import { GiveawaySetupGuideView as GiveawaySetupGuideView_5b499dd88e776b28cbb2ec83476c3263 } from '@news-spend-media/payload/components/GiveawaySetupGuide'
 import { AirtimeProductField as AirtimeProductField_3c52db217dc7f111e854dfdb8516a078 } from '@news-spend-media/payload/components/ReloadlyProductSelector'
 import { DataPlanField as DataPlanField_3c52db217dc7f111e854dfdb8516a078 } from '@news-spend-media/payload/components/ReloadlyProductSelector'
 import { ReloadlyDataPlanRowLabel as ReloadlyDataPlanRowLabel_3c52db217dc7f111e854dfdb8516a078 } from '@news-spend-media/payload/components/ReloadlyProductSelector'
@@ -38,6 +38,7 @@ import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f
 import { ArticleStatsView as ArticleStatsView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { VideoPreviewField as VideoPreviewField_a86bb0b13348b042ba24277762780641 } from '@news-spend-media/payload/components/VideoPreviewField'
 import { PartnerPerformanceView as PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { PartnerIntegrationGuideView as PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5 } from '@news-spend-media/payload/components/PartnerIntegrationGuide'
 import { Icon as Icon_92876dd9c4e9e3a3794035e4edc8ede5 } from '@news-spend-media/payload/components/Icon'
 import { Logo as Logo_502ee6abc1f396666feea23035509da4 } from '@news-spend-media/payload/components/Logo'
 import { AnalyticsNavLink as AnalyticsNavLink_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
@@ -65,6 +66,7 @@ export const importMap = {
   "@news-spend-media/payload/components/RunGiveawayDraw#RunGiveawayDraw": RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7,
   "@news-spend-media/payload/components/ResendWinnerReport#ResendWinnerReport": ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d,
   "@news-spend-media/payload/components/Analytics#GiveawayStatsView": GiveawayStatsView_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/GiveawaySetupGuide#GiveawaySetupGuideView": GiveawaySetupGuideView_5b499dd88e776b28cbb2ec83476c3263,
   "@news-spend-media/payload/components/ReloadlyProductSelector#AirtimeProductField": AirtimeProductField_3c52db217dc7f111e854dfdb8516a078,
   "@news-spend-media/payload/components/ReloadlyProductSelector#DataPlanField": DataPlanField_3c52db217dc7f111e854dfdb8516a078,
   "@news-spend-media/payload/components/ReloadlyProductSelector#ReloadlyDataPlanRowLabel": ReloadlyDataPlanRowLabel_3c52db217dc7f111e854dfdb8516a078,
@@ -99,7 +101,7 @@ export const importMap = {
   "@news-spend-media/payload/components/Analytics#ArticleStatsView": ArticleStatsView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField": VideoPreviewField_a86bb0b13348b042ba24277762780641,
   "@news-spend-media/payload/components/Analytics#PartnerPerformanceView": PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350,
-  "@news-spend-media/payload/components/PartnerIntegrationGuide#PartnerIntegrationGuideView": PartnerIntegrationGuideView_6f6a1e0e1c8b0f7f9a5b4d2c3e1a0f9b,
+  "@news-spend-media/payload/components/PartnerIntegrationGuide#PartnerIntegrationGuideView": PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5,
   "@news-spend-media/payload/components/Icon#Icon": Icon_92876dd9c4e9e3a3794035e4edc8ede5,
   "@news-spend-media/payload/components/Logo#Logo": Logo_502ee6abc1f396666feea23035509da4,
   "@news-spend-media/payload/components/Analytics#AnalyticsNavLink": AnalyticsNavLink_bba5810d9f91b27f4c3b488ca576e350,
