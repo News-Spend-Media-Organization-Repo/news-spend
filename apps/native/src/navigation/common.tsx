@@ -2,6 +2,9 @@ import { createNativeStackScreen } from "@react-navigation/native-stack";
 
 import ResetPassword from "#/features/auth/screens/change-password";
 import ForgotPassword from "#/features/auth/screens/forgot-password";
+import Onboarding from "#/features/auth/screens/onboarding";
+import OnboardingTwo from "#/features/auth/screens/onboarding-two";
+import OnboardingThree from "#/features/auth/screens/onboarding-three";
 import PrivacyPolicy from "#/features/auth/screens/privacy-policy";
 import RegSuccess from "#/features/auth/screens/reg-success";
 import SignIn from "#/features/auth/screens/sign-in";
@@ -13,6 +16,24 @@ import Welcome from "#/features/auth/screens/welcome";
 import { authState, isAnonymous } from "#/state/auth";
 
 export const commonAuthScreens = {
+  Onboarding: createNativeStackScreen({
+    linking: {
+      path: "onboarding",
+    },
+    screen: Onboarding,
+  }),
+  OnboardingTwo: createNativeStackScreen({
+    linking: {
+      path: "onboarding/two",
+    },
+    screen: OnboardingTwo,
+  }),
+  OnboardingThree: createNativeStackScreen({
+    linking: {
+      path: "onboarding/three",
+    },
+    screen: OnboardingThree,
+  }),
   Welcome: createNativeStackScreen({
     linking: {
       path: "welcome",
