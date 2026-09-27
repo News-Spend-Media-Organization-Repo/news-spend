@@ -1,6 +1,7 @@
 import { addWeeks, startOfWeek } from "date-fns";
 import { APIError, type CollectionConfig, ValidationError } from "payload";
 import { giveawayStatsView } from "../../components/Analytics/tabs";
+import { giveawaySetupGuideView } from "../../components/GiveawaySetupGuide/tabs";
 import {
   ADMIN_GROUP,
   DRAW_CHECKPOINT_OPTIONS,
@@ -30,7 +31,9 @@ export const Giveaways: CollectionConfig = {
       "totalValidParticipants",
     ],
     components: {
-      views: { edit: { stats: giveawayStatsView } },
+      views: {
+        edit: { stats: giveawayStatsView, setupGuide: giveawaySetupGuideView },
+      },
     },
   },
   access: {
@@ -181,15 +184,15 @@ export const Giveaways: CollectionConfig = {
             .filter(Boolean)
         ).size;
 
-        const [errors, simulation] = await Promise.all([
+        const [pool, simulation] = await Promise.all([
           new GiveawayEngine(req.payload).validatePrizePool(giveaway),
           simulateDraw(req.payload, id, { participants }),
         ]);
 
         return Response.json({
           participants,
-          errors,
-          warnings: simulation.warnings,
+          errors: pool.errors,
+          warnings: [...pool.warnings, ...simulation.warnings],
           tiers: simulation.tiers,
         });
       },
@@ -246,6 +249,7 @@ export const Giveaways: CollectionConfig = {
             totalWinners: result.totalWinners,
             totalValidParticipants: result.totalValidParticipants,
             executionId: result.executionId,
+            warnings: result.warnings,
           });
         } catch (error) {
           /**
@@ -590,7 +594,7 @@ export const Giveaways: CollectionConfig = {
           min: 0,
           admin: {
             description:
-              "Total retail value this draw may award. Leave empty for no monetary cap. Every prize in the pool must have a Value (₦) for this to be usable.",
+              "Total retail value this draw may award: a ceiling, not a target. Coming in under it is the normal case. Leave empty for no monetary cap. Prizes with no Value (₦) count as ₦0 against it, so the cap only ever binds priced prizes.",
           },
         },
       ],

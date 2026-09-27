@@ -297,7 +297,7 @@ export const PrizeCatalogue: CollectionConfig = {
       min: 0,
       admin: {
         description:
-          "Retail value of one unit. Only required if a giveaway sets a monetary budget cap; otherwise it is for reporting.",
+          "Retail value of one unit, for reporting and for spending against a giveaway's monetary budget cap. Optional: a prize with no value here counts as ₦0 against the cap.",
       },
       validate: (value: number | null | undefined) => {
         if (value !== null && value !== undefined && value < 0) {

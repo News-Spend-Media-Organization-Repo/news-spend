@@ -1833,7 +1833,7 @@ describe("GiveawayEngine.validateDraw (spec 19)", () => {
     expect(errors.join(" ")).toMatch(/No prizes have been configured/);
   });
 
-  it("refuses to start when an enabled tier has an empty prize pool", async () => {
+  it("warns rather than refuses when an enabled tier's pool is empty but unwinnable", async () => {
     const { payload } = createFakePayload({
       giveaway: {
         tier1WinnerPercentage: 1,
@@ -1845,6 +1845,32 @@ describe("GiveawayEngine.validateDraw (spec 19)", () => {
       prizes: [prizeRow("p3", "tier3", 5)],
     });
 
+    // 1% of 10 participants rounds down to zero: tier1 awards nobody either
+    // way, so refusing the whole draw over its empty pool would deny tier3's
+    // real winners their prizes.
+    const { valid, errors, warnings } =
+      await makeEngine(payload).validateDraw("g1");
+    expect(valid).toBe(true);
+    expect(errors).toEqual([]);
+    expect(warnings.join(" ")).toMatch(
+      /tier1 is enabled .* Prize Pool is empty/
+    );
+    expect(warnings.join(" ")).toMatch(/below 100 participants/);
+  });
+
+  it("still refuses when an enabled tier's empty pool could award someone", async () => {
+    const { payload } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 1,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets: participants(150).ticketRows,
+      // Only a tier3 prize exists, but tier1 is enabled.
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    // 1% of 150 is one real winner, denied by the empty pool.
     const { valid, errors } = await makeEngine(payload).validateDraw("g1");
     expect(valid).toBe(false);
     expect(errors.join(" ")).toMatch(/tier1 is enabled .* Prize Pool is empty/);
@@ -1967,12 +1993,12 @@ describe("GiveawayEngine.validatePrizePool (pool notice)", () => {
   it("names an empty pool", async () => {
     const { payload, giveaway } = createFakePayload({ prizes: [] });
 
-    const errors = await makeEngine(payload).validatePrizePool(giveaway);
+    const { errors } = await makeEngine(payload).validatePrizePool(giveaway);
 
     expect(errors.join(" ")).toMatch(/No prizes have been configured/);
   });
 
-  it("names an enabled tier with an empty pool", async () => {
+  it("warns rather than names an enabled tier with an empty, unwinnable pool", async () => {
     const { payload, giveaway } = createFakePayload({
       giveaway: {
         tier1WinnerPercentage: 1,
@@ -1982,7 +2008,28 @@ describe("GiveawayEngine.validatePrizePool (pool notice)", () => {
       prizes: [prizeRow("p3", "tier3", 5)],
     });
 
-    const errors = await makeEngine(payload).validatePrizePool(giveaway);
+    // No tickets at all: no headcount, no possible tier1 winner.
+    const { errors, warnings } =
+      await makeEngine(payload).validatePrizePool(giveaway);
+
+    expect(errors).toEqual([]);
+    expect(warnings.join(" ")).toMatch(
+      /tier1 is enabled .* Prize Pool is empty/
+    );
+  });
+
+  it("names an enabled tier with an empty pool once it could award someone", async () => {
+    const { payload, giveaway } = createFakePayload({
+      giveaway: {
+        tier1WinnerPercentage: 1,
+        tier2WinnerPercentage: 0,
+        tier3WinnerPercentage: 0,
+      },
+      tickets: participants(150).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    const { errors } = await makeEngine(payload).validatePrizePool(giveaway);
 
     expect(errors.join(" ")).toMatch(/tier1 is enabled .* Prize Pool is empty/);
   });
@@ -1999,7 +2046,7 @@ describe("GiveawayEngine.validatePrizePool (pool notice)", () => {
 
     await expect(
       makeEngine(payload).validatePrizePool(giveaway)
-    ).resolves.toEqual([]);
+    ).resolves.toEqual({ errors: [], warnings: [] });
   });
 
   it("ignores lifecycle state: a draft with no prizes is unfinished, not failed", async () => {
@@ -2008,7 +2055,7 @@ describe("GiveawayEngine.validatePrizePool (pool notice)", () => {
       prizes: [],
     });
 
-    const errors = await makeEngine(payload).validatePrizePool(giveaway);
+    const { errors } = await makeEngine(payload).validatePrizePool(giveaway);
 
     expect(errors.join(" ")).toMatch(/No prizes have been configured/);
     expect(errors.join(" ")).not.toMatch(/cannot be repeated/);
@@ -2071,13 +2118,21 @@ describe("budget reserve (administrator setting, not in the spec)", () => {
     expect(result.totalWinners).toBe(2);
   });
 
-  it("refuses to draw with a monetary cap over unpriced prizes", async () => {
+  it("warns but draws with a monetary cap over unpriced prizes", async () => {
     const { payload } = tenPercentOfHundred({ maxBudgetCapNaira: 25_000 });
 
-    const { valid, errors } = await makeEngine(payload).validateDraw("g1");
+    const { valid, errors, warnings } =
+      await makeEngine(payload).validateDraw("g1");
 
-    expect(valid).toBe(false);
-    expect(errors.join(" ")).toMatch(/no Value \(₦\)/);
+    // The cap is a ceiling, not a target: unpriced prizes spend none of it,
+    // so coming in under the cap draws normally and the gap is a warning.
+    expect(valid).toBe(true);
+    expect(errors).toEqual([]);
+    expect(warnings.join(" ")).toMatch(/no Value \(₦\)/);
+
+    const result = await makeEngine(payload).runDraw("g1");
+    expect(result.totalWinners).toBe(10);
+    expect(result.warnings.join(" ")).toMatch(/no Value \(₦\)/);
   });
 
   it("counts an interrupted attempt's spend against the budget", async () => {

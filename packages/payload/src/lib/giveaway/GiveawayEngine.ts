@@ -121,6 +121,13 @@ export type DrawResult = {
   executionId: string;
   /** The last material checkpoint reached (spec 19). */
   lastCheckpoint: DrawCheckpoint | null;
+  /**
+   * Pool notices that did not block the draw: an unpriced prize under a
+   * monetary cap, an enabled tier whose pool is empty but cannot award anyone
+   * at the current headcount. Recorded on `draw_started` and returned here so
+   * both the audit trail and the administrator pressing the button see them.
+   */
+  warnings: string[];
   totalValidParticipants: number;
   totalWinners: number;
   tiers: TierOutcome[];
@@ -139,6 +146,8 @@ type RunContext = {
   seed: string;
   dryRun: boolean;
   resume: boolean;
+  /** Pool notices that rode along rather than blocking, for the result. */
+  warnings: string[];
   executionId: string;
   attemptId: string | null;
   lastCheckpoint: DrawCheckpoint | null;
@@ -281,7 +290,13 @@ export class GiveawayEngine {
     const seed =
       options.seed ?? (resume ? (giveaway.drawSeed as string) : generateSeed());
 
-    const ctx = await this.beginAttempt(giveaway, seed, dryRun, resume);
+    const ctx = await this.beginAttempt(
+      giveaway,
+      seed,
+      dryRun,
+      resume,
+      validation.warnings
+    );
 
     try {
       // Checkpoint 1: configuration validated (spec 19).
@@ -319,7 +334,8 @@ export class GiveawayEngine {
     giveaway: Giveaway,
     seed: string,
     dryRun: boolean,
-    resume: boolean
+    resume: boolean,
+    warnings: string[] = []
   ): Promise<RunContext> {
     const giveawayId = giveaway.id;
     const executionId =
@@ -331,6 +347,7 @@ export class GiveawayEngine {
       seed,
       dryRun,
       resume,
+      warnings,
       executionId,
       attemptId: null,
       lastCheckpoint: resume
@@ -396,6 +413,9 @@ export class GiveawayEngine {
         executionId,
         attemptId: attempt.id,
         resumingFrom: ctx.lastCheckpoint,
+        // Warnings rode along rather than blocking: keep them on the record
+        // so a later reader can see the draw was known-thin, not just lucky.
+        ...(warnings.length > 0 ? { warnings } : {}),
       }
     );
 
@@ -748,7 +768,7 @@ export class GiveawayEngine {
       ignoreEndDate = false,
       resume = false,
     }: { ignoreEndDate?: boolean; resume?: boolean } = {}
-  ): Promise<{ valid: boolean; errors: string[] }> {
+  ): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> {
     const errors: string[] = [];
 
     const giveaway = await this.payload.findByID({
@@ -758,13 +778,14 @@ export class GiveawayEngine {
     });
 
     if (!giveaway) {
-      return { valid: false, errors: ["Giveaway not found."] };
+      return { valid: false, errors: ["Giveaway not found."], warnings: [] };
     }
 
     errors.push(...checkDrawableStatus(giveaway, { ignoreEndDate, resume }));
-    errors.push(...(await this.validatePrizePool(giveaway)));
+    const pool = await this.validatePrizePool(giveaway);
+    errors.push(...pool.errors);
 
-    return { valid: errors.length === 0, errors };
+    return { valid: errors.length === 0, errors, warnings: pool.warnings };
   }
 
   /**
@@ -772,9 +793,26 @@ export class GiveawayEngine {
    * notice can show exactly what would refuse a draw without implying
    * anything about lifecycle state: a draft with no prizes yet is work in
    * progress, not a failure.
+   *
+   * Returns errors and warnings separately. An error refuses the draw; a
+   * warning rides along on it instead. Two situations that used to refuse are
+   * warnings now, because refusing the whole draw over them denied real
+   * winners their prizes:
+   *
+   * - A monetary cap with unpriced prizes. The cap is a ceiling, not a
+   *   target: unpriced prizes count as ₦0 against it and priced ones stop
+   *   being allocated once the remainder cannot cover them, so coming in
+   *   under the cap is the normal case, not a problem.
+   * - An enabled tier with an empty pool that cannot award anyone at the
+   *   current headcount (its percentage of the headcount rounds down to
+   *   zero). The warning names the headcount at which the tier starts to
+   *   matter, so it can be fixed before it ever blocks a draw.
    */
-  async validatePrizePool(giveaway: Giveaway): Promise<string[]> {
+  async validatePrizePool(
+    giveaway: Giveaway
+  ): Promise<{ errors: string[]; warnings: string[] }> {
     const errors: string[] = [];
+    const warnings: string[] = [];
     const giveawayId = giveaway.id;
 
     const prizeRows = await this.payload.find({
@@ -789,20 +827,15 @@ export class GiveawayEngine {
     }
 
     for (const row of prizeRows.docs) {
-      if (
-        row.maxUnits === null ||
-        row.maxUnits === undefined ||
-        !Number.isInteger(row.maxUnits) ||
-        row.maxUnits < 1
-      ) {
-        errors.push(
-          `Prize row ${row.id} does not have a valid Maximum Units value.`
-        );
+      const problem = invalidMaxUnits(row);
+      if (problem) {
+        errors.push(problem);
       }
     }
 
-    // A monetary cap is meaningless if the prizes it is meant to bound have no
-    // price on them: it would silently treat every prize as free.
+    // A monetary cap is a ceiling: unpriced prizes simply spend none of it.
+    // Worth saying aloud, because otherwise the cap looks ineffective, but
+    // never worth refusing a draw over — coming in under the cap is fine.
     if (
       typeof giveaway.maxBudgetCapNaira === "number" &&
       prizeRows.docs.length > 0
@@ -812,34 +845,57 @@ export class GiveawayEngine {
       );
 
       if (unpriced.length > 0) {
-        errors.push(
-          `A monetary budget cap is set, but ${unpriced.length} prize(s) have no Value (₦): ${unpriced
-            .map((prize) => prize.prizeName)
-            .join(", ")}.`
-        );
+        warnings.push(unpricedCapWarning(giveaway.maxBudgetCapNaira, unpriced));
       }
     }
 
-    // Every enabled tier must have both a percentage and a non-empty pool.
+    // Every enabled tier must have both a percentage and a non-empty pool —
+    // unless the tier cannot award anyone yet. A percentage of the current
+    // headcount that rounds down to zero means the tier awards nobody no
+    // matter what is stocked, so an empty pool is harmless for now.
+    const headcount = await this.countValidParticipants(giveawayId);
+
     for (const tier of TIER_PROCESSING_ORDER) {
-      const percentage = this.tierPercentage(giveaway, tier);
-
-      if (percentage === null || percentage === undefined) {
-        errors.push(`Winner Distribution is not configured for ${tier}.`);
-        continue;
-      }
-
-      if (percentage > 0) {
-        const tierPrizes = prizeRows.docs.filter((row) => row.tier === tier);
-        if (tierPrizes.length === 0) {
-          errors.push(
-            `${tier} is enabled (${percentage}%) but its Prize Pool is empty.`
-          );
-        }
+      const notice = checkTierPool({
+        tier,
+        percentage: this.tierPercentage(giveaway, tier),
+        prizeRows: prizeRows.docs,
+        headcount,
+      });
+      if (notice.error) {
+        errors.push(notice.error);
+      } else if (notice.warning) {
+        warnings.push(notice.warning);
       }
     }
 
-    return errors;
+    return { errors, warnings };
+  }
+
+  /**
+   * Distinct users holding at least one valid ticket: the headcount winner
+   * percentages apply to. Mirrors the pool-notice endpoint's count, kept
+   * beside the validation that depends on it rather than shared, so neither
+   * caller pays for the other's shape.
+   */
+  private async countValidParticipants(giveawayId: string): Promise<number> {
+    const tickets = await this.payload.find({
+      collection: "giveaway-tickets",
+      where: {
+        and: [
+          { giveaway: { equals: giveawayId } },
+          { status: { equals: "valid" } },
+        ],
+      },
+      pagination: false,
+      depth: 0,
+    });
+
+    return new Set(
+      tickets.docs
+        .map((ticket) => relationKey(ticket.user))
+        .filter((key): key is UserKey => key !== null)
+    ).size;
   }
 
   private async executeDraw(ctx: RunContext): Promise<DrawResult> {
@@ -951,6 +1007,7 @@ export class GiveawayEngine {
       dryRun,
       executionId: ctx.executionId,
       lastCheckpoint: ctx.lastCheckpoint,
+      warnings: ctx.warnings,
       totalValidParticipants,
       totalWinners: tiers.reduce((sum, t) => sum + t.winners.length, 0),
       tiers,
@@ -2406,4 +2463,107 @@ function relationKey(value: unknown): UserKey | null {
     return String((value as { id: string | number }).id);
   }
   return String(value);
+}
+
+/**
+ * The smallest headcount at which a tier percentage can award anyone: the
+ * first N with `floor(N · p / 100) >= 1`, i.e. `ceil(100 / p)`. Below it an
+ * enabled tier with an empty pool is harmless, and the pool notice says so
+ * with this number attached.
+ */
+function headcountForFirstWinner(winnerPercentage: number): number {
+  return Math.ceil(100 / winnerPercentage);
+}
+
+/**
+ * One tier's share of pool validation: a missing percentage is always an
+ * error, a disabled tier needs nothing, and an enabled tier with an empty
+ * pool is an error only when it could award someone at this headcount.
+ */
+function checkTierPool(args: {
+  tier: PrizeTier;
+  percentage: number | null | undefined;
+  prizeRows: { tier?: string | null }[];
+  headcount: number;
+}): { error?: string; warning?: string } {
+  const { tier, percentage, prizeRows, headcount } = args;
+
+  if (percentage === null || percentage === undefined) {
+    return { error: `Winner Distribution is not configured for ${tier}.` };
+  }
+
+  if (percentage <= 0) {
+    return {};
+  }
+
+  if (prizeRows.some((row) => row.tier === tier)) {
+    return {};
+  }
+
+  return emptyTierPoolNotice(tier, percentage, headcount);
+}
+
+/**
+ * A prize row's Maximum Units, or null when it is usable. A draw that
+ * selected winners against unbounded stock could award without end, so this
+ * stays an error rather than a warning.
+ */
+function invalidMaxUnits(row: {
+  id: string;
+  maxUnits?: number | null;
+}): string | null {
+  if (
+    row.maxUnits === null ||
+    row.maxUnits === undefined ||
+    !Number.isInteger(row.maxUnits) ||
+    row.maxUnits < 1
+  ) {
+    return `Prize row ${row.id} does not have a valid Maximum Units value.`;
+  }
+  return null;
+}
+
+/**
+ * What an enabled tier with an empty pool means at this headcount: an error
+ * when the tier could award someone, a warning naming the headcount at which
+ * it starts to matter when it cannot award anyone yet.
+ */
+function emptyTierPoolNotice(
+  tier: PrizeTier,
+  percentage: number,
+  headcount: number
+): { error?: string; warning?: string } {
+  if (maxTierWinners(headcount, percentage) > 0) {
+    return {
+      error: `${tier} is enabled (${percentage}%) but its Prize Pool is empty.`,
+    };
+  }
+
+  const threshold = headcountForFirstWinner(percentage);
+  const person = headcount === 1 ? "participant" : "participants";
+  return {
+    warning: `${tier} is enabled (${percentage}%) but its Prize Pool is empty. Harmless with ${headcount} ${person}: nobody can win ${tier} below ${threshold} participants. Add a ${tier} prize before the headcount reaches ${threshold}, or the draw will refuse.`,
+  };
+}
+
+/**
+ * A monetary cap with unpriced prizes, phrased as the ceiling it is: the
+ * prizes spend none of the cap, so the draw proceeds and this rides along as
+ * a warning rather than refusing it.
+ */
+function unpricedCapWarning(
+  capNaira: number,
+  unpriced: { prizeName: string }[]
+): string {
+  const names = unpriced.map((prize) => prize.prizeName).join(", ");
+  if (unpriced.length === 1) {
+    return (
+      `A monetary budget cap of ₦${capNaira} is set, but 1 prize has no Value (₦): ${names}. ` +
+      "It counts as ₦0 against the cap; only priced prizes spend it."
+    );
+  }
+  return (
+    `A monetary budget cap of ₦${capNaira} is set, but ${unpriced.length} prizes have no Value (₦): ${names}. ` +
+    "They count as ₦0 against the cap; only priced prizes spend it."
+  );
 }

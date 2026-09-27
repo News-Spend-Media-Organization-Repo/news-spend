@@ -138,7 +138,11 @@ export async function simulateDraw(
             ? "units"
             : "candidates";
 
-    if (winnerPercentage > 0 && tierRows.length === 0) {
+    // Refusal needs a tier that could actually award someone. Below the
+    // rounding threshold the tier awards nobody either way, and the warning
+    // below already says so with the headcount attached; claiming the draw
+    // will refuse would contradict the engine, which lets it through.
+    if (winnerPercentage > 0 && tierRows.length === 0 && maxByPercentage > 0) {
       warnings.push(
         `${tier} is enabled at ${winnerPercentage}% but has no prizes pooled: the draw will refuse to start.`
       );
