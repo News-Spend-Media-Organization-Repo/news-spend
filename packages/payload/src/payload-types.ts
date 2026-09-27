@@ -656,7 +656,7 @@ export interface Giveaway {
    */
   budgetUtilizationPct: number;
   /**
-   * Total retail value this draw may award. Leave empty for no monetary cap. Every prize in the pool must have a Value (₦) for this to be usable.
+   * Total retail value this draw may award: a ceiling, not a target. Coming in under it is the normal case. Leave empty for no monetary cap. Prizes with no Value (₦) count as ₦0 against it, so the cap only ever binds priced prizes.
    */
   maxBudgetCapNaira?: number | null;
   status:
@@ -1555,7 +1555,7 @@ export interface PrizeCatalogue {
    */
   pointsAmount?: number | null;
   /**
-   * Retail value of one unit. Only required if a giveaway sets a monetary budget cap; otherwise it is for reporting.
+   * Retail value of one unit, for reporting and for spending against a giveaway's monetary budget cap. Optional: a prize with no value here counts as ₦0 against the cap.
    */
   valueNaira?: number | null;
   /**
