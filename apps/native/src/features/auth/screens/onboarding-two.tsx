@@ -1,11 +1,12 @@
 import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
+import { markOnboardingSeen } from "#/state/onboarding";
 
 const OnboardingTwo = () => {
   const navigation = useNavigation("OnboardingTwo");
@@ -19,6 +20,19 @@ const OnboardingTwo = () => {
       preset="fixed"
       statusBarStyle="dark"
     >
+      <Pressable
+        accessibilityLabel="Skip onboarding"
+        accessibilityRole="button"
+        className="self-end py-2"
+        hitSlop={10}
+        onPress={() => {
+          markOnboardingSeen();
+          navigation.replace("Welcome");
+        }}
+      >
+        <Text className="font-semibold text-p-500 text-sm">Skip</Text>
+      </Pressable>
+
       <View className="flex-1 items-center justify-center">
         <Image
           accessibilityLabel="People turning everyday engagement into rewards"
@@ -42,10 +56,11 @@ const OnboardingTwo = () => {
         </Text>
       </View>
 
-      <View className="gap-6 pb-2 pt-8">
+      <View className="gap-6 pt-8 pb-2">
         <View
           accessibilityLabel="Onboarding screen 2 of 3"
           accessibilityRole="progressbar"
+          accessibilityValue={{ max: 3, min: 1, now: 2 }}
           className="flex-row items-center justify-center gap-2"
         >
           <View className="h-2 w-2 rounded-full bg-p-100" />

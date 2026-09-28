@@ -6,11 +6,20 @@ import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
+import { markOnboardingSeen } from "#/state/onboarding";
 
 const OnboardingThree = () => {
   const navigation = useNavigation("OnboardingThree");
 
   useMarkInteractive(true);
+
+  const goToAuth = (goto: "SignIn" | "SignUp") => {
+    // Last screen: both exits leave onboarding for good, so this is where the
+    // flag gets written. Doing it earlier would let a user who abandons the
+    // flow on screen 1 never see it again.
+    markOnboardingSeen();
+    navigation.navigate("TOS", { goto });
+  };
 
   return (
     <Screen
@@ -41,10 +50,11 @@ const OnboardingThree = () => {
         </Text>
       </View>
 
-      <View className="gap-6 pb-2 pt-8">
+      <View className="gap-6 pt-8 pb-2">
         <View
           accessibilityLabel="Onboarding screen 3 of 3"
           accessibilityRole="progressbar"
+          accessibilityValue={{ max: 3, min: 1, now: 3 }}
           className="flex-row items-center justify-center gap-2"
         >
           <View className="h-2 w-2 rounded-full bg-p-100" />
@@ -55,24 +65,14 @@ const OnboardingThree = () => {
         <View className="gap-3">
           <Button
             className="bg-p-500"
-            onPress={() =>
-              navigation.navigate("TOS", {
-                goto: "SignUp",
-              })
-            }
+            onPress={() => goToAuth("SignUp")}
             size="lg"
           >
-            <Button.Label className="text-p-50">
-              Create an Account
-            </Button.Label>
+            <Button.Label className="text-p-50">Create an Account</Button.Label>
           </Button>
 
           <Button
-            onPress={() =>
-              navigation.navigate("TOS", {
-                goto: "SignIn",
-              })
-            }
+            onPress={() => goToAuth("SignIn")}
             size="lg"
             variant="outline"
           >
