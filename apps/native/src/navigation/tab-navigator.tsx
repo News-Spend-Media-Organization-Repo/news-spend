@@ -40,13 +40,15 @@ export default createBottomTabNavigator({
       },
       screen: DiscoverStack,
       options: {
+        // NOTE: materialSymbol 'tag' rasterizes as "#" on Android (see
+        // tab-bar '#" report 2026-09-28); 'sell' is the equivalent tag glyph.
         tabBarIcon: ({ focused }) =>
           Platform.select({
             ios: {
               type: "sfSymbol",
               name: focused ? "tag.fill" : "tag",
             },
-            android: { type: "materialSymbol", name: "tag" },
+            android: { type: "materialSymbol", name: "sell" },
           }),
       },
     },
