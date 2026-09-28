@@ -1,8 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { Dimensions } from "react-native";
 import { markOnboardingSeen } from "#/state/onboarding";
 import Onboarding from "../onboarding";
-import OnboardingThree from "../onboarding-three";
-import OnboardingTwo from "../onboarding-two";
 
 const mockReplace = jest.fn();
 const mockNavigate = jest.fn();
@@ -24,62 +23,48 @@ jest.mock("#/state/onboarding", () => ({
   seenOnboardingAtLaunch: false,
 }));
 
+const pageWidth = Dimensions.get("window").width;
+
+/** Paging only settles on whole pages, which is what this event reports. */
+const swipeToPage = (index: number) =>
+  fireEvent(screen.getByTestId("onboarding-pages"), "momentumScrollEnd", {
+    nativeEvent: { contentOffset: { x: pageWidth * index } },
+  });
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 describe("Onboarding", () => {
-  it("renders the first screen with its progress label", () => {
+  it("shows the first page with its progress label and a skip", () => {
     render(<Onboarding />);
 
     expect(
       screen.getByText("Your Time Online Should Move Your Life Forward")
     ).toBeTruthy();
     expect(screen.getByLabelText("Onboarding screen 1 of 3")).toBeTruthy();
+    expect(screen.getByLabelText("Skip onboarding")).toBeTruthy();
+    expect(screen.queryByText("Log In")).toBeNull();
   });
 
-  it("keeps moving forward through replace, so back never rewinds", () => {
+  it("swaps the footer content as the carousel moves", () => {
     render(<Onboarding />);
 
-    fireEvent.press(screen.getByText("Move Your Life Forward"));
+    expect(screen.getByText("Move Your Life Forward")).toBeTruthy();
 
-    expect(mockReplace).toHaveBeenCalledWith("OnboardingTwo");
-    expect(markOnboardingSeen).not.toHaveBeenCalled();
+    swipeToPage(1);
+    expect(screen.getByText("Continue")).toBeTruthy();
+    expect(screen.getByLabelText("Onboarding screen 2 of 3")).toBeTruthy();
+
+    swipeToPage(2);
+    expect(screen.getByText("Create an Account")).toBeTruthy();
+    expect(screen.getByText("Log In")).toBeTruthy();
+    expect(screen.getByLabelText("Onboarding screen 3 of 3")).toBeTruthy();
   });
 
-  it("skips straight to Welcome and records the flag", () => {
+  it("records the flag and hands off to sign up from the last page", () => {
     render(<Onboarding />);
-
-    fireEvent.press(screen.getByLabelText("Skip onboarding"));
-
-    expect(markOnboardingSeen).toHaveBeenCalledTimes(1);
-    expect(mockReplace).toHaveBeenCalledWith("Welcome");
-  });
-});
-
-describe("OnboardingTwo", () => {
-  it("skips straight to Welcome and records the flag", () => {
-    render(<OnboardingTwo />);
-
-    fireEvent.press(screen.getByLabelText("Skip onboarding"));
-
-    expect(markOnboardingSeen).toHaveBeenCalledTimes(1);
-    expect(mockReplace).toHaveBeenCalledWith("Welcome");
-  });
-
-  it("advances to the last screen", () => {
-    render(<OnboardingTwo />);
-
-    fireEvent.press(screen.getByText("Continue"));
-
-    expect(mockReplace).toHaveBeenCalledWith("OnboardingThree");
-    expect(markOnboardingSeen).not.toHaveBeenCalled();
-  });
-});
-
-describe("OnboardingThree", () => {
-  it("records the flag before handing off to sign up", () => {
-    render(<OnboardingThree />);
+    swipeToPage(2);
 
     fireEvent.press(screen.getByText("Create an Account"));
 
@@ -87,12 +72,31 @@ describe("OnboardingThree", () => {
     expect(mockNavigate).toHaveBeenCalledWith("TOS", { goto: "SignUp" });
   });
 
-  it("records the flag before handing off to log in", () => {
-    render(<OnboardingThree />);
+  it("records the flag and hands off to log in from the last page", () => {
+    render(<Onboarding />);
+    swipeToPage(2);
 
     fireEvent.press(screen.getByText("Log In"));
 
     expect(markOnboardingSeen).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith("TOS", { goto: "SignIn" });
+  });
+
+  it("skips to Welcome and records the flag", () => {
+    render(<Onboarding />);
+
+    fireEvent.press(screen.getByLabelText("Skip onboarding"));
+
+    expect(markOnboardingSeen).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith("Welcome");
+  });
+
+  it("does not record the flag while paging forward", () => {
+    render(<Onboarding />);
+
+    swipeToPage(1);
+
+    expect(markOnboardingSeen).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });
