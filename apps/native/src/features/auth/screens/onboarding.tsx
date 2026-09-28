@@ -32,6 +32,13 @@ import { markOnboardingSeen } from "#/state/onboarding";
 const DOT_SMALL = 8;
 const DOT_LARGE = 24;
 
+/**
+ * Two `size="lg"` buttons (56pt each) plus the `gap-3` between them. The last
+ * page stacks its extra actions here; reserving the height on every page is
+ * what stops the footer growing and shoving the carousel around mid-swipe.
+ */
+const SECONDARY_ACTIONS_HEIGHT = 56 * 2 + 12;
+
 type OnboardingPage = {
   key: string;
   source: React.ComponentProps<typeof Image>["source"];
@@ -176,9 +183,6 @@ const Onboarding = () => {
 
   const footerStyle = useAnimatedStyle(() => ({
     opacity: footerProgress.value,
-    transform: [
-      { translateY: interpolate(footerProgress.value, [0, 1], [12, 0]) },
-    ],
   }));
 
   const isLastPage = index === PAGES.length - 1;
@@ -306,24 +310,28 @@ const Onboarding = () => {
             </Button.Label>
           </Button>
 
-          {isLastPage ? (
-            <>
-              <Button onPress={handleLogIn} size="lg" variant="outline">
-                <Button.Label className="text-p-500">Log In</Button.Label>
-              </Button>
+          {/* Always rendered, and always this tall — the actions only appear
+              on the last page, but their slot is reserved everywhere. */}
+          <View className="gap-3" style={{ height: SECONDARY_ACTIONS_HEIGHT }}>
+            {isLastPage ? (
+              <>
+                <Button onPress={handleLogIn} size="lg" variant="outline">
+                  <Button.Label className="text-p-500">Log In</Button.Label>
+                </Button>
 
-              <ConfirmAsGuest
-                onSuccess={handleGuest}
-                trigger={
-                  <Button size="lg" variant="ghost">
-                    <Button.Label className="text-s-300">
-                      Continue as a guest
-                    </Button.Label>
-                  </Button>
-                }
-              />
-            </>
-          ) : null}
+                <ConfirmAsGuest
+                  onSuccess={handleGuest}
+                  trigger={
+                    <Button size="lg" variant="ghost">
+                      <Button.Label className="text-s-300">
+                        Continue as a guest
+                      </Button.Label>
+                    </Button>
+                  }
+                />
+              </>
+            ) : null}
+          </View>
         </Animated.View>
       </View>
     </Screen>
