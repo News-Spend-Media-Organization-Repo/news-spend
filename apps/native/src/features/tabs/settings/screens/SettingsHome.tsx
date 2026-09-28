@@ -36,6 +36,7 @@ import {
 } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 import { authState, logout } from "#/state/auth";
+import { useTabBarHeight } from "#/state/route-state";
 import { avatarColor } from "#/utils/index";
 
 type SettingsItem = {
@@ -124,6 +125,7 @@ const settingsItems: SettingsItem[] = [
 function SettingsHome() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useTabBarHeight();
   const { user } = useSnapshot(authState);
   const isGuest = user?.isAnonymous === true;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -180,9 +182,9 @@ function SettingsHome() {
     <Screen statusBarStyle="light">
       <ScrollView
         contentContainerStyle={{
-          // Clear the floating Sign In / Log Out CTA (48pt button raised
-          // 65pt on iOS to sit above the native tab bar).
-          paddingBottom: (Platform.OS === "ios" ? 170 : 100) + insets.bottom,
+          // Clear the floating Sign In / Log Out CTA, which sits above the
+          // native tab bar on both platforms (see the Button below).
+          paddingBottom: 170 + insets.bottom,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -197,10 +199,13 @@ function SettingsHome() {
         className="absolute right-0 bottom-safe-offset-4 left-0 mx-4"
         // isDisabled={isLoggingOut}
         onPress={isGuest ? handleSignIn : handleLogout}
-        // The native tab bar is translucent on iOS and content extends
-        // beneath it, while safe-area insets only cover the home indicator.
-        // Clear the standard 49pt bar plus the existing margin.
-        style={{ marginBottom: Platform.OS === "ios" ? 65 : 0 }}
+        // The native bar overlays the content area on both platforms and never
+        // reaches the JS safe-area insets (the app uses
+        // react-native-safe-area-context's provider, so RNScreens' interface
+        // insets — the bar height — stop at the native side). Clearing only
+        // the inset left this button behind the Android Material bar: 65pt is
+        // the 49pt iOS bar the inset doesn't cover, 80dp is the Android bar.
+        style={{ marginBottom: Platform.OS === "ios" ? 65 : tabBarHeight }}
       >
         {isLoggingOut ? <Spinner /> : null}
         <Button.Label>{isGuest ? "Sign In" : "Log Out"}</Button.Label>
