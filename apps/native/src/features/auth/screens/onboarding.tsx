@@ -145,8 +145,20 @@ const Onboarding = () => {
   // current one. Android can end a drag without a momentum phase, hence the
   // second sync.
   const syncIndex = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
-    setIndex(Math.min(Math.max(next, 0), PAGES.length - 1));
+    const next = Math.min(
+      Math.max(Math.round(event.nativeEvent.contentOffset.x / pageWidth), 0),
+      PAGES.length - 1
+    );
+
+    if (next === index) {
+      return;
+    }
+
+    // Hide the footer *before* the content swaps. Doing it in the effect below
+    // paints the incoming buttons at full opacity for a frame first, which is
+    // the flicker you see as they appear.
+    footerProgress.value = 0;
+    setIndex(next);
   };
 
   const onScrollEndDrag = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -159,8 +171,7 @@ const Onboarding = () => {
     if (!PAGES[index]) {
       return;
     }
-    footerProgress.value = 0;
-    footerProgress.value = withTiming(1, { duration: 240 });
+    footerProgress.value = withTiming(1, { duration: 200 });
   }, [footerProgress, index]);
 
   const footerStyle = useAnimatedStyle(() => ({
