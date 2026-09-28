@@ -3,6 +3,9 @@ module.exports = {
   preset: "jest-expo",
   setupFiles: ["./jest.setup.tsx"],
   moduleNameMapper: {
+    // `#/images/*` points at assets/, not src/ — the catch-all `#/*` mapping
+    // below would otherwise miss it, so it has to come first.
+    "^#/images/(.*)$": "<rootDir>/assets/images/$1",
     // The workspace hoists a second React (root 19.2.8) alongside this app's
     // own (19.2.3), and react-test-renderer resolves the hoisted one. A
     // component rendered under RTL then calls hooks on a different React
