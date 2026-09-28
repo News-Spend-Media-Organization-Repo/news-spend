@@ -19,8 +19,10 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "#/components/heroui/button";
+import { ConfirmAsGuest } from "#/components/heroui/confirm-as-guest";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
@@ -126,6 +128,7 @@ const Dot = ({ dotIndex, pageWidth, scrollX }: DotProps) => {
 const Onboarding = () => {
   const navigation = useNavigation("Onboarding");
   const { width: pageWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const scrollX = useSharedValue(0);
   const footerProgress = useSharedValue(1);
@@ -192,6 +195,12 @@ const Onboarding = () => {
     navigation.navigate("TOS", { goto: "SignIn" });
   };
 
+  // The anonymous sign-in itself flips auth state, which drops the Onboarding
+  // group and lands on the tabs — nothing to navigate here.
+  const handleGuest = () => {
+    markOnboardingSeen();
+  };
+
   const renderItem = ({ item }: ListRenderItemInfo<OnboardingPage>) => (
     <View className="px-6" style={{ width: pageWidth }}>
       <View className="flex-1 items-center justify-center">
@@ -222,10 +231,12 @@ const Onboarding = () => {
       className="bg-p-50"
       navigationBarButtonStyle="dark"
       preset="fixed"
-      safeAreaEdges={["top", "bottom"]}
       statusBarStyle="dark"
     >
-      <View className="px-6">
+      {/* No `safeAreaEdges` on the Screen: the illustration is meant to bleed
+          through the status bar / home indicator. Only the interactive rows
+          take the insets, so nothing ends up under the system UI. */}
+      <View className="px-6" style={{ paddingTop: insets.top }}>
         <Pressable
           accessibilityLabel="Skip onboarding"
           accessibilityRole="button"
@@ -257,7 +268,10 @@ const Onboarding = () => {
         testID="onboarding-pages"
       />
 
-      <View className="gap-6 px-6 pt-8 pb-2">
+      <View
+        className="gap-6 px-6 pt-8"
+        style={{ paddingBottom: insets.bottom + 8 }}
+      >
         <View
           accessibilityLabel={`Onboarding screen ${index + 1} of ${PAGES.length}`}
           accessibilityRole="progressbar"
@@ -282,9 +296,22 @@ const Onboarding = () => {
           </Button>
 
           {isLastPage ? (
-            <Button onPress={handleLogIn} size="lg" variant="outline">
-              <Button.Label className="text-p-500">Log In</Button.Label>
-            </Button>
+            <>
+              <Button onPress={handleLogIn} size="lg" variant="outline">
+                <Button.Label className="text-p-500">Log In</Button.Label>
+              </Button>
+
+              <ConfirmAsGuest
+                onSuccess={handleGuest}
+                trigger={
+                  <Button size="lg" variant="ghost">
+                    <Button.Label className="text-s-300">
+                      Continue as a guest
+                    </Button.Label>
+                  </Button>
+                }
+              />
+            </>
           ) : null}
         </Animated.View>
       </View>

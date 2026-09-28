@@ -15,9 +15,11 @@ import { Text } from "./text";
 
 type ConfirmAsGuestProps = {
   trigger: ReactNode;
+  /** Called once the anonymous sign-in has succeeded. */
+  onSuccess?: () => void;
 };
 
-export function ConfirmAsGuest({ trigger }: ConfirmAsGuestProps) {
+export function ConfirmAsGuest({ trigger, onSuccess }: ConfirmAsGuestProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigation = useNavigation();
@@ -36,6 +38,7 @@ export function ConfirmAsGuest({ trigger }: ConfirmAsGuestProps) {
       console.log("Anonymous sign-in successful");
       toast.success("Signed in as a guest");
       setIsOpen(false);
+      onSuccess?.();
     },
     onError: () => {
       toast.error("Failed to sign in as a guest");
