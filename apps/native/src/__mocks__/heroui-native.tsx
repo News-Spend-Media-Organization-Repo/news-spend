@@ -4,6 +4,11 @@ export function cn(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+/** `heroui-native/hooks` resolves here; the Text component needs its shape. */
+export function useTextComponent() {
+  return { textProps: {} };
+}
+
 export function Spinner() {
   return <ActivityIndicator />;
 }
