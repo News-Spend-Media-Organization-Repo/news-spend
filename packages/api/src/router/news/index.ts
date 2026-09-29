@@ -102,6 +102,118 @@ const all = publicProcedure
     );
   });
 
+/**
+ * Editor-curated picks lead the carousel. Ranked lowest rank first;
+ * unranked picks sit below ranked ones, newest first. Anything the app
+ * shows here was chosen by a person, which is the whole point: at low
+ * traffic the algorithmic ranking below is decided by single opens.
+ */
+async function curatedPicks(
+  payload: any,
+  limit: number
+): Promise<{ picks: any[] }> {
+  const res = await payload.find({
+    collection: "news",
+    where: {
+      _status: { equals: "published" },
+      featured: { equals: true },
+    },
+    depth: 1,
+    limit: 20,
+    pagination: false,
+    select: { content: false, keyPoints: false },
+  });
+  const picks = [...res.docs].sort((a: any, b: any) => {
+    const ra = typeof a.featuredRank === "number" ? a.featuredRank : Infinity;
+    const rb = typeof b.featuredRank === "number" ? b.featuredRank : Infinity;
+    if (ra !== rb) {
+      return ra - rb;
+    }
+    return (
+      new Date(b.publishedAt ?? b.createdAt).getTime() -
+      new Date(a.publishedAt ?? a.createdAt).getTime()
+    );
+  });
+  return { picks: picks.slice(0, limit) };
+}
+
+async function trendingFallback(
+  payload: any,
+  limit: number,
+  excludeIds: string[]
+): Promise<any[]> {
+  let cachedResult: any[] | null = null;
+
+  // try redis first
+  try {
+    const { getRedis } = await import("../../lib/redis");
+    const r = getRedis();
+    const cached = await r.get("trending:news");
+    if (cached) {
+      const parsed = JSON.parse(cached) as { id: string; score: number }[];
+      // Grab a larger pool to account for unpublished/drafted items
+      const candidateIds = parsed
+        .slice(0, limit * 3 + excludeIds.length)
+        .map((p) => p.id)
+        .filter((id) => !excludeIds.includes(id));
+      if (candidateIds.length) {
+        const res = await payload.find({
+          collection: "news",
+          where: {
+            id: { in: candidateIds },
+            _status: { equals: "published" },
+          },
+          depth: 1,
+          limit: candidateIds.length,
+          pagination: false,
+          select: { content: false, keyPoints: false },
+        });
+        // preserve score order from cache
+        const docsById = new Map(res.docs.map((d) => [d.id, d]));
+        const ordered = candidateIds
+          .map((id) => docsById.get(id))
+          .filter(Boolean);
+        cachedResult = ordered.slice(0, limit);
+      }
+    }
+  } catch {
+    // ignore redis errors
+  }
+
+  if (cachedResult && cachedResult.length >= limit) {
+    return cachedResult;
+  }
+
+  if (cachedResult && cachedResult.length > 0) {
+    const remaining = limit - cachedResult.length;
+    const news = await payload.find({
+      collection: "news",
+      limit: remaining,
+      depth: 1,
+      sort: "-createdAt",
+      select: { content: false, keyPoints: false },
+      where: {
+        _status: { equals: "published" },
+        id: { not_in: [...cachedResult.map((d: any) => d.id), ...excludeIds] },
+      },
+    });
+    return [...cachedResult, ...news.docs];
+  }
+
+  const news = await payload.find({
+    collection: "news",
+    limit,
+    depth: 1,
+    sort: "-createdAt",
+    select: { content: false, keyPoints: false },
+    where: {
+      _status: { equals: "published" },
+      ...(excludeIds.length ? { id: { not_in: excludeIds } } : {}),
+    },
+  });
+  return news.docs;
+}
+
 const trending = publicProcedure
   .input(
     z
@@ -112,72 +224,17 @@ const trending = publicProcedure
     const { payload } = context;
     const limit = input?.limit ?? 3;
 
-    let cachedResult: any[] | null = null;
-
-    // try redis first
-    try {
-      const { getRedis } = await import("../../lib/redis");
-      const r = getRedis();
-      const cached = await r.get("trending:news");
-      if (cached) {
-        const parsed = JSON.parse(cached) as { id: string; score: number }[];
-        // Grab a larger pool to account for unpublished/drafted items
-        const candidateIds = parsed.slice(0, limit * 3).map((p) => p.id);
-        if (candidateIds.length) {
-          const res = await payload.find({
-            collection: "news",
-            where: {
-              id: { in: candidateIds },
-              _status: { equals: "published" },
-            },
-            depth: 1,
-            limit: candidateIds.length,
-            pagination: false,
-            select: { content: false, keyPoints: false },
-          });
-          // preserve score order from cache
-          const docsById = new Map(res.docs.map((d) => [d.id, d]));
-          const ordered = candidateIds
-            .map((id) => docsById.get(id))
-            .filter(Boolean);
-          cachedResult = ordered.slice(0, limit);
-        }
-      }
-    } catch {
-      // ignore redis errors
+    const { picks } = await curatedPicks(payload, limit);
+    if (picks.length >= limit) {
+      return picks;
     }
 
-    if (cachedResult && cachedResult.length >= limit) {
-      return cachedResult;
-    }
-
-    if (cachedResult && cachedResult.length > 0) {
-      const remaining = limit - cachedResult.length;
-      const news = await payload.find({
-        collection: "news",
-        limit: remaining,
-        depth: 1,
-        sort: "-createdAt",
-        select: { content: false, keyPoints: false },
-        where: {
-          _status: { equals: "published" },
-          id: { not_in: cachedResult.map((d: any) => d.id) },
-        },
-      });
-      return [...cachedResult, ...news.docs];
-    }
-
-    const news = await payload.find({
-      collection: "news",
-      limit,
-      depth: 1,
-      sort: "-createdAt",
-      select: { content: false, keyPoints: false },
-      where: {
-        _status: { equals: "published" },
-      },
-    });
-    return news.docs;
+    const rest = await trendingFallback(
+      payload,
+      limit - picks.length,
+      picks.map((d: any) => d.id)
+    );
+    return [...picks, ...rest];
   });
 
 const recordView = publicProcedure
