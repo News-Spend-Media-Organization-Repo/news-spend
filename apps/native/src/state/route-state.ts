@@ -1,24 +1,20 @@
+import { Platform } from "react-native";
 import { proxy, useSnapshot } from "valtio";
 
 export const routeState = proxy<{
   routeName: string | undefined;
   tabName: string | undefined;
   swipe: boolean;
-  reactNavTabName: string | undefined;
 }>({
   routeName: undefined,
   swipe: true,
   tabName: "latest",
-  reactNavTabName: undefined,
 });
 
 export const setRouteName = (routeName: string | undefined) => {
   routeState.routeName = routeName;
 };
 
-export const setReactNavTabName = (tabName: string | undefined) => {
-  routeState.reactNavTabName = tabName;
-};
 export const setTabName = (tabName: string | undefined) => {
   routeState.tabName = tabName;
 };
@@ -30,7 +26,13 @@ export const setSwipe = (swipe: boolean) => {
 export const tabBarState = proxy<{
   height: number;
 }>({
-  height: 0,
+  // The native bar can't report its height (the library's own
+  // useBottomTabBarHeight resolves to 0 under the native implementation),
+  // and on iOS content extends beneath the translucent bar — so lists need
+  // explicit bottom clearance again. Standard platform heights: 49pt bar +
+  // 34pt home indicator on iOS, 80dp Material bar on Android. Slightly roomy
+  // on indicator-less phones; the call-site `+ N` constants add margin.
+  height: Platform.select({ ios: 83, android: 80, default: 83 }),
 });
 
 export const setTabBarHeight = (height: number) => {
@@ -40,11 +42,7 @@ export const setTabBarHeight = (height: number) => {
 };
 
 /**
- * The tab bar's real measured height (set by TabBar's own onLayout).
- * Use this instead of @react-navigation/bottom-tabs' useBottomTabBarHeight:
- * that hook reflects the library's static default estimate, not our actual
- * custom-rendered bar, and our bar is a floating overlay (position: absolute)
- * rather than an in-flow sibling, so screens must explicitly pad for it or
- * their bottom content renders underneath it.
+ * Bottom clearance for the native tab bar. See tabBarState above for why
+ * this is an estimate rather than a measurement.
  */
 export const useTabBarHeight = () => useSnapshot(tabBarState).height;

@@ -11,6 +11,7 @@
       },
       "channel": "beta",
       "developmentClient": false,
+      "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "beta"
       }
@@ -22,6 +23,7 @@
       },
       "channel": "beta",
       "developmentClient": false,
+      "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "beta"
       }
@@ -33,6 +35,7 @@
       "channel": "development",
       "distribution": "internal",
       "developmentClient": true,
+      "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "development"
       }
@@ -41,6 +44,7 @@
       "distribution": "internal",
       "channel": "preview",
       "autoIncrement": true,
+      "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "preview",
         "EXPO_PUBLIC_API_URL": "https://staging-api.newsspend.com"
@@ -55,6 +59,7 @@
         "autoIncrement": "buildNumber"
       },
       "channel": "production",
+      "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "production",
         "EXPO_PUBLIC_API_URL": "https://api.newsspend.com"
@@ -68,6 +73,7 @@
       "distribution": "internal",
       "channel": "production",
       "environment": "production",
+      "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "production"
       }
@@ -82,6 +88,7 @@
       "developmentClient": false,
       "distribution": "internal",
       "environment": "production",
+      "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "production",
         "EXPO_PUBLIC_SCREENSHOT_MODE": "1"

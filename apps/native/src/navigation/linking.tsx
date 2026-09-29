@@ -4,7 +4,6 @@ import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 
 import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
-import { routeState } from "#/state/route-state";
 
 const prefixes = [
   DETOUR_LINKING_PREFIX,
@@ -23,72 +22,85 @@ function ensureScheme(url: string) {
   return Linking.createURL(url);
 }
 
-/** Tab stack route name -> the path segment its screens are nested under. */
-const TAB_PATH_BY_ROUTE: Record<string, string> = {
-  NewsHome: "news",
-  ShopHome: "shop",
-  DiscoverHome: "discover",
-  Me: "settings",
-};
-
-const ROUTE_BY_TAB_PATH: Record<string, string> = Object.fromEntries(
-  Object.entries(TAB_PATH_BY_ROUTE).map(([route, path]) => [path, route])
-);
-
 /**
- * Rewrites the tab segment of a deep link to whichever tab the user is on.
- *
- * Article, comment and related screens are registered in every tab stack, so a
- * link that hardcodes one tab (`news/article/...`) would otherwise throw the
- * user out of the tab they were using. Notifications have always done this;
- * widget taps and other incoming URLs now go through the same path.
- *
- * Accepts a full URL or a bare path, as app-generated links put the tab first in
- * both forms. Returns the input unchanged when it carries no tab segment, or
- * when the app has no current tab yet (cold start resolves to NewsHome, which
- * leaves a `news/...` link alone).
+ * Tab segments from before detail screens moved to the root stack.
+ * Links minted back then carry one (`news/article/...`); the canonical paths
+ * no longer include it, so strip it. Sunset: notifications, widgets and
+ * Detour links carrying the old form expire on their own.
  */
-function retargetToCurrentTab(url: string): string {
-  const currentTabPath =
-    TAB_PATH_BY_ROUTE[routeState.reactNavTabName ?? "NewsHome"];
-  if (!currentTabPath) {
-    return url;
-  }
+const LEGACY_TAB_PREFIXES = new Set(["news", "shop", "discover", "settings"]);
+
+/** First path segments of root-level detail screens. */
+const DETAIL_LEADS = new Set([
+  "article",
+  "detail",
+  "profile",
+  "activities",
+  "blocked-users",
+  "report",
+  "notification",
+  "data-manager",
+  "delete-account",
+  "rate-app",
+  "share-app",
+  "socials",
+  "support",
+  "identity-verification",
+  "advertise",
+  "call",
+  "feedback",
+  "faq",
+  "email",
+  "legal",
+  "terms-of-use",
+  "privacy-policy",
+  "community-guidelines",
+  "play-lottery",
+  "buy-ticket",
+  "boost-luck",
+  "lucky-app-wall",
+  "my-prizes",
+  "claim-prize",
+  "prize",
+  "lottery-rules",
+  "browser",
+  "survey",
+]);
+
+function stripLegacyTabPrefix(url: string): string {
+  const strip = (segments: string[]): string[] => {
+    if (
+      segments.length >= 2 &&
+      LEGACY_TAB_PREFIXES.has(segments[0] ?? "") &&
+      DETAIL_LEADS.has(segments[1] ?? "")
+    ) {
+      return segments.slice(1);
+    }
+    return segments;
+  };
 
   try {
     const parsed = new URL(url);
-    if (ROUTE_BY_TAB_PATH[parsed.hostname] !== undefined) {
-      if (parsed.hostname === currentTabPath) {
-        return url;
-      }
-      parsed.hostname = currentTabPath;
-      return parsed.toString();
+    // Scheme URLs put the tab segment in the hostname
+    // (`news-spend://news/article/x`).
+    if (
+      LEGACY_TAB_PREFIXES.has(parsed.hostname) &&
+      DETAIL_LEADS.has(parsed.pathname.split("/").filter(Boolean)[0] ?? "")
+    ) {
+      return `${parsed.protocol}//${parsed.pathname
+        .split("/")
+        .filter(Boolean)
+        .join("/")}${parsed.search}${parsed.hash}`;
     }
-
-    const pathSegments = parsed.pathname.split("/");
-    const pathTabIndex = pathSegments.findIndex(
-      (segment) => ROUTE_BY_TAB_PATH[segment] !== undefined
-    );
-
-    if (pathTabIndex === -1 || pathSegments[pathTabIndex] === currentTabPath) {
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const stripped = strip(segments);
+    if (stripped.length === segments.length) {
       return url;
     }
-
-    pathSegments[pathTabIndex] = currentTabPath;
-    parsed.pathname = pathSegments.join("/");
+    parsed.pathname = `/${stripped.join("/")}`;
     return parsed.toString();
   } catch {
-    const segments = url.split("/");
-    const tabIndex = segments.findIndex(
-      (segment) => ROUTE_BY_TAB_PATH[segment] !== undefined
-    );
-
-    if (tabIndex === -1 || segments[tabIndex] === currentTabPath) {
-      return url;
-    }
-
-    segments[tabIndex] = currentTabPath;
-    return segments.join("/");
+    return strip(url.split("/").filter(Boolean)).join("/") || url;
   }
 }
 
@@ -136,17 +148,17 @@ export const linking: LinkingOptions<RootParamList> = {
     }
   },
   subscribe(listener) {
-    // Detour also delivers incoming URLs, so it needs the same retargeting.
-    // otherwise it hands React Navigation the raw link first and the tab
+    // Detour also delivers incoming URLs, so it needs the same legacy-prefix
+    // strip. otherwise it hands React Navigation the raw link first and the
     // rewrite below never gets a say.
     const detourSub = Detour.addEventListener("url", ({ url }) => {
-      listener(retargetToCurrentTab(url));
+      listener(stripLegacyTabPrefix(url));
     });
 
     const onReceiveURL = ({ url }: { url: string }) => {
-      // Widget taps land here. Keep the user in their current tab, matching
-      // how notification taps have always behaved.
-      listener(retargetToCurrentTab(ensureScheme(url)));
+      // Widget taps land here. Old tab-prefixed links are normalized to the
+      // root-level detail paths.
+      listener(stripLegacyTabPrefix(ensureScheme(url)));
     };
 
     // listen for incoming links from deep linking
@@ -160,7 +172,7 @@ export const linking: LinkingOptions<RootParamList> = {
         const _common = response.notification.request.content.data?.common;
 
         if (screenUrl) {
-          screenUrl = retargetToCurrentTab(screenUrl as string);
+          screenUrl = stripLegacyTabPrefix(screenUrl as string);
           listener(ensureScheme(withNewsId(screenUrl, newsId)));
           trackNotificationOpen({
             ...response.notification.request.content,

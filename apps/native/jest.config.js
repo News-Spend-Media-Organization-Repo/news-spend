@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: "jest-expo",
+  resolver: "<rootDir>/jest.resolver.js",
   setupFiles: ["./jest.setup.tsx"],
   moduleNameMapper: {
     // `#/images/*` points at assets/, not src/ — the catch-all `#/*` mapping

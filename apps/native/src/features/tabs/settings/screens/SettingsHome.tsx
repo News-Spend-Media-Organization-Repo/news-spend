@@ -9,6 +9,16 @@ import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import { cn } from "heroui-native/utils";
+import { Fragment, useCallback, useState } from "react";
+import { Alert, Linking, Platform, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSnapshot } from "valtio";
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
+import { ProgressBar } from "#/components/heroui/progress";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import {
   ArrowClockwiseIcon,
   ArticleIcon,
@@ -24,18 +34,9 @@ import {
   UserIcon,
   UserMinusIcon,
 } from "#/lib/icons";
-import { Fragment, useCallback, useState } from "react";
-import { Alert, Linking, Platform, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSnapshot } from "valtio";
-import { Button } from "#/components/heroui/button";
-import { Icon } from "#/components/heroui/icon";
-import { ProgressBar } from "#/components/heroui/progress";
-import { Screen } from "#/components/heroui/screen";
-import { Text } from "#/components/heroui/text";
-import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { orpc } from "#/lib/orpc";
 import { authState, logout } from "#/state/auth";
+import { useTabBarHeight } from "#/state/route-state";
 import { avatarColor } from "#/utils/index";
 
 type SettingsItem = {
@@ -124,6 +125,7 @@ const settingsItems: SettingsItem[] = [
 function SettingsHome() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useTabBarHeight();
   const { user } = useSnapshot(authState);
   const isGuest = user?.isAnonymous === true;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -179,7 +181,11 @@ function SettingsHome() {
   return (
     <Screen statusBarStyle="light">
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+        contentContainerStyle={{
+          // Clear the floating Sign In / Log Out CTA, which sits above the
+          // native tab bar on both platforms (see the Button below).
+          paddingBottom: 170 + insets.bottom,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <ListHeader onPress={handlePress} />
@@ -193,6 +199,13 @@ function SettingsHome() {
         className="absolute right-0 bottom-safe-offset-4 left-0 mx-4"
         // isDisabled={isLoggingOut}
         onPress={isGuest ? handleSignIn : handleLogout}
+        // The native bar overlays the content area on both platforms and never
+        // reaches the JS safe-area insets (the app uses
+        // react-native-safe-area-context's provider, so RNScreens' interface
+        // insets — the bar height — stop at the native side). Clearing only
+        // the inset left this button behind the Android Material bar: 65pt is
+        // the 49pt iOS bar the inset doesn't cover, 80dp is the Android bar.
+        style={{ marginBottom: Platform.OS === "ios" ? 65 : tabBarHeight }}
       >
         {isLoggingOut ? <Spinner /> : null}
         <Button.Label>{isGuest ? "Sign In" : "Log Out"}</Button.Label>
@@ -273,14 +286,7 @@ function ListHeader({ onPress }: ListHeaderProps) {
             </View>
             <Text>Rewards Points</Text>
           </View>
-          <Button
-            onPress={() =>
-              navigation.navigate("Tab", {
-                screen: "Discover",
-                params: { initial: false, screen: "PlayLottery" },
-              })
-            }
-          >
+          <Button onPress={() => navigation.navigate("PlayLottery")}>
             <Button.Label>Use Points</Button.Label>
           </Button>
         </Card.Body>

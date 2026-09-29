@@ -17,6 +17,7 @@ on:
           - beta-apk
           - beta-aab
           - prod-aab
+          - preview-ios
           - all
 
 env:
@@ -135,6 +136,14 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: 📱 Build Preview iOS (EAS cloud)
+        if: github.event.inputs.buildType == 'all' || github.event.inputs.buildType == 'preview-ios'
+        run: |
+          export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
+          eas build --platform ios --profile preview --non-interactive
+        env:
+          NODE_ENV: production
+
       - name: 📤 Export JavaScript bundle
         run: |
           npx expo export --platform android
@@ -148,6 +157,11 @@ jobs:
         if: github.event.inputs.buildType == 'all' || github.event.inputs.buildType == 'beta-apk' || github.event.inputs.buildType == 'beta-aab'
         run: |
           eas update --channel beta --message "Beta build update"
+
+      - name: 🚀 Publish Preview Update
+        if: github.event.inputs.buildType == 'all' || github.event.inputs.buildType == 'preview-ios'
+        run: |
+          eas update --branch preview --environment preview --message "Preview build update"
 
       - name: 🚀 Publish Production Update
         if: github.event.inputs.buildType == 'all' || github.event.inputs.buildType == 'prod-aab' || github.event_name == 'push'

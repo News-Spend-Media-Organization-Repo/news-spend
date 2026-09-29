@@ -3,8 +3,6 @@ import { createNativeStackScreen } from "@react-navigation/native-stack";
 import ResetPassword from "#/features/auth/screens/change-password";
 import ForgotPassword from "#/features/auth/screens/forgot-password";
 import Onboarding from "#/features/auth/screens/onboarding";
-import OnboardingThree from "#/features/auth/screens/onboarding-three";
-import OnboardingTwo from "#/features/auth/screens/onboarding-two";
 import PrivacyPolicy from "#/features/auth/screens/privacy-policy";
 import RegSuccess from "#/features/auth/screens/reg-success";
 import SignIn from "#/features/auth/screens/sign-in";
@@ -16,8 +14,8 @@ import Welcome from "#/features/auth/screens/welcome";
 import { authState, isAnonymous } from "#/state/auth";
 
 /**
- * Declared in their own group (`Onboarding`, see navigation/index.tsx) rather
- * than in `commonAuthScreens`: they are gated on the has-seen-onboarding flag,
+ * Declared in its own group (`Onboarding`, see navigation/index.tsx) rather
+ * than in `commonAuthScreens`: it is gated on the has-seen-onboarding flag,
  * and Welcome has to stay the fallback entry for the signed-out stack.
  */
 export const onboardingScreens = {
@@ -26,18 +24,6 @@ export const onboardingScreens = {
       path: "onboarding",
     },
     screen: Onboarding,
-  }),
-  OnboardingTwo: createNativeStackScreen({
-    linking: {
-      path: "onboarding/two",
-    },
-    screen: OnboardingTwo,
-  }),
-  OnboardingThree: createNativeStackScreen({
-    linking: {
-      path: "onboarding/three",
-    },
-    screen: OnboardingThree,
   }),
 };
 
