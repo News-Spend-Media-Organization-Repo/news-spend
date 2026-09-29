@@ -228,5 +228,11 @@
       ]
     ],
     "owner": "web79"
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-3654282727219827~3509263491",
+    "delay_app_measurement_init": true,
+    "optimize_initialization": true,
+    "optimize_ad_loading": true
   }
 }
