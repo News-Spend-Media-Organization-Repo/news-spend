@@ -298,6 +298,10 @@ export interface Account {
   accountId: string;
   providerId: string;
   password?: string | null;
+  /**
+   * OIDC ID token. Mapped to the id_token column, which BetterAuth also uses. Managed by BetterAuth; added in better-auth 1.7.
+   */
+  idToken?: string | null;
   accessToken?: string | null;
   refreshToken?: string | null;
   accessTokenExpiresAt?: string | null;
@@ -2784,6 +2788,7 @@ export interface AccountsSelect<T extends boolean = true> {
   accountId?: T;
   providerId?: T;
   password?: T;
+  idToken?: T;
   accessToken?: T;
   refreshToken?: T;
   accessTokenExpiresAt?: T;
