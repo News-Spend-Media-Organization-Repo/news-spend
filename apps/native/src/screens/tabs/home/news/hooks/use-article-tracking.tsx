@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "#/components/heroui/toast";
 import { userQueryOptions } from "#/hooks/auth/useUser";
-import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
+import { getDeviceId, useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
 import { useReadingTracker } from "#/hooks/news/useNewsTracker";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
@@ -67,7 +67,7 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
 
       if (!hasRecordedView.current) {
         hasRecordedView.current = true;
-        recordViewMutation.mutate({ newsId: data.id });
+        recordViewMutation.mutate({ newsId: data.id, deviceId: getDeviceId() });
       }
     }, [data, trackView, recordViewMutation.mutate])
   );

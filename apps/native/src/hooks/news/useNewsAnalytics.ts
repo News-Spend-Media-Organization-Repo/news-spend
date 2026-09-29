@@ -4,7 +4,7 @@ import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { storage } from "#/utils/storage";
 
 // Stable device ID: generated once and persisted
-function getOrCreateDeviceId(): string {
+export function getDeviceId(): string {
   const key = "news_analytics_device_id";
   const existing = storage.getString(key);
   if (existing) {
@@ -15,7 +15,7 @@ function getOrCreateDeviceId(): string {
   return id;
 }
 
-const deviceId = getOrCreateDeviceId();
+const deviceId = getDeviceId();
 
 type ArticleMeta = {
   id: string;
@@ -93,6 +93,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
       event: "like",
       metadata: { screen: "Article" },
     });
+    newsAnalyticsClient.flush();
   }, [article, buildBase]);
 
   const trackDislike = useCallback(() => {
@@ -104,6 +105,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
       event: "dislike",
       metadata: { screen: "Article" },
     });
+    newsAnalyticsClient.flush();
   }, [article, buildBase]);
 
   const trackShare = useCallback(
@@ -116,6 +118,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
         event: "share",
         metadata: { shareMethod, screen: "Article" },
       });
+      newsAnalyticsClient.flush();
     },
     [article, buildBase]
   );
@@ -129,6 +132,7 @@ export function useNewsAnalytics(article?: ArticleMeta) {
       event: "comment",
       metadata: { screen: "Article" },
     });
+    newsAnalyticsClient.flush();
   }, [article, buildBase]);
 
   return {

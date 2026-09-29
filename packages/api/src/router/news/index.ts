@@ -124,8 +124,14 @@ async function curatedPicks(
     select: { content: false, keyPoints: false },
   });
   const picks = [...res.docs].sort((a: any, b: any) => {
-    const ra = typeof a.featuredRank === "number" ? a.featuredRank : Infinity;
-    const rb = typeof b.featuredRank === "number" ? b.featuredRank : Infinity;
+    const ra =
+      typeof a.featuredRank === "number"
+        ? a.featuredRank
+        : Number.POSITIVE_INFINITY;
+    const rb =
+      typeof b.featuredRank === "number"
+        ? b.featuredRank
+        : Number.POSITIVE_INFINITY;
     if (ra !== rb) {
       return ra - rb;
     }
@@ -239,7 +245,11 @@ const trending = publicProcedure
 
 const recordView = publicProcedure
   .input(
-    z.object({ newsId: z.string().optional(), slug: z.string().optional() })
+    z.object({
+      newsId: z.string().optional(),
+      slug: z.string().optional(),
+      deviceId: z.string().max(64).optional(),
+    })
   )
   .handler(async ({ input, context, errors }) => {
     const { payload, user, request } = context;
@@ -271,11 +281,16 @@ const recordView = publicProcedure
       });
     }
 
-    // determine dedupe key: prefer user id, fallback to IP header
+    // determine dedupe key: prefer user id, then the app's device id, then
+    // IP. An IP bucket collapses everyone behind carrier-grade NAT into one
+    // count per day; a device id survives it. The header fallback stays for
+    // callers old enough to send neither.
     let dedupeKey = "";
     try {
       if (user?.id) {
         dedupeKey = `news:view:${doc?.id}:user:${user.id}`;
+      } else if (input.deviceId) {
+        dedupeKey = `news:view:${doc?.id}:device:${input.deviceId}`;
       } else {
         const hdr =
           request?.headers?.get?.("x-forwarded-for") ||
