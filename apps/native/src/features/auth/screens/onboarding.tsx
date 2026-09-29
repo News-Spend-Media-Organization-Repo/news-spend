@@ -22,7 +22,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "#/components/heroui/button";
-import { ConfirmAsGuest } from "#/components/heroui/confirm-as-guest";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
@@ -31,12 +30,6 @@ import { markOnboardingSeen } from "#/state/onboarding";
 /** Dots morph between these widths as the carousel scrolls. */
 const DOT_SMALL = 8;
 const DOT_LARGE = 24;
-
-/**
- * Height the last page's extra actions open to: two `size="lg"` buttons (56pt
- * each) plus the `gap-3` between them.
- */
-const SECONDARY_ACTIONS_HEIGHT = 56 * 2 + 12;
 
 type OnboardingPage = {
   key: string;
@@ -83,7 +76,7 @@ const PAGES: OnboardingPage[] = [
       </>
     ),
     body: "Access valuable information, rewarding opportunities and practical tools designed to help you make progress and shape a better future.",
-    cta: "Create an Account",
+    cta: "Get Started",
   },
 ];
 
@@ -138,7 +131,6 @@ const Onboarding = () => {
 
   const scrollX = useSharedValue(0);
   const footerProgress = useSharedValue(1);
-  const extrasProgress = useSharedValue(0);
   const listRef = useRef<FlatList<OnboardingPage>>(null);
   const [index, setIndex] = useState(0);
 
@@ -183,21 +175,8 @@ const Onboarding = () => {
     footerProgress.value = withTiming(1, { duration: 200 });
   }, [footerProgress, index]);
 
-  // The extra actions open their own space rather than being reserved on every
-  // page: the primary CTA stays pinned to the bottom of the first two pages and
-  // glides up as the space opens, instead of the whole footer being pre-grown
-  // (which parked the CTA mid-screen) or snapping (which jumped).
-  useEffect(() => {
-    extrasProgress.value = withTiming(isLastPage ? 1 : 0, { duration: 220 });
-  }, [extrasProgress, isLastPage]);
-
   const footerStyle = useAnimatedStyle(() => ({
     opacity: footerProgress.value,
-  }));
-
-  const extrasStyle = useAnimatedStyle(() => ({
-    height: SECONDARY_ACTIONS_HEIGHT * extrasProgress.value,
-    opacity: extrasProgress.value,
   }));
 
   const goToPage = (next: number) => {
@@ -209,24 +188,16 @@ const Onboarding = () => {
     navigation.replace("Welcome");
   };
 
+  // The last page ends the carousel rather than signing anyone in: Welcome is
+  // where the sign in / create account / guest decision lives, and it is also
+  // the signed-out landing screen, so the choice exists in one place.
   const handlePrimary = () => {
     if (!isLastPage) {
       goToPage(index + 1);
       return;
     }
     markOnboardingSeen();
-    navigation.navigate("TOS", { goto: "SignUp" });
-  };
-
-  const handleLogIn = () => {
-    markOnboardingSeen();
-    navigation.navigate("TOS", { goto: "SignIn" });
-  };
-
-  // The anonymous sign-in itself flips auth state, which drops the Onboarding
-  // group and lands on the tabs — nothing to navigate here.
-  const handleGuest = () => {
-    markOnboardingSeen();
+    navigation.replace("Welcome");
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<OnboardingPage>) => (
@@ -316,39 +287,12 @@ const Onboarding = () => {
           ))}
         </View>
 
-        <Animated.View className="gap-3" style={footerStyle}>
+        <Animated.View style={footerStyle}>
           <Button className="bg-p-500" onPress={handlePrimary} size="lg">
             <Button.Label className="text-p-50">
               {PAGES[index]?.cta}
             </Button.Label>
           </Button>
-
-          {/* Opens to `SECONDARY_ACTIONS_HEIGHT` on the last page. Bottom
-              aligned, so the actions stay put against the footer edge while
-              the space above them (and the primary CTA) expands. */}
-          <Animated.View
-            className="justify-end gap-3 overflow-hidden"
-            style={extrasStyle}
-          >
-            {isLastPage ? (
-              <>
-                <Button onPress={handleLogIn} size="lg" variant="outline">
-                  <Button.Label className="text-p-500">Log In</Button.Label>
-                </Button>
-
-                <ConfirmAsGuest
-                  onSuccess={handleGuest}
-                  trigger={
-                    <Button size="lg" variant="ghost">
-                      <Button.Label className="text-s-300">
-                        Continue as a guest
-                      </Button.Label>
-                    </Button>
-                  }
-                />
-              </>
-            ) : null}
-          </Animated.View>
         </Animated.View>
       </View>
     </Screen>
