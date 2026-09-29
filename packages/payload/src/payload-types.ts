@@ -551,7 +551,7 @@ export interface User {
   name: string;
   image?: string | null;
   username: string;
-  wish: string;
+  wish?: string | null;
   /**
    * No longer collected at sign-up (App Store guideline 5.1.1(v)). Retained for existing users and admin edits.
    */
