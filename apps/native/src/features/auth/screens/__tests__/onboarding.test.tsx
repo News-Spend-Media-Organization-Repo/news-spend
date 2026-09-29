@@ -20,7 +20,6 @@ jest.mock("#/hooks/useMarkInteractive", () => ({
 
 jest.mock("#/state/onboarding", () => ({
   markOnboardingSeen: jest.fn(),
-  seenOnboardingAtLaunch: false,
 }));
 
 const pageWidth = Dimensions.get("window").width;

@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSnapshot } from "valtio";
 
 import { authState } from "#/state/auth";
-import { seenOnboardingAtLaunch } from "#/state/onboarding";
+import { useNeedsOnboarding } from "#/state/onboarding";
 
 import { commonAuthScreens, onboardingScreens } from "./common";
 import { sharedScreens } from "./shared-screens";
@@ -20,13 +20,12 @@ function useIsSignedOut() {
 }
 
 /**
- * Onboarding only for signed-out users who have never finished it, and only
- * for this session: `seenOnboardingAtLaunch` is a startup snapshot, so the
- * group can't drop away underneath the route that is on screen.
+ * Onboarding only for signed-out users who have never finished it. The flag is
+ * reactive, so finishing onboarding closes the gate for the rest of the session
+ * — signing out afterwards lands on Welcome, not back in the carousel.
  */
-function useNeedsOnboarding() {
-  const { status } = useSnapshot(authState);
-  return status === "signOut" && !seenOnboardingAtLaunch;
+function useRootOnboardingGate() {
+  return useNeedsOnboarding(useIsSignedOut());
 }
 
 const RootStackNavigator = createNativeStackNavigator({
@@ -37,7 +36,7 @@ const RootStackNavigator = createNativeStackNavigator({
   groups: {
     // First group, so it wins the initial route when its condition holds.
     Onboarding: {
-      if: useNeedsOnboarding,
+      if: useRootOnboardingGate,
       screens: onboardingScreens,
     },
     LoggedIn: {
