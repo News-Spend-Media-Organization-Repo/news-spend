@@ -98,7 +98,27 @@ export const Users: CollectionConfig = {
     {
       name: "wish",
       type: "text",
-      required: true,
+      /**
+       * Required for registered users, exempt for guests. Guests carry an
+       * empty wish, and Payload validates partial updates against it: with a
+       * plain `required: true` every server-side touch of a guest row
+       * (lastActive, settings, date of birth) fails validation. Anonymous
+       * status comes from the update data, falling back to the stored row
+       * for updates that do not carry it.
+       */
+      validate: (value: unknown, { data, originalDoc }: any) => {
+        const anonymous =
+          (data as { isAnonymous?: boolean } | undefined)?.isAnonymous ??
+          (originalDoc as { isAnonymous?: boolean } | undefined)?.isAnonymous ??
+          false;
+        if (anonymous) {
+          return true;
+        }
+        if (typeof value !== "string" || value.trim() === "") {
+          return "Tell us your wish.";
+        }
+        return true;
+      },
     },
     {
       name: "phone",
