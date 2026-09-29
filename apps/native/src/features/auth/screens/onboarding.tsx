@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import {
   type FlatList,
   type ListRenderItemInfo,
@@ -17,7 +17,6 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -130,7 +129,6 @@ const Onboarding = () => {
   const insets = useSafeAreaInsets();
 
   const scrollX = useSharedValue(0);
-  const footerProgress = useSharedValue(1);
   const listRef = useRef<FlatList<OnboardingPage>>(null);
   const [index, setIndex] = useState(0);
 
@@ -153,10 +151,6 @@ const Onboarding = () => {
       return;
     }
 
-    // Hide the footer *before* the content swaps. Doing it in the effect below
-    // paints the incoming buttons at full opacity for a frame first, which is
-    // the flicker you see as they appear.
-    footerProgress.value = 0;
     setIndex(next);
   };
 
@@ -167,17 +161,6 @@ const Onboarding = () => {
   };
 
   const isLastPage = index === PAGES.length - 1;
-
-  useEffect(() => {
-    if (!PAGES[index]) {
-      return;
-    }
-    footerProgress.value = withTiming(1, { duration: 200 });
-  }, [footerProgress, index]);
-
-  const footerStyle = useAnimatedStyle(() => ({
-    opacity: footerProgress.value,
-  }));
 
   const goToPage = (next: number) => {
     listRef.current?.scrollToIndex({ animated: true, index: next });
@@ -287,13 +270,12 @@ const Onboarding = () => {
           ))}
         </View>
 
-        <Animated.View style={footerStyle}>
-          <Button className="bg-p-500" onPress={handlePrimary} size="lg">
-            <Button.Label className="text-p-50">
-              {PAGES[index]?.cta}
-            </Button.Label>
-          </Button>
-        </Animated.View>
+        {/* No fade or slide on the CTA: the label swaps with the page, and the
+            carousel plus the scroll-driven dots carry the transition. Any
+            opacity reset here reads as a blink. */}
+        <Button className="bg-p-500" onPress={handlePrimary} size="lg">
+          <Button.Label className="text-p-50">{PAGES[index]?.cta}</Button.Label>
+        </Button>
       </View>
     </Screen>
   );
