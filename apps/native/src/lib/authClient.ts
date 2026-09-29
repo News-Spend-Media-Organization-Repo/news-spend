@@ -79,7 +79,13 @@ export const authClient = createAuthClient({
         getItem(key) {
           return storage.getString(key) ?? null;
         },
+        async getItemAsync(key) {
+          return storage.getString(key) ?? null;
+        },
         setItem(key, value) {
+          storage.set(key, value);
+        },
+        async setItemAsync(key, value) {
           storage.set(key, value);
         },
       },
