@@ -392,7 +392,7 @@ export interface Partner {
   /**
    * How will this partner send conversion data?
    */
-  integrationMethod: 'manual' | 'webhook' | 'postback' | 'csv';
+  integrationMethod: 'manual' | 'webhook' | 'csv';
   /**
    * Share this URL with technical partners
    */
@@ -847,6 +847,14 @@ export interface News {
    * 💡 Summary of the article
    */
   excerpt?: string | null;
+  /**
+   * 💡 Pin to Top stories. Featured articles lead the carousel in rank order.
+   */
+  featured?: boolean | null;
+  /**
+   * 💡 1 shows first. Empty ranks below numbered ones.
+   */
+  featuredRank?: number | null;
   publishedAt: string;
   updatedAt: string;
   /**
@@ -3290,6 +3298,8 @@ export interface NewsSelect<T extends boolean = true> {
   readTimeMinutes?: T;
   views?: T;
   excerpt?: T;
+  featured?: T;
+  featuredRank?: T;
   publishedAt?: T;
   updatedAt?: T;
   points?: T;

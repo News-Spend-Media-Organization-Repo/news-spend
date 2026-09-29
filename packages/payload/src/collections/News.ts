@@ -237,6 +237,27 @@ const News: CollectionConfig = {
       maxLength: 100,
     },
     {
+      name: "featured",
+      type: "checkbox",
+      defaultValue: false,
+      index: true,
+      admin: {
+        position: "sidebar",
+        description:
+          "💡 Pin to Top stories. Featured articles lead the carousel in rank order.",
+      },
+    },
+    {
+      name: "featuredRank",
+      type: "number",
+      min: 1,
+      admin: {
+        position: "sidebar",
+        description: "💡 1 shows first. Empty ranks below numbered ones.",
+        condition: (data) => Boolean(data?.featured),
+      },
+    },
+    {
       name: "publishedAt",
       type: "date",
       required: true,
