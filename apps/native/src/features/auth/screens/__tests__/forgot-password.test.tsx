@@ -27,8 +27,8 @@ describe("ForgotPassword screen", () => {
     jest.clearAllMocks();
   });
 
-  it("renders the heading and description", () => {
-    render(<ForgotPassword />);
+  it("renders the heading and description", async () => {
+    await render(<ForgotPassword />);
 
     expect(screen.getByText("Forgot Password")).toBeTruthy();
     expect(
@@ -38,18 +38,18 @@ describe("ForgotPassword screen", () => {
     ).toBeTruthy();
   });
 
-  it("renders an email input and submit button", () => {
-    render(<ForgotPassword />);
+  it("renders an email input and submit button", async () => {
+    await render(<ForgotPassword />);
 
     expect(screen.getByPlaceholderText("example@email.com")).toBeTruthy();
     expect(screen.getByText("Send Code")).toBeTruthy();
   });
 
-  it("allows typing an email into the input", () => {
-    render(<ForgotPassword />);
+  it("allows typing an email into the input", async () => {
+    await render(<ForgotPassword />);
 
     const input = screen.getByPlaceholderText("example@email.com");
-    fireEvent.changeText(input, "test@example.com");
+    await fireEvent.changeText(input, "test@example.com");
 
     expect(screen.getByPlaceholderText("example@email.com").props.value).toBe(
       "test@example.com"

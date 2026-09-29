@@ -19,20 +19,20 @@ beforeEach(() => {
 });
 
 describe("useNeedsOnboarding", () => {
-  it("opens for a signed-out user who has never seen onboarding", () => {
-    const { result } = renderHook(() => useNeedsOnboarding(true));
+  it("opens for a signed-out user who has never seen onboarding", async () => {
+    const { result } = await renderHook(() => useNeedsOnboarding(true));
 
     expect(result.current).toBe(true);
   });
 
-  it("stays shut for signed-in users", () => {
-    const { result } = renderHook(() => useNeedsOnboarding(false));
+  it("stays shut for signed-in users", async () => {
+    const { result } = await renderHook(() => useNeedsOnboarding(false));
 
     expect(result.current).toBe(false);
   });
 
-  it("stays shut after onboarding is finished, even after signing out again", () => {
-    const { result, rerender } = renderHook(
+  it("stays shut after onboarding is finished, even after signing out again", async () => {
+    const { result, rerender } = await renderHook(
       ({ isSignedOut }: { isSignedOut: boolean }) =>
         useNeedsOnboarding(isSignedOut),
       { initialProps: { isSignedOut: true } }
@@ -41,12 +41,12 @@ describe("useNeedsOnboarding", () => {
     expect(result.current).toBe(true);
 
     markOnboardingSeen();
-    rerender({ isSignedOut: false });
+    await rerender({ isSignedOut: false });
     expect(result.current).toBe(false);
 
     // The startup-snapshot version of this gate re-armed the carousel here,
     // dropping a user who had just signed out back into onboarding.
-    rerender({ isSignedOut: true });
+    await rerender({ isSignedOut: true });
     expect(result.current).toBe(false);
   });
 

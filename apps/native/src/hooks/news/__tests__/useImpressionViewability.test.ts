@@ -23,8 +23,8 @@ const onChanged = (pairs: ReturnType<typeof useImpressionViewability>) =>
 describe("useImpressionViewability", () => {
   beforeEach(() => mockTrackImpression.mockReset());
 
-  it("uses the shared 50%-for-one-second standard", () => {
-    const { result } = renderHook(() =>
+  it("uses the shared 50%-for-one-second standard", async () => {
+    const { result } = await renderHook(() =>
       useImpressionViewability("HomeTrending")
     );
 
@@ -37,8 +37,8 @@ describe("useImpressionViewability", () => {
     });
   });
 
-  it("records each newly viewable article under the list's screen name", () => {
-    const { result } = renderHook(() =>
+  it("records each newly viewable article under the list's screen name", async () => {
+    const { result } = await renderHook(() =>
       useImpressionViewability("HomeTrending")
     );
 
@@ -64,8 +64,8 @@ describe("useImpressionViewability", () => {
     );
   });
 
-  it("ignores items that left view or carry no id", () => {
-    const { result } = renderHook(() =>
+  it("ignores items that left view or carry no id", async () => {
+    const { result } = await renderHook(() =>
       useImpressionViewability("HomeTrending")
     );
 
@@ -80,13 +80,13 @@ describe("useImpressionViewability", () => {
     expect(mockTrackImpression).not.toHaveBeenCalled();
   });
 
-  it("hands the list the same reference on every render", () => {
-    const { result, rerender } = renderHook(() =>
+  it("hands the list the same reference on every render", async () => {
+    const { result, rerender } = await renderHook(() =>
       useImpressionViewability("HomeTrending")
     );
     const first = result.current;
 
-    rerender({});
+    await rerender({});
 
     expect(result.current).toBe(first);
   });
