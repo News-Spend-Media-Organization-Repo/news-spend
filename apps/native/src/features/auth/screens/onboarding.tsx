@@ -252,7 +252,9 @@ const Onboarding = () => {
 
       <View
         className="gap-6 px-6 pt-8"
-        style={{ paddingBottom: insets.bottom + 8 }}
+        // Matches the horizontal `px-6` gutter, so the CTA has the same
+        // breathing room below it as it does at the sides.
+        style={{ paddingBottom: insets.bottom + 24 }}
       >
         <View
           accessibilityLabel={`Onboarding screen ${index + 1} of ${PAGES.length}`}
