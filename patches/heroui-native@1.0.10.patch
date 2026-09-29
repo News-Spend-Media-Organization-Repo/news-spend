@@ -1,0 +1,48 @@
+diff --git a/lib/module/components/input/input.styles.js b/lib/module/components/input/input.styles.js
+index 89ca74b54dbde6396695623e7254790e36d746db..97b4529d337468396c1d7c149183e6cdf4133552 100644
+--- a/lib/module/components/input/input.styles.js
++++ b/lib/module/components/input/input.styles.js
+@@ -32,7 +32,7 @@ const background = tv({
+  * explicitly aligned to the trailing side in RTL layouts.
+  */
+ const input = tv({
+-  base: 'input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-transparent android:focus:border-accent rtl:text-right',
++  base: 'input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-field-border android:focus:border-accent rtl:text-right',
+   variants: {
+     variant: {
+       primary: 'input__input--variant-primary ios:shadow-field android:shadow-sm',
+diff --git a/lib/typescript/src/components/input/input.styles.d.ts b/lib/typescript/src/components/input/input.styles.d.ts
+index 98ececb7040ccce5b0c76954978000b94005e90c..1462e643eba8a377bdf7ec9b6bc7bb0ba7919284 100644
+--- a/lib/typescript/src/components/input/input.styles.d.ts
++++ b/lib/typescript/src/components/input/input.styles.d.ts
+@@ -14,7 +14,7 @@ export declare const inputClassNames: import("../../helpers/internal/types/index
+             true: string;
+             false: string;
+         };
+-    }, undefined, "input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-transparent android:focus:border-accent rtl:text-right", {
++    }, undefined, "input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-field-border android:focus:border-accent rtl:text-right", {
+         variant: {
+             primary: string;
+             secondary: string;
+@@ -40,7 +40,7 @@ export declare const inputClassNames: import("../../helpers/internal/types/index
+             true: string;
+             false: string;
+         };
+-    }, undefined, "input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-transparent android:focus:border-accent rtl:text-right", unknown, unknown, undefined>>;
++    }, undefined, "input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-field-border android:focus:border-accent rtl:text-right", unknown, unknown, undefined>>;
+     inputSelectionColor: import("tailwind-variants").TVReturnType<{
+         isInvalid: {
+             true: string;
+diff --git a/src/components/input/input.styles.ts b/src/components/input/input.styles.ts
+index 43ee0278bd7f13b7ad58922d33318f7c69cddcb3..f1c88054e25d61274f421fe324388498ea6bc6e4 100644
+--- a/src/components/input/input.styles.ts
++++ b/src/components/input/input.styles.ts
+@@ -30,7 +30,7 @@ const background = tv({
+  * explicitly aligned to the trailing side in RTL layouts.
+  */
+ const input = tv({
+-  base: 'input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-transparent android:focus:border-accent rtl:text-right',
++  base: 'input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-field-border android:focus:border-accent rtl:text-right',
+   variants: {
+     variant: {
+       primary:
