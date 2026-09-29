@@ -35,8 +35,8 @@ beforeEach(() => {
 });
 
 describe("Onboarding", () => {
-  it("shows the first page with its progress label and a skip", () => {
-    render(<Onboarding />);
+  it("shows the first page with its progress label and a skip", async () => {
+    await render(<Onboarding />);
 
     expect(
       screen.getByText("Your Time Online Should Move Your Life Forward")
@@ -46,17 +46,17 @@ describe("Onboarding", () => {
     expect(screen.getByLabelText("Skip onboarding")).toBeTruthy();
   });
 
-  it("advances its one CTA as the carousel moves", () => {
-    render(<Onboarding />);
+  it("advances its one CTA as the carousel moves", async () => {
+    await render(<Onboarding />);
 
     expect(screen.getByText("Move Your Life Forward")).toBeTruthy();
 
-    swipeToPage(1);
+    await swipeToPage(1);
     expect(screen.getByText("Continue")).toBeTruthy();
     expect(screen.getByLabelText("Onboarding screen 2 of 3")).toBeTruthy();
     expect(screen.queryByText("Get Started")).toBeNull();
 
-    swipeToPage(2);
+    await swipeToPage(2);
     expect(screen.getByText("Get Started")).toBeTruthy();
     expect(screen.getByLabelText("Onboarding screen 3 of 3")).toBeTruthy();
     expect(screen.queryByText("Continue")).toBeNull();
@@ -64,30 +64,30 @@ describe("Onboarding", () => {
     expect(screen.getByLabelText("Skip onboarding")).toBeDisabled();
   });
 
-  it("hands off to Welcome from the last page and records the flag", () => {
-    render(<Onboarding />);
-    swipeToPage(2);
+  it("hands off to Welcome from the last page and records the flag", async () => {
+    await render(<Onboarding />);
+    await swipeToPage(2);
 
-    fireEvent.press(screen.getByText("Get Started"));
+    await fireEvent.press(screen.getByText("Get Started"));
 
     expect(markOnboardingSeen).toHaveBeenCalledTimes(1);
     expect(mockReplace).toHaveBeenCalledWith("Welcome");
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("skips to Welcome and records the flag", () => {
-    render(<Onboarding />);
+  it("skips to Welcome and records the flag", async () => {
+    await render(<Onboarding />);
 
-    fireEvent.press(screen.getByLabelText("Skip onboarding"));
+    await fireEvent.press(screen.getByLabelText("Skip onboarding"));
 
     expect(markOnboardingSeen).toHaveBeenCalledTimes(1);
     expect(mockReplace).toHaveBeenCalledWith("Welcome");
   });
 
-  it("does not record the flag while paging forward", () => {
-    render(<Onboarding />);
+  it("does not record the flag while paging forward", async () => {
+    await render(<Onboarding />);
 
-    swipeToPage(1);
+    await swipeToPage(1);
 
     expect(markOnboardingSeen).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
