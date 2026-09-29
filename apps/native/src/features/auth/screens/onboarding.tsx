@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type FlatList,
   type ListRenderItemInfo,
@@ -17,6 +17,7 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -129,10 +130,24 @@ const Onboarding = () => {
   const insets = useSafeAreaInsets();
 
   const scrollX = useSharedValue(0);
+  const skipProgress = useSharedValue(1);
   const listRef = useRef<FlatList<OnboardingPage>>(null);
   const [index, setIndex] = useState(0);
 
   useMarkInteractive(true);
+
+  const isLastPage = index === PAGES.length - 1;
+
+  // Skip only earns its place while there are pages left to skip: on the last
+  // one it goes where the CTA goes. It fades rather than unmounts, so the
+  // carousel above keeps its height.
+  useEffect(() => {
+    skipProgress.value = withTiming(isLastPage ? 0 : 1, { duration: 180 });
+  }, [skipProgress, isLastPage]);
+
+  const skipStyle = useAnimatedStyle(() => ({
+    opacity: skipProgress.value,
+  }));
 
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollX.value = event.contentOffset.x;
@@ -159,8 +174,6 @@ const Onboarding = () => {
       syncIndex(event);
     }
   };
-
-  const isLastPage = index === PAGES.length - 1;
 
   const goToPage = (next: number) => {
     listRef.current?.scrollToIndex({ animated: true, index: next });
@@ -209,25 +222,33 @@ const Onboarding = () => {
   );
 
   return (
+    // No `safeAreaEdges`: the illustration is meant to bleed through the status
+    // bar and home indicator. Only the interactive rows take the insets, so
+    // nothing ends up under the system UI.
     <Screen
       className="bg-p-50"
       navigationBarButtonStyle="dark"
       preset="fixed"
       statusBarStyle="dark"
     >
-      {/* No `safeAreaEdges` on the Screen: the illustration is meant to bleed
-          through the status bar / home indicator. Only the interactive rows
-          take the insets, so nothing ends up under the system UI. */}
+      {/* Fixed height, faded rather than unmounted, so the carousel doesn't
+          resize when Skip goes. */}
       <View className="px-6" style={{ paddingTop: insets.top }}>
-        <Pressable
-          accessibilityLabel="Skip onboarding"
-          accessibilityRole="button"
-          className="self-end py-2"
-          hitSlop={10}
-          onPress={handleSkip}
+        <Animated.View
+          pointerEvents={isLastPage ? "none" : "auto"}
+          style={skipStyle}
         >
-          <Text className="font-semibold text-p-500 text-sm">Skip</Text>
-        </Pressable>
+          <Pressable
+            accessibilityLabel="Skip onboarding"
+            accessibilityRole="button"
+            className="self-end py-2"
+            disabled={isLastPage}
+            hitSlop={10}
+            onPress={handleSkip}
+          >
+            <Text className="font-semibold text-p-500 text-sm">Skip</Text>
+          </Pressable>
+        </Animated.View>
       </View>
 
       <Animated.FlatList

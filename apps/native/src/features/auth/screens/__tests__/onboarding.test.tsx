@@ -60,6 +60,8 @@ describe("Onboarding", () => {
     expect(screen.getByText("Get Started")).toBeTruthy();
     expect(screen.getByLabelText("Onboarding screen 3 of 3")).toBeTruthy();
     expect(screen.queryByText("Continue")).toBeNull();
+    // Skip lands where the CTA lands, so it stands down on this page.
+    expect(screen.getByLabelText("Skip onboarding")).toBeDisabled();
   });
 
   it("hands off to Welcome from the last page and records the flag", () => {
