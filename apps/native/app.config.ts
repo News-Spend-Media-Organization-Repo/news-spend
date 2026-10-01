@@ -74,12 +74,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           : undefined,
     },
 
-    plugins: [
-      ...(config.plugins ?? []),
-      // iOS 27 SDK requires the UIScene life cycle; Expo SDK 57 doesn't ship
-      // it. Remove once Expo provides official scene support.
-      "./plugins/with-ios-scene-delegate",
-    ],
+    plugins: [...(config.plugins ?? [])],
 
     // Android configuration
     android: {
