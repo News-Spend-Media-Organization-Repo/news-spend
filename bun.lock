@@ -58,7 +58,7 @@
       "version": "2.6.0",
       "dependencies": {
         "@better-auth/expo": "catalog:",
-        "@callstack/liquid-glass": "^0.7.0",
+        "@callstack/liquid-glass": "^0.8.2",
         "@gorhom/bottom-sheet": "^5.2.10",
         "@hookform/resolvers": "catalog:",
         "@legendapp/list": "^3.4.0",
@@ -757,7 +757,7 @@
 
     "@borewit/text-codec": ["@borewit/text-codec@0.2.2", "", {}, "sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ=="],
 
-    "@callstack/liquid-glass": ["@callstack/liquid-glass@0.7.1", "", { "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-N2rzs8g3kneI5G/98AZdVtjc6OUFBBFwPxVGVMoXUEI7QiioB4+aWwbImg5h8Z3Vb/T+fgLYWmmNhi27wHwE4g=="],
+    "@callstack/liquid-glass": ["@callstack/liquid-glass@0.8.2", "", { "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-Z3bhZLkQLBquA7LIx6Ktv/fFd8nuOsAo1vb/S6Y3tqaQVnHu9RNFreidfZ+SUYnrQu5TqVzEOqq+9CR4jrwd9A=="],
 
     "@clack/core": ["@clack/core@1.5.1", "", { "dependencies": { "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-iHTrHA8MtVuLl2TfZySmcKv1qO2PoyC9Z7pfSDozEuV5vtY3/wcOPKJXlqJ5Oq2Cx5DDGQGAMVx6HZfRRoVEbQ=="],
 
