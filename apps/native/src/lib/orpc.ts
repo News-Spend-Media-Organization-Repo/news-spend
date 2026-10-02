@@ -48,10 +48,10 @@ const retryPlugin = new RetryLinkPlugin<ORPCClientContext>({
  */
 const APP_VERSION = Application.nativeApplicationVersion ?? "";
 
-function commonHeaders(): Record<string, string> {
+async function commonHeaders(): Promise<Record<string, string>> {
   const headers = new Map<string, string>();
 
-  const cookies = authClient.getCookie();
+  const cookies = await authClient.getCookie();
   if (cookies) {
     headers.set("Cookie", cookies);
   }

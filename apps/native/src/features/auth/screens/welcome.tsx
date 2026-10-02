@@ -13,7 +13,15 @@ const Welcome = () => {
   useMarkInteractive(true);
 
   return (
-    <Screen className="bg-p-500 px-6" preset="fixed" statusBarStyle="light">
+    <Screen
+      className="bg-p-500 px-6"
+      preset="fixed"
+      // The button stack is bottom-anchored, and the window is edge-to-edge —
+      // without this the last button ("Continue as a guest") sits under the
+      // Android navigation bar.
+      safeAreaEdges={["bottom"]}
+      statusBarStyle="light"
+    >
       <View className="flex-2 items-center justify-center">
         <Image
           contentFit="contain"

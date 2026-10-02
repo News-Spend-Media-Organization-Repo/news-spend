@@ -198,6 +198,80 @@ describe("newsRouter.trending", () => {
 
     expect(result).toHaveLength(1);
   });
+
+  it("leads with curated picks in rank order, then fills the rest", async () => {
+    const payload = createFakePayload({
+      collections: {
+        news: [
+          makeNews({ id: "n1", slug: "a1" }),
+          makeNews({
+            id: "n2",
+            slug: "a2",
+            featured: true,
+            featuredRank: 2,
+          }),
+          makeNews({
+            id: "n3",
+            slug: "a3",
+            featured: true,
+            featuredRank: 1,
+          }),
+          makeNews({ id: "n4", slug: "a4", featured: true }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      newsRouter.trending,
+      { limit: 3 },
+      { context: ctx }
+    );
+
+    // Ranked picks first in rank order, then the unranked pick; the
+    // fallback would only add a fourth.
+    expect(result.map((d: any) => d.id)).toEqual(["n3", "n2", "n4"]);
+  });
+
+  it("returns only picks when they cover the limit", async () => {
+    const payload = createFakePayload({
+      collections: {
+        news: [
+          makeNews({ id: "n1", slug: "a1" }),
+          makeNews({ id: "n2", slug: "a2", featured: true }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      newsRouter.trending,
+      { limit: 1 },
+      { context: ctx }
+    );
+
+    expect(result.map((d: any) => d.id)).toEqual(["n2"]);
+  });
+
+  it("ignores featured drafts", async () => {
+    const payload = createFakePayload({
+      collections: {
+        news: [
+          makeNews({ id: "n1", slug: "a1" }),
+          makeNews({ id: "n2", slug: "a2", featured: true, _status: "draft" }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      newsRouter.trending,
+      { limit: 2 },
+      { context: ctx }
+    );
+
+    expect(result.map((d: any) => d.id)).toEqual(["n1"]);
+  });
 });
 
 // ---------------------------------------------------------------------------

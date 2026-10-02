@@ -560,3 +560,12 @@ export const BLOCKED_FULFILMENT_STATUSES: readonly FulfilmentStatus[] = [
   "on_hold",
   "cancelled",
 ];
+
+/**
+ * Longest giveaway description, in characters.
+ *
+ * The description is also the body of the "new giveaway is live" push. Lock
+ * screens collapse a body to roughly two lines, so past about 150 characters
+ * the tail is cut off by the OS, mid-sentence.
+ */
+export const GIVEAWAY_DESCRIPTION_MAX_LENGTH = 150;

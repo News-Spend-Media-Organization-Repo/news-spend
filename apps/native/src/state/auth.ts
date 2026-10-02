@@ -5,8 +5,6 @@ import { authClient } from "#/lib/authClient";
 import { queryClient } from "#/lib/tanstackQuery";
 import { storage } from "#/utils/storage";
 
-import { routeState } from "./route-state";
-
 const initialAuthState = {
   session: null,
   user: null,
@@ -202,7 +200,6 @@ export const logout = async () => {
     authState.session = null;
     authState.user = null;
     authState.status = "signOut";
-    routeState.reactNavTabName = undefined;
     storage.remove("pushToken");
     // Server deletes the push-tokens row on sign-out, so the acknowledged
     // (token, account, build) triple cached by usePushNotification is dead.

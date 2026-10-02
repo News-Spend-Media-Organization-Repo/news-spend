@@ -50,6 +50,9 @@ import * as migration_20260919_050533_narrow_news_type_to_article from './202609
 import * as migration_20260920_053947_analytics_event_ids from './20260920_053947_analytics_event_ids';
 import * as migration_20260920_215557_partner_postbacks from './20260920_215557_partner_postbacks';
 import * as migration_20260922_130000_drop_partner_api_key from './20260922_130000_drop_partner_api_key';
+import * as migration_20260929_091515 from './20260929_091515';
+import * as migration_20260929_131630 from './20260929_131630';
+import * as migration_20261002_063111_giveaway_send_announcement from './20261002_063111_giveaway_send_announcement';
 
 export const migrations = [
   {
@@ -305,11 +308,26 @@ export const migrations = [
   {
     up: migration_20260920_215557_partner_postbacks.up,
     down: migration_20260920_215557_partner_postbacks.down,
-    name: '20260920_215557_partner_postbacks'
+    name: '20260920_215557_partner_postbacks',
   },
   {
     up: migration_20260922_130000_drop_partner_api_key.up,
     down: migration_20260922_130000_drop_partner_api_key.down,
     name: '20260922_130000_drop_partner_api_key',
+  },
+  {
+    up: migration_20260929_091515.up,
+    down: migration_20260929_091515.down,
+    name: '20260929_091515',
+  },
+  {
+    up: migration_20260929_131630.up,
+    down: migration_20260929_131630.down,
+    name: '20260929_131630',
+  },
+  {
+    up: migration_20261002_063111_giveaway_send_announcement.up,
+    down: migration_20261002_063111_giveaway_send_announcement.down,
+    name: '20261002_063111_giveaway_send_announcement'
   },
 ];

@@ -122,8 +122,31 @@ export async function GiveawaySetupGuideView(
                 "Min Tickets Required",
                 "Tickets a buyer must hold to count as a participant.",
               ],
+              [
+                "Description",
+                "Shown on the giveaway screen and sent as the push notification when the giveaway goes Active. Keep it under 150 characters or phones cut it off. Type {{firstName}} to greet each user by their own first name — see the box below.",
+              ],
+              [
+                "Send push notification",
+                "On by default, so users are told when a giveaway opens. Switch it off to activate quietly. Nothing is sent if the Description is empty.",
+              ],
             ]}
           />
+          <P>
+            <strong>Using the user's name.</strong> Write{" "}
+            <code>{"{{firstName}}"}</code> exactly like that, with the double
+            curly brackets, anywhere in the Description. Each user sees their
+            own first name in its place: typing{" "}
+            <code>
+              {"{{firstName}}, join 1500 winners to win amazing prizes"}
+            </code>{" "}
+            shows Segun "Segun, join 1500 winners to win amazing prizes". If we
+            have no name for someone, a placeholder at the very start is simply
+            dropped ("Join 1500 winners…") and one in the middle becomes "there"
+            ("Hey there, …"), so nobody ever sees the curly brackets. The
+            placeholder counts toward the 150 characters as typed, and real
+            names are usually shorter than it.
+          </P>
         </Step>
 
         <Step n="Step 3" title="Set the Winner Distribution">
@@ -229,6 +252,12 @@ export async function GiveawaySetupGuideView(
             itself within the hour: winners are picked, prizes allocated, and
             each winner gets 14 days to claim. Airtime and Data pay out on
             claim; everything else waits for you to arrange delivery.
+          </P>
+          <P>
+            Activating also sends the push notification to every user (unless
+            you switched <strong>Send push notification</strong> off). It goes
+            out shortly after you save, each time the status changes to Active;
+            editing a giveaway that is already Active does not send it again.
           </P>
         </Step>
 

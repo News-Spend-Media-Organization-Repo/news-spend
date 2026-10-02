@@ -298,6 +298,10 @@ export interface Account {
   accountId: string;
   providerId: string;
   password?: string | null;
+  /**
+   * OIDC ID token. Mapped to the id_token column, which BetterAuth also uses. Managed by BetterAuth; added in better-auth 1.7.
+   */
+  idToken?: string | null;
   accessToken?: string | null;
   refreshToken?: string | null;
   accessTokenExpiresAt?: string | null;
@@ -392,7 +396,7 @@ export interface Partner {
   /**
    * How will this partner send conversion data?
    */
-  integrationMethod: 'manual' | 'webhook' | 'postback' | 'csv';
+  integrationMethod: 'manual' | 'webhook' | 'csv';
   /**
    * Share this URL with technical partners
    */
@@ -551,7 +555,7 @@ export interface User {
   name: string;
   image?: string | null;
   username: string;
-  wish: string;
+  wish?: string | null;
   /**
    * No longer collected at sign-up (App Store guideline 5.1.1(v)). Retained for existing users and admin edits.
    */
@@ -625,7 +629,14 @@ export interface DailyRead {
 export interface Giveaway {
   id: string;
   name: string;
+  /**
+   * Shown on the giveaway screen, and sent as the push notification body when this giveaway is set to Active. Write {{firstName}} to address each user by first name, e.g. "{{firstName}}, join 1500 winners". Max 150 characters so it is not cut off on a lock screen.
+   */
   description?: string | null;
+  /**
+   * On by default. Switch off to activate the giveaway without notifying users. Uses the description above as the message; nothing is sent if it is empty.
+   */
+  sendAnnouncement?: boolean | null;
   startDate: string;
   /**
    * When the countdown ends and the draw becomes eligible to run.
@@ -847,6 +858,14 @@ export interface News {
    * 💡 Summary of the article
    */
   excerpt?: string | null;
+  /**
+   * 💡 Pin to Top stories. Featured articles lead the carousel in rank order.
+   */
+  featured?: boolean | null;
+  /**
+   * 💡 1 shows first. Empty ranks below numbered ones.
+   */
+  featuredRank?: number | null;
   publishedAt: string;
   updatedAt: string;
   /**
@@ -2776,6 +2795,7 @@ export interface AccountsSelect<T extends boolean = true> {
   accountId?: T;
   providerId?: T;
   password?: T;
+  idToken?: T;
   accessToken?: T;
   refreshToken?: T;
   accessTokenExpiresAt?: T;
@@ -3065,6 +3085,7 @@ export interface GiveawayReportDeliveriesSelect<T extends boolean = true> {
 export interface GiveawaysSelect<T extends boolean = true> {
   name?: T;
   description?: T;
+  sendAnnouncement?: T;
   startDate?: T;
   endDate?: T;
   ticketPrice?: T;
@@ -3290,6 +3311,8 @@ export interface NewsSelect<T extends boolean = true> {
   readTimeMinutes?: T;
   views?: T;
   excerpt?: T;
+  featured?: T;
+  featuredRank?: T;
   publishedAt?: T;
   updatedAt?: T;
   points?: T;

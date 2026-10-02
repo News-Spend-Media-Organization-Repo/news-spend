@@ -4,7 +4,6 @@ import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
 import { Text } from "#/components/heroui/text";
 import ShopHome from "#/features/tabs/shop/screens/ShopHome";
-import { sharedScreens } from "./shared-screens";
 
 function ShopHeader() {
   return (
@@ -35,7 +34,6 @@ export default createNativeStackNavigator({
         header: ShopHeader,
       },
     },
-    ...sharedScreens,
   },
   screenOptions: {
     headerShown: false,

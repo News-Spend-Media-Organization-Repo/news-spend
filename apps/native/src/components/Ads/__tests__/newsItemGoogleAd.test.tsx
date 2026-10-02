@@ -137,7 +137,9 @@ describe("NewsItemGoogleAds", () => {
     });
 
     mockCurrentItem = { id: "ad-1" };
-    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
     await flush();
 
     expect(screen.getByText("Buy this")).toBeTruthy();
@@ -154,7 +156,9 @@ describe("NewsItemGoogleAds", () => {
     });
 
     mockCurrentItem = { id: "ad-size" };
-    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
     await flush();
 
     // Below 120 in either dimension Google serves no video to the slot. And
@@ -177,7 +181,9 @@ describe("NewsItemGoogleAds", () => {
     });
 
     mockCurrentItem = { id: "ad-inset" };
-    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
     await flush();
 
     // A content row that reaches the boundary can land a fraction past it.
@@ -196,7 +202,9 @@ describe("NewsItemGoogleAds", () => {
     });
 
     mockCurrentItem = { id: "ad-gutter" };
-    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
     await flush();
 
     // AdChoices is pinned bottom-left of the ad view; with a short text
@@ -212,7 +220,9 @@ describe("NewsItemGoogleAds", () => {
     mockCreateForAdRequest.mockRejectedValue(new Error("no fill"));
 
     mockCurrentItem = { id: "ad-2" };
-    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
     await flush();
 
     // While retries are still pending the placeholder is correct: an ad is
@@ -235,7 +245,9 @@ describe("NewsItemGoogleAds", () => {
     mockCreateForAdRequest.mockRejectedValue(new Error("no fill"));
 
     mockCurrentItem = { id: "ad-3" };
-    render(<NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />);
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
     await flush();
 
     // One attempt on mount, and no more until the backoff has elapsed.
@@ -261,16 +273,14 @@ describe("NewsItemGoogleAds", () => {
       })
     );
 
-    const view = (() => {
-      mockCurrentItem = { id: "ad-4" };
-      return render(
-        <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
-      );
-    })();
+    mockCurrentItem = { id: "ad-4" };
+    const view = await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
     await flush();
 
     // The cell goes away with the request still in flight.
-    view.unmount();
+    await view.unmount();
 
     // The attempt times out while the native request is still pending.
     await advance(10_000);
@@ -295,7 +305,7 @@ describe("NewsItemGoogleAds", () => {
     });
 
     mockCurrentItem = { id: "ad-tall" };
-    const view = render(
+    const view = await render(
       <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
     );
     await flush();
@@ -303,7 +313,7 @@ describe("NewsItemGoogleAds", () => {
 
     // The slot measures tall — a bigger creative, a mid-layout measurement —
     // and pins the container to it.
-    fireEvent(screen.getByTestId("native-ad-view"), "layout", {
+    await fireEvent(screen.getByTestId("native-ad-view"), "layout", {
       nativeEvent: { layout: { height: 400, width: 300, x: 0, y: 0 } },
     });
     expect(screen.getByTestId("native-ad-view").props.style.height).toBe(400);
@@ -317,7 +327,7 @@ describe("NewsItemGoogleAds", () => {
       destroy: mockDestroy,
     });
     mockCurrentItem = { id: "ad-compact" };
-    view.rerender(
+    await view.rerender(
       <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
     );
     await flush();

@@ -8,7 +8,60 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: "email",
     group: "User Management",
+    components: {
+      beforeListTable: [
+        "@news-spend-media/payload/components/ContactExport#ContactExport",
+      ],
+    },
   },
+  endpoints: [
+    {
+      /**
+       * Names and emails of registered users as a CSV, for email campaigns
+       * sent from outside the app (for example a launch countdown to people
+       * who have stopped opening it).
+       *
+       * Admins only. This is personal data, and `users` is readable by any
+       * signed-in account, so the role is checked here rather than assumed.
+       */
+      path: "/export-contacts",
+      method: "get",
+      handler: async (req) => {
+        if (req.user?.collection !== "admins") {
+          return Response.json({ message: "Admins only." }, { status: 403 });
+        }
+
+        const raw = Number(
+          new URL(req.url ?? "", "http://localhost").searchParams.get(
+            "inactiveDays"
+          ) ?? 0
+        );
+        const inactiveDays =
+          Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+
+        const { buildContactExport } = await import(
+          "../lib/users/contactExport"
+        );
+        const { csv, count } = await buildContactExport(req.payload, {
+          inactiveDays,
+        });
+
+        req.payload.logger.info(
+          { adminId: req.user.id, inactiveDays, count },
+          "[users] contact export downloaded"
+        );
+
+        const stamp = new Date().toISOString().slice(0, 10);
+        return new Response(csv, {
+          headers: {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="contacts-${stamp}.csv"`,
+            "Cache-Control": "no-store",
+          },
+        });
+      },
+    },
+  ],
   hooks: {
     afterChange: [],
     beforeDelete: [
@@ -98,7 +151,27 @@ export const Users: CollectionConfig = {
     {
       name: "wish",
       type: "text",
-      required: true,
+      /**
+       * Required for registered users, exempt for guests. Guests carry an
+       * empty wish, and Payload validates partial updates against it: with a
+       * plain `required: true` every server-side touch of a guest row
+       * (lastActive, settings, date of birth) fails validation. Anonymous
+       * status comes from the update data, falling back to the stored row
+       * for updates that do not carry it.
+       */
+      validate: (value: unknown, { data, originalDoc }: any) => {
+        const anonymous =
+          (data as { isAnonymous?: boolean } | undefined)?.isAnonymous ??
+          (originalDoc as { isAnonymous?: boolean } | undefined)?.isAnonymous ??
+          false;
+        if (anonymous) {
+          return true;
+        }
+        if (typeof value !== "string" || value.trim() === "") {
+          return "Tell us your wish.";
+        }
+        return true;
+      },
     },
     {
       name: "phone",

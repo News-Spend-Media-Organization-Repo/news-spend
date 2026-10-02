@@ -5,6 +5,7 @@ import { giveawaySetupGuideView } from "../../components/GiveawaySetupGuide/tabs
 import {
   ADMIN_GROUP,
   DRAW_CHECKPOINT_OPTIONS,
+  GIVEAWAY_DESCRIPTION_MAX_LENGTH,
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
   LOCKED_GIVEAWAY_STATUSES,
@@ -478,6 +479,22 @@ export const Giveaways: CollectionConfig = {
         return data;
       },
     ],
+    afterChange: [
+      async ({ doc, previousDoc, operation, req }) => {
+        const becameActive =
+          doc.status === "active" &&
+          (operation === "create" || previousDoc?.status !== "active");
+
+        if (becameActive) {
+          const { announceGiveaway } = await import(
+            "../../lib/giveaway/announceGiveaway"
+          );
+          await announceGiveaway(doc, req);
+        }
+
+        return doc;
+      },
+    ],
   },
   fields: [
     {
@@ -493,6 +510,20 @@ export const Giveaways: CollectionConfig = {
     {
       name: "description",
       type: "textarea",
+      maxLength: GIVEAWAY_DESCRIPTION_MAX_LENGTH,
+      admin: {
+        description: `Shown on the giveaway screen, and sent as the push notification body when this giveaway is set to Active. Write {{firstName}} to address each user by first name, e.g. "{{firstName}}, join 1500 winners". Max ${GIVEAWAY_DESCRIPTION_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
+      },
+    },
+    {
+      name: "sendAnnouncement",
+      type: "checkbox",
+      defaultValue: true,
+      label: "Send push notification when this giveaway goes Active",
+      admin: {
+        description:
+          "On by default. Switch off to activate the giveaway without notifying users. Uses the description above as the message; nothing is sent if it is empty.",
+      },
     },
     {
       name: "startDate",

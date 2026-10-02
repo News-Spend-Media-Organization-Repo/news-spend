@@ -25,6 +25,45 @@ jest.mock("react-native-safe-area-context", () => ({
   },
 }));
 
+// react-native-reanimated: the real entrypoint calls runOnUISync at import
+// time, which worklets 0.13 only implements on native (and the native side
+// needs a TurboModule jest never loads), so neither variant imports under
+// jest. This stands in for the handful of APIs screens use: shared values
+// behave like refs, style/scroll handlers run inline on the JS thread, and
+// animated components render as their RN counterparts.
+jest.mock("react-native-reanimated", () => {
+  const React = require("react");
+  const { View, Text, ScrollView, FlatList } = require("react-native");
+  const animatedComponents = { View, Text, ScrollView, FlatList };
+  return {
+    __esModule: true,
+    default: animatedComponents,
+    ...animatedComponents,
+    Extrapolation: { EXTEND: "extend", CLAMP: "clamp", IDENTITY: "identity" },
+    interpolate: (_value, _inputRange, outputRange) => outputRange[0],
+    useSharedValue: (initial) => {
+      const ref = React.useRef({ value: initial });
+      return ref.current;
+    },
+    useAnimatedStyle: (fn) => fn(),
+    useAnimatedScrollHandler: (handlers) => {
+      if (typeof handlers === "function") {
+        return handlers;
+      }
+      return handlers.onScroll ?? (() => {});
+    },
+    useAnimatedRef: () => ({ current: null }),
+    useDerivedValue: (fn) => ({ value: fn() }),
+    withTiming: (value) => value,
+    withSpring: (value) => value,
+    withDelay: (_delay, value) => value,
+    withSequence: (...values) => values.at(-1),
+    runOnJS: (fn) => fn,
+    runOnUI: (fn) => fn,
+    createAnimatedComponent: (Component) => Component,
+  };
+});
+
 // phosphor-react-native: icon library
 jest.mock("phosphor-react-native", () => {
   const MockIcon = ({ ...props }: any) => null;

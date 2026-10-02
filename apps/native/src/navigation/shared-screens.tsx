@@ -1,6 +1,10 @@
-import { createNativeStackScreen } from "@react-navigation/native-stack";
+import {
+  createNativeStackScreen,
+  type NativeStackHeaderProps,
+} from "@react-navigation/native-stack";
 import { lazy } from "react";
 
+import ScreenHeader from "#/components/ScreenHeader";
 import NotFound from "#/screens/NotFound";
 
 /**
@@ -86,6 +90,52 @@ const CommentReplies = lazy(
 const Comments = lazy(() => import("#/screens/tabs/home/comments/Comments"));
 const SingleNews = lazy(() => import("#/screens/tabs/home/news"));
 
+const ROUTE_TITLES = {
+  Report: "IWitness Report",
+  Notification: "Notification Manager",
+  DataManager: "Data Manager",
+  DeleteAccount: "Delete Account",
+  Support: "Contact Us",
+  FAQ: "Frequently Asked Questions",
+  Advertise: "Advertising",
+  Call: "Call Us",
+  Email: "Email Customer Support",
+  Feedback: "Send Feedback",
+  Legal: "Legal Agreement",
+  TermsOfUse: "Terms of Use",
+  PrivacyPolicy: "Privacy Policy",
+  RateApp: "Rate App",
+  ShareApp: "Share App",
+  Socials: "Follow Us",
+  IdentityVerification: "Verify Identity",
+  CommunityGuidelines: "Community Guidelines",
+  BlockedUsers: "Blocked Users",
+  Profile: "Profile",
+  Activities: "Activities",
+} as const;
+
+type RouteNames = keyof typeof ROUTE_TITLES;
+
+function getRouteTitle(routeName: string): string {
+  return ROUTE_TITLES[routeName as RouteNames] ?? routeName;
+}
+
+/**
+ * Header for the settings-family detail screens. These used to inherit it
+ * from their host tab stack; at root level the stack hides headers, so each
+ * screen carries its own.
+ */
+export const detailScreenHeader = ({ route }: NativeStackHeaderProps) => {
+  const title = getRouteTitle(route.name);
+
+  return <ScreenHeader title={title} />;
+};
+
+const detailScreenOptions = {
+  headerShown: true,
+  header: detailScreenHeader,
+} as const;
+
 export const sharedScreens = {
   News: createNativeStackScreen({
     screen: SingleNews,
@@ -135,126 +185,147 @@ export const sharedScreens = {
     linking: {
       path: "profile",
     },
+    options: { ...detailScreenOptions },
   }),
   Activities: createNativeStackScreen({
     screen: Activities,
     linking: {
       path: "activities",
     },
+    options: { ...detailScreenOptions },
   }),
   BlockedUsers: createNativeStackScreen({
     screen: BlockedUsers,
     linking: {
       path: "blocked-users",
     },
+    options: { ...detailScreenOptions },
   }),
   Report: createNativeStackScreen({
     screen: Report,
     linking: {
       path: "report",
     },
+    options: { ...detailScreenOptions },
   }),
   Notification: createNativeStackScreen({
     screen: Notifications,
     linking: {
       path: "notification",
     },
+    options: { ...detailScreenOptions },
   }),
   DataManager: createNativeStackScreen({
     screen: DataManager,
     linking: {
       path: "data-manager",
     },
+    options: { ...detailScreenOptions },
   }),
   DeleteAccount: createNativeStackScreen({
     screen: DeleteAccount,
     linking: {
       path: "delete-account",
     },
+    options: { ...detailScreenOptions },
   }),
   RateApp: createNativeStackScreen({
     screen: RateAppScreen,
     linking: {
       path: "rate-app",
     },
+    options: { ...detailScreenOptions },
   }),
   ShareApp: createNativeStackScreen({
     screen: ShareApp,
     linking: {
       path: "share-app",
     },
+    options: { ...detailScreenOptions },
   }),
   Socials: createNativeStackScreen({
     screen: Socials,
     linking: {
       path: "socials",
     },
+    options: { ...detailScreenOptions },
   }),
   Support: createNativeStackScreen({
     screen: Support,
     linking: {
       path: "support",
     },
+    options: { ...detailScreenOptions },
   }),
   IdentityVerification: createNativeStackScreen({
     screen: IdentityVerification,
     linking: {
       path: "identity-verification",
     },
+    options: { ...detailScreenOptions },
   }),
   Advertise: createNativeStackScreen({
     screen: Advertise,
     linking: {
       path: "advertise",
     },
+    options: { ...detailScreenOptions },
   }),
   Call: createNativeStackScreen({
     screen: Call,
     linking: {
       path: "call",
     },
+    options: { ...detailScreenOptions },
   }),
   Feedback: createNativeStackScreen({
     screen: Feedback,
     linking: {
       path: "feedback",
     },
+    options: { ...detailScreenOptions },
   }),
   FAQ: createNativeStackScreen({
     screen: FAQs,
     linking: {
       path: "faq",
     },
+    options: { ...detailScreenOptions },
   }),
   Email: createNativeStackScreen({
     screen: Email,
     linking: {
       path: "email",
     },
+    options: { ...detailScreenOptions },
   }),
   Legal: createNativeStackScreen({
     screen: LegalAgreement,
     linking: {
       path: "legal",
     },
+    options: { ...detailScreenOptions },
   }),
   TermsOfUse: createNativeStackScreen({
     screen: TermOfUse,
     linking: {
       path: "terms-of-use",
     },
+    options: { ...detailScreenOptions },
   }),
   PrivacyPolicy: createNativeStackScreen({
     screen: PrivacyPolicy,
     linking: {
       path: "privacy-policy",
     },
+    options: { ...detailScreenOptions },
   }),
   CommunityGuidelines: createNativeStackScreen({
     screen: CommunityGuidelines,
     linking: {
       path: "community-guidelines",
     },
+    options: { ...detailScreenOptions },
   }),
   // // Discover screens
   PlayLottery: createNativeStackScreen({
@@ -356,6 +427,7 @@ export const sharedScreens = {
           linking: {
             path: "toast-lab",
           },
+          options: { ...detailScreenOptions },
         }),
       }
     : {}),
@@ -364,5 +436,6 @@ export const sharedScreens = {
     linking: {
       path: "*",
     },
+    options: { ...detailScreenOptions },
   }),
 };

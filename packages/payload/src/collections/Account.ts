@@ -32,6 +32,14 @@ export const Account: CollectionConfig = {
       type: "text",
     },
     {
+      name: "idToken",
+      type: "text",
+      admin: {
+        description:
+          "OIDC ID token. Mapped to the id_token column, which BetterAuth also uses. Managed by BetterAuth; added in better-auth 1.7.",
+      },
+    },
+    {
       name: "accessToken",
       type: "text",
     },
