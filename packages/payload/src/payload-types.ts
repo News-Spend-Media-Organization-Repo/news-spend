@@ -198,6 +198,7 @@ export interface Config {
     'analytics-feedback': AnalyticsFeedbackWidget;
     'analytics-attention': AnalyticsAttentionWidget;
     'analytics-push': AnalyticsPushWidget;
+    'contact-export': ContactExportWidget;
     collections: CollectionsWidget;
   };
   user: Admin;
@@ -4118,6 +4119,16 @@ export interface AnalyticsPushWidget {
     days?: ('7' | '30' | '90') | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-export_widget".
+ */
+export interface ContactExportWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
