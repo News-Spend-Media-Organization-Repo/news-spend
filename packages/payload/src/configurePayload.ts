@@ -134,7 +134,17 @@ const baseConfig: Config = {
     // What the home page shows, and who it is for. See the Analytics
     // components; each widget checks the viewer's access itself.
     dashboard: {
-      widgets: analyticsWidgets,
+      widgets: [
+        ...analyticsWidgets,
+        {
+          slug: "contact-export",
+          label: "Email list",
+          Component:
+            "@news-spend-media/payload/components/ContactExport#ContactExportWidget",
+          minWidth: "small",
+          maxWidth: "medium",
+        },
+      ],
       defaultLayout: analyticsDefaultLayout,
     },
     components: {

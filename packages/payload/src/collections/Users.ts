@@ -1,3 +1,4 @@
+import { scopeFor } from "@news-spend-media/analytics";
 import { sql } from "@payloadcms/db-postgres";
 import type { CollectionConfig } from "payload";
 
@@ -21,14 +22,16 @@ export const Users: CollectionConfig = {
        * sent from outside the app (for example a launch countdown to people
        * who have stopped opening it).
        *
-       * Admins only. This is personal data, and `users` is readable by any
+       * Staff only. This is personal data, and `users` is readable by any
        * signed-in account, so the role is checked here rather than assumed.
        */
       path: "/export-contacts",
       method: "get",
       handler: async (req) => {
-        if (req.user?.collection !== "admins") {
-          return Response.json({ message: "Admins only." }, { status: 403 });
+        // Staff only. Partner accounts live in `admins` too, and must not be
+        // able to download the whole user base.
+        if (scopeFor(req.user)?.kind !== "staff") {
+          return Response.json({ message: "Staff only." }, { status: 403 });
         }
 
         const raw = Number(
@@ -47,7 +50,7 @@ export const Users: CollectionConfig = {
         });
 
         req.payload.logger.info(
-          { adminId: req.user.id, inactiveDays, count },
+          { adminId: req.user?.id, inactiveDays, count },
           "[users] contact export downloaded"
         );
 
