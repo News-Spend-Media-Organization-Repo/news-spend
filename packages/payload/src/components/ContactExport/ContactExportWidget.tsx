@@ -1,25 +1,33 @@
-import type { WidgetServerProps } from "payload";
+import { scopeFor } from "@news-spend-media/analytics";
+import type { ServerProps, WidgetServerProps } from "payload";
 import type { ReactNode } from "react";
-
 import { countContacts } from "../../lib/users/contactExport";
 import { scopeOfRequest } from "../Analytics/access";
-import { formatCount } from "../Analytics/format";
-import { Denied, Panel, Styles } from "../Analytics/ui";
+import { Denied } from "../Analytics/ui";
+import { ContactExportCard, type ContactExportTile } from "./ContactExportCard";
 
 const WINDOWS = [30, 60, 90] as const;
 
-const downloadHref = (days: number) =>
-  days > 0
-    ? `/api/users/export-contacts?inactiveDays=${days}`
-    : "/api/users/export-contacts";
+async function renderCard(payload: ServerProps["payload"]): Promise<ReactNode> {
+  const { total, inactive } = await countContacts(payload.db.drizzle, WINDOWS);
+
+  const tiles: ContactExportTile[] = [
+    { key: "all", label: "Everyone", count: total, days: 0 },
+    ...WINDOWS.map((days) => ({
+      key: String(days),
+      label: `Not seen for ${days}+ days`,
+      count: inactive[days] ?? 0,
+      days,
+    })),
+  ];
+
+  return <ContactExportCard tiles={tiles} total={total} />;
+}
 
 /**
- * Dashboard widget: how many registered users could be emailed, how many of
- * them have gone quiet, and a CSV download for each cut.
- *
- * Staff only. The list is personal data, and the endpoint behind the links
- * checks the role again, so a widget added by hand to someone else's dashboard
- * shows nothing and downloads nothing.
+ * Dashboard widget. Staff only: the list is personal data, and the endpoint
+ * behind the links checks the role again, so a widget added by hand to
+ * someone else's dashboard shows nothing and downloads nothing.
  */
 export async function ContactExportWidget(
   props: WidgetServerProps
@@ -27,52 +35,21 @@ export async function ContactExportWidget(
   if (scopeOfRequest(props.req)?.kind !== "staff") {
     return <Denied />;
   }
+  return renderCard(props.req.payload);
+}
 
-  const { total, inactive } = await countContacts(
-    props.req.payload.db.drizzle,
-    WINDOWS
-  );
-
-  const rows: { label: string; count: number; days: number }[] = [
-    { label: "Everyone with an email", count: total, days: 0 },
-    ...WINDOWS.map((days) => ({
-      label: `Not seen for ${days}+ days`,
-      count: inactive[days] ?? 0,
-      days,
-    })),
-  ];
-
+/**
+ * The same card above the Users list. Unlike the widget it renders nothing for
+ * anyone who is not staff, rather than a "no access" box on a page they are
+ * otherwise allowed to use.
+ */
+export async function ContactExportPanel(
+  props: ServerProps
+): Promise<ReactNode> {
+  if (scopeFor(props.user)?.kind !== "staff") {
+    return null;
+  }
   return (
-    <>
-      <Styles />
-      <div className="ana">
-        <Panel
-          hint="Registered users only (guests have no address). Downloads names and emails as a CSV."
-          title="Email list"
-        >
-          <table className="ana-table">
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.days}>
-                  <td>{row.label}</td>
-                  <td data-align="right">{formatCount(row.count)}</td>
-                  <td data-align="right">
-                    <a download href={downloadHref(row.days)}>
-                      Download CSV
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="ana-sub" style={{ marginTop: 8 }}>
-            "Seen" is the latest of the app's activity record, the newest login
-            session and the sign-up date, so people who last used the app before
-            activity was recorded are still placed correctly. The CSV says which
-            one each date came from.
-          </div>
-        </Panel>
-      </div>
-    </>
+    <div style={{ marginBottom: 16 }}>{await renderCard(props.payload)}</div>
   );
 }

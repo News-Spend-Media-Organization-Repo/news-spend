@@ -9,6 +9,11 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: "email",
     group: "User Management",
+    components: {
+      beforeListTable: [
+        "@news-spend-media/payload/components/ContactExport#ContactExportPanel",
+      ],
+    },
   },
   endpoints: [
     {

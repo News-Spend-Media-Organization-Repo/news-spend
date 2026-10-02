@@ -1,1 +1,1 @@
-export { ContactExportWidget } from "./ContactExportWidget";
+export { ContactExportPanel, ContactExportWidget } from "./ContactExportWidget";
