@@ -8,7 +8,60 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: "email",
     group: "User Management",
+    components: {
+      beforeListTable: [
+        "@news-spend-media/payload/components/ContactExport#ContactExport",
+      ],
+    },
   },
+  endpoints: [
+    {
+      /**
+       * Names and emails of registered users as a CSV, for email campaigns
+       * sent from outside the app (for example a launch countdown to people
+       * who have stopped opening it).
+       *
+       * Admins only. This is personal data, and `users` is readable by any
+       * signed-in account, so the role is checked here rather than assumed.
+       */
+      path: "/export-contacts",
+      method: "get",
+      handler: async (req) => {
+        if (req.user?.collection !== "admins") {
+          return Response.json({ message: "Admins only." }, { status: 403 });
+        }
+
+        const raw = Number(
+          new URL(req.url ?? "", "http://localhost").searchParams.get(
+            "inactiveDays"
+          ) ?? 0
+        );
+        const inactiveDays =
+          Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+
+        const { buildContactExport } = await import(
+          "../lib/users/contactExport"
+        );
+        const { csv, count } = await buildContactExport(req.payload, {
+          inactiveDays,
+        });
+
+        req.payload.logger.info(
+          { adminId: req.user.id, inactiveDays, count },
+          "[users] contact export downloaded"
+        );
+
+        const stamp = new Date().toISOString().slice(0, 10);
+        return new Response(csv, {
+          headers: {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="contacts-${stamp}.csv"`,
+            "Cache-Control": "no-store",
+          },
+        });
+      },
+    },
+  ],
   hooks: {
     afterChange: [],
     beforeDelete: [
