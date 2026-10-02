@@ -11,7 +11,7 @@ export const Users: CollectionConfig = {
     group: "User Management",
     components: {
       beforeListTable: [
-        "@news-spend-media/payload/components/ContactExport#ContactExport",
+        "@news-spend-media/payload/components/ContactExport#ContactExportPanel",
       ],
     },
   },
