@@ -227,6 +227,7 @@ export function analyticsDefaultLayout({
         data: { days: "30" },
       },
       { widgetSlug: "analytics-devices", width: "small" },
+      { widgetSlug: "contact-export", width: "medium" },
       { widgetSlug: "collections", width: "full" },
     ];
   }
