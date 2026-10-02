@@ -629,7 +629,14 @@ export interface DailyRead {
 export interface Giveaway {
   id: string;
   name: string;
+  /**
+   * Shown on the giveaway screen, and sent as the push notification body when this giveaway is set to Active. Write {{firstName}} to address each user by first name, e.g. "{{firstName}}, join 1500 winners". Max 150 characters so it is not cut off on a lock screen.
+   */
   description?: string | null;
+  /**
+   * On by default. Switch off to activate the giveaway without notifying users. Uses the description above as the message; nothing is sent if it is empty.
+   */
+  sendAnnouncement?: boolean | null;
   startDate: string;
   /**
    * When the countdown ends and the draw becomes eligible to run.
@@ -3078,6 +3085,7 @@ export interface GiveawayReportDeliveriesSelect<T extends boolean = true> {
 export interface GiveawaysSelect<T extends boolean = true> {
   name?: T;
   description?: T;
+  sendAnnouncement?: T;
   startDate?: T;
   endDate?: T;
   ticketPrice?: T;

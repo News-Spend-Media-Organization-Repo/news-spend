@@ -28,6 +28,7 @@ import {
   activeGiveaway,
   giveawayWindow,
 } from "@news-spend-media/payload/lib/giveaway/window";
+import { personalise } from "@news-spend-media/payload/lib/personalise";
 import {
   activities,
   users,
@@ -407,7 +408,7 @@ const participants = publicProcedure.handler(async ({ context }) => {
  * can no longer disagree.
  */
 const current = publicProcedure.handler(async ({ context }) => {
-  const { payload } = context;
+  const { payload, user } = context;
 
   const giveaway = await activeGiveaway(payload);
   if (!giveaway) {
@@ -419,7 +420,10 @@ const current = publicProcedure.handler(async ({ context }) => {
   return {
     id: giveaway.id,
     name: giveaway.name,
-    description: giveaway.description ?? null,
+    // The description doubles as the push body, which may carry {{firstName}}.
+    description: giveaway.description
+      ? personalise(giveaway.description, user?.name)
+      : null,
     startDate: giveaway.startDate,
     endDate: giveaway.endDate,
     ticketPrice: giveaway.ticketPrice,

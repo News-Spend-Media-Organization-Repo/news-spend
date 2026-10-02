@@ -143,6 +143,29 @@ describe("giveaway.current", () => {
     });
   });
 
+  it("fills {{firstName}} in the description for the signed-in user", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [
+          giveaway({ description: "{{firstName}}, join 1500 winners" }),
+        ],
+      },
+    });
+
+    const signedIn = await call(giveawayRouter.current, undefined, {
+      context: mockContext({
+        payload,
+        user: { id: "user-1", name: "Segun Adeyemi" } as never,
+      }),
+    });
+    const signedOut = await call(giveawayRouter.current, undefined, {
+      context: mockContext({ payload }),
+    });
+
+    expect(signedIn?.description).toBe("Segun, join 1500 winners");
+    expect(signedOut?.description).toBe("Join 1500 winners");
+  });
+
   /**
    * The app renders its entry button from this call and the write paths
    * enforce the window separately, so a giveaway switched on early must not

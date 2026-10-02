@@ -52,6 +52,7 @@ import * as migration_20260920_215557_partner_postbacks from './20260920_215557_
 import * as migration_20260922_130000_drop_partner_api_key from './20260922_130000_drop_partner_api_key';
 import * as migration_20260929_091515 from './20260929_091515';
 import * as migration_20260929_131630 from './20260929_131630';
+import * as migration_20261002_063111_giveaway_send_announcement from './20261002_063111_giveaway_send_announcement';
 
 export const migrations = [
   {
@@ -322,6 +323,11 @@ export const migrations = [
   {
     up: migration_20260929_131630.up,
     down: migration_20260929_131630.down,
-    name: '20260929_131630'
+    name: '20260929_131630',
+  },
+  {
+    up: migration_20261002_063111_giveaway_send_announcement.up,
+    down: migration_20261002_063111_giveaway_send_announcement.down,
+    name: '20261002_063111_giveaway_send_announcement'
   },
 ];

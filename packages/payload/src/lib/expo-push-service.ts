@@ -9,6 +9,7 @@ import type { PayloadRequest, Where } from "payload";
 
 import type { Notification } from "../payload-types";
 import { getPayload } from "./getPayload";
+import { hasPlaceholder, personalise } from "./personalise";
 
 /**
  * Maps notification campaign types to user preference keys.
@@ -214,12 +215,29 @@ async function handleFailedTicket(
   }
 }
 
+/**
+ * The body for one recipient. `{{firstName}}` is filled from the user already
+ * populated on the push token, so personalising costs no extra query. A token
+ * whose user was not populated simply gets the no-name fallback.
+ */
+function bodyFor(notification: Notification, token: PushToken): string {
+  if (!hasPlaceholder(notification.body)) {
+    return notification.body;
+  }
+  const name =
+    typeof token.user === "object" && token.user !== null
+      ? token.user.name
+      : null;
+  return personalise(notification.body, name);
+}
+
 async function createInboxEntry(opts: {
   userId: string;
+  body: string;
   notification: Notification;
   req: PayloadRequest;
 }): Promise<void> {
-  const { userId, notification, req } = opts;
+  const { userId, body, notification, req } = opts;
   const payload = await getPayload();
   await payload.create({
     collection: "notification-inbox",
@@ -227,7 +245,7 @@ async function createInboxEntry(opts: {
       user: userId,
       notification: notification.id,
       title: notification.title,
-      body: notification.body,
+      body,
       ...(notification.data &&
       typeof notification.data === "object" &&
       !Array.isArray(notification.data)
@@ -285,7 +303,12 @@ async function recordDeliveryAndInbox(opts: {
 
   if (userId && !inboxUsersSeen.has(userId)) {
     inboxUsersSeen.add(userId);
-    await createInboxEntry({ userId, notification, req });
+    await createInboxEntry({
+      userId,
+      body: bodyFor(notification, token),
+      notification,
+      req,
+    });
   }
 }
 
@@ -367,7 +390,7 @@ export async function sendNotification(
     const messages: ExpoPushMessage[] = deviceTokens.map((token) => ({
       to: token.token,
       title: notification.title,
-      body: notification.body,
+      body: bodyFor(notification, token),
       channelId,
       data: {
         ...(notification.data &&
