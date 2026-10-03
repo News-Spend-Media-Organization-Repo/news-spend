@@ -21,7 +21,6 @@
  */
 export type { Icon, IconProps } from "phosphor-react-native";
 export { IconContext } from "phosphor-react-native";
-
 export { ArrowBendUpLeftIcon } from "phosphor-react-native/src/icons/ArrowBendUpLeft";
 export { ArrowClockwiseIcon } from "phosphor-react-native/src/icons/ArrowClockwise";
 export { ArrowCounterClockwiseIcon } from "phosphor-react-native/src/icons/ArrowCounterClockwise";
@@ -53,6 +52,7 @@ export { EyeIcon } from "phosphor-react-native/src/icons/Eye";
 export { EyeSlashIcon } from "phosphor-react-native/src/icons/EyeSlash";
 export { FacebookLogoIcon } from "phosphor-react-native/src/icons/FacebookLogo";
 export { FileArrowUpIcon } from "phosphor-react-native/src/icons/FileArrowUp";
+export { FlagIcon } from "phosphor-react-native/src/icons/Flag";
 export { GiftIcon } from "phosphor-react-native/src/icons/Gift";
 export { HandshakeIcon } from "phosphor-react-native/src/icons/Handshake";
 export { HardDrivesIcon } from "phosphor-react-native/src/icons/HardDrives";

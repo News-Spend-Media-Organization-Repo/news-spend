@@ -36,12 +36,14 @@ import type {
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import GameReportSheet from "#/components/sheets/GameReportSheet";
 import {
   ArrowClockwiseIcon,
   ArrowLeftIcon,
   ArrowSquareOutIcon,
   CopyIcon,
   DotsThreeOutlineVerticalIcon,
+  FlagIcon,
   ShareNetworkIcon,
   XIcon,
 } from "#/lib/icons";
@@ -57,6 +59,11 @@ export type InAppBrowserParams = {
    * there is no hardware back button.
    */
   hideHeader?: boolean;
+  /**
+   * For a game, its slug in the games catalog. Its presence adds a Report
+   * button to the floating controls (Guideline 4.7.1).
+   */
+  gameNamespace?: string;
   /** Confirm before leaving the first page. Defaults to true. */
   confirmOnLeave?: boolean;
   /** Overrides the default confirmation body copy. */
@@ -108,6 +115,7 @@ export default function InAppBrowser({
     title,
     type,
     hideHeader = false,
+    gameNamespace,
     confirmOnLeave = true,
     confirmMessage,
   } = route.params ?? ({} as InAppBrowserParams);
@@ -123,6 +131,7 @@ export default function InAppBrowser({
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const progress = useSharedValue(0);
 
@@ -371,6 +380,28 @@ export default function InAppBrowser({
             size={20}
           />
         </Pressable>
+      ) : null}
+
+      {hideHeader && gameNamespace ? (
+        <Pressable
+          accessibilityLabel="Report this game"
+          accessibilityRole="button"
+          className="absolute rounded-full bg-black/50 p-2 active:opacity-70"
+          hitSlop={16}
+          onPress={() => setReportOpen(true)}
+          style={{ top: insets.top + 8, right: 12 }}
+        >
+          <Icon color="white" name={FlagIcon} size={20} />
+        </Pressable>
+      ) : null}
+
+      {gameNamespace ? (
+        <GameReportSheet
+          gameId={gameNamespace}
+          gameTitle={title}
+          onOpenChange={setReportOpen}
+          open={reportOpen}
+        />
       ) : null}
 
       {isLoading ? (

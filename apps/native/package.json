@@ -8,6 +8,7 @@
     "ios": "WITH_ROZENITE=true REACT_NATIVE_PACKAGER_HOSTNAME=$(ipconfig getifaddr en0) expo run:ios",
     "start": "WITH_ROZENITE=true REACT_NATIVE_PACKAGER_HOSTNAME=$(ipconfig getifaddr en0) expo start",
     "prebuild": "expo prebuild",
+    "games:index": "bun scripts/games-index.ts",
     "web": "expo start --web",
     "build:dev:android": "eas build --profile development --platform android",
     "build:dev:ios": "eas build --profile development --platform ios",

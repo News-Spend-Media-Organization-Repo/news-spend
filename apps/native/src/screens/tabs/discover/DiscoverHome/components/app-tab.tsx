@@ -8,6 +8,7 @@ import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { orpc } from "#/lib/orpc";
 import { useTabBarHeight } from "#/state/route-state";
 import { AppItem } from "./app-item";
@@ -67,11 +68,19 @@ export const AppTab = () => {
         <AppItem
           item={item}
           loading={isLoading(item.id)}
-          onPress={() => console.log(item)}
+          onPress={() => {
+            trackDiscover({
+              event: "open",
+              itemType: "app",
+              itemId: item.id,
+              section: "apps",
+            });
+            handleClick(item);
+          }}
         />
       );
     },
-    [isLoading]
+    [handleClick, isLoading]
   );
 
   const keyExtractor = useCallback((item: PartnerContent) => item.id, []);

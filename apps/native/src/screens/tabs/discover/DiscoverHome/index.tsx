@@ -1,5 +1,5 @@
-import { useNavigation } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
 import { Tabs } from "react-native-collapsible-tab";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
@@ -7,6 +7,7 @@ import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { useConnectBrand } from "#/hooks/discover/useConnectBrand";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
+import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { PlayCircleIcon, SketchLogoIcon } from "#/lib/icons";
 
 import { AllTab, AppTab, BooksTab, GamesTab, SurveyTab } from "./components";
@@ -17,12 +18,17 @@ function DiscoverHeader() {
   const navigation = useNavigation("DiscoverHome");
   const { onOpen, onCountdownComplete } = useConnectBrand();
 
+  const openBrands = useCallback((): boolean => {
+    trackDiscover({ event: "open", itemType: "brands" });
+    return onOpen();
+  }, [onOpen]);
+
   return (
     <View className="flex-row gap-3 bg-white px-2 py-3">
       <PartnerAdDialog
         asChild
         onCountdownComplete={onCountdownComplete}
-        onOpen={onOpen}
+        onOpen={openBrands}
       >
         <Button className="flex-1">
           <SketchLogoIcon color="white" size={20} weight="bold" />
@@ -32,7 +38,10 @@ function DiscoverHeader() {
 
       <Button
         className="flex-1"
-        onPress={() => navigation.navigate("PlayLottery")}
+        onPress={() => {
+          trackDiscover({ event: "open", itemType: "giveaway" });
+          navigation.navigate("PlayLottery");
+        }}
       >
         <PlayCircleIcon color="white" size={20} weight="bold" />
         <Button.Label>Giveaway</Button.Label>
@@ -51,6 +60,21 @@ function DiscoverHome() {
   // individual tabs manage their own loading states.
   useMarkInteractive(true);
 
+  // Which section is showing, so opening Discover is recorded against the
+  // section the person lands on (the last one they used stays selected).
+  const sectionRef = useRef("all");
+
+  useFocusEffect(
+    useCallback(() => {
+      trackDiscover({ event: "view", section: sectionRef.current });
+    }, [])
+  );
+
+  const handleTabChange = useCallback(({ tabName }: { tabName: string }) => {
+    sectionRef.current = tabName;
+    trackDiscover({ event: "section", section: tabName });
+  }, []);
+
   return (
     <Screen statusBarStyle="light">
       <TabBarHeightProvider value={tabBarHeight}>
@@ -59,6 +83,7 @@ function DiscoverHome() {
           headerBackgroundColor="#ffffff"
           initialTabName="all"
           lazy
+          onTabChange={handleTabChange}
           renderHeader={DiscoverHeader}
           renderTabBar={(props) => (
             <AnimatedTabBar
