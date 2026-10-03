@@ -54,6 +54,55 @@ export const createPostReport = protectedNoGuestProcedure
     return response;
   });
 
+const reportReasons = postReportSchema.shape.reason;
+
+const gameReportSchema = z.object({
+  /** The game's slug, as in its universal link. */
+  gameId: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
+  reason: reportReasons,
+  additionalDetails: z.string().max(1000).default(""),
+});
+
+/**
+ * Report a game (Guideline 4.7.1: a way to report content, answered promptly).
+ *
+ * Lands in the same admin queue as reports of comments and articles, and goes
+ * through the same alerting: urgent reasons page a moderator, the rest reach
+ * the digest. Games are not documents, so the report names the game by slug in
+ * `reportedGame` instead of pointing at a record. Nothing is hidden
+ * automatically; the list of games ships with the app, so removing one is a
+ * moderator's call followed by an app update.
+ */
+export const createGameReport = protectedNoGuestProcedure
+  // Its own bucket: the default one is shared with every other limited
+  // procedure, so reporting a game would spend the allowance for commenting.
+  .use(
+    createRateLimitMiddleware({
+      name: "game-report",
+      maxRequests: 5,
+      window: 60_000,
+    })
+  )
+  .input(gameReportSchema)
+  .handler(async ({ input, context }) => {
+    const { user, payload } = context;
+
+    return payload.create({
+      collection: "contentReports",
+      data: {
+        reportedBy: user.id,
+        reportedGame: input.gameId,
+        reason: input.reason,
+        additionalDetails: input.additionalDetails,
+      },
+    });
+  });
+
 export const postReportRouter = {
   create: createPostReport,
+  createGame: createGameReport,
 };

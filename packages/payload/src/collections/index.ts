@@ -24,6 +24,7 @@ export {
 } from "./giveaway";
 export { Media } from "./Media";
 export { default as News } from "./News";
+export { default as DiscoverEvents } from "./DiscoverEvents";
 export { default as NewsAnalytics } from "./NewsAnalytics";
 export { default as NotificationDeliveries } from "./NotificationDeliveries";
 export {

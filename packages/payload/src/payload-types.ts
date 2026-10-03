@@ -94,6 +94,7 @@ export interface Config {
     'prize-catalogue': PrizeCatalogue;
     media: Media;
     news: News;
+    'discover-events': DiscoverEvent;
     'news-analytics': NewsAnalytic;
     'notification-deliveries': NotificationDelivery;
     'notification-inbox': NotificationInbox;
@@ -144,6 +145,7 @@ export interface Config {
     'prize-catalogue': PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
+    'discover-events': DiscoverEventsSelect<false> | DiscoverEventsSelect<true>;
     'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
     'notification-deliveries': NotificationDeliveriesSelect<false> | NotificationDeliveriesSelect<true>;
     'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
@@ -988,6 +990,10 @@ export interface ContentReport {
         relationTo: 'news';
         value: string | News;
       } | null);
+  /**
+   * The game reported, by its slug (for example prism-match-3d). Games are not documents here, so they cannot be a reportedItem. Set instead of reportedItem for a game report.
+   */
+  reportedGame?: string | null;
   reportedBy: string | User;
   status?: ('pending' | 'reviewing' | 'resolved' | 'dismissed') | null;
   moderatorNotes?: string | null;
@@ -1857,6 +1863,57 @@ export interface IdentityCheck {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "discover-events".
+ */
+export interface DiscoverEvent {
+  id: string;
+  event: 'view' | 'section' | 'open' | 'game_launch' | 'game_blocked' | 'game_report';
+  /**
+   * all, apps, games, books or surveys.
+   */
+  section?: string | null;
+  /**
+   * For an opened item: game, app, book, survey, giveaway or brands.
+   */
+  itemType?: string | null;
+  /**
+   * The item's id; for a game, its slug.
+   */
+  itemId?: string | null;
+  /**
+   * Where it came from: a list, a universal link, or the All tab.
+   */
+  source?: string | null;
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
+  /**
+   * Minted by the app for this event and reused on every retry.
+   */
+  eventId?: string | null;
+  /**
+   * The device and event id together, which is what makes a retried batch count once. A single column, not a compound index: Payload names compound indexes after their fields, and news-analytics already has one named the same.
+   */
+  dedupeKey?: string | null;
+  /**
+   * When it happened, as the device reported, held to within 14 days before and 5 minutes after arrival.
+   */
+  timestamp: string;
+  receivedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics".
  */
 export interface NewsAnalytic {
@@ -2670,6 +2727,10 @@ export interface PayloadLockedDocument {
         value: string | News;
       } | null)
     | ({
+        relationTo: 'discover-events';
+        value: string | DiscoverEvent;
+      } | null)
+    | ({
         relationTo: 'news-analytics';
         value: string | NewsAnalytic;
       } | null)
@@ -2902,6 +2963,7 @@ export interface ContentReportsSelect<T extends boolean = true> {
   reason?: T;
   additionalDetails?: T;
   reportedItem?: T;
+  reportedGame?: T;
   reportedBy?: T;
   status?: T;
   moderatorNotes?: T;
@@ -3328,6 +3390,29 @@ export interface NewsSelect<T extends boolean = true> {
   lastModifiedBy?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "discover-events_select".
+ */
+export interface DiscoverEventsSelect<T extends boolean = true> {
+  event?: T;
+  section?: T;
+  itemType?: T;
+  itemId?: T;
+  source?: T;
+  userId?: T;
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  eventId?: T;
+  dedupeKey?: T;
+  timestamp?: T;
+  receivedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

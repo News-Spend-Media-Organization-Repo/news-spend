@@ -107,3 +107,58 @@ describe("postReportRouter.create", () => {
     expect(attempts.filter((a) => a === "TOO_MANY_REQUESTS")).toHaveLength(1);
   });
 });
+
+describe("postReportRouter.createGame", () => {
+  const gameInput = {
+    gameId: "prism-match-3d",
+    reason: "inappropriate" as const,
+    additionalDetails: "Shows a gambling ad",
+  };
+
+  it("rejects an unauthenticated caller and a guest", async () => {
+    const anon = await expectError(
+      call(postReportRouter.createGame, gameInput, { context: mockContext() })
+    );
+    expect(anon.code).toBe("UNAUTHORIZED");
+
+    const guest = await expectError(
+      call(postReportRouter.createGame, gameInput, {
+        context: mockContext({ user: guestUser as never }),
+      })
+    );
+    expect(guest.code).toBe("FORBIDDEN");
+  });
+
+  it("records a report naming the game, not a document", async () => {
+    const payload = createFakePayload({ collections: { contentReports: [] } });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    await call(postReportRouter.createGame, gameInput, { context: ctx });
+
+    expect(payload.docs("contentReports")).toHaveLength(1);
+    const report = payload.docs("contentReports")[0] as Record<string, unknown>;
+    expect(report).toMatchObject({
+      reportedBy: "user-1",
+      reportedGame: "prism-match-3d",
+      reason: "inappropriate",
+      additionalDetails: "Shows a gambling ad",
+    });
+    expect(report.reportedItem).toBeUndefined();
+  });
+
+  it("refuses a game id that is not a slug", async () => {
+    const payload = createFakePayload({ collections: { contentReports: [] } });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const error = await expectError(
+      call(
+        postReportRouter.createGame,
+        { ...gameInput, gameId: "../../etc/passwd" },
+        { context: ctx }
+      )
+    );
+
+    expect(error.code).toBe("BAD_REQUEST");
+    expect(payload.docs("contentReports")).toHaveLength(0);
+  });
+});
