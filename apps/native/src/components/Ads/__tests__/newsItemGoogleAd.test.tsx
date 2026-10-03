@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 const mockCreateForAdRequest = jest.fn();
 const mockDestroy = jest.fn();
 
-/** The item the mocked recycling hook should announce on mount. */
+/** The item the component under test is rendered with. */
 let mockCurrentItem: { id: string } = { id: "ad-0" };
 
 // The component's collaborators, all of which reach for native modules.
@@ -70,32 +70,6 @@ jest.mock("../../heroui/image", () => ({
   Image: require("react-native").Image,
 }));
 
-/**
- * `useRecyclingEffect` is the component's only entry point into loading — it
- * fires on mount as well as on a genuine recycle. The real hook needs a
- * LegendList recycling context, so this stands in for both: it announces the
- * module-level item on mount and re-announces whenever a test swaps it,
- * which is what a cell recycle looks like to the component.
- */
-jest.mock("@legendapp/list/react-native", () => {
-  const { useEffect, useRef } = require("react");
-  return {
-    useRecyclingEffect: (fn: (args: unknown) => void) => {
-      const announced = useRef<{ id: string } | null>(null);
-      useEffect(() => {
-        if (
-          announced.current != null &&
-          announced.current.id === mockCurrentItem.id
-        ) {
-          return;
-        }
-        announced.current = mockCurrentItem;
-        fn({ item: mockCurrentItem, prevItem: null });
-      });
-    },
-  };
-});
-
 import { clearTabAdCache } from "#/utils/ad-cache";
 import NewsItemGoogleAds from "../NewsItemGoogleAd";
 
@@ -117,9 +91,11 @@ const advance = async (ms: number) => {
 describe("NewsItemGoogleAds", () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    // Clear first: it destroys the previous test's cached ads, and those calls
+    // must not be counted against this test.
+    clearTabAdCache("test");
     mockCreateForAdRequest.mockReset();
     mockDestroy.mockReset();
-    clearTabAdCache("test");
   });
 
   afterEach(() => {
@@ -186,9 +162,14 @@ describe("NewsItemGoogleAds", () => {
     );
     await flush();
 
-    // A content row that reaches the boundary can land a fraction past it.
+    // The margin lives on a wrapper INSIDE the ad view. Padding on the
+    // NativeAdView itself makes the library inset the native view while the
+    // children keep their offsets, pushing the right edge of every asset one
+    // point outside it.
     const adView = screen.getByTestId("native-ad-view").props.style;
-    expect(adView.padding).toBeGreaterThanOrEqual(1);
+    expect(adView.padding).toBeUndefined();
+    const inset = screen.getByTestId("native-ad-inset").props.style;
+    expect(inset.padding).toBeGreaterThanOrEqual(1);
   });
 
   it("reserves room under the thumbnail for the AdChoices icon", async () => {
@@ -295,7 +276,7 @@ describe("NewsItemGoogleAds", () => {
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
-  it("drops the pinned height when the cell recycles to a different ad", async () => {
+  it("sizes the ad view from its content and follows it down when the cell recycles", async () => {
     mockCreateForAdRequest.mockResolvedValue({
       headline: "Tall ad",
       body: "Body",
@@ -311,12 +292,22 @@ describe("NewsItemGoogleAds", () => {
     await flush();
     expect(screen.getByText("Tall ad")).toBeTruthy();
 
-    // The slot measures tall — a bigger creative, a mid-layout measurement —
-    // and pins the container to it.
-    await fireEvent(screen.getByTestId("native-ad-view"), "layout", {
-      nativeEvent: { layout: { height: 400, width: 300, x: 0, y: 0 } },
+    // The content measures tall, fractionally. The ad view is raised to a
+    // whole number at or above it, so every asset stays inside.
+    await fireEvent(screen.getByTestId("native-ad-content"), "layout", {
+      nativeEvent: { layout: { height: 399.4, width: 300, x: 0, y: 0 } },
     });
-    expect(screen.getByTestId("native-ad-view").props.style.height).toBe(400);
+    expect(screen.getByTestId("native-ad-view").props.style.minHeight).toBe(
+      402
+    );
+
+    // Content that grows later is followed, not frozen out.
+    await fireEvent(screen.getByTestId("native-ad-content"), "layout", {
+      nativeEvent: { layout: { height: 460, width: 300, x: 0, y: 0 } },
+    });
+    expect(screen.getByTestId("native-ad-view").props.style.minHeight).toBe(
+      462
+    );
 
     // The cell recycles to a different, compact ad.
     mockCreateForAdRequest.mockResolvedValue({
@@ -333,11 +324,41 @@ describe("NewsItemGoogleAds", () => {
     await flush();
 
     expect(screen.getByText("Compact ad")).toBeTruthy();
-    // The stale pin is dropped so the new ad measures itself. Without the
-    // reset it keeps the 400px box and floats in blank space below its
-    // content — the reported rendering bug.
-    expect(
-      screen.getByTestId("native-ad-view").props.style.height
-    ).toBeUndefined();
+    // The previous slot's size is dropped, so the new ad is not left floating
+    // in blank space below its content.
+    expect(screen.getByTestId("native-ad-view").props.style.minHeight).toBe(
+      144 // MEDIA_SIZE 122 + AdChoices gutter 20 + 2 inset
+    );
+  });
+  it("asks again instead of showing an ad another slot in the tab already shows", async () => {
+    const adWith = (headline: string) => ({
+      headline,
+      advertiser: "Acme",
+      body: "Body",
+      store: "Play",
+      callToAction: "Install",
+      destroy: mockDestroy,
+    });
+    mockCreateForAdRequest
+      .mockResolvedValueOnce(adWith("Same ad"))
+      .mockResolvedValueOnce(adWith("Same ad"))
+      .mockResolvedValueOnce(adWith("Different ad"));
+
+    const first = { id: "ad-dup-1" };
+    const second = { id: "ad-dup-2" };
+    await render(
+      <>
+        <NewsItemGoogleAds index={0} item={first} tab="test" />
+        <NewsItemGoogleAds index={1} item={second} tab="test" />
+      </>
+    );
+    await flush();
+    await advance(1000);
+    await flush();
+
+    expect(screen.getByText("Same ad")).toBeTruthy();
+    expect(screen.getByText("Different ad")).toBeTruthy();
+    // The repeat was released, not leaked.
+    expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 });

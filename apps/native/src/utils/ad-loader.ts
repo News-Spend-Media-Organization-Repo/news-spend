@@ -6,7 +6,7 @@ import {
 } from "react-native-google-mobile-ads";
 import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
-import { getCachedAd, setCachedAd } from "#/utils/ad-cache";
+import { getCachedAd, isDuplicateInTab, setCachedAd } from "#/utils/ad-cache";
 
 const MAX_RETRIES = 3;
 
@@ -30,6 +30,24 @@ const makeKey = (tab: string | undefined, id: string) =>
  * walk and a slot mounting before that preload finished) await the same
  * request instead of firing a duplicate one. */
 const inFlight = new Map<string, Promise<NativeAd | null>>();
+
+/**
+ * Ad requests go out one at a time.
+ *
+ * The feed preloads every ad slot the moment a page arrives, so a page with
+ * four slots fired four requests at the same ad unit in the same instant, and
+ * Google answered them with the same creative. Taking turns lets each request
+ * see a different auction, and gives the duplicate check below something to
+ * compare against. Only the request itself queues: retry backoff happens
+ * outside the queue, so one slot waiting to retry never holds up the others.
+ */
+let requestQueue: Promise<unknown> = Promise.resolve();
+
+function enqueue<T>(task: () => Promise<T>): Promise<T> {
+  const run = requestQueue.then(task, task);
+  requestQueue = run.catch(() => undefined);
+  return run;
+}
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -99,47 +117,54 @@ async function loadWithRetries(
   const failures: string[] = [];
 
   /**
-   * The best video ad seen so far. This layout is built for a still image, so
-   * an image ad is preferred — but *only* preferred. Rejecting video outright
-   * spent the whole retry budget refusing perfectly servable fill, which on
-   * iOS (where native inventory skews heavily to video) meant slots that had
-   * an ad available collapsed anyway.
+   * How far an ad is from what we want: 0 is an image ad nobody else in this
+   * feed is already showing. A repeat is worse than a video, because it is the
+   * thing the feed's readers actually complain about; this layout is built for
+   * a still image, so a video is the lesser evil. Neither is rejected
+   * outright. Refusing them spent the whole retry budget on perfectly
+   * servable fill, which on iOS (where native inventory skews heavily to
+   * video) meant slots that had an ad available collapsed anyway.
    */
-  let videoFallback: NativeAd | null = null;
+  const badness = (ad: NativeAd) =>
+    (isDuplicateInTab(tab, id, ad) ? 2 : 0) +
+    (ad.mediaContent?.hasVideoContent ? 1 : 0);
+
+  let best: NativeAd | null = null;
+  let bestBadness = Number.POSITIVE_INFINITY;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const ad = await requestOnce();
+      const ad = await enqueue(requestOnce);
+      const adBadness = badness(ad);
 
-      if (ad.mediaContent?.hasVideoContent && attempt < MAX_RETRIES) {
-        // Keep it in hand and spend a retry looking for an image ad.
-        if (videoFallback) {
-          videoFallback.destroy();
-        }
-        videoFallback = ad;
-        failures.push(`attempt ${attempt}: video ad, retrying for image`);
-        await delay(RETRY_BACKOFF_MS[attempt - 1] ?? 1000);
-        continue;
+      // Keep whichever of the two is closer to ideal, release the other.
+      if (adBadness < bestBadness) {
+        best?.destroy();
+        best = ad;
+        bestBadness = adBadness;
+      } else {
+        ad.destroy();
       }
 
-      if (videoFallback && videoFallback !== ad) {
-        videoFallback.destroy();
+      if (bestBadness === 0) {
+        break;
       }
-      setCachedAd(tab, id, ad);
-      return ad;
+      failures.push(
+        `attempt ${attempt}: ${bestBadness >= 2 ? "repeat" : "video"} ad, retrying for a better one`
+      );
     } catch (error) {
       failures.push(`attempt ${attempt}: ${(error as Error)?.message}`);
-      if (attempt < MAX_RETRIES) {
-        await delay(RETRY_BACKOFF_MS[attempt - 1] ?? 1000);
-      }
+    }
+
+    if (attempt < MAX_RETRIES) {
+      await delay(RETRY_BACKOFF_MS[attempt - 1] ?? 1000);
     }
   }
 
-  // Every attempt for an image ad came back empty, but a video one did
-  // arrive: showing it beats collapsing the slot.
-  if (videoFallback) {
-    setCachedAd(tab, id, videoFallback);
-    return videoFallback;
+  // Something arrived, even if not ideal: showing it beats collapsing the slot.
+  if (best) {
+    setCachedAd(tab, id, best);
+    return best;
   }
 
   // Breadcrumbs alone never leave the device — they only ride along with an
