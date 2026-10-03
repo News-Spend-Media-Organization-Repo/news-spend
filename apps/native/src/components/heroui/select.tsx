@@ -136,12 +136,25 @@ function MaybeScrollable({
   }
 
   return (
+    // `flex-1` is what makes this scroll. The popover content is a fixed-height
+    // box (aspect ratio + overflow hidden), and without it the shadow wrapper
+    // sizes to its content instead of the box: the list becomes exactly as tall
+    // as its items, has nothing to scroll, and the overflow is simply clipped.
+    // `nestedScrollEnabled` lets Android hand the drag to this list rather than
+    // an ancestor scroller.
     <ScrollShadow
+      className="flex-1"
       color={themeColorOverlay}
       LinearGradientComponent={LinearGradient}
       size={60}
     >
-      <ScrollView contentContainerStyle={{ rowGap: 8 }}>{children}</ScrollView>
+      <ScrollView
+        contentContainerStyle={{ rowGap: 8 }}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
     </ScrollShadow>
   );
 }
