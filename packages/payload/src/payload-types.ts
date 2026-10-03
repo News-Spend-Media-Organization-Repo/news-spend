@@ -199,6 +199,7 @@ export interface Config {
     'analytics-countries': AnalyticsCountriesWidget;
     'analytics-feedback': AnalyticsFeedbackWidget;
     'analytics-attention': AnalyticsAttentionWidget;
+    'analytics-discover': AnalyticsDiscoverWidget;
     'analytics-push': AnalyticsPushWidget;
     'contact-export': ContactExportWidget;
     collections: CollectionsWidget;
@@ -4192,6 +4193,16 @@ export interface AnalyticsFeedbackWidget {
 export interface AnalyticsAttentionWidget {
   data?: {
     [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-discover_widget".
+ */
+export interface AnalyticsDiscoverWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
 }

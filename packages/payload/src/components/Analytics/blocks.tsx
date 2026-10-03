@@ -3,6 +3,11 @@ import type {
   AttentionCounts,
   AudienceSummary,
   ConversionOutcomes,
+  DiscoverDay,
+  DiscoverGame,
+  DiscoverItemType,
+  DiscoverSection,
+  DiscoverSummary,
   FeedbackSummary,
   GiveawayAttention,
   GiveawayReport,
@@ -1162,5 +1167,146 @@ export function PostbackHealthPanel({
         </>
       )}
     </Panel>
+  );
+}
+
+// --- discover ---------------------------------------------------------------
+
+const DISCOVER_SECTION_LABELS: Record<string, string> = {
+  all: "All",
+  apps: "Apps",
+  games: "Games",
+  books: "Books",
+  surveys: "Surveys",
+};
+
+const DISCOVER_ITEM_LABELS: Record<string, string> = {
+  game: "Games",
+  app: "Apps",
+  book: "Books",
+  survey: "Surveys",
+  giveaway: "Giveaway button",
+  brands: "Connect Brands button",
+};
+
+/** A game's slug as a name: `prism-match-3d` reads as `Prism Match 3d`. */
+const gameName = (slug: string) =>
+  slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+/**
+ * Is the Discover tab used? Counts devices, not accounts, and only counts the
+ * app versions that report it, so reach is measured against the readers seen in
+ * the same period and will rise as people update.
+ */
+export function DiscoverPanel({
+  summary,
+  sections,
+  items,
+  games,
+  days,
+}: {
+  summary: DiscoverSummary;
+  sections: DiscoverSection[];
+  items: DiscoverItemType[];
+  games: DiscoverGame[];
+  days: DiscoverDay[];
+}): ReactNode {
+  return (
+    <>
+      <div className="ana-grid ana-kpis">
+        <Kpi
+          change={describeChange(
+            summary.openers.current,
+            summary.openers.previous
+          )}
+          label="Opened Discover"
+          note="devices"
+          tag="reported"
+          value={formatCount(summary.openers.current)}
+        />
+        <Kpi
+          label="Reach"
+          note={`of ${formatCount(summary.readers)} devices reading news`}
+          tag="reported"
+          value={formatPercent(summary.reach)}
+        />
+        <Kpi
+          label="Items opened"
+          note="apps, games, books, surveys, buttons"
+          tag="reported"
+          value={formatCount(summary.itemOpens)}
+        />
+        <Kpi
+          label="Games started"
+          note={`${formatCount(summary.gamesBlocked)} blocked · ${formatCount(summary.gameReports)} reported`}
+          tag="reported"
+          value={formatCount(summary.gameLaunches)}
+        />
+      </div>
+
+      <Panel
+        hint="Devices that opened the tab each day. Only app versions that report Discover are counted, so this rises as people update."
+        tag="reported"
+        title="Opens per day"
+      >
+        <DayChart
+          days={days}
+          series={[
+            {
+              key: "openers",
+              label: "Devices",
+              color: SERIES_COLORS.deep,
+            },
+          ]}
+        />
+      </Panel>
+
+      <div className="ana-grid ana-even">
+        <Panel hint="Times a section was shown" tag="reported" title="Sections">
+          <Bars
+            rows={sections.map((s) => ({
+              label: DISCOVER_SECTION_LABELS[s.section] ?? s.section,
+              value: s.views,
+              display: `${formatCount(s.views)} views · ${formatCount(s.people)} devices`,
+            }))}
+          />
+        </Panel>
+        <Panel hint="What was tapped" tag="reported" title="What people open">
+          <Bars
+            rows={items.map((i) => ({
+              label: DISCOVER_ITEM_LABELS[i.type] ?? i.type,
+              value: i.opens,
+              display: `${formatCount(i.opens)} opens · ${formatCount(i.people)} devices`,
+            }))}
+          />
+        </Panel>
+      </div>
+
+      <Panel
+        hint="Games that actually started"
+        tag="reported"
+        title="Top games"
+      >
+        <DataTable
+          columns={[
+            { key: "game", label: "Game" },
+            { key: "launches", label: "Launches", align: "right" },
+            { key: "players", label: "Devices", align: "right" },
+          ]}
+          empty="No game started in this period."
+          rows={games.map((g) => ({
+            key: g.game,
+            cells: {
+              game: gameName(g.game),
+              launches: formatCount(g.launches),
+              players: formatCount(g.players),
+            },
+          }))}
+        />
+      </Panel>
+    </>
   );
 }

@@ -10,6 +10,13 @@ import {
   feedbackSummary,
 } from "./audience";
 import type { AnalyticsDb } from "./db";
+import {
+  discoverDaily,
+  discoverGames,
+  discoverItems,
+  discoverSections,
+  discoverSummary,
+} from "./discover";
 import { giveawayReport } from "./giveaway";
 import {
   newsArticleReport,
@@ -834,6 +841,162 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(health.total).toBe(0);
       expect(health.rejectedRate).toBeNull();
       expect(health.lastReceivedAt).toBe("2026-09-20T08:00:00.000Z");
+    });
+  });
+  describe("discover", () => {
+    const evt = (
+      event: string,
+      device: string,
+      at: string,
+      extra: {
+        section?: string;
+        type?: string;
+        item?: string;
+        source?: string;
+      } = {}
+    ) =>
+      `('${event}', ${extra.section ? `'${extra.section}'` : "NULL"}, ${extra.type ? `'${extra.type}'` : "NULL"}, ${extra.item ? `'${extra.item}'` : "NULL"}, ${extra.source ? `'${extra.source}'` : "NULL"}, 's-${device}', '${device}', '${at}')`;
+
+    beforeAll(async () => {
+      await conn.unsafe(`
+        CREATE TYPE enum_discover_events_event AS ENUM('view','section','open','game_launch','game_blocked','game_report');
+        CREATE TABLE discover_events (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          event enum_discover_events_event NOT NULL,
+          section varchar, item_type varchar, item_id varchar, source varchar,
+          user_id varchar, session_id varchar NOT NULL, device_id varchar NOT NULL,
+          platform varchar, event_id varchar, dedupe_key varchar UNIQUE,
+          timestamp timestamptz NOT NULL, received_at timestamptz);
+        INSERT INTO discover_events (event, section, item_type, item_id, source, session_id, device_id, timestamp) VALUES
+          ${[
+            // This period (14-20 September): three devices open Discover.
+            evt("view", "d1", "2026-09-19T09:00:00Z", { section: "all" }),
+            evt("view", "d1", "2026-09-19T09:30:00Z", { section: "all" }),
+            evt("view", "d2", "2026-09-19T10:00:00Z", { section: "games" }),
+            evt("view", "d3", "2026-09-20T08:00:00Z", { section: "all" }),
+            evt("section", "d1", "2026-09-19T09:01:00Z", { section: "games" }),
+            evt("section", "d2", "2026-09-19T10:01:00Z", {
+              section: "surveys",
+            }),
+            evt("open", "d1", "2026-09-19T09:02:00Z", {
+              type: "game",
+              item: "prism-match-3d",
+              section: "games",
+            }),
+            evt("open", "d2", "2026-09-19T10:02:00Z", {
+              type: "game",
+              item: "2048",
+              section: "games",
+            }),
+            evt("open", "d2", "2026-09-19T10:03:00Z", { type: "brands" }),
+            evt("game_launch", "d1", "2026-09-19T09:03:00Z", {
+              type: "game",
+              item: "prism-match-3d",
+            }),
+            evt("game_launch", "d1", "2026-09-19T09:40:00Z", {
+              type: "game",
+              item: "prism-match-3d",
+            }),
+            evt("game_launch", "d2", "2026-09-19T10:04:00Z", {
+              type: "game",
+              item: "2048",
+            }),
+            evt("game_blocked", "d3", "2026-09-20T08:01:00Z", {
+              type: "game",
+              item: "2048",
+              source: "age",
+            }),
+            evt("game_report", "d2", "2026-09-19T10:30:00Z", { item: "2048" }),
+            // The period before (7-13 September): two devices.
+            evt("view", "d1", "2026-09-10T09:00:00Z", { section: "all" }),
+            evt("view", "d4", "2026-09-11T09:00:00Z", { section: "all" }),
+            // Outside both windows.
+            evt("view", "d9", "2026-08-01T09:00:00Z", { section: "all" }),
+          ].join(",\n")};
+      `);
+    });
+
+    it("counts devices that opened Discover, now and before", async () => {
+      const summary = await discoverSummary(db, staff, { range });
+      expect(summary.openers).toEqual({ current: 3, previous: 2 });
+      expect(summary).toMatchObject({
+        itemOpens: 3,
+        gameLaunches: 3,
+        gamesBlocked: 1,
+        gameReports: 1,
+      });
+      expect(summary.reach).toBe(
+        summary.readers === 0
+          ? null
+          : Math.round((3 / summary.readers) * 1000) / 10
+      );
+    });
+
+    it("lists every section, counting a view and a switch as showing it", async () => {
+      const sections = await discoverSections(db, staff, { range });
+      expect(sections.map((s) => s.section)).toEqual([
+        "all",
+        "apps",
+        "games",
+        "books",
+        "surveys",
+      ]);
+      // all: d1 twice + d3; games: d2 view + d1 switch; surveys: d2 switch.
+      expect(sections.find((s) => s.section === "all")).toEqual({
+        section: "all",
+        views: 3,
+        people: 2,
+      });
+      expect(sections.find((s) => s.section === "games")).toEqual({
+        section: "games",
+        views: 2,
+        people: 2,
+      });
+      expect(sections.find((s) => s.section === "surveys")).toEqual({
+        section: "surveys",
+        views: 1,
+        people: 1,
+      });
+      expect(sections.find((s) => s.section === "apps")).toEqual({
+        section: "apps",
+        views: 0,
+        people: 0,
+      });
+    });
+
+    it("counts what was opened, by kind and by person", async () => {
+      const items = await discoverItems(db, staff, { range });
+      expect(items.find((i) => i.type === "game")).toEqual({
+        type: "game",
+        opens: 2,
+        people: 2,
+      });
+      expect(items.find((i) => i.type === "brands")).toEqual({
+        type: "brands",
+        opens: 1,
+        people: 1,
+      });
+      expect(items.find((i) => i.type === "app")).toEqual({
+        type: "app",
+        opens: 0,
+        people: 0,
+      });
+    });
+
+    it("ranks games by launches", async () => {
+      const games = await discoverGames(db, staff, { range });
+      expect(games).toEqual([
+        { game: "prism-match-3d", launches: 2, players: 1 },
+        { game: "2048", launches: 1, players: 1 },
+      ]);
+    });
+
+    it("gives one bar per day with empty days at zero", async () => {
+      const days = await discoverDaily(db, staff, { range });
+      expect(days).toHaveLength(7);
+      expect(days.find((d) => d.date === "2026-09-19")?.openers).toBe(2);
+      expect(days.find((d) => d.date === "2026-09-20")?.openers).toBe(1);
+      expect(days.find((d) => d.date === "2026-09-15")?.openers).toBe(0);
     });
   });
 });
