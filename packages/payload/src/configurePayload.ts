@@ -43,6 +43,7 @@ import {
   Media,
   News,
   DiscoverEvents,
+  EmailTemplates,
   NewsAnalytics,
   NotificationDeliveries,
   NotificationInbox,
@@ -188,6 +189,7 @@ const baseConfig: Config = {
     Media,
     News,
     DiscoverEvents,
+    EmailTemplates,
     NewsAnalytics,
     NotificationDeliveries,
     NotificationInbox,
@@ -352,7 +354,12 @@ const baseConfig: Config = {
         },
       },
     }),
-    auditFieldsPlugin(),
+    auditFieldsPlugin({
+      // Email templates render full-width (studio + inspector side by
+      // side); the audit sidebar would squeeze the Design tab. Version
+      // history still tracks who changed what and when.
+      excludedCollections: ["email-templates"],
+    }),
     auditLogPlugin,
     // Last, so it also covers collections the plugins above add.
     partnerGuardPlugin,

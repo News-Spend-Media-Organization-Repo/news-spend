@@ -13,6 +13,7 @@
   "dependencies": {
     "@better-auth/expo": "catalog:",
     "@news-spend-media/db": "workspace:*",
+    "@news-spend-media/payload": "workspace:*",
     "better-auth": "catalog:",
     "pg": "catalog:",
     "zod": "catalog:"

@@ -36,6 +36,9 @@ import { BlockquoteFeatureClient as BlockquoteFeatureClient_e70f5e05f09f93e00b99
 import { UploadFeatureClient as UploadFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ArticleStatsView as ArticleStatsView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { EmailVisualEditor as EmailVisualEditor_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news-spend-media/payload/components/EmailEditor'
+import { EmailHtmlPreview as EmailHtmlPreview_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news-spend-media/payload/components/EmailEditor'
+import { EmailGuide as EmailGuide_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news-spend-media/payload/components/EmailEditor'
 import { VideoPreviewField as VideoPreviewField_a86bb0b13348b042ba24277762780641 } from '@news-spend-media/payload/components/VideoPreviewField'
 import { PartnerPerformanceView as PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { PartnerIntegrationGuideView as PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5 } from '@news-spend-media/payload/components/PartnerIntegrationGuide'
@@ -102,6 +105,9 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UploadFeatureClient": UploadFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@news-spend-media/payload/components/Analytics#ArticleStatsView": ArticleStatsView_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/EmailEditor#EmailVisualEditor": EmailVisualEditor_99c221ac1b2d8b8f4c30e0aa8c6f1658,
+  "@news-spend-media/payload/components/EmailEditor#EmailHtmlPreview": EmailHtmlPreview_99c221ac1b2d8b8f4c30e0aa8c6f1658,
+  "@news-spend-media/payload/components/EmailEditor#EmailGuide": EmailGuide_99c221ac1b2d8b8f4c30e0aa8c6f1658,
   "@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField": VideoPreviewField_a86bb0b13348b042ba24277762780641,
   "@news-spend-media/payload/components/Analytics#PartnerPerformanceView": PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/PartnerIntegrationGuide#PartnerIntegrationGuideView": PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5,

@@ -8,6 +8,10 @@ import {
   sendPasswordResetEmail,
   sendWelcomeEmail,
 } from "@news-spend-media/mail";
+import { getPayload } from "@news-spend-media/payload";
+import { TemplateNotFoundError } from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
+import { sendTemplatedEmail } from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
+import { resolveUserVariables } from "@news-spend-media/payload/lib/email/templateVariables";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { anonymous, emailOTP, openAPI } from "better-auth/plugins";
@@ -36,6 +40,37 @@ function generateUniqueDigits() {
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URI,
 });
+
+/**
+ * Welcome email from the CMS template, with variables resolved from the
+ * recipient's real record. Throws TemplateNotFoundError when no published
+ * `welcome` template exists so the caller can fall back to code.
+ */
+async function sendWelcomeFromTemplate(user: {
+  id: string;
+  email: string;
+  name: string;
+}): Promise<void> {
+  const found = await pool.query("SELECT username FROM users WHERE id = $1", [
+    user.id,
+  ]);
+  const username =
+    typeof found.rows[0]?.username === "string" &&
+    found.rows[0].username.length > 0
+      ? (found.rows[0].username as string)
+      : undefined;
+
+  const payload = await getPayload();
+  await sendTemplatedEmail(payload, {
+    slug: "welcome",
+    to: user.email,
+    variables: resolveUserVariables({
+      email: user.email,
+      name: user.name,
+      username,
+    }),
+  });
+}
 
 export const auth = betterAuth({
   user: {
@@ -203,7 +238,16 @@ export const auth = betterAuth({
                 randomUUID(),
               ]
             );
-            sendWelcomeEmail(newSession.user.email, newSession.user.name);
+            // CMS template first (real user variables), code template
+            // fallback when no published template exists. A send failure
+            // must not double-send, so only a missing template falls back.
+            sendWelcomeFromTemplate(newSession.user).catch((e) => {
+              if (e instanceof TemplateNotFoundError) {
+                sendWelcomeEmail(newSession.user.email, newSession.user.name);
+                return;
+              }
+              logger.error({ err: e }, "Failed to send welcome email");
+            });
           }
         }
       }

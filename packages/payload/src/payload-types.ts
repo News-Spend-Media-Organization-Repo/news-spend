@@ -95,6 +95,7 @@ export interface Config {
     media: Media;
     news: News;
     'discover-events': DiscoverEvent;
+    'email-templates': EmailTemplate;
     'news-analytics': NewsAnalytic;
     'notification-deliveries': NotificationDelivery;
     'notification-inbox': NotificationInbox;
@@ -146,6 +147,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
     'discover-events': DiscoverEventsSelect<false> | DiscoverEventsSelect<true>;
+    'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
     'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
     'notification-deliveries': NotificationDeliveriesSelect<false> | NotificationDeliveriesSelect<true>;
     'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
@@ -1915,6 +1917,37 @@ export interface DiscoverEvent {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates".
+ */
+export interface EmailTemplate {
+  id: string;
+  /**
+   * Display name, e.g. Welcome.
+   */
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Supports {{variables}}, e.g. Welcome, {{username}}!
+   */
+  subject: string;
+  /**
+   * Inbox preview line. Falls back to subject.
+   */
+  previewText?: string | null;
+  /**
+   * Edited in the studio below. Save HTML in the studio toolbar to store.
+   */
+  html: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics".
  */
 export interface NewsAnalytic {
@@ -2732,6 +2765,10 @@ export interface PayloadLockedDocument {
         value: string | DiscoverEvent;
       } | null)
     | ({
+        relationTo: 'email-templates';
+        value: string | EmailTemplate;
+      } | null)
+    | ({
         relationTo: 'news-analytics';
         value: string | NewsAnalytic;
       } | null)
@@ -3414,6 +3451,21 @@ export interface DiscoverEventsSelect<T extends boolean = true> {
   lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates_select".
+ */
+export interface EmailTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  generateSlug?: T;
+  slug?: T;
+  subject?: T;
+  previewText?: T;
+  html?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
