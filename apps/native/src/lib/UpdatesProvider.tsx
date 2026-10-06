@@ -80,14 +80,16 @@ export const useUpdates = () => {
     }
   }, [isUpdateAvailable, availableUpdate, isDevelopmentBuild]);
 
-  // Only surface the sheet once the payload is actually on disk, so
-  // "Restart Now" is never a disabled button the user has to wait out —
-  // the download already happened silently underneath it.
+  // Optional updates stay silent: they are already on disk and expo-updates
+  // applies them on the next cold start, so interrupting the user for every
+  // push (some days there are many) only annoys them. The sheet is reserved for
+  // mandatory updates, and only opens once the payload is on disk so "Restart
+  // Now" is never a button the user has to wait out.
   useEffect(() => {
-    if (isReady && !isDevelopmentBuild) {
+    if (isReady && isMandatory && !isDevelopmentBuild) {
       setIsSheetOpen(true);
     }
-  }, [isReady, isDevelopmentBuild]);
+  }, [isReady, isMandatory, isDevelopmentBuild]);
 
   // When the app comes to the foreground, check for updates.
   // ON_LOAD only fires on cold start, this covers users who keep
