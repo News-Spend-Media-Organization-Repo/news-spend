@@ -6,10 +6,10 @@ import { useCallback, useRef } from "react";
 import { Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSnapshot } from "valtio";
-
 import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { authState } from "#/state/auth";
 import { useTabBarHeight } from "#/state/route-state";
@@ -76,6 +76,11 @@ export function SurveyTab() {
       }
 
       if (offer.url) {
+        trackDiscover({
+          event: "open",
+          itemType: "survey",
+          section: "surveys",
+        });
         navigation.navigate("InAppBrowser", {
           url: offer.url,
           title: offer.title,

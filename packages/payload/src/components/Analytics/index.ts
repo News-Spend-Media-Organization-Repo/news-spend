@@ -11,6 +11,7 @@ export {
   CategoriesWidget,
   CountriesWidget,
   DevicesWidget,
+  DiscoverWidget,
   FeedbackWidget,
   FunnelWidget,
   GrowthWidget,

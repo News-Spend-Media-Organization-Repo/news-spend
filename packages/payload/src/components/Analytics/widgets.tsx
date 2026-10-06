@@ -9,6 +9,11 @@ import {
   audienceDaily,
   audienceDevices,
   audienceSummary,
+  discoverDaily,
+  discoverGames,
+  discoverItems,
+  discoverSections,
+  discoverSummary,
   feedbackSummary,
   needsAttention,
   newsDaily,
@@ -29,6 +34,7 @@ import {
   CategoriesPanel,
   CountriesPanel,
   DevicesPanel,
+  DiscoverPanel,
   FeedbackPanel,
   FunnelPanel,
   GrowthPanel,
@@ -308,6 +314,28 @@ export const AttentionWidget = (props: WidgetServerProps): Promise<ReactNode> =>
   staffWidget(props, async ({ scope, db }) => (
     <NeedsAttentionPanel counts={await needsAttention(db, scope, {})} />
   ));
+
+/** Whether the Discover tab is used: opens, sections, what is tapped, games. */
+export const DiscoverWidget = (props: WidgetServerProps): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db, range }) => {
+    const filter = { range };
+    const [summary, sections, items, games, days] = await Promise.all([
+      discoverSummary(db, scope, filter),
+      discoverSections(db, scope, filter),
+      discoverItems(db, scope, filter),
+      discoverGames(db, scope, { ...filter, limit: 10 }),
+      discoverDaily(db, scope, filter),
+    ]);
+    return (
+      <DiscoverPanel
+        days={days}
+        games={games}
+        items={items}
+        sections={sections}
+        summary={summary}
+      />
+    );
+  });
 
 export const PushWidget = (props: WidgetServerProps): Promise<ReactNode> =>
   staffWidget(props, async ({ scope, db, range }) => (

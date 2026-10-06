@@ -94,6 +94,8 @@ export interface Config {
     'prize-catalogue': PrizeCatalogue;
     media: Media;
     news: News;
+    'discover-events': DiscoverEvent;
+    'email-templates': EmailTemplate;
     'news-analytics': NewsAnalytic;
     'notification-deliveries': NotificationDelivery;
     'notification-inbox': NotificationInbox;
@@ -144,6 +146,8 @@ export interface Config {
     'prize-catalogue': PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
+    'discover-events': DiscoverEventsSelect<false> | DiscoverEventsSelect<true>;
+    'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
     'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
     'notification-deliveries': NotificationDeliveriesSelect<false> | NotificationDeliveriesSelect<true>;
     'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
@@ -197,6 +201,7 @@ export interface Config {
     'analytics-countries': AnalyticsCountriesWidget;
     'analytics-feedback': AnalyticsFeedbackWidget;
     'analytics-attention': AnalyticsAttentionWidget;
+    'analytics-discover': AnalyticsDiscoverWidget;
     'analytics-push': AnalyticsPushWidget;
     'contact-export': ContactExportWidget;
     collections: CollectionsWidget;
@@ -988,6 +993,10 @@ export interface ContentReport {
         relationTo: 'news';
         value: string | News;
       } | null);
+  /**
+   * The game reported, by its slug (for example prism-match-3d). Games are not documents here, so they cannot be a reportedItem. Set instead of reportedItem for a game report.
+   */
+  reportedGame?: string | null;
   reportedBy: string | User;
   status?: ('pending' | 'reviewing' | 'resolved' | 'dismissed') | null;
   moderatorNotes?: string | null;
@@ -1857,6 +1866,88 @@ export interface IdentityCheck {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "discover-events".
+ */
+export interface DiscoverEvent {
+  id: string;
+  event: 'view' | 'section' | 'open' | 'game_launch' | 'game_blocked' | 'game_report';
+  /**
+   * all, apps, games, books or surveys.
+   */
+  section?: string | null;
+  /**
+   * For an opened item: game, app, book, survey, giveaway or brands.
+   */
+  itemType?: string | null;
+  /**
+   * The item's id; for a game, its slug.
+   */
+  itemId?: string | null;
+  /**
+   * Where it came from: a list, a universal link, or the All tab.
+   */
+  source?: string | null;
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
+  /**
+   * Minted by the app for this event and reused on every retry.
+   */
+  eventId?: string | null;
+  /**
+   * The device and event id together, which is what makes a retried batch count once. A single column, not a compound index: Payload names compound indexes after their fields, and news-analytics already has one named the same.
+   */
+  dedupeKey?: string | null;
+  /**
+   * When it happened, as the device reported, held to within 14 days before and 5 minutes after arrival.
+   */
+  timestamp: string;
+  receivedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates".
+ */
+export interface EmailTemplate {
+  id: string;
+  /**
+   * Display name, e.g. Welcome.
+   */
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Supports {{variables}}, e.g. Welcome, {{username}}!
+   */
+  subject: string;
+  /**
+   * Inbox preview line. Falls back to subject.
+   */
+  previewText?: string | null;
+  /**
+   * Edited in the studio below. Save HTML in the studio toolbar to store.
+   */
+  html: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics".
  */
 export interface NewsAnalytic {
@@ -2670,6 +2761,14 @@ export interface PayloadLockedDocument {
         value: string | News;
       } | null)
     | ({
+        relationTo: 'discover-events';
+        value: string | DiscoverEvent;
+      } | null)
+    | ({
+        relationTo: 'email-templates';
+        value: string | EmailTemplate;
+      } | null)
+    | ({
         relationTo: 'news-analytics';
         value: string | NewsAnalytic;
       } | null)
@@ -2902,6 +3001,7 @@ export interface ContentReportsSelect<T extends boolean = true> {
   reason?: T;
   additionalDetails?: T;
   reportedItem?: T;
+  reportedGame?: T;
   reportedBy?: T;
   status?: T;
   moderatorNotes?: T;
@@ -3326,6 +3426,44 @@ export interface NewsSelect<T extends boolean = true> {
   dislikesCount?: T;
   createdBy?: T;
   lastModifiedBy?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "discover-events_select".
+ */
+export interface DiscoverEventsSelect<T extends boolean = true> {
+  event?: T;
+  section?: T;
+  itemType?: T;
+  itemId?: T;
+  source?: T;
+  userId?: T;
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  eventId?: T;
+  dedupeKey?: T;
+  timestamp?: T;
+  receivedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates_select".
+ */
+export interface EmailTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  generateSlug?: T;
+  slug?: T;
+  subject?: T;
+  previewText?: T;
+  html?: T;
+  updatedAt?: T;
   createdAt?: T;
   _status?: T;
 }
@@ -4107,6 +4245,16 @@ export interface AnalyticsFeedbackWidget {
 export interface AnalyticsAttentionWidget {
   data?: {
     [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-discover_widget".
+ */
+export interface AnalyticsDiscoverWidget {
+  data?: {
+    days?: ('7' | '30' | '90') | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
 }

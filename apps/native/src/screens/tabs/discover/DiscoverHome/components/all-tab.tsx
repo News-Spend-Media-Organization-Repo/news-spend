@@ -24,7 +24,10 @@ import { useSnapshot } from "valtio";
 import { Button } from "#/components/heroui/button";
 import { Image } from "#/components/heroui/image";
 import { Text } from "#/components/heroui/text";
+import { GAMES, type Game } from "#/features/games/catalog";
+import { openGame } from "#/features/games/openGame";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
+import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { orpc } from "#/lib/orpc";
 import { navigationRef } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
@@ -39,13 +42,7 @@ import {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type GameItemData = {
-  id: string;
-  title?: string;
-  description?: string;
-  image?: string;
-  url?: string;
-};
+type GameItemData = Pick<Game, "id" | "title" | "description" | "image">;
 
 type SurveyItem = {
   href?: string;
@@ -71,18 +68,6 @@ type SectionItem =
   | { type: "survey"; data: SurveyItem[] };
 
 // ─── Query definitions ───────────────────────────────────────────────────────
-
-const gamesQuery = {
-  queryKey: ["games", "all-tab"],
-  queryFn: async (): Promise<GameItemData[]> => {
-    const res = await fetch(
-      "https://feeds.gamepix.com/v2/json?sid=SW281&pagination=12&page=1"
-    );
-    const data = await res.json();
-    return (data?.items ?? []).slice(0, 6);
-  },
-  staleTime: Number.POSITIVE_INFINITY,
-};
 
 const appsQuery = orpc.partnerContent.filtered.queryOptions({
   input: { limit: 5, type: ["app"], placement: ["points-mall-apps"] },
@@ -112,13 +97,9 @@ const combineAllTabResults = (results: QueryObserverResult[]) => ({
   booksPending: results[1].isPending,
   booksError: results[1].error,
 
-  gamesData: (results[2].data as GameItemData[]) ?? [],
-  gamesPending: results[2].isPending,
-  gamesError: results[2].error,
-
-  surveysData: (results[3].data as SurveyItem[]) ?? [],
-  surveysPending: results[3].isPending,
-  surveysError: results[3].error,
+  surveysData: (results[2].data as SurveyItem[]) ?? [],
+  surveysPending: results[2].isPending,
+  surveysError: results[2].error,
 
   isRefetching: results.some((r) => r.isRefetching),
   refetchAll: () => results.forEach((r) => r.refetch()),
@@ -165,23 +146,10 @@ function buildSection(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
+/** The few games shown on the All tab; the Games tab lists every one. */
+const ALL_TAB_GAMES = GAMES.slice(0, 6);
 
-const onItemClick = (gameUrl?: string, title?: string) => {
-  const { user } = authState;
-  if (!user || user.isAnonymous) {
-    navigationRef.navigate("SignIn", { redirect: "SurveyTab" });
-    return;
-  }
-  if (gameUrl) {
-    navigationRef.navigate("InAppBrowser" as any, {
-      url: gameUrl,
-      type: "game",
-      title,
-      hideHeader: true,
-    });
-  }
-};
+const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
 const handleStartSurvey = (surveyUrl?: string) => {
   const { user } = authState;
@@ -190,6 +158,7 @@ const handleStartSurvey = (surveyUrl?: string) => {
     return;
   }
   if (surveyUrl) {
+    trackDiscover({ event: "open", itemType: "survey", section: "all" });
     navigationRef.navigate("InAppBrowser" as any, { url: surveyUrl });
   }
 };
@@ -380,9 +349,6 @@ export const AllTab = () => {
     booksData,
     booksPending,
     booksError,
-    gamesData,
-    gamesPending,
-    gamesError,
     surveysData,
     surveysPending,
     surveysError,
@@ -392,7 +358,6 @@ export const AllTab = () => {
     queries: [
       appsQuery,
       booksQuery,
-      gamesQuery,
       {
         ...orpc.survey.cpx.getSurveys.queryOptions({
           refetchInterval: user && isFocused ? 10 * 60 * 1000 : undefined, // every 15 minutes
@@ -416,7 +381,15 @@ export const AllTab = () => {
         appsData.map((app) => ({
           type: "app" as const,
           data: app,
-          onPress: () => handleClick(app),
+          onPress: () => {
+            trackDiscover({
+              event: "open",
+              itemType: "app",
+              itemId: app.id,
+              section: "all",
+            });
+            handleClick(app);
+          },
           loading: isPartnerLoading(app.id),
         }))
     );
@@ -424,17 +397,13 @@ export const AllTab = () => {
     buildSection(
       items,
       "Games",
-      {
-        pending: gamesPending,
-        error: gamesError,
-        dataLength: gamesData.length,
-      },
+      { pending: false, error: null, dataLength: ALL_TAB_GAMES.length },
       refetchAll,
       () =>
-        gamesData.map((game) => ({
+        ALL_TAB_GAMES.map((game) => ({
           type: "game" as const,
           data: game,
-          onPress: () => onItemClick(game.url, game.title),
+          onPress: () => openGame(game.namespace, "all"),
         }))
     );
 
@@ -450,7 +419,15 @@ export const AllTab = () => {
       () => ({
         type: "book" as const,
         data: booksData,
-        onPress: handleClick,
+        onPress: (book: PartnerContent) => {
+          trackDiscover({
+            event: "open",
+            itemType: "book",
+            itemId: book.id,
+            section: "all",
+          });
+          handleClick(book);
+        },
         loading: isPartnerLoading,
       })
     );
@@ -472,9 +449,6 @@ export const AllTab = () => {
     appsData,
     appsPending,
     appsError,
-    gamesData,
-    gamesPending,
-    gamesError,
     booksData,
     booksPending,
     booksError,

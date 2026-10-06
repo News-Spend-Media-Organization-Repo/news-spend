@@ -3,6 +3,7 @@ import { activityRouter } from "./activity";
 import { adsRouter } from "./ads";
 import { blockRouter } from "./block";
 import { commentRouter } from "./comment";
+import { discoverAnalyticsRouter } from "./discoverAnalytics";
 import { feedbackRouter } from "./feedback";
 import { giveawayRouter } from "./giveaway";
 import { newsRouter } from "./news";
@@ -26,6 +27,7 @@ export const router = {
   comments: commentRouter,
   feedback: feedbackRouter,
   giveaway: giveawayRouter,
+  discoverAnalytics: discoverAnalyticsRouter,
   news: newsRouter,
   notificationSettings: notificationSettingsRouter,
   notifications: notificationsRouter,

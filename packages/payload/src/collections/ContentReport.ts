@@ -7,7 +7,13 @@ export const ContentReport: CollectionConfig = {
   slug: "contentReports",
   admin: {
     useAsTitle: "reason",
-    defaultColumns: ["reportedItem", "reason", "status", "reportedBy"],
+    defaultColumns: [
+      "reportedItem",
+      "reportedGame",
+      "reason",
+      "status",
+      "reportedBy",
+    ],
   },
   fields: [
     {
@@ -53,6 +59,15 @@ export const ContentReport: CollectionConfig = {
       admin: {
         description:
           "The reported content. Optional: not set for user-level actions (e.g. blocking).",
+      },
+    },
+    {
+      name: "reportedGame",
+      type: "text",
+      index: true,
+      admin: {
+        description:
+          "The game reported, by its slug (for example prism-match-3d). Games are not documents here, so they cannot be a reportedItem. Set instead of reportedItem for a game report.",
       },
     },
     {

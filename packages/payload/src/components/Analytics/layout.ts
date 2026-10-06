@@ -146,6 +146,13 @@ export const analyticsWidgets: Widget[] = [
     minWidth: "medium",
   },
   {
+    slug: "analytics-discover",
+    label: "Discover usage",
+    Component: `${PATH}#DiscoverWidget`,
+    fields: [daysField],
+    minWidth: "medium",
+  },
+  {
     slug: "analytics-push",
     label: "Push campaigns",
     Component: `${PATH}#PushWidget`,
@@ -227,6 +234,11 @@ export function analyticsDefaultLayout({
         data: { days: "30" },
       },
       { widgetSlug: "analytics-devices", width: "small" },
+      {
+        widgetSlug: "analytics-discover",
+        width: "large",
+        data: { days: "30" },
+      },
       { widgetSlug: "contact-export", width: "medium" },
       { widgetSlug: "collections", width: "full" },
     ];

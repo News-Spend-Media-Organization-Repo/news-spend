@@ -22,6 +22,23 @@ export {
 } from "./audience";
 export type { AnalyticsDb } from "./db";
 export type {
+  DiscoverDay,
+  DiscoverFilter,
+  DiscoverGame,
+  DiscoverItemType,
+  DiscoverSection,
+  DiscoverSummary,
+} from "./discover";
+export {
+  DISCOVER_ITEM_TYPES,
+  DISCOVER_SECTIONS,
+  discoverDaily,
+  discoverGames,
+  discoverItems,
+  discoverSections,
+  discoverSummary,
+} from "./discover";
+export type {
   EngagementDay,
   EngagementTotals,
   FulfilmentOutcomes,

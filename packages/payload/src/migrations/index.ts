@@ -53,6 +53,13 @@ import * as migration_20260922_130000_drop_partner_api_key from './20260922_1300
 import * as migration_20260929_091515 from './20260929_091515';
 import * as migration_20260929_131630 from './20260929_131630';
 import * as migration_20261002_063111_giveaway_send_announcement from './20261002_063111_giveaway_send_announcement';
+import * as migration_20261003_170057_discover_events from './20261003_170057_discover_events';
+import * as migration_20261003_170128_game_reports from './20261003_170128_game_reports';
+import * as migration_20261005_210416 from './20261005_210416';
+import * as migration_20261006_080000_email_templates_visual_only from './20261006_080000_email_templates_visual_only';
+import * as migration_20261006_083000_email_templates_slug_lock from './20261006_083000_email_templates_slug_lock';
+import * as migration_20261006_084500_email_templates_builtin_slug from './20261006_084500_email_templates_builtin_slug';
+import * as migration_20261006_090000_email_templates_no_audit_sidebar from './20261006_090000_email_templates_no_audit_sidebar';
 
 export const migrations = [
   {
@@ -328,6 +335,41 @@ export const migrations = [
   {
     up: migration_20261002_063111_giveaway_send_announcement.up,
     down: migration_20261002_063111_giveaway_send_announcement.down,
-    name: '20261002_063111_giveaway_send_announcement'
+    name: '20261002_063111_giveaway_send_announcement',
+  },
+  {
+    up: migration_20261003_170057_discover_events.up,
+    down: migration_20261003_170057_discover_events.down,
+    name: '20261003_170057_discover_events',
+  },
+  {
+    up: migration_20261003_170128_game_reports.up,
+    down: migration_20261003_170128_game_reports.down,
+    name: '20261003_170128_game_reports',
+  },
+  {
+    up: migration_20261005_210416.up,
+    down: migration_20261005_210416.down,
+    name: '20261005_210416'
+  },
+  {
+    up: migration_20261006_080000_email_templates_visual_only.up,
+    down: migration_20261006_080000_email_templates_visual_only.down,
+    name: '20261006_080000_email_templates_visual_only'
+  },
+  {
+    up: migration_20261006_083000_email_templates_slug_lock.up,
+    down: migration_20261006_083000_email_templates_slug_lock.down,
+    name: '20261006_083000_email_templates_slug_lock'
+  },
+  {
+    up: migration_20261006_084500_email_templates_builtin_slug.up,
+    down: migration_20261006_084500_email_templates_builtin_slug.down,
+    name: '20261006_084500_email_templates_builtin_slug'
+  },
+  {
+    up: migration_20261006_090000_email_templates_no_audit_sidebar.up,
+    down: migration_20261006_090000_email_templates_no_audit_sidebar.down,
+    name: '20261006_090000_email_templates_no_audit_sidebar'
   },
 ];

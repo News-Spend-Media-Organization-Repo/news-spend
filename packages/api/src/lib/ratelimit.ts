@@ -117,3 +117,13 @@ export const partnerWebhookRateLimitMiddleware = createRateLimitMiddleware({
   name: "partner-webhook",
   maxRequests: 60,
 });
+
+/**
+ * A dedicated bucket for Discover usage events. Same shape and allowance as
+ * the news analytics bucket (a flush every ten seconds plus one on
+ * backgrounding), kept separate so one cannot spend the other's budget.
+ */
+export const discoverTrackRateLimitMiddleware = createRateLimitMiddleware({
+  name: "discover-track",
+  maxRequests: 30,
+});

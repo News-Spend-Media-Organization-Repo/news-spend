@@ -1,5 +1,4 @@
-import { useRecyclingEffect } from "@legendapp/list/react-native";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { View } from "react-native";
 import {
   type NativeAd,
@@ -32,11 +31,17 @@ const MEDIA_SIZE = 122;
 
 /**
  * Keeps every asset strictly inside the ad view instead of flush against its
- * edges. The same measurement showed the content row touching the ad view's
- * left, top and right edges exactly, and the validator's "Advertiser assets
- * outside native ad view" is a containment check: an asset that reaches the
- * boundary can land a fraction of a point past it. One point on every side is
- * invisible and takes the boundary out of play.
+ * edges, with one point of margin on every side.
+ *
+ * It is applied to a WRAPPER inside the NativeAdView, never as `padding` on
+ * the NativeAdView itself. The library insets its native GADNativeAdView by
+ * that padding while Yoga still lays the children out as if it had not, so
+ * every asset lands one point to the right and below where it should: a
+ * 416pt container holds a 414pt native view whose content runs to x=415.
+ * Measured on device frames, the call-to-action and body ended at 415 in a
+ * 414-wide view, which is exactly AdMob's "advertiser assets outside native
+ * ad view". Padding on a plain wrapper is ordinary layout and moves nothing
+ * out of bounds.
  */
 const ASSET_INSET = 1;
 
@@ -58,95 +63,76 @@ export type NewsItemGoogleAdProp = {
 };
 
 const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
-  const [nativeAd, setNativeAd] = useState<NativeAd | null>(() =>
-    getCachedAd(tab, item.id)
-  );
-  const [failed, setFailed] = useState(false);
-  // Measured once via onLayout below; see the comment there.
-  const [adViewHeight, setAdViewHeight] = useState(0);
-
   /**
-   * Bumped whenever this cell recycles to a different ad slot, so a load
-   * that was in flight for the previous item can't overwrite state for the
-   * new one once it finally settles.
+   * The ad is read from the cache by the slot's id on every render, rather
+   * than copied into state when the cell is activated.
+   *
+   * With `recycleItems` one cell is reused for many ad slots, and the item
+   * prop changes underneath it. Ad-as-state meant the first frame after a
+   * recycle still painted the PREVIOUS slot's ad (the same ad showing twice,
+   * briefly, then flipping), followed by a placeholder frame while the effect
+   * caught up, then the real ad: the flash. Reading by id means the cell is
+   * correct on the very render that receives the new item.
    */
-  const generationRef = useRef(0);
+  const slotId: string = item.id;
 
-  // Loads (or re-uses a cached/in-flight load for) whichever ad slot this
-  // cell currently represents. The actual request lives in ad-loader.ts,
-  // shared with the feed's eager preload walk — most of the time this call
-  // just awaits a request that's already in flight or already cached.
-  const activateItem = useCallback(
-    (activateId: string, activateTab?: string) => {
-      const generation = ++generationRef.current;
-      const cached = getCachedAd(activateTab, activateId);
-      setFailed(false);
-      // Drop any height pinned by the previous slot. The onLayout pin below
-      // can only ever grow: once `height` is set, every later measurement
-      // reports the pinned height back, so `measuredHeight !== adViewHeight`
-      // is never true again and the container never shrinks. In a recycled
-      // list that strands each compact ad inside the tallest box its cell
-      // ever measured — content clustered at the top, AdChoices badge
-      // floating in blank space below. Every activation re-measures fresh.
-      setAdViewHeight(0);
-      if (cached) {
-        setNativeAd(cached);
+  // The ad a load settled with, kept with its slot. It is state (not just a
+  // cache re-read) so React Compiler, which memoizes on a call's arguments,
+  // cannot hold on to a pre-load null once the load finishes.
+  const [loaded, setLoaded] = useState<{ id: string; ad: NativeAd } | null>(
+    null
+  );
+  const nativeAd =
+    getCachedAd(tab, slotId) ?? (loaded?.id === slotId ? loaded.ad : null);
+  const [failedSlotId, setFailedSlotId] = useState<string | null>(null);
+  // Height of the content row, remembered with the slot it was measured for so
+  // it can never carry over to the next ad this cell is recycled into.
+  // Measured on the row, NOT on the NativeAdView: a view pinned to its own
+  // measurement can never report that its content has grown, so anything that
+  // lays out later (a wrapped line, a late font, an asset arriving) spills
+  // outside the ad view, which is the validator's "assets outside native ad
+  // view". The row is never pinned, so it keeps reporting what it needs.
+  const [content, setContent] = useState<{ id: string; height: number } | null>(
+    null
+  );
+  const contentHeight = content?.id === slotId ? content.height : 0;
+
+  useEffect(() => {
+    if (getCachedAd(tab, slotId)) {
+      return;
+    }
+    // A load for this slot — the feed's eager preload, or this one — may
+    // already be in flight; ensureNativeAdLoaded joins it rather than
+    // starting another.
+    let cancelled = false;
+    ensureNativeAdLoaded(tab, slotId).then((ad) => {
+      // The cell was recycled to another slot, or went away, in the meantime.
+      if (cancelled) {
         return;
       }
-      setNativeAd(null);
-      ensureNativeAdLoaded(activateTab, activateId).then((ad) => {
-        // Superseded by a later recycle/unmount: this result belongs to a
-        // slot this cell no longer represents.
-        if (generationRef.current !== generation) {
-          return;
-        }
-        if (ad) {
-          setNativeAd(ad);
-        } else {
-          setFailed(true);
-        }
-      });
-    },
-    []
-  );
-
-  // Fires on mount AND on every genuine recycle to a different ad item —
-  // in principle. Confirmed by a live cold-start repro that it sometimes
-  // never fires at all: a slot rendered its initial "loading" placeholder
-  // once and then nothing, ever. The plain useEffect below is the
-  // fallback — React's own mount guarantee doesn't depend on this
-  // library's recycling-detection internals.
-  useRecyclingEffect(({ item: recycledItem, prevItem }) => {
-    const recycled = recycledItem as { id: string };
-    const prev = prevItem as { id: string } | null;
-    const isSameItem = prev != null && prev.id === recycled.id;
-    if (isSameItem) {
-      return;
-    }
-    activateItem(recycled.id, tab);
-  });
-
-  const mountFallbackRan = useRef(false);
-  useEffect(() => {
-    if (mountFallbackRan.current) {
-      return;
-    }
-    mountFallbackRan.current = true;
-    if (nativeAd) {
-      return;
-    }
-    activateItem(item.id, tab);
-  }, []);
+      if (ad) {
+        setLoaded({ id: slotId, ad });
+      } else {
+        setFailedSlotId(slotId);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, slotId]);
 
   // Nothing will ever fill this slot: take up no space at all. A placeholder
   // box reading "Advertisement" with nothing in it is worse than no box.
-  if (failed && !nativeAd) {
+  if (!nativeAd && failedSlotId === slotId) {
     return null;
   }
 
   if (!nativeAd) {
     return (
-      <View className="min-h-35 items-center justify-center bg-background px-2.5 opacity-60">
+      <View
+        className="items-center justify-center bg-background px-2.5 opacity-60"
+        style={{ minHeight: MIN_AD_HEIGHT }}
+      >
         <Text className="font-bold text-p-500">Advertisement</Text>
       </View>
     );
@@ -155,27 +141,31 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
   return (
     <NativeAdView
       nativeAd={nativeAd}
-      onLayout={(e) => {
-        // AdMob's native ad validator flags "advertiser assets outside
-        // native ad view" whenever this container's resolved height has a
-        // fractional pixel component — `minHeight` alone can leave it
-        // measuring a hair short of its (auto-sized) children, which is
-        // enough for the assets to read as spilling past the boundary.
-        // Pinning to the ceil'd measured height fixes it.
-        const measuredHeight = Math.ceil(e.nativeEvent.layout.height);
-        if (measuredHeight !== adViewHeight) {
-          setAdViewHeight(measuredHeight);
-        }
-      }}
       style={{
-        height: adViewHeight || undefined,
-        minHeight: adViewHeight ? undefined : MIN_AD_HEIGHT,
-        padding: ASSET_INSET,
+        // Always at least the content plus its inset, rounded UP to a whole
+        // number. AdMob's validator measures containment against the ad
+        // view's resolved frame, and a fractional height (auto-sized from
+        // fractional text metrics) can read as a hair short of the children.
+        // An integer floor at or above the content removes the question,
+        // and unlike a pinned height it follows the content up and down.
+        minHeight: Math.max(MIN_AD_HEIGHT, contentHeight + ASSET_INSET * 2),
         width: "100%",
       }}
     >
-      <View className="flex-row gap-4">
-        {/*
+      <View style={{ padding: ASSET_INSET }} testID="native-ad-inset">
+        <View
+          className="flex-row gap-4"
+          onLayout={(e) => {
+            const height = Math.ceil(e.nativeEvent.layout.height);
+            setContent((prev) =>
+              prev?.id === slotId && prev.height === height
+                ? prev
+                : { id: slotId, height }
+            );
+          }}
+          testID="native-ad-content"
+        >
+          {/*
           Placed like a NewsItem/NewsItemAd thumbnail, but larger: 120 is the
           smallest media view Google will serve video to (see MEDIA_SIZE). This
           ad is meant to read as a normal feed row, not stand out with its own
@@ -186,46 +176,47 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
           entirely, which was the dominant cause of "matched but never
           shown" (AdMob console: ~80-90% match rate, ~35-40% show rate).
         */}
-        <NativeMediaView
-          resizeMode="cover"
-          style={{ borderRadius: 10, height: MEDIA_SIZE, width: MEDIA_SIZE }}
-        />
+          <NativeMediaView
+            resizeMode="cover"
+            style={{ borderRadius: 10, height: MEDIA_SIZE, width: MEDIA_SIZE }}
+          />
 
-        <View className="flex-1 justify-center gap-4">
-          <View className="flex-row justify-between gap-2">
-            <NativeAsset assetType={NativeAssetType.HEADLINE}>
-              <Text
-                className="flex-1 font-bold text-p-500"
-                ellipsizeMode="tail"
-                numberOfLines={2}
-              >
-                {nativeAd.headline}
-              </Text>
-            </NativeAsset>
-            <Text className="shrink-0 self-start rounded-sm border border-gray-50 px-1 text-s-300 text-xs">
-              AD
-            </Text>
-          </View>
-
-          <NativeAsset assetType={NativeAssetType.BODY}>
-            <Text ellipsizeMode="tail" numberOfLines={2}>
-              {nativeAd.body}
-            </Text>
-          </NativeAsset>
-
-          <View className="flex-row items-center justify-between">
-            {nativeAd.store ? (
-              <NativeAsset assetType={NativeAssetType.STORE}>
-                <Text className="text-p-500">{nativeAd.store}</Text>
+          <View className="flex-1 justify-center gap-4">
+            <View className="flex-row justify-between gap-2">
+              <NativeAsset assetType={NativeAssetType.HEADLINE}>
+                <Text
+                  className="flex-1 font-bold text-p-500"
+                  ellipsizeMode="tail"
+                  numberOfLines={2}
+                >
+                  {nativeAd.headline}
+                </Text>
               </NativeAsset>
-            ) : (
-              <View />
-            )}
-            <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
-              <Text className="rounded-full bg-s-300 px-2 py-1 text-white text-xs">
-                {nativeAd.callToAction}
+              <Text className="shrink-0 self-start rounded-sm border border-gray-50 px-1 text-s-300 text-xs">
+                AD
+              </Text>
+            </View>
+
+            <NativeAsset assetType={NativeAssetType.BODY}>
+              <Text ellipsizeMode="tail" numberOfLines={2}>
+                {nativeAd.body}
               </Text>
             </NativeAsset>
+
+            <View className="flex-row items-center justify-between">
+              {nativeAd.store ? (
+                <NativeAsset assetType={NativeAssetType.STORE}>
+                  <Text className="text-p-500">{nativeAd.store}</Text>
+                </NativeAsset>
+              ) : (
+                <View />
+              )}
+              <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
+                <Text className="rounded-full bg-s-300 px-2 py-1 text-white text-xs">
+                  {nativeAd.callToAction}
+                </Text>
+              </NativeAsset>
+            </View>
           </View>
         </View>
       </View>

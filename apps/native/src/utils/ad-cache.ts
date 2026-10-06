@@ -67,3 +67,39 @@ export const clearTabAdCache = (tab: string) => {
     }
   }
 };
+
+/**
+ * What makes two ads "the same ad" to a person scrolling: the same advertiser
+ * saying the same thing. Creative ids aren't exposed, so this is the closest
+ * stable fingerprint.
+ */
+export const adSignature = (ad: NativeAd) =>
+  `${ad.advertiser ?? ""}|${ad.headline ?? ""}`.toLowerCase();
+
+/**
+ * Whether another slot in this tab already holds an ad with this fingerprint.
+ *
+ * Every slot asks Google for an ad from one ad unit, and requests made close
+ * together tend to come back with the same creative. Without a check the feed
+ * shows that one ad down the whole list.
+ */
+export const isDuplicateInTab = (
+  tab: string | undefined,
+  id: string,
+  ad: NativeAd
+): boolean => {
+  const prefix = `${tab ?? "default"}:`;
+  const own = makeKey(tab, id);
+  const signature = adSignature(ad);
+  for (const [key, entry] of cache) {
+    if (
+      key !== own &&
+      key.startsWith(prefix) &&
+      entry.ad !== ad &&
+      adSignature(entry.ad) === signature
+    ) {
+      return true;
+    }
+  }
+  return false;
+};

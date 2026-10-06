@@ -75,6 +75,7 @@ const ShopDetails = lazy(
   () => import("#/features/tabs/shop/screens/ShopDetails")
 );
 const InAppBrowser = lazy(() => import("#/screens/common/InAppBrowser"));
+const GameLauncher = lazy(() => import("#/screens/tabs/discover/GameLauncher"));
 const ToastLab = lazy(() => import("#/screens/dev/ToastLab"));
 const BoostLuck = lazy(() => import("#/screens/tabs/discover/BoostLuck"));
 const ClaimPrize = lazy(() => import("#/screens/tabs/discover/ClaimPrize"));
@@ -404,6 +405,17 @@ export const sharedScreens = {
     screen: InAppBrowser,
     linking: {
       path: "browser",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  // Where a game is opened from, in the app or by its universal link
+  // (https://link.newsspend.com/games/<name>). See GameLauncher.
+  Game: createNativeStackScreen({
+    screen: GameLauncher,
+    linking: {
+      path: "games/:namespace",
     },
     options: {
       headerShown: false,

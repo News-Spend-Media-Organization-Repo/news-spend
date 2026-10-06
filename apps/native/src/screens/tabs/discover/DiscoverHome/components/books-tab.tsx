@@ -7,11 +7,11 @@ import { cn } from "heroui-native/utils";
 import { useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
-
 import { Text } from "#/components/heroui/text";
 import { Image } from "#/components/ui";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
+import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { orpc } from "#/lib/orpc";
 import { useTabBarHeight } from "#/state/route-state";
 import { getImageData } from "#/utils/getImageData";
@@ -72,7 +72,17 @@ function BooksTabComponent() {
       const loading = isLoading(item.id);
 
       return (
-        <PressableFeedback onPress={() => handleClick(item)}>
+        <PressableFeedback
+          onPress={() => {
+            trackDiscover({
+              event: "open",
+              itemType: "book",
+              itemId: item.id,
+              section: "books",
+            });
+            handleClick(item);
+          }}
+        >
           <PressableFeedback.Scale>
             <View className={cn("overflow-hidden", loading && "opacity-70")}>
               <Image

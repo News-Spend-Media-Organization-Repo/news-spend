@@ -18,6 +18,7 @@ import { useAppStateFocusManager } from "#/hooks/useAppStateFocusManager";
 import { useOnlineManager } from "#/hooks/useOnlineManager";
 import usePushNotification from "#/hooks/usePushNotification";
 import { detourConfig } from "#/lib/detour";
+import { discoverAnalyticsClient } from "#/lib/discoverAnalyticsClient";
 import { IconContext } from "#/lib/icons";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
 import { useUpdates } from "#/lib/UpdatesProvider";
@@ -74,7 +75,11 @@ export const Provider = ({ children }: Props) => {
       return;
     }
     newsAnalyticsClient.start();
-    return () => newsAnalyticsClient.stop();
+    discoverAnalyticsClient.start();
+    return () => {
+      newsAnalyticsClient.stop();
+      discoverAnalyticsClient.stop();
+    };
   }, [startupSettled]);
 
   return (

@@ -1,0 +1,202 @@
+@import "./email-editor-theme";
+
+/* Layout for the CMS email studio (visual template editor).
+ *
+ * NOTE: EditorProvider renders no wrapper element of its own: toolbar,
+ * editor, and Inspector are direct children of .email-studio, so the flex
+ * row lives here. editorContainerProps.className lands on the EditorContent
+ * element itself, which is the flex item.
+ */
+.email-studio {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.email-studio-toolbar {
+  background: var(--theme-elevation-50);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 6px;
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 16px;
+}
+
+.email-studio-toolbar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: auto;
+  min-width: 200px;
+}
+
+.email-studio-toolbar-copy strong {
+  font-size: 13px;
+}
+
+.email-studio-toolbar-copy span {
+  color: var(--theme-elevation-500);
+  font-size: 12px;
+}
+
+.email-studio-toolbar-copy kbd {
+  background: var(--theme-elevation-100);
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.email-studio-toolbar-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.email-studio-theme {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.email-studio-theme select {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 4px;
+  color: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.email-studio-toolbar .email-studio-status {
+  color: var(--theme-success-500);
+  flex-basis: 100%;
+  font-size: 12px;
+}
+
+.email-test-send-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+  padding: 4px;
+}
+
+.email-test-send-popover p {
+  color: var(--theme-elevation-500);
+  font-size: 12px;
+  margin: 0;
+}
+
+.email-test-send-row {
+  display: flex;
+  gap: 8px;
+}
+
+.email-test-send-row input {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 4px;
+  color: inherit;
+  flex: 1;
+  font-size: 13px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.email-test-send-status {
+  font-size: 12px;
+  margin: 0;
+}
+
+.email-test-send-status.ok {
+  color: var(--theme-success-500);
+}
+
+.email-test-send-status.error {
+  color: var(--theme-error-500);
+}
+
+.email-studio-load-error {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.email-studio-load-error p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.email-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+}
+
+.email-guide section h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.email-guide section p {
+  color: var(--theme-elevation-600);
+  font-size: 13px;
+  margin: 0;
+}
+
+.email-guide kbd {
+  background: var(--theme-elevation-100);
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.email-guide-table {
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.email-guide-table th,
+.email-guide-table td {
+  border-bottom: 1px solid var(--theme-elevation-150);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.email-guide-table th {
+  color: var(--theme-elevation-500);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.email-studio-body {
+  flex: 1;
+  min-width: 320px;
+}
+
+.email-studio .tiptap {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 6px;
+  min-height: 320px;
+  padding: 16px;
+}
+
+.email-studio aside {
+  flex: none;
+  width: 280px;
+}

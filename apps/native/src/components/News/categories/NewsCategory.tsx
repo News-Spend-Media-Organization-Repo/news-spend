@@ -16,6 +16,10 @@ import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
 
+/** A Google ad row is taller than an article row: see MIN_AD_HEIGHT. */
+const estimateItemSize = (_index: number, item: FeedAdItem) =>
+  item?.type === "gAd" ? 150 : 116;
+
 const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
 type NewType = React.RefObject<LegendListRef>;
@@ -131,7 +135,7 @@ const NewsCategory = ({
         paddingHorizontal: 10,
       }}
       data={flattenedNews}
-      // getEstimatedItemSize={() => 127}
+      getEstimatedItemSize={estimateItemSize}
       getItemType={(item) => item?.type ?? item?._type}
       ItemSeparatorComponent={MemoizedSeparator}
       keyExtractor={keyExtractor}

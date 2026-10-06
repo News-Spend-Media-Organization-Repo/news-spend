@@ -315,8 +315,10 @@ const Latest = memo(
           return 260;
         }
         if (type === "gAd") {
-          // Same compact thumbnail+text row shape as an article/video row.
-          return 116;
+          // The media view alone is 122, plus the AdChoices gutter and insets
+          // (MIN_AD_HEIGHT in NewsItemGoogleAd). Estimating this as a 116px
+          // article row made the list re-flow every time an ad measured.
+          return 150;
         }
         if (kind === "relatedNews") {
           return 220;

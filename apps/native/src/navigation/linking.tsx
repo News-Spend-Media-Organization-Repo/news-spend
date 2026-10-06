@@ -65,6 +65,7 @@ const DETAIL_LEADS = new Set([
   "lottery-rules",
   "browser",
   "survey",
+  "games",
 ]);
 
 function stripLegacyTabPrefix(url: string): string {

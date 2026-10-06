@@ -25,8 +25,10 @@ import { authState } from "#/state/auth";
 
 // TODO: make the share message configurable from the CMS
 const msg =
-  "News spend is giving out free Scholarships, Electronic gadgets Business grants and information to help users achieve their dreams. I thought you or someone you know may be interested. You can get it here:";
-const url = "https://newsspend.com/download";
+  "News spend is giving out Scholarships, Free Data/Airtime, Electronic Gadgets, Gift Cards and Information to help users achieve their dreams. I thought you or someone you know may be interested. You can get it here:";
+// newsspend.com/download does not exist; link.newsspend.com is the Detour
+// domain, which sends installed users to the app and everyone else to the store.
+const url = "https://link.newsspend.com";
 
 const ShareApp = () => {
   const addActivityMutation = useAddActivity();
