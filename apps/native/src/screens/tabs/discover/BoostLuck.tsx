@@ -175,7 +175,7 @@ const BoostLuck = () => {
             Rules
           </Text>
         }
-        title="Boost Your Entries"
+        title="Boost Your Luck"
       />
 
       <View className="gap-5 px-4 pt-2">
@@ -216,28 +216,28 @@ const BoostLuck = () => {
         </Card>
 
         <View className="gap-4">
-          <Text className="text-center">
-            {boostsComplete
-              ? "Nothing more to boost for now. Featured Offers are another way to improve your entries."
-              : "Our sponsors wish you good luck."}
-          </Text>
+          <Text className="text-center">Our sponsors wish you good luck.</Text>
 
           {/*
-            With nothing left to boost, this offers the app wall by name
-            rather than keeping a "Boost Your Entries" button that quietly
-            navigates somewhere else. A boost past the threshold changes
-            nothing, so the old button was an offer that could not be taken
-            — and being moved without explanation read as a bug. The copy
-            says what is on offer, never what was completed or why it stopped.
+            The button stays in both states. Once the top tier's boosts are
+            in, another boost changes nothing, so the press says so and then
+            moves to Featured Offers, instead of navigating away in silence
+            (which read as the ad failing to load).
           */}
           {boostsComplete ? (
             <Button
               className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3"
-              onPress={() => navigation.navigate("LuckyAppWall")}
+              onPress={() => {
+                toast.info("Your boosts are in", {
+                  description:
+                    "Featured Offers are another way to improve your entries.",
+                });
+                navigation.navigate("LuckyAppWall");
+              }}
             >
               <CoinsIcon color="white" size={20} />
               <Button.Label className="font-semibold text-white">
-                Find Featured Offers
+                Boost Your Luck
               </Button.Label>
             </Button>
           ) : (
@@ -269,7 +269,7 @@ const BoostLuck = () => {
               <Button className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
                 <CoinsIcon color="white" size={20} />
                 <Button.Label className="font-semibold text-white">
-                  Boost Your Entries
+                  Boost Your Luck
                 </Button.Label>
               </Button>
             </PartnerAdDialog>
