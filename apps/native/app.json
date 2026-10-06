@@ -4,10 +4,7 @@
     "slug": "news-spend-media",
     "scheme": "news-spend",
     "description": "News Spend Media is a news and media platform designed to empower people through the power of information. We believe that the right information should inspire action, create opportunities, and help people move closer to the future they envision. More than a traditional news app, News Spend Media combines informative content, interactive media experiences, and meaningful engagement opportunities that help users stay informed while progressing toward their personal aspirations through our unique Dream Fulfillment ecosystem.\n\nStay Informed. Stay Empowered.\n• Access breaking news and trending stories from Nigeria and around the world\n• Explore business, entertainment, lifestyle, sports, technology, politics, and more\n• Listen to selected radio stations available within the app\n• Watch engaging videos, interviews, and trailers\n• Earn Dream Points through reading news and participating in eligible activities\n• Track your progress toward goals and aspirations through the Dream Fulfillment ecosystem",
-    "assetBundlePatterns": [
-      "assets/images/*",
-      "assets/icons/*"
-    ],
+    "assetBundlePatterns": ["assets/images/*", "assets/icons/*"],
     "userInterfaceStyle": "automatic",
     "icon": "./assets/icons/icon.png",
     "experiments": {
@@ -29,10 +26,7 @@
               "pathPrefix": "/"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         },
         {
           "action": "VIEW",
@@ -44,10 +38,7 @@
               "pathPrefix": "/Mf4vgZvonH"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -75,10 +66,7 @@
             "useFrameworks": "static"
           },
           "android": {
-            "abiFilters": [
-              "arm64-v8a",
-              "armeabi-v7a"
-            ],
+            "abiFilters": ["arm64-v8a", "armeabi-v7a"],
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "packagingOptions": {
@@ -240,5 +228,11 @@
       ]
     ],
     "owner": "web79"
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-3654282727219827~3509263491",
+    "delay_app_measurement_init": true,
+    "optimize_initialization": true,
+    "optimize_ad_loading": true
   }
 }
