@@ -183,10 +183,18 @@ const BoostLuck = () => {
           <Text className="text-center text-xl">
             Win Dream Points, airtime, data bundles, and other prizes
           </Text>
-          <Text className="text-center">
-            Countdown: <Text className="text-lg text-p-500">{timeLeft}</Text>{" "}
-            left
-          </Text>
+          {endDate ? (
+            <Text className="text-center">
+              Countdown: <Text className="text-lg text-p-500">{timeLeft}</Text>{" "}
+              left
+            </Text>
+          ) : (
+            /* Its own sentence rather than dropped into the countdown above,
+               which read as "Countdown: no giveaway running left". `progress`
+               now returns null instead of throwing for this state, so it is a
+               state the screen reaches on purpose and has to say properly. */
+            <Text className="text-center">No giveaway running right now</Text>
+          )}
         </View>
 
         <Card className="rounded-md bg-s-300 p-0">
