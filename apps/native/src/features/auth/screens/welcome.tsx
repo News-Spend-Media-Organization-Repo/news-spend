@@ -14,12 +14,17 @@ const Welcome = () => {
 
   return (
     <Screen
-      className="bg-p-500 px-6"
+      className="px-6"
       preset="fixed"
       // The button stack is bottom-anchored, and the window is edge-to-edge —
       // without this the last button ("Continue as a guest") sits under the
       // Android navigation bar.
       safeAreaEdges={["bottom"]}
+      // On the root, not on `className`. The safe-area insets are applied as
+      // padding to the root container, whose background is otherwise white, so
+      // a colour set on the inner child leaves the inset strip — the Android
+      // navigation bar area — showing through white beneath the navy.
+      screenClassName="bg-p-500"
       statusBarStyle="light"
     >
       <View className="flex-2 items-center justify-center">
