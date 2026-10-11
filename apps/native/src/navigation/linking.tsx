@@ -118,17 +118,22 @@ export const linking: LinkingOptions<RootParamList> = {
   enabled: true,
   prefixes,
   async getInitialURL() {
+    // Every branch below normalizes the URL the same way `subscribe` does.
+    // Warm and cold starts used to disagree here: `subscribe` stripped the
+    // legacy tab prefix but `getInitialURL` did not, so a link the CMS mints in
+    // the old form (`news/article/<slug>`) resolved on a warm start and fell
+    // through to the `*` catch-all — NotFound — on a cold one.
     // check if app was opened from a Detour deferred link
     const detourUrl = await Detour.getInitialURL();
     if (detourUrl !== undefined) {
-      return detourUrl;
+      return stripLegacyTabPrefix(detourUrl);
     }
 
     // check if app was opened from a deep link
     const url = await Linking.getInitialURL();
 
     if (url !== null) {
-      return url;
+      return stripLegacyTabPrefix(url);
     }
 
     // check if app was opened from a notification
@@ -137,14 +142,14 @@ export const linking: LinkingOptions<RootParamList> = {
       const screenUrl = response?.notification.request.content.data?.url;
       const newsId = response?.notification.request.content.data?.newsId;
 
-      console.log(response.notification.request.content);
-
       trackNotificationOpen({
         ...response.notification.request.content,
       });
 
       if (screenUrl) {
-        return ensureScheme(withNewsId(screenUrl, newsId));
+        return ensureScheme(
+          withNewsId(stripLegacyTabPrefix(screenUrl), newsId)
+        );
       }
     }
   },

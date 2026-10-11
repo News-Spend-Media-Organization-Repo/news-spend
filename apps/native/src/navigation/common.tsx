@@ -102,28 +102,3 @@ export const commonAuthScreens = {
     screen: RegSuccess,
   }),
 };
-
-export const commonLinking = {
-  News: "/article/:slug/:id?",
-  Comment: "/article/:newsSlug/comment",
-  CommentReply: "/article/:newsSlug/comment/:commentId",
-  ShopDetail: "detail/:slug",
-  Profile: "profile",
-  Contact: "contact",
-  Activities: "activities",
-  Report: "report",
-  Notification: "notification",
-  DataManager: "data-manager",
-  DeleteAccount: "delete-account",
-  Socials: "socials",
-  ShareApp: "share-app",
-  RateApp: "rate-app",
-  Support: "support",
-  FAQ: "faq",
-  Email: "email",
-  Feedback: "feedback",
-  Advertise: "advertise",
-  Legal: "legal",
-  Call: "call",
-  // NotFound: "*",
-};
