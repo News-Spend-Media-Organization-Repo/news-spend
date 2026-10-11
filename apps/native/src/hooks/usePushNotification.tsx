@@ -8,6 +8,7 @@ import { Platform } from "react-native";
 import { useSnapshot } from "valtio";
 
 import { orpc } from "#/lib/orpc";
+import { queryClient } from "#/lib/tanstackQuery";
 import { authState } from "#/state/auth";
 import { storage } from "#/utils/storage";
 
@@ -194,7 +195,18 @@ const usePushNotification = () => {
   useEffect(() => {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log("Notification received:", notification);
+        // A news push is the server saying "there is something new", and it is
+        // the earliest signal the app gets that one exists. Without acting on
+        // it the notification changed nothing about the cached feed, so a
+        // reader who tapped through to the article came back to a list that
+        // still did not contain the story they had just been told about.
+        //
+        // Invalidated at the `news` router rather than per-procedure: the key
+        // carries the evaluated input, so a category feed's key is only
+        // reproducible if every category and ad flag is known here.
+        if (notification.request.content.data?.type === "news") {
+          queryClient.invalidateQueries({ queryKey: orpc.news.key() });
+        }
       });
 
     responseListener.current =
