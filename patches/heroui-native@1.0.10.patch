@@ -1,3 +1,6 @@
+diff --git a/node_modules/heroui-native/.bun-tag-dcb1bf15c04c744f b/.bun-tag-dcb1bf15c04c744f
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/lib/module/components/input/input.styles.js b/lib/module/components/input/input.styles.js
 index 89ca74b54dbde6396695623e7254790e36d746db..97b4529d337468396c1d7c149183e6cdf4133552 100644
 --- a/lib/module/components/input/input.styles.js
@@ -11,6 +14,33 @@ index 89ca74b54dbde6396695623e7254790e36d746db..97b4529d337468396c1d7c149183e6cd
    variants: {
      variant: {
        primary: 'input__input--variant-primary ios:shadow-field android:shadow-sm',
+diff --git a/lib/module/helpers/internal/components/bottom-sheet-content.js b/lib/module/helpers/internal/components/bottom-sheet-content.js
+index 97db6b7ecf1cd06479cccf8c60dec8f34cfc9aab..19b13a447199b578bdf1c6ce79565a95d23dcea4 100644
+--- a/lib/module/helpers/internal/components/bottom-sheet-content.js
++++ b/lib/module/helpers/internal/components/bottom-sheet-content.js
+@@ -134,7 +134,21 @@ export const BottomSheetContent = /*#__PURE__*/forwardRef(({
+      * the container, so progress never lands on exactly `0` or `2` and
+      * the peek would stay painted.
+      */
+-    if (!isOpen && (value <= 0.01 || value >= 1.99)) {
++    if (isOpen) {
++      /**
++       * While the sheet is open it must never stay painted as dismissed.
++       *
++       * This worklet captures `isOpen`, and the rebuild that picks up a new
++       * value lands a frame or two after the open animation has already
++       * started. In that window the old capture sees a closed resting progress
++       * and latches `isDismissed` on a sheet gorhom has already positioned
++       * correctly: present, invisible, and non-interactive, with nothing left
++       * to re-run the clearing paths. Re-asserting `false` while open makes
++       * that latch correct itself on the next frame instead of persisting
++       * until the sheet is closed and reopened.
++       */
++      scheduleOnRN(setIsDismissed, false);
++    } else if (value <= 0.01 || value >= 1.99) {
+       scheduleOnRN(setIsDismissed, true);
+     }
+   }, [isOpen, progress]);
 diff --git a/lib/typescript/src/components/input/input.styles.d.ts b/lib/typescript/src/components/input/input.styles.d.ts
 index 98ececb7040ccce5b0c76954978000b94005e90c..1462e643eba8a377bdf7ec9b6bc7bb0ba7919284 100644
 --- a/lib/typescript/src/components/input/input.styles.d.ts
@@ -46,3 +76,30 @@ index 43ee0278bd7f13b7ad58922d33318f7c69cddcb3..f1c88054e25d61274f421fe324388498
    variants: {
      variant: {
        primary:
+diff --git a/src/helpers/internal/components/bottom-sheet-content.tsx b/src/helpers/internal/components/bottom-sheet-content.tsx
+index aab173542fcc2277060921ddb163477e98e7b53c..8e5e48baa754ea9ed5132cb2600a08b281826596 100644
+--- a/src/helpers/internal/components/bottom-sheet-content.tsx
++++ b/src/helpers/internal/components/bottom-sheet-content.tsx
+@@ -186,7 +186,21 @@ export const BottomSheetContent = forwardRef<
+          * the container, so progress never lands on exactly `0` or `2` and
+          * the peek would stay painted.
+          */
+-        if (!isOpen && (value <= 0.01 || value >= 1.99)) {
++        if (isOpen) {
++          /**
++           * While the sheet is open it must never stay painted as dismissed.
++           *
++           * This worklet captures `isOpen`, and the rebuild that picks up a new
++           * value lands a frame or two after the open animation has already
++           * started. In that window the old capture sees a closed resting
++           * progress and latches `isDismissed` on a sheet gorhom has already
++           * positioned correctly: present, invisible, and non-interactive, with
++           * nothing left to re-run the clearing paths. Re-asserting `false`
++           * while open makes that latch correct itself on the next frame
++           * instead of persisting until the sheet is closed and reopened.
++           */
++          scheduleOnRN(setIsDismissed, false);
++        } else if (value <= 0.01 || value >= 1.99) {
+           scheduleOnRN(setIsDismissed, true);
+         }
+       },
