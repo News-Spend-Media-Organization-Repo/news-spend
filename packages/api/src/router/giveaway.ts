@@ -440,10 +440,22 @@ const current = publicProcedure.handler(async ({ context }) => {
  * The fairness cooldowns are read from the same history reconstruction the
  * draw itself uses, so what the app shows and what the draw does cannot drift
  * apart: there is one implementation, not two.
+ *
+ * Returns null when there is nothing to report on — no giveaway, or one that
+ * has not opened yet. This used `openGiveaway`, which is the *write* path's
+ * guard and throws NOT_FOUND for exactly that state, so merely opening a screen
+ * that asks for progress produced an error where the app already renders "no
+ * giveaway running". Reads report; writes enforce. `current` works the same
+ * way, which is what keeps the button the app offers and the request behind it
+ * in agreement without either of them having to throw.
  */
-const progress = protectedProcedure.handler(async ({ context, errors }) => {
+const progress = protectedProcedure.handler(async ({ context }) => {
   const { payload, user } = context;
-  const giveaway = await openGiveaway(payload, errors);
+
+  const giveaway = await activeGiveaway(payload);
+  if (!(giveaway && giveawayWindow(giveaway).isOpen)) {
+    return null;
+  }
 
   const [{ participation, history }, account] = await Promise.all([
     loadStanding(payload, giveaway, user.id),

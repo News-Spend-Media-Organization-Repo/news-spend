@@ -270,21 +270,22 @@ describe("giveaway.progress", () => {
     expect(error.code).toBe("UNAUTHORIZED");
   });
 
-  it("throws NOT_FOUND when there is no active giveaway", async () => {
+  it("returns null when there is no active giveaway", async () => {
     const payload = createFakePayload();
     const ctx = mockContext({ user: authedUser as never, payload });
 
-    const error = await expectError(
-      call(giveawayRouter.progress, undefined, { context: ctx })
-    );
-
-    expect(error).toMatchObject({
-      code: "NOT_FOUND",
-      message: "There is no giveaway running at the moment.",
+    // A read reports rather than enforces. No giveaway running is a state the
+    // app already renders as "no giveaway running", not a failure — throwing
+    // NOT_FOUND turned merely opening a screen that asks for progress into an
+    // error, in front of a reader who had done nothing wrong.
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
     });
+
+    expect(result).toBeNull();
   });
 
-  it("throws CONFLICT when the giveaway has not opened yet", async () => {
+  it("returns null when the giveaway has not opened yet", async () => {
     const payload = createFakePayload({
       collections: {
         giveaways: [giveaway({ startDate: FUTURE, endDate: FAR_FUTURE })],
@@ -292,17 +293,14 @@ describe("giveaway.progress", () => {
     });
     const ctx = mockContext({ user: authedUser as never, payload });
 
-    const error = await expectError(
-      call(giveawayRouter.progress, undefined, { context: ctx })
-    );
-
-    expect(error).toMatchObject({
-      code: "CONFLICT",
-      message: "This giveaway has not opened yet.",
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
     });
+
+    expect(result).toBeNull();
   });
 
-  it("throws CONFLICT when the giveaway has closed", async () => {
+  it("returns null when the giveaway has closed", async () => {
     const payload = createFakePayload({
       collections: {
         giveaways: [giveaway({ startDate: FAR_PAST, endDate: PAST })],
@@ -310,14 +308,11 @@ describe("giveaway.progress", () => {
     });
     const ctx = mockContext({ user: authedUser as never, payload });
 
-    const error = await expectError(
-      call(giveawayRouter.progress, undefined, { context: ctx })
-    );
-
-    expect(error).toMatchObject({
-      code: "CONFLICT",
-      message: "This giveaway has closed and is waiting for its draw.",
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
     });
+
+    expect(result).toBeNull();
   });
 
   it("returns participation and tier summary for an active giveaway", async () => {
@@ -346,9 +341,9 @@ describe("giveaway.progress", () => {
         featuredOffers: 1,
       },
     });
-    expect(result.tiers).toHaveLength(3);
+    expect(result?.tiers).toHaveLength(3);
     // tier3: needs 1 ticket, 0 boosts, 0 featuredOffers → met
-    const tier3 = result.tiers.find((t: Doc) => t.tier === "tier3");
+    const tier3 = result?.tiers.find((t: Doc) => t.tier === "tier3");
     expect(tier3?.requirementsMet).toBe(true);
   });
 });
