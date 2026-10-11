@@ -320,7 +320,6 @@ function PurchaseStatus({
   // purchase. The total gets its own sentence, where it reads correctly.
   const bought = result?.quantity ?? requestedTickets;
   const held = result?.validTickets;
-  const nextTier = result?.tiers.find((tier) => tier.canWin);
 
   return (
     <View className="items-center gap-1.5">
@@ -335,11 +334,6 @@ function PurchaseStatus({
       {typeof held === "number" ? (
         <Text className="text-center text-s-500 text-xs">
           You now hold {held} ticket{held === 1 ? "" : "s"} in this draw.
-        </Text>
-      ) : null}
-      {nextTier ? (
-        <Text className="text-center text-s-500 text-xs">
-          You qualify for the {nextTier.tier} tier this draw.
         </Text>
       ) : null}
     </View>
