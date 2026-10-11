@@ -47,6 +47,9 @@ COPY bun.lock ./
 COPY bunfig.toml ./
 COPY package.json ./
 COPY turbo.json ./
+# Varlock schemas: apps/cms/.env.schema imports the root schema, which must
+# exist at build time for env resolution (and again at runtime, see below).
+COPY .env.schema ./
 COPY patches ./patches
 COPY packages ./packages
 COPY apps ./apps
@@ -102,6 +105,11 @@ ENV VIPS_CONCURRENCY=2
 COPY --from=builder /app/apps/cms/.next/standalone ./
 COPY --from=builder /app/apps/cms/.next/static ./apps/cms/.next/static
 COPY --from=builder /app/apps/cms/public ./apps/cms/public
+# Varlock schemas for runtime env resolution (the @next/env override loads
+# them on boot). Values still come from the platform environment — no .env
+# files are copied into the runtime image on purpose.
+COPY --from=builder /app/.env.schema ./.env.schema
+COPY --from=builder /app/apps/cms/.env.schema ./apps/cms/.env.schema
 
 EXPOSE 3000
 ENV NODE_ENV=production

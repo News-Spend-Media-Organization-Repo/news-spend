@@ -105,7 +105,11 @@
     "@sentry/browser": "10.70.0",
     "@sentry/react": "10.70.0",
     "sharp": "0.35.3",
-    "react-native": "npm:react-native@0.88.0-rc.3"
+    "react-native": "npm:react-native@0.88.0-rc.3",
+    "@next/env": "npm:@varlock/nextjs-integration",
+    "next": {
+      "@next/env": "npm:@varlock/nextjs-integration"
+    }
   },
   "engines": {
     "node": ">=20.11.1"
@@ -114,5 +118,8 @@
   "patchedDependencies": {
     "node-internet-radio@0.2.1": "patches/node-internet-radio@0.2.1.patch",
     "heroui-native@1.0.10": "patches/heroui-native@1.0.10.patch"
+  },
+  "dependencies": {
+    "varlock": "^1.22.0"
   }
 }

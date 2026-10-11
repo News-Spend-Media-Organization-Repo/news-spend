@@ -1,6 +1,9 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
 const { withRozenite } = require("@rozenite/metro");
 const { getSentryExpoConfig } = require("@sentry/react-native/metro");
+const {
+  withVarlockMetroConfig,
+} = require("@varlock/expo-integration/metro-config");
 const { withUniwindConfig } = require("uniwind/metro");
 // const { withFacetpack } = require("@ecrindigital/facetpack");
 // const { FileStore } = require("@expo/metro/metro-cache");
@@ -19,11 +22,14 @@ config.maxWorkers = Math.max(1, Math.floor(os.cpus().length * 0.5));
 //   }),
 // ];
 
-// Wrap with Uniwind first, then Rozenite
-module.exports = withRozenite(
-  withUniwindConfig(config, {
-    cssEntryFile: "./src/global.css",
-    dtsFile: "./src/uniwind-types.d.ts",
-  }),
-  { enabled: process.env.WITH_ROZENITE === "true" }
+// Wrap with Uniwind first, then Rozenite, then varlock (outermost: resolves
+// varlock/env subpath exports and initialises the ENV proxy in Metro).
+module.exports = withVarlockMetroConfig(
+  withRozenite(
+    withUniwindConfig(config, {
+      cssEntryFile: "./src/global.css",
+      dtsFile: "./src/uniwind-types.d.ts",
+    }),
+    { enabled: process.env.WITH_ROZENITE === "true" }
+  )
 );

@@ -13,6 +13,10 @@ COPY bun.lock ./
 COPY bunfig.toml ./
 COPY package.json ./
 COPY turbo.json ./
+# Varlock schemas: the start script boots through `varlock run`, which
+# resolves apps/server/.env.schema (and its root import) on every boot.
+COPY .env.schema ./
+COPY apps/server/.env.schema ./apps/server/.env.schema
 COPY patches ./patches
 COPY packages ./packages
 COPY apps/server ./apps/server

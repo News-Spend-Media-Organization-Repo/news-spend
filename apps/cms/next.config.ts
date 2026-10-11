@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { withPayload } from "@payloadcms/next/withPayload";
 import { withSentryConfig } from "@sentry/nextjs";
+import { varlockNextConfigPlugin } from "@varlock/nextjs-integration/plugin";
 import type { NextConfig } from "next";
 
 const monorepoRoot = path.resolve(
@@ -45,29 +46,33 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(withPayload(nextConfig), {
-  org: process.env.SENTRY_ORG || "news-spend-media",
-  project: process.env.SENTRY_PROJECT || "cms",
+const withVarlock = varlockNextConfigPlugin();
 
-  // Source map upload is skipped entirely when SENTRY_AUTH_TOKEN is absent, so
-  // local and PR builds do not fail on a missing credential.
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  silent: !process.env.CI,
+export default withVarlock(
+  withSentryConfig(withPayload(nextConfig), {
+    org: process.env.SENTRY_ORG || "news-spend-media",
+    project: process.env.SENTRY_PROJECT || "cms",
 
-  // The maps are uploaded to Sentry and then deleted from the build output, so
-  // stack traces stay readable without shipping sources to the browser.
-  sourcemaps: {
-    deleteSourcemapsAfterUpload: true,
-  },
+    // Source map upload is skipped entirely when SENTRY_AUTH_TOKEN is absent, so
+    // local and PR builds do not fail on a missing credential.
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: !process.env.CI,
 
-  // Routes the browser SDK's requests through the app's own origin, so ad and
-  // tracker blockers do not silently drop client-side errors.
-  tunnelRoute: "/monitoring",
+    // The maps are uploaded to Sentry and then deleted from the build output, so
+    // stack traces stay readable without shipping sources to the browser.
+    sourcemaps: {
+      deleteSourcemapsAfterUpload: true,
+    },
 
-  // Strips the Sentry SDK's own debug logging from the production bundle.
-  disableLogger: true,
+    // Routes the browser SDK's requests through the app's own origin, so ad and
+    // tracker blockers do not silently drop client-side errors.
+    tunnelRoute: "/monitoring",
 
-  // Payload's admin bundle is large and already slow to build; instrumenting
-  // every dependency's server components on top of that is not worth the time.
-  widenClientFileUpload: false,
-});
+    // Strips the Sentry SDK's own debug logging from the production bundle.
+    disableLogger: true,
+
+    // Payload's admin bundle is large and already slow to build; instrumenting
+    // every dependency's server components on top of that is not worth the time.
+    widenClientFileUpload: false,
+  })
+);

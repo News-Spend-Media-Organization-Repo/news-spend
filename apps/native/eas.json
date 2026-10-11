@@ -13,7 +13,8 @@
       "developmentClient": false,
       "bun": "1.4.2",
       "env": {
-        "APP_VARIANT": "beta"
+        "APP_VARIANT": "beta",
+        "APP_ENV": "staging"
       }
     },
     "betaAAB": {
@@ -25,7 +26,8 @@
       "developmentClient": false,
       "bun": "1.4.2",
       "env": {
-        "APP_VARIANT": "beta"
+        "APP_VARIANT": "beta",
+        "APP_ENV": "staging"
       }
     },
     "development": {
@@ -37,7 +39,8 @@
       "developmentClient": true,
       "bun": "1.4.2",
       "env": {
-        "APP_VARIANT": "development"
+        "APP_VARIANT": "development",
+        "APP_ENV": "development"
       }
     },
     "preview": {
@@ -47,7 +50,8 @@
       "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "preview",
-        "EXPO_PUBLIC_API_URL": "https://staging-api.newsspend.com"
+        "EXPO_PUBLIC_API_URL": "https://staging-api.newsspend.com",
+        "APP_ENV": "staging"
       }
     },
     "production": {
@@ -62,7 +66,8 @@
       "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.newsspend.com"
+        "EXPO_PUBLIC_API_URL": "https://api.newsspend.com",
+        "APP_ENV": "production"
       }
     },
     "adsSimulatorCheck": {
@@ -75,7 +80,8 @@
       "environment": "production",
       "bun": "1.4.2",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "APP_ENV": "production"
       }
     },
     "screenshots": {
@@ -91,7 +97,8 @@
       "bun": "1.4.2",
       "env": {
         "APP_VARIANT": "production",
-        "EXPO_PUBLIC_SCREENSHOT_MODE": "1"
+        "EXPO_PUBLIC_SCREENSHOT_MODE": "1",
+        "APP_ENV": "production"
       }
     }
   },
