@@ -26,6 +26,7 @@ apps/native
 .env.*
 .env.local
 .env.*.local
+!.env.schema
 **/node_modules/.cache
 **/node_modules/.pnpm
 **/node_modules/.bun
