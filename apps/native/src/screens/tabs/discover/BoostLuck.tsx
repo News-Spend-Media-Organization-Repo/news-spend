@@ -189,9 +189,15 @@ const BoostLuck = () => {
           </Text>
         </View>
 
-        <Card className="rounded-md bg-s-300 p-0 px-6">
-          <View className="min-h-18 flex-row items-center justify-between">
-            <View className="items-center justify-center">
+        <Card className="rounded-md bg-s-300 p-0">
+          {/*
+            Two equal halves with the divider between them, rather than
+            `justify-between` over three children — which spread all three and
+            parked the divider in the middle of the row, stranding the ticket
+            count against the card's left edge with a dead gap beside it.
+          */}
+          <View className="min-h-18 flex-row items-stretch">
+            <View className="flex-1 items-center justify-center py-2">
               <Text className="text-2xl">
                 {data?.participation?.validTickets ?? 0}
               </Text>
@@ -201,17 +207,19 @@ const BoostLuck = () => {
               </Text>
             </View>
 
-            <View className="mx-3.75 w-px self-stretch bg-gray-300" />
+            <View className="mx-3.75 w-px bg-gray-300" />
 
-            <Button
-              className="h-auto"
-              onPress={() => navigation.navigate("GetTicket")}
-              variant="ghost"
-            >
-              <Button.Label className="text-p-400 underline">
-                Get more entries
-              </Button.Label>
-            </Button>
+            <View className="flex-1 items-center justify-center py-2">
+              <Button
+                className="h-auto"
+                onPress={() => navigation.navigate("GetTicket")}
+                variant="ghost"
+              >
+                <Button.Label className="text-p-400 underline">
+                  Get more entries
+                </Button.Label>
+              </Button>
+            </View>
           </View>
         </Card>
 
