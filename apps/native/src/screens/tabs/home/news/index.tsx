@@ -1,6 +1,7 @@
 import { Galeria } from "@nandorojo/galeria";
 import { isInferableError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import * as Sentry from "@sentry/react-native";
 import { format } from "date-fns/format";
 import { Separator } from "heroui-native/separator";
 import { SkeletonGroup } from "heroui-native/skeleton-group";
@@ -22,6 +23,7 @@ import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { ArrowLeftIcon, UserIcon } from "#/lib/icons";
 import { getImageData } from "#/utils/getImageData";
 import { toInstant } from "#/utils/toInstant";
+import { ArticleUnavailable } from "./ArticleUnavailable";
 import { useArticleActions } from "./hooks/use-article-actions";
 import { useArticleTracking } from "./hooks/use-article-tracking";
 
@@ -76,12 +78,37 @@ const SingleNews = () => {
   // Warm the comments cache so the comments screen opens instantly.
   usePrefetchComments(data?.id);
 
-  // Redirect on NOT_FOUND
+  // The API said this article does not exist. That is a different state from a
+  // failed load, so it gets its own screen rather than the global NotFound,
+  // which is reserved for links that match no route.
+  const isUnavailable =
+    isError && isInferableError(error) && error.code === "NOT_FOUND";
+
   useEffect(() => {
-    if (isError && isInferableError(error) && error?.code === "NOT_FOUND") {
-      navigation.replace("NotFound");
+    if (isUnavailable) {
+      Sentry.captureMessage("Article unavailable", {
+        level: "info",
+        tags: { area: "article-deeplink" },
+        extra: { slug },
+        fingerprint: ["article-unavailable"],
+      });
     }
-  }, [isError, error, navigation.replace]);
+  }, [isUnavailable, slug]);
+
+  if (isUnavailable) {
+    return (
+      <ArticleUnavailable
+        onBack={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate("Tab", { screen: "Home" });
+          }
+        }}
+        onGoToLatest={() => navigation.navigate("Tab", { screen: "Home" })}
+      />
+    );
+  }
 
   if (isFetchedAfterMount && isError) {
     return (
