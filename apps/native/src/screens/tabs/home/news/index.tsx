@@ -95,6 +95,15 @@ const SingleNews = () => {
     }
   }, [isUnavailable, slug]);
 
+  // A reset, not a navigate: navigating to "Tab" would push a second one and
+  // leave this screen underneath, so back from Home would land here again. On a
+  // cold start from a link there is no Tab on the stack at all.
+  const goHome = () =>
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Tab", params: { screen: "Home" } }],
+    });
+
   if (isUnavailable) {
     return (
       <ArticleUnavailable
@@ -102,10 +111,10 @@ const SingleNews = () => {
           if (navigation.canGoBack()) {
             navigation.goBack();
           } else {
-            navigation.navigate("Tab", { screen: "Home" });
+            goHome();
           }
         }}
-        onGoToLatest={() => navigation.navigate("Tab", { screen: "Home" })}
+        onGoToLatest={goHome}
       />
     );
   }

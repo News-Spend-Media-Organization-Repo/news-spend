@@ -19,7 +19,10 @@ export const ArticleUnavailable = ({
   onGoToLatest,
 }: ArticleUnavailableProps) => (
   <Screen
-    className="flex-1 items-center justify-center px-6"
+    // `className` lands on Screen's outer wrapper; the inner container that
+    // holds the children is `items-stretch justify-start`, so centring has to
+    // be asked of that one.
+    contentContainerClassName="items-center justify-center gap-6 px-6"
     navigationBarButtonStyle="dark"
     statusBarStyle="auto"
   >
@@ -39,7 +42,7 @@ export const ArticleUnavailable = ({
         It may have been removed or its link has changed.
       </Text>
     </View>
-    <Button className="mt-6" onPress={onGoToLatest}>
+    <Button onPress={onGoToLatest}>
       <Button.Label>See the latest news</Button.Label>
     </Button>
   </Screen>
