@@ -2,11 +2,9 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
-import { MinusCircleIcon, PlusCircleIcon } from "#/lib/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { NativeAd } from "react-native-google-mobile-ads";
-
 import { ScreenHeader } from "#/components";
 import { DialogWithAd } from "#/components/discover/DialogWithAd";
 import { Button } from "#/components/heroui/button";
@@ -14,6 +12,7 @@ import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
+import { MinusCircleIcon, PlusCircleIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 
 const GetTicket = () => {
@@ -58,6 +57,13 @@ const GetTicket = () => {
       []
     )
   );
+
+  // The counter used to survive a successful purchase — only leaving the
+  // screen reset it — so "Go" stayed live and a second press bought the same
+  // number of tickets again.
+  const handlePurchased = useCallback(() => {
+    setValue(0);
+  }, []);
 
   const onTicketPress = () => {
     if (!hasActiveLottery) {
@@ -223,6 +229,10 @@ const GetTicket = () => {
       </View>
 
       <DialogWithAd
+        // Stable, because the dialog holds this in an effect dependency list:
+        // an inline arrow would be a new function on every render and re-run
+        // that effect every render.
+        onPurchased={handlePurchased}
         open={open}
         preloadedNativeAd={preloadedNativeAd}
         purchasedTickets={value}
