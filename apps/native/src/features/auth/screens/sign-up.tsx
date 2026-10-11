@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import { Checkbox } from "heroui-native/checkbox";
 import { ControlField } from "heroui-native/control-field";
+import { LinkButton } from "heroui-native/link-button";
 import { Spinner } from "heroui-native/spinner";
 import {
   Controller,
@@ -176,10 +177,15 @@ export default function SignUp() {
               />
               <FormInput isPassword name="password" placeholder="Password" />
 
+              {/* Twenty wishes in a popover would not scroll on Samsung
+                  devices — the drag is swallowed by the signup form's own
+                  scroll view. A sheet has its own gesture area, so the list
+                  scrolls. See heroui-inc/heroui-native#209. */}
               <FormSelectField
                 name="wish"
                 options={options}
                 placeholder="Make a wish"
+                presentation="bottom-sheet"
                 renderItem={(option, { isSelected }) => (
                   <StandardItem isSelected={isSelected} label={option.label} />
                 )}
@@ -205,27 +211,28 @@ export default function SignUp() {
                       </ControlField.Indicator>
                       <View className="flex-1 flex-row flex-wrap">
                         <Text className="text-sm">I agree to the </Text>
-                        <Button
-                          className="p-0"
+                        {/* LinkButton, not Button: a Button carries its own
+                            padding and minimum height, so it cannot sit on the
+                            baseline of the sentence it is part of and the link
+                            rides above it. LinkButton is the inline variant and
+                            aligns with the surrounding Text. */}
+                        <LinkButton
                           onPress={() => navigation.navigate("TermsOfUse")}
                           size="sm"
-                          variant="ghost"
                         >
-                          <Button.Label className="text-accent text-sm underline">
+                          <LinkButton.Label className="text-accent text-sm underline">
                             Terms of Use
-                          </Button.Label>
-                        </Button>
+                          </LinkButton.Label>
+                        </LinkButton>
                         <Text className="text-sm"> and </Text>
-                        <Button
-                          className="p-0"
+                        <LinkButton
                           onPress={() => navigation.navigate("PrivacyPolicy")}
                           size="sm"
-                          variant="ghost"
                         >
-                          <Button.Label className="text-accent text-sm underline">
+                          <LinkButton.Label className="text-accent text-sm underline">
                             Privacy Policy
-                          </Button.Label>
-                        </Button>
+                          </LinkButton.Label>
+                        </LinkButton>
                       </View>
                     </View>
                     {error && (
