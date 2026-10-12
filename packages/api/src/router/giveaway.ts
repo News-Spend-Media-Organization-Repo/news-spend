@@ -943,6 +943,238 @@ const history = protectedProcedure
 
 export const WinningInput = z.object({ winnerId: z.string().min(1) });
 
+/** A page of the giveaways a user bought tickets into. */
+export const ParticipationsInput = z.object({
+  page: z.number().int().min(1).max(500).default(1),
+  limit: z.number().int().min(1).max(50).default(20),
+});
+
+/**
+ * What happened, from the giveaway's own state.
+ *
+ * Only `completed` is an outcome for a person, and it is one either way — which
+ * is the whole point of this list, since "did not win" has nowhere else to be
+ * said. Everything else is a draw that has not decided, so those answer a
+ * question about progress instead. A refund is reported separately rather than
+ * folded in here: it is a fact about the money, not about the draw.
+ */
+function giveawayOutcome(
+  status: string,
+  won: boolean
+):
+  | "in_progress"
+  | "draw_under_way"
+  | "won"
+  | "not_selected"
+  | "draw_failed"
+  | "cancelled" {
+  switch (status) {
+    case "completed":
+      return won ? "won" : "not_selected";
+    case "failed":
+      return "draw_failed";
+    case "cancelled":
+      return "cancelled";
+    case "ready":
+    case "pool_building":
+    case "pool_locked":
+    case "draw_in_progress":
+    case "interrupted":
+    case "resumption_authorized":
+      return "draw_under_way";
+    default:
+      // `draft` and `active`: nothing is being drawn yet.
+      return "in_progress";
+  }
+}
+
+/**
+ * Every giveaway this user bought a ticket into — including the ones they did
+ * not win.
+ *
+ * This is the half of the record nothing else shows. `history` is prizes, so it
+ * is silent for everyone who entered and lost, which is nearly everyone; a
+ * ticket purchase is a spend and this is the only place it is accounted for
+ * afterwards.
+ *
+ * Buying a ticket is what qualifies a giveaway as one they took part in.
+ * Engagements are not enough on their own: a boost can be recorded without a
+ * ticket, and there is no draw to account for until one is bought.
+ *
+ * Grouped from `giveaway-tickets`, which is one row per purchase, so the page
+ * is sliced here rather than by the database. A user's purchases are bounded by
+ * the per-minute rate limit and are a handful a month, so the set being grouped
+ * stays small; the alternative is a distinct-on query Payload cannot express.
+ */
+type TicketTotals = {
+  /** Tickets that still stand. A refunded one is not a ticket held. */
+  tickets: number;
+  /** Points actually spent, net of anything refunded or cancelled. */
+  pointsSpent: number;
+  /** Most recent purchase, which is what the order is by. */
+  purchasedAt: string | null;
+  /** Rows exist but none of them is valid: refunded, cancelled, reversed. */
+  allReversed: boolean;
+  anyValid: boolean;
+};
+
+/**
+ * Purchase rows, grouped by the giveaway they were bought into.
+ *
+ * Only `valid` tickets count towards what was held and what was paid. The
+ * lifecycle runs `valid, cancelled, refunded, reversed, unpaid, fraudulent`, and
+ * a refunded purchase neither cost anything nor is a ticket anybody holds, so
+ * counting rows rather than valid rows would overstate both numbers.
+ */
+function groupTicketsByGiveaway(rows: Row[]) {
+  const byGiveaway = new Map<string, TicketTotals>();
+
+  for (const row of rows) {
+    const giveawayId = relationId(row.giveaway);
+    if (!giveawayId) {
+      continue;
+    }
+
+    const totals: TicketTotals = byGiveaway.get(giveawayId) ?? {
+      tickets: 0,
+      pointsSpent: 0,
+      purchasedAt: null,
+      allReversed: false,
+      anyValid: false,
+    };
+
+    if (row.status === "valid") {
+      const quantity = Number(row.quantity ?? 0);
+      totals.anyValid = true;
+      totals.tickets += quantity;
+      totals.pointsSpent += quantity * Number(row.unitPrice ?? 0);
+    }
+
+    const purchasedAt = row.purchasedAt as string | undefined;
+    if (
+      purchasedAt &&
+      (!totals.purchasedAt || purchasedAt > totals.purchasedAt)
+    ) {
+      totals.purchasedAt = purchasedAt;
+    }
+
+    byGiveaway.set(giveawayId, totals);
+  }
+
+  for (const totals of byGiveaway.values()) {
+    totals.allReversed = !totals.anyValid;
+  }
+
+  return byGiveaway;
+}
+
+const participations = protectedProcedure
+  .input(ParticipationsInput)
+  .handler(async ({ input, context }) => {
+    const { payload, user } = context;
+
+    const tickets = await payload.find({
+      collection: "giveaway-tickets",
+      where: { user: { equals: user.id } },
+      sort: "-purchasedAt",
+      pagination: false,
+      depth: 0,
+    });
+
+    const byGiveaway = groupTicketsByGiveaway(tickets.docs as Row[]);
+    const ids = [...byGiveaway.keys()];
+    if (ids.length === 0) {
+      return { items: [], page: 1, hasMore: false, total: 0 };
+    }
+
+    const [giveaways, winners] = await Promise.all([
+      payload.find({
+        collection: "giveaways",
+        where: { id: { in: ids } },
+        pagination: false,
+        depth: 0,
+      }),
+      payload.find({
+        collection: "giveaway-winners",
+        where: {
+          and: [{ user: { equals: user.id } }, { giveaway: { in: ids } }],
+        },
+        pagination: false,
+        depth: 0,
+      }),
+    ]);
+
+    const giveawayById = new Map(
+      (giveaways.docs as Row[]).map((g) => [String(g.id), g])
+    );
+    const winnerByGiveaway = new Map<string, Row>();
+    for (const winner of winners.docs as Row[]) {
+      const giveawayId = relationId(winner.giveaway);
+      if (giveawayId) {
+        winnerByGiveaway.set(giveawayId, winner);
+      }
+    }
+
+    const items = ids
+      .map((id) => {
+        const giveaway = giveawayById.get(id);
+        const totals = byGiveaway.get(id);
+        // A ticket outlives its giveaway row only if the row was removed;
+        // there is nothing to describe in that case.
+        if (!(giveaway && totals)) {
+          return null;
+        }
+
+        const winner = winnerByGiveaway.get(id);
+        /*
+         * A disqualified winner did not win. Their row survives the draw, so it
+         * is checked rather than assumed, or the list would congratulate
+         * somebody the draw had already removed.
+         */
+        const won =
+          winner &&
+          winner.claimStatus !== "disqualified" &&
+          !winner.disqualifiedAt
+            ? {
+                tier: winner.tier,
+                prizeName: winner.prizeName,
+                claimStatus: winner.claimStatus,
+                fulfilmentStatus: winner.fulfilmentStatus,
+              }
+            : null;
+
+        return {
+          giveaway: {
+            id: String(giveaway.id),
+            name: giveaway.name,
+            startDate: giveaway.startDate,
+            endDate: giveaway.endDate,
+            status: giveaway.status,
+            ticketPrice: giveaway.ticketPrice,
+          },
+          tickets: totals.tickets,
+          pointsSpent: totals.pointsSpent,
+          purchasedAt: totals.purchasedAt,
+          /** Bought, then refunded: shown rather than hidden, with the reason. */
+          refunded: totals.allReversed,
+          outcome: giveawayOutcome(String(giveaway.status ?? ""), Boolean(won)),
+          won,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => (b.purchasedAt ?? "").localeCompare(a.purchasedAt ?? ""));
+
+    const start = (input.page - 1) * input.limit;
+    const page = items.slice(start, start + input.limit);
+
+    return {
+      items: page,
+      page: input.page,
+      hasMore: start + input.limit < items.length,
+      total: items.length,
+    };
+  });
+
 /**
  * One prize by id.
  *
@@ -1517,6 +1749,7 @@ export const giveawayRouter = {
   recordEngagement,
   actionable,
   history,
+  participations,
   winning,
   prizeDetails,
   claimPrize,
