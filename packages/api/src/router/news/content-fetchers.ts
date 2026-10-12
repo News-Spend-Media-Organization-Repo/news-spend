@@ -106,6 +106,24 @@ export async function fetchMainNews(params: FetchMainNewsParams) {
     _status: { equals: "published" },
   };
 
+  // Video news is switched off server-side (News collection offers only
+  // "article"; the Postgres enum is ('article')). Guard here as well so no
+  // future caller can send the invalid enum value to Postgres.
+  if (type === "video") {
+    return {
+      docs: [],
+      totalDocs: 0,
+      limit,
+      page,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+      prevPage: null,
+      nextPage: null,
+      pagingCounter: 0,
+    };
+  }
+
   if (category) {
     where.category = { equals: category };
   }

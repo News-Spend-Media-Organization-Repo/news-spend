@@ -162,6 +162,13 @@ function Fill({ className, style }: FillProps) {
         easing: Easing.out(Easing.cubic),
       });
     }
+
+    // A screen unmounting mid-animation (fast navigation, or an activity
+    // recreation under memory pressure on 1GB devices) left the timing
+    // animation holding a shared value whose UI-runtime instance was gone —
+    // "Cannot return shared object" (NEWS-SPEND-MEDIA-EH/EF). The
+    // indeterminate sweep below already cancelled on cleanup; do the same.
+    return () => cancelAnimation(widthPct);
   }, [value, indeterminate, widthPct]);
 
   const determinateStyle = useAnimatedStyle(() => ({

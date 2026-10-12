@@ -10,6 +10,18 @@ export let navigationIntegration: ReturnType<
 const SSL_HANDSHAKE_RE = /SSLHandshakeException/i;
 const API_CONNECT_RE = /Failed to connect to api\.newsspend\.com/i;
 
+/**
+ * Transient errors that recover on their own — reporting them as issues is
+ * noise:
+ * - Worklets race on unmount ("Cannot return shared object..."): a shared
+ *   value outlives its JS instance during a Fabric commit (EH/EF). Single
+ *   occurrences on low-end devices; nothing to fix in our code.
+ * - Corrupt-session decrypt failure ("Invalid batch response" via jose
+ *   gcmDecrypt, CJ): the stored session no longer decrypts; the user
+ *   re-authenticates and recovers. Seen on old (2.2.0) builds only.
+ */
+const TRANSIENT_RE = /Cannot return shared object|Invalid batch response/i;
+
 export const initSentry = () => {
   if (__DEV__) {
     return;
@@ -36,6 +48,7 @@ export const initSentry = () => {
       "UPGRADE_REQUIRED",
       SSL_HANDSHAKE_RE,
       API_CONNECT_RE,
+      TRANSIENT_RE,
     ],
     beforeSend(event) {
       const values = event.exception?.values ?? [];
@@ -44,6 +57,21 @@ export const initSentry = () => {
           v.value?.includes("This version of the app is no longer supported.")
         )
       ) {
+        return null;
+      }
+      if (values.some((v) => v.value && TRANSIENT_RE.test(v.value))) {
+        return null;
+      }
+      // Simulator / dev-build hangs (AX/AZ/B4): the recent iOS hang events
+      // all come from `com.newsspend.app.dev` with `build_type: simulator`.
+      // They drown out real-device hangs, so drop simulator events here
+      // rather than trusting alert rules to exclude them.
+      const contexts = event.contexts as
+        | Record<string, Record<string, unknown>>
+        | undefined;
+      const device = contexts?.device;
+      const app = contexts?.app;
+      if (device?.simulator === true || app?.build_type === "simulator") {
         return null;
       }
       return event;

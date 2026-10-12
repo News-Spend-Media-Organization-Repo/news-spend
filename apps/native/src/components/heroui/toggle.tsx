@@ -47,6 +47,7 @@ import {
 } from "react";
 import type { TextStyle, ViewStyle } from "react-native";
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolateColor,
   useAnimatedStyle,
@@ -252,6 +253,9 @@ function ToggleButtonRoot({
       duration: 180,
       easing: Easing.out(Easing.ease),
     });
+
+    // Same unmount-mid-animation race as ProgressBar (NEWS-SPEND-MEDIA-EH/EF).
+    return () => cancelAnimation(progress);
   }, [isSelected, progress]);
 
   const animatedBg = useAnimatedStyle(() => ({

@@ -62,9 +62,31 @@ const all = publicProcedure
   .input(AllInputSchema)
   .handler(({ input, context }) => {
     const { payload } = context;
-    const where = buildWhere(input);
     const limit = input.limit || 10;
     const page = input.page || 1;
+
+    // Video news is switched off server-side (News collection offers only
+    // "article"; the Postgres enum is ('article')). Old mobile builds still
+    // request type=video — hitting Postgres with that value throws
+    // `invalid input value for enum enum_news_type` (NEWSPEND-API-G) and
+    // surfaces on mobile as MalformedResponseError. Short-circuit to an
+    // empty page instead of querying.
+    if (input.type === "video") {
+      return {
+        docs: [],
+        totalDocs: 0,
+        limit,
+        page,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+        prevPage: null,
+        nextPage: null,
+        pagingCounter: 0,
+      };
+    }
+
+    const where = buildWhere(input);
 
     const buildFeed = async () => {
       // Fetch news items (depth 1, exclude heavy fields for list views)
@@ -429,13 +451,17 @@ const one = publicProcedure
   )
   .handler(async ({ input, context, errors }) => {
     const { payload, user } = context;
+    // Video news is switched off (see `all` above): refuse before Postgres
+    // sees the invalid enum value.
+    if (input.type === "video") {
+      throw errors.NOT_FOUND({
+        message: "News not found",
+      });
+    }
     const where: Where = {
       slug: { equals: input.slug },
       _status: { equals: "published" },
     };
-    if (input.type === "video") {
-      where.type = { equals: "video" };
-    }
     const news = await payload.find({
       collection: "news",
       where,
