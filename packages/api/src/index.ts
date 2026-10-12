@@ -1,4 +1,4 @@
-import { os } from "@orpc/server";
+import { ORPCError, os } from "@orpc/server";
 import * as Sentry from "@sentry/node";
 
 import type { Context } from "./context";
@@ -16,7 +16,19 @@ export const sentryMiddleware = os.middleware(async ({ next }) => {
   try {
     return await next();
   } catch (error) {
-    Sentry.captureException(error);
+    // Expected client errors (UNAUTHORIZED, NOT_FOUND, validation failures,
+    // UPGRADE_REQUIRED, …) are thrown via the `errors.CODE()` factories as
+    // *defined* ORPCErrors — the client already handles them (login screens,
+    // empty states, update prompts). Reporting each one created the bulk of
+    // the newspend-api backlog (API-F/B/K/C/8/7/A). Only unexpected failures
+    // and explicit INTERNAL_SERVER_ERRORs are worth an issue.
+    const isExpected =
+      error instanceof ORPCError &&
+      error.defined &&
+      error.code !== "INTERNAL_SERVER_ERROR";
+    if (!isExpected) {
+      Sentry.captureException(error);
+    }
     throw error;
   }
 });
