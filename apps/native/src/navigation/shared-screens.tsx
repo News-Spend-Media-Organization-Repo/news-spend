@@ -144,6 +144,13 @@ export const sharedScreens = {
     getId: ({ params }) => params?.slug,
     linking: {
       path: "/article/:slug/:id?",
+      // The tab-prefixed form the share sheet used to mint
+      // (`link.newsspend.com/news/article/<slug>`), and that links already
+      // shared carry. The link host preserves the path verbatim, so this
+      // reaches the router unchanged. Declared here as well as normalized in
+      // `legacy-tab-prefix.ts` so the router resolves it even on a code path
+      // that skips normalization.
+      alias: ["/news/article/:slug/:id?"],
     },
     options: {
       headerShown: false,
@@ -154,6 +161,7 @@ export const sharedScreens = {
     getId: ({ params }) => params?.newsSlug,
     linking: {
       path: "/article/:newsSlug/comment",
+      alias: ["/news/article/:newsSlug/comment"],
     },
     options: {
       headerShown: false,
@@ -166,6 +174,9 @@ export const sharedScreens = {
     getId: ({ params }) => params?.newsSlug,
     linking: {
       path: "/article/:newsSlug/comment/:commentId/:highlightCommentId?",
+      alias: [
+        "/news/article/:newsSlug/comment/:commentId/:highlightCommentId?",
+      ],
     },
     options: {
       // presentation: "modal",

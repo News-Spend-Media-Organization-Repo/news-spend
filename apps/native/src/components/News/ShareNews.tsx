@@ -1,5 +1,4 @@
 import type { News } from "@news-spend-media/payload/types";
-import { useRoute } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { useState } from "react";
@@ -29,13 +28,16 @@ export const ShareNews = ({
   news: News;
   onShare?: (shareMethod: string) => void;
 }) => {
-  const route = useRoute();
   const insets = useSafeAreaInsets();
-  const currentTabPath = "news";
   const [visible, setVisible] = useState(false);
   const gap = 10;
-  const currentScreen = "article";
-  const url = `https://link.newsspend.com/${currentTabPath}/${currentScreen}/${news.slug}`;
+  // The canonical root-level path, matching the News screen's linking config
+  // and what the notification hook mints. This used to send
+  // `news/article/<slug>`, the pre-refactor tab path. The Detour link preserves
+  // the path verbatim, so recipients got a tab segment the app had to strip —
+  // every share depended on that shim, and deleting the shim turned every
+  // shared link into "Page not found". Mint the canonical form instead.
+  const url = `https://link.newsspend.com/article/${news.slug}`;
 
   const options = [
     {

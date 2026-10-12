@@ -113,6 +113,25 @@ describe("newsRouter.all", () => {
     expect(result.docs[0]?.type).toBe("article");
   });
 
+  it("returns empty page for type video (video switched off server-side)", async () => {
+    const payload = createFakePayload({
+      collections: {
+        news: [makeNews({ id: "n1", type: "article" })],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      newsRouter.all,
+      { type: "video", includeAds: false },
+      { context: ctx }
+    );
+
+    expect(result.docs).toHaveLength(0);
+    expect(result.totalDocs).toBe(0);
+    expect(payload.calls).toHaveLength(0);
+  });
+
   it("includes ads by default without throwing", async () => {
     const payload = createFakePayload({
       collections: {
@@ -425,7 +444,7 @@ describe("newsRouter.one", () => {
     expect(result.totalComments).toBe(0);
   });
 
-  it("filters by type video", async () => {
+  it("returns NOT_FOUND for type video (video switched off server-side)", async () => {
     const payload = createFakePayload({
       collections: {
         news: [
@@ -438,13 +457,14 @@ describe("newsRouter.one", () => {
     });
     const ctx = mockContext({ payload });
 
-    const result = await call(
-      newsRouter.one,
-      { slug: "vid-1", type: "video" },
-      { context: ctx }
+    const error = await expectError(
+      call(newsRouter.one, { slug: "vid-1", type: "video" }, { context: ctx })
     );
 
-    expect(result.type).toBe("video");
+    expect(error).toMatchObject({
+      code: "NOT_FOUND",
+      message: "News not found",
+    });
   });
 });
 
