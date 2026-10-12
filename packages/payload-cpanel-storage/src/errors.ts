@@ -84,6 +84,18 @@ export function isRetryableError(error: unknown): boolean {
 			return false;
 		}
 
+		// Transient SSH/SFTP transport failures. The cPanel host routinely
+		// drops connections mid-handshake ("Connection lost before handshake",
+		// CMS-2B) — without these patterns the retry wrapper treats the first
+		// failure as final and the upload fails without a single retry.
+		if (
+			message.includes("connection lost") ||
+			message.includes("handshake") ||
+			message.includes("socket hang up")
+		) {
+			return true;
+		}
+
 		return (
 			message.includes("timeout") ||
 			message.includes("econnrefused") ||

@@ -175,6 +175,16 @@ describe("isRetryableError", () => {
 		expect(isRetryableError(error)).toBe(true);
 	});
 
+	test("should identify cPanel handshake drops as retryable", () => {
+		expect(
+			isRetryableError(
+				new Error("getConnection: Connection lost before handshake"),
+			),
+		).toBe(true);
+		expect(isRetryableError(new Error("Handshake failed"))).toBe(true);
+		expect(isRetryableError(new Error("socket hang up"))).toBe(true);
+	});
+
 	test("should not identify generic connection-labeled errors as retryable", () => {
 		const error = new Error("Connection failed");
 		expect(isRetryableError(error)).toBe(false);
