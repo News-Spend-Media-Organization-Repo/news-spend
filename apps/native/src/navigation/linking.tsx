@@ -3,9 +3,13 @@ import { DETOUR_LINKING_PREFIX, Detour } from "@swmansion/react-native-detour";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 
+import {
+  type LegacyLinkSource,
+  trackLegacyTabLink,
+} from "#/lib/trackLegacyLink";
 import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 
-import { stripLegacyTabPrefix } from "./legacy-tab-prefix";
+import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
 
 const prefixes = [
   DETOUR_LINKING_PREFIX,
@@ -33,6 +37,19 @@ function withNewsId(url: string, newsId: unknown) {
   return `${url}${separator}newsId=${encodeURIComponent(newsId)}`;
 }
 
+/**
+ * Normalises an inbound URL, reporting when it still carried a legacy tab
+ * segment. The reporting lives here rather than in the normaliser so that
+ * module stays pure — and because the source is only known at the call site.
+ */
+function toAppPath(url: string, source: LegacyLinkSource): string {
+  const { url: normalized, tab } = normalizeLegacyTabPrefix(url);
+  if (tab) {
+    trackLegacyTabLink({ tab, source });
+  }
+  return normalized;
+}
+
 export const linking: LinkingOptions<RootParamList> = {
   enabled: true,
   prefixes,
@@ -45,14 +62,14 @@ export const linking: LinkingOptions<RootParamList> = {
     // check if app was opened from a Detour deferred link
     const detourUrl = await Detour.getInitialURL();
     if (detourUrl !== undefined) {
-      return stripLegacyTabPrefix(detourUrl);
+      return toAppPath(detourUrl, "detour");
     }
 
     // check if app was opened from a deep link
     const url = await Linking.getInitialURL();
 
     if (url !== null) {
-      return stripLegacyTabPrefix(url);
+      return toAppPath(url, "initial-url");
     }
 
     // check if app was opened from a notification
@@ -67,7 +84,7 @@ export const linking: LinkingOptions<RootParamList> = {
 
       if (screenUrl) {
         return ensureScheme(
-          withNewsId(stripLegacyTabPrefix(screenUrl), newsId)
+          withNewsId(toAppPath(screenUrl, "notification"), newsId)
         );
       }
     }
@@ -77,13 +94,13 @@ export const linking: LinkingOptions<RootParamList> = {
     // strip. otherwise it hands React Navigation the raw link first and the
     // rewrite below never gets a say.
     const detourSub = Detour.addEventListener("url", ({ url }) => {
-      listener(stripLegacyTabPrefix(url));
+      listener(toAppPath(url, "detour"));
     });
 
     const onReceiveURL = ({ url }: { url: string }) => {
       // Widget taps land here. Old tab-prefixed links are normalized to the
       // root-level detail paths.
-      listener(stripLegacyTabPrefix(ensureScheme(url)));
+      listener(toAppPath(ensureScheme(url), "incoming-url"));
     };
 
     // listen for incoming links from deep linking
@@ -97,7 +114,7 @@ export const linking: LinkingOptions<RootParamList> = {
         const _common = response.notification.request.content.data?.common;
 
         if (screenUrl) {
-          screenUrl = stripLegacyTabPrefix(screenUrl as string);
+          screenUrl = toAppPath(screenUrl as string, "notification");
           listener(ensureScheme(withNewsId(screenUrl, newsId)));
           trackNotificationOpen({
             ...response.notification.request.content,
