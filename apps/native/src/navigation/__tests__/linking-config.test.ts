@@ -46,3 +46,35 @@ describe("deep link paths", () => {
     expect(routeNames("article")).toEqual(["NotFound"]);
   });
 });
+
+/**
+ * The tab-prefixed form the share sheet used to mint. It is declared as an
+ * `alias` on each news route, so the router resolves it without any
+ * pre-navigation rewriting.
+ */
+describe("tab-prefixed article aliases", () => {
+  it.each([
+    ["news/article/some-slug", "News"],
+    ["news/article/some-slug/abc", "News"],
+    ["news/article/some-slug/comment", "Comment"],
+    ["news/article/some-slug/comment/c1", "CommentReply"],
+    ["news/article/some-slug/comment/c1/c2", "CommentReply"],
+  ])("%s resolves to %s", (path, name) => {
+    expect(routeNames(path)).toEqual([name]);
+  });
+
+  it("passes the slug through as a param", () => {
+    const route = getStateFromPath("news/article/some-slug", config)?.routes[0];
+
+    expect(route?.params).toMatchObject({ slug: "some-slug" });
+  });
+
+  it("resolves the slug from the shared link in the report", () => {
+    const slug =
+      "breaking-12-killed-over-300-injured-in-riyadh-airport-attack-saudi-authorities-say";
+    const route = getStateFromPath(`news/article/${slug}`, config)?.routes[0];
+
+    expect(route?.name).toBe("News");
+    expect(route?.params).toMatchObject({ slug });
+  });
+});

@@ -5,6 +5,8 @@ import * as Notifications from "expo-notifications";
 
 import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 
+import { stripLegacyTabPrefix } from "./legacy-tab-prefix";
+
 const prefixes = [
   DETOUR_LINKING_PREFIX,
   Linking.createURL(""),
@@ -35,17 +37,22 @@ export const linking: LinkingOptions<RootParamList> = {
   enabled: true,
   prefixes,
   async getInitialURL() {
+    // Every branch below normalizes the URL the same way `subscribe` does.
+    // Warm and cold starts used to disagree here: `subscribe` stripped the
+    // legacy tab prefix but `getInitialURL` did not, so a link the CMS mints in
+    // the old form (`news/article/<slug>`) resolved on a warm start and fell
+    // through to the `*` catch-all — NotFound — on a cold one.
     // check if app was opened from a Detour deferred link
     const detourUrl = await Detour.getInitialURL();
     if (detourUrl !== undefined) {
-      return detourUrl;
+      return stripLegacyTabPrefix(detourUrl);
     }
 
     // check if app was opened from a deep link
     const url = await Linking.getInitialURL();
 
     if (url !== null) {
-      return url;
+      return stripLegacyTabPrefix(url);
     }
 
     // check if app was opened from a notification
@@ -59,19 +66,24 @@ export const linking: LinkingOptions<RootParamList> = {
       });
 
       if (screenUrl) {
-        return ensureScheme(withNewsId(screenUrl, newsId));
+        return ensureScheme(
+          withNewsId(stripLegacyTabPrefix(screenUrl), newsId)
+        );
       }
     }
   },
   subscribe(listener) {
-    // Detour delivers incoming URLs directly to the listener.
+    // Detour also delivers incoming URLs, so it needs the same legacy-prefix
+    // strip. otherwise it hands React Navigation the raw link first and the
+    // rewrite below never gets a say.
     const detourSub = Detour.addEventListener("url", ({ url }) => {
-      listener(url);
+      listener(stripLegacyTabPrefix(url));
     });
 
     const onReceiveURL = ({ url }: { url: string }) => {
-      // Widget taps land here.
-      listener(ensureScheme(url));
+      // Widget taps land here. Old tab-prefixed links are normalized to the
+      // root-level detail paths.
+      listener(stripLegacyTabPrefix(ensureScheme(url)));
     };
 
     // listen for incoming links from deep linking
@@ -80,11 +92,12 @@ export const linking: LinkingOptions<RootParamList> = {
     // listen to expo push notifications
     const notificationListenerSub =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        const screenUrl = response.notification.request.content.data?.url;
+        let screenUrl = response.notification.request.content.data?.url;
         const newsId = response.notification.request.content.data?.newsId;
         const _common = response.notification.request.content.data?.common;
 
         if (screenUrl) {
+          screenUrl = stripLegacyTabPrefix(screenUrl as string);
           listener(ensureScheme(withNewsId(screenUrl, newsId)));
           trackNotificationOpen({
             ...response.notification.request.content,
