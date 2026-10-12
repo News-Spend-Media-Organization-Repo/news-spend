@@ -504,9 +504,9 @@ export class SftpConnectionPool {
 	 * @returns A healthy SFTP client
 	 * @throws {SftpConnectionError} If unable to acquire a connection
 	 */
-	async acquire(this: any): Promise<any> {
+	async acquire(): Promise<any> {
 		if (this.isShuttingDown) {
-			throw new this.SftpConnectionError("Pool is shutting down");
+			throw new SftpConnectionError("Pool is shutting down");
 		}
 
 		// Try to find an available healthy connection first - no locking needed
@@ -568,7 +568,7 @@ export class SftpConnectionPool {
 		}
 
 		if (!connection) {
-			throw new this.SftpConnectionError(
+			throw new SftpConnectionError(
 				`Unable to acquire connection. Pool size: ${this.pool.length}, Max: ${this.options.maxConnections}`,
 			);
 		}
