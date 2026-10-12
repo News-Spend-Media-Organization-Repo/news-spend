@@ -21,8 +21,9 @@
     "lint": "bun x biome lint .",
     "lint:fix": "bun x biome check --write .",
     "typecheck": "bun --filter @news-spend-media/cms typecheck",
+    "typecheck:all": "bun check",
     "test": "turbo test",
-    "check": "ultracite check",
+    "ultracite": "ultracite check",
     "fix": "ultracite fix",
     "prepare": "test -z \"$EAS_BUILD\" && lefthook install || echo 'Skipping lefthook'"
   },
@@ -105,14 +106,21 @@
     "@sentry/browser": "10.70.0",
     "@sentry/react": "10.70.0",
     "sharp": "0.35.3",
-    "react-native": "npm:react-native@0.88.0-rc.3"
+    "react-native": "npm:react-native@0.88.0-rc.3",
+    "@next/env": "npm:@varlock/nextjs-integration",
+    "next": {
+      "@next/env": "npm:@varlock/nextjs-integration"
+    }
   },
   "engines": {
     "node": ">=20.11.1"
   },
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.3",
   "patchedDependencies": {
     "node-internet-radio@0.2.1": "patches/node-internet-radio@0.2.1.patch",
     "heroui-native@1.0.10": "patches/heroui-native@1.0.10.patch"
+  },
+  "dependencies": {
+    "varlock": "^1.22.0"
   }
 }

@@ -347,8 +347,11 @@ export function PartnerKpis({
 
 export function OutcomesPanel({
   current,
+  postbacksExpected = true,
 }: {
   current: ConversionOutcomes;
+  /** False for a partner that only reports clicks, so "waiting" is just "clicked". */
+  postbacksExpected?: boolean;
 }): ReactNode {
   return (
     <Panel
@@ -359,7 +362,12 @@ export function OutcomesPanel({
       <Bars
         empty="No clicks in this period."
         rows={[
-          { label: "Clicked, awaiting the partner", value: current.waiting },
+          {
+            label: postbacksExpected
+              ? "Clicked, awaiting the partner"
+              : "Clicked",
+            value: current.waiting,
+          },
           { label: "Converted, points pending", value: current.pending },
           { label: "Points awarded", value: current.awarded },
           { label: "Failed", value: current.failed },
@@ -1111,16 +1119,19 @@ export function PostbackHealthPanel({
   health,
   timeZone,
   waiting = 0,
+  postbacksExpected = true,
 }: {
   health: PostbackHealth;
   timeZone: string;
+  /** False for a partner with no webhook (manual or CSV), where silence is normal. */
+  postbacksExpected?: boolean;
   /** Clicks sent to the partner that are still only "clicked" for this period. */
   waiting?: number;
 }): ReactNode {
   const last = health.lastReceivedAt
     ? `Last postback ${formatDateTime(health.lastReceivedAt, timeZone)}.`
     : "No postback has been received yet.";
-  const trouble = postbackTrouble(health, waiting);
+  const trouble = postbacksExpected ? postbackTrouble(health, waiting) : null;
 
   return (
     <Panel
@@ -1133,6 +1144,12 @@ export function PostbackHealthPanel({
           <strong>Looks broken.</strong> {trouble}
         </div>
       ) : null}
+      {postbacksExpected ? null : (
+        <div className="ana-notice">
+          This partner does not send postbacks, so only clicks are tracked.
+          Conversions and points are not confirmed automatically.
+        </div>
+      )}
       {health.total === 0 ? (
         <div className="ana-empty">No postbacks in this period. {last}</div>
       ) : (

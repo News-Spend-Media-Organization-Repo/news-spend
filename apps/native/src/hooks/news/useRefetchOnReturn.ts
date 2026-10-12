@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 
 type Options = {
   refetch: () => void;
@@ -25,7 +25,16 @@ type Options = {
  *  - React Navigation focus: back from an article, switching bottom tabs.
  *  - TabView category-tab switch: not a navigation event at all.
  *
- * Both skip their first firing (initial mount already fetched fresh data).
+ * Neither path skips a firing. They used to: focus skipped its first, and the
+ * tab path skipped its initial active state, both on the reasoning that
+ * "mounting already fetched fresh data". That is only true when the mount
+ * actually hits the network. The query cache is persisted to MMKV and
+ * rehydrated on launch, so a cold start can mount onto data that is already
+ * hours old — and for a guest, who never crosses an auth boundary and so
+ * never has their cache cleared, that rehydrated data is what they keep
+ * seeing. That is the mechanism behind "news content as a guest lags like 1hr
+ * behind". `refetchIfStale` already gates on age, so dropping the skips costs
+ * nothing when the data really is fresh.
  */
 export function useRefetchOnReturn({
   refetch,
@@ -39,24 +48,11 @@ export function useRefetchOnReturn({
     }
   }, [refetch, dataUpdatedAt, staleTime]);
 
-  const focusedOnce = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      if (!focusedOnce.current) {
-        focusedOnce.current = true;
-        return;
-      }
-      refetchIfStale();
-    }, [refetchIfStale])
-  );
+  useFocusEffect(refetchIfStale);
 
-  // Fires only on a false→true transition, never on the tab's initial
-  // active state — mounting already fetched.
-  const wasActiveTab = useRef(isActiveTab);
   useEffect(() => {
-    if (isActiveTab && !wasActiveTab.current) {
+    if (isActiveTab) {
       refetchIfStale();
     }
-    wasActiveTab.current = isActiveTab;
   }, [isActiveTab, refetchIfStale]);
 }

@@ -31,7 +31,11 @@ import {
 import { Provider } from "./provider";
 import { authState, hydrateAuth } from "./state/auth";
 import { runAfterStartup } from "./utils/afterStartup";
-import { createMMKVPersister } from "./utils/clientPersister";
+import {
+  createMMKVPersister,
+  getCacheBuster,
+  PERSISTED_QUERY_MAX_AGE_MS,
+} from "./utils/clientPersister";
 import { SCREENSHOT_MODE } from "./utils/screenshotMode";
 import { storage } from "./utils/storage";
 
@@ -144,7 +148,11 @@ export function App() {
     <View onLayout={handleContentLayout} style={{ flex: 1 }}>
       <PersistQueryClientProvider
         client={queryClient}
-        persistOptions={{ persister }}
+        persistOptions={{
+          persister,
+          buster: getCacheBuster(),
+          maxAge: PERSISTED_QUERY_MAX_AGE_MS,
+        }}
       >
         <Provider>
           <ObserveNavigationProvider navigationRef={navigationRef}>

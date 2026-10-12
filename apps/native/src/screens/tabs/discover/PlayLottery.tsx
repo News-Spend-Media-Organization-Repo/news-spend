@@ -152,9 +152,9 @@ const PlayLottery = () => {
         right={
           <Text
             className="text-white"
-            onPress={() => navigation.navigate("MyPrizes")}
+            onPress={() => navigation.navigate("MyGiveaways")}
           >
-            My Prizes
+            My Giveaways
           </Text>
         }
         title="Giveaway"

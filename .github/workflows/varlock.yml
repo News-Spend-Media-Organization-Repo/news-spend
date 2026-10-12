@@ -1,0 +1,71 @@
+name: Varlock env validation
+
+on:
+  pull_request:
+    paths:
+      - "**/.env.schema"
+      - "**/.env.example"
+      - "apps/**"
+      - "packages/**"
+      - ".github/workflows/varlock.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/.env.schema"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    # CI holds no secrets, so this job validates schema structure and
+    # code drift only. Real values are enforced at boot/deploy time
+    # (APP_ENV=production). Public URLs are real; client-bundled keys use
+    # obvious placeholders that only prove the schema resolves.
+    env:
+      NEXT_PUBLIC_API_URL: "https://api.newsspend.com"
+      EXPO_PUBLIC_API_URL: "https://api.newsspend.com"
+      EXPO_PUBLIC_DETOUR_API_KEY: "ci-validation-placeholder"
+      EXPO_PUBLIC_DETOUR_APP_ID: "ci-validation-placeholder"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.3"
+
+      - name: Install dependencies
+        run: bun install --ignore-scripts
+
+      # Fails when code reads an env var the schema does not declare. Needs no
+      # secrets: it scans source, it does not resolve values.
+      #
+      # "Unused in schema" is deliberately not a failure. Each app is audited
+      # against the shared root schema using only its own source, so every
+      # variable that belongs to another app (or to a tool, such as Railway or
+      # Sentry) reads as unused. `varlock audit` exits 1 for that too, so the
+      # output is checked rather than the exit code.
+      - name: Audit env usage against schemas
+        run: |
+          status=0
+          audit() {
+            out=$(bunx varlock audit "$@" 2>&1) || true
+            echo "$out"
+            if grep -q "Missing in schema" <<<"$out"; then
+              status=1
+            fi
+          }
+          audit apps/cms/src packages/payload/src packages/mail/src --path apps/cms
+          audit apps/server/src packages/api/src packages/auth/src packages/db/src packages/mail/src --path apps/server
+          audit apps/native/src apps/native/app.config.ts --path apps/native
+          exit $status
+
+      # Validates that schemas resolve. No secrets are present in CI, so only
+      # structural/syntax problems can fail here; production-only requirements
+      # are enforced at boot (APP_ENV=production), not in this job.
+      - name: Load env schemas (agent-safe, redacted)
+        run: |
+          bunx varlock load --agent --path .
+          bunx varlock load --agent --path apps/cms
+          bunx varlock load --agent --path apps/server
+          bunx varlock load --agent --path apps/native

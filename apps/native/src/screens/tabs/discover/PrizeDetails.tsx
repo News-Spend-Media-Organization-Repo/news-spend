@@ -52,7 +52,7 @@ function Detail({
  *
  * Distinct from `ClaimPrize`, which asks for what a dispatch needs. This is the
  * record: which giveaway produced it, what it was, and where it went. Until it
- * existed a finished prize was inert in My Prizes; a winner whose airtime had
+ * existed a finished prize was inert in My Giveaways; a winner whose airtime had
  * not arrived could see that it was "fulfilled" and nothing else, while the
  * number it went to sat only in the CMS.
  */

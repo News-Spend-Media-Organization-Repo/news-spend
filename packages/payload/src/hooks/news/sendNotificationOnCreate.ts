@@ -41,10 +41,14 @@ const sendNotificationOnCreate: CollectionAfterChangeHook = async ({
         data: {
           newsId: doc.id,
           type: doc.type,
-          url:
-            doc.type === "video"
-              ? `live/video/${doc.slug}`
-              : `news/article/${doc.slug}`,
+          // Root-level `article/<slug>`, matching the News screen's linking path
+          // (apps/native/src/navigation/shared-screens.tsx). This used to mint
+          // the pre-refactor `news/article/<slug>`; detail screens moved to the
+          // root stack in 1717c96d, so that form matched no route and a cold
+          // start on the notification landed on NotFound. No video branch: the
+          // `video` type is refused by News' beforeValidate hook, and
+          // `live/video/<slug>` had no route at all.
+          url: `article/${doc.slug}`,
         },
       },
       req,

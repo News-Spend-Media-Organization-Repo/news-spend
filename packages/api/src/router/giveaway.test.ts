@@ -270,21 +270,22 @@ describe("giveaway.progress", () => {
     expect(error.code).toBe("UNAUTHORIZED");
   });
 
-  it("throws NOT_FOUND when there is no active giveaway", async () => {
+  it("returns null when there is no active giveaway", async () => {
     const payload = createFakePayload();
     const ctx = mockContext({ user: authedUser as never, payload });
 
-    const error = await expectError(
-      call(giveawayRouter.progress, undefined, { context: ctx })
-    );
-
-    expect(error).toMatchObject({
-      code: "NOT_FOUND",
-      message: "There is no giveaway running at the moment.",
+    // A read reports rather than enforces. No giveaway running is a state the
+    // app already renders as "no giveaway running", not a failure — throwing
+    // NOT_FOUND turned merely opening a screen that asks for progress into an
+    // error, in front of a reader who had done nothing wrong.
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
     });
+
+    expect(result).toBeNull();
   });
 
-  it("throws CONFLICT when the giveaway has not opened yet", async () => {
+  it("returns null when the giveaway has not opened yet", async () => {
     const payload = createFakePayload({
       collections: {
         giveaways: [giveaway({ startDate: FUTURE, endDate: FAR_FUTURE })],
@@ -292,17 +293,14 @@ describe("giveaway.progress", () => {
     });
     const ctx = mockContext({ user: authedUser as never, payload });
 
-    const error = await expectError(
-      call(giveawayRouter.progress, undefined, { context: ctx })
-    );
-
-    expect(error).toMatchObject({
-      code: "CONFLICT",
-      message: "This giveaway has not opened yet.",
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
     });
+
+    expect(result).toBeNull();
   });
 
-  it("throws CONFLICT when the giveaway has closed", async () => {
+  it("returns null when the giveaway has closed", async () => {
     const payload = createFakePayload({
       collections: {
         giveaways: [giveaway({ startDate: FAR_PAST, endDate: PAST })],
@@ -310,14 +308,11 @@ describe("giveaway.progress", () => {
     });
     const ctx = mockContext({ user: authedUser as never, payload });
 
-    const error = await expectError(
-      call(giveawayRouter.progress, undefined, { context: ctx })
-    );
-
-    expect(error).toMatchObject({
-      code: "CONFLICT",
-      message: "This giveaway has closed and is waiting for its draw.",
+    const result = await call(giveawayRouter.progress, undefined, {
+      context: ctx,
     });
+
+    expect(result).toBeNull();
   });
 
   it("returns participation and tier summary for an active giveaway", async () => {
@@ -346,9 +341,9 @@ describe("giveaway.progress", () => {
         featuredOffers: 1,
       },
     });
-    expect(result.tiers).toHaveLength(3);
+    expect(result?.tiers).toHaveLength(3);
     // tier3: needs 1 ticket, 0 boosts, 0 featuredOffers → met
-    const tier3 = result.tiers.find((t: Doc) => t.tier === "tier3");
+    const tier3 = result?.tiers.find((t: Doc) => t.tier === "tier3");
     expect(tier3?.requirementsMet).toBe(true);
   });
 });
@@ -683,5 +678,317 @@ describe("giveaway.recordEngagement", () => {
       content: "content-1",
       completionStatus: "completed",
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// participations
+// ---------------------------------------------------------------------------
+
+describe("giveaway.participations", () => {
+  it("returns nothing for a guest, who cannot hold tickets", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway()],
+        // A guest has no purchases; this row belongs to somebody else.
+        "giveaway-tickets": [ticket({ user: "user-9" })],
+      },
+    });
+    const ctx = mockContext({ user: guestUser as never, payload });
+
+    // Matches the auth level `history` and `progress` use. A guest cannot reach
+    // the giveaway screens at all, and has nothing to list if they could, so
+    // this is an empty list rather than a refusal.
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    expect(result.items).toHaveLength(0);
+  });
+
+  it("is empty when nothing has been bought", async () => {
+    const payload = createFakePayload();
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    expect(result.items).toHaveLength(0);
+    expect(result.hasMore).toBe(false);
+  });
+
+  it("lists a giveaway the user bought into, with what it cost", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway()],
+        "giveaway-tickets": [ticket({ quantity: 3, unitPrice: 5 })],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      tickets: 3,
+      pointsSpent: 15,
+      refunded: false,
+      outcome: "in_progress",
+    });
+  });
+
+  it("counts only the tickets that still stand", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway()],
+        // A refunded row neither cost anything nor is a ticket anybody holds.
+        "giveaway-tickets": [
+          ticket({ id: "t1", quantity: 2, unitPrice: 5 }),
+          ticket({ id: "t2", quantity: 1, unitPrice: 5 }),
+          ticket({ id: "t3", quantity: 4, unitPrice: 5, status: "refunded" }),
+        ],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    expect(result.items[0]).toMatchObject({
+      tickets: 3,
+      pointsSpent: 15,
+      refunded: false,
+    });
+  });
+
+  it("still shows an entry that was refunded in full, marked as such", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway()],
+        "giveaway-tickets": [ticket({ status: "refunded" })],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    // A purchase that vanished without trace is what generates support mail,
+    // so it is reported rather than dropped.
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      tickets: 0,
+      pointsSpent: 0,
+      refunded: true,
+    });
+  });
+
+  it("says not selected for a completed draw the user did not win", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway({ status: "completed" })],
+        "giveaway-tickets": [ticket()],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    expect(result.items[0]).toMatchObject({
+      outcome: "not_selected",
+      won: null,
+    });
+  });
+
+  it("reports a win with its prize", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway({ status: "completed" })],
+        "giveaway-tickets": [ticket()],
+        "giveaway-winners": [
+          {
+            id: "w1",
+            giveaway: "gw-1",
+            user: "user-1",
+            tier: "tier3",
+            prizeName: "Airtime",
+            claimStatus: "claimed",
+            fulfilmentStatus: "fulfilled",
+          },
+        ],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    expect(result.items[0]).toMatchObject({
+      outcome: "won",
+      won: { tier: "tier3", prizeName: "Airtime", claimStatus: "claimed" },
+    });
+  });
+
+  it("does not congratulate a disqualified winner", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway({ status: "completed" })],
+        "giveaway-tickets": [ticket()],
+        "giveaway-winners": [
+          {
+            id: "w1",
+            giveaway: "gw-1",
+            user: "user-1",
+            tier: "tier3",
+            prizeName: "Airtime",
+            claimStatus: "disqualified",
+          },
+        ],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    // The row survives the draw, so it has to be checked rather than assumed.
+    expect(result.items[0]).toMatchObject({
+      outcome: "not_selected",
+      won: null,
+    });
+  });
+
+  it("ignores a giveaway the user only boosted", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway()],
+        "giveaway-tickets": [],
+        "giveaway-engagements": [engagement()],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    // Buying a ticket is what qualifies a giveaway as one you took part in.
+    expect(result.items).toHaveLength(0);
+  });
+
+  it("carries the winner id, so a won entry can open its prize", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway({ status: "completed" })],
+        "giveaway-tickets": [ticket()],
+        "giveaway-winners": [
+          {
+            id: "w1",
+            giveaway: "gw-1",
+            user: "user-1",
+            tier: "tier3",
+            prizeName: "Airtime",
+            claimStatus: "claimed",
+          },
+        ],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participations,
+      { page: 1, limit: 20 },
+      { context: ctx }
+    );
+
+    // The prize screens navigate by winner id; without it the entry is a dead
+    // end exactly where somebody has something to collect.
+    expect(result.items[0]?.won).toMatchObject({ id: "w1" });
+  });
+});
+
+describe("giveaway.participation", () => {
+  it("gives one entry with the purchases behind its totals", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway()],
+        "giveaway-tickets": [
+          ticket({ id: "t1", quantity: 2, unitPrice: 5 }),
+          ticket({ id: "t2", quantity: 1, unitPrice: 5, status: "refunded" }),
+        ],
+        "giveaway-engagements": [
+          engagement(),
+          engagement({ id: "e2", type: "featured_offer" }),
+        ],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participation,
+      { giveawayId: "gw-1" },
+      { context: ctx }
+    );
+
+    expect(result).toMatchObject({
+      tickets: 2,
+      pointsSpent: 10,
+      boosts: 1,
+      featuredOffers: 1,
+    });
+
+    // Every purchase is listed, including the one that was refunded, so the
+    // totals can be read back to the rows that produced them.
+    expect(result?.purchases).toHaveLength(2);
+    expect(result?.purchases.map((purchase) => purchase.status).sort()).toEqual(
+      ["refunded", "valid"]
+    );
+  });
+
+  it("has no entry for a giveaway the user did not buy into", async () => {
+    const payload = createFakePayload({
+      collections: {
+        giveaways: [giveaway()],
+        "giveaway-tickets": [ticket({ user: "user-9" })],
+        "giveaway-engagements": [engagement()],
+      },
+    });
+    const ctx = mockContext({ user: authedUser as never, payload });
+
+    const result = await call(
+      giveawayRouter.participation,
+      { giveawayId: "gw-1" },
+      { context: ctx }
+    );
+
+    // A boost with no ticket is not an entry.
+    expect(result).toBeNull();
   });
 });

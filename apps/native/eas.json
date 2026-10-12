@@ -11,9 +11,10 @@
       },
       "channel": "beta",
       "developmentClient": false,
-      "bun": "1.4.2",
+      "bun": "1.4.3",
       "env": {
-        "APP_VARIANT": "beta"
+        "APP_VARIANT": "beta",
+        "APP_ENV": "staging"
       }
     },
     "betaAAB": {
@@ -23,9 +24,10 @@
       },
       "channel": "beta",
       "developmentClient": false,
-      "bun": "1.4.2",
+      "bun": "1.4.3",
       "env": {
-        "APP_VARIANT": "beta"
+        "APP_VARIANT": "beta",
+        "APP_ENV": "staging"
       }
     },
     "development": {
@@ -35,19 +37,21 @@
       "channel": "development",
       "distribution": "internal",
       "developmentClient": true,
-      "bun": "1.4.2",
+      "bun": "1.4.3",
       "env": {
-        "APP_VARIANT": "development"
+        "APP_VARIANT": "development",
+        "APP_ENV": "development"
       }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
       "autoIncrement": true,
-      "bun": "1.4.2",
+      "bun": "1.4.3",
       "env": {
         "APP_VARIANT": "preview",
-        "EXPO_PUBLIC_API_URL": "https://staging-api.newsspend.com"
+        "EXPO_PUBLIC_API_URL": "https://staging-api.newsspend.com",
+        "APP_ENV": "staging"
       }
     },
     "production": {
@@ -59,10 +63,11 @@
         "autoIncrement": "buildNumber"
       },
       "channel": "production",
-      "bun": "1.4.2",
+      "bun": "1.4.3",
       "env": {
         "APP_VARIANT": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.newsspend.com"
+        "EXPO_PUBLIC_API_URL": "https://api.newsspend.com",
+        "APP_ENV": "production"
       }
     },
     "adsSimulatorCheck": {
@@ -73,9 +78,10 @@
       "distribution": "internal",
       "channel": "production",
       "environment": "production",
-      "bun": "1.4.2",
+      "bun": "1.4.3",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "APP_ENV": "production"
       }
     },
     "screenshots": {
@@ -88,10 +94,11 @@
       "developmentClient": false,
       "distribution": "internal",
       "environment": "production",
-      "bun": "1.4.2",
+      "bun": "1.4.3",
       "env": {
         "APP_VARIANT": "production",
-        "EXPO_PUBLIC_SCREENSHOT_MODE": "1"
+        "EXPO_PUBLIC_SCREENSHOT_MODE": "1",
+        "APP_ENV": "production"
       }
     }
   },

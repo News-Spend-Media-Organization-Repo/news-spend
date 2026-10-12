@@ -183,15 +183,29 @@ const BoostLuck = () => {
           <Text className="text-center text-xl">
             Win Dream Points, airtime, data bundles, and other prizes
           </Text>
-          <Text className="text-center">
-            Countdown: <Text className="text-lg text-p-500">{timeLeft}</Text>{" "}
-            left
-          </Text>
+          {endDate ? (
+            <Text className="text-center">
+              Countdown: <Text className="text-lg text-p-500">{timeLeft}</Text>{" "}
+              left
+            </Text>
+          ) : (
+            /* Its own sentence rather than dropped into the countdown above,
+               which read as "Countdown: no giveaway running left". `progress`
+               now returns null instead of throwing for this state, so it is a
+               state the screen reaches on purpose and has to say properly. */
+            <Text className="text-center">No giveaway running right now</Text>
+          )}
         </View>
 
-        <Card className="rounded-md bg-s-300 p-0 px-6">
-          <View className="min-h-18 flex-row items-center justify-between">
-            <View className="items-center justify-center">
+        <Card className="rounded-md bg-s-300 p-0">
+          {/*
+            Two equal halves with the divider between them, rather than
+            `justify-between` over three children — which spread all three and
+            parked the divider in the middle of the row, stranding the ticket
+            count against the card's left edge with a dead gap beside it.
+          */}
+          <View className="min-h-18 flex-row items-stretch">
+            <View className="flex-1 items-center justify-center py-2">
               <Text className="text-2xl">
                 {data?.participation?.validTickets ?? 0}
               </Text>
@@ -201,17 +215,19 @@ const BoostLuck = () => {
               </Text>
             </View>
 
-            <View className="mx-3.75 w-px self-stretch bg-gray-300" />
+            <View className="mx-3.75 w-px bg-gray-300" />
 
-            <Button
-              className="h-auto"
-              onPress={() => navigation.navigate("GetTicket")}
-              variant="ghost"
-            >
-              <Button.Label className="text-p-400 underline">
-                Get more entries
-              </Button.Label>
-            </Button>
+            <View className="flex-1 items-center justify-center py-2">
+              <Button
+                className="h-auto"
+                onPress={() => navigation.navigate("GetTicket")}
+                variant="ghost"
+              >
+                <Button.Label className="text-p-400 underline">
+                  Get more entries
+                </Button.Label>
+              </Button>
+            </View>
           </View>
         </Card>
 

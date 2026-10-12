@@ -277,6 +277,8 @@ export async function PartnerPerformanceView(
     const db = dbOf(req);
     const id = String(docID ?? props.doc?.id ?? "");
     const filter = { range, partnerId: id };
+    const method = props.doc?.integrationMethod;
+    const postbacksExpected = method === "webhook" || method === "postback";
 
     const [summary, daily, recent, postbacks] = await Promise.all([
       partnerSummary(db, scope, filter),
@@ -306,7 +308,10 @@ export async function PartnerPerformanceView(
           />
           <div className="ana-grid ana-two">
             <PartnerDailyPanel days={daily} />
-            <OutcomesPanel current={summary.conversions.current} />
+            <OutcomesPanel
+              current={summary.conversions.current}
+              postbacksExpected={postbacksExpected}
+            />
           </div>
           <div className="ana-grid ana-two">
             <RecentConversionsPanel
@@ -317,6 +322,7 @@ export async function PartnerPerformanceView(
             <div className="ana-stack">
               <PostbackHealthPanel
                 health={postbacks}
+                postbacksExpected={postbacksExpected}
                 timeZone={ANALYTICS_TIME_ZONE}
                 waiting={summary.conversions.current.waiting}
               />

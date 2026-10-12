@@ -76,12 +76,15 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
   // recorded for everyone. It used to be emitted only from the points path
   // below, which meant readers who were signed out, had already earned the
   // points, or had hit the daily cap never produced one.
+  //
+  // No `inRapidScroll` veto: the points path deliberately dropped it so a fast
+  // reader is not denied their points, and a read event that disagreed with
+  // the award would have been the same decision made twice, differently.
   const trackedReadFor = useRef<string | null>(null);
   useEffect(() => {
     if (
       !data ||
       trackedReadFor.current === data.id ||
-      inRapidScroll ||
       !hasScrolledThreshold ||
       elapsedSeconds < minReadingSeconds
     ) {
@@ -91,7 +94,6 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
     trackRead(elapsedSeconds, getMaxScrollDepth());
   }, [
     data,
-    inRapidScroll,
     hasScrolledThreshold,
     elapsedSeconds,
     minReadingSeconds,
@@ -110,7 +112,11 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
       !addActivityMutation.isSuccess &&
       !addActivityMutation.isError &&
       !getUserPoint.data?.length &&
-      !inRapidScroll &&
+      // Deliberately no `inRapidScroll` veto here. A fast reader is still a
+      // reader; blocking the award outright is what made quick-but-genuine
+      // reads pay nothing. Skimming is now recorded on the read event above
+      // and left for the analytics to interpret, rather than silently costing
+      // someone their points.
       elapsedSeconds >= minReadingSeconds &&
       hasScrolledThreshold
     ) {
@@ -145,7 +151,6 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
     elapsedSeconds,
     minReadingSeconds,
     hasScrolledThreshold,
-    inRapidScroll,
     data,
     getUserPoint.data,
     addActivityMutation.isPending,

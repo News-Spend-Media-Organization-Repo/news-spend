@@ -1,7 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog } from "heroui-native/dialog";
-import { XIcon } from "#/lib/icons";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,30 +17,35 @@ import {
   NativeAssetType,
   NativeMediaView,
 } from "react-native-google-mobile-ads";
-
 import { Button } from "#/components/heroui/button";
 import { Image } from "#/components/heroui/image";
 import { Text } from "#/components/heroui/text";
 import { toast } from "#/components/heroui/toast";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 import { adUnits } from "#/lib/adUnits";
-import { orpc } from "#/lib/orpc";
+import { XIcon } from "#/lib/icons";
+import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { getCtaLabel } from "#/utils";
 import { getImageData } from "#/utils/getImageData";
+
+/** What the server says was actually bought, at what price, and what it unlocked. */
+type BuyTicketsResult = RouterOutputs["giveaway"]["buyTickets"];
 
 export function DialogWithAd({
   open,
   setOpen,
   purchasedTickets,
   preloadedNativeAd,
+  onPurchased,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   purchasedTickets: number;
   preloadedNativeAd?: NativeAd | null;
+  onPurchased?: () => void;
 }) {
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const id = useId();
   const queryOptions = orpc.partnerContent.getOne.queryOptions({
     input: {
@@ -63,6 +67,20 @@ export function DialogWithAd({
   const { url, blurhash } = getImageData(ad.data?.media);
   const hasAwardedRef = useRef(false);
 
+  /**
+   * Whether the purchase has actually been dispatched.
+   *
+   * The mutation is fired from an effect, so on the first render after the
+   * dialog opens the mutation is still `idle` — `isPending` is false and
+   * `serverError` is null, which is byte-for-byte the same state as "your
+   * tickets are bought". That is what made a successful purchase look like
+   * nothing happened: the success copy was on screen before the request left
+   * the device. This flag is set in the same tick as `mutate`, so React batches
+   * it with the mutation's own move to `pending` and there is no frame where
+   * the dialog claims success it has not got.
+   */
+  const [submitted, setSubmitted] = useState(false);
+
   useGlobalBackHandler(() => {
     if (open) {
       return true;
@@ -79,15 +97,16 @@ export function DialogWithAd({
     hasAwardedRef.current = true;
 
     setServerError(null);
+    setSubmitted(true);
     lotteryTicketMutation.mutate(
       {
         quantity: purchasedTickets,
       },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           toast.success("Giveaway entry confirmed", {
-            description: `You entered the Giveaway with ${purchasedTickets} ticket${
-              purchasedTickets === 1 ? "" : "s"
+            description: `You entered the Giveaway with ${result.quantity} ticket${
+              result.quantity === 1 ? "" : "s"
             }`,
           });
 
@@ -106,6 +125,8 @@ export function DialogWithAd({
           queryClient.invalidateQueries({
             queryKey: orpc.giveaway.participants.queryKey(),
           });
+
+          onPurchased?.();
         },
         onError: ({ message }) => {
           // The API explains refusals in terms a winner can act on (an empty
@@ -114,11 +135,17 @@ export function DialogWithAd({
         },
       }
     );
-  }, [open, purchasedTickets, lotteryTicketMutation.mutate]);
+  }, [open, purchasedTickets, lotteryTicketMutation.mutate, onPurchased]);
 
   const onOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       hasAwardedRef.current = false;
+      // Cleared on close, not just on submit: otherwise reopening the dialog
+      // renders one frame with the previous attempt's result still in place —
+      // a failed purchase would reopen on its own success copy, before the new
+      // request had even been dispatched.
+      setSubmitted(false);
+      setServerError(null);
     }
     setOpen(nextOpen);
 
@@ -210,47 +237,106 @@ export function DialogWithAd({
                 </Text>
               ) : null}
 
-              {lotteryTicketMutation.isPending ? (
-                <ActivityIndicator className="self-center" />
-              ) : (
-                <Text className="text-center text-sm">
-                  {serverError ? (
-                    serverError
-                  ) : (
-                    <>
-                      You entered the Giveaway with {purchasedTickets ?? 0}{" "}
-                      ticket
-                      {purchasedTickets === 1 ? "" : "s"}.{" "}
-                      <Text className="text-s-500">
-                        {(purchasedTickets ?? 0) * 50} Dream Points
-                      </Text>{" "}
-                      deducted from your account.
-                    </>
-                  )}
-                </Text>
-              )}
+              <PurchaseStatus
+                error={serverError}
+                isPending={lotteryTicketMutation.isPending}
+                requestedTickets={purchasedTickets}
+                result={lotteryTicketMutation.data}
+                submitted={submitted}
+              />
             </View>
           </View>
 
-          <Button
-            className="absolute -bottom-7 z-10 h-9 w-9 items-center justify-center self-center rounded-full border border-gray-50 bg-white"
-            isDisabled={lotteryTicketMutation.isPending}
-            onPress={() => {
-              onOpenChange(false);
-              if (!serverError) {
-                navigation.reset({
-                  index: 1,
-                  routes: [{ name: "DiscoverHome" }, { name: "BoostLuck" }],
-                });
-              }
-            }}
-            variant="ghost"
-          >
-            <XIcon color="#9CA3AF" size={20} weight="bold" />
-          </Button>
+          {lotteryTicketMutation.isSuccess ? (
+            <Button
+              className="mt-4 h-12.5 w-full rounded-lg"
+              onPress={() => {
+                onOpenChange(false);
+                // `GetTicket` and `BoostLuck` are both root-stack routes, so
+                // this replaces the ticket screen with the boost screen. The
+                // old code reset to `DiscoverHome`, which lives under
+                // `Tab > Discover` and is not a route on this navigator at all.
+                navigation.replace("BoostLuck");
+              }}
+            >
+              <Button.Label>Continue</Button.Label>
+            </Button>
+          ) : (
+            <Button
+              aria-label="Close"
+              className="absolute -bottom-7 z-10 h-9 w-9 items-center justify-center self-center rounded-full border border-gray-50 bg-white"
+              onPress={() => onOpenChange(false)}
+              variant="ghost"
+            >
+              <XIcon color="#9CA3AF" size={20} weight="bold" />
+            </Button>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>
+  );
+}
+
+/**
+ * The three states a purchase can be in, in the order the user meets them.
+ *
+ * Before, a single branch covered "not pending" and printed the success copy —
+ * so the dialog announced a confirmed entry before the request had been sent,
+ * and looked identical afterwards. Nothing ever visibly changed on success.
+ */
+function PurchaseStatus({
+  submitted,
+  isPending,
+  result,
+  error,
+  requestedTickets,
+}: {
+  submitted: boolean;
+  isPending: boolean;
+  result: BuyTicketsResult | undefined;
+  error: string | null;
+  requestedTickets: number;
+}) {
+  if (error) {
+    return <Text className="text-center text-sm">{error}</Text>;
+  }
+
+  if (!submitted || isPending) {
+    return (
+      <View className="items-center gap-2">
+        <ActivityIndicator className="self-center" />
+        <Text className="text-center text-s-500 text-sm">
+          Confirming your entry…
+        </Text>
+      </View>
+    );
+  }
+
+  // The server is the authority on what was actually bought and at what price.
+  //
+  // `quantity` is what this purchase bought; `validTickets` is the running
+  // total the reader now holds. The line below says "added", so it needs the
+  // first — quoting the total read as "3 tickets added" for a one-ticket
+  // purchase. The total gets its own sentence, where it reads correctly.
+  const bought = result?.quantity ?? requestedTickets;
+  const held = result?.validTickets;
+
+  return (
+    <View className="items-center gap-1.5">
+      <Text className="text-center font-semibold text-base">
+        You&apos;re in the Giveaway!
+      </Text>
+      <Text className="text-center text-sm">
+        {bought} ticket{bought === 1 ? "" : "s"} added.{" "}
+        <Text className="text-s-500">{result?.pointsSpent ?? 0}</Text> Dream
+        Points deducted.
+      </Text>
+      {typeof held === "number" ? (
+        <Text className="text-center text-s-500 text-xs">
+          You now hold {held} ticket{held === 1 ? "" : "s"} in this draw.
+        </Text>
+      ) : null}
+    </View>
   );
 }
 

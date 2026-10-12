@@ -16,7 +16,10 @@ import type { AdCarouselRef } from "#/components/Ads/AdCarousel";
 import AdCarousel from "#/components/Ads/AdCarousel";
 import NewsItemAd from "#/components/Ads/NewsItemAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
-import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
+import {
+  NEWS_FEED_REFETCH_INTERVAL_MS,
+  NEWS_FEED_STALE_TIME_MS,
+} from "#/hooks/news/constants";
 import { homeFeedInfiniteKey, homeFeedInput } from "#/hooks/news/feedKeys";
 import { relatedArticlesSeenOnArrival } from "#/hooks/news/relatedImpressions";
 import {
@@ -157,6 +160,10 @@ const Latest = memo(
         initialPageParam: undefined,
         staleTime: NEWS_FEED_STALE_TIME_MS,
         gcTime: 10 * 60 * 1000, // 10 min, keeps cached data in memory
+        // Poll while the home feed is on screen. Without this the only
+        // refresh triggers were app foreground and returning to the tab, so a
+        // reader watching the screen never saw a newly published story land.
+        refetchInterval: NEWS_FEED_REFETCH_INTERVAL_MS,
       })
     );
 

@@ -91,7 +91,13 @@ export async function fetchMainNews(params: FetchMainNewsParams) {
     limit = 12,
     page = 1,
     depth = 1,
-    sort = "-createdAt",
+    // Ordered by `publishedAt` rather than `createdAt`. The two are the same
+    // for an article written and posted in one go, but they part company for a
+    // draft: `createdAt` is fixed when the draft is written, so a piece written
+    // on Monday and posted on Wednesday sorted as Monday's and sat pages deep in
+    // a fresh, uncached feed — the story had "dropped" and nobody could find it.
+    // `publishedAt` is the editorial date and is what the field is for.
+    sort = "-publishedAt",
     select = LIST_VIEW_SELECT,
   } = params;
 

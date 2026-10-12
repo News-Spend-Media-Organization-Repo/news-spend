@@ -2,7 +2,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 
 import { orpc } from "#/lib/orpc";
-import { NEWS_FEED_STALE_TIME_MS } from "./constants";
+import {
+  NEWS_FEED_REFETCH_INTERVAL_MS,
+  NEWS_FEED_STALE_TIME_MS,
+} from "./constants";
 import { allFeedInput } from "./feedKeys";
 
 export default function useAllNews({
@@ -32,6 +35,9 @@ export default function useAllNews({
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.nextPage,
       staleTime: NEWS_FEED_STALE_TIME_MS,
+      // Poll while the category is on screen so a new post shows up without the
+      // reader having to leave and come back, or pull to refresh.
+      refetchInterval: NEWS_FEED_REFETCH_INTERVAL_MS,
     })
   );
 

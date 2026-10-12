@@ -117,41 +117,58 @@ async function loadWithRetries(
   const failures: string[] = [];
 
   /**
-   * How far an ad is from what we want: 0 is an image ad nobody else in this
-   * feed is already showing. A repeat is worse than a video, because it is the
-   * thing the feed's readers actually complain about; this layout is built for
-   * a still image, so a video is the lesser evil. Neither is rejected
-   * outright. Refusing them spent the whole retry budget on perfectly
-   * servable fill, which on iOS (where native inventory skews heavily to
-   * video) meant slots that had an ad available collapsed anyway.
+   * A video creative is refused outright, not merely ranked last.
+   *
+   * This row is built around a still image: the media view is a 120pt
+   * thumbnail sitting beside the copy, with no player attached to it. A video
+   * ad therefore has nowhere to run and reads as a broken row. Google exposes
+   * no request-side switch for this, so the only place to exclude them is on
+   * the ad that comes back.
+   *
+   * The cost is deliberate and worth stating: on iOS, native inventory skews
+   * heavily to video, so a slot that only ever draws video now collapses
+   * instead of showing something that does not fit. No ad beats the wrong ad.
    */
-  const badness = (ad: NativeAd) =>
-    (isDuplicateInTab(tab, id, ad) ? 2 : 0) +
-    (ad.mediaContent?.hasVideoContent ? 1 : 0);
+  const isUsable = (ad: NativeAd) => !ad.mediaContent?.hasVideoContent;
 
+  /**
+   * Among usable ads, prefer one no other slot in this feed is already
+   * showing. A repeat is what readers actually complain about, so it is held
+   * back in favour of a later attempt — but never rejected, because spending
+   * the whole retry budget chasing a better creative collapsed slots that did
+   * have servable fill.
+   */
   let best: NativeAd | null = null;
-  let bestBadness = Number.POSITIVE_INFINITY;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const ad = await enqueue(requestOnce);
-      const adBadness = badness(ad);
 
-      // Keep whichever of the two is closer to ideal, release the other.
-      if (adBadness < bestBadness) {
-        best?.destroy();
-        best = ad;
-        bestBadness = adBadness;
+      if (isUsable(ad)) {
+        const isRepeat = isDuplicateInTab(tab, id, ad);
+
+        // An ad already on screen elsewhere is not an improvement on the one
+        // already in hand; keep what we have and try again.
+        if (best && isRepeat) {
+          ad.destroy();
+          failures.push(
+            `attempt ${attempt}: repeat ad, retrying for a better one`
+          );
+        } else {
+          best?.destroy();
+          best = ad;
+          if (isRepeat) {
+            failures.push(
+              `attempt ${attempt}: repeat ad, retrying for a better one`
+            );
+          } else {
+            break;
+          }
+        }
       } else {
         ad.destroy();
+        failures.push(`attempt ${attempt}: video ad, rejected`);
       }
-
-      if (bestBadness === 0) {
-        break;
-      }
-      failures.push(
-        `attempt ${attempt}: ${bestBadness >= 2 ? "repeat" : "video"} ad, retrying for a better one`
-      );
     } catch (error) {
       failures.push(`attempt ${attempt}: ${(error as Error)?.message}`);
     }

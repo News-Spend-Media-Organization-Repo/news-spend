@@ -121,7 +121,7 @@ describe("NewsItemGoogleAds", () => {
     expect(screen.getByText("Buy this")).toBeTruthy();
   });
 
-  it("keeps the media view at Google's 120x120 floor so video can serve", async () => {
+  it("keeps the media view at Google's 120x120 floor", async () => {
     mockCreateForAdRequest.mockResolvedValue({
       headline: "Buy this",
       body: "Really do",
@@ -137,10 +137,10 @@ describe("NewsItemGoogleAds", () => {
     );
     await flush();
 
-    // Below 120 in either dimension Google serves no video to the slot. And
-    // strictly above it: a nominal 120 measured 120 on an iPhone 17 Pro and was
-    // still flagged, since native frames are floats and a strict check can
-    // land either side of the line.
+    // The floor was originally what let video serve; video ads are now refused
+    // outright (see ad-loader), so it no longer buys that. It is kept because it
+    // is also what sizes the thumbnail within the row — shrinking it would
+    // change the row's layout, which is not what this change set out to do.
     const media = screen.getByTestId("native-media-view").props.style;
     expect(media.width).toBeGreaterThan(120);
     expect(media.height).toBeGreaterThan(120);
@@ -360,5 +360,68 @@ describe("NewsItemGoogleAds", () => {
     expect(screen.getByText("Different ad")).toBeTruthy();
     // The repeat was released, not leaked.
     expect(mockDestroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a video ad and shows a still one instead", async () => {
+    const adWith = (headline: string, hasVideoContent: boolean) => ({
+      headline,
+      advertiser: "Acme",
+      body: "Body",
+      store: "Play",
+      callToAction: "Install",
+      mediaContent: { aspectRatio: 1, hasVideoContent },
+      destroy: mockDestroy,
+    });
+    mockCreateForAdRequest
+      .mockResolvedValueOnce(adWith("Video ad", true))
+      .mockResolvedValueOnce(adWith("Still ad", false));
+
+    mockCurrentItem = { id: "ad-video" };
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+    await advance(1000);
+    await flush();
+
+    expect(screen.getByText("Still ad")).toBeTruthy();
+    expect(screen.queryByText("Video ad")).toBeNull();
+    // The refused video was released, not leaked.
+    expect(mockDestroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("collapses the slot rather than showing a video ad", async () => {
+    const videoWith = (headline: string) => ({
+      headline,
+      advertiser: "Acme",
+      body: "Body",
+      store: "Play",
+      callToAction: "Install",
+      mediaContent: { aspectRatio: 1, hasVideoContent: true },
+      destroy: mockDestroy,
+    });
+    mockCreateForAdRequest
+      .mockResolvedValueOnce(videoWith("Video 1"))
+      .mockResolvedValueOnce(videoWith("Video 2"))
+      .mockResolvedValueOnce(videoWith("Video 3"));
+
+    mockCurrentItem = { id: "ad-all-video" };
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+    await advance(1000);
+    await flush();
+    await advance(3000);
+    await flush();
+
+    expect(screen.queryByText("Video 1")).toBeNull();
+    expect(screen.queryByText("Video 2")).toBeNull();
+    expect(screen.queryByText("Video 3")).toBeNull();
+    // Every video was released, not leaked.
+    expect(mockDestroy).toHaveBeenCalledTimes(3);
+    // No ad beats the wrong ad: the slot takes up no space at all, rather than
+    // leaving a "Advertisement" box with nothing in it.
+    expect(screen.toJSON()).toBeNull();
   });
 });
