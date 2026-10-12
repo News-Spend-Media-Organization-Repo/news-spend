@@ -989,6 +989,35 @@ function giveawayOutcome(
 }
 
 /**
+ * The winner's row as the app needs it, or null if there is nothing to show.
+ *
+ * A disqualified winner did not win. Their row survives the draw, so it is
+ * checked rather than assumed, or the app would congratulate somebody the draw
+ * had already removed.
+ *
+ * It carries `id` because the prize screens navigate by it. Without it a won
+ * entry cannot open the prize it points at, which is a dead end exactly where
+ * somebody has something to collect.
+ */
+function toWon(winner: Row | undefined) {
+  if (
+    !winner ||
+    winner.claimStatus === "disqualified" ||
+    winner.disqualifiedAt
+  ) {
+    return null;
+  }
+
+  return {
+    id: String(winner.id),
+    tier: winner.tier,
+    prizeName: winner.prizeName,
+    claimStatus: winner.claimStatus,
+    fulfilmentStatus: winner.fulfilmentStatus,
+  };
+}
+
+/**
  * Every giveaway this user bought a ticket into — including the ones they did
  * not win.
  *
@@ -1126,22 +1155,7 @@ const participations = protectedProcedure
         }
 
         const winner = winnerByGiveaway.get(id);
-        /*
-         * A disqualified winner did not win. Their row survives the draw, so it
-         * is checked rather than assumed, or the list would congratulate
-         * somebody the draw had already removed.
-         */
-        const won =
-          winner &&
-          winner.claimStatus !== "disqualified" &&
-          !winner.disqualifiedAt
-            ? {
-                tier: winner.tier,
-                prizeName: winner.prizeName,
-                claimStatus: winner.claimStatus,
-                fulfilmentStatus: winner.fulfilmentStatus,
-              }
-            : null;
+        const won = toWon(winner);
 
         return {
           giveaway: {
@@ -1172,6 +1186,104 @@ const participations = protectedProcedure
       page: input.page,
       hasMore: start + input.limit < items.length,
       total: items.length,
+    };
+  });
+
+export const ParticipationInput = z.object({
+  giveawayId: z.string().min(1),
+});
+
+/**
+ * One entry, with the purchases behind its totals.
+ *
+ * The list carries the totals; this carries what produced them. Somebody asking
+ * "where did my 45 points go?" needs the individual purchases — when, how many,
+ * at what price, and whether any of it came back — which is more than a row can
+ * say, and more than the list should carry for every entry it returns.
+ *
+ * Its own procedure for the reason `prizeDetails` exists: once the list is
+ * paged, an entry deep in it is simply not in the page the app is holding.
+ */
+const participation = protectedProcedure
+  .input(ParticipationInput)
+  .handler(async ({ input, context }) => {
+    const { payload, user } = context;
+
+    const mine = { user: { equals: user.id } };
+    const thisGiveaway = { giveaway: { equals: input.giveawayId } };
+
+    const [tickets, giveaways, winners, engagements] = await Promise.all([
+      payload.find({
+        collection: "giveaway-tickets",
+        where: { and: [mine, thisGiveaway] },
+        sort: "-purchasedAt",
+        pagination: false,
+        depth: 0,
+      }),
+      payload.find({
+        collection: "giveaways",
+        where: { id: { equals: input.giveawayId } },
+        limit: 1,
+        depth: 0,
+      }),
+      payload.find({
+        collection: "giveaway-winners",
+        where: { and: [mine, thisGiveaway] },
+        limit: 1,
+        depth: 0,
+      }),
+      payload.find({
+        collection: "giveaway-engagements",
+        where: { and: [mine, thisGiveaway] },
+        pagination: false,
+        depth: 0,
+      }),
+    ]);
+
+    const rows = tickets.docs as Row[];
+    const giveaway = (giveaways.docs as Row[])[0];
+    const totals = groupTicketsByGiveaway(rows).get(input.giveawayId);
+
+    // No purchase means no participation: a boost with no ticket is not an
+    // entry, so there is nothing here to describe.
+    if (rows.length === 0 || !giveaway || !totals) {
+      return null;
+    }
+
+    const won = toWon((winners.docs as Row[])[0]);
+    const entries = engagements.docs as Row[];
+
+    return {
+      giveaway: {
+        id: String(giveaway.id),
+        name: giveaway.name,
+        startDate: giveaway.startDate,
+        endDate: giveaway.endDate,
+        status: giveaway.status,
+        ticketPrice: giveaway.ticketPrice,
+      },
+      tickets: totals.tickets,
+      pointsSpent: totals.pointsSpent,
+      purchasedAt: totals.purchasedAt,
+      refunded: totals.allReversed,
+      outcome: giveawayOutcome(String(giveaway.status ?? ""), Boolean(won)),
+      won,
+      /**
+       * What else was done for this draw. Reported as counts rather than rows:
+       * a boost has no price and no date worth reading, so a list of them would
+       * be longer without saying more.
+       */
+      boosts: entries.filter((row) => row.type === "boost").length,
+      featuredOffers: entries.filter((row) => row.type === "featured_offer")
+        .length,
+      /** Every purchase, newest first — including the ones that did not stand. */
+      purchases: rows.map((row) => ({
+        id: String(row.id),
+        quantity: Number(row.quantity ?? 0),
+        unitPrice: Number(row.unitPrice ?? 0),
+        status: row.status,
+        purchasedAt: row.purchasedAt,
+      })),
     };
   });
 
@@ -1750,6 +1862,7 @@ export const giveawayRouter = {
   actionable,
   history,
   participations,
+  participation,
   winning,
   prizeDetails,
   claimPrize,
