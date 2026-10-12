@@ -84,6 +84,7 @@ const GetTicket = lazy(() => import("#/screens/tabs/discover/GetTicket"));
 const LotteryRules = lazy(() => import("#/screens/tabs/discover/LotteryRules"));
 const LuckyAppWall = lazy(() => import("#/screens/tabs/discover/LuckyAppWall"));
 const MyGiveaways = lazy(() => import("#/screens/tabs/discover/MyGiveaways"));
+const EntryDetails = lazy(() => import("#/screens/tabs/discover/EntryDetails"));
 const PlayLottery = lazy(() => import("#/screens/tabs/discover/PlayLottery"));
 const CommentReplies = lazy(
   () => import("#/screens/tabs/home/comments/CommentReply")
@@ -369,6 +370,15 @@ export const sharedScreens = {
     screen: MyGiveaways,
     linking: {
       path: "my-giveaways",
+    },
+    options: {
+      headerShown: false,
+    },
+  }),
+  EntryDetails: createNativeStackScreen({
+    screen: EntryDetails,
+    linking: {
+      path: "entry-details/:giveawayId",
     },
     options: {
       headerShown: false,

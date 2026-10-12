@@ -10,6 +10,7 @@ import { cn } from "heroui-native/utils";
 import { useState } from "react";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
 import { ScreenHeader } from "#/components";
+import { EntryCard, type Participation } from "#/components/discover/EntryCard";
 import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
@@ -245,114 +246,6 @@ function PrizeCard({
  * dialog: dismiss it and there was nowhere to go. With a window that closes
  * on its own, a prize with no permanent home is a prize people lose.
  */
-type Participation = {
-  giveaway: {
-    id: string;
-    name: string;
-    startDate: string | null;
-    endDate: string | null;
-    status: string;
-    ticketPrice: number | string | null;
-  };
-  tickets: number;
-  pointsSpent: number;
-  purchasedAt: string | null;
-  refunded: boolean;
-  outcome:
-    | "in_progress"
-    | "draw_under_way"
-    | "won"
-    | "not_selected"
-    | "draw_failed"
-    | "cancelled";
-  won: {
-    tier: string;
-    prizeName: string;
-    claimStatus: string;
-    fulfilmentStatus: string;
-  } | null;
-};
-
-/**
- * What each outcome is called, and how it reads.
- *
- * "Not selected" is the one carrying the weight. It is the only place somebody
- * who entered and lost is ever told what happened, so it is phrased as a result
- * rather than as an absence — and it is not dressed up in a warning tone, which
- * would imply they had done something wrong.
- */
-const OUTCOME: Record<
-  Participation["outcome"],
-  { label: string; chip: string; text: string }
-> = {
-  in_progress: { label: "In progress", chip: "bg-s-500", text: "text-white" },
-  draw_under_way: { label: "Drawing", chip: "bg-s-500", text: "text-white" },
-  won: { label: "Won", chip: "bg-p-400", text: "text-white" },
-  not_selected: {
-    label: "Not selected",
-    chip: "bg-gray-100",
-    text: "text-subtle-text",
-  },
-  draw_failed: {
-    label: "Draw failed",
-    chip: "bg-gray-100",
-    text: "text-subtle-text",
-  },
-  cancelled: {
-    label: "Cancelled",
-    chip: "bg-gray-100",
-    text: "text-subtle-text",
-  },
-};
-
-/**
- * One giveaway this person bought into.
- *
- * The numbers are the point of the list. A ticket is a spend, and this is the
- * only place it is accounted for once the confirmation toast is gone — so what
- * it cost is stated rather than implied by the outcome.
- */
-function EntryCard({ entry }: { entry: Participation }) {
-  const { giveaway, tickets, pointsSpent, refunded, outcome, won } = entry;
-  const tone = OUTCOME[outcome];
-
-  return (
-    <Card className="rounded-xl border border-gray-400">
-      <Card.Body className="gap-1.5">
-        <View className="flex-row items-start justify-between gap-3">
-          <Text className="flex-1 font-semibold text-base" numberOfLines={2}>
-            {giveaway.name}
-          </Text>
-          <View className={cn("rounded-full px-2 py-0.5", tone.chip)}>
-            <Text className={cn("font-semibold text-xs", tone.text)}>
-              {tone.label}
-            </Text>
-          </View>
-        </View>
-
-        <Text className="text-sm text-subtle-text">
-          {tickets} ticket{tickets === 1 ? "" : "s"} · {pointsSpent} points
-          spent
-        </Text>
-
-        {won ? (
-          <Text className="text-sm">
-            {won.prizeName} · {won.tier}
-          </Text>
-        ) : null}
-
-        {/* Bought, then refunded in full. Said plainly rather than left as a
-            pair of zeroes the reader has to interpret. */}
-        {refunded ? (
-          <Text className="text-subtle-text text-xs">
-            Refunded — no tickets held
-          </Text>
-        ) : null}
-      </Card.Body>
-    </Card>
-  );
-}
-
 const MyGiveaways = () => {
   const navigation = useNavigation("MyGiveaways");
   const [tab, setTab] = useState("prizes");
@@ -430,6 +323,22 @@ const MyGiveaways = () => {
     prize.claimable || prize.awaitingVerification
       ? openClaim(prize)
       : navigation.navigate("PrizeDetails", { winnerId: prize.id });
+
+  /**
+   * A won entry opens the prize, not the entry. There is something there to
+   * collect, and the prize screens already exist to collect it — routing those
+   * through a summary of their own purchases would put a step in front of the
+   * one thing on a clock.
+   *
+   * Everything else opens the entry, which is where the purchases behind its
+   * totals are.
+   */
+  const openEntry = (entry: Participation) =>
+    entry.won
+      ? navigation.navigate("PrizeDetails", { winnerId: entry.won.id })
+      : navigation.navigate("EntryDetails", {
+          giveawayId: entry.giveaway.id,
+        });
 
   const actionablePrizes = (needsYou.data ?? []) as Winning[];
   const isEmpty = actionablePrizes.length === 0 && history.length === 0;
@@ -579,7 +488,9 @@ const MyGiveaways = () => {
                 refreshing={isEntriesRefetching}
               />
             }
-            renderItem={({ item }) => <EntryCard entry={item} />}
+            renderItem={({ item }) => (
+              <EntryCard entry={item} onPress={() => openEntry(item)} />
+            )}
           />
         </Tabs.Content>
       </Tabs>
