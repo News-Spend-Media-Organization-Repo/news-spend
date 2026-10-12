@@ -26,6 +26,29 @@ const RETRY_BACKOFF_MS = [1000, 3000, 9000];
 const makeKey = (tab: string | undefined, id: string) =>
   `${tab ?? "default"}:${id}`;
 
+/**
+ * What share of actionable load failures to report to Sentry.
+ *
+ * A feed carries several gAd slots, so one bad feed load used to file one
+ * event per slot — bursts of same-second events from a single user. Sampling
+ * keeps the signal (are timeouts spiking on some build?) while bounding the
+ * volume.
+ */
+const ACTIONABLE_FAILURE_SAMPLE_RATE = 0.1;
+
+/**
+ * Exhaustion causes that are expected inventory outcomes, not bugs: Google
+ * having no ad to serve (no-fill), a video creative this image row cannot
+ * show, or a repeat of an ad already on screen. The slot collapsing is the
+ * correct behaviour, so these are recorded as a breadcrumb — context for a
+ * future real event — rather than filing an issue each (E2/EA: ~1,600
+ * events/month of normal AdMob behaviour).
+ *
+ * Anything else (request timeouts, SDK init failures, unknown SDK errors) is
+ * actionable and sampled below.
+ */
+const EXPECTED_FAILURE_RE = /no-fill|video ad, rejected|repeat ad/i;
+
 /** One shared promise per (tab, id) — concurrent callers (an eager preload
  * walk and a slot mounting before that preload finished) await the same
  * request instead of firing a duplicate one. */
@@ -184,15 +207,32 @@ async function loadWithRetries(
     return best;
   }
 
-  // Breadcrumbs alone never leave the device — they only ride along with an
-  // event — so a total failure is reported as its own event. Without this,
-  // "the slot collapsed" is indistinguishable from no-fill, a timeout, an
-  // init failure, or a misconfigured ad unit.
-  Sentry.captureMessage("gAd failed after all retries", {
-    level: "warning",
-    tags: { adPlatform: Platform.OS, adTab: tab ?? "default" },
-    extra: { adUnit: adUnits.native, failures, slotId: id },
-  });
+  // Breadcrumbs alone never leave the device — they only ride along with a
+  // later event — so total failures used to be reported as their own event.
+  // That made every no-fill (the overwhelmingly common case) file a Sentry
+  // issue per slot. Now only actionable failures (timeouts, init failures,
+  // unknown SDK errors) report, sampled; expected inventory outcomes leave a
+  // breadcrumb for context instead.
+  const actionable = failures.some((f) => !EXPECTED_FAILURE_RE.test(f));
+  if (actionable && Math.random() < ACTIONABLE_FAILURE_SAMPLE_RATE) {
+    Sentry.captureMessage("gAd failed after all retries", {
+      level: "warning",
+      tags: { adPlatform: Platform.OS, adTab: tab ?? "default" },
+      extra: { adUnit: adUnits.native, failures, slotId: id },
+    });
+  } else {
+    Sentry.addBreadcrumb({
+      category: "ads",
+      message: "gAd slot collapsed",
+      data: {
+        adUnit: adUnits.native,
+        failures,
+        slotId: id,
+        tab: tab ?? "default",
+      },
+      level: "warning",
+    });
+  }
   return null;
 }
 

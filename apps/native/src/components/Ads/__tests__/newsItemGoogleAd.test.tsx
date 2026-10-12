@@ -55,6 +55,7 @@ jest.mock("#/lib/adsInit", () => ({
 // skew between @sentry/react-native and the hoisted @sentry/core, unrelated
 // to ads), so it stays out of the unit test.
 jest.mock("@sentry/react-native", () => ({
+  addBreadcrumb: jest.fn(),
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
@@ -71,7 +72,11 @@ jest.mock("../../heroui/image", () => ({
 }));
 
 import { clearTabAdCache } from "#/utils/ad-cache";
+import * as Sentry from "@sentry/react-native";
 import NewsItemGoogleAds from "../NewsItemGoogleAd";
+
+const sentryCaptureMessage = Sentry.captureMessage as jest.Mock;
+const sentryAddBreadcrumb = Sentry.addBreadcrumb as jest.Mock;
 
 /** Let every pending promise callback run, then drain scheduled timers. */
 const flush = async () => {
@@ -96,6 +101,8 @@ describe("NewsItemGoogleAds", () => {
     clearTabAdCache("test");
     mockCreateForAdRequest.mockReset();
     mockDestroy.mockReset();
+    sentryCaptureMessage.mockClear();
+    sentryAddBreadcrumb.mockClear();
   });
 
   afterEach(() => {
@@ -390,8 +397,7 @@ describe("NewsItemGoogleAds", () => {
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
-  it("collapses the slot rather than showing a video ad", async () => {
-    const videoWith = (headline: string) => ({
+  it("collapses the slot rather than showing a video ad", async () => {    const videoWith = (headline: string) => ({
       headline,
       advertiser: "Acme",
       body: "Body",
@@ -423,5 +429,72 @@ describe("NewsItemGoogleAds", () => {
     // No ad beats the wrong ad: the slot takes up no space at all, rather than
     // leaving a "Advertisement" box with nothing in it.
     expect(screen.toJSON()).toBeNull();
+  });
+
+  it("leaves a breadcrumb, not an issue, when fill is exhausted by no-fill", async () => {
+    mockCreateForAdRequest.mockRejectedValue(
+      new Error("[googleMobileAds/no-fill] No fill.")
+    );
+
+    mockCurrentItem = { id: "ad-nofill-report" };
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+    await advance(1000);
+    await flush();
+    await advance(3000);
+    await flush();
+
+    expect(screen.toJSON()).toBeNull();
+    // Expected inventory outcome: no Sentry issue filed ...
+    expect(sentryCaptureMessage).not.toHaveBeenCalled();
+    // ... but context kept for a future real event.
+    expect(sentryAddBreadcrumb).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: "ads",
+        message: "gAd slot collapsed",
+      })
+    );
+  });
+
+  it("samples actionable failures (timeouts) instead of reporting every slot", async () => {
+    mockCreateForAdRequest.mockRejectedValue(
+      new Error("ad request timed out")
+    );
+
+    const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0);
+    mockCurrentItem = { id: "ad-timeout-sampled" };
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+    await advance(1000);
+    await flush();
+    await advance(3000);
+    await flush();
+
+    expect(sentryCaptureMessage).toHaveBeenCalledTimes(1);
+    expect(sentryCaptureMessage).toHaveBeenCalledWith(
+      "gAd failed after all retries",
+      expect.objectContaining({ level: "warning" })
+    );
+
+    randomSpy.mockReturnValue(0.99);
+    sentryCaptureMessage.mockClear();
+    sentryAddBreadcrumb.mockClear();
+    mockCurrentItem = { id: "ad-timeout-unsampled" };
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+    await advance(1000);
+    await flush();
+    await advance(3000);
+    await flush();
+
+    expect(sentryCaptureMessage).not.toHaveBeenCalled();
+    expect(sentryAddBreadcrumb).toHaveBeenCalledTimes(1);
+    randomSpy.mockRestore();
   });
 });
