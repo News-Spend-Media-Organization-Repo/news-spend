@@ -1,17 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { BottomSheet } from "heroui-native/bottom-sheet";
-import {
-  SealQuestionIcon,
-  TicketIcon,
-  TrophyIcon,
-} from "#/lib/icons";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { useSnapshot } from "valtio";
-
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
+import { SealQuestionIcon, TicketIcon, TrophyIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 import { navigate } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
@@ -44,7 +39,7 @@ type Phase = "sealed" | "ad" | "revealed";
  * never saying it, so the acknowledgement is a server pointer, not local
  * state.
  *
- * The claim itself still lives on `MyPrizes` / `ClaimPrize`, which persist. A
+ * The claim itself still lives on `MyGiveaways` / `ClaimPrize`, which persist. A
  * prize claimable only from a dialog is a prize lost by dismissing it, and the
  * claim window closes after fourteen days or when the next giveaway starts.
  */
@@ -214,7 +209,7 @@ export default memo(function GiveawayReward() {
               <Button
                 onPress={() => {
                   close();
-                  navigate("MyPrizes");
+                  navigate("MyGiveaways");
                 }}
               >
                 <Button.Label>
@@ -223,7 +218,7 @@ export default memo(function GiveawayReward() {
               </Button>
 
               <Text className="text-center text-subtle-text text-xs">
-                Your prizes are always waiting under My Prizes.
+                Your prizes are always waiting under My Giveaways.
               </Text>
             </View>
           </BottomSheet.Content>
@@ -304,7 +299,7 @@ export default memo(function GiveawayReward() {
                   onPress={() => {
                     close();
                     if (won) {
-                      navigate("MyPrizes");
+                      navigate("MyGiveaways");
                     } else if (openGiveaway) {
                       navigate("GetTicket");
                     }
@@ -325,7 +320,7 @@ export default memo(function GiveawayReward() {
 
               {phase === "revealed" && won ? (
                 <Text className="text-center text-subtle-text text-xs">
-                  Your prizes are always waiting under My Prizes.
+                  Your prizes are always waiting under My Giveaways.
                 </Text>
               ) : null}
             </View>

@@ -243,8 +243,8 @@ function PrizeCard({
  * dialog: dismiss it and there was nowhere to go. With a window that closes
  * on its own, a prize with no permanent home is a prize people lose.
  */
-const MyPrizes = () => {
-  const navigation = useNavigation("MyPrizes");
+const MyGiveaways = () => {
+  const navigation = useNavigation("MyGiveaways");
 
   const needsYou = useQuery(orpc.giveaway.actionable.queryOptions());
 
@@ -270,7 +270,7 @@ const MyPrizes = () => {
   if (isPending) {
     return (
       <Screen>
-        <ScreenHeader title="My Prizes" />
+        <ScreenHeader title="My Giveaways" />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -307,7 +307,7 @@ const MyPrizes = () => {
 
   return (
     <Screen statusBarStyle="light">
-      <ScreenHeader title="My Prizes" />
+      <ScreenHeader title="My Giveaways" />
 
       <LegendList
         contentContainerClassName="gap-2 px-4 py-8"
@@ -391,4 +391,4 @@ const MyPrizes = () => {
   );
 };
 
-export default MyPrizes;
+export default MyGiveaways;
