@@ -78,10 +78,13 @@ const EntryDetails = () => {
   const { giveaway, purchases, boosts, featuredOffers, won } = data;
 
   return (
-    <Screen className="px-4" statusBarStyle="light">
+    <Screen statusBarStyle="light">
       <ScreenHeader title="Entry" />
 
-      <View className="gap-4 py-4">
+      {/* Padding belongs to the body, not the Screen: Screen wraps the header
+          too, so padding there insets the bar and leaves white gutters down
+          both edges instead of a bar that reaches them. */}
+      <View className="gap-4 px-4 py-4">
         <Card className="rounded-xl border border-gray-400">
           <Card.Body className="gap-2">
             <View className="flex-row items-start justify-between gap-3">
