@@ -5,7 +5,9 @@ import { format } from "date-fns/format";
 import { formatDistanceToNowStrict } from "date-fns/formatDistanceToNowStrict";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
+import { Tabs } from "heroui-native/tabs";
 import { cn } from "heroui-native/utils";
+import { useState } from "react";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
 import { ScreenHeader } from "#/components";
 import { Icon } from "#/components/heroui/icon";
@@ -243,8 +245,117 @@ function PrizeCard({
  * dialog: dismiss it and there was nowhere to go. With a window that closes
  * on its own, a prize with no permanent home is a prize people lose.
  */
+type Participation = {
+  giveaway: {
+    id: string;
+    name: string;
+    startDate: string | null;
+    endDate: string | null;
+    status: string;
+    ticketPrice: number | string | null;
+  };
+  tickets: number;
+  pointsSpent: number;
+  purchasedAt: string | null;
+  refunded: boolean;
+  outcome:
+    | "in_progress"
+    | "draw_under_way"
+    | "won"
+    | "not_selected"
+    | "draw_failed"
+    | "cancelled";
+  won: {
+    tier: string;
+    prizeName: string;
+    claimStatus: string;
+    fulfilmentStatus: string;
+  } | null;
+};
+
+/**
+ * What each outcome is called, and how it reads.
+ *
+ * "Not selected" is the one carrying the weight. It is the only place somebody
+ * who entered and lost is ever told what happened, so it is phrased as a result
+ * rather than as an absence — and it is not dressed up in a warning tone, which
+ * would imply they had done something wrong.
+ */
+const OUTCOME: Record<
+  Participation["outcome"],
+  { label: string; chip: string; text: string }
+> = {
+  in_progress: { label: "In progress", chip: "bg-s-500", text: "text-white" },
+  draw_under_way: { label: "Drawing", chip: "bg-s-500", text: "text-white" },
+  won: { label: "Won", chip: "bg-p-400", text: "text-white" },
+  not_selected: {
+    label: "Not selected",
+    chip: "bg-gray-100",
+    text: "text-subtle-text",
+  },
+  draw_failed: {
+    label: "Draw failed",
+    chip: "bg-gray-100",
+    text: "text-subtle-text",
+  },
+  cancelled: {
+    label: "Cancelled",
+    chip: "bg-gray-100",
+    text: "text-subtle-text",
+  },
+};
+
+/**
+ * One giveaway this person bought into.
+ *
+ * The numbers are the point of the list. A ticket is a spend, and this is the
+ * only place it is accounted for once the confirmation toast is gone — so what
+ * it cost is stated rather than implied by the outcome.
+ */
+function EntryCard({ entry }: { entry: Participation }) {
+  const { giveaway, tickets, pointsSpent, refunded, outcome, won } = entry;
+  const tone = OUTCOME[outcome];
+
+  return (
+    <Card className="rounded-xl border border-gray-400">
+      <Card.Body className="gap-1.5">
+        <View className="flex-row items-start justify-between gap-3">
+          <Text className="flex-1 font-semibold text-base" numberOfLines={2}>
+            {giveaway.name}
+          </Text>
+          <View className={cn("rounded-full px-2 py-0.5", tone.chip)}>
+            <Text className={cn("font-semibold text-xs", tone.text)}>
+              {tone.label}
+            </Text>
+          </View>
+        </View>
+
+        <Text className="text-sm text-subtle-text">
+          {tickets} ticket{tickets === 1 ? "" : "s"} · {pointsSpent} points
+          spent
+        </Text>
+
+        {won ? (
+          <Text className="text-sm">
+            {won.prizeName} · {won.tier}
+          </Text>
+        ) : null}
+
+        {/* Bought, then refunded in full. Said plainly rather than left as a
+            pair of zeroes the reader has to interpret. */}
+        {refunded ? (
+          <Text className="text-subtle-text text-xs">
+            Refunded — no tickets held
+          </Text>
+        ) : null}
+      </Card.Body>
+    </Card>
+  );
+}
+
 const MyGiveaways = () => {
   const navigation = useNavigation("MyGiveaways");
+  const [tab, setTab] = useState("prizes");
 
   const needsYou = useQuery(orpc.giveaway.actionable.queryOptions());
 
@@ -264,8 +375,26 @@ const MyGiveaways = () => {
     })
   );
 
+  const {
+    data: entriesData,
+    isPending: isEntriesPending,
+    refetch: refetchEntries,
+    isRefetching: isEntriesRefetching,
+    fetchNextPage: fetchNextEntries,
+    hasNextPage: hasMoreEntries,
+    isFetchingNextPage: isFetchingNextEntries,
+  } = useInfiniteQuery(
+    orpc.giveaway.participations.infiniteOptions({
+      input: (page: number | undefined) => ({ page: page ?? 1 }),
+      initialPageParam: 1,
+      getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+    })
+  );
+
   const history = (data?.pages.flatMap((p) => p.items) ?? []) as Winning[];
-  const isPending = needsYou.isPending || isHistoryPending;
+  const entries = (entriesData?.pages.flatMap((p) => p.items) ??
+    []) as Participation[];
+  const isPending = needsYou.isPending || isHistoryPending || isEntriesPending;
 
   if (isPending) {
     return (
@@ -309,84 +438,151 @@ const MyGiveaways = () => {
     <Screen statusBarStyle="light">
       <ScreenHeader title="My Giveaways" />
 
-      <LegendList
-        contentContainerClassName="gap-2 px-4 py-8"
-        data={isEmpty ? [] : history}
-        keyExtractor={(prize) => prize.id}
-        ListEmptyComponent={
-          <View className="items-center gap-2 px-6 py-16">
-            <Icon color="#94a3b8" name={GiftIcon} size={40} />
-            <Text className="text-center font-semibold text-lg">
-              No prizes yet
-            </Text>
-            <Text className="text-center text-subtle-text">
-              Buy a ticket to enter the current giveaway. Anything you win will
-              appear here.
-            </Text>
-          </View>
-        }
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View className="py-4">
-              <ActivityIndicator />
-            </View>
-          ) : null
-        }
-        ListHeaderComponent={
-          isEmpty ? null : (
-            <View className="gap-2">
-              {actionablePrizes.length > 0 && (
-                <View className="gap-2 pb-4">
-                  <View className="flex-row items-center gap-2">
-                    <Text className="font-semibold text-subtle-text text-xs tracking-wide">
-                      NEEDS YOU
-                    </Text>
-                    <View className="rounded-full bg-s-500 px-2 py-0.5">
-                      <Text className="font-semibold text-white text-xs">
-                        {actionablePrizes.length}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className="text-subtle-text text-xs">
-                    Never more than a handful - the window closes 14 days after
-                    you win, or when the next giveaway starts.
-                  </Text>
-                  {actionablePrizes.map((prize) => (
-                    <PrizeCard
-                      key={prize.id}
-                      onPress={() => openPrize(prize)}
-                      prize={prize}
-                    />
-                  ))}
-                </View>
-              )}
-              {history.length > 0 && (
-                <Text className="font-semibold text-subtle-text text-xs tracking-wide">
-                  HISTORY
+      <Tabs
+        className="flex-1 gap-3 pt-3"
+        onValueChange={setTab}
+        value={tab}
+        variant="primary"
+      >
+        <Tabs.List className="mx-4">
+          <Tabs.ScrollView contentContainerClassName="gap-1">
+            <Tabs.Indicator />
+            <Tabs.Trigger value="prizes">
+              <Tabs.Label>Prizes</Tabs.Label>
+            </Tabs.Trigger>
+            <Tabs.Trigger value="entries">
+              <Tabs.Label>Entries</Tabs.Label>
+            </Tabs.Trigger>
+          </Tabs.ScrollView>
+        </Tabs.List>
+
+        <Tabs.Content className="flex-1" value="prizes">
+          <LegendList
+            contentContainerClassName="gap-2 px-4 py-6"
+            data={isEmpty ? [] : history}
+            keyExtractor={(prize) => prize.id}
+            ListEmptyComponent={
+              <View className="items-center gap-2 px-6 py-16">
+                <Icon color="#94a3b8" name={GiftIcon} size={40} />
+                <Text className="text-center font-semibold text-lg">
+                  No prizes yet
                 </Text>
-              )}
-            </View>
-          )
-        }
-        onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
-          }
-        }}
-        onEndReachedThreshold={0.4}
-        refreshControl={
-          <RefreshControl
-            onRefresh={() => {
-              needsYou.refetch();
-              refetch();
+                <Text className="text-center text-subtle-text">
+                  Buy a ticket to enter the current giveaway. Anything you win
+                  will appear here.
+                </Text>
+              </View>
+            }
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View className="py-4">
+                  <ActivityIndicator />
+                </View>
+              ) : null
+            }
+            ListHeaderComponent={
+              isEmpty ? null : (
+                <View className="gap-2">
+                  {actionablePrizes.length > 0 && (
+                    <View className="gap-2 pb-4">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="font-semibold text-subtle-text text-xs tracking-wide">
+                          NEEDS YOU
+                        </Text>
+                        <View className="rounded-full bg-s-500 px-2 py-0.5">
+                          <Text className="font-semibold text-white text-xs">
+                            {actionablePrizes.length}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text className="text-subtle-text text-xs">
+                        Never more than a handful - the window closes 14 days
+                        after you win, or when the next giveaway starts.
+                      </Text>
+                      {actionablePrizes.map((prize) => (
+                        <PrizeCard
+                          key={prize.id}
+                          onPress={() => openPrize(prize)}
+                          prize={prize}
+                        />
+                      ))}
+                    </View>
+                  )}
+                  {history.length > 0 && (
+                    <Text className="font-semibold text-subtle-text text-xs tracking-wide">
+                      HISTORY
+                    </Text>
+                  )}
+                </View>
+              )
+            }
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+              }
             }}
-            refreshing={isRefetching || needsYou.isRefetching}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl
+                onRefresh={() => {
+                  needsYou.refetch();
+                  refetch();
+                }}
+                refreshing={isRefetching || needsYou.isRefetching}
+              />
+            }
+            renderItem={({ item: prize }) => (
+              <PrizeCard
+                compact
+                onPress={() => openPrize(prize)}
+                prize={prize}
+              />
+            )}
           />
-        }
-        renderItem={({ item: prize }) => (
-          <PrizeCard compact onPress={() => openPrize(prize)} prize={prize} />
-        )}
-      />
+        </Tabs.Content>
+
+        <Tabs.Content className="flex-1" value="entries">
+          <LegendList
+            contentContainerClassName="gap-2 px-4 py-6"
+            data={entries}
+            keyExtractor={(entry) => entry.giveaway.id}
+            ListEmptyComponent={
+              <View className="items-center gap-2 px-6 py-16">
+                <Icon color="#94a3b8" name={TicketIcon} size={40} />
+                <Text className="text-center font-semibold text-lg">
+                  No entries yet
+                </Text>
+                <Text className="text-center text-subtle-text">
+                  Every giveaway you buy a ticket for is listed here, whether or
+                  not you win it.
+                </Text>
+              </View>
+            }
+            ListFooterComponent={
+              isFetchingNextEntries ? (
+                <View className="py-4">
+                  <ActivityIndicator />
+                </View>
+              ) : null
+            }
+            onEndReached={() => {
+              if (hasMoreEntries && !isFetchingNextEntries) {
+                fetchNextEntries();
+              }
+            }}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl
+                onRefresh={() => {
+                  refetchEntries();
+                }}
+                refreshing={isEntriesRefetching}
+              />
+            }
+            renderItem={({ item }) => <EntryCard entry={item} />}
+          />
+        </Tabs.Content>
+      </Tabs>
     </Screen>
   );
 };
