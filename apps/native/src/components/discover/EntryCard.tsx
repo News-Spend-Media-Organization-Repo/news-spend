@@ -56,8 +56,15 @@ export const OUTCOME: Record<
     chip: "bg-gray-100",
     text: "text-subtle-text",
   },
+  /**
+   * Not "Draw failed". That is the system narrating its own trouble, and next
+   * to "400 points spent" it reads as something the reader did wrong — when
+   * they did nothing but buy a ticket. What they need to know is that there is
+   * no result to wait for. Hidden it must not be either: an entry left looking
+   * pending has them waiting on a draw that is not coming.
+   */
   draw_failed: {
-    label: "Draw failed",
+    label: "No result",
     chip: "bg-gray-100",
     text: "text-subtle-text",
   },

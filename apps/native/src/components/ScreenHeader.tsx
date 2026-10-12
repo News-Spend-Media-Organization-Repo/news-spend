@@ -1,9 +1,9 @@
 import { useNavigation } from "@react-navigation/native";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { cn } from "heroui-native/utils";
-import { ArrowLeftIcon } from "#/lib/icons";
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import { ArrowLeftIcon } from "#/lib/icons";
 import { Icon } from "./heroui/icon";
 import { Text } from "./heroui/text";
 
@@ -38,7 +38,13 @@ const ScreenHeader = ({ title, left, right, className }: ScreenHeaderProps) => {
       </PressableFeedback>
       {/* Title */}
       <View className="flex-1 items-center justify-center">
-        <Text className="font-medium text-base text-white capitalize">
+        {/* One line, always. The title is sometimes a name the app does not
+            control — a giveaway, an article — and without this a long one wraps
+            and grows the bar, pushing the screen down with it. */}
+        <Text
+          className="font-medium text-base text-white capitalize"
+          numberOfLines={1}
+        >
           {title}
         </Text>
       </View>

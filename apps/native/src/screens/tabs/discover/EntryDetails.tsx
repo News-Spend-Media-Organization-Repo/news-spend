@@ -79,7 +79,7 @@ const EntryDetails = () => {
 
   return (
     <Screen className="px-4" statusBarStyle="light">
-      <ScreenHeader title={giveaway.name ?? "Entry"} />
+      <ScreenHeader title="Entry" />
 
       <View className="gap-4 py-4">
         <Card className="rounded-xl border border-gray-400">
