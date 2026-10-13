@@ -35,13 +35,17 @@ import {
 } from "#/lib/icons";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+import { useSafeBack } from "#/navigation/useSafeBack";
 import { startReply } from "#/state/commentState";
+import { BackArrow, CommentUnavailable } from "./CommentUnavailable";
+import { isNotFoundError } from "./isNotFoundError";
 
 const ThreadSeparator = () => <View className="h-px bg-[#ECECEE]" />;
 
 function CommentReplies() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const goBack = useSafeBack();
+  const navigation = useNavigation("CommentReply");
   const [menuOpen, setMenuOpen] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
   const renderScrollComponent = useCallback(
@@ -138,7 +142,7 @@ function CommentReplies() {
     ],
   });
 
-  const { data, isPending, isError } = rootCommentQuery;
+  const { data, isPending, isError, error, refetch } = rootCommentQuery;
   const effectiveNewsId =
     rest.newsId ??
     (typeof data?.news === "string" ? data?.news : data?.news?.id);
@@ -176,20 +180,45 @@ function CommentReplies() {
   if (isPending) {
     return (
       <View className="flex-1 items-center justify-center">
+        <BackArrow onBack={goBack} />
         <ActivityIndicator />
       </View>
     );
   }
 
+  // The API throws NOT_FOUND for a missing, hidden or removed comment. That is
+  // a different state from a failed load, where a retry could succeed.
+  if (isNotFoundError(error) || !(isError || data)) {
+    const slug = rest.newsSlug;
+
+    return (
+      <CommentUnavailable
+        action={
+          slug
+            ? {
+                label: "View the article",
+                // popTo, not navigate: the article is already in the stack under this
+                // screen, and navigate would push a second one on top of it, so
+                // back would return here.
+                onPress: () => navigation.popTo("News", { slug }),
+              }
+            : undefined
+        }
+        message="It may have been removed by its author or a moderator."
+        onBack={goBack}
+        title="This comment is no longer available"
+      />
+    );
+  }
+
   if (isError || !data) {
     return (
-      <Screen>
-        <View className="flex-1 items-center justify-center px-2.5">
-          <Text className="text-center">
-            {isError ? "Something went wrong" : "This comment has been deleted"}
-          </Text>
-        </View>
-      </Screen>
+      <CommentUnavailable
+        action={{ label: "Try again", onPress: () => refetch() }}
+        message="Check your connection and try again."
+        onBack={goBack}
+        title="Something went wrong"
+      />
     );
   }
 
@@ -211,7 +240,7 @@ function CommentReplies() {
             accessibilityLabel="Back"
             accessibilityRole="button"
             hitSlop={14}
-            onPress={() => navigation.goBack()}
+            onPress={goBack}
           >
             <Icon color="#18181B" name={CaretLeftIcon} size={22} />
           </Pressable>

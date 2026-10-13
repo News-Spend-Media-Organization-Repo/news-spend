@@ -3,19 +3,12 @@ import { View } from "react-native";
 
 import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
+import { useSafeBack } from "#/navigation/useSafeBack";
 
 const NotFound = () => {
   const navigation = useNavigation();
 
-  const onGoBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate("Tab", {
-        screen: "Home",
-      });
-    }
-  };
+  const onGoBack = useSafeBack();
 
   return (
     <View className="flex-1 items-center justify-center">

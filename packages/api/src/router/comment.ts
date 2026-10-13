@@ -318,17 +318,27 @@ const getComment = publicProcedure
   .input(z.string())
   .handler(async ({ input: commentId, context, errors }) => {
     const { payload, user } = context;
+    // `disableErrors` makes a missing id return null. Without it Payload throws
+    // its own NotFound, which oRPC reports as a 500, so a stale push or link to
+    // a deleted comment looked like a failed load rather than a missing one.
     const doc = await payload.findByID({
       collection: "comments",
       id: commentId,
       depth: 0,
+      disableErrors: true,
     });
+
+    if (!doc) {
+      throw errors.NOT_FOUND({
+        message: "Comment not found",
+      });
+    }
 
     // Hidden/removed comments are not readable by anyone on the public API,
     // signed in or not. NULL means "created before moderation existed".
     if (
-      doc?.moderationStatus === "hidden" ||
-      doc?.moderationStatus === "removed"
+      doc.moderationStatus === "hidden" ||
+      doc.moderationStatus === "removed"
     ) {
       throw errors.NOT_FOUND({
         message: "Comment not found",

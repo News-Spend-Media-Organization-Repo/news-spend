@@ -78,3 +78,37 @@ describe("tab-prefixed article aliases", () => {
     expect(route?.params).toMatchObject({ slug });
   });
 });
+
+/**
+ * `linking.config.initialRouteName` is what puts `Tab` under a detail screen
+ * opened from a notification. Without it the stack holds one route, and the
+ * hardware back button / edge swipe has nowhere to go.
+ */
+describe("initial route under deep links", () => {
+  const configWithTab = {
+    initialRouteName: "Tab",
+    screens: {
+      Tab: { path: "tab" },
+      ...(config as unknown as { screens: Record<string, unknown> }).screens,
+    },
+  } as never;
+
+  const names = (path: string) =>
+    getStateFromPath(path, configWithTab)?.routes.map((route) => route.name);
+
+  it.each([
+    "article/some-slug",
+    "article/some-slug/comment",
+    "article/some-slug/comment/c1/c2",
+    "news/article/some-slug",
+  ])("%s resolves with Tab underneath", (path) => {
+    const routes = names(path);
+
+    expect(routes?.[0]).toBe("Tab");
+    expect(routes).toHaveLength(2);
+  });
+
+  it("does not stack Tab on itself", () => {
+    expect(names("tab")).toEqual(["Tab"]);
+  });
+});

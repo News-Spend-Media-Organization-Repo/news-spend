@@ -21,6 +21,7 @@ import { useNews } from "#/hooks/news";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { ArrowLeftIcon, UserIcon } from "#/lib/icons";
+import { useSafeBack } from "#/navigation/useSafeBack";
 import { getImageData } from "#/utils/getImageData";
 import { toInstant } from "#/utils/toInstant";
 import { ArticleUnavailable } from "./ArticleUnavailable";
@@ -104,19 +105,10 @@ const SingleNews = () => {
       routes: [{ name: "Tab", params: { screen: "Home" } }],
     });
 
+  const goBack = useSafeBack();
+
   if (isUnavailable) {
-    return (
-      <ArticleUnavailable
-        onBack={() => {
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          } else {
-            goHome();
-          }
-        }}
-        onGoToLatest={goHome}
-      />
-    );
+    return <ArticleUnavailable onBack={goBack} onGoToLatest={goHome} />;
   }
 
   if (isFetchedAfterMount && isError) {
@@ -128,7 +120,7 @@ const SingleNews = () => {
       >
         <Button
           className="absolute top-safe-offset-2 left-2.5 z-20 size-8 rounded-full bg-white/80"
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
           variant="ghost"
         >
           <ArrowLeftIcon color="#00223d" size={20} />
@@ -144,7 +136,7 @@ const SingleNews = () => {
     <Screen navigationBarButtonStyle="dark" statusBarStyle="auto">
       <Button
         className="absolute top-safe-offset-2 left-2.5 z-20 size-8 rounded-full bg-white/80"
-        onPress={() => navigation.goBack()}
+        onPress={goBack}
         variant="ghost"
       >
         <ArrowLeftIcon color="#00223d" size={20} />

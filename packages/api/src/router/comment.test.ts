@@ -279,6 +279,20 @@ describe("commentRouter.one", () => {
     });
   });
 
+  it("returns NOT_FOUND for a comment that does not exist", async () => {
+    const payload = payloadWithDrizzle({ collections: { comments: [] } });
+    const ctx = mockContext({ payload });
+
+    const error = await expectError(
+      call(commentRouter.one, "missing", { context: ctx })
+    );
+
+    expect(error).toMatchObject({
+      code: "NOT_FOUND",
+      message: "Comment not found",
+    });
+  });
+
   it("returns NOT_FOUND for a hidden comment", async () => {
     const payload = payloadWithDrizzle({
       collections: {

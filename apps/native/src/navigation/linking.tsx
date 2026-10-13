@@ -1,4 +1,8 @@
-import type { LinkingOptions, RootParamList } from "@react-navigation/native";
+import {
+  getStateFromPath as defaultGetStateFromPath,
+  type LinkingOptions,
+  type RootParamList,
+} from "@react-navigation/native";
 import { DETOUR_LINKING_PREFIX, Detour } from "@swmansion/react-native-detour";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
@@ -9,6 +13,7 @@ import {
 } from "#/lib/trackLegacyLink";
 import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 
+import { withArticleUnderComments } from "./article-under-comments";
 import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
 
 const prefixes = [
@@ -50,9 +55,26 @@ function toAppPath(url: string, source: LegacyLinkSource): string {
   return normalized;
 }
 
-export const linking: LinkingOptions<RootParamList> = {
+// `screens` is omitted from `config`: the static `Navigation` component builds
+// it from the navigator tree and only reads the extra options from here.
+export const linking: Omit<LinkingOptions<RootParamList>, "config"> & {
+  config: { initialRouteName: "Tab" };
+} = {
   enabled: true,
   prefixes,
+  config: {
+    // Every root-level detail screen (article, comments, prize...) is a sibling
+    // of `Tab`, so a link to one used to resolve to a stack holding only that
+    // screen. On a cold start from a notification that left nothing underneath:
+    // the Android back button and gesture exited the app, and the iOS edge swipe
+    // had nowhere to go. With this, such a link resolves to [Tab, <screen>].
+    // Routes missing from the active group (Tab while signed out) are dropped
+    // when the state is rehydrated.
+    initialRouteName: "Tab",
+  },
+  getStateFromPath(path, options) {
+    return withArticleUnderComments(defaultGetStateFromPath(path, options));
+  },
   async getInitialURL() {
     // Every branch below normalizes the URL the same way `subscribe` does.
     // Warm and cold starts used to disagree here: `subscribe` stripped the

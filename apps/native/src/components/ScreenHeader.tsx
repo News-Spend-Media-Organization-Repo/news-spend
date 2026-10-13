@@ -1,9 +1,9 @@
-import { useNavigation } from "@react-navigation/native";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { cn } from "heroui-native/utils";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { ArrowLeftIcon } from "#/lib/icons";
+import { useSafeBack } from "#/navigation/useSafeBack";
 import { Icon } from "./heroui/icon";
 import { Text } from "./heroui/text";
 
@@ -15,7 +15,7 @@ type ScreenHeaderProps = {
 };
 
 const ScreenHeader = ({ title, left, right, className }: ScreenHeaderProps) => {
-  const navigation = useNavigation();
+  const goBack = useSafeBack();
 
   return (
     <View
@@ -28,7 +28,7 @@ const ScreenHeader = ({ title, left, right, className }: ScreenHeaderProps) => {
       <PressableFeedback
         className="min-w-10 items-center justify-center px-2"
         hitSlop={20}
-        onPress={() => navigation.goBack()}
+        onPress={goBack}
       >
         {left === undefined ? (
           <Icon color="white" name={ArrowLeftIcon} size={24} />
