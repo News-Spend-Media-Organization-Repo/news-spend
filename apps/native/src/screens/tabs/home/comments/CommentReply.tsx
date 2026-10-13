@@ -45,7 +45,7 @@ const ThreadSeparator = () => <View className="h-px bg-[#ECECEE]" />;
 function CommentReplies() {
   const insets = useSafeAreaInsets();
   const goBack = useSafeBack();
-  const navigation = useNavigation();
+  const navigation = useNavigation("CommentReply");
   const [menuOpen, setMenuOpen] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
   const renderScrollComponent = useCallback(
@@ -197,7 +197,10 @@ function CommentReplies() {
           slug
             ? {
                 label: "View the article",
-                onPress: () => navigation.navigate("News", { slug }),
+                // popTo, not navigate: the article is already in the stack under this
+                // screen, and navigate would push a second one on top of it, so
+                // back would return here.
+                onPress: () => navigation.popTo("News", { slug }),
               }
             : undefined
         }
