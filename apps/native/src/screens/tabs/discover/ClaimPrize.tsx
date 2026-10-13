@@ -14,6 +14,7 @@ import FormTextInput from "#/components/heroui/text-input";
 import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+import { useSafeBack } from "#/navigation/useSafeBack";
 
 /**
  * Claim one prize.
@@ -32,6 +33,7 @@ type ClaimForm = {
 
 const ClaimPrize = () => {
   const navigation = useNavigation("ClaimPrize");
+  const goBack = useSafeBack();
   const route = useRoute("ClaimPrize");
   const winnerId = route.params?.winnerId;
 
@@ -100,7 +102,7 @@ const ClaimPrize = () => {
           return;
         }
 
-        navigation.goBack();
+        goBack();
       },
       onError: (error) => {
         // The window may have closed while this screen was open (a new
@@ -149,7 +151,7 @@ const ClaimPrize = () => {
         queryClient.invalidateQueries({
           queryKey: orpc.giveaway.prizeDetails.key(),
         });
-        navigation.goBack();
+        goBack();
       },
       onError: (error) => {
         toast.error(

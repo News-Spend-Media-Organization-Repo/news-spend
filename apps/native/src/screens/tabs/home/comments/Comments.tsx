@@ -2,7 +2,7 @@ import {
   LegendList,
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -30,6 +30,7 @@ import useGetComments, {
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { CaretDownIcon, ChatIcon, DotsThreeVerticalIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
+import { useSafeBack } from "#/navigation/useSafeBack";
 
 const HairlineSeparator = memo(() => <View className="h-px bg-[#ECECEE]" />);
 HairlineSeparator.displayName = "HairlineSeparator";
@@ -94,7 +95,7 @@ const Comments = () => {
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
-  const navigation = useNavigation();
+  const goBack = useSafeBack();
 
   // input ref
   const ref = useRef<TextInput>(null);
@@ -181,12 +182,7 @@ const Comments = () => {
         {/* Fixed chrome. In this layout the title block stays put and only
             the list scrolls, so the sort control is always reachable. */}
         <View className="flex-row items-center justify-between px-4 py-1.5">
-          <Button
-            hitSlop={14}
-            onPress={() => navigation.goBack()}
-            size="sm"
-            variant="ghost"
-          >
+          <Button hitSlop={14} onPress={goBack} size="sm" variant="ghost">
             <CaretDownIcon size={22} />
           </Button>
           <Button
@@ -247,10 +243,7 @@ const Comments = () => {
 
         {/* Article context as a rule and two lines rather than a card — the
             reader already knows what they tapped from. */}
-        <Pressable
-          className="flex-row gap-3 px-5 pb-4"
-          onPress={() => navigation.goBack()}
-        >
+        <Pressable className="flex-row gap-3 px-5 pb-4" onPress={goBack}>
           <View className="w-0.5 rounded-full bg-s-300" />
           <View className="flex-1 gap-0.5">
             <Text className="font-bold text-[#71717A] text-[10px] tracking-wide">

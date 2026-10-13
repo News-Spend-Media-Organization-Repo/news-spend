@@ -1,6 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useNetInfo } from "@react-native-community/netinfo";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 import {
   type InfiniteData,
   useInfiniteQuery,
@@ -35,13 +35,14 @@ import {
 } from "#/lib/icons";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+import { useSafeBack } from "#/navigation/useSafeBack";
 import { startReply } from "#/state/commentState";
 
 const ThreadSeparator = () => <View className="h-px bg-[#ECECEE]" />;
 
 function CommentReplies() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const goBack = useSafeBack();
   const [menuOpen, setMenuOpen] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
   const renderScrollComponent = useCallback(
@@ -211,7 +212,7 @@ function CommentReplies() {
             accessibilityLabel="Back"
             accessibilityRole="button"
             hitSlop={14}
-            onPress={() => navigation.goBack()}
+            onPress={goBack}
           >
             <Icon color="#18181B" name={CaretLeftIcon} size={22} />
           </Pressable>
