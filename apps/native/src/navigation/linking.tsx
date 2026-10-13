@@ -1,4 +1,8 @@
-import type { LinkingOptions, RootParamList } from "@react-navigation/native";
+import {
+  getStateFromPath as defaultGetStateFromPath,
+  type LinkingOptions,
+  type RootParamList,
+} from "@react-navigation/native";
 import { DETOUR_LINKING_PREFIX, Detour } from "@swmansion/react-native-detour";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
@@ -9,6 +13,7 @@ import {
 } from "#/lib/trackLegacyLink";
 import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 
+import { withArticleUnderComments } from "./article-under-comments";
 import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
 
 const prefixes = [
@@ -66,6 +71,9 @@ export const linking: Omit<LinkingOptions<RootParamList>, "config"> & {
     // Routes missing from the active group (Tab while signed out) are dropped
     // when the state is rehydrated.
     initialRouteName: "Tab",
+  },
+  getStateFromPath(path, options) {
+    return withArticleUnderComments(defaultGetStateFromPath(path, options));
   },
   async getInitialURL() {
     // Every branch below normalizes the URL the same way `subscribe` does.

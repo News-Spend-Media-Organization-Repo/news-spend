@@ -2,7 +2,7 @@ import {
   LegendList,
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -31,6 +31,8 @@ import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { CaretDownIcon, ChatIcon, DotsThreeVerticalIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 import { useSafeBack } from "#/navigation/useSafeBack";
+import { BackArrow, CommentUnavailable } from "./CommentUnavailable";
+import { isNotFoundError } from "./isNotFoundError";
 
 const HairlineSeparator = memo(() => <View className="h-px bg-[#ECECEE]" />);
 HairlineSeparator.displayName = "HairlineSeparator";
@@ -96,6 +98,7 @@ const Comments = () => {
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
   const goBack = useSafeBack();
+  const navigation = useNavigation();
 
   // input ref
   const ref = useRef<TextInput>(null);
@@ -163,8 +166,29 @@ const Comments = () => {
   if (news.isPending) {
     return (
       <View className="flex-1 items-center justify-center">
+        <BackArrow onBack={goBack} />
         <ActivityIndicator />
       </View>
+    );
+  }
+
+  // The article behind these comments was removed or renamed since the link
+  // was made, so there is nothing to attach comments to.
+  if (news.isError && isNotFoundError(news.error)) {
+    return (
+      <CommentUnavailable
+        action={{
+          label: "See the latest news",
+          onPress: () =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Tab", params: { screen: "Home" } }],
+            }),
+        }}
+        message="The article these comments belong to may have been removed."
+        onBack={goBack}
+        title="Comments are no longer available"
+      />
     );
   }
 
