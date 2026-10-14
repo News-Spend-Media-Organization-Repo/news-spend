@@ -2,11 +2,13 @@ import type { News } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { memo } from "react";
 import { Pressable, Text } from "react-native";
+import { seedNewsCache } from "#/hooks/news/seedNewsCache";
 
 const ReadAlso = memo(function ReadAlso({ news }: { news: News }) {
   const navigation = useNavigation();
 
   const onPress = () => {
+    seedNewsCache(news);
     navigation.navigate("News", {
       id: news.id as string,
       slug: news.slug as string,
