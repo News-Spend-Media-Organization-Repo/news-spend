@@ -640,9 +640,17 @@ export interface Giveaway {
    */
   description?: string | null;
   /**
-   * On by default. Switch off to activate the giveaway without notifying users. Uses the description above as the message; nothing is sent if it is empty.
+   * On by default. Switch off to activate the giveaway without notifying users. Uses the notification title and body below as the message; when the body is left blank the description above is sent instead, and nothing is sent if both are empty.
    */
   sendAnnouncement?: boolean | null;
+  /**
+   * Push title, sent exactly as typed. Do not use {{firstName}} here: names are only filled in for the body, so a placeholder in the title would reach users as raw curly brackets.
+   */
+  notificationTitle?: string | null;
+  /**
+   * Optional push body. Write {{firstName}} to address each user by first name. Left blank, the description above is sent instead so existing giveaways keep working; nothing is sent if both are empty. Max 150 characters so it is not cut off on a lock screen.
+   */
+  notificationBody?: string | null;
   startDate: string;
   /**
    * When the countdown ends and the draw becomes eligible to run.
@@ -3191,6 +3199,8 @@ export interface GiveawaysSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   sendAnnouncement?: T;
+  notificationTitle?: T;
+  notificationBody?: T;
   startDate?: T;
   endDate?: T;
   ticketPrice?: T;

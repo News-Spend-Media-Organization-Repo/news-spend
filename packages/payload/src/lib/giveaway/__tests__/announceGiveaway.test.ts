@@ -48,4 +48,39 @@ describe("announceGiveaway", () => {
     ).toBe(false);
     expect(created).toHaveLength(0);
   });
+
+  it("uses the notification title and body when set", async () => {
+    const { req, created } = fakeReq();
+    const result = await announceGiveaway(
+      {
+        id: "g1",
+        description: "Screen copy",
+        notificationTitle: "Custom title",
+        notificationBody: "{{firstName}}, custom body",
+      },
+      req
+    );
+    expect(result.queued).toBe(true);
+    const payload = JSON.stringify(created[0]);
+    expect(payload).toContain("Custom title");
+    expect(payload).toContain("{{firstName}}, custom body");
+    expect(payload).not.toContain("Screen copy");
+  });
+
+  it("falls back to the description when the notification body is blank", async () => {
+    const { req, created } = fakeReq();
+    const result = await announceGiveaway(
+      {
+        id: "g1",
+        description: "Fallback body",
+        notificationTitle: " ",
+        notificationBody: " ",
+      },
+      req
+    );
+    expect(result.queued).toBe(true);
+    const payload = JSON.stringify(created[0]);
+    expect(payload).toContain("Fallback body");
+    expect(payload).toContain("A new giveaway is live");
+  });
 });

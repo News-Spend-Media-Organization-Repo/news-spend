@@ -5,11 +5,18 @@ import { giveawaySetupGuideView } from "../../components/GiveawaySetupGuide/tabs
 import {
   ADMIN_GROUP,
   DRAW_CHECKPOINT_OPTIONS,
+  GIVEAWAY_ANNOUNCEMENT_TITLE,
   GIVEAWAY_DESCRIPTION_MAX_LENGTH,
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
   LOCKED_GIVEAWAY_STATUSES,
 } from "./constants";
+
+/**
+ * `{{firstName}}` is body-only: it must never appear in a push title, which
+ * is sent verbatim and would reach users as raw curly brackets.
+ */
+const FIRST_NAME_PLACEHOLDER_RE = /\{\{\s*firstName\s*\}\}/i;
 
 /**
  * Core giveaway configuration (spec 1, 3).
@@ -522,8 +529,41 @@ export const Giveaways: CollectionConfig = {
       label: "Send push notification when this giveaway goes Active",
       admin: {
         description:
-          "On by default. Switch off to activate the giveaway without notifying users. Uses the description above as the message; nothing is sent if it is empty.",
+          "On by default. Switch off to activate the giveaway without notifying users. Uses the notification title and body below as the message; when the body is left blank the description above is sent instead, and nothing is sent if both are empty.",
       },
+    },
+    {
+      type: "collapsible",
+      label: "Notification",
+      admin: {
+        description:
+          "What users receive when this giveaway goes Active. Kept apart from the giveaway itself so push copy never leaks into the draw.",
+      },
+      fields: [
+        {
+          name: "notificationTitle",
+          type: "text",
+          defaultValue: GIVEAWAY_ANNOUNCEMENT_TITLE,
+          admin: {
+            description:
+              "Push title, sent exactly as typed. Do not use {{firstName}} here: names are only filled in for the body, so a placeholder in the title would reach users as raw curly brackets.",
+          },
+          validate: (value: string | null | undefined) => {
+            if (value && FIRST_NAME_PLACEHOLDER_RE.test(value)) {
+              return "{{firstName}} is only supported in the body. Keep the title static.";
+            }
+            return true;
+          },
+        },
+        {
+          name: "notificationBody",
+          type: "textarea",
+          maxLength: GIVEAWAY_DESCRIPTION_MAX_LENGTH,
+          admin: {
+            description: `Optional push body. Write {{firstName}} to address each user by first name. Left blank, the description above is sent instead so existing giveaways keep working; nothing is sent if both are empty. Max ${GIVEAWAY_DESCRIPTION_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
+          },
+        },
+      ],
     },
     {
       name: "startDate",

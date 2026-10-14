@@ -124,19 +124,24 @@ export async function GiveawaySetupGuideView(
               ],
               [
                 "Description",
-                "Shown on the giveaway screen and sent as the push notification when the giveaway goes Active. Keep it under 150 characters or phones cut it off. Type {{firstName}} to greet each user by their own first name — see the box below.",
+                "Shown on the giveaway screen. Keep it under 150 characters or phones cut it off.",
+              ],
+              [
+                "Notification",
+                "Separate section with its own title and body for the push sent when the giveaway goes Active. The title sends exactly as typed (no {{firstName}} there); the body supports {{firstName}} — see the box below. Left blank, the body falls back to the Description above, so nothing breaks for older giveaways.",
               ],
               [
                 "Send push notification",
-                "On by default, so users are told when a giveaway opens. Switch it off to activate quietly. Nothing is sent if the Description is empty.",
+                "On by default, so users are told when a giveaway opens. Switch it off to activate quietly. Nothing is sent if both the notification body and the Description are empty.",
               ],
             ]}
           />
           <P>
             <strong>Using the user's name.</strong> Write{" "}
             <code>{"{{firstName}}"}</code> exactly like that, with the double
-            curly brackets, anywhere in the Description. Each user sees their
-            own first name in its place: typing{" "}
+            curly brackets, in the notification body (or the Description it
+            falls back to). Each user sees their own first name in its place:
+            typing{" "}
             <code>
               {"{{firstName}}, join 1500 winners to win amazing prizes"}
             </code>{" "}
