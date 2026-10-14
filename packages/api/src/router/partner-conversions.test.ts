@@ -415,6 +415,28 @@ describe("partnerConversionRouter.webhook", () => {
     expect(updatedConv?.status).toBe("converted");
   });
 
+  it("still settles when the partner content was deleted since the click", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion({ content: "gone" })],
+        partners: [partner()],
+        "partner-content": [],
+      },
+    });
+    const ctx = mockContext({ payload, headers: signedHeaders() });
+
+    // Payload throws NotFound for an unknown id, which would surface as a 500
+    // to the partner and make them retry a postback that can never succeed.
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: "clk_abc1234567890123", status: "success" },
+      { context: ctx }
+    );
+
+    expect(result.status).toBe("converted");
+    expect(result.pointsAwarded).toBe(0);
+  });
+
   it("handles content as string id in conversion", async () => {
     const payload = createFakePayload({
       collections: {

@@ -186,6 +186,7 @@ async function assertOldEnough(
     collection: "users",
     id: userId,
     depth: 0,
+    disableErrors: true,
   });
 
   const verdict = evaluateParticipant({
@@ -459,7 +460,12 @@ const progress = protectedProcedure.handler(async ({ context }) => {
 
   const [{ participation, history }, account] = await Promise.all([
     loadStanding(payload, giveaway, user.id),
-    payload.findByID({ collection: "users", id: user.id, depth: 0 }),
+    payload.findByID({
+      collection: "users",
+      id: user.id,
+      depth: 0,
+      disableErrors: true,
+    }),
   ]);
 
   const participant = AGE_GATE_ENABLED

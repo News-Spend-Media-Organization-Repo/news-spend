@@ -165,6 +165,7 @@ export const rapidoPostbackHandler = publicProcedure
     const user = await payload.findByID({
       collection: "users",
       id: endUserId,
+      disableErrors: true,
     });
 
     if (!user) {
@@ -286,6 +287,7 @@ export const theoremPostbackHandler = publicProcedure
       const user = await payload.findByID({
         collection: "users",
         id: user_id,
+        disableErrors: true,
       });
 
       if (!user) {

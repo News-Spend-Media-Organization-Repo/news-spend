@@ -90,6 +90,7 @@ export async function getNewsReactionCounts(
     collection: "news",
     id: newsId,
     depth: 0,
+    disableErrors: true,
   });
   return {
     likesCount: doc?.likesCount ?? 0,
