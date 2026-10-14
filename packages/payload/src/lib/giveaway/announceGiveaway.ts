@@ -31,8 +31,8 @@ export function truncateForPush(
  * (`sendAnnouncement`, on by default) or the giveaway has no message: an
  * empty notification body falls back to the description so giveaways created
  * before the notification fields existed keep working. A `{{firstName}}` in
- * the body is filled in per recipient when the notification is delivered;
- * the title is always sent verbatim.
+ * the title or body is filled in per recipient when the notification is
+ * delivered.
  *
  * Queued as a scheduled notification for "now" instead of sent inline. Sending
  * inline would make the admin's Save wait on every device token, and the save

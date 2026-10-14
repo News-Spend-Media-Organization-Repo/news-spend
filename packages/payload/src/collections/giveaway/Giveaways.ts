@@ -13,12 +13,6 @@ import {
 } from "./constants";
 
 /**
- * `{{firstName}}` is body-only: it must never appear in a push title, which
- * is sent verbatim and would reach users as raw curly brackets.
- */
-const FIRST_NAME_PLACEHOLDER_RE = /\{\{\s*firstName\s*\}\}/i;
-
-/**
  * Core giveaway configuration (spec 1, 3).
  *
  * The administrator configures exactly four things: ticket price, the maximum
@@ -546,13 +540,7 @@ export const Giveaways: CollectionConfig = {
           defaultValue: GIVEAWAY_ANNOUNCEMENT_TITLE,
           admin: {
             description:
-              "Push title, sent exactly as typed. Do not use {{firstName}} here: names are only filled in for the body, so a placeholder in the title would reach users as raw curly brackets.",
-          },
-          validate: (value: string | null | undefined) => {
-            if (value && FIRST_NAME_PLACEHOLDER_RE.test(value)) {
-              return "{{firstName}} is only supported in the body. Keep the title static.";
-            }
-            return true;
+              "Push title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each user sees their own first name in its place.",
           },
         },
         {
