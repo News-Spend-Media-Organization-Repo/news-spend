@@ -869,7 +869,7 @@ export interface News {
    */
   featured?: boolean | null;
   /**
-   * 💡 1 shows first. Empty ranks below numbered ones.
+   * 💡 1 shows first. The carousel shows the top 3. Each rank can be used by one live story at a time. Empty ranks below numbered ones.
    */
   featuredRank?: number | null;
   /**

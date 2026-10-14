@@ -1,5 +1,10 @@
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical";
-import { type CollectionConfig, slugField, ValidationError } from "payload";
+import {
+  type CollectionConfig,
+  type NumberFieldSingleValidation,
+  slugField,
+  ValidationError,
+} from "payload";
 
 import { authenticated } from "../access/authenticated";
 import { authenticatedOrPublished } from "../access/authenticatedOrPublished";
@@ -12,7 +17,19 @@ import {
   calculateNewsMetrics,
   sendNotificationOnCreate,
 } from "../hooks";
+import {
+  CAROUSEL_SIZE,
+  validateFeaturedRank,
+} from "../lib/validateFeaturedRank";
 import type { Admin } from "../payload-types";
+
+const validateRank: NumberFieldSingleValidation = (value, { data, id, req }) =>
+  validateFeaturedRank({
+    value,
+    featured: (data as { featured?: boolean | null } | undefined)?.featured,
+    id,
+    payload: req.payload,
+  });
 
 const News: CollectionConfig = {
   slug: "news",
@@ -256,9 +273,10 @@ const News: CollectionConfig = {
       name: "featuredRank",
       type: "number",
       min: 1,
+      validate: validateRank,
       admin: {
         position: "sidebar",
-        description: "💡 1 shows first. Empty ranks below numbered ones.",
+        description: `💡 1 shows first. The carousel shows the top ${CAROUSEL_SIZE}. Each rank can be used by one live story at a time. Empty ranks below numbered ones.`,
         condition: (data) => Boolean(data?.featured),
       },
     },
