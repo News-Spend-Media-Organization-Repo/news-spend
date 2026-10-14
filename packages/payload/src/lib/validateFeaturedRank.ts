@@ -14,6 +14,11 @@ export const CAROUSEL_SIZE = 3;
  * "Live" means published and not past its end time: an expired story no longer
  * competes for a slot, so its rank is free to reuse. Returns `true` when the
  * rank is free, otherwise the message shown on the field.
+ *
+ * Only a change is checked. Stories that already share a rank (set before this
+ * rule existed) must still be editable, so saving one that is already stored at
+ * this rank passes: blocking a typo fix over a clash the editor did not create
+ * would be worse than the clash.
  */
 export async function validateFeaturedRank({
   value,
@@ -25,7 +30,7 @@ export async function validateFeaturedRank({
   value: number | null | undefined;
   featured: boolean | null | undefined;
   id?: string | number | undefined;
-  payload: Pick<Payload, "find">;
+  payload: Pick<Payload, "find" | "findByID">;
   now?: Date;
 }): Promise<true | string> {
   if (!featured || value === null || value === undefined) {
@@ -57,6 +62,21 @@ export async function validateFeaturedRank({
   const clash = docs[0];
   if (!clash) {
     return true;
+  }
+
+  // The clash exists, but is it this save that creates it? A story already
+  // stored as featured at this rank is being edited for something else.
+  if (id !== undefined) {
+    const stored = await payload.findByID({
+      collection: "news",
+      id,
+      depth: 0,
+      select: { featured: true, featuredRank: true },
+      disableErrors: true,
+    });
+    if (stored?.featured && stored.featuredRank === value) {
+      return true;
+    }
   }
 
   return `Rank ${value} is already used by "${clash.title}". Pick a different rank, or unfeature that story first.`;
