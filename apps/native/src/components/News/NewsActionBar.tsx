@@ -1,20 +1,20 @@
 import type { News } from "@news-spend-media/payload/types";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Skeleton } from "heroui-native/skeleton";
+import { Pressable, View } from "react-native";
+import { Icon } from "#/components/heroui/icon";
+import { Text } from "#/components/heroui/text";
 import {
   ChatIcon,
   PencilSimpleLineIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from "#/lib/icons";
-import { Pressable, View } from "react-native";
-import { Icon } from "#/components/heroui/icon";
-import { Text } from "#/components/heroui/text";
 import { useSafeAreaInsetsStyle } from "#/utils/useSafeAreaInsetsStyle";
 import { ShareNews } from "./ShareNews";
 
 type NewsActionBarProps = {
-  news: News;
+  news: News | undefined;
   onComment?: () => void;
   onDislike?: () => void;
   onLike?: () => void;
@@ -108,7 +108,9 @@ export function NewsActionBar(props: NewsActionBarProps) {
 
         {/* Share button */}
         <View className="flex-1 items-center justify-center">
-          <ShareNews news={props.news} onShare={props.onShare} />
+          {props.news ? (
+            <ShareNews news={props.news} onShare={props.onShare} />
+          ) : null}
         </View>
       </View>
     </Skeleton>
