@@ -220,31 +220,42 @@ async function handleFailedTicket(
  * populated on the push token, so personalising costs no extra query. A token
  * whose user was not populated simply gets the no-name fallback.
  */
+function userNameOf(token: PushToken): string | null {
+  return typeof token.user === "object" && token.user !== null
+    ? token.user.name
+    : null;
+}
+
+/** Fill `{{firstName}}` in a push title for one recipient; plain titles pass through. */
+export function titleFor(notification: Notification, token: PushToken): string {
+  if (!hasPlaceholder(notification.title)) {
+    return notification.title;
+  }
+  return personalise(notification.title, userNameOf(token));
+}
+
 function bodyFor(notification: Notification, token: PushToken): string {
   if (!hasPlaceholder(notification.body)) {
     return notification.body;
   }
-  const name =
-    typeof token.user === "object" && token.user !== null
-      ? token.user.name
-      : null;
-  return personalise(notification.body, name);
+  return personalise(notification.body, userNameOf(token));
 }
 
 async function createInboxEntry(opts: {
   userId: string;
+  title: string;
   body: string;
   notification: Notification;
   req: PayloadRequest;
 }): Promise<void> {
-  const { userId, body, notification, req } = opts;
+  const { userId, title, body, notification, req } = opts;
   const payload = await getPayload();
   await payload.create({
     collection: "notification-inbox",
     data: {
       user: userId,
       notification: notification.id,
-      title: notification.title,
+      title,
       body,
       ...(notification.data &&
       typeof notification.data === "object" &&
@@ -305,6 +316,7 @@ async function recordDeliveryAndInbox(opts: {
     inboxUsersSeen.add(userId);
     await createInboxEntry({
       userId,
+      title: titleFor(notification, token),
       body: bodyFor(notification, token),
       notification,
       req,
@@ -389,7 +401,7 @@ export async function sendNotification(
 
     const messages: ExpoPushMessage[] = deviceTokens.map((token) => ({
       to: token.token,
-      title: notification.title,
+      title: titleFor(notification, token),
       body: bodyFor(notification, token),
       channelId,
       data: {

@@ -1,5 +1,8 @@
 import type { PayloadRequest } from "payload";
-import { GIVEAWAY_DESCRIPTION_MAX_LENGTH } from "../../collections/giveaway/constants";
+import {
+  GIVEAWAY_ANNOUNCEMENT_TITLE,
+  GIVEAWAY_DESCRIPTION_MAX_LENGTH,
+} from "../../collections/giveaway/constants";
 
 /**
  * Cut `text` to at most `max` characters, ending on a word boundary with an
@@ -22,12 +25,14 @@ export function truncateForPush(
 
 /**
  * Push every user a notification that a giveaway has gone live, using its
- * description as the body.
+ * notification title and body.
  *
  * Sends nothing when the administrator has switched the announcement off
- * (`sendAnnouncement`, on by default) or the giveaway has no description. A
- * `{{firstName}}` in the description is filled in per recipient when the
- * notification is delivered.
+ * (`sendAnnouncement`, on by default) or the giveaway has no message: an
+ * empty notification body falls back to the description so giveaways created
+ * before the notification fields existed keep working. A `{{firstName}}` in
+ * the title or body is filled in per recipient when the notification is
+ * delivered.
  *
  * Queued as a scheduled notification for "now" instead of sent inline. Sending
  * inline would make the admin's Save wait on every device token, and the save
@@ -42,6 +47,8 @@ export async function announceGiveaway(
     id: string;
     name?: string | null;
     description?: string | null;
+    notificationTitle?: string | null;
+    notificationBody?: string | null;
     sendAnnouncement?: boolean | null;
   },
   req: PayloadRequest
@@ -50,10 +57,15 @@ export async function announceGiveaway(
     return { queued: false, reason: "announcement switched off" };
   }
 
-  const description = giveaway.description?.trim();
-  if (!description) {
-    return { queued: false, reason: "no description" };
+  const body = (
+    giveaway.notificationBody?.trim() || giveaway.description?.trim()
+  )?.trim();
+  if (!body) {
+    return { queued: false, reason: "no message" };
   }
+
+  const title =
+    giveaway.notificationTitle?.trim() || GIVEAWAY_ANNOUNCEMENT_TITLE;
 
   try {
     await req.payload.create({
@@ -64,8 +76,8 @@ export async function announceGiveaway(
         // and never errors.
         _status: "published",
         targetType: "all",
-        title: "A new giveaway is live 🎁",
-        body: truncateForPush(description),
+        title,
+        body: truncateForPush(body),
         type: "promo",
         deliveryAction: "schedule",
         scheduledFor: new Date().toISOString(),

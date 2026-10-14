@@ -5,6 +5,7 @@ import { giveawaySetupGuideView } from "../../components/GiveawaySetupGuide/tabs
 import {
   ADMIN_GROUP,
   DRAW_CHECKPOINT_OPTIONS,
+  GIVEAWAY_ANNOUNCEMENT_TITLE,
   GIVEAWAY_DESCRIPTION_MAX_LENGTH,
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
@@ -522,8 +523,35 @@ export const Giveaways: CollectionConfig = {
       label: "Send push notification when this giveaway goes Active",
       admin: {
         description:
-          "On by default. Switch off to activate the giveaway without notifying users. Uses the description above as the message; nothing is sent if it is empty.",
+          "On by default. Switch off to activate the giveaway without notifying users. Uses the notification title and body below as the message; when the body is left blank the description above is sent instead, and nothing is sent if both are empty.",
       },
+    },
+    {
+      type: "collapsible",
+      label: "Notification",
+      admin: {
+        description:
+          "What users receive when this giveaway goes Active. Kept apart from the giveaway itself so push copy never leaks into the draw.",
+      },
+      fields: [
+        {
+          name: "notificationTitle",
+          type: "text",
+          defaultValue: GIVEAWAY_ANNOUNCEMENT_TITLE,
+          admin: {
+            description:
+              "Push title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each user sees their own first name in its place.",
+          },
+        },
+        {
+          name: "notificationBody",
+          type: "textarea",
+          maxLength: GIVEAWAY_DESCRIPTION_MAX_LENGTH,
+          admin: {
+            description: `Optional push body. Write {{firstName}} to address each user by first name. Left blank, the description above is sent instead so existing giveaways keep working; nothing is sent if both are empty. Max ${GIVEAWAY_DESCRIPTION_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
+          },
+        },
+      ],
     },
     {
       name: "startDate",

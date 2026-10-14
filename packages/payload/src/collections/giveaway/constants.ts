@@ -569,3 +569,6 @@ export const BLOCKED_FULFILMENT_STATUSES: readonly FulfilmentStatus[] = [
  * the tail is cut off by the OS, mid-sentence.
  */
 export const GIVEAWAY_DESCRIPTION_MAX_LENGTH = 150;
+
+/** Default title for the "new giveaway is live" push. Sent verbatim. */
+export const GIVEAWAY_ANNOUNCEMENT_TITLE = "A new giveaway is live 🎁";
