@@ -7,7 +7,11 @@ import { AdsBlock, ReadAlsoBlock } from "../blocks";
 import { articleStatsView } from "../components/Analytics/tabs";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { trimUrlHook } from "../fields/urlField";
-import { calculateNewsMetrics, sendNotificationOnCreate } from "../hooks";
+import {
+  applyFeaturedWindow,
+  calculateNewsMetrics,
+  sendNotificationOnCreate,
+} from "../hooks";
 import type { Admin } from "../payload-types";
 
 const News: CollectionConfig = {
@@ -59,6 +63,7 @@ const News: CollectionConfig = {
     ],
     beforeChange: [
       calculateNewsMetrics,
+      applyFeaturedWindow,
       // totalComments, likesCount, and dislikesCount are all maintained by raw
       // SQL in the Comments/NewsReactions hooks. Strip them from incoming
       // Payload writes (admin edits, republishes, version restores) so a
@@ -254,6 +259,20 @@ const News: CollectionConfig = {
       admin: {
         position: "sidebar",
         description: "💡 1 shows first. Empty ranks below numbered ones.",
+        condition: (data) => Boolean(data?.featured),
+      },
+    },
+    {
+      name: "featuredUntil",
+      label: "Featured until",
+      type: "date",
+      admin: {
+        position: "sidebar",
+        date: {
+          pickerAppearance: "dayAndTime",
+        },
+        description:
+          "💡 The story leaves the carousel at this time, so it is never left up by accident. Filled in as 24 hours from now when you feature a story; change it if you need longer. Older featured stories with no end time stay until unfeatured.",
         condition: (data) => Boolean(data?.featured),
       },
     },

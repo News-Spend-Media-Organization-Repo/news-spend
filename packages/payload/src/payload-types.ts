@@ -872,6 +872,10 @@ export interface News {
    * 💡 1 shows first. Empty ranks below numbered ones.
    */
   featuredRank?: number | null;
+  /**
+   * 💡 The story leaves the carousel at this time, so it is never left up by accident. Filled in as 24 hours from now when you feature a story; change it if you need longer. Older featured stories with no end time stay until unfeatured.
+   */
+  featuredUntil?: string | null;
   publishedAt: string;
   updatedAt: string;
   /**
@@ -3414,6 +3418,7 @@ export interface NewsSelect<T extends boolean = true> {
   excerpt?: T;
   featured?: T;
   featuredRank?: T;
+  featuredUntil?: T;
   publishedAt?: T;
   updatedAt?: T;
   points?: T;

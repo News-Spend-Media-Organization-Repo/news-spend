@@ -60,6 +60,7 @@ import * as migration_20261006_080000_email_templates_visual_only from './202610
 import * as migration_20261006_083000_email_templates_slug_lock from './20261006_083000_email_templates_slug_lock';
 import * as migration_20261006_084500_email_templates_builtin_slug from './20261006_084500_email_templates_builtin_slug';
 import * as migration_20261006_090000_email_templates_no_audit_sidebar from './20261006_090000_email_templates_no_audit_sidebar';
+import * as migration_20261014_080850_featured_until from './20261014_080850_featured_until';
 
 export const migrations = [
   {
@@ -350,26 +351,31 @@ export const migrations = [
   {
     up: migration_20261005_210416.up,
     down: migration_20261005_210416.down,
-    name: '20261005_210416'
+    name: '20261005_210416',
   },
   {
     up: migration_20261006_080000_email_templates_visual_only.up,
     down: migration_20261006_080000_email_templates_visual_only.down,
-    name: '20261006_080000_email_templates_visual_only'
+    name: '20261006_080000_email_templates_visual_only',
   },
   {
     up: migration_20261006_083000_email_templates_slug_lock.up,
     down: migration_20261006_083000_email_templates_slug_lock.down,
-    name: '20261006_083000_email_templates_slug_lock'
+    name: '20261006_083000_email_templates_slug_lock',
   },
   {
     up: migration_20261006_084500_email_templates_builtin_slug.up,
     down: migration_20261006_084500_email_templates_builtin_slug.down,
-    name: '20261006_084500_email_templates_builtin_slug'
+    name: '20261006_084500_email_templates_builtin_slug',
   },
   {
     up: migration_20261006_090000_email_templates_no_audit_sidebar.up,
     down: migration_20261006_090000_email_templates_no_audit_sidebar.down,
-    name: '20261006_090000_email_templates_no_audit_sidebar'
+    name: '20261006_090000_email_templates_no_audit_sidebar',
+  },
+  {
+    up: migration_20261014_080850_featured_until.up,
+    down: migration_20261014_080850_featured_until.down,
+    name: '20261014_080850_featured_until'
   },
 ];
