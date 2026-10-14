@@ -869,7 +869,7 @@ export interface News {
    */
   featured?: boolean | null;
   /**
-   * 💡 1 shows first. Empty ranks below numbered ones.
+   * 💡 Featured stories always lead the carousel, ahead of the automatic picks. Rank only orders them against each other, 1 first. The carousel shows the top 3, and each rank can be used by one live story at a time. A story with no rank comes after the numbered ones.
    */
   featuredRank?: number | null;
   /**
