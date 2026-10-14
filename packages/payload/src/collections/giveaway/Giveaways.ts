@@ -20,6 +20,18 @@ import {
  * maximum units per selected prize (also on `giveaway-prizes`). Tier
  * eligibility rules are platform business logic and are not represented here.
  */
+
+/**
+ * The Notification section is only worth showing when a push will actually
+ * go out. `sendAnnouncement` defaults to on, so anything not explicitly
+ * switched off still shows it.
+ */
+export function showNotificationSection(data: {
+  sendAnnouncement?: boolean | null;
+} | null | undefined): boolean {
+  return data?.sendAnnouncement !== false;
+}
+
 export const Giveaways: CollectionConfig = {
   slug: "giveaways",
   admin: {
@@ -532,6 +544,7 @@ export const Giveaways: CollectionConfig = {
       admin: {
         description:
           "What users receive when this giveaway goes Active. Kept apart from the giveaway itself so push copy never leaks into the draw.",
+        condition: (data) => showNotificationSection(data),
       },
       fields: [
         {
