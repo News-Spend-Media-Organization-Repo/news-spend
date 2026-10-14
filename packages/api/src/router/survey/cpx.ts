@@ -153,6 +153,7 @@ export async function processCPXPostback(input: {
   const user = await payload.findByID({
     collection: "users",
     id: user_id,
+    disableErrors: true,
   });
 
   if (!user) {

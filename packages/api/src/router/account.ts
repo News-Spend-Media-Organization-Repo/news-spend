@@ -18,6 +18,7 @@ const changePassword = protectedNoGuestProcedure
     const userCheck = await payload.findByID({
       collection: "users",
       id: user.id,
+      disableErrors: true,
     });
 
     if (!userCheck) {
@@ -68,6 +69,7 @@ const updateProfile = protectedNoGuestProcedure
     const user = await payload.findByID({
       collection: "users",
       id: userId,
+      disableErrors: true,
     });
 
     if (!user) {
@@ -185,7 +187,11 @@ const setDateOfBirth = protectedNoGuestProcedure
       });
     }
 
-    const user = await payload.findByID({ collection: "users", id: userId });
+    const user = await payload.findByID({
+      collection: "users",
+      id: userId,
+      disableErrors: true,
+    });
 
     if (!user) {
       throw errors.NOT_FOUND({ message: "User not found" });
@@ -322,6 +328,7 @@ const me = protectedProcedure.handler(async ({ context, errors }) => {
   const user = await payload.findByID({
     collection: "users",
     id: userId,
+    disableErrors: true,
   });
 
   if (!user) {

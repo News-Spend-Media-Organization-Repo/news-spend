@@ -252,6 +252,41 @@ describe("newsRouter.trending", () => {
     expect(result.map((d: any) => d.id)).toEqual(["n3", "n2", "n4"]);
   });
 
+  it("drops a pick once its featured-until time has passed", async () => {
+    const hour = 3_600_000;
+    const payload = createFakePayload({
+      collections: {
+        news: [
+          makeNews({ id: "n1", slug: "a1" }),
+          makeNews({
+            id: "expired",
+            slug: "a2",
+            featured: true,
+            featuredUntil: new Date(Date.now() - hour).toISOString(),
+          }),
+          makeNews({
+            id: "live",
+            slug: "a3",
+            featured: true,
+            featuredUntil: new Date(Date.now() + hour).toISOString(),
+          }),
+          makeNews({ id: "legacy", slug: "a4", featured: true }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      newsRouter.trending,
+      { limit: 2 },
+      { context: ctx }
+    );
+
+    // The expired pick is gone; the live one and the one with no end time
+    // (featured before expiry existed) fill the carousel.
+    expect(result.map((d: any) => d.id).sort()).toEqual(["legacy", "live"]);
+  });
+
   it("returns only picks when they cover the limit", async () => {
     const payload = createFakePayload({
       collections: {

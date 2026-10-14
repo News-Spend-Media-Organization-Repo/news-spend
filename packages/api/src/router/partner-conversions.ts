@@ -41,6 +41,7 @@ export const trackClick = protectedNoGuestProcedure
       collection: "partner-content",
       id: input.partnerContentId,
       depth: 1,
+      disableErrors: true,
     });
 
     if (!content) {
@@ -82,6 +83,7 @@ export const trackClick = protectedNoGuestProcedure
     const partner = await payload.findByID({
       collection: "partners",
       id: partnerId,
+      disableErrors: true,
     });
 
     const redirectUrl = content.links?.website || partner?.websiteUrl;
@@ -380,6 +382,7 @@ export const handleWebhook = publicProcedure
     const content = await payload.findByID({
       collection: "partner-content",
       id: contentId,
+      disableErrors: true,
     });
 
     if (input.status !== "success") {

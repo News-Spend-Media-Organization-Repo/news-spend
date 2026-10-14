@@ -95,6 +95,7 @@ export async function getCommentReactionCounts(
     collection: "comments",
     id: commentId,
     depth: 0,
+    disableErrors: true,
   });
   return {
     likesCount: doc?.likesCount ?? 0,

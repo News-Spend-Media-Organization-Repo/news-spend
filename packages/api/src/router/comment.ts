@@ -428,6 +428,7 @@ const updateComment = protectedNoGuestProcedure
       collection: "comments",
       id: input.commentId,
       depth: 0,
+      disableErrors: true,
     });
 
     if (!comment) {
@@ -504,6 +505,7 @@ const deleteComment = protectedNoGuestProcedure
       collection: "comments",
       id: commentId,
       depth: 0,
+      disableErrors: true,
     });
 
     if (!comment) {

@@ -139,6 +139,13 @@ async function curatedPicks(
     where: {
       _status: { equals: "published" },
       featured: { equals: true },
+      // An end time that has passed drops the pick on its own, so a story an
+      // admin forgot to unfeature does not stay on the carousel. No end time
+      // means featured before expiry existed, or by hand: it stays.
+      or: [
+        { featuredUntil: { exists: false } },
+        { featuredUntil: { greater_than: new Date().toISOString() } },
+      ],
     },
     depth: 1,
     limit: 20,

@@ -66,6 +66,7 @@ export const partnerContentById = publicProcedure
     const result = await payload.findByID({
       collection: "partner-content",
       id: input.id,
+      disableErrors: true,
     });
     if (!result) {
       throw errors.NOT_FOUND({

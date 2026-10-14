@@ -38,6 +38,7 @@ const update = protectedNoGuestProcedure
     const user = await payload.findByID({
       collection: "users",
       id: userId,
+      disableErrors: true,
     });
 
     const notificationPreference = user?.notificationPreferences;
@@ -71,6 +72,7 @@ const get = protectedNoGuestProcedure.handler(async ({ context }) => {
   const user = await payload.findByID({
     collection: "users",
     id: userId,
+    disableErrors: true,
   });
 
   return user?.notificationPreferences ?? null;

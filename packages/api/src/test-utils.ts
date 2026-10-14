@@ -193,11 +193,25 @@ export function createFakePayload(options: FakePayloadOptions = {}) {
       };
     },
 
-    findByID: async ({ collection, id }: Doc) => {
+    // Like real Payload: an unknown id throws NotFound unless the caller opts
+    // out with `disableErrors`, in which case it returns null. Returning null
+    // either way let handlers carry an `if (!doc)` branch that could never run
+    // in production (oRPC turns the thrown NotFound into a 500) and still pass.
+    findByID: async ({ collection, id, disableErrors }: Doc) => {
       record("findByID", collection, { id });
-      return (
-        docsIn(collection).find((doc) => String(doc.id) === String(id)) ?? null
+      const doc = docsIn(collection).find(
+        (candidate) => String(candidate.id) === String(id)
       );
+      if (doc) {
+        return doc;
+      }
+      if (disableErrors) {
+        return null;
+      }
+      throw Object.assign(new Error("Not Found"), {
+        name: "NotFound",
+        status: 404,
+      });
     },
 
     count: async ({ collection, where }: Doc) => {
