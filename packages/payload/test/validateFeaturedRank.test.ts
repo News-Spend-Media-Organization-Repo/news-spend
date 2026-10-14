@@ -21,6 +21,8 @@ type Story = {
  * stories, so the test fails if the rule's `where` stops excluding something.
  */
 const payloadWith = (stories: Story[]) => ({
+  findByID: async ({ id }: { id: string }) =>
+    (stories.find((candidate) => candidate.id === id) ?? null) as never,
   find: async ({ where }: { where: { and: Record<string, any>[] } }) => {
     const clauses = where.and;
     const docs = stories.filter((story) =>
@@ -85,6 +87,26 @@ describe("validateFeaturedRank", () => {
 
   it("allows a rank nobody holds", async () => {
     expect(await run([story({ featuredRank: 2 })], { value: 1 })).toBe(true);
+  });
+
+  it("lets a story already stored at a shared rank be saved for other reasons", async () => {
+    // Two stories set to rank 1 before the rule existed. Fixing a typo in
+    // either must not be blocked by a clash the editor did not create.
+    const stories = [
+      story({ id: "me", title: "Mine", featuredRank: 1 }),
+      story({ id: "other", title: "Other", featuredRank: 1 }),
+    ];
+
+    expect(await run(stories, { id: "me", value: 1 })).toBe(true);
+  });
+
+  it("still blocks moving a stored story onto a rank another holds", async () => {
+    const stories = [
+      story({ id: "me", title: "Mine", featuredRank: 2 }),
+      story({ id: "other", title: "Other", featuredRank: 1 }),
+    ];
+
+    expect(await run(stories, { id: "me", value: 1 })).not.toBe(true);
   });
 
   it("allows a story to keep its own rank", async () => {
