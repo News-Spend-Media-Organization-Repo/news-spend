@@ -276,7 +276,7 @@ const News: CollectionConfig = {
       validate: validateRank,
       admin: {
         position: "sidebar",
-        description: `💡 1 shows first. The carousel shows the top ${CAROUSEL_SIZE}. Each rank can be used by one live story at a time. Empty ranks below numbered ones.`,
+        description: `💡 Featured stories always lead the carousel, ahead of the automatic picks. Rank only orders them against each other, 1 first. The carousel shows the top ${CAROUSEL_SIZE}, and each rank can be used by one live story at a time. A story with no rank comes after the numbered ones.`,
         condition: (data) => Boolean(data?.featured),
       },
     },
