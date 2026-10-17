@@ -116,6 +116,68 @@ describe("reconcileInProgressPrizes", () => {
     );
   });
 
+  it("asks about the newest transaction the provider acknowledged", async () => {
+    // Two sends both left an id behind. Only the latest one can still be
+    // settling, so looking up the older one would settle the prize against a
+    // transaction that is already finished.
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [
+        attemptRow({
+          id: "a2",
+          providerTransactionId: "42",
+          attemptedAt: new Date().toISOString(),
+        }),
+        attemptRow({
+          id: "a1",
+          providerTransactionId: "41",
+          attemptedAt: STALE,
+        }),
+      ],
+    });
+    let queried = "";
+    const client = fakeClient({
+      topupStatus: async (id) => {
+        queried = id;
+        return { status: "SUCCESSFUL" };
+      },
+    });
+
+    await reconcileInProgressPrizes(payload, { client });
+
+    expect(queried).toBe("42");
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "fulfilled"
+    );
+  });
+
+  it("only looks at prizes that are still in progress", async () => {
+    // A settled prize must not be asked about again: its transaction is
+    // finished, and re-reading it could only move a winner backwards.
+    const { payload, collections } = createFakePayload({
+      winners: [
+        winnerRow(),
+        winnerRow({ id: "w2", fulfilmentStatus: "fulfilled" }),
+        winnerRow({ id: "w3", fulfilmentStatus: "pending" }),
+      ],
+      attempts: [attemptRow()],
+    });
+    const client = fakeClient({
+      topupStatus: async () => ({ status: "SUCCESSFUL" }),
+    });
+
+    const summary = await reconcileInProgressPrizes(payload, { client });
+
+    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0 });
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "fulfilled"
+    );
+    expect(collections["giveaway-winners"][1].fulfilmentStatus).toBe(
+      "fulfilled"
+    );
+    expect(collections["giveaway-winners"][2].fulfilmentStatus).toBe("pending");
+  });
+
   it("leaves a prize the provider is still processing", async () => {
     const { payload, collections } = createFakePayload({
       winners: [winnerRow()],
