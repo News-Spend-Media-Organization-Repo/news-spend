@@ -28,7 +28,7 @@ export default function SpecialCoverage({
 
   const coveragesRenderItem = useCallback(
     ({ item }: { item: NewsType[number] }) => {
-      const { url, blurhash } = getImageData(item?.image);
+      const { url, blurhash } = getImageData(item?.image, "mobile");
       return (
         <Pressable
           onPress={() =>

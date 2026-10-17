@@ -130,7 +130,11 @@ const SingleNews = () => {
     );
   }
 
-  const { url, blurhash } = getImageData(data?.image);
+  const { url, blurhash, aspectRatio } = getImageData(data?.image, "mobile");
+  // Show the whole picture at its own shape, as the home feed does, instead of
+  // cropping it to a fixed 30vh band. Clamped so a very tall or very wide
+  // upload cannot take over, or vanish from, the top of the article.
+  const imageAspectRatio = Math.min(Math.max(aspectRatio ?? 16 / 9, 0.8), 2.2);
 
   return (
     <Screen navigationBarButtonStyle="dark" statusBarStyle="auto">
@@ -159,15 +163,19 @@ const SingleNews = () => {
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-3">
-            <SkeletonGroup.Item className="h-[30vh] w-full rounded-md">
+            <SkeletonGroup.Item
+              className="w-full rounded-md"
+              style={{ aspectRatio: imageAspectRatio }}
+            >
               <Galeria urls={[url]}>
                 <Galeria.Image>
                   <Image
-                    className="h-[30vh] w-full"
+                    className="w-full"
                     contentFit="cover"
                     placeholder={{ blurhash }}
                     placeholderContentFit="cover"
                     source={url}
+                    style={{ aspectRatio: imageAspectRatio }}
                   />
                 </Galeria.Image>
               </Galeria>

@@ -20,7 +20,7 @@ function NewsItem({
   news: RouterOutputs["news"]["home"]["docs"][number];
   latest?: boolean;
 }) {
-  const { url, blurhash } = getImageData(news.image);
+  const { url, blurhash } = getImageData(news.image, "thumbnail");
   const navigation = useNavigation();
 
   const onPress = () => {

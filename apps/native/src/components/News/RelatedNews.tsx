@@ -47,7 +47,7 @@ function isRewardTask(
 const RelatedImage = memo(
   ({ item, width }: { item: News | PartnerContent; width: number }) => {
     const mediaSource = isNews(item) ? item.image : item.media;
-    const { url, blurhash } = getImageData(mediaSource);
+    const { url, blurhash } = getImageData(mediaSource, "mobile");
     return (
       <Image
         className="w-full rounded-[5px]"
