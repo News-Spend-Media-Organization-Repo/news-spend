@@ -135,7 +135,11 @@ describe("fulfilPendingPrizes", () => {
       winners: [winnerRow()],
     });
     const client = fakeClient({
-      topup: async () => ({ transactionId: 999, operatorName: "MTN Nigeria" }),
+      topup: async () => ({
+        transactionId: 999,
+        status: "SUCCESSFUL",
+        operatorName: "MTN Nigeria",
+      }),
     });
 
     const summary = await fulfilPendingPrizes(payload, { client });
@@ -149,6 +153,43 @@ describe("fulfilPendingPrizes", () => {
       providerTransactionId: "999",
       localAmount: 500,
     });
+  });
+
+  it("does not fulfil a prize the provider is still processing", async () => {
+    const { payload, collections, created } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const client = fakeClient({
+      topup: async () => ({ transactionId: 42, status: "PROCESSING" }),
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // Calling this delivered while it is still settling is the same lie the
+    // October record told. "Sending now" is the honest label.
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "in_progress"
+    );
+    expect(created["giveaway-fulfilment-attempts"]?.[0]).toMatchObject({
+      outcome: "sent",
+      providerTransactionId: "42",
+    });
+  });
+
+  it("does not fulfil a prize when the provider reports no status", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const client = fakeClient({
+      topup: async () => ({ transactionId: 43 }),
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // Silence is unknown, not delivered.
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "in_progress"
+    );
   });
 
   it("ignores a prize the provider does not deliver", async () => {
@@ -279,7 +320,11 @@ describe("fulfilPendingPrizes", () => {
         // The Airtel row, not the MTN one that happens to be listed first.
         expect(args.operatorId).toBe(646);
         expect(args.localAmount).toBe(599.91);
-        return { transactionId: 1, operatorName: "Airtel Nigeria Data" };
+        return {
+          transactionId: 1,
+          status: "SUCCESSFUL",
+          operatorName: "Airtel Nigeria Data",
+        };
       },
     });
 
@@ -315,7 +360,7 @@ describe("fulfilPendingPrizes", () => {
       detectOperator: async () => ({ operatorId: 99_999, name: "Glo Nigeria" }),
       topup: async (args) => {
         expect(args.operatorId).toBe(647);
-        return { transactionId: 7 };
+        return { transactionId: 7, status: "SUCCESSFUL" };
       },
     });
 
@@ -349,7 +394,7 @@ describe("fulfilPendingPrizes", () => {
         operatorId: 1,
         name: "T2 Mobile Nigeria Data",
       }),
-      topup: async () => ({ transactionId: 8 }),
+      topup: async () => ({ transactionId: 8, status: "SUCCESSFUL" }),
     });
 
     const summary = await fulfilPendingPrizes(payload, { client });
@@ -523,7 +568,11 @@ describe("fulfilPendingPrizes", () => {
         if (attempts === 1) {
           throw new ReloadlyError("gateway timeout", 503, null, true);
         }
-        return { transactionId: 99, operatorName: "MTN Nigeria" };
+        return {
+          transactionId: 99,
+          status: "SUCCESSFUL",
+          operatorName: "MTN Nigeria",
+        };
       },
     });
 
@@ -575,7 +624,7 @@ describe("fulfilPendingPrizes", () => {
     const { payload, created } = createFakePayload({ winners: [winnerRow()] });
     const client = fakeClient({
       isSandbox: true,
-      topup: async () => ({ transactionId: 1 }),
+      topup: async () => ({ transactionId: 1, status: "SUCCESSFUL" }),
     });
 
     await fulfilPendingPrizes(payload, { client });

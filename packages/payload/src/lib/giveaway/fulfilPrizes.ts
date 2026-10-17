@@ -259,14 +259,16 @@ async function fulfilOne(
       customIdentifier: identifier,
     });
 
-    await payload.update({
-      collection: "giveaway-winners",
-      id: winnerId,
-      data: {
-        fulfilmentStatus: "fulfilled",
-        fulfilledAt: new Date().toISOString(),
-      },
-    });
+    if (result.status === "SUCCESSFUL") {
+      await payload.update({
+        collection: "giveaway-winners",
+        id: winnerId,
+        data: {
+          fulfilmentStatus: "fulfilled",
+          fulfilledAt: new Date().toISOString(),
+        },
+      });
+    }
 
     await record({
       outcome: "sent",
