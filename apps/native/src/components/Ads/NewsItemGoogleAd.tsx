@@ -11,6 +11,7 @@ import { getCachedAd } from "#/utils/ad-cache";
 import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Text } from "../heroui/text";
+import NewsItemFallbackAd from "./NewsItemFallbackAd";
 
 /**
  * Google will not serve video to a media view smaller than 120 in either
@@ -121,10 +122,12 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
     };
   }, [tab, slotId]);
 
-  // Nothing will ever fill this slot: take up no space at all. A placeholder
-  // box reading "Advertisement" with nothing in it is worse than no box.
+  // Google has nothing for this slot. Give it to a partner ad rather than
+  // leaving a hole; if there is no partner ad either, it takes up no space. A
+  // placeholder box reading "Advertisement" with nothing in it is worse than
+  // no box.
   if (!nativeAd && failedSlotId === slotId) {
-    return null;
+    return <NewsItemFallbackAd slotId={slotId} />;
   }
 
   if (!nativeAd) {
