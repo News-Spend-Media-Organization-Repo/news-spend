@@ -165,8 +165,8 @@ export function createFakePayload(options: FakePayloadOptions = {}) {
       drizzle: undefined as unknown,
     },
 
-    find: async ({ collection, where, sort, limit, page }: Doc) => {
-      record("find", collection, { where, sort, limit, page });
+    find: async ({ collection, where, sort, limit, page, pagination }: Doc) => {
+      record("find", collection, { where, sort, limit, page, pagination });
 
       const matched = docsIn(collection).filter((doc) =>
         matchesWhere(doc, where)

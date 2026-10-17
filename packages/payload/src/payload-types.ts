@@ -96,6 +96,8 @@ export interface Config {
     news: News;
     'discover-events': DiscoverEvent;
     'email-templates': EmailTemplate;
+    'faq-categories': FaqCategory;
+    faqs: Faq;
     'news-analytics': NewsAnalytic;
     'notification-deliveries': NotificationDelivery;
     'notification-inbox': NotificationInbox;
@@ -121,7 +123,11 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    'faq-categories': {
+      questions: 'faqs';
+    };
+  };
   collectionsSelect: {
     accounts: AccountsSelect<false> | AccountsSelect<true>;
     activities: ActivitiesSelect<false> | ActivitiesSelect<true>;
@@ -148,6 +154,8 @@ export interface Config {
     news: NewsSelect<false> | NewsSelect<true>;
     'discover-events': DiscoverEventsSelect<false> | DiscoverEventsSelect<true>;
     'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
+    'faq-categories': FaqCategoriesSelect<false> | FaqCategoriesSelect<true>;
+    faqs: FaqsSelect<false> | FaqsSelect<true>;
     'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
     'notification-deliveries': NotificationDeliveriesSelect<false> | NotificationDeliveriesSelect<true>;
     'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
@@ -1960,6 +1968,53 @@ export interface EmailTemplate {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faq-categories".
+ */
+export interface FaqCategory {
+  id: string;
+  _order?: string | null;
+  name: string;
+  icon: 'rocket' | 'star' | 'gift' | 'target' | 'megaphone' | 'shield' | 'wrench' | 'headset' | 'help-circle' | 'book';
+  questions?: {
+    docs?: (string | Faq)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs".
+ */
+export interface Faq {
+  id: string;
+  _faqs_questions_order?: string | null;
+  question: string;
+  answer: string;
+  category: string | FaqCategory;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics".
  */
 export interface NewsAnalytic {
@@ -2781,6 +2836,14 @@ export interface PayloadLockedDocument {
         value: string | EmailTemplate;
       } | null)
     | ({
+        relationTo: 'faq-categories';
+        value: string | FaqCategory;
+      } | null)
+    | ({
+        relationTo: 'faqs';
+        value: string | Faq;
+      } | null)
+    | ({
         relationTo: 'news-analytics';
         value: string | NewsAnalytic;
       } | null)
@@ -3478,6 +3541,35 @@ export interface EmailTemplatesSelect<T extends boolean = true> {
   subject?: T;
   previewText?: T;
   html?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faq-categories_select".
+ */
+export interface FaqCategoriesSelect<T extends boolean = true> {
+  _order?: T;
+  name?: T;
+  icon?: T;
+  questions?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs_select".
+ */
+export interface FaqsSelect<T extends boolean = true> {
+  _faqs_questions_order?: T;
+  question?: T;
+  answer?: T;
+  category?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;

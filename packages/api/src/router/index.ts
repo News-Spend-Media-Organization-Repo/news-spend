@@ -4,6 +4,7 @@ import { adsRouter } from "./ads";
 import { blockRouter } from "./block";
 import { commentRouter } from "./comment";
 import { discoverAnalyticsRouter } from "./discoverAnalytics";
+import { faqRouter } from "./faq";
 import { feedbackRouter } from "./feedback";
 import { giveawayRouter } from "./giveaway";
 import { newsRouter } from "./news";
@@ -25,6 +26,7 @@ export const router = {
   block: blockRouter,
   ads: adsRouter,
   comments: commentRouter,
+  faq: faqRouter,
   feedback: feedbackRouter,
   giveaway: giveawayRouter,
   discoverAnalytics: discoverAnalyticsRouter,
