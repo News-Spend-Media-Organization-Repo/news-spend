@@ -62,6 +62,8 @@ import * as migration_20261006_084500_email_templates_builtin_slug from './20261
 import * as migration_20261006_090000_email_templates_no_audit_sidebar from './20261006_090000_email_templates_no_audit_sidebar';
 import * as migration_20261014_080850_featured_until from './20261014_080850_featured_until';
 import * as migration_20261014_191943 from './20261014_191943';
+import * as migration_20261017_161124_faq from './20261017_161124_faq';
+import * as migration_20261017_161125_faq_seed from './20261017_161125_faq_seed';
 
 export const migrations = [
   {
@@ -382,6 +384,16 @@ export const migrations = [
   {
     up: migration_20261014_191943.up,
     down: migration_20261014_191943.down,
-    name: '20261014_191943'
+    name: '20261014_191943',
+  },
+  {
+    up: migration_20261017_161124_faq.up,
+    down: migration_20261017_161124_faq.down,
+    name: '20261017_161124_faq',
+  },
+  {
+    up: migration_20261017_161125_faq_seed.up,
+    down: migration_20261017_161125_faq_seed.down,
+    name: '20261017_161125_faq_seed',
   },
 ];

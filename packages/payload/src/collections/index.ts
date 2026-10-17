@@ -5,6 +5,10 @@ export { default as Admins } from "./Admins";
 export { default as Categories } from "./Categories";
 export { default as Comments } from "./Comments";
 export { ContentReport } from "./ContentReport";
+export { default as DiscoverEvents } from "./DiscoverEvents";
+export { EmailTemplates } from "./EmailTemplates";
+export { FaqCategories } from "./FaqCategories";
+export { Faqs } from "./Faqs";
 export { default as Feedback } from "./Feedback";
 export {
   GiveawayAccountFlags,
@@ -23,9 +27,7 @@ export {
   PrizeCatalogue,
 } from "./giveaway";
 export { Media } from "./Media";
-export { EmailTemplates } from "./EmailTemplates";
 export { default as News } from "./News";
-export { default as DiscoverEvents } from "./DiscoverEvents";
 export { default as NewsAnalytics } from "./NewsAnalytics";
 export { default as NotificationDeliveries } from "./NotificationDeliveries";
 export {
