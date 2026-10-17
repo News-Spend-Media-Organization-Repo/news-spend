@@ -2,11 +2,12 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useMutation } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
-import { Linking, Platform } from "react-native";
+import { Platform } from "react-native";
 
 import { orpc } from "#/lib/orpc";
 import { navigate } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
+import { openStoreLink } from "#/utils/openStoreLink";
 
 /**
  * Mint the click id here rather than waiting for the server to return one.
@@ -97,8 +98,18 @@ export function usePartnerClick() {
         .finally(() => setLoadingItemId(null));
     }
 
+    const openInApp = (target: string) =>
+      navigate("InAppBrowser", {
+        url: target,
+        title: item.title,
+        confirmOnLeave: false,
+      });
+
     if (isStoreLink) {
-      Linking.openURL(url);
+      // If no store route opens, show the page rather than leave the tap dead.
+      if (!(await openStoreLink(url))) {
+        openInApp(url);
+      }
       return;
     }
 
