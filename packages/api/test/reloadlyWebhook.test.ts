@@ -58,9 +58,12 @@ function callback(overrides: Partial<ReloadlyCallback> = {}): ReloadlyCallback {
 function createFakePayload({
   winners = [],
   attempts = [],
+  failAttemptCreateOnce = false,
 }: {
   winners?: Row[];
   attempts?: Row[];
+  /** Makes the next attempt-row write reject once, as a full database can. */
+  failAttemptCreateOnce?: boolean;
 } = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-winners": winners,
@@ -68,6 +71,7 @@ function createFakePayload({
   };
 
   const calls: { op: string; collection: string }[] = [];
+  let attemptCreateFails = failAttemptCreateOnce;
 
   const payload: any = {
     logger: {
@@ -122,6 +126,10 @@ function createFakePayload({
     },
     create: async ({ collection, data }: Row) => {
       calls.push({ op: "create", collection });
+      if (attemptCreateFails && collection === "giveaway-fulfilment-attempts") {
+        attemptCreateFails = false;
+        throw new Error("attempt write failed");
+      }
       const row = {
         id: `${collection}-${(collections[collection]?.length ?? 0) + 1}`,
         ...data,
@@ -380,6 +388,29 @@ describe("applyReloadlyCallback", () => {
     expect(
       collections["giveaway-fulfilment-attempts"].at(-1)?.providerReference
     ).toBe("w1:1");
+  });
+
+  it("surfaces a failed attempt-row write instead of answering 200", async () => {
+    // The row is the only record of what the provider said, and a 200 tells
+    // Reloadly to stop retrying, so losing it here is permanent. The applier
+    // must reject; the handler turns that into a 5xx. The writer has already
+    // moved the winner by then, which the retry's idempotency absorbs.
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [attemptRow()],
+      failAttemptCreateOnce: true,
+    });
+
+    await expect(
+      applyReloadlyCallback(payload, callback({ status: "FAILED" }))
+    ).rejects.toThrow("attempt write failed");
+
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+    expect(
+      collections["giveaway-fulfilment-attempts"].filter(
+        (row) => row.outcome === "retryable_failure"
+      )
+    ).toHaveLength(0);
   });
 
   it("does not drop a redelivered SUCCESSFUL as a duplicate", async () => {

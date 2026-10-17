@@ -28,6 +28,15 @@ export type ProviderVerdict = {
    * sweep passes none — it is settling an attempt, not reading a key back.
    */
   providerReference?: string;
+  /**
+   * Let a failure to write the attempt row reject instead of being swallowed.
+   *
+   * The webhook sets this: its 200 suppresses the redelivery that would
+   * rewrite the row, so a lost settlement row is unrecoverable there. The
+   * dispatch and sweep paths leave it unset, where a write failure must not
+   * abort the pass.
+   */
+  throwOnWriteFailure?: boolean;
 };
 
 /** What applying a verdict did to the winner, counted by the sweep's summary. */
@@ -97,6 +106,7 @@ export async function applyProviderVerdict(
       {
         confirmedTransactionId: verdict.transactionId,
         providerReference: verdict.providerReference,
+        throwOnWriteFailure: verdict.throwOnWriteFailure,
       }
     );
 

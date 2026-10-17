@@ -340,7 +340,9 @@ export async function applyReloadlyCallback(
   // 6. Apply. The verdict carries the attempt row's transaction id, not the
   // callback's, so a key-only match still tells the retry its key is spent; it
   // carries the row's key too, so the settlement row records what it settled
-  // and a redelivery of the same id-less failure is recognised by it.
+  // and a redelivery of the same id-less failure is recognised by it. Finally
+  // it asks for a write failure to surface: here a 200 suppresses the
+  // redelivery that would rewrite a lost settlement row.
   const outcome = await applyProviderVerdict(
     payload,
     {
@@ -353,6 +355,7 @@ export async function applyReloadlyCallback(
       status: event.status,
       transactionId: attempt.providerTransactionId ?? event.transactionId ?? "",
       providerReference: attempt.providerReference ?? undefined,
+      throwOnWriteFailure: true,
       message: event.message ?? undefined,
       localAmount: attempt.localAmount ?? undefined,
     }
