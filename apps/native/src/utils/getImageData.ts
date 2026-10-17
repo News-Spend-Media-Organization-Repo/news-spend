@@ -35,7 +35,7 @@ export const getImageData = (
 ) => {
   try {
     if (!image) {
-      return { url: null, blurhash: undefined, aspectRatio: undefined };
+      return { url: null, blurhash: undefined, focal: undefined };
     }
 
     if (typeof image === "object" && image !== null) {
@@ -48,8 +48,10 @@ export const getImageData = (
       return {
         url: baseUrl ? withCacheBuster(baseUrl, image.updatedAt) : null,
         blurhash: image.blurhash || undefined,
-        aspectRatio:
-          image.width && image.height ? image.width / image.height : undefined,
+        focal:
+          image.focalX != null && image.focalY != null
+            ? { x: image.focalX, y: image.focalY }
+            : undefined,
       };
     }
 
@@ -57,13 +59,13 @@ export const getImageData = (
       return {
         url: image,
         blurhash: undefined,
-        aspectRatio: undefined,
+        focal: undefined,
       };
     }
 
-    return { url: null, blurhash: undefined, aspectRatio: undefined };
+    return { url: null, blurhash: undefined, focal: undefined };
   } catch (error) {
     console.error("Error parsing image data:", error);
-    return { url: null, blurhash: undefined, aspectRatio: undefined };
+    return { url: null, blurhash: undefined, focal: undefined };
   }
 };

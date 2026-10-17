@@ -130,12 +130,7 @@ const SingleNews = () => {
     );
   }
 
-  const { url, blurhash, aspectRatio } = getImageData(data?.image, "mobile");
-  // Show the whole picture at its own shape, as the home feed does, instead of
-  // cropping it to a fixed 30vh band. Clamped so a very tall or very wide
-  // upload cannot take over, or vanish from, the top of the article.
-  const imageAspectRatio = Math.min(Math.max(aspectRatio ?? 16 / 9, 0.8), 2.2);
-
+  const { url, blurhash, focal } = getImageData(data?.image, "mobile");
   return (
     <Screen navigationBarButtonStyle="dark" statusBarStyle="auto">
       <Button
@@ -165,17 +160,21 @@ const SingleNews = () => {
           <View className="mb-3">
             <SkeletonGroup.Item
               className="w-full rounded-md"
-              style={{ aspectRatio: imageAspectRatio }}
+              style={{ aspectRatio: HERO_ASPECT_RATIO }}
             >
               <Galeria urls={[url]}>
                 <Galeria.Image>
                   <Image
                     className="w-full"
                     contentFit="cover"
+                    contentPosition={{
+                      left: `${focal?.x ?? 50}%`,
+                      top: `${focal?.y ?? 50}%`,
+                    }}
                     placeholder={{ blurhash }}
                     placeholderContentFit="cover"
                     source={url}
-                    style={{ aspectRatio: imageAspectRatio }}
+                    style={{ aspectRatio: HERO_ASPECT_RATIO }}
                   />
                 </Galeria.Image>
               </Galeria>
@@ -264,5 +263,12 @@ const SingleNews = () => {
     </Screen>
   );
 };
+
+/**
+ * A fixed 4:3 hero, cropped around the focal point editors set in the CMS.
+ * Other news apps do the same: the headline stays on the first screen whatever
+ * shape the photo is, and tapping the image opens it whole.
+ */
+const HERO_ASPECT_RATIO = 4 / 3;
 
 export default SingleNews;
