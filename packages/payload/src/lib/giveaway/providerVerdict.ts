@@ -19,6 +19,15 @@ export type ProviderVerdict = {
   transactionId: string;
   message?: string;
   localAmount?: number;
+  /**
+   * The idempotency key the attempt was sent under, when the caller knows it.
+   *
+   * Recorded on the settlement row, because the reference is the only link
+   * between an attempt and the failure that settles it: a webhook redelivery
+   * of an id-less failure is recognised by this key and nothing else. The
+   * sweep passes none — it is settling an attempt, not reading a key back.
+   */
+  providerReference?: string;
 };
 
 /** What applying a verdict did to the winner, counted by the sweep's summary. */
@@ -85,7 +94,10 @@ export async function applyProviderVerdict(
       },
       verdict.localAmount ?? 0,
       verdict.message ?? `Provider reported ${verdict.status}`,
-      { confirmedTransactionId: verdict.transactionId }
+      {
+        confirmedTransactionId: verdict.transactionId,
+        providerReference: verdict.providerReference,
+      }
     );
 
     return outcome === "pending" ? "requeued" : "held";

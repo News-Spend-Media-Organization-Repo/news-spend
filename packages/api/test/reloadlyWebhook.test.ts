@@ -181,6 +181,37 @@ describe("applyReloadlyCallback", () => {
     );
   });
 
+  it("matches by transaction id when both ids point at different rows", async () => {
+    // The transaction id is the stronger identity: it names the payout the
+    // provider actually moved. Matching the reference instead would settle the
+    // wrong winner's prize.
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow(), winnerRow({ id: "w2" })],
+      attempts: [
+        attemptRow({
+          id: "a2",
+          winner: "w2",
+          providerTransactionId: "999",
+          providerReference: "w2:1",
+        }),
+        attemptRow({ id: "a1" }),
+      ],
+    });
+
+    const result = await applyReloadlyCallback(
+      payload,
+      callback({ transactionId: "33017710", customIdentifier: "w2:1" })
+    );
+
+    expect(result).toEqual({ outcome: "fulfilled" });
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "fulfilled"
+    );
+    expect(collections["giveaway-winners"][1].fulfilmentStatus).toBe(
+      "in_progress"
+    );
+  });
+
   it("changes nothing for an unknown transaction id", async () => {
     const { payload, collections, writes } = createFakePayload({
       winners: [winnerRow()],
@@ -241,6 +272,28 @@ describe("applyReloadlyCallback", () => {
     expect(writes()).toHaveLength(0);
   });
 
+  it("refuses a callback with no environment at all", async () => {
+    // A null `liveMode` is not a live `true`: it must settle neither
+    // environment, or a sandbox callback could mark a live payout paid.
+    for (const environment of ["live", "sandbox"]) {
+      const { payload, writes } = createFakePayload({
+        winners: [winnerRow()],
+        attempts: [attemptRow({ environment })],
+      });
+
+      const result = await applyReloadlyCallback(
+        payload,
+        callback({ liveMode: null })
+      );
+
+      expect(result).toEqual({
+        outcome: "ignored",
+        reason: "environment mismatch",
+      });
+      expect(writes()).toHaveLength(0);
+    }
+  });
+
   it("ignores a verdict for a superseded dispatch", async () => {
     // A second dispatch is in flight. Its failure is the only one that may
     // move the prize; applying the older one would re-queue the winner while
@@ -299,32 +352,61 @@ describe("applyReloadlyCallback", () => {
   });
 
   it("drops a redelivered failure with no transaction id", async () => {
-    // A failure the provider never confirmed carries no transaction id, so the
-    // redelivery is recognised by the attempt's key instead.
-    const { payload, writes } = createFakePayload({
+    // The first callback matched the sent row by its key and re-queued the
+    // prize. The settlement row it left behind is built by the writer, not
+    // seeded here, and carries the key it settled — so the redelivery is
+    // recognised. Without that key the second callback appends a second
+    // failure row and burns one of the five retries.
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [attemptRow({ providerTransactionId: undefined })],
+    });
+    const redelivery = callback({
+      status: "FAILED",
+      transactionId: null,
+      customIdentifier: "w1:1",
+    });
+
+    const first = await applyReloadlyCallback(payload, redelivery);
+    const second = await applyReloadlyCallback(payload, redelivery);
+
+    expect(first).toEqual({ outcome: "requeued" });
+    expect(second).toEqual({ outcome: "duplicate" });
+    expect(
+      collections["giveaway-fulfilment-attempts"].filter(
+        (row) => row.outcome === "retryable_failure"
+      )
+    ).toHaveLength(1);
+    expect(
+      collections["giveaway-fulfilment-attempts"].at(-1)?.providerReference
+    ).toBe("w1:1");
+  });
+
+  it("does not drop a redelivered SUCCESSFUL as a duplicate", async () => {
+    // A failure was recorded for this transaction, but the provider has since
+    // confirmed it paid: a success is never a redelivery to ignore, even
+    // though a settlement row for the same transaction id exists.
+    const { payload, collections } = createFakePayload({
       winners: [winnerRow()],
       attempts: [
         attemptRow({
           id: "a2",
           outcome: "retryable_failure",
-          providerTransactionId: undefined,
           attemptedAt: new Date().toISOString(),
         }),
-        attemptRow({ id: "a1", providerTransactionId: undefined }),
+        attemptRow({ id: "a1" }),
       ],
     });
 
     const result = await applyReloadlyCallback(
       payload,
-      callback({
-        status: "FAILED",
-        transactionId: null,
-        customIdentifier: "w1:1",
-      })
+      callback({ status: "SUCCESSFUL" })
     );
 
-    expect(result).toEqual({ outcome: "duplicate" });
-    expect(writes()).toHaveLength(0);
+    expect(result).toEqual({ outcome: "fulfilled" });
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "fulfilled"
+    );
   });
 
   it("re-queues a FAILED and records the provider's reason", async () => {
