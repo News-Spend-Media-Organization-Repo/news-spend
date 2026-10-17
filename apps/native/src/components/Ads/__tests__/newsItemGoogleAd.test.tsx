@@ -419,8 +419,7 @@ describe("NewsItemGoogleAds", () => {
     });
     mockCreateForAdRequest
       .mockResolvedValueOnce(videoWith("Video 1"))
-      .mockResolvedValueOnce(videoWith("Video 2"))
-      .mockResolvedValueOnce(videoWith("Video 3"));
+      .mockResolvedValueOnce(videoWith("Video 2"));
 
     mockCurrentItem = { id: "ad-all-video" };
     await render(
@@ -429,13 +428,11 @@ describe("NewsItemGoogleAds", () => {
     await flush();
     await advance(1000);
     await flush();
-    await advance(3000);
-    await flush();
 
     expect(screen.getByText("Video 1")).toBeTruthy();
     expect(screen.queryByText("Video 2")).toBeNull();
-    // The two extra videos were released, not leaked.
-    expect(mockDestroy).toHaveBeenCalledTimes(2);
+    // The extra video was released, not leaked.
+    expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
   it("leaves a breadcrumb, not an issue, when fill is exhausted by no-fill", async () => {

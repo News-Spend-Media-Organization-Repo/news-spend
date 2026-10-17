@@ -8,10 +8,19 @@ import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
 import { getCachedAd, isDuplicateInTab, setCachedAd } from "#/utils/ad-cache";
 
-const MAX_RETRIES = 3;
+/**
+ * Two attempts, not three.
+ *
+ * Measured on a production iPhone, a slot that Google could not fill sat on
+ * the grey "Advertisement" box for about 25 seconds before the partner ad
+ * replaced it. Google's answer to a retry is almost always the same no-fill as
+ * its answer to the first request, so the extra attempt mostly delayed the
+ * partner ad that was going to take the slot anyway.
+ */
+const MAX_RETRIES = 2;
 
 /** How long to wait for a single ad request before treating it as timed out. */
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 6000;
 
 /**
  * Backoff before each retry, in ms.
@@ -21,7 +30,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
  * milliseconds get the same answer three times, burning the retry budget on
  * what is really one attempt.
  */
-const RETRY_BACKOFF_MS = [1000, 3000, 9000];
+const RETRY_BACKOFF_MS = [1000];
 
 const makeKey = (tab: string | undefined, id: string) =>
   `${tab ?? "default"}:${id}`;
