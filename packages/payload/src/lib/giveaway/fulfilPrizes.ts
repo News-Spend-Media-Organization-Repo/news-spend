@@ -68,7 +68,7 @@ export async function fulfilPendingPrizes(
     skipped: 0,
   };
 
-  const resolved = client ?? defaultClient(payload);
+  const resolved = client ?? defaultReloadlyClient(payload);
   if (!resolved) {
     return summary;
   }
@@ -130,7 +130,9 @@ export async function fulfilPendingPrizes(
   return summary;
 }
 
-function defaultClient(payload: BasePayload): ReloadlyClient | null {
+export function defaultReloadlyClient(
+  payload: BasePayload
+): ReloadlyClient | null {
   const config = reloadlyConfigFromEnv();
 
   if (!config) {

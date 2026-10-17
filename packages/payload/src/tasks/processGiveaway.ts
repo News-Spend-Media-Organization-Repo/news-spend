@@ -3,6 +3,7 @@ import type { BasePayload, TaskConfig } from "payload";
 import { expireLapsedClaims } from "../lib/giveaway/claim";
 import { fulfilPendingPrizes } from "../lib/giveaway/fulfilPrizes";
 import { GiveawayEngine } from "../lib/giveaway/GiveawayEngine";
+import { reconcileInProgressPrizes } from "../lib/giveaway/reconcilePrizes";
 import { retryFailedWinnerReports } from "../lib/giveaway/sendWinnerReport";
 
 /**
@@ -67,7 +68,8 @@ async function drawEndedGiveaways(payload: BasePayload): Promise<number> {
  * Payload job task: processGiveaway
  *
  * 1. Draws any active giveaway that has passed its end date.
- * 2. Pays out claimed airtime and data prizes through Reloadly (spec 15).
+ * 2. Settles prizes Reloadly has finished with, then pays out claimed airtime
+ *    and data prizes (spec 15).
  * 3. Expires prizes whose claim window has closed (spec 21).
  * 4. Retries Winner Report emails that previously failed (spec 21).
  *
@@ -96,9 +98,18 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
     const { payload } = req;
 
     const drawn = await drawEndedGiveaways(payload);
+    // Above the fulfilment sweep, so a prize this pass re-queues is actually
+    // sent in this run rather than waiting another hour.
+    const reconciled = await reconcileInProgressPrizes(payload);
     const fulfilment = await fulfilPendingPrizes(payload);
     const claimsExpired = await expireLapsedClaims(payload);
     const reports = await retryFailedWinnerReports(payload);
+
+    if (reconciled.checked > 0) {
+      payload.logger.info(
+        `[giveaway] reconciliation: ${reconciled.fulfilled} settled, ${reconciled.requeued} re-queued`
+      );
+    }
 
     if (fulfilment.attempted > 0) {
       payload.logger.info(
