@@ -14,7 +14,7 @@ import { orpc } from "#/lib/orpc";
 import { contactSupport } from "./faq/contactSupport";
 import { FAQ_FALLBACK, type FaqSection } from "./faq/faqFallback";
 import { faqIcon } from "./faq/faqIcons";
-import { filterFaq } from "./faq/filterFaq";
+import { filterFaq, hasSearchTerms } from "./faq/filterFaq";
 
 const PARAGRAPH_BREAK = /\n\s*\n/;
 const SKELETON_KEYS = ["a", "b", "c", "d"] as const;
@@ -83,7 +83,7 @@ const FAQs = () => {
   const isLoading = isPending && fetchStatus === "fetching" && !hasCmsData;
   const source: FaqSection[] = hasCmsData ? cmsCategories : FAQ_FALLBACK;
 
-  const isSearching = query.trim().length > 0;
+  const isSearching = hasSearchTerms(query);
   const categories = useMemo(() => filterFaq(source, query), [source, query]);
   const matchedIds = categories.map((category) => category.id);
   const expanded = isSearching

@@ -15,6 +15,10 @@ const queryWords = (query: string): string[] =>
     .map((word) => word.replace(/^[\p{P}]+|[\p{P}]+$/gu, ""))
     .filter((word) => word.length > 0);
 
+/** Whether the query holds any word to search for; spaces and punctuation alone do not. */
+export const hasSearchTerms = (query: string): boolean =>
+  queryWords(query).length > 0;
+
 /**
  * Keeps the questions whose text contains every query word. Categories left
  * empty are dropped; `total` stays the category's full count so the UI can

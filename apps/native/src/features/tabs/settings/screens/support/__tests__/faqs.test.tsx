@@ -10,6 +10,7 @@ type MockQuery = {
   fetchStatus: "fetching" | "paused" | "idle";
 };
 
+const OF_COUNT = / of /;
 let mockQuery: MockQuery;
 const mockToastError = jest.fn();
 
@@ -233,6 +234,22 @@ describe("FAQs screen", () => {
     await fireEvent.changeText(search, "zzz");
     expect(screen.getByText("No questions match 'zzz'")).toBeTruthy();
     expect(screen.getByText("Contact Support")).toBeTruthy();
+  });
+
+  it("treats a punctuation-only or blank query like an empty search", async () => {
+    await render(<FAQs />);
+    const search = screen.getByPlaceholderText(
+      "Search frequently asked questions..."
+    );
+
+    for (const text of ["?", "  "]) {
+      await fireEvent.changeText(search, text);
+      expect(screen.getByText("2 questions")).toBeTruthy();
+      expect(screen.getByText("1 question")).toBeTruthy();
+      expect(screen.queryByText(OF_COUNT)).toBeNull();
+      expect(screen.queryByText("What is NewsSpend?")).toBeNull();
+      expect(screen.queryByText("When are draws held?")).toBeNull();
+    }
   });
 
   it("Contact Support opens mailto:support@newsspend.com", async () => {

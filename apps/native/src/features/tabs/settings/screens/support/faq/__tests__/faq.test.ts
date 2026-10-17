@@ -3,7 +3,7 @@ import { QuestionIcon } from "#/lib/icons";
 import type { FaqSection } from "../faqFallback";
 import { FAQ_FALLBACK } from "../faqFallback";
 import { faqIcon } from "../faqIcons";
-import { filterFaq } from "../filterFaq";
+import { filterFaq, hasSearchTerms } from "../filterFaq";
 
 const section = (
   name: string,
@@ -94,5 +94,15 @@ describe("FAQ_FALLBACK", () => {
     expect(FAQ_FALLBACK).toHaveLength(FAQ_SEED.length);
     expect(FAQ_FALLBACK[1]?.id).toBe("fallback-1");
     expect(FAQ_FALLBACK[1]?.questions[0]?.id).toBe("fallback-1-0");
+  });
+});
+
+describe("hasSearchTerms", () => {
+  it.each(["", "  ", "?", " ? ! "])("is false for %j", (query) => {
+    expect(hasSearchTerms(query)).toBe(false);
+  });
+
+  it.each(["claim", "₦50,000"])("is true for %j", (query) => {
+    expect(hasSearchTerms(query)).toBe(true);
   });
 });
