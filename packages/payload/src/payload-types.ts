@@ -644,7 +644,7 @@ export interface Giveaway {
    */
   sendAnnouncement?: boolean | null;
   /**
-   * Push title, sent exactly as typed. Do not use {{firstName}} here: names are only filled in for the body, so a placeholder in the title would reach users as raw curly brackets.
+   * Push title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each user sees their own first name in its place.
    */
   notificationTitle?: string | null;
   /**
@@ -1465,7 +1465,7 @@ export interface GiveawayFulfilmentAttempt {
   environment: 'sandbox' | 'live';
   outcome: 'sent' | 'already_sent' | 'retryable_failure' | 'permanent_failure' | 'skipped';
   /**
-   * The idempotency key sent to the provider. Repeating it is what stops a double payment.
+   * The idempotency key sent to the provider: the winner id and the number of failures the provider confirmed for that winner, colon-separated. Repeating one attempt's key is what stops a double payment; a failure the provider confirmed spent its key, so the next attempt gets a fresh one.
    */
   providerReference?: string | null;
   providerTransactionId?: string | null;
