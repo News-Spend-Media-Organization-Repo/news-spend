@@ -37,9 +37,12 @@ function attemptRow(overrides: Row = {}): Row {
 function createFakePayload({
   winners = [],
   attempts = [] as Row[],
+  holdFails = false,
 }: {
   winners?: Row[];
   attempts?: Row[];
+  /** Makes a write that would put a prize on hold fail, as a full database would. */
+  holdFails?: boolean;
 } = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-winners": winners,
@@ -83,6 +86,9 @@ function createFakePayload({
       ).length,
     }),
     update: async ({ collection, id, data }: Row) => {
+      if (holdFails && data?.fulfilmentStatus === "on_hold") {
+        throw new Error("database unavailable");
+      }
       const row = collections[collection]?.find((item) => item.id === id);
       if (row) {
         Object.assign(row, data);
@@ -366,5 +372,30 @@ describe("reconcileInProgressPrizes", () => {
 
     expect(summary.held).toBe(1);
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
+  });
+
+  it("resolves when the hold itself cannot be written", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [attemptRow()],
+      holdFails: true,
+    });
+    const client = fakeClient({
+      topupStatus: async () => {
+        throw new ReloadlyError("TRANSACTION_NOT_FOUND", 404, null, false);
+      },
+    });
+
+    const summary = await reconcileInProgressPrizes(payload, { client });
+
+    // A hold that did not happen must not be counted as held, and the pass
+    // must not reject: throwing out of the catch would stop every other
+    // winner in the same run from settling. The prize stays as it was and the
+    // next pass sees the same 404.
+    expect(summary.checked).toBe(1);
+    expect(summary.held).toBe(0);
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "in_progress"
+    );
   });
 });

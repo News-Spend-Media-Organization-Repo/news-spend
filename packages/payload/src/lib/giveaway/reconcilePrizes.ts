@@ -124,6 +124,10 @@ export async function reconcileInProgressPrizes(
          * The same branch for both: the money is equally absent either way, a
          * refund returns it. Passing the transaction id is what tells the next
          * attempt that this failure is confirmed and its key is spent.
+         *
+         * It is the id the `sent` row already carries, so the key count sees
+         * that transaction twice and the retry skips a value (`w1:1` →
+         * `w1:3`). Safe: a skipped key is never a reused one.
          */
         const outcome = await requeueOrHold(
           payload,
@@ -156,20 +160,31 @@ export async function reconcileInProgressPrizes(
         // never heard of it: two statements that disagree about money, so a
         // person decides. Re-queueing would be a guess with a payout behind
         // it, and re-reading it would loop forever.
-        await hold(
-          payload,
-          String(winner.id),
-          `Reloadly does not recognise transaction ${transactionId}.`
+        try {
+          await hold(
+            payload,
+            String(winner.id),
+            `Reloadly does not recognise transaction ${transactionId}.`
+          );
+          summary.held += 1;
+        } catch (holdError) {
+          /**
+           * A hold that cannot be written leaves the prize `in_progress`, and
+           * the next pass sees the same 404 and tries again. Failing the whole
+           * run over it would stop every other winner from settling.
+           */
+          payload.logger.error(
+            { err: holdError, winnerId: winner.id },
+            "[giveaway] could not hold a payout the provider does not recognise"
+          );
+        }
+      } else {
+        // One bad record must not stop the pass or throw into the shared run.
+        payload.logger.error(
+          { err: error, winnerId: winner.id },
+          "[giveaway] could not reconcile an in-progress prize"
         );
-        summary.held += 1;
-        continue;
       }
-
-      // One bad record must not stop the pass or throw into the shared run.
-      payload.logger.error(
-        { err: error, winnerId: winner.id },
-        "[giveaway] could not reconcile an in-progress prize"
-      );
     }
   }
 
