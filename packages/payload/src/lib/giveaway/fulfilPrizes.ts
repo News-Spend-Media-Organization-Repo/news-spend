@@ -63,10 +63,16 @@ export type AttemptContext = {
  *
  * `providerReference` is deliberately not part of the base: it identifies the
  * attempt being recorded and is not always known when the recorder is built.
+ *
+ * `throwOnWriteFailure` is off by default because a row-write failure must not
+ * abort a sweep pass. The webhook settlement turns it on: there a 200 answer
+ * suppresses the redelivery that would rewrite the row, so the loss has to
+ * reach the handler.
  */
 export function attemptRecorder(
   payload: BasePayload,
-  ctx: AttemptContext
+  ctx: AttemptContext,
+  { throwOnWriteFailure = false }: { throwOnWriteFailure?: boolean } = {}
 ): RecordAttempt {
   return (data) =>
     payload
@@ -87,6 +93,10 @@ export function attemptRecorder(
           { err: error, winnerId: ctx.winnerId },
           "[giveaway] could not write a fulfilment attempt"
         );
+
+        if (throwOnWriteFailure) {
+          throw error;
+        }
       });
 }
 
@@ -514,15 +524,25 @@ async function handleFailure(
  * attempt key on the retry: a confirmed failure has spent its identifier, and
  * reusing it would be refused and read as "already paid" while the winner goes
  * unpaid.
+ *
+ * `throwOnWriteFailure` is forwarded to {@link attemptRecorder} and is off
+ * everywhere but the webhook, whose 200 suppresses the redelivery that would
+ * rewrite a lost row.
  */
 export async function requeueOrHold(
   payload: BasePayload,
   ctx: AttemptContext,
   localAmount: number,
   message: string,
-  opts: { providerReference?: string; confirmedTransactionId?: string } = {}
+  opts: {
+    providerReference?: string;
+    confirmedTransactionId?: string;
+    throwOnWriteFailure?: boolean;
+  } = {}
 ): Promise<"pending" | "on_hold"> {
-  const record = attemptRecorder(payload, ctx);
+  const record = attemptRecorder(payload, ctx, {
+    throwOnWriteFailure: opts.throwOnWriteFailure,
+  });
 
   const attempts = await payload.count({
     collection: "giveaway-fulfilment-attempts",

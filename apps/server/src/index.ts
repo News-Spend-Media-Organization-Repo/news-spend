@@ -1,5 +1,6 @@
 import { createContext } from "@news-spend-media/api/context";
 import { admobSsvHandler } from "@news-spend-media/api/router/ads/admobSsv";
+import { reloadlyWebhookHandler } from "@news-spend-media/api/router/giveaway/webhook";
 import { router } from "@news-spend-media/api/router/index";
 import { diditWebhookHandler } from "@news-spend-media/api/router/verification/webhook";
 import { auth } from "@news-spend-media/auth";
@@ -428,6 +429,16 @@ const server = Bun.serve({
     if (url.pathname === "/api/ads/admob-ssv") {
       logRequest(req);
       return admobSsvHandler(req).then((res) => {
+        logResponse(req, res.status, Date.now() - start);
+        return res;
+      });
+    }
+
+    // Ahead of the /api/ catch-all, like Didit: Reloadly's HMAC covers the
+    // exact bytes it sent, so the body must not be re-parsed on the way in.
+    if (url.pathname === "/api/giveaway/reloadly") {
+      logRequest(req);
+      return reloadlyWebhookHandler(req).then((res) => {
         logResponse(req, res.status, Date.now() - start);
         return res;
       });

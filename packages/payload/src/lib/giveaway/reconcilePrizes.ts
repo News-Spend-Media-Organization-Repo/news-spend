@@ -1,6 +1,10 @@
 import type { BasePayload } from "payload";
 
-import { defaultReloadlyClient, hold, requeueOrHold } from "./fulfilPrizes";
+import { defaultReloadlyClient, hold } from "./fulfilPrizes";
+import {
+  applyProviderVerdict,
+  latestProviderTransactionId,
+} from "./providerVerdict";
 import { type ReloadlyClient, ReloadlyError } from "./reloadly";
 
 /**
@@ -84,14 +88,7 @@ export async function reconcileInProgressPrizes(
         limit: 10,
       });
 
-      /**
-       * The newest id, not the newest row: a `retryable_failure` records no
-       * transaction, and reading that row as "no id" would re-queue a payout
-       * the provider may still be settling.
-       */
-      const found = attempts.docs
-        .map((attempt) => attempt.providerTransactionId)
-        .find((id) => id !== undefined && id !== null && String(id) !== "");
+      const found = latestProviderTransactionId(attempts.docs);
 
       if (!found) {
         // The run died between claiming the prize and recording the send.
@@ -109,50 +106,31 @@ export async function reconcileInProgressPrizes(
       transactionId = String(found);
       const { status } = await resolved.topupStatus(transactionId);
 
-      if (status === "SUCCESSFUL") {
-        await payload.update({
-          collection: "giveaway-winners",
-          id: winner.id,
-          data: {
-            fulfilmentStatus: "fulfilled",
-            fulfilledAt: new Date().toISOString(),
-          },
-        });
-        summary.fulfilled += 1;
-      } else if (status === "FAILED" || status === "REFUNDED") {
-        /**
-         * The same branch for both: the money is equally absent either way, a
-         * refund returns it. Passing the transaction id is what tells the next
-         * attempt that this failure is confirmed and its key is spent.
-         *
-         * It is the id the `sent` row already carries, so the key count sees
-         * that transaction twice and the retry skips a value (`w1:1` →
-         * `w1:3`). Safe: a skipped key is never a reused one.
-         */
-        const outcome = await requeueOrHold(
-          payload,
-          {
-            winnerId: String(winner.id),
-            environment: resolved.isSandbox ? "sandbox" : "live",
-            phone: winner.claimPhone,
-          },
-          0,
-          `Provider reported ${status}`,
-          { confirmedTransactionId: transactionId }
-        );
-
-        if (outcome === "pending") {
-          summary.requeued += 1;
-        } else {
-          summary.held += 1;
+      /**
+       * One rule for both settle paths: the sweep and the webhook hand the same
+       * verdict to the same function, so what the provider says moves a prize
+       * identically however we heard it. `localAmount: 0` is what this row has
+       * always recorded — the sweep is settling an attempt, it is not reading
+       * an amount.
+       */
+      const outcome = await applyProviderVerdict(
+        payload,
+        {
+          winnerId: String(winner.id),
+          environment: resolved.isSandbox ? "sandbox" : "live",
+          phone: winner.claimPhone,
+          currentStatus: winner.fulfilmentStatus,
+        },
+        {
+          status,
+          transactionId,
+          localAmount: 0,
+          message: `Provider reported ${status}`,
         }
-      } else {
-        // Still settling: `PROCESSING` and anything else the provider has not
-        // finished with. A later pass settles these. Logged so the wait is
-        // visible rather than silent.
-        payload.logger.info(
-          `[giveaway] winner ${winner.id} is ${status} at the provider`
-        );
+      );
+
+      if (outcome !== "unchanged") {
+        summary[outcome] += 1;
       }
     } catch (error) {
       if (error instanceof ReloadlyError && error.status === 404) {
