@@ -11,7 +11,7 @@ import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { useTabBarHeight } from "#/state/route-state";
 import { markTabAdsStale, registerAdSlots } from "#/utils/ad-cache";
-import { ensureNativeAdLoaded } from "#/utils/ad-loader";
+import { preloadAdsAhead } from "#/utils/ad-preload";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
@@ -58,6 +58,7 @@ const NewsCategory = ({
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(() => {
     refetchFresh();
     markTabAdsStale(route);
+    lastVisibleIndexRef.current = 0;
   });
 
   // Fresh list on return — same as Latest. Covers article-back, bottom-tab
@@ -126,13 +127,31 @@ const NewsCategory = ({
   // of scroll position or whether that row has even mounted yet;
   // ensureNativeAdLoaded is cache/in-flight-aware so repeat calls for ids
   // already loaded or in progress are a cheap no-op.
+  const lastVisibleIndexRef = useRef(0);
   useEffect(() => {
-    for (const docItem of (flattenedNews ?? []) as FeedAdItem[]) {
-      if (docItem._type === "ad" && docItem.type === "gAd" && docItem.id) {
-        ensureNativeAdLoaded(route, docItem.id);
-      }
-    }
+    preloadAdsAhead(
+      route,
+      flattenedNews as FeedAdItem[] | undefined,
+      lastVisibleIndexRef.current
+    );
   }, [flattenedNews, route]);
+
+  // Ads are requested a bounded distance ahead of what is on screen.
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: { index: number }[] }) => {
+      for (const item of viewableItems) {
+        if (item.index > lastVisibleIndexRef.current) {
+          lastVisibleIndexRef.current = item.index;
+        }
+      }
+      preloadAdsAhead(
+        route,
+        flattenedNewsRef.current,
+        lastVisibleIndexRef.current
+      );
+    },
+    [route]
+  );
 
   if (isPending) {
     return <NewsItemPlaceholder show />;
@@ -154,6 +173,7 @@ const NewsCategory = ({
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       onRefresh={refetchByUser}
+      onViewableItemsChanged={onViewableItemsChanged}
       recycleItems
       ref={ref}
       refreshing={isRefetchingByUser}

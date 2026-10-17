@@ -34,7 +34,7 @@ import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { routeState, useTabBarHeight } from "#/state/route-state";
 import { markTabAdsStale, registerAdSlots } from "#/utils/ad-cache";
-import { ensureNativeAdLoaded } from "#/utils/ad-loader";
+import { preloadAdsAhead } from "#/utils/ad-preload";
 import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
@@ -248,20 +248,9 @@ const Latest = memo(
     // in practice that made ads start loading only once scrolled into
     // view. ensureNativeAdLoaded is cache/in-flight-aware, so calling it
     // repeatedly for ids already loaded or in progress is a cheap no-op.
+    const lastVisibleIndexRef = useRef(0);
     useEffect(() => {
-      for (const docItem of flattenedNews ?? []) {
-        if (
-          docItem &&
-          "_type" in docItem &&
-          docItem._type === "ad" &&
-          "type" in docItem &&
-          docItem.type === "gAd" &&
-          "id" in docItem &&
-          docItem.id
-        ) {
-          ensureNativeAdLoaded("latest", docItem.id);
-        }
-      }
+      preloadAdsAhead("latest", flattenedNews, lastVisibleIndexRef.current);
     }, [flattenedNews]);
 
     // Pull-to-refresh is a deliberate user action, unlike the passive
@@ -313,6 +302,7 @@ const Latest = memo(
       refetchByUser();
       trendingRefetch.refetchByUser();
       markTabAdsStale("latest");
+      lastVisibleIndexRef.current = 0;
     }, [
       resetInfiniteQueryPagination,
       refetchByUser,
@@ -424,6 +414,17 @@ const Latest = memo(
     );
 
     const onViewableItemsChanged = useRef(({ changed }) => {
+      // Ads are requested a bounded distance ahead of what is on screen.
+      for (const item of changed) {
+        if (item.isViewable && item.index > lastVisibleIndexRef.current) {
+          lastVisibleIndexRef.current = item.index;
+        }
+      }
+      preloadAdsAhead(
+        "latest",
+        flattenedNewsRef.current,
+        lastVisibleIndexRef.current
+      );
       for (const item of changed) {
         if (item.item.type === "adCarousel") {
           const cell = mediaRefs?.current[item.index];
