@@ -39,6 +39,14 @@ const REQUEST_TIMEOUT_MS = 6000;
 const RETRY_BACKOFF_MS = [1000];
 
 /**
+ * Google's "Too many recently failed requests for ad unit ... wait a few
+ * seconds" is a throttle that follows a run of no-fills, not a fault in the
+ * request. Retrying inside the window is refused again, so wait it out.
+ */
+const RATE_LIMITED_RE = /too many recently failed/i;
+const RATE_LIMIT_BACKOFF_MS = 3000;
+
+/**
  * What share of actionable load failures to report to Sentry.
  *
  * A feed carries several gAd slots, so one bad feed load used to file one
@@ -60,7 +68,7 @@ const ACTIONABLE_FAILURE_SAMPLE_RATE = 0.1;
  * actionable and sampled below.
  */
 const EXPECTED_FAILURE_RE =
-  /no-fill|no ad to show|video ad, rejected|repeat ad/i;
+  /no-fill|no ad to show|too many recently failed|video ad, rejected|repeat ad/i;
 
 /** One shared promise per (tab, id) — concurrent callers (an eager preload
  * walk and a slot mounting before that preload finished) await the same
@@ -189,6 +197,7 @@ async function loadWithRetries(
    * have servable fill.
    */
   let best: NativeAd | null = null;
+  let rateLimited = false;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -224,11 +233,20 @@ async function loadWithRetries(
         }
       }
     } catch (error) {
-      failures.push(`attempt ${attempt}: ${(error as Error)?.message}`);
+      const message = (error as Error)?.message ?? "";
+      failures.push(`attempt ${attempt}: ${message}`);
+      rateLimited = RATE_LIMITED_RE.test(message);
     }
 
     if (attempt < MAX_RETRIES) {
-      await delay(RETRY_BACKOFF_MS[attempt - 1] ?? 1000);
+      // Google asks to be left alone for a few seconds after a run of failed
+      // requests; asking again a second later is answered the same way.
+      await delay(
+        rateLimited
+          ? RATE_LIMIT_BACKOFF_MS
+          : (RETRY_BACKOFF_MS[attempt - 1] ?? 1000)
+      );
+      rateLimited = false;
     }
   }
 
