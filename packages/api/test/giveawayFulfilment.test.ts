@@ -456,7 +456,7 @@ describe("fulfilPendingPrizes", () => {
   });
 
   it("leaves a retryable failure pending rather than holding it immediately", async () => {
-    const { payload, collections } = createFakePayload({
+    const { payload, collections, created } = createFakePayload({
       winners: [winnerRow()],
     });
     const client = fakeClient({
@@ -470,6 +470,12 @@ describe("fulfilPendingPrizes", () => {
     // One transient failure should not take the prize out of the queue;
     // an outage clears on its own within a few hourly passes.
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+    // The key that request used belongs on the row: it is the evidence a
+    // person has when asking whether a request we never got an answer from
+    // did reach the provider, and it is the row read after a refused retry.
+    expect(created["giveaway-fulfilment-attempts"]?.[0].providerReference).toBe(
+      "w1:1"
+    );
   });
 
   it("holds a prize after enough retryable failures", async () => {

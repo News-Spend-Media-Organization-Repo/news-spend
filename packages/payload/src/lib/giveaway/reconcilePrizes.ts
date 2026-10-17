@@ -134,7 +134,7 @@ export async function reconcileInProgressPrizes(
           },
           0,
           `Provider reported ${status}`,
-          transactionId
+          { confirmedTransactionId: transactionId }
         );
 
         if (outcome === "pending") {

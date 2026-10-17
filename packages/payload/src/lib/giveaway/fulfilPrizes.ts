@@ -448,7 +448,9 @@ async function handleFailure(
     return "failed";
   }
 
-  await requeueOrHold(payload, ctx, localAmount, message);
+  await requeueOrHold(payload, ctx, localAmount, message, {
+    providerReference,
+  });
   return "failed";
 }
 
@@ -459,6 +461,13 @@ async function handleFailure(
  * Shared by the dispatch and the reconciliation pass so the cap is decided
  * once. The cap keeps counting *every* retryable failure, confirmed or not, so
  * a fault that never resolves still reaches a human.
+ *
+ * `providerReference` is the dispatch path's own identifier for the attempt,
+ * and is recorded here for the same reason as on every other row: it is the
+ * key that was spent, and it is what a person reads when asking whether a
+ * request we never got an answer from did reach the provider. The
+ * reconciliation pass deliberately passes none — it records the settlement of
+ * an attempt, it is not reading a key back.
  *
  * `confirmedTransactionId` is the id of a failure the provider itself
  * reported. Recording it as `providerTransactionId` is what advances the
@@ -471,7 +480,7 @@ export async function requeueOrHold(
   ctx: AttemptContext,
   localAmount: number,
   message: string,
-  confirmedTransactionId?: string
+  opts: { providerReference?: string; confirmedTransactionId?: string } = {}
 ): Promise<"pending" | "on_hold"> {
   const record = attemptRecorder(payload, ctx);
 
@@ -514,8 +523,11 @@ export async function requeueOrHold(
     outcome: "retryable_failure",
     localAmount,
     error: message,
-    ...(confirmedTransactionId
-      ? { providerTransactionId: confirmedTransactionId }
+    ...(opts.providerReference
+      ? { providerReference: opts.providerReference }
+      : {}),
+    ...(opts.confirmedTransactionId
+      ? { providerTransactionId: opts.confirmedTransactionId }
       : {}),
   });
 

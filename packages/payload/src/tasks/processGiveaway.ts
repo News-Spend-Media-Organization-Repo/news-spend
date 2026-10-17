@@ -107,7 +107,7 @@ export const processGiveawayTask: TaskConfig<"processGiveaway"> = {
 
     if (reconciled.checked > 0) {
       payload.logger.info(
-        `[giveaway] reconciliation: ${reconciled.fulfilled} settled, ${reconciled.requeued} re-queued`
+        `[giveaway] reconciliation: ${reconciled.fulfilled} settled, ${reconciled.requeued} re-queued, ${reconciled.held} held`
       );
     }
 
