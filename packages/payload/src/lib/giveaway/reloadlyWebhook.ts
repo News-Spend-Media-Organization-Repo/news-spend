@@ -1,18 +1,26 @@
 /**
- * Verifying and reading a Reloadly payout callback.
+ * Verifying, reading and settling a Reloadly payout callback.
  *
  * Reloadly posts the same transaction status we could also poll for, signed
- * with a key from the dashboard, so this file is the two pure halves of that
- * arrival: proving the bytes came from Reloadly, and turning the envelope into
- * a small typed record. Nothing here touches the database or the clock beyond
- * the `now` a caller may inject, so both halves are cheap to test and neither
- * can be tricked into trusting an unverified body.
+ * with a key from the dashboard, so this file is the three parts of that
+ * arrival: proving the bytes came from Reloadly, turning the envelope into a
+ * small typed record, and deciding which prize the record is about. The first
+ * two are pure — nothing touches the database or the clock beyond the `now` a
+ * caller may inject — so they are cheap to test and neither can be tricked
+ * into trusting an unverified body; only {@link applyReloadlyCallback} reads
+ * and writes, and it is handed an already-verified record.
  *
  * Kept next to `didit.ts` rather than in the API package: the endpoint in
  * `packages/api` imports from here, and the dependency only runs that way.
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import type { BasePayload, Where } from "payload";
+
+import {
+  applyProviderVerdict,
+  latestProviderTransactionId,
+} from "./providerVerdict";
 
 /**
  * The only event type this endpoint acts on.
@@ -208,4 +216,144 @@ export function parseReloadlyCallback(rawBody: string): ReloadlyVerification {
       message,
     },
   };
+}
+
+/** What a callback did to the prize it matched, or why it was let past. */
+export type CallbackOutcome =
+  | "fulfilled"
+  | "requeued"
+  | "held"
+  | "unchanged"
+  | "ignored"
+  | "duplicate";
+
+/**
+ * Find the prize an already-verified callback is about and settle its fate.
+ *
+ * The order below is the decision, not an implementation detail: a callback
+ * that matches nothing, comes from the other environment, names a prize we no
+ * longer have, repeats a failure we already recorded, or belongs to a dispatch
+ * the winner has moved past must all change nothing. Getting the match wrong
+ * either leaves a genuinely failed payout reading as paid or pays a winner
+ * twice, so every check that could stop a write runs before the verdict does.
+ *
+ * Deliberately does not catch database errors: a fault has to reach the HTTP
+ * handler so it can answer 5xx and Reloadly can retry the callback.
+ */
+export async function applyReloadlyCallback(
+  payload: BasePayload,
+  event: ReloadlyCallback
+): Promise<{ outcome: CallbackOutcome; reason?: string }> {
+  const ignore = (reason: string) => {
+    payload.logger.info(`[giveaway] ignoring a Reloadly callback: ${reason}`);
+    return { outcome: "ignored" as const, reason };
+  };
+
+  // 1. Match by transaction id first; the custom identifier is the fallback
+  // and is only consulted when the callback carries no transaction id.
+  const where: Where | null = event.transactionId
+    ? { providerTransactionId: { equals: event.transactionId } }
+    : event.customIdentifier
+      ? { providerReference: { equals: event.customIdentifier } }
+      : null;
+
+  const found = where
+    ? await payload.find({
+        collection: "giveaway-fulfilment-attempts",
+        where,
+        sort: "-attemptedAt",
+        limit: 1,
+        depth: 0,
+      })
+    : null;
+  const attempt = found?.docs[0];
+
+  if (!attempt) {
+    return ignore("unknown transaction");
+  }
+
+  // 2. The environment is part of the identity: a sandbox callback cannot
+  // settle a live payout. A missing `liveMode` is not a live `true`, so it
+  // mismatches too.
+  if (event.liveMode !== (attempt.environment === "live")) {
+    return ignore("environment mismatch");
+  }
+
+  // 3. Read the winner now, and hand the verdict *this* status. A status
+  // carried across from an earlier step could let a callback overwrite a
+  // decision made since, which is exactly what the hold check exists to stop.
+  const winner = await payload.findByID({
+    collection: "giveaway-winners",
+    id: String(attempt.winner),
+    depth: 0,
+    disableErrors: true,
+  });
+
+  if (!winner) {
+    return ignore("unknown winner");
+  }
+
+  const matchedTransactionId = attempt.providerTransactionId
+    ? String(attempt.providerTransactionId)
+    : "";
+
+  // 4. A redelivery of a failure we have already recorded is acknowledged and
+  // dropped: applying it again would spend one of the five retries on nothing.
+  if (event.status !== "SUCCESSFUL") {
+    const alreadyRecorded = await payload.count({
+      collection: "giveaway-fulfilment-attempts",
+      where: {
+        and: [
+          { outcome: { equals: "retryable_failure" } },
+          matchedTransactionId
+            ? { providerTransactionId: { equals: matchedTransactionId } }
+            : {
+                providerReference: {
+                  equals: String(attempt.providerReference ?? ""),
+                },
+              },
+        ],
+      },
+    });
+
+    if (alreadyRecorded.totalDocs > 0) {
+      return { outcome: "duplicate" };
+    }
+  }
+
+  // 5. A later dispatch owns this prize's fate. Applying this one would put the
+  // winner back in the queue while the current payout is still in flight, and
+  // the sweep would then pay a second time.
+  const recent = await payload.find({
+    collection: "giveaway-fulfilment-attempts",
+    where: { winner: { equals: attempt.winner } },
+    sort: "-attemptedAt",
+    limit: 10,
+    depth: 0,
+  });
+  const newest = latestProviderTransactionId(recent.docs);
+
+  if (newest !== undefined && newest !== matchedTransactionId) {
+    return ignore("superseded");
+  }
+
+  // 6. Apply. The verdict carries the attempt row's transaction id, not the
+  // callback's, so a key-only match still tells the retry its key is spent.
+  const outcome = await applyProviderVerdict(
+    payload,
+    {
+      winnerId: String(attempt.winner),
+      environment: attempt.environment,
+      phone: winner.claimPhone,
+      currentStatus: winner.fulfilmentStatus,
+    },
+    {
+      status: event.status,
+      transactionId: attempt.providerTransactionId ?? event.transactionId ?? "",
+      message: event.message ?? undefined,
+      localAmount: attempt.localAmount ?? undefined,
+    }
+  );
+
+  return { outcome };
 }
