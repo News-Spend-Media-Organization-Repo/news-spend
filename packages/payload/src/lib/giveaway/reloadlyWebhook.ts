@@ -1,0 +1,211 @@
+/**
+ * Verifying and reading a Reloadly payout callback.
+ *
+ * Reloadly posts the same transaction status we could also poll for, signed
+ * with a key from the dashboard, so this file is the two pure halves of that
+ * arrival: proving the bytes came from Reloadly, and turning the envelope into
+ * a small typed record. Nothing here touches the database or the clock beyond
+ * the `now` a caller may inject, so both halves are cheap to test and neither
+ * can be tricked into trusting an unverified body.
+ *
+ * Kept next to `didit.ts` rather than in the API package: the endpoint in
+ * `packages/api` imports from here, and the dependency only runs that way.
+ */
+
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+/**
+ * The only event type this endpoint acts on.
+ *
+ * Reloadly may post other services' events to the same URL; anything else is
+ * acknowledged and dropped rather than guessed at.
+ */
+const CALLBACK_TYPE = "airtime_transaction.status";
+
+/**
+ * How far a callback's own timestamp may be from now before it is refused.
+ *
+ * Local, not imported from `partnerWebhookSignature.ts`: this library must not
+ * depend on `packages/api`, and the same 300-second value `didit.ts` keeps to
+ * itself is plenty for a live callback.
+ */
+const SIGNATURE_TOLERANCE_SECONDS = 300;
+
+export type ReloadlyCallback = {
+  type: string;
+  /** Reloadly's environment discriminator: `false` is sandbox. */
+  liveMode: boolean | null;
+  /** Non-nullable: the parser only returns `ok` once it has a string status. */
+  status: string;
+  transactionId: string | null;
+  customIdentifier: string | null;
+  message: string | null;
+};
+
+export type ReloadlyVerification =
+  | { ok: true; event: ReloadlyCallback }
+  | { ok: false; reason: string };
+
+/**
+ * The webhook signing key, or null when it is absent or blank.
+ *
+ * Mirrors `diditConfigFromEnv`'s "provider absent unless configured" shape:
+ * a half-configured provider is worse than an absent one, because callbacks
+ * would arrive and no signature could ever be trusted.
+ */
+export function reloadlyWebhookSecret(): string | null {
+  return process.env.RELOADLY_WEBHOOK_SECRET?.trim() || null;
+}
+
+function hmac(secret: string, payload: string): string {
+  return createHmac("sha256", secret).update(payload, "utf-8").digest("hex");
+}
+
+/** Constant-time compare of two hex digests of possibly differing length. */
+function hexEquals(expected: string, received: string): boolean {
+  const a = Buffer.from(expected, "utf-8");
+  const b = Buffer.from(received, "utf-8");
+  // Length must be compared separately: timingSafeEqual throws on a mismatch.
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Reloadly's sample is epoch seconds; a wrong guess rejects every callback.
+ *
+ * The spec does not pin the unit, so anything that could only be a
+ * millisecond epoch is divided down before the freshness window is applied.
+ */
+function toSeconds(value: string): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+  return n >= 1e12 ? Math.floor(n / 1000) : n;
+}
+
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value !== "" ? value : null;
+}
+
+/**
+ * Ids arrive as numbers in Reloadly's sample but our columns are text, so
+ * stringify numbers and treat anything missing, empty or non-scalar as null.
+ */
+function idOrNull(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return nonEmptyString(value);
+}
+
+/**
+ * Whether a callback really came from Reloadly.
+ *
+ * Reloadly publishes HMAC-SHA256, hex, over `rawBody + ":" + timestamp`, keyed
+ * by the dashboard signing key. The timestamp is inside the signed string, not
+ * merely beside it, or it could be rewritten freely and the replay window
+ * would mean nothing. The raw timestamp string is used as received; only the
+ * freshness window normalises its unit.
+ */
+export function verifyReloadlySignature({
+  rawBody,
+  signature,
+  timestamp,
+  secret,
+  now = Math.floor(Date.now() / 1000),
+}: {
+  rawBody: string;
+  signature?: string | null;
+  timestamp?: string | null;
+  secret: string;
+  now?: number;
+}): { valid: boolean; reason?: string } {
+  if (!secret) {
+    return { valid: false, reason: "no webhook secret" };
+  }
+
+  const sig = signature?.trim();
+  if (!sig) {
+    return { valid: false, reason: "missing signature" };
+  }
+
+  const sentTimestamp = timestamp?.trim();
+  if (!sentTimestamp) {
+    return { valid: false, reason: "missing timestamp" };
+  }
+
+  const sent = toSeconds(sentTimestamp);
+  if (sent === null) {
+    return { valid: false, reason: "malformed timestamp" };
+  }
+
+  if (Math.abs(now - sent) > SIGNATURE_TOLERANCE_SECONDS) {
+    return { valid: false, reason: "timestamp outside the accepted window" };
+  }
+
+  const expected = hmac(secret, `${rawBody}:${sentTimestamp}`);
+  return hexEquals(expected, sig)
+    ? { valid: true }
+    : { valid: false, reason: "signature does not match" };
+}
+
+/**
+ * Read a verified callback body.
+ *
+ * Every field is checked, never asserted: this runs on JSON from the public
+ * internet. A payload with no transaction is deliberately `ok`: "signed, but
+ * there is nothing in it to match on" is a decision for the applier, not a
+ * reason to refuse the callback outright.
+ */
+export function parseReloadlyCallback(rawBody: string): ReloadlyVerification {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawBody);
+  } catch {
+    return { ok: false, reason: "body is not JSON" };
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return { ok: false, reason: "body is not an object" };
+  }
+
+  const envelope = parsed as Record<string, unknown>;
+  if (envelope.type !== CALLBACK_TYPE) {
+    return { ok: false, reason: "unexpected event type" };
+  }
+
+  const data = envelope.data;
+  if (!data || typeof data !== "object") {
+    return { ok: false, reason: "no event data" };
+  }
+
+  const payload = data as Record<string, unknown>;
+  const transaction =
+    payload.transaction && typeof payload.transaction === "object"
+      ? (payload.transaction as Record<string, unknown>)
+      : null;
+
+  // `data.status` drives the outcome; the transaction carries a second copy
+  // for shapes where the first is absent. Neither means nothing can be applied.
+  const status =
+    nonEmptyString(payload.status) ?? nonEmptyString(transaction?.status);
+  if (status === null) {
+    return { ok: false, reason: "no status" };
+  }
+
+  const message =
+    nonEmptyString(payload.message) ?? nonEmptyString(payload.code);
+
+  return {
+    ok: true,
+    event: {
+      type: CALLBACK_TYPE,
+      liveMode:
+        typeof envelope.liveMode === "boolean" ? envelope.liveMode : null,
+      status,
+      transactionId: idOrNull(transaction?.transactionId),
+      customIdentifier: idOrNull(transaction?.customIdentifier),
+      message,
+    },
+  };
+}
