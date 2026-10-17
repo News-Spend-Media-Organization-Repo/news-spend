@@ -17,10 +17,18 @@ function winnerRow(overrides: Row = {}): Row {
   };
 }
 
-function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
+function createFakePayload({
+  winners = [],
+  attempts = [] as Row[],
+  countFails = false,
+}: {
+  winners?: Row[];
+  attempts?: Row[];
+  countFails?: boolean;
+} = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-winners": winners,
-    "giveaway-fulfilment-attempts": [],
+    "giveaway-fulfilment-attempts": attempts,
     notifications: [],
     users: [{ id: "u1", email: "winner@example.com", username: "winner" }],
   };
@@ -39,6 +47,10 @@ function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
       return { docs, totalDocs: docs.length };
     },
     count: async ({ collection, where }: Row) => {
+      if (countFails) {
+        countFails = false;
+        throw new Error("database unavailable");
+      }
       const docs = (collections[collection] ?? []).filter((row) =>
         matchesWhere(row, where)
       );
@@ -566,5 +578,61 @@ describe("fulfilPendingPrizes", () => {
     expect(created["giveaway-fulfilment-attempts"]?.[0].environment).toBe(
       "sandbox"
     );
+  });
+
+  it("numbers the first attempt 1", async () => {
+    const { payload, created } = createFakePayload({ winners: [winnerRow()] });
+    let sentIdentifier = "";
+    const client = fakeClient({
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
+        return { transactionId: 1, status: "SUCCESSFUL" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    expect(sentIdentifier).toBe("w1:1");
+    expect(created["giveaway-fulfilment-attempts"]?.[0].providerReference).toBe(
+      "w1:1"
+    );
+  });
+
+  it("advances the key only for an attempt that was recorded as failed", async () => {
+    // One recorded failure: the identifier it consumed is spent, so the retry
+    // must not reuse it.
+    const { payload } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [{ winner: "w1", outcome: "retryable_failure" }],
+    });
+    let sentIdentifier = "";
+    const client = fakeClient({
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
+        return { transactionId: 2, status: "SUCCESSFUL" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    expect(sentIdentifier).toBe("w1:2");
+  });
+
+  it("does not dispatch when the attempt count cannot be read", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      countFails: true,
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new Error("must not send on a guessed identifier");
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // Guessing the number would either refuse a legitimate retry or re-send a
+    // payout that already went out.
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
   });
 });

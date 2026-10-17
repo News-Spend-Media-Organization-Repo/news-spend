@@ -197,6 +197,8 @@ async function fulfilOne(
   const phone = (winner.claimPhone as string | null)?.trim();
   const winnerId = String(winner.id);
 
+  let identifier: string | null = null;
+
   const record: RecordAttempt = (data) =>
     payload
       .create({
@@ -205,7 +207,7 @@ async function fulfilOne(
           winner: winnerId,
           provider: "reloadly",
           environment: client.isSandbox ? "sandbox" : "live",
-          providerReference: winnerId,
+          ...(identifier ? { providerReference: identifier } : {}),
           recipientPhone: phone,
           attemptedAt: new Date().toISOString(),
           ...data,
@@ -229,6 +231,12 @@ async function fulfilOne(
   let localAmount = 0;
 
   try {
+    const priorAttempts = await payload.count({
+      collection: "giveaway-fulfilment-attempts",
+      where: { winner: { equals: winnerId } },
+    });
+    identifier = `${winnerId}:${priorAttempts.totalDocs + 1}`;
+
     const plan = isData
       ? await resolveDataPlan(client, prize, phone)
       : await resolveAirtimeTopup(client, prize, phone);
@@ -239,7 +247,7 @@ async function fulfilOne(
       localAmount: plan.localAmount,
       phone,
       countryCode: DEFAULT_GIVEAWAY_COUNTRY,
-      customIdentifier: winnerId,
+      customIdentifier: identifier,
     });
 
     await payload.update({

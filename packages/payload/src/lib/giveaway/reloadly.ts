@@ -260,9 +260,10 @@ export class ReloadlyClient {
   /**
    * Send a top-up.
    *
-   * `customIdentifier` carries the winner id, which is what makes this safe to
-   * retry: Reloadly treats a repeated identifier as the same transaction, so a
-   * run that fails after sending but before recording cannot pay twice.
+   * `customIdentifier` carries the attempt's own identifier (the winner id and
+   * attempt number), which is what makes this safe to retry: Reloadly treats a
+   * repeated identifier as the same transaction, so a run that fails after
+   * sending but before recording cannot pay twice.
    *
    * Amounts are sent as local currency. The account is denominated elsewhere
    * (CAD, on this one), and converting a ₦500 prize into the account currency
