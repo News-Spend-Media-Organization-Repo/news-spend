@@ -9,13 +9,13 @@ import { useEffect } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
-import { Image } from "#/components/heroui/image";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { PayloadLexicalReactRenderer } from "#/components/lexical/payload-lexical-react-renderer";
 import type { PayloadLexicalReactRendererContent } from "#/components/lexical/types";
 import { NewsActionBar } from "#/components/News/NewsActionBar";
 import { ReadingTrackerDebug } from "#/components/News/ReadinTrackerDebug";
+import { SizedImage } from "#/components/SizedImage";
 import usePrefetchComments from "#/hooks/comments/usePrefetchComments";
 import { useNews } from "#/hooks/news";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
@@ -130,7 +130,10 @@ const SingleNews = () => {
     );
   }
 
-  const { url, blurhash, focal } = getImageData(data?.image, "mobile");
+  const { url, fallbackUrl, blurhash, focal } = getImageData(
+    data?.image,
+    "mobile"
+  );
   return (
     <Screen navigationBarButtonStyle="dark" statusBarStyle="auto">
       <Button
@@ -164,13 +167,14 @@ const SingleNews = () => {
             >
               <Galeria urls={[url]}>
                 <Galeria.Image>
-                  <Image
+                  <SizedImage
                     className="w-full"
                     contentFit="cover"
                     contentPosition={{
                       left: `${focal?.x ?? 50}%`,
                       top: `${focal?.y ?? 50}%`,
                     }}
+                    fallbackSource={fallbackUrl}
                     placeholder={{ blurhash }}
                     placeholderContentFit="cover"
                     source={url}

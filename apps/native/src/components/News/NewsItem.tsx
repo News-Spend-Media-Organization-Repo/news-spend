@@ -10,8 +10,8 @@ import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 import { Icon } from "../heroui/icon";
-import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
+import { SizedImage } from "../SizedImage";
 
 function NewsItem({
   news,
@@ -20,7 +20,7 @@ function NewsItem({
   news: RouterOutputs["news"]["home"]["docs"][number];
   latest?: boolean;
 }) {
-  const { url, blurhash } = getImageData(news.image, "thumbnail");
+  const { url, fallbackUrl, blurhash } = getImageData(news.image, "thumbnail");
   const navigation = useNavigation();
 
   const onPress = () => {
@@ -62,9 +62,10 @@ function NewsItem({
     <Pressable onPress={onPress}>
       <View className="flex-row gap-4">
         <View className="items-center justify-center">
-          <Image
+          <SizedImage
             className="size-25 rounded-[10px]"
             contentFit="cover"
+            fallbackSource={fallbackUrl}
             placeholder={{ blurhash }}
             placeholderContentFit="cover"
             recyclingKey={news?.id}

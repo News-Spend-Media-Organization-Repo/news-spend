@@ -239,6 +239,30 @@ describe("NewsItemGoogleAds", () => {
     expect(screen.getByTestId("partner-fallback")).toBeTruthy();
   });
 
+  it("waits out Google's rate limit before asking again", async () => {
+    mockCreateForAdRequest.mockRejectedValue(
+      new Error(
+        "[googleMobileAds/ERROR_LOAD] Too many recently failed requests for ad unit"
+      )
+    );
+
+    mockCurrentItem = { id: "ad-rate-limited" };
+    await render(
+      <NewsItemGoogleAds index={0} item={mockCurrentItem} tab="test" />
+    );
+    await flush();
+    expect(mockCreateForAdRequest).toHaveBeenCalledTimes(1);
+
+    // The usual 1s pause is inside the throttle window, so it is not enough.
+    await advance(1000);
+    await flush();
+    expect(mockCreateForAdRequest).toHaveBeenCalledTimes(1);
+
+    await advance(2000);
+    await flush();
+    expect(mockCreateForAdRequest).toHaveBeenCalledTimes(2);
+  });
+
   it("spaces retries out instead of firing them back to back", async () => {
     mockCreateForAdRequest.mockRejectedValue(new Error("no fill"));
 

@@ -2,7 +2,7 @@ import { Galeria } from "@nandorojo/galeria";
 import { Separator } from "heroui-native/separator";
 import { Linking, View } from "react-native";
 import { tv } from "tailwind-variants";
-import { Image } from "#/components/ui";
+import { SizedImage } from "#/components/SizedImage";
 import { getImageData } from "#/utils/getImageData";
 import { Text } from "../ui";
 import { RichTextCaption } from "./RichTextCaption";
@@ -189,7 +189,10 @@ export const defaultElementRenderers: ElementRenderers = {
     }
 
     if (element.value.mimeType?.includes("image")) {
-      const { url, blurhash } = getImageData(element.value, "mobile");
+      const { url, fallbackUrl, blurhash } = getImageData(
+        element.value,
+        "mobile"
+      );
 
       if (!url) {
         return null;
@@ -205,8 +208,9 @@ export const defaultElementRenderers: ElementRenderers = {
         <View className="my-3">
           <Galeria urls={urls}>
             <Galeria.Image>
-              <Image
+              <SizedImage
                 contentFit="contain"
+                fallbackSource={fallbackUrl ? { uri: fallbackUrl } : undefined}
                 placeholder={{ blurhash }}
                 placeholderContentFit="cover"
                 source={{ uri: urls[0] }}
