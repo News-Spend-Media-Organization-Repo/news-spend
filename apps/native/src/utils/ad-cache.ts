@@ -5,12 +5,41 @@ const AD_TTL_MS = 60 * 60 * 1000;
 type CacheEntry = {
   ad: NativeAd;
   cachedAt: number;
+  /** Still on screen, but a fresher ad has been asked for. */
+  stale: boolean;
 };
 
 const cache = new Map<string, CacheEntry>();
 
-const makeKey = (tab: string | undefined, id: string) =>
-  `${tab ?? "default"}:${id}`;
+/**
+ * Slot ids the feed hands out are random: the server mints a new one for every
+ * ad each time it composes the feed. Keying the cache by them meant every
+ * rebuild of the feed (coming back from an article after the server's cache
+ * lapsed, a tab switch, a refresh) orphaned every loaded ad and sent each slot
+ * back to the "Advertisement" placeholder to load again.
+ *
+ * What stays the same across a rebuild is the order: the n-th ad slot is the
+ * n-th ad slot. The feed registers its ids in order here, and the cache is
+ * keyed by that ordinal, so a rebuilt feed finds the ads it already has.
+ */
+const ordinals = new Map<string, Map<string, number>>();
+
+export const registerAdSlots = (tab: string | undefined, ids: string[]) => {
+  const tabKey = tab ?? "default";
+  const next = new Map<string, number>();
+  ids.forEach((id, index) => {
+    next.set(id, index);
+  });
+  ordinals.set(tabKey, next);
+};
+
+export const makeKey = (tab: string | undefined, id: string) => {
+  const tabKey = tab ?? "default";
+  const ordinal = ordinals.get(tabKey)?.get(id);
+  return ordinal === undefined
+    ? `${tabKey}:${id}`
+    : `${tabKey}:slot-${ordinal}`;
+};
 
 /**
  * Release a cached ad's native resources.
@@ -54,9 +83,31 @@ export const setCachedAd = (
   // Replacing an entry orphans whatever it held.
   const previous = cache.get(key);
   if (previous && previous.ad !== ad) {
-    releaseAd(previous.ad);
+    // Not at once: the row may still be painting it until it re-renders with
+    // the new one.
+    setTimeout(() => releaseAd(previous.ad), 1000);
   }
-  cache.set(key, { ad, cachedAt: Date.now() });
+  cache.set(key, { ad, cachedAt: Date.now(), stale: false });
+};
+
+/**
+ * Whether the ad held for this slot is on its way out: kept on screen so the
+ * slot is never empty, but a replacement has been asked for.
+ */
+export const isCachedAdStale = (tab: string | undefined, id: string) =>
+  cache.get(makeKey(tab, id))?.stale ?? false;
+
+/**
+ * A refresh wants new ads, not blank slots. Marks every ad in the tab stale
+ * instead of destroying it, so each keeps showing until its replacement
+ * arrives and then swaps in place.
+ */
+export const markTabAdsStale = (tab: string) => {
+  for (const [key, entry] of cache) {
+    if (key.startsWith(`${tab}:`)) {
+      entry.stale = true;
+    }
+  }
 };
 
 export const clearTabAdCache = (tab: string) => {

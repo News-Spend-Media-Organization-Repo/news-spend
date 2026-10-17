@@ -6,7 +6,13 @@ import {
 } from "react-native-google-mobile-ads";
 import { initializeAdsWhenPermitted } from "#/lib/adsInit";
 import { adUnits } from "#/lib/adUnits";
-import { getCachedAd, isDuplicateInTab, setCachedAd } from "#/utils/ad-cache";
+import {
+  getCachedAd,
+  isCachedAdStale,
+  isDuplicateInTab,
+  makeKey,
+  setCachedAd,
+} from "#/utils/ad-cache";
 
 /**
  * Two attempts, not three.
@@ -31,9 +37,6 @@ const REQUEST_TIMEOUT_MS = 6000;
  * what is really one attempt.
  */
 const RETRY_BACKOFF_MS = [1000];
-
-const makeKey = (tab: string | undefined, id: string) =>
-  `${tab ?? "default"}:${id}`;
 
 /**
  * What share of actionable load failures to report to Sentry.
@@ -285,7 +288,7 @@ export function ensureNativeAdLoaded(
   id: string
 ): Promise<NativeAd | null> {
   const cached = getCachedAd(tab, id);
-  if (cached) {
+  if (cached && !isCachedAdStale(tab, id)) {
     return Promise.resolve(cached);
   }
 
