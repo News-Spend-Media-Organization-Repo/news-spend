@@ -334,17 +334,18 @@ async function fulfilOne(
       });
     }
 
+    // The provider's body is asserted, not validated, so this is a real check:
+    // the key count reads `exists: true` (IS NOT NULL, which an empty string
+    // satisfies) while the reconciler requires a non-empty id — the two must
+    // agree on what "we have an id" means, or a re-queue hands the retry a
+    // fresh identifier for a transaction that may already exist.
+    const transactionId =
+      result.transactionId == null ? "" : String(result.transactionId).trim();
+
     await record({
       outcome: "sent",
       providerReference: identifier ?? undefined,
-      // Written only when the provider gave one: the key count reads
-      // `exists: true`, which is `IS NOT NULL`, so an empty string would
-      // advance the key while the reconciler reads the same row as "no id"
-      // and re-queues it — a fresh identifier for a transaction that may
-      // already exist.
-      ...(result.transactionId == null
-        ? {}
-        : { providerTransactionId: String(result.transactionId) }),
+      ...(transactionId === "" ? {} : { providerTransactionId: transactionId }),
       operatorId: plan.operatorId,
       operatorName: result.operatorName ?? "",
       localAmount: plan.localAmount,

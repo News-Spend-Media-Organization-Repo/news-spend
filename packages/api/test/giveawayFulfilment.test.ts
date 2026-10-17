@@ -68,7 +68,14 @@ function createFakePayload({
             (query as Row)?.queryChunks ?? String(query)
           );
 
-          if (!text.includes("giveaway_winners") || claimLost) {
+          // A claim is recognised by reading it, as the report suite's fake
+          // reads its table: the predicate is the safety property, so a
+          // statement that has lost `fulfilment_status = 'pending'` must not
+          // claim anything here either.
+          const isClaim =
+            text.includes("giveaway_winners") && text.includes("pending");
+
+          if (!isClaim || claimLost) {
             return { rows: [] };
           }
 
@@ -145,7 +152,11 @@ function matchesWhere(row: Row, where: Row | undefined): boolean {
     const clause = condition as Row;
     const actual = row[field];
     if (clause?.exists !== undefined) {
-      const present = actual !== undefined && actual !== null && actual !== "";
+      // `exists: true` compiles to `IS NOT NULL`, which an empty string
+      // satisfies. Modelling it as "not blank" here would make the fake more
+      // forgiving than the database, and a row holding `''` would read as
+      // unspent here while production counts it as spent.
+      const present = actual !== undefined && actual !== null;
       return clause.exists ? present : !present;
     }
     if (clause?.equals !== undefined) {
@@ -299,32 +310,44 @@ describe("fulfilPendingPrizes", () => {
       winners: [winnerRow()],
     });
     const identifiers: string[] = [];
+    // A 2xx the provider answered without a usable transaction id: first with
+    // the key missing, then with it blank. The body is asserted rather than
+    // validated, so both are shapes the provider can actually send. Either way
+    // the prize is dispatched but unsettled, which is the row the reconciler
+    // re-queues.
+    const responses: Row[] = [
+      { status: "PROCESSING" },
+      { status: "PROCESSING", transactionId: "" },
+    ];
     const client = fakeClient({
-      // A 2xx the provider answered without a transaction id. The prize is
-      // dispatched but unsettled, which is the row the reconciler re-queues.
       topup: async (args) => {
         identifiers.push(args.customIdentifier);
-        return { status: "PROCESSING" };
+        return responses.shift() ?? { status: "PROCESSING" };
       },
     });
 
-    await fulfilPendingPrizes(payload, { client });
+    // Three dispatches, each following a re-queue, so each one's identifier
+    // shows what the row before it counted as spent.
+    for (let pass = 0; pass < 3; pass += 1) {
+      await fulfilPendingPrizes(payload, { client });
+      Object.assign(collections["giveaway-winners"][0], {
+        fulfilmentStatus: "pending",
+      });
+    }
 
-    const [attempt] = created["giveaway-fulfilment-attempts"] ?? [];
-    expect(attempt?.outcome).toBe("sent");
+    const attempts = created["giveaway-fulfilment-attempts"] ?? [];
+    expect(attempts[0]?.outcome).toBe("sent");
+    expect(attempts[1]?.outcome).toBe("sent");
     // Absent, not empty: `''` is `IS NOT NULL`, so the key count would treat
     // this row as spent while the reconciler reads it as no id at all — and
     // the re-send would use a fresh identifier for a transaction that may
     // already exist.
-    expect(attempt).not.toHaveProperty("providerTransactionId");
+    expect(attempts[0]).not.toHaveProperty("providerTransactionId");
+    expect(attempts[1]).not.toHaveProperty("providerTransactionId");
 
-    Object.assign(collections["giveaway-winners"][0], {
-      fulfilmentStatus: "pending",
-    });
-    await fulfilPendingPrizes(payload, { client });
-
-    // The re-queued prize must reuse the identifier it never spent.
-    expect(identifiers).toEqual(["w1:1", "w1:1"]);
+    // Neither dispatch spent an identifier, so the re-queued prize keeps
+    // reusing the one it never used.
+    expect(identifiers).toEqual(["w1:1", "w1:1", "w1:1"]);
   });
 
   it("ignores a prize the provider does not deliver", async () => {

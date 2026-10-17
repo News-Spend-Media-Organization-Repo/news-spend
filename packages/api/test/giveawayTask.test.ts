@@ -50,6 +50,8 @@ function createFakePayload({
           );
 
           if (text.includes("giveaway_winners")) {
+            // shortcut: claims every pending winner rather than only the bound
+            // id; model the id if a test in this file ever exercises the claim.
             const claimable = (collections["giveaway-winners"] ?? []).filter(
               (row) => row.fulfilmentStatus === "pending"
             );
