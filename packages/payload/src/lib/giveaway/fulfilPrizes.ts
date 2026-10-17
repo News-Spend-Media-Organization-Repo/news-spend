@@ -38,10 +38,55 @@ type RecordAttempt = (data: {
   outcome: AttemptOutcome;
   error?: string;
   providerTransactionId?: string;
+  providerReference?: string;
   operatorId?: number;
   operatorName?: string;
   localAmount?: number;
 }) => Promise<unknown>;
+
+/** What {@link attemptRecorder} needs to know about the attempt it records. */
+export type AttemptContext = {
+  winnerId: string;
+  environment: "sandbox" | "live";
+  phone?: string | null;
+};
+
+/**
+ * The single writer of fulfilment-attempt rows.
+ *
+ * Both the dispatch and the reconciliation pass append to this log, and this
+ * row is what decides whether a retry may reuse its identifier, so a second
+ * copy of the write — and of the swallow below — would be two rules that drift
+ * the first time either is edited.
+ *
+ * `providerReference` is deliberately not part of the base: it identifies the
+ * attempt being recorded and is not always known when the recorder is built.
+ */
+export function attemptRecorder(
+  payload: BasePayload,
+  ctx: AttemptContext
+): RecordAttempt {
+  return (data) =>
+    payload
+      .create({
+        collection: "giveaway-fulfilment-attempts",
+        data: {
+          winner: ctx.winnerId,
+          provider: "reloadly",
+          environment: ctx.environment,
+          recipientPhone: ctx.phone,
+          attemptedAt: new Date().toISOString(),
+          ...data,
+        },
+      })
+      .catch((error) => {
+        // A lost log entry must not stop a payout that otherwise worked.
+        payload.logger.error(
+          { err: error, winnerId: ctx.winnerId },
+          "[giveaway] could not write a fulfilment attempt"
+        );
+      });
+}
 
 /**
  * Pay out claimed airtime and data prizes (spec 15).
@@ -201,27 +246,12 @@ async function fulfilOne(
 
   let identifier: string | null = null;
 
-  const record: RecordAttempt = (data) =>
-    payload
-      .create({
-        collection: "giveaway-fulfilment-attempts",
-        data: {
-          winner: winnerId,
-          provider: "reloadly",
-          environment: client.isSandbox ? "sandbox" : "live",
-          ...(identifier ? { providerReference: identifier } : {}),
-          recipientPhone: phone,
-          attemptedAt: new Date().toISOString(),
-          ...data,
-        },
-      })
-      .catch((error) => {
-        // A lost log entry must not stop a payout that otherwise worked.
-        payload.logger.error(
-          { err: error, winnerId },
-          "[giveaway] could not write a fulfilment attempt"
-        );
-      });
+  const ctx: AttemptContext = {
+    winnerId,
+    environment: client.isSandbox ? "sandbox" : "live",
+    phone,
+  };
+  const record = attemptRecorder(payload, ctx);
 
   if (!phone) {
     await hold(payload, winnerId, "No phone number was captured at claim.");
@@ -237,7 +267,7 @@ async function fulfilOne(
     // on the transaction id is load-bearing: a failure without one is a
     // request whose outcome we never learned, and counting it would hand the
     // retry a fresh key for a payout that may already have gone out.
-    const confirmedFailures = await payload.count({
+    const spentIdentifiers = await payload.count({
       collection: "giveaway-fulfilment-attempts",
       where: {
         and: [
@@ -246,7 +276,7 @@ async function fulfilOne(
         ],
       },
     });
-    identifier = `${winnerId}:${confirmedFailures.totalDocs + 1}`;
+    identifier = `${winnerId}:${spentIdentifiers.totalDocs + 1}`;
 
     const plan = isData
       ? await resolveDataPlan(client, prize, phone)
@@ -274,6 +304,7 @@ async function fulfilOne(
 
     await record({
       outcome: "sent",
+      providerReference: identifier ?? undefined,
       providerTransactionId: String(result.transactionId ?? ""),
       operatorId: plan.operatorId,
       operatorName: result.operatorName ?? "",
@@ -284,11 +315,22 @@ async function fulfilOne(
   } catch (error) {
     if (error instanceof UnresolvablePlanError) {
       await hold(payload, winnerId, error.message);
-      await record({ outcome: "skipped", error: error.message });
+      await record({
+        outcome: "skipped",
+        providerReference: identifier ?? undefined,
+        error: error.message,
+      });
       return "skipped";
     }
 
-    return await handleFailure(payload, winnerId, error, record, localAmount);
+    return await handleFailure(
+      payload,
+      ctx,
+      error,
+      record,
+      localAmount,
+      identifier ?? undefined
+    );
   }
 }
 
@@ -360,11 +402,13 @@ async function resolveDataPlan(
 
 async function handleFailure(
   payload: BasePayload,
-  winnerId: string,
+  ctx: AttemptContext,
   error: unknown,
   record: RecordAttempt,
-  localAmount: number
+  localAmount: number,
+  providerReference?: string
 ): Promise<Outcome> {
+  const { winnerId } = ctx;
   const message = error instanceof Error ? error.message : "Unknown error";
 
   /**
@@ -382,7 +426,12 @@ async function handleFailure(
         fulfilledAt: new Date().toISOString(),
       },
     });
-    await record({ outcome: "already_sent", localAmount, error: message });
+    await record({
+      outcome: "already_sent",
+      localAmount,
+      error: message,
+      ...(providerReference ? { providerReference } : {}),
+    });
     return "sent";
   }
 
@@ -390,25 +439,59 @@ async function handleFailure(
 
   if (!retryable) {
     await hold(payload, winnerId, `Provider rejected the payout: ${message}`);
-    await record({ outcome: "permanent_failure", localAmount, error: message });
+    await record({
+      outcome: "permanent_failure",
+      localAmount,
+      error: message,
+      ...(providerReference ? { providerReference } : {}),
+    });
     return "failed";
   }
+
+  await requeueOrHold(payload, ctx, localAmount, message);
+  return "failed";
+}
+
+/**
+ * Put a failed payout back in the queue, or hand it to a person once it has
+ * failed too often.
+ *
+ * Shared by the dispatch and the reconciliation pass so the cap is decided
+ * once. The cap keeps counting *every* retryable failure, confirmed or not, so
+ * a fault that never resolves still reaches a human.
+ *
+ * `confirmedTransactionId` is the id of a failure the provider itself
+ * reported. Recording it as `providerTransactionId` is what advances the
+ * attempt key on the retry: a confirmed failure has spent its identifier, and
+ * reusing it would be refused and read as "already paid" while the winner goes
+ * unpaid.
+ */
+export async function requeueOrHold(
+  payload: BasePayload,
+  ctx: AttemptContext,
+  localAmount: number,
+  message: string,
+  confirmedTransactionId?: string
+): Promise<"pending" | "on_hold"> {
+  const record = attemptRecorder(payload, ctx);
 
   const attempts = await payload.count({
     collection: "giveaway-fulfilment-attempts",
     where: {
       and: [
-        { winner: { equals: winnerId } },
+        { winner: { equals: ctx.winnerId } },
         { outcome: { equals: "retryable_failure" } },
       ],
     },
   });
 
   // Counting the attempt about to be written, not just the ones before it.
-  if (attempts.totalDocs + 1 >= MAX_RETRYABLE_ATTEMPTS) {
+  const capped = attempts.totalDocs + 1 >= MAX_RETRYABLE_ATTEMPTS;
+
+  if (capped) {
     await hold(
       payload,
-      winnerId,
+      ctx.winnerId,
       `Payout failed ${attempts.totalDocs + 1} times. Last error: ${message}`
     );
   } else {
@@ -422,13 +505,21 @@ async function handleFailure(
      */
     await payload.update({
       collection: "giveaway-winners",
-      id: winnerId,
+      id: ctx.winnerId,
       data: { fulfilmentStatus: "pending" },
     });
   }
 
-  await record({ outcome: "retryable_failure", localAmount, error: message });
-  return "failed";
+  await record({
+    outcome: "retryable_failure",
+    localAmount,
+    error: message,
+    ...(confirmedTransactionId
+      ? { providerTransactionId: confirmedTransactionId }
+      : {}),
+  });
+
+  return capped ? "on_hold" : "pending";
 }
 
 /**
@@ -439,7 +530,11 @@ async function handleFailure(
  * mistyped phone number is the commonest reason a payout is rejected, and it
  * is invisible from the inside.
  */
-async function hold(payload: BasePayload, winnerId: string, reason: string) {
+export async function hold(
+  payload: BasePayload,
+  winnerId: string,
+  reason: string
+) {
   await payload.update({
     collection: "giveaway-winners",
     id: winnerId,

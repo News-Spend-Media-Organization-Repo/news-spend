@@ -77,6 +77,11 @@ function createFakePayload({
       collections[collection] = [...(collections[collection] ?? []), row];
       return row;
     },
+    count: async ({ collection, where }: Row) => ({
+      totalDocs: (collections[collection] ?? []).filter((row) =>
+        matchesWhere(row, where)
+      ).length,
+    }),
     update: async ({ collection, id, data }: Row) => {
       const row = collections[collection]?.find((item) => item.id === id);
       if (row) {
@@ -110,7 +115,7 @@ describe("reconcileInProgressPrizes", () => {
 
     const summary = await reconcileInProgressPrizes(payload, { client });
 
-    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0 });
+    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0, held: 0 });
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "fulfilled"
     );
@@ -168,7 +173,7 @@ describe("reconcileInProgressPrizes", () => {
 
     const summary = await reconcileInProgressPrizes(payload, { client });
 
-    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0 });
+    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0, held: 0 });
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "fulfilled"
     );
@@ -189,7 +194,7 @@ describe("reconcileInProgressPrizes", () => {
 
     const summary = await reconcileInProgressPrizes(payload, { client });
 
-    expect(summary).toEqual({ checked: 1, fulfilled: 0, requeued: 0 });
+    expect(summary).toEqual({ checked: 1, fulfilled: 0, requeued: 0, held: 0 });
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "in_progress"
     );
@@ -212,7 +217,7 @@ describe("reconcileInProgressPrizes", () => {
 
     const summary = await reconcileInProgressPrizes(payload, { client });
 
-    expect(summary).toEqual({ checked: 1, fulfilled: 0, requeued: 1 });
+    expect(summary).toEqual({ checked: 1, fulfilled: 0, requeued: 1, held: 0 });
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
   });
 
@@ -238,7 +243,7 @@ describe("reconcileInProgressPrizes", () => {
 
     const summary = await reconcileInProgressPrizes(payload, { client });
 
-    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0 });
+    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0, held: 0 });
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "fulfilled"
     );
@@ -257,7 +262,7 @@ describe("reconcileInProgressPrizes", () => {
 
     const summary = await reconcileInProgressPrizes(payload, { client });
 
-    expect(summary).toEqual({ checked: 0, fulfilled: 0, requeued: 0 });
+    expect(summary).toEqual({ checked: 0, fulfilled: 0, requeued: 0, held: 0 });
   });
 
   it("does not throw when the status lookup fails", async () => {
@@ -277,5 +282,89 @@ describe("reconcileInProgressPrizes", () => {
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "in_progress"
     );
+  });
+
+  it("re-queues a prize the provider reported failed", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [attemptRow()],
+    });
+    const client = fakeClient({
+      topupStatus: async () => ({ status: "FAILED" }),
+    });
+
+    const summary = await reconcileInProgressPrizes(payload, { client });
+
+    expect(summary).toEqual({ checked: 1, fulfilled: 0, requeued: 1, held: 0 });
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+    expect(collections["giveaway-fulfilment-attempts"]?.at(-1)?.outcome).toBe(
+      "retryable_failure"
+    );
+    // The id is what makes Task 2's key advance on the next attempt. Without it
+    // the retry reuses an identifier the provider already spent, gets refused, and
+    // reads the refusal as "already sent" while the winner is unpaid — the case
+    // this plan exists to fix. This assertion is the only place that contract is
+    // pinned against a real writer rather than a seeded fixture.
+    expect(
+      collections["giveaway-fulfilment-attempts"]?.at(-1)?.providerTransactionId
+    ).toBe("42");
+  });
+
+  it("re-queues a prize the provider refunded", async () => {
+    // The money came back, so the winner is unpaid and the prize is retryable,
+    // exactly as for FAILED.
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [attemptRow()],
+    });
+    const client = fakeClient({
+      topupStatus: async () => ({ status: "REFUNDED" }),
+    });
+
+    const summary = await reconcileInProgressPrizes(payload, { client });
+
+    expect(summary.requeued).toBe(1);
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+  });
+
+  it("holds a prize whose transaction the provider does not recognise", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [attemptRow()],
+    });
+    const client = fakeClient({
+      topupStatus: async () => {
+        throw new ReloadlyError("TRANSACTION_NOT_FOUND", 404, null, false);
+      },
+    });
+
+    const summary = await reconcileInProgressPrizes(payload, { client });
+
+    // Our record and the provider's disagree about money. Re-sending is a guess
+    // with a payout behind it and re-reading it would loop forever, so a person
+    // decides.
+    expect(summary).toEqual({ checked: 1, fulfilled: 0, requeued: 0, held: 1 });
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
+    expect(collections["giveaway-winners"][0].reviewNote).toContain("42");
+  });
+
+  it("holds a prize that keeps failing once the retry cap is reached", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [
+        attemptRow(),
+        ...["a2", "a3", "a4", "a5"].map((id) =>
+          attemptRow({ id, outcome: "retryable_failure" })
+        ),
+      ],
+    });
+    const client = fakeClient({
+      topupStatus: async () => ({ status: "FAILED" }),
+    });
+
+    const summary = await reconcileInProgressPrizes(payload, { client });
+
+    expect(summary.held).toBe(1);
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("on_hold");
   });
 });

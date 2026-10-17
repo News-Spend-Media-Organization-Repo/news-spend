@@ -1,7 +1,7 @@
 import type { BasePayload } from "payload";
 
-import { defaultReloadlyClient } from "./fulfilPrizes";
-import type { ReloadlyClient } from "./reloadly";
+import { defaultReloadlyClient, hold, requeueOrHold } from "./fulfilPrizes";
+import { type ReloadlyClient, ReloadlyError } from "./reloadly";
 
 /**
  * How long a dispatch may be in flight before the provider is asked about it.
@@ -15,6 +15,7 @@ export type ReconciliationSummary = {
   checked: number;
   fulfilled: number;
   requeued: number;
+  held: number;
 };
 
 /**
@@ -26,9 +27,12 @@ export type ReconciliationSummary = {
  * the way out is handed back to Reloadly, which is the only thing that knows
  * what happened to it.
  *
- * Only prizes stale enough to be past any live dispatch are looked at, and
- * anything other than a plain `SUCCESSFUL` is left alone for a later pass: a
- * status still settling is not a failure.
+ * Only prizes stale enough to be past any live dispatch are looked at. A
+ * `SUCCESSFUL` settles the prize; `FAILED` and `REFUNDED` both mean the winner
+ * is unpaid and the prize goes back to the queue; a 404 means our record and
+ * the provider's disagree about money, so a person decides; and anything else
+ * — still settling, or a fault we never got an answer from — is left alone for
+ * a later pass.
  *
  * Never throws. This runs inside the scheduled task alongside the draw, and a
  * provider being unreachable must not take down the draw that shares the run.
@@ -41,6 +45,7 @@ export async function reconcileInProgressPrizes(
     checked: 0,
     fulfilled: 0,
     requeued: 0,
+    held: 0,
   };
 
   const resolved = client ?? defaultReloadlyClient(payload);
@@ -67,6 +72,10 @@ export async function reconcileInProgressPrizes(
 
     summary.checked += 1;
 
+    // Looked up in the catch too, so the reason a 404 is held names the
+    // transaction the provider did not recognise.
+    let transactionId: string | undefined;
+
     try {
       const attempts = await payload.find({
         collection: "giveaway-fulfilment-attempts",
@@ -80,11 +89,11 @@ export async function reconcileInProgressPrizes(
        * transaction, and reading that row as "no id" would re-queue a payout
        * the provider may still be settling.
        */
-      const transactionId = attempts.docs
+      const found = attempts.docs
         .map((attempt) => attempt.providerTransactionId)
         .find((id) => id !== undefined && id !== null && String(id) !== "");
 
-      if (!transactionId) {
+      if (!found) {
         // The run died between claiming the prize and recording the send.
         // The attempt number never advanced, so the re-send reuses its key
         // and cannot pay twice.
@@ -97,7 +106,8 @@ export async function reconcileInProgressPrizes(
         continue;
       }
 
-      const { status } = await resolved.topupStatus(String(transactionId));
+      transactionId = String(found);
+      const { status } = await resolved.topupStatus(transactionId);
 
       if (status === "SUCCESSFUL") {
         await payload.update({
@@ -109,14 +119,52 @@ export async function reconcileInProgressPrizes(
           },
         });
         summary.fulfilled += 1;
+      } else if (status === "FAILED" || status === "REFUNDED") {
+        /**
+         * The same branch for both: the money is equally absent either way, a
+         * refund returns it. Passing the transaction id is what tells the next
+         * attempt that this failure is confirmed and its key is spent.
+         */
+        const outcome = await requeueOrHold(
+          payload,
+          {
+            winnerId: String(winner.id),
+            environment: resolved.isSandbox ? "sandbox" : "live",
+            phone: winner.claimPhone,
+          },
+          0,
+          `Provider reported ${status}`,
+          transactionId
+        );
+
+        if (outcome === "pending") {
+          summary.requeued += 1;
+        } else {
+          summary.held += 1;
+        }
       } else {
-        // Still settling, refused, or unknown to the provider: a later pass
-        // settles these. Logged so the wait is visible rather than silent.
+        // Still settling: `PROCESSING` and anything else the provider has not
+        // finished with. A later pass settles these. Logged so the wait is
+        // visible rather than silent.
         payload.logger.info(
           `[giveaway] winner ${winner.id} is ${status} at the provider`
         );
       }
     } catch (error) {
+      if (error instanceof ReloadlyError && error.status === 404) {
+        // Our record says we sent a transaction and the provider says it has
+        // never heard of it: two statements that disagree about money, so a
+        // person decides. Re-queueing would be a guess with a payout behind
+        // it, and re-reading it would loop forever.
+        await hold(
+          payload,
+          String(winner.id),
+          `Reloadly does not recognise transaction ${transactionId}.`
+        );
+        summary.held += 1;
+        continue;
+      }
+
       // One bad record must not stop the pass or throw into the shared run.
       payload.logger.error(
         { err: error, winnerId: winner.id },
