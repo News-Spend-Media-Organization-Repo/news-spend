@@ -1,7 +1,7 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { View } from "react-native";
 import NewsItemAds from "#/components/Ads/NewsItemAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
@@ -10,7 +10,7 @@ import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { useTabBarHeight } from "#/state/route-state";
-import { clearTabAdCache } from "#/utils/ad-cache";
+import { markTabAdsStale, registerAdSlots } from "#/utils/ad-cache";
 import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import NewsItem from "../NewsItem";
@@ -57,7 +57,7 @@ const NewsCategory = ({
   // happened to cache.
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(() => {
     refetchFresh();
-    clearTabAdCache(route);
+    markTabAdsStale(route);
   });
 
   // Fresh list on return — same as Latest. Covers article-back, bottom-tab
@@ -109,6 +109,17 @@ const NewsCategory = ({
   const keyExtractor = useCallback((item) => item._id ?? item.id, []);
   const flattenedNews = data?.pages.flatMap((page) => page.docs);
   flattenedNewsRef.current = flattenedNews;
+
+  // Register this tab's ad slots in order so a rebuilt feed (new random ids)
+  // finds the ads already loaded; see registerAdSlots.
+  useMemo(() => {
+    registerAdSlots(
+      route,
+      ((flattenedNews ?? []) as FeedAdItem[]).flatMap((item) =>
+        item._type === "ad" && item.type === "gAd" && item.id ? [item.id] : []
+      )
+    );
+  }, [flattenedNews, route]);
 
   // Eagerly preload every gAd slot already loaded into this tab's feed, as
   // soon as its page arrives — same rationale as Latest.tsx. Independent

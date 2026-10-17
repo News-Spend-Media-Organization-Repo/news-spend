@@ -7,7 +7,7 @@ import {
   NativeAssetType,
   NativeMediaView,
 } from "react-native-google-mobile-ads";
-import { getCachedAd } from "#/utils/ad-cache";
+import { getCachedAd, isCachedAdStale } from "#/utils/ad-cache";
 import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Text } from "../heroui/text";
@@ -99,7 +99,8 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
   const contentHeight = content?.id === slotId ? content.height : 0;
 
   useEffect(() => {
-    if (getCachedAd(tab, slotId)) {
+    // A stale ad is still on screen; carry on to fetch its replacement.
+    if (getCachedAd(tab, slotId) && !isCachedAdStale(tab, slotId)) {
       return;
     }
     // A load for this slot — the feed's eager preload, or this one — may

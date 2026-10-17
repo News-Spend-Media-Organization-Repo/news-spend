@@ -33,7 +33,7 @@ import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { routeState, useTabBarHeight } from "#/state/route-state";
-import { clearTabAdCache } from "#/utils/ad-cache";
+import { markTabAdsStale, registerAdSlots } from "#/utils/ad-cache";
 import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
@@ -217,6 +217,27 @@ const Latest = memo(
     }, [news, trendingIds]);
     flattenedNewsRef.current = flattenedNews;
 
+    // Tell the ad cache which ids are this feed's ad slots, in order, so a
+    // rebuilt feed (new random ids) finds the ads it already loaded. Done in
+    // render, before any slot mounts, because the slots read the cache as they
+    // render; registering is idempotent.
+    useMemo(() => {
+      registerAdSlots(
+        "latest",
+        (flattenedNews ?? []).flatMap((item) =>
+          item &&
+          "_type" in item &&
+          item._type === "ad" &&
+          "type" in item &&
+          item.type === "gAd" &&
+          "id" in item &&
+          item.id
+            ? [item.id]
+            : []
+        )
+      );
+    }, [flattenedNews]);
+
     // Eagerly preload every gAd slot already loaded into the feed, as soon
     // as its page arrives — independent of scroll position or whether that
     // row has even mounted yet. Matches Google's own guidance for ad
@@ -291,7 +312,7 @@ const Latest = memo(
       resetInfiniteQueryPagination();
       refetchByUser();
       trendingRefetch.refetchByUser();
-      clearTabAdCache("latest");
+      markTabAdsStale("latest");
     }, [
       resetInfiniteQueryPagination,
       refetchByUser,
