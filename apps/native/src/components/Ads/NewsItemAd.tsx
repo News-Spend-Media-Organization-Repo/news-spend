@@ -6,8 +6,8 @@ import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
-import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
+import { SizedImage } from "../SizedImage";
 
 function NewsItemAds({
   item,
@@ -26,7 +26,7 @@ function NewsItemAds({
     () => getImageData(item?.payload?.media, "thumbnail"),
     [item?.payload?.media]
   );
-  const { url, blurhash } = imageData;
+  const { url, fallbackUrl, blurhash } = imageData;
 
   const partnerContent = item.payload;
   const { handleClick } = usePartnerClick();
@@ -60,9 +60,10 @@ function NewsItemAds({
   return (
     <Pressable className="gap-2.5" onPress={onPress}>
       <View className="flex-row gap-4">
-        <Image
+        <SizedImage
           className="size-25 rounded-[10px]"
           contentFit="cover"
+          fallbackSource={fallbackUrl}
           placeholder={{
             blurhash,
           }}

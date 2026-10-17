@@ -35,7 +35,12 @@ export const getImageData = (
 ) => {
   try {
     if (!image) {
-      return { url: null, blurhash: undefined, focal: undefined };
+      return {
+        url: null,
+        fallbackUrl: undefined,
+        blurhash: undefined,
+        focal: undefined,
+      };
     }
 
     if (typeof image === "object" && image !== null) {
@@ -45,8 +50,14 @@ export const getImageData = (
             .map((s) => image.sizes?.[s]?.url)
             .find(Boolean)) ||
         image.url;
+      const url = baseUrl ? withCacheBuster(baseUrl, image.updatedAt) : null;
+      const original = image.url
+        ? withCacheBuster(image.url, image.updatedAt)
+        : null;
       return {
-        url: baseUrl ? withCacheBuster(baseUrl, image.updatedAt) : null,
+        url,
+        // The original, for when a rendition's file turns out to be missing.
+        fallbackUrl: original && original !== url ? original : undefined,
         blurhash: image.blurhash || undefined,
         focal:
           image.focalX != null && image.focalY != null
@@ -58,14 +69,25 @@ export const getImageData = (
     if (typeof image === "string") {
       return {
         url: image,
+        fallbackUrl: undefined,
         blurhash: undefined,
         focal: undefined,
       };
     }
 
-    return { url: null, blurhash: undefined, focal: undefined };
+    return {
+      url: null,
+      fallbackUrl: undefined,
+      blurhash: undefined,
+      focal: undefined,
+    };
   } catch (error) {
     console.error("Error parsing image data:", error);
-    return { url: null, blurhash: undefined, focal: undefined };
+    return {
+      url: null,
+      fallbackUrl: undefined,
+      blurhash: undefined,
+      focal: undefined,
+    };
   }
 };

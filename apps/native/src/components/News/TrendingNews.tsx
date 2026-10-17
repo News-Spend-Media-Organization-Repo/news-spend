@@ -12,8 +12,8 @@ import { useImpressionViewability } from "#/hooks/news/useImpressionViewability"
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
-import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
+import { SizedImage } from "../SizedImage";
 
 const SPACING = 5;
 const { width, height } = Dimensions.get("window");
@@ -56,7 +56,7 @@ export default function TrendingNews({ news }: { news: News[] }) {
 
 const TrendingNewsItem = ({ item }: { item: News }) => {
   const navigation = useNavigation("NewsHome");
-  const { url, blurhash } = getImageData(item?.image, "mobile");
+  const { url, fallbackUrl, blurhash } = getImageData(item?.image, "mobile");
 
   const onAdClose = useCallback(() => {
     navigation.navigate("News", {
@@ -94,9 +94,10 @@ const TrendingNewsItem = ({ item }: { item: News }) => {
             {item.title}
           </Text>
         </Card.Footer>
-        <Image
+        <SizedImage
           className="absolute inset-0"
           contentFit="cover"
+          fallbackSource={fallbackUrl}
           placeholder={{
             blurhash,
           }}

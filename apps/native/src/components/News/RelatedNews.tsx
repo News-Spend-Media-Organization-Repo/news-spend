@@ -17,8 +17,8 @@ import { RELATED_ITEM_WIDTH_RATIO } from "#/hooks/news/relatedImpressions";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
-import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
+import { SizedImage } from "../SizedImage";
 import { RelatedItemTask } from "./RelatedItemTask";
 
 type RelatedNewsData = (
@@ -47,11 +47,12 @@ function isRewardTask(
 const RelatedImage = memo(
   ({ item, width }: { item: News | PartnerContent; width: number }) => {
     const mediaSource = isNews(item) ? item.image : item.media;
-    const { url, blurhash } = getImageData(mediaSource, "mobile");
+    const { url, fallbackUrl, blurhash } = getImageData(mediaSource, "mobile");
     return (
-      <Image
+      <SizedImage
         className="w-full rounded-[5px]"
         contentFit="cover"
+        fallbackSource={fallbackUrl}
         placeholder={{
           blurhash,
         }}

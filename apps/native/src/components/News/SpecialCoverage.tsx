@@ -10,8 +10,8 @@ import {
 import { ScrollView } from "react-native-gesture-handler";
 import type { RouterOutputs } from "#/lib/orpc";
 import { getImageData } from "#/utils/getImageData";
-import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
+import { SizedImage } from "../SizedImage";
 
 type NewsType = RouterOutputs["news"]["home"]["docs"];
 
@@ -28,7 +28,10 @@ export default function SpecialCoverage({
 
   const coveragesRenderItem = useCallback(
     ({ item }: { item: NewsType[number] }) => {
-      const { url, blurhash } = getImageData(item?.image, "mobile");
+      const { url, fallbackUrl, blurhash } = getImageData(
+        item?.image,
+        "mobile"
+      );
       return (
         <Pressable
           onPress={() =>
@@ -39,9 +42,10 @@ export default function SpecialCoverage({
           }
           style={{ width: width * 0.31 }}
         >
-          <Image
+          <SizedImage
             className="w-full overflow-hidden rounded-xl"
             contentFit="cover"
+            fallbackSource={fallbackUrl}
             placeholder={{ blurhash }}
             recyclingKey={item.id}
             source={url}
