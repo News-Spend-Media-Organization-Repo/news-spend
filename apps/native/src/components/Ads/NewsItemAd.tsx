@@ -23,7 +23,7 @@ function NewsItemAds({
   fromFallback?: boolean;
 }) {
   const imageData = useMemo(
-    () => getImageData(item?.payload?.media),
+    () => getImageData(item?.payload?.media, "thumbnail"),
     [item?.payload?.media]
   );
   const { url, blurhash } = imageData;

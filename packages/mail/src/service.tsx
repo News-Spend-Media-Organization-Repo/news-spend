@@ -26,7 +26,9 @@ export async function sendOTPVerificationEmail(to: string, otp: string) {
 
 export async function sendWelcomeEmail(to: string, username: string) {
   try {
-    const html = await render(<WelcomeEmail username={username} />);
+    const html = await render(
+      <WelcomeEmail firstName={username.trim().split(/\s+/)[0] || undefined} />
+    );
     await resend.emails.send({
       from: DEFAULT_FROM_EMAIL,
       to,

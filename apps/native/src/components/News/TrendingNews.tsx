@@ -56,7 +56,7 @@ export default function TrendingNews({ news }: { news: News[] }) {
 
 const TrendingNewsItem = ({ item }: { item: News }) => {
   const navigation = useNavigation("NewsHome");
-  const { url, blurhash } = getImageData(item?.image);
+  const { url, blurhash } = getImageData(item?.image, "mobile");
 
   const onAdClose = useCallback(() => {
     navigation.navigate("News", {

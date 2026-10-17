@@ -189,7 +189,7 @@ export const defaultElementRenderers: ElementRenderers = {
     }
 
     if (element.value.mimeType?.includes("image")) {
-      const { url, blurhash } = getImageData(element.value);
+      const { url, blurhash } = getImageData(element.value, "mobile");
 
       if (!url) {
         return null;
