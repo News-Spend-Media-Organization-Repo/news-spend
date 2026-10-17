@@ -2,7 +2,14 @@ import * as Clipboard from "expo-clipboard";
 import { ListGroup } from "heroui-native/list-group";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Separator } from "heroui-native/separator";
-
+import { useMemo } from "react";
+import { Linking, Platform, ScrollView, View } from "react-native";
+import Share, { type Social } from "react-native-share";
+import { Icon } from "#/components/heroui/icon";
+import { Screen } from "#/components/heroui/screen";
+import { Text } from "#/components/heroui/text";
+import { toast } from "#/components/heroui/toast";
+import useAddActivity from "#/hooks/point/useAddActivity";
 import type { IconProps } from "#/lib/icons";
 import {
   ChatDotsIcon,
@@ -12,15 +19,6 @@ import {
   ShareNetworkIcon,
   WhatsappLogoIcon,
 } from "#/lib/icons";
-import { useMemo } from "react";
-import { Linking, Platform, ScrollView, View } from "react-native";
-import Share, { type Social } from "react-native-share";
-
-import { Icon } from "#/components/heroui/icon";
-import { Screen } from "#/components/heroui/screen";
-import { Text } from "#/components/heroui/text";
-import { toast } from "#/components/heroui/toast";
-import useAddActivity from "#/hooks/point/useAddActivity";
 import { authState } from "#/state/auth";
 
 // TODO: make the share message configurable from the CMS
@@ -29,6 +27,10 @@ const msg =
 // newsspend.com/download does not exist; link.newsspend.com is the Detour
 // domain, which sends installed users to the app and everyone else to the store.
 const url = "https://link.newsspend.com";
+// The link sits mid-sentence, so the whole text is sent as the message and the
+// separate `url` field is left out: share targets append that after the
+// message, which would strand the store-search hint ahead of the link.
+const fullMsg = `${msg} ${url} OR search NewsSpend on your device store.`;
 
 const ShareApp = () => {
   const addActivityMutation = useAddActivity();
@@ -60,10 +62,9 @@ const ShareApp = () => {
       // On iOS, skip the package installed check (not implemented)
 
       const res = await Share.shareSingle({
-        message: msg,
+        message: fullMsg,
         social,
         title: "Refer a friend and earn 20 credits",
-        url,
         forceDialog: true,
         appId: "",
       });
@@ -91,7 +92,7 @@ const ShareApp = () => {
         Icon: ChatDotsIcon,
         onPress: async () => {
           try {
-            const res = await Linking.openURL(`sms:?body=${msg} ${url}`);
+            const res = await Linking.openURL(`sms:?body=${fullMsg}`);
 
             if (res) {
               awardPoint();
@@ -109,7 +110,7 @@ const ShareApp = () => {
         Icon: EnvelopeSimpleIcon,
         onPress: async () => {
           try {
-            const res = await Linking.openURL(`mailto:?body=${msg} ${url}`);
+            const res = await Linking.openURL(`mailto:?body=${fullMsg}`);
             if (res) {
               awardPoint();
             } else {
@@ -138,7 +139,7 @@ const ShareApp = () => {
         Icon: CopyIcon,
         onPress: async () => {
           try {
-            await Clipboard.setStringAsync(`${msg} ${url}`);
+            await Clipboard.setStringAsync(fullMsg);
             toast.success("Link copied to clipboard");
           } catch (error) {
             console.error(error);
@@ -152,9 +153,8 @@ const ShareApp = () => {
         onPress: async () => {
           try {
             const res = await Share.open({
-              message: `${msg}`,
+              message: fullMsg,
               title: "Refer a friend and earn 20 credits",
-              url,
             });
 
             if (res.success) {
