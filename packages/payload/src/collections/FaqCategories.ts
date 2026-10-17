@@ -18,6 +18,9 @@ export const preventDeleteWithQuestions: CollectionBeforeDeleteHook = async ({
   const { totalDocs } = await req.payload.count({
     collection: "faqs",
     where: { category: { equals: id } },
+    // Same transaction as the delete, so a migration that removes the
+    // questions and then the category sees its own writes.
+    req,
   });
   if (totalDocs > 0) {
     throw new APIError(

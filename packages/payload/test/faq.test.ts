@@ -10,6 +10,8 @@ const deleteArgs = (count: ReturnType<typeof mock>) =>
     req: { payload: { count } },
   }) as unknown as Parameters<CollectionBeforeDeleteHook>[0];
 
+const countCall = (count: ReturnType<typeof mock>) => count.mock.calls[0]?.[0];
+
 describe("FAQ_SEED", () => {
   test("has 8 categories and 22 questions, every icon in FAQ_ICONS", () => {
     expect(FAQ_SEED).toHaveLength(8);
@@ -47,13 +49,25 @@ describe("preventDeleteWithQuestions", () => {
   test("throws when the category still has questions", async () => {
     const count = mock(async () => ({ totalDocs: 3 }));
 
-    await expect(preventDeleteWithQuestions(deleteArgs(count))).rejects.toThrow(
+    const args = deleteArgs(count);
+
+    await expect(preventDeleteWithQuestions(args)).rejects.toThrow(
       "Move or delete its 3 questions first."
     );
     expect(count).toHaveBeenCalledWith({
       collection: "faqs",
       where: { category: { equals: "c1" } },
+      req: args.req,
     });
+  });
+
+  test("counts inside the hook's own request, so a transaction sees its writes", async () => {
+    const count = mock(async () => ({ totalDocs: 0 }));
+    const args = deleteArgs(count);
+
+    await preventDeleteWithQuestions(args);
+
+    expect(countCall(count)).toHaveProperty("req", args.req);
   });
 
   test("uses the singular for exactly one question", async () => {

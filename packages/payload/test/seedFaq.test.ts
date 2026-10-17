@@ -3,6 +3,7 @@ import type { Payload, PayloadRequest } from "payload";
 
 import { FAQ_SEED } from "../src/lib/faqSeed";
 import { seedFaqIfEmpty } from "../src/lib/seedFaq";
+import { down } from "../src/migrations/20261017_161125_faq_seed";
 
 type CreateArgs = {
   collection: string;
@@ -95,5 +96,63 @@ describe("seedFaqIfEmpty", () => {
     expect(await seedFaqIfEmpty(payload)).toBe("skipped");
     expect(counts).toContain("faqs");
     expect(creates).toHaveLength(0);
+  });
+});
+
+describe("faq_seed migration down", () => {
+  type DeleteArgs = {
+    collection: string;
+    where: Record<string, { equals: string }>;
+    req?: PayloadRequest;
+  };
+
+  const run = async () => {
+    const deletes: DeleteArgs[] = [];
+    const payload = {
+      delete: async (args: DeleteArgs) => {
+        deletes.push(args);
+        return { docs: [], errors: [] };
+      },
+    };
+    const req = { transactionID: "tx" } as unknown as PayloadRequest;
+    await down({ payload, req } as unknown as Parameters<typeof down>[0]);
+    return { deletes, req };
+  };
+
+  test("deletes every seeded question before any category", async () => {
+    const { deletes } = await run();
+
+    expect(deletes).toHaveLength(30);
+    expect(deletes.slice(0, 22).every((d) => d.collection === "faqs")).toBe(
+      true
+    );
+    expect(
+      deletes.slice(22).every((d) => d.collection === "faq-categories")
+    ).toBe(true);
+  });
+
+  test("matches only the exact seed question and name text", async () => {
+    const { deletes } = await run();
+
+    expect(
+      deletes
+        .filter((d) => d.collection === "faqs")
+        .map((d) => d.where.question)
+    ).toEqual(
+      FAQ_SEED.flatMap((c) => c.questions).map((q) => ({
+        equals: q.question,
+      }))
+    );
+    expect(
+      deletes
+        .filter((d) => d.collection === "faq-categories")
+        .map((d) => d.where.name)
+    ).toEqual(FAQ_SEED.map((c) => ({ equals: c.name })));
+  });
+
+  test("passes req to every delete", async () => {
+    const { deletes, req } = await run();
+
+    expect(deletes.every((d) => d.req === req)).toBe(true);
   });
 });
