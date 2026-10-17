@@ -6,6 +6,15 @@ const mockDestroy = jest.fn();
 /** The item the component under test is rendered with. */
 let mockCurrentItem: { id: string } = { id: "ad-0" };
 
+// The partner fallback talks to the API; here it only needs to be visible.
+jest.mock("../NewsItemFallbackAd", () => {
+  const { View } = require("react-native");
+  return {
+    __esModule: true,
+    default: () => <View testID="partner-fallback" />,
+  };
+});
+
 // The component's collaborators, all of which reach for native modules.
 jest.mock("react-native-google-mobile-ads", () => ({
   NativeAd: {
@@ -71,8 +80,8 @@ jest.mock("../../heroui/image", () => ({
   Image: require("react-native").Image,
 }));
 
-import { clearTabAdCache } from "#/utils/ad-cache";
 import * as Sentry from "@sentry/react-native";
+import { clearTabAdCache } from "#/utils/ad-cache";
 import NewsItemGoogleAds from "../NewsItemGoogleAd";
 
 const sentryCaptureMessage = Sentry.captureMessage as jest.Mock;
@@ -203,7 +212,7 @@ describe("NewsItemGoogleAds", () => {
     expect(adView.minHeight - media.height).toBeGreaterThanOrEqual(20);
   });
 
-  it("collapses the slot instead of stranding an empty placeholder", async () => {
+  it("hands the slot to a partner ad instead of stranding an empty placeholder", async () => {
     // No-fill on every attempt: the common real-world case.
     mockCreateForAdRequest.mockRejectedValue(new Error("no fill"));
 
@@ -226,7 +235,8 @@ describe("NewsItemGoogleAds", () => {
     // Out of attempts. The slot must take up no space rather than showing a
     // labelled empty box for the rest of the list's life — the reported bug.
     expect(screen.queryByText("Advertisement")).toBeNull();
-    expect(screen.toJSON()).toBeNull();
+    // Google has nothing, so the slot is handed to a partner ad, not left empty.
+    expect(screen.getByTestId("partner-fallback")).toBeTruthy();
   });
 
   it("spaces retries out instead of firing them back to back", async () => {
@@ -369,7 +379,7 @@ describe("NewsItemGoogleAds", () => {
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
-  it("refuses a video ad and shows a still one instead", async () => {
+  it("prefers a still ad over a video one", async () => {
     const adWith = (headline: string, hasVideoContent: boolean) => ({
       headline,
       advertiser: "Acme",
@@ -393,11 +403,12 @@ describe("NewsItemGoogleAds", () => {
 
     expect(screen.getByText("Still ad")).toBeTruthy();
     expect(screen.queryByText("Video ad")).toBeNull();
-    // The refused video was released, not leaked.
+    // The unused video was released, not leaked.
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
-  it("collapses the slot rather than showing a video ad", async () => {    const videoWith = (headline: string) => ({
+  it("shows the first video ad when no still one turns up", async () => {
+    const videoWith = (headline: string) => ({
       headline,
       advertiser: "Acme",
       body: "Body",
@@ -421,14 +432,10 @@ describe("NewsItemGoogleAds", () => {
     await advance(3000);
     await flush();
 
-    expect(screen.queryByText("Video 1")).toBeNull();
+    expect(screen.getByText("Video 1")).toBeTruthy();
     expect(screen.queryByText("Video 2")).toBeNull();
-    expect(screen.queryByText("Video 3")).toBeNull();
-    // Every video was released, not leaked.
-    expect(mockDestroy).toHaveBeenCalledTimes(3);
-    // No ad beats the wrong ad: the slot takes up no space at all, rather than
-    // leaving a "Advertisement" box with nothing in it.
-    expect(screen.toJSON()).toBeNull();
+    // The two extra videos were released, not leaked.
+    expect(mockDestroy).toHaveBeenCalledTimes(2);
   });
 
   it("leaves a breadcrumb, not an issue, when fill is exhausted by no-fill", async () => {
@@ -446,7 +453,8 @@ describe("NewsItemGoogleAds", () => {
     await advance(3000);
     await flush();
 
-    expect(screen.toJSON()).toBeNull();
+    // Google has nothing, so the slot is handed to a partner ad, not left empty.
+    expect(screen.getByTestId("partner-fallback")).toBeTruthy();
     // Expected inventory outcome: no Sentry issue filed ...
     expect(sentryCaptureMessage).not.toHaveBeenCalled();
     // ... but context kept for a future real event.
@@ -459,9 +467,7 @@ describe("NewsItemGoogleAds", () => {
   });
 
   it("samples actionable failures (timeouts) instead of reporting every slot", async () => {
-    mockCreateForAdRequest.mockRejectedValue(
-      new Error("ad request timed out")
-    );
+    mockCreateForAdRequest.mockRejectedValue(new Error("ad request timed out"));
 
     const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0);
     mockCurrentItem = { id: "ad-timeout-sampled" };

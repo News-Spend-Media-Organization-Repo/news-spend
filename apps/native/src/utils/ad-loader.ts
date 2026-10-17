@@ -47,7 +47,8 @@ const ACTIONABLE_FAILURE_SAMPLE_RATE = 0.1;
  * Anything else (request timeouts, SDK init failures, unknown SDK errors) is
  * actionable and sampled below.
  */
-const EXPECTED_FAILURE_RE = /no-fill|video ad, rejected|repeat ad/i;
+const EXPECTED_FAILURE_RE =
+  /no-fill|no ad to show|video ad, rejected|repeat ad/i;
 
 /** One shared promise per (tab, id) — concurrent callers (an eager preload
  * walk and a slot mounting before that preload finished) await the same
@@ -55,21 +56,33 @@ const EXPECTED_FAILURE_RE = /no-fill|video ad, rejected|repeat ad/i;
 const inFlight = new Map<string, Promise<NativeAd | null>>();
 
 /**
- * Ad requests go out one at a time.
+ * Ad requests go out a couple at a time.
  *
  * The feed preloads every ad slot the moment a page arrives, so a page with
  * four slots fired four requests at the same ad unit in the same instant, and
- * Google answered them with the same creative. Taking turns lets each request
- * see a different auction, and gives the duplicate check below something to
- * compare against. Only the request itself queues: retry backoff happens
- * outside the queue, so one slot waiting to retry never holds up the others.
+ * Google answered them with the same creative. Fully serial requests fixed
+ * that, but made every slot wait behind all the ones before it, so one
+ * timed-out request (10s) held the rest of the feed at the "Advertisement"
+ * placeholder. Two at a time keeps requests staggered enough to see different
+ * auctions (the duplicate check below catches what slips through) while a
+ * slow request only delays one other slot. Retry backoff happens outside the
+ * queue, so a slot waiting to retry never holds up the others.
  */
-let requestQueue: Promise<unknown> = Promise.resolve();
+const MAX_CONCURRENT_REQUESTS = 2;
+let activeRequests = 0;
+const waiting: Array<() => void> = [];
 
-function enqueue<T>(task: () => Promise<T>): Promise<T> {
-  const run = requestQueue.then(task, task);
-  requestQueue = run.catch(() => undefined);
-  return run;
+async function enqueue<T>(task: () => Promise<T>): Promise<T> {
+  if (activeRequests >= MAX_CONCURRENT_REQUESTS) {
+    await new Promise<void>((resolve) => waiting.push(resolve));
+  }
+  activeRequests++;
+  try {
+    return await task();
+  } finally {
+    activeRequests--;
+    waiting.shift()?.();
+  }
 }
 
 function delay(ms: number): Promise<void> {
@@ -99,6 +112,9 @@ async function requestOnce(): Promise<NativeAd> {
     // reserves a strip under the thumbnail for it (ADCHOICES_GUTTER in
     // NewsItemGoogleAd), so the icon never lands on the creative.
     adChoicesPlacement: NativeAdChoicesPlacement.BOTTOM_LEFT,
+    // A video that does serve plays silently: this is a list a reader is
+    // scrolling through, often on mobile data, not a player they opened.
+    startVideoMuted: true,
   });
 
   return new Promise((resolve, reject) => {
@@ -140,19 +156,18 @@ async function loadWithRetries(
   const failures: string[] = [];
 
   /**
-   * A video creative is refused outright, not merely ranked last.
+   * A video creative is a last resort, not a rejection.
    *
-   * This row is built around a still image: the media view is a 120pt
-   * thumbnail sitting beside the copy, with no player attached to it. A video
-   * ad therefore has nowhere to run and reads as a broken row. Google exposes
-   * no request-side switch for this, so the only place to exclude them is on
-   * the ad that comes back.
-   *
-   * The cost is deliberate and worth stating: on iOS, native inventory skews
-   * heavily to video, so a slot that only ever draws video now collapses
-   * instead of showing something that does not fit. No ad beats the wrong ad.
+   * The row's media view is Google's own NativeMediaView, which plays video
+   * itself, and it is sized past Google's 120 floor for video. A still image
+   * still fits the row better and costs the reader less data, so an image is
+   * preferred and the remaining attempts go looking for one. But iOS native
+   * inventory skews heavily to video, and refusing it outright left those
+   * slots with no Google ad at all, so the first video is held aside and used
+   * if no image turns up.
    */
-  const isUsable = (ad: NativeAd) => !ad.mediaContent?.hasVideoContent;
+  let video: NativeAd | null = null;
+  const isVideo = (ad: NativeAd) => Boolean(ad.mediaContent?.hasVideoContent);
 
   /**
    * Among usable ads, prefer one no other slot in this feed is already
@@ -167,7 +182,14 @@ async function loadWithRetries(
     try {
       const ad = await enqueue(requestOnce);
 
-      if (isUsable(ad)) {
+      if (isVideo(ad)) {
+        if (video) {
+          ad.destroy();
+        } else {
+          video = ad;
+        }
+        failures.push(`attempt ${attempt}: video ad, looking for an image`);
+      } else {
         const isRepeat = isDuplicateInTab(tab, id, ad);
 
         // An ad already on screen elsewhere is not an improvement on the one
@@ -188,9 +210,6 @@ async function loadWithRetries(
             break;
           }
         }
-      } else {
-        ad.destroy();
-        failures.push(`attempt ${attempt}: video ad, rejected`);
       }
     } catch (error) {
       failures.push(`attempt ${attempt}: ${(error as Error)?.message}`);
@@ -202,9 +221,14 @@ async function loadWithRetries(
   }
 
   // Something arrived, even if not ideal: showing it beats collapsing the slot.
-  if (best) {
-    setCachedAd(tab, id, best);
-    return best;
+  // An image wins over a video, and the video is released if it is not used.
+  const chosen = best ?? video;
+  if (best && video) {
+    video.destroy();
+  }
+  if (chosen) {
+    setCachedAd(tab, id, chosen);
+    return chosen;
   }
 
   // Breadcrumbs alone never leave the device — they only ride along with a
