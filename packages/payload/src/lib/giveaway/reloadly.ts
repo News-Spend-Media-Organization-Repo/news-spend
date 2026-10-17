@@ -73,6 +73,14 @@ export type TopupResult = {
 };
 
 /**
+ * What Reloadly says about a transaction we already sent. Only `status` is
+ * typed: the response also carries `code`, `message` and `transaction`, and
+ * all three are documented as null unless the status is a success, so typing
+ * them would promise values that are not there.
+ */
+export type TopupStatusResult = { status: string };
+
+/**
  * Reloadly's wording when a `customIdentifier` has been seen before.
  *
  * It answers with 400, which is otherwise a permanent failure, but here it
@@ -252,9 +260,10 @@ export class ReloadlyClient {
   /**
    * Send a top-up.
    *
-   * `customIdentifier` carries the winner id, which is what makes this safe to
-   * retry: Reloadly treats a repeated identifier as the same transaction, so a
-   * run that fails after sending but before recording cannot pay twice.
+   * `customIdentifier` carries the attempt's own identifier (the winner id and
+   * attempt number), which is what makes this safe to retry: Reloadly treats a
+   * repeated identifier as the same transaction, so a run that fails after
+   * sending but before recording cannot pay twice.
    *
    * Amounts are sent as local currency. The account is denominated elsewhere
    * (CAD, on this one), and converting a ₦500 prize into the account currency
@@ -281,5 +290,16 @@ export class ReloadlyClient {
         },
       },
     });
+  }
+
+  /**
+   * What happened to a top-up we already sent.
+   *
+   * A 404 means Reloadly has no record of the id, which surfaces as a
+   * ReloadlyError with `status` 404 rather than an empty result, so a caller
+   * cannot mistake "unknown" for "unsuccessful".
+   */
+  topupStatus(transactionId: string | number): Promise<TopupStatusResult> {
+    return this.request<TopupStatusResult>(`/topups/${transactionId}/status`);
   }
 }

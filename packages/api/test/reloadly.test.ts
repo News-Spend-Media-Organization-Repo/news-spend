@@ -222,3 +222,39 @@ describe("ReloadlyClient.topup", () => {
     expect(error.isAlreadySent).toBe(false);
   });
 });
+
+describe("ReloadlyClient.topupStatus", () => {
+  it("looks a transaction up by id and returns its status", async () => {
+    const { client: c, calls } = client([
+      TOKEN_RESPONSE,
+      {
+        status: 200,
+        body: {
+          status: "SUCCESSFUL",
+          code: null,
+          message: null,
+          transaction: null,
+        },
+      },
+    ]);
+
+    const result = await c.topupStatus(182_245);
+
+    expect(
+      calls.some((call) => call.url.endsWith("/topups/182245/status"))
+    ).toBe(true);
+    expect(result.status).toBe("SUCCESSFUL");
+  });
+
+  it("throws a 404 ReloadlyError for an id it does not know", async () => {
+    const { client: c } = client([
+      TOKEN_RESPONSE,
+      { status: 404, body: { message: "TRANSACTION_NOT_FOUND" } },
+    ]);
+
+    const error = await c.topupStatus("999").catch((e) => e);
+
+    expect(error).toBeInstanceOf(ReloadlyError);
+    expect(error.status).toBe(404);
+  });
+});

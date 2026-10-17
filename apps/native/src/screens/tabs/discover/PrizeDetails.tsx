@@ -145,7 +145,10 @@ function PrizeDetails({
               label="Amount"
               value={data.dispatch.amount ? `₦${data.dispatch.amount}` : null}
             />
-            <Detail label="Sent" value={when(data.dispatch.attemptedAt)} />
+            {/* What we attempted, not what landed. A failed or still-settling
+                attempt is not a delivery, and the word "Sent" is reserved for
+                the fulfilment status the list screen gates on. */}
+            <Detail label="Attempted" value={when(data.dispatch.attemptedAt)} />
             <Detail label="Reference" value={data.dispatch.reference} />
             {/* The provider's own words, so a failure is diagnosable rather
                 than just "not fulfilled". */}

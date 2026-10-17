@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { fulfilPendingPrizes } from "@news-spend-media/payload/lib/giveaway/fulfilPrizes";
+import { notifyFulfilmentHold } from "@news-spend-media/payload/lib/giveaway/notifyFulfilmentHold";
 import { ReloadlyError } from "@news-spend-media/payload/lib/giveaway/reloadly";
+
+// A hold now resolves recipients from MODERATION_ALERT_EMAILS as well, so an
+// exported value adds a second email and fails the toHaveLength(1) assertions
+// below on nothing but the ambient environment. Empty means "no extras".
+process.env.MODERATION_ALERT_EMAILS = "";
 
 type Row = Record<string, any>;
 
@@ -17,10 +23,26 @@ function winnerRow(overrides: Row = {}): Row {
   };
 }
 
-function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
+function createFakePayload({
+  winners = [],
+  attempts = [] as Row[],
+  admins = [] as Row[],
+  moderationSettings = null as Row | null,
+  countFails = false,
+  claimLost = false,
+}: {
+  winners?: Row[];
+  attempts?: Row[];
+  admins?: Row[];
+  moderationSettings?: Row | null;
+  countFails?: boolean;
+  /** Models another runner having claimed the row between our read and our claim. */
+  claimLost?: boolean;
+} = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-winners": winners,
-    "giveaway-fulfilment-attempts": [],
+    "giveaway-fulfilment-attempts": attempts,
+    admins,
     notifications: [],
     users: [{ id: "u1", email: "winner@example.com", username: "winner" }],
   };
@@ -29,6 +51,48 @@ function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
 
   const payload: any = {
     logger: { warn: () => undefined, error: () => undefined },
+    /**
+     * The sweep claims a winner with a conditional UPDATE before paying it, so
+     * a fake without this returns "claimed nothing" and the sweep correctly
+     * does nothing at all.
+     *
+     * Modelled rather than stubbed away: the claim only hands the row to one
+     * caller, which is the whole point of it, so this flips only the `pending`
+     * row whose id is the bound parameter and returns nothing when no such row
+     * is left. That is what makes two concurrent passes pay each winner once.
+     */
+    db: {
+      drizzle: {
+        execute: async (query: unknown) => {
+          const text = JSON.stringify(
+            (query as Row)?.queryChunks ?? String(query)
+          );
+
+          // A claim is recognised by reading it, as the report suite's fake
+          // reads its table: the predicate is the safety property, so a
+          // statement that has lost `fulfilment_status = 'pending'` must not
+          // claim anything here either.
+          const isClaim =
+            text.includes("giveaway_winners") && text.includes("pending");
+
+          if (!isClaim || claimLost) {
+            return { rows: [] };
+          }
+
+          const claimable = (collections["giveaway-winners"] ?? []).filter(
+            (row) =>
+              row.fulfilmentStatus === "pending" &&
+              text.includes(String(row.id))
+          );
+
+          for (const row of claimable) {
+            row.fulfilmentStatus = "in_progress";
+          }
+
+          return { rows: claimable.map((row) => ({ id: row.id })) };
+        },
+      },
+    },
     find: async ({ collection, where, sort, limit }: Row) => {
       let docs = (collections[collection] ?? []).filter((row) =>
         matchesWhere(row, where)
@@ -39,6 +103,10 @@ function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
       return { docs, totalDocs: docs.length };
     },
     count: async ({ collection, where }: Row) => {
+      if (countFails) {
+        countFails = false;
+        throw new Error("database unavailable");
+      }
       const docs = (collections[collection] ?? []).filter((row) =>
         matchesWhere(row, where)
       );
@@ -56,6 +124,7 @@ function createFakePayload({ winners = [] }: { winners?: Row[] } = {}) {
     findByID: async ({ collection, id }: Row) =>
       collections[collection]?.find((row) => String(row.id) === String(id)) ??
       null,
+    findGlobal: async () => moderationSettings,
     sendEmail: async (message: Row) => {
       emails.push(message);
       return message;
@@ -82,6 +151,14 @@ function matchesWhere(row: Row, where: Row | undefined): boolean {
   return Object.entries(where).every(([field, condition]) => {
     const clause = condition as Row;
     const actual = row[field];
+    if (clause?.exists !== undefined) {
+      // `exists: true` compiles to `IS NOT NULL`, which an empty string
+      // satisfies. Modelling it as "not blank" here would make the fake more
+      // forgiving than the database, and a row holding `''` would read as
+      // unspent here while production counts it as spent.
+      const present = actual !== undefined && actual !== null;
+      return clause.exists ? present : !present;
+    }
     if (clause?.equals !== undefined) {
       return String(actual) === String(clause.equals);
     }
@@ -114,12 +191,68 @@ describe("fulfilPendingPrizes", () => {
     expect(created["giveaway-fulfilment-attempts"]).toBeUndefined();
   });
 
+  it("touches nothing when another runner has already claimed the prize", async () => {
+    const { payload, collections, created } = createFakePayload({
+      winners: [winnerRow()],
+      claimLost: true,
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new Error("must not pay a prize another runner owns");
+      },
+    });
+
+    const summary = await fulfilPendingPrizes(payload, { client });
+
+    // Losing the claim means it was never our attempt to make: not counted,
+    // not logged, and no attempt row written.
+    expect(summary).toEqual({ attempted: 0, sent: 0, failed: 0, skipped: 0 });
+    expect(created["giveaway-fulfilment-attempts"]).toBeUndefined();
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+  });
+
+  it("pays each prize once when two passes run at the same time", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [
+        winnerRow(),
+        winnerRow({ id: "w2", claimPhone: "08031234568" }),
+        winnerRow({ id: "w3", claimPhone: "08031234569" }),
+      ],
+    });
+    const paid: string[] = [];
+    const client = fakeClient({
+      topup: async (args) => {
+        paid.push(args.customIdentifier);
+        return { transactionId: 1, status: "SUCCESSFUL" };
+      },
+    });
+
+    await Promise.all([
+      fulfilPendingPrizes(payload, { client }),
+      fulfilPendingPrizes(payload, { client }),
+    ]);
+
+    // The identifier is per attempt now, so a second runner's re-send carries a
+    // fresh key the provider accepts: only the claim stands between two readers
+    // and a second payment.
+    expect([...paid].sort()).toEqual(["w1:1", "w2:1", "w3:1"]);
+    expect(
+      collections["giveaway-winners"].every(
+        (winner) => winner.fulfilmentStatus === "fulfilled"
+      )
+    ).toBe(true);
+  });
+
   it("sends a top-up and marks the prize fulfilled", async () => {
     const { payload, collections, created } = createFakePayload({
       winners: [winnerRow()],
     });
     const client = fakeClient({
-      topup: async () => ({ transactionId: 999, operatorName: "MTN Nigeria" }),
+      topup: async () => ({
+        transactionId: 999,
+        status: "SUCCESSFUL",
+        operatorName: "MTN Nigeria",
+      }),
     });
 
     const summary = await fulfilPendingPrizes(payload, { client });
@@ -133,6 +266,88 @@ describe("fulfilPendingPrizes", () => {
       providerTransactionId: "999",
       localAmount: 500,
     });
+  });
+
+  it("does not fulfil a prize the provider is still processing", async () => {
+    const { payload, collections, created } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const client = fakeClient({
+      topup: async () => ({ transactionId: 42, status: "PROCESSING" }),
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // Calling this delivered while it is still settling is the same lie the
+    // October record told. "Sending now" is the honest label.
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "in_progress"
+    );
+    expect(created["giveaway-fulfilment-attempts"]?.[0]).toMatchObject({
+      outcome: "sent",
+      providerTransactionId: "42",
+    });
+  });
+
+  it("does not fulfil a prize when the provider reports no status", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const client = fakeClient({
+      topup: async () => ({ transactionId: 43 }),
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // Silence is unknown, not delivered.
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
+      "in_progress"
+    );
+  });
+
+  it("records no transaction id, and reuses the key, when the provider gave none", async () => {
+    const { payload, collections, created } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const identifiers: string[] = [];
+    // A 2xx the provider answered without a usable transaction id: first with
+    // the key missing, then with it blank. The body is asserted rather than
+    // validated, so both are shapes the provider can actually send. Either way
+    // the prize is dispatched but unsettled, which is the row the reconciler
+    // re-queues.
+    const responses: Row[] = [
+      { status: "PROCESSING" },
+      { status: "PROCESSING", transactionId: "" },
+    ];
+    const client = fakeClient({
+      topup: async (args) => {
+        identifiers.push(args.customIdentifier);
+        return responses.shift() ?? { status: "PROCESSING" };
+      },
+    });
+
+    // Three dispatches, each following a re-queue, so each one's identifier
+    // shows what the row before it counted as spent.
+    for (let pass = 0; pass < 3; pass += 1) {
+      await fulfilPendingPrizes(payload, { client });
+      Object.assign(collections["giveaway-winners"][0], {
+        fulfilmentStatus: "pending",
+      });
+    }
+
+    const attempts = created["giveaway-fulfilment-attempts"] ?? [];
+    expect(attempts[0]?.outcome).toBe("sent");
+    expect(attempts[1]?.outcome).toBe("sent");
+    // Absent, not empty: `''` is `IS NOT NULL`, so the key count would treat
+    // this row as spent while the reconciler reads it as no id at all — and
+    // the re-send would use a fresh identifier for a transaction that may
+    // already exist.
+    expect(attempts[0]).not.toHaveProperty("providerTransactionId");
+    expect(attempts[1]).not.toHaveProperty("providerTransactionId");
+
+    // Neither dispatch spent an identifier, so the re-queued prize keeps
+    // reusing the one it never used.
+    expect(identifiers).toEqual(["w1:1", "w1:1", "w1:1"]);
   });
 
   it("ignores a prize the provider does not deliver", async () => {
@@ -263,7 +478,11 @@ describe("fulfilPendingPrizes", () => {
         // The Airtel row, not the MTN one that happens to be listed first.
         expect(args.operatorId).toBe(646);
         expect(args.localAmount).toBe(599.91);
-        return { transactionId: 1, operatorName: "Airtel Nigeria Data" };
+        return {
+          transactionId: 1,
+          status: "SUCCESSFUL",
+          operatorName: "Airtel Nigeria Data",
+        };
       },
     });
 
@@ -299,7 +518,7 @@ describe("fulfilPendingPrizes", () => {
       detectOperator: async () => ({ operatorId: 99_999, name: "Glo Nigeria" }),
       topup: async (args) => {
         expect(args.operatorId).toBe(647);
-        return { transactionId: 7 };
+        return { transactionId: 7, status: "SUCCESSFUL" };
       },
     });
 
@@ -333,7 +552,7 @@ describe("fulfilPendingPrizes", () => {
         operatorId: 1,
         name: "T2 Mobile Nigeria Data",
       }),
-      topup: async () => ({ transactionId: 8 }),
+      topup: async () => ({ transactionId: 8, status: "SUCCESSFUL" }),
     });
 
     const summary = await fulfilPendingPrizes(payload, { client });
@@ -395,7 +614,7 @@ describe("fulfilPendingPrizes", () => {
   });
 
   it("leaves a retryable failure pending rather than holding it immediately", async () => {
-    const { payload, collections } = createFakePayload({
+    const { payload, collections, created } = createFakePayload({
       winners: [winnerRow()],
     });
     const client = fakeClient({
@@ -409,6 +628,12 @@ describe("fulfilPendingPrizes", () => {
     // One transient failure should not take the prize out of the queue;
     // an outage clears on its own within a few hourly passes.
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+    // The key that request used belongs on the row: it is the evidence a
+    // person has when asking whether a request we never got an answer from
+    // did reach the provider, and it is the row read after a refused retry.
+    expect(created["giveaway-fulfilment-attempts"]?.[0].providerReference).toBe(
+      "w1:1"
+    );
   });
 
   it("holds a prize after enough retryable failures", async () => {
@@ -454,6 +679,99 @@ describe("fulfilPendingPrizes", () => {
 
     expect(emails).toHaveLength(1);
     expect(emails[0]!.to).toBe("winner@example.com");
+  });
+
+  it("tells the admins when a payout is held", async () => {
+    const { payload, emails } = createFakePayload({
+      winners: [winnerRow()],
+      admins: [{ id: "a1", email: "ops@example.com", role: "super-admin" }],
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new ReloadlyError("invalid account number", 400, null, false);
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // hold() told only the winner, which is why the October failure sat unnoticed
+    // from the 9th until somebody complained.
+    const toAdmin = emails.filter((email) => email.to === "ops@example.com");
+    expect(toAdmin).toHaveLength(1);
+    expect(toAdmin[0]!.html).toContain("invalid account number");
+  });
+
+  describe("notifyFulfilmentHold", () => {
+    it("resolves rather than throwing when the mail transport fails", async () => {
+      const { payload } = createFakePayload({
+        admins: [{ id: "a1", email: "ops@example.com", role: "super-admin" }],
+      });
+      payload.sendEmail = async () => {
+        throw new Error("smtp unreachable");
+      };
+
+      const result = await notifyFulfilmentHold(
+        payload,
+        "w1",
+        "Provider rejected the payout: INVALID_ACCOUNT_NUMBER"
+      );
+
+      // The prize is already held: a mail server being unreachable must not
+      // turn a handled hold into an unhandled failure.
+      expect(result).toEqual({ notified: false });
+    });
+
+    it("still reaches the other admins when one address fails", async () => {
+      const { payload, emails } = createFakePayload({
+        admins: [
+          { id: "a1", email: "typo@example.com", role: "super-admin" },
+          { id: "a2", email: "ops@example.com", role: "super-admin" },
+        ],
+      });
+      payload.sendEmail = async (message: Row) => {
+        if (message.to === "typo@example.com") {
+          throw new Error("invalid address");
+        }
+        emails.push(message);
+        return message;
+      };
+
+      const result = await notifyFulfilmentHold(
+        payload,
+        "w1",
+        "Provider rejected the payout: INVALID_ACCOUNT_NUMBER"
+      );
+
+      // One bad address must not silence the copy that would have reached
+      // somebody; that is the failure this alert exists to end.
+      expect(emails.map((email) => email.to)).toEqual(["ops@example.com"]);
+      expect(result).toEqual({ notified: true });
+    });
+
+    it("shows the admins the last attempt's amount and reference", async () => {
+      const { payload, emails } = createFakePayload({
+        admins: [{ id: "a1", email: "ops@example.com", role: "super-admin" }],
+        attempts: [
+          {
+            id: "att-1",
+            winner: "w1",
+            outcome: "permanent_failure",
+            localAmount: 500,
+            providerReference: "w1:2",
+            attemptedAt: "2026-10-09T00:00:00.000Z",
+          },
+        ],
+      });
+
+      await notifyFulfilmentHold(
+        payload,
+        "w1",
+        "Provider rejected the payout: INVALID_ACCOUNT_NUMBER"
+      );
+
+      expect(emails[0]!.html).toContain("500");
+      expect(emails[0]!.html).toContain("w1:2");
+    });
   });
 
   it("does not leak the provider's wording to the winner", async () => {
@@ -507,7 +825,11 @@ describe("fulfilPendingPrizes", () => {
         if (attempts === 1) {
           throw new ReloadlyError("gateway timeout", 503, null, true);
         }
-        return { transactionId: 99, operatorName: "MTN Nigeria" };
+        return {
+          transactionId: 99,
+          status: "SUCCESSFUL",
+          operatorName: "MTN Nigeria",
+        };
       },
     });
 
@@ -527,8 +849,10 @@ describe("fulfilPendingPrizes", () => {
     const { payload, collections, created } = createFakePayload({
       winners: [winnerRow()],
     });
+    let sentIdentifier = "";
     const client = fakeClient({
-      topup: async () => {
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
         throw new ReloadlyError(
           "The custom identifier provided has already been used. Please provide a new, unique custom identifier",
           400,
@@ -544,6 +868,7 @@ describe("fulfilPendingPrizes", () => {
     // went out on an earlier pass. Marking it failed would strand a winner
     // who has, in fact, already been paid.
     expect(summary.sent).toBe(1);
+    expect(sentIdentifier).toBe("w1:1");
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "fulfilled"
     );
@@ -556,7 +881,7 @@ describe("fulfilPendingPrizes", () => {
     const { payload, created } = createFakePayload({ winners: [winnerRow()] });
     const client = fakeClient({
       isSandbox: true,
-      topup: async () => ({ transactionId: 1 }),
+      topup: async () => ({ transactionId: 1, status: "SUCCESSFUL" }),
     });
 
     await fulfilPendingPrizes(payload, { client });
@@ -566,5 +891,90 @@ describe("fulfilPendingPrizes", () => {
     expect(created["giveaway-fulfilment-attempts"]?.[0].environment).toBe(
       "sandbox"
     );
+  });
+
+  it("numbers the first attempt 1", async () => {
+    const { payload, created } = createFakePayload({ winners: [winnerRow()] });
+    let sentIdentifier = "";
+    const client = fakeClient({
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
+        return { transactionId: 1, status: "SUCCESSFUL" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    expect(sentIdentifier).toBe("w1:1");
+    expect(created["giveaway-fulfilment-attempts"]?.[0].providerReference).toBe(
+      "w1:1"
+    );
+  });
+
+  it("advances the key only for a failure the provider confirmed", async () => {
+    // One confirmed failure: the identifier it consumed is spent, so the retry
+    // must not reuse it.
+    const { payload } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [
+        {
+          winner: "w1",
+          outcome: "retryable_failure",
+          providerTransactionId: "11",
+        },
+      ],
+    });
+    let sentIdentifier = "";
+    const client = fakeClient({
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
+        return { transactionId: 2, status: "SUCCESSFUL" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    expect(sentIdentifier).toBe("w1:2");
+  });
+
+  it("reuses the key after a failure the provider never confirmed", async () => {
+    // A timeout or a 5xx may or may not have created a transaction, and the
+    // response that would say which never arrived. Reusing the key is what
+    // makes that safe: if it did go out, Reloadly refuses the repeat and the
+    // existing isAlreadySent check reads it correctly instead of paying a
+    // second time.
+    const { payload } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [{ winner: "w1", outcome: "retryable_failure" }],
+    });
+    let sentIdentifier = "";
+    const client = fakeClient({
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
+        return { transactionId: 3, status: "SUCCESSFUL" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    expect(sentIdentifier).toBe("w1:1");
+  });
+
+  it("does not dispatch when the attempt count cannot be read", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [winnerRow()],
+      countFails: true,
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new Error("must not send on a guessed identifier");
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // Guessing the number would either refuse a legitimate retry or re-send a
+    // payout that already went out.
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
   });
 });

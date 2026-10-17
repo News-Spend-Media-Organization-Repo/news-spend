@@ -37,12 +37,32 @@ function createFakePayload({
       error: () => undefined,
     },
     /**
-     * The winner-report retry claims a delivery with a conditional UPDATE
-     * before sending, so a fake without this reports nothing to retry.
+     * The winner-report retry and the fulfilment sweep each claim a row with a
+     * conditional UPDATE before sending. A fake that ignores the query hands a
+     * winners claim the report rows, so this branches on the table and claims
+     * the matching collection.
      */
     db: {
       drizzle: {
-        execute: async () => {
+        execute: async (query: unknown) => {
+          const text = JSON.stringify(
+            (query as Row)?.queryChunks ?? String(query)
+          );
+
+          if (text.includes("giveaway_winners")) {
+            // shortcut: claims every pending winner rather than only the bound
+            // id; model the id if a test in this file ever exercises the claim.
+            const claimable = (collections["giveaway-winners"] ?? []).filter(
+              (row) => row.fulfilmentStatus === "pending"
+            );
+
+            for (const row of claimable) {
+              row.fulfilmentStatus = "in_progress";
+            }
+
+            return { rows: claimable.map((row) => ({ id: row.id })) };
+          }
+
           const claimable = (
             collections["giveaway-report-deliveries"] ?? []
           ).filter((row) => row.status === "failed");
