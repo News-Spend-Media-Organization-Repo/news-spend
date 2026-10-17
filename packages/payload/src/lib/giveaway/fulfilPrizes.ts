@@ -1,6 +1,7 @@
 import type { BasePayload } from "payload";
 
 import { DEFAULT_GIVEAWAY_COUNTRY } from "../../collections/giveaway/constants";
+import { notifyFulfilmentHold } from "./notifyFulfilmentHold";
 import { notifyFulfilmentProblem } from "./notifyFulfilmentProblem";
 import {
   ReloadlyClient,
@@ -555,4 +556,5 @@ export async function hold(
 
   // Never throws; a notification failure must not undo a handled hold.
   await notifyFulfilmentProblem(payload, winnerId);
+  await notifyFulfilmentHold(payload, winnerId, reason);
 }

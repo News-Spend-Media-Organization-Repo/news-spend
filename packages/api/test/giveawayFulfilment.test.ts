@@ -20,15 +20,20 @@ function winnerRow(overrides: Row = {}): Row {
 function createFakePayload({
   winners = [],
   attempts = [] as Row[],
+  admins = [] as Row[],
+  moderationSettings = null as Row | null,
   countFails = false,
 }: {
   winners?: Row[];
   attempts?: Row[];
+  admins?: Row[];
+  moderationSettings?: Row | null;
   countFails?: boolean;
 } = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-winners": winners,
     "giveaway-fulfilment-attempts": attempts,
+    admins,
     notifications: [],
     users: [{ id: "u1", email: "winner@example.com", username: "winner" }],
   };
@@ -68,6 +73,7 @@ function createFakePayload({
     findByID: async ({ collection, id }: Row) =>
       collections[collection]?.find((row) => String(row.id) === String(id)) ??
       null,
+    findGlobal: async () => moderationSettings,
     sendEmail: async (message: Row) => {
       emails.push(message);
       return message;
@@ -521,6 +527,26 @@ describe("fulfilPendingPrizes", () => {
 
     expect(emails).toHaveLength(1);
     expect(emails[0]!.to).toBe("winner@example.com");
+  });
+
+  it("tells the admins when a payout is held", async () => {
+    const { payload, emails } = createFakePayload({
+      winners: [winnerRow()],
+      admins: [{ id: "a1", email: "ops@example.com", role: "super-admin" }],
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new ReloadlyError("invalid account number", 400, null, false);
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    // hold() told only the winner, which is why the October failure sat unnoticed
+    // from the 9th until somebody complained.
+    const toAdmin = emails.filter((email) => email.to === "ops@example.com");
+    expect(toAdmin).toHaveLength(1);
+    expect(toAdmin[0]!.html).toContain("invalid account number");
   });
 
   it("does not leak the provider's wording to the winner", async () => {
