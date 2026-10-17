@@ -29,12 +29,15 @@ function createFakePayload({
   admins = [] as Row[],
   moderationSettings = null as Row | null,
   countFails = false,
+  claimLost = false,
 }: {
   winners?: Row[];
   attempts?: Row[];
   admins?: Row[];
   moderationSettings?: Row | null;
   countFails?: boolean;
+  /** Models another runner having claimed the row between our read and our claim. */
+  claimLost?: boolean;
 } = {}) {
   const collections: Record<string, Row[]> = {
     "giveaway-winners": winners,
@@ -48,6 +51,41 @@ function createFakePayload({
 
   const payload: any = {
     logger: { warn: () => undefined, error: () => undefined },
+    /**
+     * The sweep claims a winner with a conditional UPDATE before paying it, so
+     * a fake without this returns "claimed nothing" and the sweep correctly
+     * does nothing at all.
+     *
+     * Modelled rather than stubbed away: the claim only hands the row to one
+     * caller, which is the whole point of it, so this flips only the `pending`
+     * row whose id is the bound parameter and returns nothing when no such row
+     * is left. That is what makes two concurrent passes pay each winner once.
+     */
+    db: {
+      drizzle: {
+        execute: async (query: unknown) => {
+          const text = JSON.stringify(
+            (query as Row)?.queryChunks ?? String(query)
+          );
+
+          if (!text.includes("giveaway_winners") || claimLost) {
+            return { rows: [] };
+          }
+
+          const claimable = (collections["giveaway-winners"] ?? []).filter(
+            (row) =>
+              row.fulfilmentStatus === "pending" &&
+              text.includes(String(row.id))
+          );
+
+          for (const row of claimable) {
+            row.fulfilmentStatus = "in_progress";
+          }
+
+          return { rows: claimable.map((row) => ({ id: row.id })) };
+        },
+      },
+    },
     find: async ({ collection, where, sort, limit }: Row) => {
       let docs = (collections[collection] ?? []).filter((row) =>
         matchesWhere(row, where)
@@ -142,6 +180,58 @@ describe("fulfilPendingPrizes", () => {
     expect(created["giveaway-fulfilment-attempts"]).toBeUndefined();
   });
 
+  it("touches nothing when another runner has already claimed the prize", async () => {
+    const { payload, collections, created } = createFakePayload({
+      winners: [winnerRow()],
+      claimLost: true,
+    });
+    const client = fakeClient({
+      topup: async () => {
+        throw new Error("must not pay a prize another runner owns");
+      },
+    });
+
+    const summary = await fulfilPendingPrizes(payload, { client });
+
+    // Losing the claim means it was never our attempt to make: not counted,
+    // not logged, and no attempt row written.
+    expect(summary).toEqual({ attempted: 0, sent: 0, failed: 0, skipped: 0 });
+    expect(created["giveaway-fulfilment-attempts"]).toBeUndefined();
+    expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe("pending");
+  });
+
+  it("pays each prize once when two passes run at the same time", async () => {
+    const { payload, collections } = createFakePayload({
+      winners: [
+        winnerRow(),
+        winnerRow({ id: "w2", claimPhone: "08031234568" }),
+        winnerRow({ id: "w3", claimPhone: "08031234569" }),
+      ],
+    });
+    const paid: string[] = [];
+    const client = fakeClient({
+      topup: async (args) => {
+        paid.push(args.customIdentifier);
+        return { transactionId: 1, status: "SUCCESSFUL" };
+      },
+    });
+
+    await Promise.all([
+      fulfilPendingPrizes(payload, { client }),
+      fulfilPendingPrizes(payload, { client }),
+    ]);
+
+    // The identifier is per attempt now, so a second runner's re-send carries a
+    // fresh key the provider accepts: only the claim stands between two readers
+    // and a second payment.
+    expect([...paid].sort()).toEqual(["w1:1", "w2:1", "w3:1"]);
+    expect(
+      collections["giveaway-winners"].every(
+        (winner) => winner.fulfilmentStatus === "fulfilled"
+      )
+    ).toBe(true);
+  });
+
   it("sends a top-up and marks the prize fulfilled", async () => {
     const { payload, collections, created } = createFakePayload({
       winners: [winnerRow()],
@@ -202,6 +292,39 @@ describe("fulfilPendingPrizes", () => {
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "in_progress"
     );
+  });
+
+  it("records no transaction id, and reuses the key, when the provider gave none", async () => {
+    const { payload, collections, created } = createFakePayload({
+      winners: [winnerRow()],
+    });
+    const identifiers: string[] = [];
+    const client = fakeClient({
+      // A 2xx the provider answered without a transaction id. The prize is
+      // dispatched but unsettled, which is the row the reconciler re-queues.
+      topup: async (args) => {
+        identifiers.push(args.customIdentifier);
+        return { status: "PROCESSING" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    const [attempt] = created["giveaway-fulfilment-attempts"] ?? [];
+    expect(attempt?.outcome).toBe("sent");
+    // Absent, not empty: `''` is `IS NOT NULL`, so the key count would treat
+    // this row as spent while the reconciler reads it as no id at all — and
+    // the re-send would use a fresh identifier for a transaction that may
+    // already exist.
+    expect(attempt).not.toHaveProperty("providerTransactionId");
+
+    Object.assign(collections["giveaway-winners"][0], {
+      fulfilmentStatus: "pending",
+    });
+    await fulfilPendingPrizes(payload, { client });
+
+    // The re-queued prize must reuse the identifier it never spent.
+    expect(identifiers).toEqual(["w1:1", "w1:1"]);
   });
 
   it("ignores a prize the provider does not deliver", async () => {

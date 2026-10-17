@@ -1,3 +1,4 @@
+import { sql } from "@payloadcms/db-postgres/drizzle";
 import type { BasePayload } from "payload";
 
 import { DEFAULT_GIVEAWAY_COUNTRY } from "../../collections/giveaway/constants";
@@ -143,24 +144,13 @@ export async function fulfilPendingPrizes(
       continue;
     }
 
-    summary.attempted += 1;
+    // Claimed before anything is sent. A runner that loses the race must not
+    // count it, log it, or remember it: another process is paying it right now.
+    if (!(await claimForFulfilment(payload, winner.id))) {
+      continue;
+    }
 
-    /**
-     * Mark the attempt before making it. `in_progress` existed in the schema
-     * and nothing ever set it, which left `pending` covering two different
-     * things: queued, and being sent right now. The app could only say
-     * "Claimed" to both, so a winner watching for their airtime saw no
-     * difference between "we have not started" and "we are trying".
-     *
-     * Set even though a pass usually finishes in seconds: a run that dies
-     * mid-dispatch leaves a visible `in_progress` rather than a prize that
-     * looks untouched, and the next pass picks it up either way.
-     */
-    await payload.update({
-      collection: "giveaway-winners",
-      id: winner.id,
-      data: { fulfilmentStatus: "in_progress" },
-    });
+    summary.attempted += 1;
 
     const outcome = await fulfilOne(payload, resolved, winner);
 
@@ -174,6 +164,47 @@ export async function fulfilPendingPrizes(
   }
 
   return summary;
+}
+
+/**
+ * Take exclusive ownership of a prize before paying it.
+ *
+ * The sweep reads `pending` prizes and then sends them, and the job queue runs
+ * in more than one process: `jobs.autoRun` lives in the shared config, so the
+ * CMS and the API server each sweep, and a rolling deploy briefly doubles that
+ * again. Two runners that both read this prize would both pay it — and unlike
+ * the report sweep, nothing downstream refuses the second payment, because the
+ * identifier is now per attempt rather than per winner.
+ *
+ * A single conditional UPDATE is what closes it: Postgres serialises the row, so
+ * exactly one runner sees it come back and the rest move on. `in_progress` is
+ * also the state the app shows as "Sending now", so the claim does the job the
+ * unconditional update used to do: it marks the attempt before making it, which
+ * is what separates "queued" from "being sent right now" on the winner's own
+ * screen, and a run that dies mid-dispatch leaves a visible `in_progress` the
+ * next pass picks up rather than a prize that looks untouched.
+ */
+async function claimForFulfilment(
+  payload: BasePayload,
+  winnerId: string
+): Promise<boolean> {
+  try {
+    const claimed = await payload.db.drizzle.execute(
+      sql`UPDATE giveaway_winners
+          SET fulfilment_status = 'in_progress', updated_at = now()
+          WHERE id = ${winnerId} AND fulfilment_status = 'pending'
+          RETURNING id`
+    );
+
+    const rows = (claimed as { rows?: unknown[] })?.rows ?? claimed;
+    return Array.isArray(rows) ? rows.length > 0 : Boolean(rows);
+  } catch (error) {
+    payload.logger.error(
+      { err: error, winnerId },
+      "[giveaway] could not claim a prize for fulfilment"
+    );
+    return false;
+  }
 }
 
 export function defaultReloadlyClient(
@@ -306,7 +337,14 @@ async function fulfilOne(
     await record({
       outcome: "sent",
       providerReference: identifier ?? undefined,
-      providerTransactionId: String(result.transactionId ?? ""),
+      // Written only when the provider gave one: the key count reads
+      // `exists: true`, which is `IS NOT NULL`, so an empty string would
+      // advance the key while the reconciler reads the same row as "no id"
+      // and re-queues it — a fresh identifier for a transaction that may
+      // already exist.
+      ...(result.transactionId == null
+        ? {}
+        : { providerTransactionId: String(result.transactionId) }),
       operatorId: plan.operatorId,
       operatorName: result.operatorName ?? "",
       localAmount: plan.localAmount,
