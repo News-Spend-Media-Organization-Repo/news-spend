@@ -1,8 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
 import { createHmac } from "node:crypto";
 import type { BasePayload } from "payload";
 
-import { reloadlyWebhookHandler } from "../src/router/giveaway/webhook";
 import { createFakePayload } from "../src/test-utils";
 
 /**
@@ -19,6 +27,39 @@ import { createFakePayload } from "../src/test-utils";
 const SECRET = "whsec_test";
 const ENDPOINT = "http://x/api/giveaway/reloadly";
 const CALLBACK_TYPE = "airtime_transaction.status";
+
+/**
+ * Replace the module-level `getPayload` the handler imports.
+ *
+ * The plain "records zero calls on the *injected* fake" assertion cannot fail
+ * on the regression that matters: a handler resolving `getPayload()` before
+ * the signature check would still answer 401 and still leave the injected
+ * fake untouched, because it discards the resolved instance. So the resolver
+ * itself is the witness — counting a call and throwing if one is ever made.
+ * The throw is the point, not the counter: a resolution is a failure whatever
+ * status code follows, because the real call opens a database connection and
+ * an unsigned request must not.
+ */
+const GET_PAYLOAD_GUARD = "getPayload resolved before the signature check";
+let getPayloadCalls = 0;
+
+const getPayloadStub = (): Promise<never> => {
+  getPayloadCalls += 1;
+  return Promise.reject(new Error(GET_PAYLOAD_GUARD));
+};
+
+mock.module("@news-spend-media/payload", () => ({
+  getPayload: getPayloadStub,
+}));
+
+// Dynamic so the mock above is registered before the handler resolves it.
+const { reloadlyWebhookHandler } = await import(
+  "../src/router/giveaway/webhook"
+);
+
+afterAll(() => {
+  mock.restore();
+});
 
 function callbackBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -69,6 +110,7 @@ function request({
 const saved = process.env.RELOADLY_WEBHOOK_SECRET;
 
 beforeEach(() => {
+  getPayloadCalls = 0;
   process.env.RELOADLY_WEBHOOK_SECRET = SECRET;
 });
 
@@ -143,10 +185,22 @@ describe("reloadlyWebhookHandler", () => {
       payload as unknown as BasePayload
     );
 
+    // A regression that resolves the module-level payload before checking the
+    // signature rejects here with GET_PAYLOAD_GUARD: the status would still be
+    // 401 and the injected fake would still be untouched, so the call itself
+    // is the only thing that catches it.
+    expect(getPayloadCalls).toBe(0);
     expect(response.status).toBe(401);
-    // Resolving the payload instance is what opens a database connection. A
-    // forged request must not get that far, so the fake records zero calls.
     expect(payload.calls).toHaveLength(0);
+  });
+
+  it("is guarding the real payload resolver, not a dead mock", async () => {
+    // If the mock above silently did nothing, the guard test could pass while
+    // the real `getPayload` was the one being called. This says the module's
+    // export is the stub — without invoking it, so a real resolver is never
+    // reached.
+    const { getPayload } = await import("@news-spend-media/payload");
+    expect(getPayload).toBe(getPayloadStub);
   });
 
   it("records why a signature was rejected", async () => {
@@ -160,7 +214,11 @@ describe("reloadlyWebhookHandler", () => {
       expect(response.status).toBe(401);
       const logged = warn.mock.calls.at(-1) as unknown[] | undefined;
       expect(logged?.[0]).toBe("[giveaway] Reloadly callback rejected");
-      expect((logged?.[1] as { reason?: string })?.reason).toBeTruthy();
+      // The exact reason, not merely truthy: this input is a forged signature
+      // over an otherwise well-formed body, so only the compare can fail.
+      expect((logged?.[1] as { reason?: string })?.reason).toBe(
+        "signature does not match"
+      );
     } finally {
       warn.mockRestore();
     }
