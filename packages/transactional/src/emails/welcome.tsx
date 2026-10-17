@@ -12,10 +12,10 @@ import {
 } from "react-email";
 
 type WelcomeEmailProps = {
-  username: string;
+  firstName?: string;
 };
 
-export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
+export const WelcomeEmail = ({ firstName = "there" }: WelcomeEmailProps) => (
   <Html>
     <Head />
     <Preview>Welcome to Newsspend Media. Today is just the beginning.</Preview>
@@ -29,19 +29,19 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
           />
         </Section>
 
-        <Text style={greeting}>Hi {username}</Text>
+        <Text style={greeting}>Hi {firstName},</Text>
 
         <Text style={title}>🌟 Welcome to Newsspend Media</Text>
 
         <Text style={intro}>
           Today isn't just a welcome. <br />
-          It's the beginning of something bigger.
+          It's the beginning of something bigger!
         </Text>
 
         <Text style={description}>
           You've just stepped into a platform designed to transform your
           everyday digital life into real-world progress, rewards, and
-          opportunities. A platform built to celebrate ambition, reward
+          opportunities—a platform built to celebrate ambition, reward
           perseverance, and change lives.
         </Text>
 
@@ -50,9 +50,9 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
           <Text style={sectionSubtitle}>
             Turning Engagement into Empowerment
           </Text>
-          <Text style={description}>We believe something powerful:</Text>
           <Text style={description}>
-            The time you spend online should move your life forward.
+            We believe something powerful: the time you spend online should move
+            your life forward.
           </Text>
           <Text style={description}>
             With Newsspend, the things you already do every day become valuable:
@@ -71,29 +71,33 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
 
           <Text style={stepTitle}>📍 1. Begin Your Journey</Text>
           <ul style={steps}>
-            <li style={stepItem}>You're already set up and ready</li>
-            <li style={stepItem}>Your goals are in place</li>
-            <li style={stepItem}>Every action from now on moves you forward</li>
+            <li style={stepItem}>You're already set up and ready.</li>
+            <li style={stepItem}>Your goals are in place.</li>
+            <li style={stepItem}>
+              Every action from now on moves you forward.
+            </li>
           </ul>
 
           <Text style={stepTitle}>⚡ 2. Earn Points Effortlessly</Text>
           <Text style={description}>
-            Do what you already love, and get rewarded:
+            Do what you already love—and get rewarded:
           </Text>
           <ul style={checklist}>
-            <li>✔️ Read meaningful content</li>
-            <li>✔️ Watch &amp; share engaging videos</li>
-            <li>✔️ Engage with brands and content</li>
-            <li>✔️ Complete simple tasks &amp; surveys</li>
+            <li>✔️ Read meaningful content.</li>
+            <li>✔️ Watch and share live streams.</li>
+            <li>✔️ Engage with brands and complete surveys.</li>
+            <li>
+              ✔️ Like posts, comment, and share—the reward engine likes it!
+            </li>
           </ul>
           <Text style={note}>
-            💡 Every interaction = Progress toward your dream
+            💡 Remember, every interaction = progress toward your dream.
           </Text>
 
           <Text style={stepTitle}>
             💎 3. Turn Points into Real-Life Rewards
           </Text>
-          <Text style={description}>This is where it becomes real:</Text>
+          <Text style={description}>This is where it becomes real.</Text>
           <Text style={rewardTitle}>🎯 Dream Fulfillment</Text>
           <Text style={description}>
             Track your progress toward goals that matter to you, including
@@ -102,8 +106,8 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
           </Text>
           <Text style={rewardTitle}>🎁 Enter the Giveaway</Text>
           <Text style={description}>
-            Use your Dream Points to enter our bi-weekly Giveaway for a chance
-            to win:
+            Use your Dream Points to enter our biweekly giveaway for a chance to
+            win:
           </Text>
           <ul style={rewardList}>
             <li>Dream Points</li>
@@ -116,29 +120,29 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
 
           <Text style={stepTitle}>🏦 4. Grow &amp; Bank Your Progress</Text>
           <ul style={steps}>
-            <li style={stepItem}>Stay consistent</li>
-            <li style={stepItem}>Build momentum daily</li>
-            <li style={stepItem}>Watch your progress stack up</li>
+            <li style={stepItem}>Stay consistent.</li>
+            <li style={stepItem}>Build momentum daily.</li>
+            <li style={stepItem}>Watch your progress stack up.</li>
           </ul>
         </Section>
 
         <Section style={section}>
+          <Text style={sectionTitle}>📝 Points Reminder</Text>
           <Text style={note}>
-            📝 Note: Points reset every 12 months, so make the most of every
-            opportunity to earn and grow.
+            Points reset every 12 months, so make the most of every opportunity
+            to earn and grow.
           </Text>
         </Section>
 
         <Section style={section}>
           <Text style={sectionTitle}>🌍 Why This Changes Everything</Text>
-          <Text style={description}>Newsspend is not just another app.</Text>
           <Text style={description}>
-            It's a new system of opportunity. A place where:
+            Newsspend is a new system of opportunity. A place where:
           </Text>
           <ul style={checklist}>
-            <li>Your time has value</li>
-            <li>Your effort gets rewarded</li>
-            <li>Your dreams become achievable</li>
+            <li>Your time has value.</li>
+            <li>Your effort gets rewarded.</li>
+            <li>Your dreams become achievable.</li>
           </ul>
           <Text style={description}>
             Small daily actions → Meaningful life progress
@@ -148,19 +152,18 @@ export const WelcomeEmail = ({ username = "User" }: WelcomeEmailProps) => (
         <Section style={section}>
           <Text style={sectionTitle}>🤝 You're Part of Something Bigger</Text>
           <Text style={description}>
-            You're not just a user. You are now part of a growing community of
-            people who are:
+            You are now part of a growing community of people who are:
           </Text>
           <ul style={checklist}>
-            <li>Taking control of their future</li>
-            <li>Turning consistency into results</li>
-            <li>Building real progress, one action at a time</li>
+            <li>Taking control of their future.</li>
+            <li>Turning consistency into results.</li>
+            <li>Building real progress, one action at a time.</li>
           </ul>
         </Section>
 
         <Section style={footerSection}>
-          <Text style={sectionTitle}>📩 We're Here for You</Text>
-          <Text style={description}>Need support?</Text>
+          <Text style={sectionTitle}>📩 Need support?</Text>
+          <Text style={description}>We're here for you.</Text>
           <Link href="mailto:support@newsspend.com" style={link}>
             support@newsspend.com
           </Link>
