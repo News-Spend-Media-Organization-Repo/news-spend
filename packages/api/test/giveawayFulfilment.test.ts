@@ -94,6 +94,10 @@ function matchesWhere(row: Row, where: Row | undefined): boolean {
   return Object.entries(where).every(([field, condition]) => {
     const clause = condition as Row;
     const actual = row[field];
+    if (clause?.exists !== undefined) {
+      const present = actual !== undefined && actual !== null && actual !== "";
+      return clause.exists ? present : !present;
+    }
     if (clause?.equals !== undefined) {
       return String(actual) === String(clause.equals);
     }
@@ -539,8 +543,10 @@ describe("fulfilPendingPrizes", () => {
     const { payload, collections, created } = createFakePayload({
       winners: [winnerRow()],
     });
+    let sentIdentifier = "";
     const client = fakeClient({
-      topup: async () => {
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
         throw new ReloadlyError(
           "The custom identifier provided has already been used. Please provide a new, unique custom identifier",
           400,
@@ -556,6 +562,7 @@ describe("fulfilPendingPrizes", () => {
     // went out on an earlier pass. Marking it failed would strand a winner
     // who has, in fact, already been paid.
     expect(summary.sent).toBe(1);
+    expect(sentIdentifier).toBe("w1:1");
     expect(collections["giveaway-winners"][0].fulfilmentStatus).toBe(
       "fulfilled"
     );
@@ -598,12 +605,18 @@ describe("fulfilPendingPrizes", () => {
     );
   });
 
-  it("advances the key only for an attempt that was recorded as failed", async () => {
-    // One recorded failure: the identifier it consumed is spent, so the retry
+  it("advances the key only for a failure the provider confirmed", async () => {
+    // One confirmed failure: the identifier it consumed is spent, so the retry
     // must not reuse it.
     const { payload } = createFakePayload({
       winners: [winnerRow()],
-      attempts: [{ winner: "w1", outcome: "retryable_failure" }],
+      attempts: [
+        {
+          winner: "w1",
+          outcome: "retryable_failure",
+          providerTransactionId: "11",
+        },
+      ],
     });
     let sentIdentifier = "";
     const client = fakeClient({
@@ -616,6 +629,29 @@ describe("fulfilPendingPrizes", () => {
     await fulfilPendingPrizes(payload, { client });
 
     expect(sentIdentifier).toBe("w1:2");
+  });
+
+  it("reuses the key after a failure the provider never confirmed", async () => {
+    // A timeout or a 5xx may or may not have created a transaction, and the
+    // response that would say which never arrived. Reusing the key is what
+    // makes that safe: if it did go out, Reloadly refuses the repeat and the
+    // existing isAlreadySent check reads it correctly instead of paying a
+    // second time.
+    const { payload } = createFakePayload({
+      winners: [winnerRow()],
+      attempts: [{ winner: "w1", outcome: "retryable_failure" }],
+    });
+    let sentIdentifier = "";
+    const client = fakeClient({
+      topup: async (args) => {
+        sentIdentifier = args.customIdentifier;
+        return { transactionId: 3, status: "SUCCESSFUL" };
+      },
+    });
+
+    await fulfilPendingPrizes(payload, { client });
+
+    expect(sentIdentifier).toBe("w1:1");
   });
 
   it("does not dispatch when the attempt count cannot be read", async () => {

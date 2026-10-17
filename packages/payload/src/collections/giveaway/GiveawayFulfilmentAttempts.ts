@@ -11,13 +11,14 @@ import { ADMIN_GROUP_RECORDS } from "./constants";
  * answer the first only.
  *
  * `providerReference` is the identifier sent to the provider, and it is the
- * winner's own id plus which attempt at that winner this was, colon-separated.
- * That is what makes a retry both safe and possible: the provider recognises a
- * repeated identifier and refuses to send twice, so a run that dies between
- * paying and recording re-counts the same attempts, reuses its old identifier,
- * and cannot double-pay. A failure that was recorded consumed its identifier,
- * so the next pass counts it and advances to a fresh one, and the retry is not
- * refused as a repeat.
+ * winner's own id plus the number of failures the provider has confirmed for
+ * that winner, colon-separated. That is what makes a retry both safe and
+ * possible: the provider recognises a repeated identifier and refuses to send
+ * twice, so a run that dies between paying and recording reuses its old
+ * identifier and cannot double-pay, while a failure the provider confirmed has
+ * spent its identifier, so the next attempt gets a fresh one and is not refused
+ * as a repeat. A failure the provider never confirmed, a timeout or a 5xx,
+ * keeps its identifier, because that request may or may not have reached them.
  */
 export const GiveawayFulfilmentAttempts: CollectionConfig = {
   slug: "giveaway-fulfilment-attempts",
@@ -94,7 +95,7 @@ export const GiveawayFulfilmentAttempts: CollectionConfig = {
       admin: {
         readOnly: true,
         description:
-          "The idempotency key sent to the provider: the winner id and the attempt number, colon-separated. Repeating one attempt's key is what stops a double payment; a recorded failure has spent its key, so the next attempt gets a fresh one.",
+          "The idempotency key sent to the provider: the winner id and the number of failures the provider confirmed for that winner, colon-separated. Repeating one attempt's key is what stops a double payment; a failure the provider confirmed spent its key, so the next attempt gets a fresh one.",
       },
     },
     {

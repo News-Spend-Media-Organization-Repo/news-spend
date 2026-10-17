@@ -231,11 +231,20 @@ async function fulfilOne(
   let localAmount = 0;
 
   try {
-    const priorAttempts = await payload.count({
+    // Only a failure the provider told us about has spent its key. Filtering
+    // on the transaction id is load-bearing: a failure without one is a
+    // request whose outcome we never learned, and counting it would hand the
+    // retry a fresh key for a payout that may already have gone out.
+    const confirmedFailures = await payload.count({
       collection: "giveaway-fulfilment-attempts",
-      where: { winner: { equals: winnerId } },
+      where: {
+        and: [
+          { winner: { equals: winnerId } },
+          { providerTransactionId: { exists: true } },
+        ],
+      },
     });
-    identifier = `${winnerId}:${priorAttempts.totalDocs + 1}`;
+    identifier = `${winnerId}:${confirmedFailures.totalDocs + 1}`;
 
     const plan = isData
       ? await resolveDataPlan(client, prize, phone)
