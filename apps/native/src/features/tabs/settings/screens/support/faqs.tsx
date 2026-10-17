@@ -1,154 +1,203 @@
-import { Accordion, AccordionLayoutTransition } from "heroui-native/accordion";
-import { ScrollView } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import { Accordion } from "heroui-native/accordion";
+import { Input } from "heroui-native/input";
+import { Skeleton } from "heroui-native/skeleton";
+import { TextField } from "heroui-native/text-field";
+import { useMemo, useState } from "react";
+import { ScrollView, View } from "react-native";
 
+import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import { orpc } from "#/lib/orpc";
+import { contactSupport } from "./faq/contactSupport";
+import { FAQ_FALLBACK, type FaqSection } from "./faq/faqFallback";
+import { faqIcon } from "./faq/faqIcons";
+import { filterFaq } from "./faq/filterFaq";
 
-const questions = [
-  {
-    question: "What is NewsSpend, and how does it work?",
-    answer:
-      "NewsSpend is an interactive rewards platform where you can read news, watch videos, complete exciting tasks, and earn Dream Points. You can accumulate points toward your personal wishes through the Dream Fulfillment ecosystem or participate in giveaways for a chance to win amazing prizes.",
-  },
-  {
-    question: "How do I earn Dream Points?",
-    answer:
-      "You earn Dream Points by reading news articles, watching videos, completing sponsored tasks, participating in surveys, and engaging in other eligible activities. The number of points awarded depends on the activity.",
-  },
-  {
-    question: "What can I do with my Dream Points?",
-    answer:
-      "You can accumulate Dream Points toward a personal wish or goal within the Dream Fulfillment ecosystem or use eligible points to participate in giveaways. Your selected wish is fulfilled when you reach its displayed target points within your 12-month cycle.",
-  },
-  {
-    question: "Do my Dream Points expire, and how often can I select a wish?",
-    answer:
-      "Your accumulated Dream Points toward a wish or goal are valid for 12 months from your registration date. You have the opportunity to select one wish during each 12-month cycle. Once you reach the displayed target points, you qualify to have your selected wish fulfilled. If you do not reach the target within the 12-month period, the accumulated points toward that wish expire, and a new cycle begins.",
-  },
-  {
-    question: "What is the NewsSpend Giveaway, and how do I participate?",
-    answer:
-      "The NewsSpend Giveaway offers opportunities to win prizes across three categories. Each giveaway runs for 14 days from the date it opens. Visit the Giveaway section, select an available prize, and follow the instructions to obtain or use your giveaway tickets. Each eligible ticket represents an entry into the applicable draw.",
-  },
-  {
-    question: "What prizes can I win on NewsSpend?",
-    answer:
-      "NewsSpend offers three exciting prize categories:\nTier 1 – High Tier Prizes: Refrigerators, deep freezers, generators, laptops, Smart TVs, PlayStation and Xbox consoles, hotel discounts, dinner experiences, ₦50,000 shopping vouchers, and VIP event tickets.\nTier 2 – Mid Tier Prizes: Smartphones, iPads, Apple Watches, smart home assistants, smart speakers, headphones, wireless earbuds, blenders, solar chargers, movie tickets, and bowling experiences.\nTier 3 – Everyday Rewards: Airtime, mobile data bundles, and gift cards.\nPrize availability, denominations, participating brands, and eligibility conditions may vary by giveaway.",
-  },
-  {
-    question: "How can I increase my chances of winning a giveaway?",
-    answer:
-      "You can improve your chances by obtaining more eligible giveaway tickets, using the Boost Entries feature, and participating in qualifying featured offers. Generally, the more valid entries you hold, the greater your chances of being selected. However, winning is never guaranteed.",
-  },
-  {
-    question: "How are giveaway winners selected, and when are draws held?",
-    answer:
-      "Each giveaway remains open for 14 days, after which the draw takes place. Winners are selected through the giveaway draw process using eligible entries, including applicable entry boosts. The scheduled draw date is displayed in the Giveaway section. Winners are announced or notified through NewsSpend's official communication channels.",
-  },
-  {
-    question: "Do giveaway tickets or points used for entries get refunded?",
-    answer:
-      "Dream Points or tickets used for completed giveaway entries are generally non-refundable. Unsuccessful entries do not automatically qualify for a refund. Any exception will be communicated through the applicable giveaway rules.",
-  },
-  {
-    question: "How long do I have to claim a giveaway prize?",
-    answer:
-      "Winners must claim their prizes within 14 days after the draw or before a new giveaway begins, whichever occurs first. Unclaimed prizes expire after the applicable deadline and may no longer be available for redemption. Always check your notifications and claim your rewards promptly.",
-  },
-  {
-    question: "Who is eligible to win physical giveaway prizes?",
-    answer:
-      "Physical giveaway prizes are available only to participants who possess a valid Nigerian identification card. Winners may be required to complete identity and eligibility verification before receiving their prizes. Physical prizes are non-transferable and cannot be reassigned to another person.",
-  },
-  {
-    question: "How long does it take to receive a prize?",
-    answer:
-      "Physical prizes are delivered within 7–10 days after successful claiming and completion of any required verification. Airtime and mobile data rewards are delivered immediately after a successful claim, subject to network availability and successful processing.",
-  },
-  {
-    question: "Which mobile networks support airtime and data rewards?",
-    answer:
-      "Currently, NewsSpend supports airtime and data rewards for four Nigerian mobile networks:\nMTN\nAirtel\nGlo\n9mobile\nOther mobile networks are not currently supported, but we plan to expand the list in the future. Available airtime denominations and data bundle sizes depend on the specific giveaway prize.",
-  },
-  {
-    question:
-      "Can users outside Nigeria or on unsupported mobile networks claim airtime and data prizes?",
-    answer:
-      "Yes! If you live outside Nigeria or use an unsupported mobile network, you can provide a valid Nigerian mobile number on MTN, Airtel, Glo, or 9mobile to receive your airtime or data reward. Please verify the number carefully before claiming, as rewards are sent to the submitted number.",
-  },
-  {
-    question: "What gift cards are available, and how do I redeem them?",
-    answer:
-      "NewsSpend offers gift cards from participating brands and retailers. Available brands, denominations, and redemption conditions are displayed in the applicable giveaway. Winners will receive instructions for redeeming their gift cards, subject to the issuing brand's terms and conditions.",
-  },
-  {
-    question: "Is NewsSpend free to use?",
-    answer:
-      "Yes! NewsSpend is free to use. You can explore content and participate in eligible point-earning activities without a subscription. Certain optional premium features, promotions, or activities may have additional requirements.",
-  },
-  {
-    question:
-      "What should I do if my Dream Points or reward balance appears incorrect?",
-    answer:
-      "Review your recent qualifying activities, giveaway entries, and reward redemptions. If you believe there is an error, contact customer support with relevant screenshots and details so our team can investigate.",
-  },
-  {
-    question: "How do I report a technical issue or bug?",
-    answer:
-      "Contact NewsSpend through the official support channel. Include your device type, app version (if known), a description of the issue, and screenshots where helpful. Never share your password, verification codes, or sensitive financial information.",
-  },
-  {
-    question: "How does NewsSpend protect my personal information?",
-    answer:
-      "We value your privacy and the security of your information. Our Privacy Policy explains how personal data is collected, used, stored, and shared. We encourage users to review the policy, protect their login credentials, and report suspicious account activity.",
-  },
-  {
-    question: "Can I advertise on NewsSpend, and how much does it cost?",
-    answer:
-      "Yes! NewsSpend offers advertising opportunities for businesses, brands, entrepreneurs, and individuals. Options may include banner ads, sponsored posts, promotional campaigns, and sponsored tasks. Pricing depends on the advertising format, placement, campaign duration, and promotional requirements. Contact our advertising team for available packages and pricing.",
-  },
-  {
-    question: "Can businesses sponsor giveaways or become NewsSpend partners?",
-    answer:
-      "Absolutely! Businesses can explore opportunities to sponsor prizes, giveaways, reward campaigns, and other promotional activities. To become a partner, contact our business team with details about your organization and proposed collaboration. We'll review your proposal and discuss available partnership opportunities.",
-  },
-  {
-    question: "How do I contact NewsSpend customer support?",
-    answer:
-      "You can reach our customer support team through the NewsSpend app or our official website. We're available to assist with account inquiries, Dream Points, giveaways, prize claims, advertising, partnerships, and technical issues.",
-  },
-];
+const PARAGRAPH_BREAK = /\n\s*\n/;
+const SKELETON_KEYS = ["a", "b", "c", "d"] as const;
 
-const FAQs = () => (
-  <Screen statusBarStyle="light">
-    <ScrollView
-      contentContainerClassName="p-4"
-      layout={AccordionLayoutTransition}
-      showsVerticalScrollIndicator={false}
-    >
+const questionCount = (count: number) =>
+  `${count} ${count === 1 ? "question" : "questions"}`;
+
+/**
+ * Blank lines split paragraphs; a single line break stays inside one. Paragraphs
+ * have no id, so a repeat of the same text gets a numbered key.
+ */
+const paragraphsOf = (answer: string): Array<{ key: string; text: string }> => {
+  const seen = new Map<string, number>();
+  const result: Array<{ key: string; text: string }> = [];
+  for (const raw of answer.split(PARAGRAPH_BREAK)) {
+    const text = raw.trim();
+    if (text.length === 0) {
+      continue;
+    }
+    const count = seen.get(text) ?? 0;
+    seen.set(text, count + 1);
+    result.push({ key: `${text}#${count}`, text });
+  }
+  return result;
+};
+
+const FaqSkeleton = () => (
+  <View className="gap-3">
+    {SKELETON_KEYS.map((key) => (
+      <Skeleton className="h-16 w-full rounded-xl" key={key} />
+    ))}
+  </View>
+);
+
+const Answer = ({ answer }: { answer: string }) => (
+  <View className="gap-3">
+    {paragraphsOf(answer).map(({ key, text }) => (
+      <Text
+        className="text-muted-foreground text-sm leading-relaxed"
+        key={key}
+        selectable
+      >
+        {text}
+      </Text>
+    ))}
+  </View>
+);
+
+const FAQs = () => {
+  const { data, isPending, fetchStatus } = useQuery({
+    ...orpc.faq.get.queryOptions(),
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const [query, setQuery] = useState("");
+  const [openCategories, setOpenCategories] = useState<string[]>([]);
+  // Categories the reader shut while a search had them open.
+  const [closedWhileSearching, setClosedWhileSearching] = useState<string[]>(
+    []
+  );
+
+  const cmsCategories = data?.categories ?? [];
+  const hasCmsData = cmsCategories.length > 0;
+  // Only a request that is actually in flight earns the skeleton. A paused
+  // one (offline) never will resolve, so the built-in copy takes over.
+  const isLoading = isPending && fetchStatus === "fetching" && !hasCmsData;
+  const source: FaqSection[] = hasCmsData ? cmsCategories : FAQ_FALLBACK;
+
+  const isSearching = query.trim().length > 0;
+  const categories = useMemo(() => filterFaq(source, query), [source, query]);
+  const matchedIds = categories.map((category) => category.id);
+  const expanded = isSearching
+    ? matchedIds.filter((id) => !closedWhileSearching.includes(id))
+    : openCategories;
+
+  const onSearch = (text: string) => {
+    setQuery(text);
+    setClosedWhileSearching([]);
+  };
+
+  const onCategoriesChange = (next: string[]) => {
+    if (isSearching) {
+      setClosedWhileSearching(matchedIds.filter((id) => !next.includes(id)));
+      return;
+    }
+    setOpenCategories(next);
+  };
+
+  const renderBody = () => {
+    if (isLoading) {
+      return <FaqSkeleton />;
+    }
+    if (categories.length === 0) {
+      return (
+        <Text className="py-6 text-center text-muted-foreground text-sm">
+          {`No questions match '${query.trim()}'`}
+        </Text>
+      );
+    }
+    return (
       <Accordion
-        defaultValue={["0"]}
+        onValueChange={onCategoriesChange}
         selectionMode="multiple"
+        value={expanded}
         variant="surface"
       >
-        {questions.map((item, index) => (
-          <Accordion.Item key={index} value={index.toString()}>
+        {categories.map((category) => (
+          <Accordion.Item key={category.id} value={category.id}>
             <Accordion.Trigger>
-              <Text className="flex-1 pr-2 font-semibold text-base">
-                {index + 1}. {item.question}
-              </Text>
+              <Icon name={faqIcon(category.icon)} size={22} />
+              <View className="flex-1 px-3">
+                <Text className="font-semibold text-base">{category.name}</Text>
+                <Text className="text-muted-foreground text-xs">
+                  {isSearching
+                    ? `${category.questions.length} of ${category.total}`
+                    : questionCount(category.total)}
+                </Text>
+              </View>
               <Accordion.Indicator />
             </Accordion.Trigger>
             <Accordion.Content>
-              <Text className="text-muted-foreground text-sm leading-relaxed">
-                {item.answer}
-              </Text>
+              <Accordion hideSeparator={false} selectionMode="multiple">
+                {category.questions.map((item) => (
+                  <Accordion.Item key={item.id} value={item.id}>
+                    <Accordion.Trigger>
+                      <Text className="flex-1 pr-2 font-medium text-sm">
+                        {item.question}
+                      </Text>
+                      <Accordion.Indicator />
+                    </Accordion.Trigger>
+                    <Accordion.Content>
+                      <Answer answer={item.answer} />
+                    </Accordion.Content>
+                  </Accordion.Item>
+                ))}
+              </Accordion>
             </Accordion.Content>
           </Accordion.Item>
         ))}
       </Accordion>
-    </ScrollView>
-  </Screen>
-);
+    );
+  };
+
+  return (
+    <Screen statusBarStyle="light">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="gap-1">
+          <Text className="font-semibold text-2xl">Help & FAQs</Text>
+          <Text className="text-muted-foreground text-sm">
+            Find answers to common questions about NewsSpend
+          </Text>
+        </View>
+
+        <TextField>
+          <Input
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+            onChangeText={onSearch}
+            placeholder="Search frequently asked questions..."
+            returnKeyType="search"
+            value={query}
+          />
+        </TextField>
+
+        {renderBody()}
+
+        <View className="items-center gap-2 py-6">
+          <Text className="font-semibold text-lg">Still need help?</Text>
+          <Text className="text-center text-muted-foreground text-sm">
+            Can't find the answer you're looking for?
+          </Text>
+          <Button onPress={contactSupport}>
+            <Button.Label>Contact Support</Button.Label>
+          </Button>
+        </View>
+      </ScrollView>
+    </Screen>
+  );
+};
 
 export default FAQs;
