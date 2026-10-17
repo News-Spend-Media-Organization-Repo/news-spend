@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { fulfilPendingPrizes } from "@news-spend-media/payload/lib/giveaway/fulfilPrizes";
+import { notifyFulfilmentHold } from "@news-spend-media/payload/lib/giveaway/notifyFulfilmentHold";
 import { ReloadlyError } from "@news-spend-media/payload/lib/giveaway/reloadly";
+
+// A hold now resolves recipients from MODERATION_ALERT_EMAILS as well, so an
+// exported value adds a second email and fails the toHaveLength(1) assertions
+// below on nothing but the ambient environment. Empty means "no extras".
+process.env.MODERATION_ALERT_EMAILS = "";
 
 type Row = Record<string, any>;
 
@@ -547,6 +553,79 @@ describe("fulfilPendingPrizes", () => {
     const toAdmin = emails.filter((email) => email.to === "ops@example.com");
     expect(toAdmin).toHaveLength(1);
     expect(toAdmin[0]!.html).toContain("invalid account number");
+  });
+
+  describe("notifyFulfilmentHold", () => {
+    it("resolves rather than throwing when the mail transport fails", async () => {
+      const { payload } = createFakePayload({
+        admins: [{ id: "a1", email: "ops@example.com", role: "super-admin" }],
+      });
+      payload.sendEmail = async () => {
+        throw new Error("smtp unreachable");
+      };
+
+      const result = await notifyFulfilmentHold(
+        payload,
+        "w1",
+        "Provider rejected the payout: INVALID_ACCOUNT_NUMBER"
+      );
+
+      // The prize is already held: a mail server being unreachable must not
+      // turn a handled hold into an unhandled failure.
+      expect(result).toEqual({ notified: false });
+    });
+
+    it("still reaches the other admins when one address fails", async () => {
+      const { payload, emails } = createFakePayload({
+        admins: [
+          { id: "a1", email: "typo@example.com", role: "super-admin" },
+          { id: "a2", email: "ops@example.com", role: "super-admin" },
+        ],
+      });
+      payload.sendEmail = async (message: Row) => {
+        if (message.to === "typo@example.com") {
+          throw new Error("invalid address");
+        }
+        emails.push(message);
+        return message;
+      };
+
+      const result = await notifyFulfilmentHold(
+        payload,
+        "w1",
+        "Provider rejected the payout: INVALID_ACCOUNT_NUMBER"
+      );
+
+      // One bad address must not silence the copy that would have reached
+      // somebody; that is the failure this alert exists to end.
+      expect(emails.map((email) => email.to)).toEqual(["ops@example.com"]);
+      expect(result).toEqual({ notified: true });
+    });
+
+    it("shows the admins the last attempt's amount and reference", async () => {
+      const { payload, emails } = createFakePayload({
+        admins: [{ id: "a1", email: "ops@example.com", role: "super-admin" }],
+        attempts: [
+          {
+            id: "att-1",
+            winner: "w1",
+            outcome: "permanent_failure",
+            localAmount: 500,
+            providerReference: "w1:2",
+            attemptedAt: "2026-10-09T00:00:00.000Z",
+          },
+        ],
+      });
+
+      await notifyFulfilmentHold(
+        payload,
+        "w1",
+        "Provider rejected the payout: INVALID_ACCOUNT_NUMBER"
+      );
+
+      expect(emails[0]!.html).toContain("500");
+      expect(emails[0]!.html).toContain("w1:2");
+    });
   });
 
   it("does not leak the provider's wording to the winner", async () => {

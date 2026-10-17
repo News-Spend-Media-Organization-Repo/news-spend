@@ -66,13 +66,28 @@ export async function notifyFulfilmentHold(
       adminUrl: `${serverUrl}/admin/collections/giveaway-winners/${winnerId}`,
     });
 
-    // One email per recipient: an admin who was added to the list must not
-    // become the reason the others' copy fails to arrive.
+    /**
+     * One message per recipient, each bound on its own. A single send with
+     * `to: recipients` is what the moderation alerts do, but it makes this
+     * alert all-or-nothing: one admin's typo'd address would silence the copy
+     * that would have reached somebody, which is the failure this exists to
+     * end. `notified` therefore reports that at least one copy went out, not
+     * that all did.
+     */
+    let sent = 0;
     for (const recipient of recipients) {
-      await payload.sendEmail({ to: recipient, subject, html });
+      try {
+        await payload.sendEmail({ to: recipient, subject, html });
+        sent += 1;
+      } catch (error) {
+        payload.logger.error(
+          { err: error, winnerId, recipient },
+          "[giveaway] could not email an admin about a held payout"
+        );
+      }
     }
 
-    return { notified: true };
+    return { notified: sent > 0 };
   } catch (error) {
     payload.logger.error(
       { err: error, winnerId },
