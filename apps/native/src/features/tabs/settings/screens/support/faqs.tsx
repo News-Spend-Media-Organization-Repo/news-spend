@@ -174,6 +174,7 @@ const FAQs = () => {
 
         <TextField>
           <Input
+            accessibilityLabel="Search FAQs"
             autoCapitalize="none"
             autoCorrect={false}
             clearButtonMode="while-editing"

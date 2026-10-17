@@ -1,7 +1,5 @@
-import type {
-  MigrateDownArgs,
-  MigrateUpArgs,
-} from "@payloadcms/db-postgres";
+import type { MigrateDownArgs, MigrateUpArgs } from "@payloadcms/db-postgres";
+import { sql } from "@payloadcms/db-postgres";
 
 import { FAQ_SEED } from "../lib/faqSeed";
 import { seedFaqIfEmpty } from "../lib/seedFaq";
@@ -10,7 +8,10 @@ import { seedFaqIfEmpty } from "../lib/seedFaq";
  * Data only, no DDL. Writes the owner's FAQ into an empty CMS; a no-op when
  * either collection already has rows.
  */
-export async function up({ payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+  // The CMS and the API server both migrate on boot and Payload takes no lock,
+  // so serialise the check-then-seed; released when this transaction ends.
+  await db.execute(sql`SELECT pg_advisory_xact_lock(hashtext('faq_seed'))`);
   await seedFaqIfEmpty(payload, req);
 }
 

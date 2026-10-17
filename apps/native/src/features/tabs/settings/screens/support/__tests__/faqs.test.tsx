@@ -38,8 +38,10 @@ const cms = [
   },
 ];
 
+const mockUseQuery = jest.fn((_options: unknown) => mockQuery);
+
 jest.mock("@tanstack/react-query", () => ({
-  useQuery: () => mockQuery,
+  useQuery: (options: unknown) => mockUseQuery(options),
 }));
 
 jest.mock("#/lib/orpc", () => ({
@@ -170,6 +172,23 @@ describe("FAQs screen", () => {
     expect(screen.getByText("Giveaways")).toBeTruthy();
     expect(screen.getByText("1 question")).toBeTruthy();
     expect(screen.queryByText("What is NewsSpend?")).toBeNull();
+  });
+
+  it("refetches on every mount so edits reach the screen", async () => {
+    await render(<FAQs />);
+
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ staleTime: 0, refetchOnMount: "always" })
+    );
+  });
+
+  it("labels the search field for screen readers", async () => {
+    await render(<FAQs />);
+
+    expect(screen.getByLabelText("Search FAQs")).toBeTruthy();
+    expect(
+      screen.getByPlaceholderText("Search frequently asked questions...")
+    ).toBeTruthy();
   });
 
   it("opens a category and shows its questions; opening a question shows its answer", async () => {

@@ -60,6 +60,11 @@ const get = publicProcedure
     // Questions arrive already sorted, so pushing keeps their stored order.
     const questionsByCategory = new Map<string, FaqQuestion[]>();
     for (const faq of faqs.docs) {
+      // The column is nullable (ON DELETE SET NULL), so a deleted category
+      // leaves an orphan with nowhere to show.
+      if (!faq.category) {
+        continue;
+      }
       // depth: 0 leaves `category` as the id.
       const categoryId =
         typeof faq.category === "string" ? faq.category : faq.category.id;

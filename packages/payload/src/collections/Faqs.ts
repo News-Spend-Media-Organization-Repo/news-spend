@@ -27,6 +27,10 @@ export const Faqs: CollectionConfig = {
       relationTo: "faq-categories",
       required: true,
       index: true,
+      admin: {
+        description:
+          "After moving a question to another category, drag it into place on that category's page.",
+      },
     },
   ],
 };

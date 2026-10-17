@@ -128,4 +128,40 @@ describe("faq.get", () => {
 
     expect(result.categories[0]?.questions[0]?.answer).toBe("A\n\nB");
   });
+
+  it("ignores a published question whose category was deleted", async () => {
+    const result = await run({
+      "faq-categories": [category("c1", "a")],
+      faqs: [
+        question("q1", "c1", "a"),
+        question("q2", "c1", "b", { category: null }),
+        question("q3", "c1", "c", { category: undefined }),
+      ],
+    });
+
+    expect(result.categories).toHaveLength(1);
+    expect(result.categories[0]?.questions.map((q) => q.id)).toEqual(["q1"]);
+  });
+
+  it("fetches everything, not a default 10-row page", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "faq-categories": [category("c1", "a")],
+        faqs: [question("q1", "c1", "a")],
+      },
+    });
+    await call(faqRouter.get, undefined, {
+      context: mockContext({ payload }),
+    });
+
+    const finds = payload.calls.filter((c) => c.op === "find");
+    expect(finds.map((c) => c.collection).sort()).toEqual([
+      "faq-categories",
+      "faqs",
+    ]);
+    for (const find of finds) {
+      expect(find.args.pagination).toBe(false);
+      expect(find.args.limit).toBe(0);
+    }
+  });
 });

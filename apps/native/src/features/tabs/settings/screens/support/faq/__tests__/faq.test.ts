@@ -52,6 +52,20 @@ describe("filterFaq", () => {
     expect(filterFaq(FAQ_FALLBACK, "7–10").length).toBeGreaterThan(0);
   });
 
+  it("matches smart punctuation against its plain form", () => {
+    const cats = [
+      section("S", [
+        {
+          question: "Why can\u2019t I withdraw?",
+          answer: "Takes 7\u201310 days",
+        },
+      ]),
+    ];
+    expect(filterFaq(cats, "can't")).toHaveLength(1);
+    expect(filterFaq(cats, "7-10")).toHaveLength(1);
+    expect(filterFaq(cats, "can\u2019t")).toHaveLength(1);
+  });
+
   it("drops categories with no matches and keeps total as the full count", () => {
     const cats = [
       section("A", [

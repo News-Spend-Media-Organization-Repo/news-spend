@@ -2,6 +2,8 @@ import type { FaqSection } from "./faqFallback";
 
 const normalize = (text: string): string =>
   text
+    .replace(/[\u2018\u2019\u02BC]/g, "'")
+    .replace(/[\u2013\u2014]/g, "-")
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{M}/gu, "")

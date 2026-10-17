@@ -3,7 +3,7 @@ import type { Payload, PayloadRequest } from "payload";
 
 import { FAQ_SEED } from "../src/lib/faqSeed";
 import { seedFaqIfEmpty } from "../src/lib/seedFaq";
-import { down } from "../src/migrations/20261017_161125_faq_seed";
+import { down, up } from "../src/migrations/20261017_161125_faq_seed";
 
 type CreateArgs = {
   collection: string;
@@ -154,5 +154,35 @@ describe("faq_seed migration down", () => {
     const { deletes, req } = await run();
 
     expect(deletes.every((d) => d.req === req)).toBe(true);
+  });
+});
+
+describe("faq_seed migration up", () => {
+  test("takes the advisory lock before it counts or creates anything", async () => {
+    const events: string[] = [];
+    const executed: unknown[] = [];
+    const db = {
+      execute: async (query: unknown) => {
+        events.push("lock");
+        executed.push(query);
+      },
+    };
+    const payload = {
+      count: async ({ collection }: { collection: string }) => {
+        events.push(`count:${collection}`);
+        return { totalDocs: 1 };
+      },
+      create: async () => {
+        events.push("create");
+        return { id: "x" };
+      },
+    };
+
+    await up({ db, payload } as unknown as Parameters<typeof up>[0]);
+
+    expect(events[0]).toBe("lock");
+    expect(events.filter((e) => e === "lock")).toHaveLength(1);
+    expect(events.slice(1)).toEqual(["count:faq-categories", "count:faqs"]);
+    expect(JSON.stringify(executed[0])).toContain("pg_advisory_xact_lock");
   });
 });
