@@ -93,7 +93,7 @@ const CATALOGUE: CatalogueEntry[] = [
      * pool, and the defaults enable all three, so a catalogue without a tier 2
      * entry produced a giveaway that could never be drawn:
      *
-     *   Draw cannot start: tier2 is enabled (0.5%) but its Prize Pool is empty.
+     *   Draw cannot start: tier2 is enabled (0.5%) but no prize is assigned to tier2.
      *
      * Points rather than airtime or data on purpose. Tier 2's own reachability
      * (11) is what the seeded content is for; the fulfilment paths are already

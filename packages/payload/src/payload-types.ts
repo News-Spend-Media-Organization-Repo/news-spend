@@ -124,6 +124,9 @@ export interface Config {
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
+    giveaways: {
+      prizes: 'giveaway-prizes';
+    };
     'faq-categories': {
       questions: 'faqs';
     };
@@ -745,6 +748,14 @@ export interface Giveaway {
   drawStartedAt?: string | null;
   drawCompletedAt?: string | null;
   drawError?: string | null;
+  /**
+   * The prizes selected for this giveaway. A prize's tier comes from the Master Prize Catalogue, so to give a tier prizes, add a catalogue prize that belongs to that tier.
+   */
+  prizes?: {
+    docs?: (string | GiveawayPrize)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   winnerReportSentAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
@@ -3284,6 +3295,7 @@ export interface GiveawaysSelect<T extends boolean = true> {
   drawStartedAt?: T;
   drawCompletedAt?: T;
   drawError?: T;
+  prizes?: T;
   winnerReportSentAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;

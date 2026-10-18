@@ -10,7 +10,7 @@ import {
   GIVEAWAY_DESCRIPTION_MAX_LENGTH,
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
-  LOCKED_GIVEAWAY_STATUSES,
+  isConfigurationLocked,
 } from "./constants";
 
 /**
@@ -204,13 +204,39 @@ export const Giveaways: CollectionConfig = {
             .filter(Boolean)
         ).size;
 
-        const [pool, simulation] = await Promise.all([
+        const [pool, simulation, prizeRows] = await Promise.all([
           new GiveawayEngine(req.payload).validatePrizePool(giveaway),
           simulateDraw(req.payload, id, { participants }),
+          req.payload.find({
+            collection: "giveaway-prizes",
+            where: { giveaway: { equals: id } },
+            pagination: false,
+            depth: 0,
+          }),
         ]);
+
+        // What is stocked under each tier, beside the percentage that
+        // enables it: a tier with a percentage and no rows is the usual
+        // reason a draw refuses.
+        const breakdown = (
+          [
+            ["tier1", giveaway.tier1WinnerPercentage],
+            ["tier2", giveaway.tier2WinnerPercentage],
+            ["tier3", giveaway.tier3WinnerPercentage],
+          ] as const
+        ).map(([tier, winnerPercentage]) => {
+          const rows = prizeRows.docs.filter((row) => row.tier === tier);
+          return {
+            tier,
+            winnerPercentage,
+            prizes: rows.length,
+            units: rows.reduce((sum, row) => sum + (row.maxUnits ?? 0), 0),
+          };
+        });
 
         return Response.json({
           participants,
+          breakdown,
           errors: pool.errors,
           warnings: [...pool.warnings, ...simulation.warnings],
           tiers: simulation.tiers,
@@ -448,7 +474,8 @@ export const Giveaways: CollectionConfig = {
         if (
           operation === "update" &&
           prevStatus &&
-          LOCKED_GIVEAWAY_STATUSES.includes(prevStatus)
+          originalDoc &&
+          isConfigurationLocked(originalDoc)
         ) {
           const lockedFields = [
             "ticketPrice",
@@ -785,6 +812,17 @@ export const Giveaways: CollectionConfig = {
         position: "sidebar",
         condition: (data) =>
           data?.status === "failed" || data?.status === "interrupted",
+      },
+    },
+    {
+      name: "prizes",
+      type: "join",
+      collection: "giveaway-prizes",
+      on: "giveaway",
+      admin: {
+        description:
+          "The prizes selected for this giveaway. A prize's tier comes from the Master Prize Catalogue, so to give a tier prizes, add a catalogue prize that belongs to that tier.",
+        defaultColumns: ["prize", "tier", "maxUnits", "unitsAwarded"],
       },
     },
     {

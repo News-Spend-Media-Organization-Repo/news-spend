@@ -243,7 +243,7 @@ export async function GiveawaySetupGuideView(
               ],
               [
                 "Red — cannot run yet",
-                "The draw will refuse. Fix exactly what it names — usually an enabled tier with an empty pool that could award someone, or no prizes at all — then come back.",
+                "The draw will refuse. Fix exactly what it names — usually an enabled tier with no prize assigned that could award someone, or no prizes at all — then come back.",
               ],
             ]}
           />
@@ -283,8 +283,24 @@ export async function GiveawaySetupGuideView(
                   "The pool is completely empty. Add Giveaway Prizes rows, set Status back to Active, and the next hourly run draws it.",
                 ],
                 [
-                  "“Tier N is enabled but its Prize Pool is empty”",
-                  "That tier could have awarded someone. Either pool a prize under it or set its percentage to 0, then set Status back to Active.",
+                  "“tierN is enabled … but no prize is assigned to tierN”",
+                  "That tier could have awarded someone, but no prize row is on it. A prize's tier comes from the Master Prize Catalogue, so add a catalogue prize that belongs to that tier (or set the tier's percentage to 0), then set Status back to Active. The banner's tier list shows what is stocked under each tier.",
+                ],
+                [
+                  "“Prize row … does not have a valid Maximum Units value”",
+                  "A Giveaway Prizes row has Maximum Units empty, zero or fractional. Open that row, set a whole number of 1 or more, then set Status back to Active.",
+                ],
+                [
+                  "“Winner Distribution is not configured for tier N”",
+                  "That tier's percentage is blank. Fill it in under Winner Distribution (0 switches the tier off), then set Status back to Active.",
+                ],
+                [
+                  "“The countdown has not ended yet”",
+                  "Only appears on a manual draw. Wait for the End Date, or move the End Date earlier.",
+                ],
+                [
+                  "“A draw is already in progress” / “stopped part-way through”",
+                  "Wait for the running draw to finish. If it stopped part-way, a Super Admin must authorize its resumption; it cannot be restarted.",
                 ],
                 [
                   "“Prize row … does not have a valid Maximum Units value”",

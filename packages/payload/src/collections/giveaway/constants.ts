@@ -572,3 +572,22 @@ export const GIVEAWAY_DESCRIPTION_MAX_LENGTH = 150;
 
 /** Default title for the "new giveaway is live" push. Sent verbatim. */
 export const GIVEAWAY_ANNOUNCEMENT_TITLE = "A new giveaway is live 🎁";
+
+/**
+ * Whether a giveaway's configuration is locked against edits. Locked once the
+ * draw has begun, except `resumption_authorized` on a draw that never started
+ * (authorized before the lock existed for it): that state would otherwise
+ * trap the setup problem that refused the draw.
+ */
+export function isConfigurationLocked(giveaway: {
+  status: string;
+  drawStartedAt?: string | null;
+}): boolean {
+  if (!LOCKED_GIVEAWAY_STATUSES.includes(giveaway.status as GiveawayStatus)) {
+    return false;
+  }
+  return !(
+    giveaway.status === "resumption_authorized" &&
+    giveaway.drawStartedAt === null
+  );
+}
