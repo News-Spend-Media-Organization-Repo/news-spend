@@ -11,9 +11,9 @@ const Email = () => (
           Please email us at{" "}
           <Text
             className="font-semibold text-blue-500 underline"
-            onPress={() => Linking.openURL("mailto:support@newspend.com")}
+            onPress={() => Linking.openURL("mailto:support@newsspend.com")}
           >
-            support@newspend.com
+            support@newsspend.com
           </Text>{" "}
           and we'll get back to you shortly.
         </Text>

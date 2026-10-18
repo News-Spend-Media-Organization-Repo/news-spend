@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import {
   ADMIN_GROUP_RECORDS,
   DRAW_ATTEMPT_OUTCOME_OPTIONS,
@@ -40,7 +40,7 @@ export const GiveawayDrawAttempts: CollectionConfig = {
       "Every execution of a draw, including authorized resumptions. All attempts at one draw share an Execution ID.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
     // Written by the draw engine through the Local API, which bypasses these.
     create: () => false,
     update: () => false,

@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import { ADMIN_GROUP_RECORDS, AUDIT_EVENT_TYPE_OPTIONS } from "./constants";
 
 /**
@@ -18,7 +18,7 @@ export const GiveawayAuditLog: CollectionConfig = {
     description: "Append-only. Records cannot be edited or deleted.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
     // Written by the draw engine via Local API (which bypasses access control).
     create: () => false,
     update: () => false,

@@ -9,15 +9,30 @@ import {
   sendWelcomeEmail,
 } from "@news-spend-media/mail";
 import { getPayload } from "@news-spend-media/payload";
-import { TemplateNotFoundError } from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
-import { sendTemplatedEmail } from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
+import {
+  sendTemplatedEmail,
+  TemplateNotFoundError,
+} from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
 import { resolveUserVariables } from "@news-spend-media/payload/lib/email/templateVariables";
 import { betterAuth } from "better-auth";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+  APIError,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from "better-auth/api";
 import { anonymous, emailOTP, openAPI } from "better-auth/plugins";
 import pg from "pg";
 import z from "zod";
 import type { $ZodIssue } from "zod/v4/core";
+
+import { generateOTPForRequest } from "./otp";
+import { removeSignedOutPushToken } from "./pushTokens";
+
+/**
+ * better-auth reads this in seconds. It was written as `60 * 60 * 1000`, a
+ * millisecond hour, which made every emailed code valid for about 41 days.
+ */
+export const OTP_EXPIRES_IN_SECONDS = 10 * 60;
 
 function generateUniqueDigits() {
   // Create an array of digits from 0 to 9
@@ -251,30 +266,23 @@ export const auth = betterAuth({
           }
         }
       }
-
-      if (ctx.path.startsWith("/sign-out")) {
-        // Delete the signed-out user's push token, if any. Scoped by
-        // user_id (not just token) and awaited: the token value alone can
-        // already belong to a different account by the time this runs — the
-        // same device signing into a new account reassigns the row to the
-        // new user id (see createPushToken) — and an unscoped or
-        // fire-and-forget delete could win that race and silently wipe the
-        // new account's freshly (re)registered token.
-        const pushToken = ctx.body?.pushToken;
-        const userId = ctx.body?.userId;
-        if (pushToken && userId) {
-          try {
-            await pool.query(
-              "DELETE FROM push_tokens WHERE token = $1 AND user_id = $2",
-              [pushToken, userId]
-            );
-          } catch (e) {
-            logger.error({ err: e }, "Failed to delete push token");
-          }
-        }
-      }
     }),
     before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path.startsWith("/sign-out")) {
+        // Before the endpoint runs, while the session being ended still
+        // exists: it is the only trustworthy source of whose token this is.
+        try {
+          const session = await getSessionFromCtx(ctx);
+          await removeSignedOutPushToken(
+            pool,
+            session?.user.id,
+            ctx.body?.pushToken
+          );
+        } catch (e) {
+          logger.error({ err: e }, "Failed to delete push token");
+        }
+      }
+
       if (ctx.path.startsWith("/sign-up/email")) {
         const user = ctx.body;
 
@@ -335,8 +343,6 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          console.log(user);
-
           // Phone is no longer collected at sign-up, but the column is still
           // NOT NULL. Default it for every user, not just anonymous ones.
           if (!user.phone) {
@@ -416,17 +422,25 @@ export const auth = betterAuth({
       },
     }),
     emailOTP({
+      // Six digits for builds that ask, four for every build up to 2.6.1,
+      // which draws exactly four boxes; see ./otp.ts. `otpLength` is only
+      // the fallback if generateOTP returns nothing. The short expiry and
+      // the three-attempt limit are what keep four digits safe meanwhile.
       otpLength: 4,
-      expiresIn: 60 * 60 * 1000, // 1 hour
+      expiresIn: OTP_EXPIRES_IN_SECONDS,
+      allowedAttempts: 3,
       sendVerificationOnSignUp: true,
       disableSignUp: true,
+      generateOTP: generateOTPForRequest,
       async sendVerificationOTP({ email, otp, type }) {
         if (type === "email-verification") {
           await sendOTPVerificationEmail(email, otp);
         }
       },
     }),
-    openAPI(),
+    // The generated auth reference maps every endpoint for whoever asks;
+    // useful locally, not something to publish.
+    ...(process.env.NODE_ENV === "production" ? [] : [openAPI()]),
   ],
   trustedOrigins: [process.env.CORS_ORIGIN ?? ""],
 });

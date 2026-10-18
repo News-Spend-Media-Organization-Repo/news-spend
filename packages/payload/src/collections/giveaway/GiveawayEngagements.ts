@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import {
   ADMIN_GROUP_RECORDS,
   COMPLETION_STATUS_OPTIONS,
@@ -42,7 +42,7 @@ export const GiveawayEngagements: CollectionConfig = {
       "Boost Your Luck and Featured Offer completions. Contributes to Tier 1 and Tier 2 eligibility only; never creates additional draw entries.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   fields: [
     {

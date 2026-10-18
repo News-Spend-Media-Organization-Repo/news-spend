@@ -7,6 +7,7 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
+import { OTP_LENGTH, OTP_LENGTH_HEADER } from "#/lib/otp";
 import { getBaseUrl } from "#/utils/getBaseUrl";
 import { isNetworkError } from "#/utils/isNetworkError";
 import { storage } from "#/utils/storage";
@@ -69,6 +70,8 @@ export const authClient = createAuthClient({
   disableDefaultFetchPlugins: true,
   fetchOptions: {
     customFetchImpl: fetchWithRetry,
+    // Asks for codes the verification screen has boxes for; see #/lib/otp.
+    headers: { [OTP_LENGTH_HEADER]: String(OTP_LENGTH) },
   },
   plugins: [
     inferAdditionalFields<typeof auth>(),

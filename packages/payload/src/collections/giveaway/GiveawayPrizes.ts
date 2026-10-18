@@ -1,5 +1,5 @@
 import { type CollectionConfig, ValidationError } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import {
   ADMIN_GROUP,
   LOCKED_GIVEAWAY_STATUSES,
@@ -30,7 +30,7 @@ export const GiveawayPrizes: CollectionConfig = {
       "The prizes selected for a giveaway, and how many units of each may be awarded.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   hooks: {
     beforeValidate: [

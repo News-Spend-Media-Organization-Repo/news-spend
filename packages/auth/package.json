@@ -9,7 +9,9 @@
       "default": "./src/*.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "test": "bun test"
+  },
   "dependencies": {
     "@better-auth/expo": "catalog:",
     "@news-spend-media/db": "workspace:*",
@@ -22,6 +24,7 @@
     "@news-spend-media/config": "workspace:*",
     "@news-spend-media/logger": "workspace:*",
     "@news-spend-media/mail": "workspace:*",
+    "@types/bun": "catalog:",
     "@types/pg": "catalog:",
     "typescript": "catalog:"
   }

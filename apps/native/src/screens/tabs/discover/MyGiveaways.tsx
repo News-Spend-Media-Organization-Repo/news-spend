@@ -149,6 +149,21 @@ const WELL_ICON_CLASS: Record<string, string> = {
   muted: "text-subtle-text",
 };
 
+/**
+ * The gap between cards.
+ *
+ * It has to ride on `ItemSeparatorComponent`: LegendList renders its rows
+ * inside one absolutely-positioned layer, so neither a `gap` on the content
+ * container nor `contentContainerClassName` (which uniwind only maps on RN's
+ * own scrollables) puts space between them.
+ */
+function ItemGap() {
+  return <View className="h-2" />;
+}
+
+/** px-4 py-6, as a style — see ItemGap for why the className form is dropped. */
+const LIST_PADDING = { paddingHorizontal: 16, paddingVertical: 24 };
+
 function PrizeCard({
   prize,
   compact,
@@ -367,8 +382,9 @@ const MyGiveaways = () => {
 
         <Tabs.Content className="flex-1" value="prizes">
           <LegendList
-            contentContainerClassName="gap-2 px-4 py-6"
+            contentContainerStyle={LIST_PADDING}
             data={isEmpty ? [] : history}
+            ItemSeparatorComponent={ItemGap}
             keyExtractor={(prize) => prize.id}
             ListEmptyComponent={
               <View className="items-center gap-2 px-6 py-16">
@@ -391,7 +407,7 @@ const MyGiveaways = () => {
             }
             ListHeaderComponent={
               isEmpty ? null : (
-                <View className="gap-2">
+                <View className="gap-2 pb-2">
                   {actionablePrizes.length > 0 && (
                     <View className="gap-2 pb-4">
                       <View className="flex-row items-center gap-2">
@@ -452,8 +468,9 @@ const MyGiveaways = () => {
 
         <Tabs.Content className="flex-1" value="entries">
           <LegendList
-            contentContainerClassName="gap-2 px-4 py-6"
+            contentContainerStyle={LIST_PADDING}
             data={entries}
+            ItemSeparatorComponent={ItemGap}
             keyExtractor={(entry) => entry.giveaway.id}
             ListEmptyComponent={
               <View className="items-center gap-2 px-6 py-16">

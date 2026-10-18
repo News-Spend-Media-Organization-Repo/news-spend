@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import { ACCOUNT_TRUST_STATUS_OPTIONS, ADMIN_GROUP } from "./constants";
 
 /**
@@ -40,7 +40,7 @@ export const GiveawayAccountFlags: CollectionConfig = {
       "Accounts excluded from draws or held for review. An account with no row here is treated as trusted.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   indexes: [{ fields: ["user"], unique: true }],
   fields: [

@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import { ADMIN_GROUP_RECORDS, TICKET_STATUS_OPTIONS } from "./constants";
 
 /**
@@ -18,7 +18,7 @@ export const GiveawayTickets: CollectionConfig = {
     defaultColumns: ["giveaway", "user", "quantity", "status", "purchasedAt"],
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   fields: [
     {

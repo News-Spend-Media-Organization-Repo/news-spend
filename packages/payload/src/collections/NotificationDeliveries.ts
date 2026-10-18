@@ -13,7 +13,7 @@ const NotificationDeliveries: CollectionConfig = {
   },
   access: {
     read: adminOnly,
-    create: () => true, // system writes during send pipeline
+    create: adminOnly, // the send pipeline writes via the local API
     update: adminOnly,
     delete: adminOnly,
   },
