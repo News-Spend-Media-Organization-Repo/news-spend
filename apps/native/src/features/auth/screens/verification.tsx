@@ -1,7 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { InputOTP, REGEXP_ONLY_DIGITS } from "heroui-native/input-otp";
 import { Spinner } from "heroui-native/spinner";
-import { ArrowLeftIcon } from "#/lib/icons";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useKeyboardState } from "react-native-keyboard-controller";
@@ -10,6 +9,8 @@ import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { toast } from "#/components/heroui/toast";
+import { ArrowLeftIcon } from "#/lib/icons";
+import { OTP_LENGTH } from "#/lib/otp";
 import { useSendOtp, useVerifyOTP } from "../hooks/useOTP";
 
 export default function Verification() {
@@ -123,11 +124,14 @@ export default function Verification() {
             textInputProps={{ textContentType: "oneTimeCode" }}
             value={value}
           >
-            <InputOTP.Group className="gap-4">
-              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={0} />
-              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={1} />
-              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={2} />
-              <InputOTP.Slot className="h-14 w-14 rounded-lg" index={3} />
+            <InputOTP.Group className="gap-2">
+              {SLOT_INDEXES.map((index) => (
+                <InputOTP.Slot
+                  className="h-12 w-11 rounded-lg"
+                  index={index}
+                  key={index}
+                />
+              ))}
             </InputOTP.Group>
           </InputOTP>
         </View>
@@ -163,4 +167,5 @@ export default function Verification() {
   );
 }
 
-const CELL_COUNT = 4;
+const CELL_COUNT = OTP_LENGTH;
+const SLOT_INDEXES = Array.from({ length: CELL_COUNT }, (_, i) => i);

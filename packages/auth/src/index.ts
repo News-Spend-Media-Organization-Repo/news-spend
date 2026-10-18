@@ -25,6 +25,7 @@ import pg from "pg";
 import z from "zod";
 import type { $ZodIssue } from "zod/v4/core";
 
+import { generateOTPForRequest } from "./otp";
 import { removeSignedOutPushToken } from "./pushTokens";
 
 /**
@@ -421,14 +422,16 @@ export const auth = betterAuth({
       },
     }),
     emailOTP({
-      // Four digits because every shipped build of the app has exactly four
-      // input boxes; going to six needs an app release first. The short
-      // expiry and the three-attempt limit are what keep four digits safe.
+      // Six digits for builds that ask, four for every build up to 2.6.1,
+      // which draws exactly four boxes; see ./otp.ts. `otpLength` is only
+      // the fallback if generateOTP returns nothing. The short expiry and
+      // the three-attempt limit are what keep four digits safe meanwhile.
       otpLength: 4,
       expiresIn: OTP_EXPIRES_IN_SECONDS,
       allowedAttempts: 3,
       sendVerificationOnSignUp: true,
       disableSignUp: true,
+      generateOTP: generateOTPForRequest,
       async sendVerificationOTP({ email, otp, type }) {
         if (type === "email-verification") {
           await sendOTPVerificationEmail(email, otp);
