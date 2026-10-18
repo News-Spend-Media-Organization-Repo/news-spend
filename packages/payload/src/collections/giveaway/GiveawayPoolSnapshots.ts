@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import { ADMIN_GROUP_RECORDS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
@@ -30,7 +30,7 @@ export const GiveawayPoolSnapshots: CollectionConfig = {
       "The candidate pool as locked at draw time. Replacement winners are drawn from here.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
     // Written by the draw engine through the Local API, which bypasses these.
     create: () => false,
     update: () => false,

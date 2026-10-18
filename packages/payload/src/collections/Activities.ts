@@ -1,10 +1,13 @@
 import type { CollectionConfig } from "payload";
+import { isStaff } from "../access/adminRoles";
 
 const Activities: CollectionConfig = {
   slug: "activities",
   access: {
-    create: () => true,
-    delete: () => true,
+    // The app writes activities through the local API, which bypasses
+    // these rules; over REST only staff may add or remove points.
+    create: isStaff,
+    delete: isStaff,
   },
   fields: [
     {
