@@ -8,12 +8,15 @@ import { generateRandomString } from "better-auth/crypto";
  * cannot simply switch lengths: it has to keep sending four digits to the
  * builds that can only take four.
  *
- * The client says what it can take in a header, rather than the server
- * inferring it from `x-app-version`. The screen ships as an OTA update with
- * `runtimeVersion: appVersion`, so a 2.6.1 install with the update and a
- * 2.6.1 install without it report the same native version. The header is
- * sent by the same JavaScript that draws the boxes, so it can't disagree with
- * them.
+ * Six-digit boxes ship in the 2.7.0 store build. The client still says what
+ * it can take in a header, rather than the server inferring it from
+ * `x-app-version`: the auth client doesn't send that header, and an OTA
+ * update published to an older runtime would change the boxes without
+ * changing the version. The header is sent by the same JavaScript that draws
+ * the boxes, so it can't disagree with them.
+ *
+ * Remove the four-digit fallback once MIN_APP_VERSION is 2.7.0 or later:
+ * delete `generateOTP` from the emailOTP config and set `otpLength: 6`.
  */
 
 /** Header the app sends the code length its verification screen draws. */
