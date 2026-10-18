@@ -12,8 +12,16 @@ type PoolTier = {
   unitsAvailable: number;
 };
 
+type TierBreakdown = {
+  tier: string;
+  winnerPercentage: number | null;
+  prizes: number;
+  units: number;
+};
+
 type PoolNotice = {
   participants: number;
+  breakdown?: TierBreakdown[];
   errors: string[];
   warnings: string[];
   tiers: PoolTier[];
@@ -21,8 +29,8 @@ type PoolNotice = {
 
 const FIX_HINTS: { match: string; fix: string }[] = [
   {
-    match: "Prize Pool is empty",
-    fix: "An enabled tier needs at least one prize. Add a prize for that tier under Giveaway Prizes (Maximum Units of 1 or more), or set that tier's percentage to 0 under Winner Distribution to switch it off.",
+    match: "no prize is assigned to",
+    fix: "An enabled tier needs at least one prize of that tier. A prize's tier comes from the Master Prize Catalogue, so add a catalogue prize that belongs to that tier (Maximum Units of 1 or more), or set the tier's percentage to 0 under Winner Distribution to switch it off.",
   },
   {
     match: "No prizes have been configured",
@@ -59,6 +67,26 @@ const FixHints = ({ messages }: { messages: string[] }) => {
         ))}
       </ul>
     </div>
+  );
+};
+
+/** One line per tier: percentage against what is stocked under it. */
+const TierBreakdownList = ({ breakdown }: { breakdown?: TierBreakdown[] }) => {
+  if (!breakdown?.length) {
+    return null;
+  }
+  return (
+    <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
+      {breakdown.map(({ tier, winnerPercentage, prizes, units }) => (
+        <li key={tier}>
+          <strong>{tier}</strong>{" "}
+          {winnerPercentage ? `(${winnerPercentage}%)` : "(off)"}:{" "}
+          {prizes === 0
+            ? "no prizes"
+            : `${prizes} prize${prizes === 1 ? "" : "s"}, ${units} unit${units === 1 ? "" : "s"}`}
+        </li>
+      ))}
+    </ul>
   );
 };
 
@@ -138,6 +166,7 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
         </strong>{" "}
         {notice.errors.join(" ")}
         <FixHints messages={notice.errors} />
+        <TierBreakdownList breakdown={notice.breakdown} />
       </Banner>
     );
   }
@@ -151,6 +180,7 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
         </strong>{" "}
         {notice.warnings.join(" ")}
         <FixHints messages={notice.warnings} />
+        <TierBreakdownList breakdown={notice.breakdown} />
       </Banner>
     );
   }
@@ -163,6 +193,7 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
         .map((tier) => `${tier.tier} × ${tier.effectiveCap}`)
         .join(", ")}
       .
+      <TierBreakdownList breakdown={notice.breakdown} />
     </Banner>
   );
 };

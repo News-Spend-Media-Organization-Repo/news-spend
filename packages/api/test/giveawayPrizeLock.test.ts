@@ -18,16 +18,18 @@ const PRIZE = { id: "p1", name: "500 Dream Points", tier: "tier3" };
 function createReq({
   status,
   engine = false,
+  drawStartedAt,
 }: {
   status: string;
   engine?: boolean;
+  drawStartedAt?: string | null;
 }) {
   return {
     context: engine ? { giveawayEngine: true } : {},
     payload: {
       findByID: async ({ collection, id }: Row) => {
         if (collection === "giveaways") {
-          return { id, status };
+          return { id, status, drawStartedAt };
         }
         if (collection === "prize-catalogue") {
           return PRIZE;
@@ -91,6 +93,17 @@ describe("giveaway-prizes pool lock", () => {
         "The prize pool is locked"
       );
     }
+  });
+
+  it("lets an administrator fix the pool of an authorized draw that never started", async () => {
+    // Authorizing a resumption on a draw that was refused at validation used
+    // to lock the very pool that needed fixing.
+    const req = createReq({
+      status: "resumption_authorized",
+      drawStartedAt: null,
+    });
+
+    await expect(hook(args(req))).resolves.toBeDefined();
   });
 
   it("allows an administrator to edit the pool before the draw begins", async () => {

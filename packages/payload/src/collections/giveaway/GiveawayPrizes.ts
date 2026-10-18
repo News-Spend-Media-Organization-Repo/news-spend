@@ -2,7 +2,7 @@ import { type CollectionConfig, ValidationError } from "payload";
 import { isStaff } from "../../access/adminRoles";
 import {
   ADMIN_GROUP,
-  LOCKED_GIVEAWAY_STATUSES,
+  isConfigurationLocked,
   PRIZE_TIER_OPTIONS,
 } from "./constants";
 
@@ -60,7 +60,7 @@ export const GiveawayPrizes: CollectionConfig = {
          */
         if (
           giveaway &&
-          LOCKED_GIVEAWAY_STATUSES.includes(giveaway.status) &&
+          isConfigurationLocked(giveaway) &&
           !req.context?.giveawayEngine
         ) {
           throw new ValidationError({
@@ -160,6 +160,12 @@ export const GiveawayPrizes: CollectionConfig = {
       relationTo: "prize-catalogue",
       required: true,
       index: true,
+      admin: {
+        components: {
+          Field:
+            "@news-spend-media/payload/components/PrizeSelectField#PrizeSelectField",
+        },
+      },
     },
     {
       name: "tier",
@@ -170,6 +176,10 @@ export const GiveawayPrizes: CollectionConfig = {
       admin: {
         readOnly: true,
         description: "Inherited from the Master Prize Catalogue.",
+        components: {
+          Field:
+            "@news-spend-media/payload/components/PrizeTierField#PrizeTierField",
+        },
       },
     },
     {

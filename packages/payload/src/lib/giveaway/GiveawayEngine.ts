@@ -674,6 +674,17 @@ export class GiveawayEngine {
       };
     }
 
+    // A draw refused at validation never began, so there is nothing to
+    // resume and no seed to resume from. Authorizing it would also lock the
+    // prize pool, trapping the very setup problem that refused it.
+    if (giveaway.drawStartedAt === null) {
+      return {
+        authorized: false,
+        message:
+          "This draw never started, so there is nothing to resume. Fix the problem named in Draw Error, then set Status back to Active.",
+      };
+    }
+
     await this.payload.update({
       collection: "giveaways",
       id: giveawayId,
@@ -2500,7 +2511,7 @@ function checkTierPool(args: {
     return {};
   }
 
-  return emptyTierPoolNotice(tier, percentage, headcount);
+  return emptyTierPoolNotice(tier, percentage, headcount, prizeRows.length);
 }
 
 /**
@@ -2531,18 +2542,25 @@ function invalidMaxUnits(row: {
 function emptyTierPoolNotice(
   tier: PrizeTier,
   percentage: number,
-  headcount: number
+  headcount: number,
+  otherTierPrizes: number
 ): { error?: string; warning?: string } {
+  const assigned = `no prize is assigned to ${tier}`;
+  const elsewhere =
+    otherTierPrizes > 0
+      ? ` (${otherTierPrizes} ${otherTierPrizes === 1 ? "prize exists" : "prizes exist"}, all on other tiers)`
+      : "";
+
   if (maxTierWinners(headcount, percentage) > 0) {
     return {
-      error: `${tier} is enabled (${percentage}%) but its Prize Pool is empty.`,
+      error: `${tier} is enabled (${percentage}%) but ${assigned}${elsewhere}.`,
     };
   }
 
   const threshold = headcountForFirstWinner(percentage);
   const person = headcount === 1 ? "participant" : "participants";
   return {
-    warning: `${tier} is enabled (${percentage}%) but its Prize Pool is empty. Harmless with ${headcount} ${person}: nobody can win ${tier} below ${threshold} participants. Add a ${tier} prize before the headcount reaches ${threshold}, or the draw will refuse.`,
+    warning: `${tier} is enabled (${percentage}%) but ${assigned}${elsewhere}. Harmless with ${headcount} ${person}: nobody can win ${tier} below ${threshold} participants. Add a ${tier} prize before the headcount reaches ${threshold}, or the draw will refuse.`,
   };
 }
 
