@@ -85,13 +85,15 @@ export async function GiveawaySetupGuideView(
           <P>
             A giveaway cannot hold prizes directly — it borrows them from the{" "}
             <strong>Prize Catalogue</strong> (Giveaway group in the sidebar).
-            Create each prize there before touching the giveaway.
+            Create each prize there <strong>once</strong>. Every later giveaway
+            picks it from a dropdown, so nothing is ever created again just
+            because a new giveaway is being set up.
           </P>
           <Rows
             items={[
               [
                 "Tier",
-                "High, Mid or Low — must match the tier you pool it under later.",
+                "High, Mid or Low. Fixed here: a giveaway uses the prize under this tier and cannot change it. To offer the same prize in another tier, create a second catalogue entry for it.",
               ],
               [
                 "Fulfilment type",
@@ -100,6 +102,10 @@ export async function GiveawaySetupGuideView(
               [
                 "Value (₦)",
                 "Optional. A prize with no value counts as ₦0 against a spend cap — it never blocks a draw. Fill it in for anything with a real retail price so cap reporting means something.",
+              ],
+              [
+                "Active",
+                "Inactive prizes cannot be added to a new giveaway. Switch it off to retire a prize without deleting it.",
               ],
             ]}
           />
@@ -192,18 +198,54 @@ export async function GiveawaySetupGuideView(
           </Muted>
         </Step>
 
-        <Step n="Step 4" title="Build the prize pool">
+        <Step n="Step 4" title="Add the prizes to this giveaway">
           <P>
-            Open <strong>Giveaway Prizes</strong> and add one row per prize:
-            which catalogue prize, which tier it belongs to, and{" "}
-            <strong>Maximum Units</strong> — how many of it this giveaway may
-            award. The draw never awards more winners than units pooled, so a
-            selected winner always has a prize behind them.
+            A prize only counts for a giveaway once it has a row in{" "}
+            <strong>Giveaway Prizes</strong>. A prize that sits in the catalogue
+            without a row is never awarded. The giveaway&apos;s own{" "}
+            <strong>Prizes</strong> list (lower down on this record) shows the
+            rows added so far.
+          </P>
+          <P>
+            <strong>For each prize:</strong> open{" "}
+            <strong>Giveaway Prizes</strong> in the sidebar (Giveaway group),
+            click <strong>Create New</strong>, then fill in:
+          </P>
+          <Rows
+            items={[
+              ["Giveaway", "This giveaway."],
+              [
+                "Prize",
+                "Pick from the dropdown of catalogue prizes. Each option shows its tier, like “1GB Data – Tier 2”. Pick the same prize again in any future giveaway.",
+              ],
+              [
+                "Tier",
+                "Filled in for you once a prize is chosen. It comes from the catalogue and cannot be edited here.",
+              ],
+              [
+                "Max Units",
+                "How many of this prize this giveaway may award, a whole number of 1 or more. The draw never awards more winners than units pooled, so a selected winner always has a prize behind them.",
+              ],
+            ]}
+          />
+          <P>
+            Click <strong>Save</strong>, then repeat for the next prize. The
+            same prize cannot be added twice to one giveaway; raise its Max
+            Units instead.
+          </P>
+          <P>
+            <strong>
+              Every tier above 0% needs at least one prize of that tier.
+            </strong>{" "}
+            Count them against Step 3: a tier set to 89% with prizes only on
+            Tier 2 and Tier 3 will refuse the draw. The Prize Pool banner lists
+            how many prizes and units each tier has.
           </P>
           <Muted>
-            Every tier left above 0% needs at least one pooled prize — unless
-            the tier cannot award anyone yet (see the headcounts in Step 3), in
-            which case the banner says so and the draw proceeds.
+            The one exception is a tier that cannot award anyone yet (see the
+            headcounts in Step 3), where the banner says so and the draw
+            proceeds. The pool and the percentages lock once the draw begins, so
+            finish them before the End Date.
           </Muted>
         </Step>
 
