@@ -1,5 +1,6 @@
 import { addWeeks, startOfWeek } from "date-fns";
 import { APIError, type CollectionConfig, ValidationError } from "payload";
+import { isStaff } from "../../access/adminRoles";
 import { giveawayStatsView } from "../../components/Analytics/tabs";
 import { giveawaySetupGuideView } from "../../components/GiveawaySetupGuide/tabs";
 import {
@@ -26,9 +27,14 @@ import {
  * go out. `sendAnnouncement` defaults to on, so anything not explicitly
  * switched off still shows it.
  */
-export function showNotificationSection(data: {
-  sendAnnouncement?: boolean | null;
-} | null | undefined): boolean {
+export function showNotificationSection(
+  data:
+    | {
+        sendAnnouncement?: boolean | null;
+      }
+    | null
+    | undefined
+): boolean {
   return data?.sendAnnouncement !== false;
 }
 
@@ -51,7 +57,7 @@ export const Giveaways: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   endpoints: [
     {

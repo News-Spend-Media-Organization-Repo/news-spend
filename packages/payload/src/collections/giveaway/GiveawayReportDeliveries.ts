@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import { ADMIN_GROUP_RECORDS } from "./constants";
 
 /**
@@ -33,7 +33,7 @@ export const GiveawayReportDeliveries: CollectionConfig = {
       "Every attempt to email a Winner Report. The original is sent automatically when a draw completes; resends are recorded alongside it.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
     // Written by the report sender through the Local API, which bypasses these.
     create: () => false,
     update: () => false,

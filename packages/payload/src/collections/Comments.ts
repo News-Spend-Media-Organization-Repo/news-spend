@@ -1,6 +1,6 @@
 import { sql } from "@payloadcms/db-postgres";
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../access/adminRoles";
 import notifyOnReply from "../hooks/comments/notifyOnReply";
 
 const Comments: CollectionConfig = {
@@ -9,8 +9,8 @@ const Comments: CollectionConfig = {
     useAsTitle: "text",
   },
   access: {
-    read: () => true,
-    create: () => true,
+    read: isStaff,
+    create: isStaff,
     // TODO: Public users should not be able to update published comments
     // Users should only be allowed to update their own draft comments
     // Admins should have full control
