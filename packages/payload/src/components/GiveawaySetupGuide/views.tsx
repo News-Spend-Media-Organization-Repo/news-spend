@@ -286,6 +286,22 @@ export async function GiveawaySetupGuideView(
                   "“Tier N is enabled but its Prize Pool is empty”",
                   "That tier could have awarded someone. Either pool a prize under it or set its percentage to 0, then set Status back to Active.",
                 ],
+                [
+                  "“Prize row … does not have a valid Maximum Units value”",
+                  "A Giveaway Prizes row has Maximum Units empty, zero or fractional. Open that row, set a whole number of 1 or more, then set Status back to Active.",
+                ],
+                [
+                  "“Winner Distribution is not configured for tier N”",
+                  "That tier's percentage is blank. Fill it in under Winner Distribution (0 switches the tier off), then set Status back to Active.",
+                ],
+                [
+                  "“The countdown has not ended yet”",
+                  "Only appears on a manual draw. Wait for the End Date, or move the End Date earlier.",
+                ],
+                [
+                  "“A draw is already in progress” / “stopped part-way through”",
+                  "Wait for the running draw to finish. If it stopped part-way, a Super Admin must authorize its resumption; it cannot be restarted.",
+                ],
               ]}
             />
             <P>

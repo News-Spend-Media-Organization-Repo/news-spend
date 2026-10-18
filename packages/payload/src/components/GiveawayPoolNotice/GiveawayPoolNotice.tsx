@@ -19,6 +19,49 @@ type PoolNotice = {
   tiers: PoolTier[];
 };
 
+const FIX_HINTS: { match: string; fix: string }[] = [
+  {
+    match: "Prize Pool is empty",
+    fix: "An enabled tier needs at least one prize. Add a prize for that tier under Giveaway Prizes (Maximum Units of 1 or more), or set that tier's percentage to 0 under Winner Distribution to switch it off.",
+  },
+  {
+    match: "No prizes have been configured",
+    fix: "Add at least one row under Giveaway Prizes for this giveaway, choosing its tier and Maximum Units.",
+  },
+  {
+    match: "does not have a valid Maximum Units",
+    fix: "Open that Giveaway Prizes row and set Maximum Units to a whole number of 1 or more.",
+  },
+  {
+    match: "Winner Distribution is not configured",
+    fix: "Fill in the percentage for that tier under Winner Distribution. Enter 0 to disable the tier.",
+  },
+  {
+    match: "monetary budget cap",
+    fix: "Optional: give the listed prizes a Value (₦) so the cap applies to them, or clear Hard spend cap (₦). The draw is not blocked.",
+  },
+];
+
+/** Plain-language next step for each known setup problem. */
+const FixHints = ({ messages }: { messages: string[] }) => {
+  const fixes = FIX_HINTS.filter(({ match }) =>
+    messages.some((message) => message.includes(match))
+  );
+  if (fixes.length === 0) {
+    return null;
+  }
+  return (
+    <div style={{ marginTop: 8 }}>
+      <strong>How to fix:</strong>
+      <ul style={{ margin: "4px 0 0", paddingLeft: 20 }}>
+        {fixes.map(({ match, fix }) => (
+          <li key={match}>{fix}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 /**
  * Prize-pool notice on the giveaway edit screen.
  *
@@ -94,6 +137,7 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
           {notice.participants === 1 ? "" : "s"} so far):
         </strong>{" "}
         {notice.errors.join(" ")}
+        <FixHints messages={notice.errors} />
       </Banner>
     );
   }
@@ -106,6 +150,7 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
           {notice.participants === 1 ? "" : "s"} so far):
         </strong>{" "}
         {notice.warnings.join(" ")}
+        <FixHints messages={notice.warnings} />
       </Banner>
     );
   }
