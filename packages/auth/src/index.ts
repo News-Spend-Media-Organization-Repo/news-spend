@@ -9,8 +9,10 @@ import {
   sendWelcomeEmail,
 } from "@news-spend-media/mail";
 import { getPayload } from "@news-spend-media/payload";
-import { TemplateNotFoundError } from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
-import { sendTemplatedEmail } from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
+import {
+  sendTemplatedEmail,
+  TemplateNotFoundError,
+} from "@news-spend-media/payload/lib/email/sendTemplatedEmail";
 import { resolveUserVariables } from "@news-spend-media/payload/lib/email/templateVariables";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -18,6 +20,8 @@ import { anonymous, emailOTP, openAPI } from "better-auth/plugins";
 import pg from "pg";
 import z from "zod";
 import type { $ZodIssue } from "zod/v4/core";
+
+import { generateOTPForRequest } from "./otp";
 
 function generateUniqueDigits() {
   // Create an array of digits from 0 to 9
@@ -420,6 +424,9 @@ export const auth = betterAuth({
       expiresIn: 60 * 60 * 1000, // 1 hour
       sendVerificationOnSignUp: true,
       disableSignUp: true,
+      // Four digits for builds that only draw four boxes, six for those that
+      // ask; see ./otp.ts. `otpLength` above is only the fallback length.
+      generateOTP: generateOTPForRequest,
       async sendVerificationOTP({ email, otp, type }) {
         if (type === "email-verification") {
           await sendOTPVerificationEmail(email, otp);
