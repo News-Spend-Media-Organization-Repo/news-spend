@@ -1,4 +1,5 @@
 import { type CollectionConfig, ValidationError } from "payload";
+import { isStaff } from "../../access/adminRoles";
 import { IMAGE_ONLY } from "../../fields/uploadMimeFilters";
 import { isIdentityProviderConfigured } from "../../lib/giveaway/didit";
 import {
@@ -37,7 +38,7 @@ export const PrizeCatalogue: CollectionConfig = {
       "Single source of truth for prizes. A prize belongs to exactly one tier.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   hooks: {
     beforeValidate: [

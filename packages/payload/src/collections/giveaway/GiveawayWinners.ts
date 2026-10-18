@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import {
   ADMIN_GROUP,
   FULFILMENT_STATUS_OPTIONS,
@@ -29,7 +29,7 @@ export const GiveawayWinners: CollectionConfig = {
     ],
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   fields: [
     {

@@ -20,13 +20,21 @@ import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
 const logger = appLogger;
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const CORS_ORIGINS = [
   process.env.CORS_ORIGIN || "",
-  "http://localhost:9000",
-  "http://cms.newsspend.localhost:1355",
-  "http://server.newsspend.localhost:1355",
   "https://staging-cms.newsspend.com",
   "https://cms.newsspend.com",
+  // Local hosts only where they can be running. In production they let any
+  // page served from a developer's machine make credentialed calls to the API.
+  ...(isProduction
+    ? []
+    : [
+        "http://localhost:9000",
+        "http://cms.newsspend.localhost:1355",
+        "http://server.newsspend.localhost:1355",
+      ]),
 ].filter(Boolean);
 
 const servers: Array<{ url: string; description: string }> = [];
@@ -127,11 +135,17 @@ export const apiHandler = new OpenAPIHandler(router, {
     //   logger,
     //   logRequestResponse: true,
     // }),
-    new OpenAPIReferenceHandlerPlugin({
-      provider: "scalar",
-      docsTitle: "OpenAPI Documentation",
-      spec: openAPISpec,
-    }),
+    // The interactive reference at /api lists every procedure and its input
+    // schema. Handy in development; in production it is a map for attackers.
+    ...(isProduction
+      ? []
+      : [
+          new OpenAPIReferenceHandlerPlugin({
+            provider: "scalar",
+            docsTitle: "OpenAPI Documentation",
+            spec: openAPISpec,
+          }),
+        ]),
   ],
   interceptors: [onError(logHandlerError("API"))],
 });

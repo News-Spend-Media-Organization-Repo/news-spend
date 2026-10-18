@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../../access/adminRoles";
 import { ADMIN_GROUP_RECORDS, PRIZE_TIER_OPTIONS } from "./constants";
 
 /**
@@ -28,7 +28,7 @@ export const GiveawayStreaks: CollectionConfig = {
       "Consecutive-giveaway qualification counters. Persist across giveaways by design.",
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   indexes: [
     {
