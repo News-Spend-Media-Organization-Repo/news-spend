@@ -245,7 +245,10 @@ export async function GiveawaySetupGuideView(
             The one exception is a tier that cannot award anyone yet (see the
             headcounts in Step 3), where the banner says so and the draw
             proceeds. The pool and the percentages lock once the draw begins, so
-            finish them before the End Date.
+            finish them before the End Date. Once the End Date has passed, new
+            prize rows are refused; move the End Date later first if a giveaway
+            still needs one. After the draw, the giveaway&apos;s{" "}
+            <strong>Winners</strong> list shows who won.
           </Muted>
         </Step>
 

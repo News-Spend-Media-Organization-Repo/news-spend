@@ -126,6 +126,7 @@ export interface Config {
   collectionsJoins: {
     giveaways: {
       prizes: 'giveaway-prizes';
+      winners: 'giveaway-winners';
     };
     'faq-categories': {
       questions: 'faqs';
@@ -753,6 +754,14 @@ export interface Giveaway {
    */
   prizes?: {
     docs?: (string | GiveawayPrize)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Who won, once the draw has run. Open a winner to see their claim and fulfilment status.
+   */
+  winners?: {
+    docs?: (string | GiveawayWinner)[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
@@ -3296,6 +3305,7 @@ export interface GiveawaysSelect<T extends boolean = true> {
   drawCompletedAt?: T;
   drawError?: T;
   prizes?: T;
+  winners?: T;
   winnerReportSentAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;

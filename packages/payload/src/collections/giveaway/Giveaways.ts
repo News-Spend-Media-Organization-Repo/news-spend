@@ -826,6 +826,23 @@ export const Giveaways: CollectionConfig = {
       },
     },
     {
+      name: "winners",
+      type: "join",
+      collection: "giveaway-winners",
+      on: "giveaway",
+      admin: {
+        description:
+          "Who won, once the draw has run. Open a winner to see their claim and fulfilment status.",
+        defaultColumns: [
+          "user",
+          "tier",
+          "prizeName",
+          "claimStatus",
+          "fulfilmentStatus",
+        ],
+      },
+    },
+    {
       name: "poolNotice",
       type: "ui",
       label: "Prize Pool",
