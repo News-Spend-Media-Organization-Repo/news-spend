@@ -1,6 +1,11 @@
 "use client";
 
-import { FieldLabel, useField } from "@payloadcms/ui";
+import {
+  FieldLabel,
+  ReactSelect,
+  type ReactSelectOption,
+  useField,
+} from "@payloadcms/ui";
 import type { RelationshipFieldClientComponent } from "payload";
 import { useEffect, useState } from "react";
 
@@ -25,7 +30,7 @@ const tierLabel = (tier: string) => TIER_NUMBER[tier] ?? tier;
  * The stock relationship dropdown labels each prize by name alone, so the tier
  * a prize will land in is invisible until the row is saved. This labels every
  * option "Name – Tier N" and sorts by tier, so the admin picks with the tier in
- * view. The stored value is still the catalogue prize id.
+ * view. It uses Payload's own searchable select, so typing filters the list. The stored value is still the catalogue prize id.
  */
 export const PrizeSelectField: RelationshipFieldClientComponent = ({
   path,
@@ -71,25 +76,28 @@ export const PrizeSelectField: RelationshipFieldClientComponent = ({
         a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
     );
 
+  const options: ReactSelectOption<string>[] = selectable.map((prize) => ({
+    label: `${prize.name} – ${tierLabel(prize.tier)}`,
+    value: prize.id,
+  }));
+
   return (
     <div className="field-type">
       <FieldLabel label={field.label} path={path} required={field.required} />
-      <select
-        className="field-type__input"
+      <ReactSelect
         disabled={prizes === null && !failed}
-        onChange={(event) => setValue(event.target.value || null)}
-        style={{ width: "100%", padding: "8px 12px" }}
-        value={typeof value === "string" ? value : ""}
-      >
-        <option value="">
-          {prizes === null && !failed ? "Loading prizes…" : "Select a prize"}
-        </option>
-        {selectable.map((prize) => (
-          <option key={prize.id} value={prize.id}>
-            {prize.name} – {tierLabel(prize.tier)}
-          </option>
-        ))}
-      </select>
+        isClearable
+        isSearchable
+        onChange={(option) => {
+          const picked = Array.isArray(option) ? option[0] : option;
+          setValue(picked ? String(picked.value) : null);
+        }}
+        options={options}
+        placeholder={
+          prizes === null && !failed ? "Loading prizes…" : "Select a prize"
+        }
+        value={options.find((option) => option.value === value)}
+      />
       {failed && (
         <div className="field-error" style={{ marginTop: 8 }}>
           Could not load the prize catalogue. Reload the page and try again.
