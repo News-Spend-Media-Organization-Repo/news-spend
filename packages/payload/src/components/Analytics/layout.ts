@@ -20,6 +20,20 @@ const daysField: Field = {
   ],
 };
 
+const sortField: Field = {
+  name: "sort",
+  type: "select",
+  label: "Rank by",
+  defaultValue: "readers",
+  options: [
+    { label: "Unique readers", value: "readers" },
+    { label: "Qualified reads", value: "reads" },
+    { label: "Views", value: "views" },
+    { label: "Impressions", value: "impressions" },
+    { label: "Rising", value: "rising" },
+  ],
+};
+
 const metricField: Field = {
   name: "metric",
   type: "select",
@@ -76,7 +90,7 @@ export const analyticsWidgets: Widget[] = [
     slug: "analytics-top-articles",
     label: "Top articles",
     Component: `${PATH}#TopArticlesWidget`,
-    fields: [daysField],
+    fields: [sortField, daysField],
     minWidth: "medium",
   },
   {

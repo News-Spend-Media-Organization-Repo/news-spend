@@ -1,4 +1,4 @@
-import type { Platform } from "@news-spend-media/analytics";
+import type { Platform, TopSort } from "@news-spend-media/analytics";
 import {
   AnalyticsAccessError,
   giveawayReport,
@@ -6,6 +6,7 @@ import {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsNotices,
   newsPlatforms,
   newsSummary,
@@ -18,6 +19,7 @@ import {
   partnerSummary,
   READ_DEFINITION,
   resolveRange,
+  TOP_SORTS,
 } from "@news-spend-media/analytics";
 import type { AdminViewServerProps, DocumentViewServerProps } from "payload";
 import type { ReactNode } from "react";
@@ -47,7 +49,7 @@ import {
   TopArticlesPanel,
 } from "./blocks";
 import type { Days } from "./params";
-import { parseAnalyticsParams } from "./params";
+import { parseAnalyticsParams, SORT_LABELS } from "./params";
 import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
 
 /**
@@ -62,17 +64,28 @@ function Toolbar({
   days,
   platform,
   showPlatform,
+  sort,
 }: {
   basePath: string;
   days: Days;
   platform?: Platform;
   showPlatform: boolean;
+  /** Offers the top-articles sort when given. */
+  sort?: TopSort;
 }): ReactNode {
-  const href = (next: { days?: Days; platform?: Platform | null }) => {
+  const href = (next: {
+    days?: Days;
+    platform?: Platform | null;
+    sort?: TopSort;
+  }) => {
     const query = new URLSearchParams({ days: String(next.days ?? days) });
     const chosen = next.platform === undefined ? platform : next.platform;
     if (chosen) {
       query.set("platform", chosen);
+    }
+    const ranked = next.sort ?? sort;
+    if (ranked) {
+      query.set("sort", ranked);
     }
     return `${basePath}?${query}`;
   };
@@ -105,6 +118,15 @@ function Toolbar({
               current: platform === "android",
             },
           ]}
+        />
+      ) : null}
+      {sort ? (
+        <Segmented
+          links={TOP_SORTS.map((option) => ({
+            label: SORT_LABELS[option],
+            href: href({ sort: option }),
+            current: option === sort,
+          }))}
         />
       ) : null}
     </div>
@@ -205,21 +227,30 @@ export async function AnalyticsPageView(
   }
 
   return await guarded(async () => {
-    const { days, platform } = parseAnalyticsParams(props.searchParams);
+    const { days, platform, sort } = parseAnalyticsParams(props.searchParams);
     const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
     const db = dbOf(req);
     const filter = { range, platform };
 
-    const [summary, daily, surfaces, platforms, engagement, top, categories] =
-      await Promise.all([
-        newsSummary(db, scope, filter),
-        newsDaily(db, scope, filter),
-        newsSurfaces(db, scope, filter),
-        newsPlatforms(db, scope, filter),
-        newsEngagement(db, scope, filter),
-        newsTopArticles(db, scope, { ...filter, limit: 10 }),
-        newsTopCategories(db, scope, { ...filter, limit: 8 }),
-      ]);
+    const [
+      summary,
+      daily,
+      surfaces,
+      platforms,
+      engagement,
+      top,
+      categories,
+      quality,
+    ] = await Promise.all([
+      newsSummary(db, scope, filter),
+      newsDaily(db, scope, filter),
+      newsSurfaces(db, scope, filter),
+      newsPlatforms(db, scope, filter),
+      newsEngagement(db, scope, filter),
+      newsTopArticles(db, scope, { ...filter, limit: 10, sortBy: sort }),
+      newsTopCategories(db, scope, { ...filter, limit: 8 }),
+      newsEventQuality(db, scope, filter),
+    ]);
 
     return (
       <>
@@ -234,17 +265,18 @@ export async function AnalyticsPageView(
                 days={days}
                 platform={platform}
                 showPlatform
+                sort={sort}
               />
             }
           />
-          <Notices notices={newsNotices(range)} />
+          <Notices notices={newsNotices(range, quality)} />
           <NewsKpis summary={summary} />
           <div className="ana-grid ana-two">
             <FunnelPanel days={daily} />
             <SurfacesPanel surfaces={surfaces} />
           </div>
           <div className="ana-grid ana-two">
-            <TopArticlesPanel articles={top} />
+            <TopArticlesPanel articles={top} days={days} sort={sort} />
             <StepsPanel current={summary.current} />
           </div>
           <div className="ana-grid ana-even">
