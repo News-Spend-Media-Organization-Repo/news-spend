@@ -38,7 +38,7 @@ export default function BlockedUsers() {
     orpc.block.getBlockedUsers.infiniteOptions({
       input: (pageParam: number | undefined) => ({ page: pageParam }),
       initialPageParam: undefined,
-      getNextPageParam: (lastPage) => lastPage.nextPage,
+      getNextPageParam: (lastPage) => lastPage?.nextPage,
       refetchInterval: false,
     })
   );

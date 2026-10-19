@@ -156,7 +156,7 @@ const Latest = memo(
       orpc.news.home.infiniteOptions({
         input: (pageParam: number | undefined) =>
           homeFeedInput(pageParam, forceRefreshRef.current),
-        getNextPageParam: (lastPage) => lastPage.nextPage,
+        getNextPageParam: (lastPage) => lastPage?.nextPage,
         initialPageParam: undefined,
         staleTime: NEWS_FEED_STALE_TIME_MS,
         gcTime: 10 * 60 * 1000, // 10 min, keeps cached data in memory

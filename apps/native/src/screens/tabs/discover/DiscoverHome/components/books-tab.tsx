@@ -34,7 +34,7 @@ function BooksTabComponent() {
       page: pageParam,
     }),
     initialPageParam: undefined,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: (lastPage) => lastPage?.nextPage,
   });
 
   const {

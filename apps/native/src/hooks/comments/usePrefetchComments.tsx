@@ -23,7 +23,7 @@ export default function usePrefetchComments(newsId: string | undefined) {
           page: pageParam,
         }),
         initialPageParam: undefined,
-        getNextPageParam: (lastPage) => lastPage.nextPage,
+        getNextPageParam: (lastPage) => lastPage?.nextPage,
       })
     );
   }, [newsId, queryClient]);
