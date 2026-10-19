@@ -391,7 +391,11 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       likes: 1,
       shares: 3,
       readers: 4,
-      ctr: 120,
+      // 4 of the 6 views follow an impression from the same device; the other
+      // 2 are direct opens. The old definition (views per impression) read 120.
+      matchedViews: 4,
+      directOpens: 2,
+      ctr: 80,
       readRate: 16.7,
     });
     expect(previous.views).toBe(1);
@@ -473,6 +477,33 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       publishedAt: "2026-09-12T08:00:00.000Z",
     });
     expect(cats.map((c) => c.category)).toEqual(["Energy", "Sports"]);
+  });
+
+  it("counts a view toward click-through only when its device saw the article first", async () => {
+    // A period of its own, so the fixtures above are not disturbed.
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES
+        ('${A1}', 'impression', 'm-a', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view',       'm-a', '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view',       'm-b', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'impression', 'm-b', '2026-07-30T10:05:00Z'),
+        ('${A1}', 'view',       'm-c', '2026-07-30T11:00:00Z')
+    `);
+
+    const { current } = await newsSummary(db, staff, { range: earlier });
+
+    expect(current).toMatchObject({
+      impressions: 2,
+      views: 3,
+      matchedViews: 1,
+      directOpens: 2,
+      ctr: 50,
+    });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'm-%'");
   });
 
   it("assembles an article's whole report", async () => {

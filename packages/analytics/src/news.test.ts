@@ -50,7 +50,7 @@ describe("newsSummary", () => {
     query.params.length >= 0
       ? [
           { event: "impression", n: 200, devices: 90 },
-          { event: "view", n: 90, devices: 60 },
+          { event: "view", n: 90, devices: 60, matched: 54 },
           { event: "read", n: 18, devices: 15 },
           { event: "like", n: 7, devices: 6 },
           { event: "share", n: 3, devices: 3 },
@@ -71,8 +71,34 @@ describe("newsSummary", () => {
       dislikes: 0,
       comments: 0,
       readers: 60,
-      ctr: 45,
+      matchedViews: 54,
+      directOpens: 36,
+      ctr: 27,
       readRate: 20,
+    });
+  });
+
+  it("counts a view toward click-through only when its device saw the article first", async () => {
+    const { db, queries } = stubDb(rowsByEvent);
+
+    await newsSummary(db, STAFF, { range: range() });
+
+    const sql = queries[0]?.sql ?? "";
+    expect(sql).toContain("EXISTS");
+    expect(sql).toContain("i.device_id = e.device_id");
+    expect(sql).toContain("i.timestamp <= e.timestamp");
+  });
+
+  it("reports every view as a direct open, and no click-through, when there are no impressions", async () => {
+    const { db } = stubDb([{ event: "view", n: 21, devices: 17, matched: 0 }]);
+
+    const { current } = await newsSummary(db, STAFF, { range: range() });
+
+    expect(current).toMatchObject({
+      views: 21,
+      matchedViews: 0,
+      directOpens: 21,
+      ctr: null,
     });
   });
 

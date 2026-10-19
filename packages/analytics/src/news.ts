@@ -45,10 +45,20 @@ export type NewsCounts = {
   comments: number;
   /** Distinct devices that opened an article. */
   readers: number;
+  /** Views whose device had been shown the article as an impression first. */
+  matchedViews: number;
 };
 
 export type NewsMetrics = NewsCounts & {
-  /** Views per impression, as a percentage. */
+  /**
+   * Views with no impression before them (push, links, search): opens that
+   * did not come through a feed the app counts impressions on.
+   */
+  directOpens: number;
+  /**
+   * Matched views per impression, as a percentage. Only views the device saw
+   * as an impression first count, so this cannot exceed 100.
+   */
   ctr: number | null;
   /** Reads per view, as a percentage. */
   readRate: number | null;
@@ -73,12 +83,27 @@ const emptyCounts = (): NewsCounts => ({
   shares: 0,
   comments: 0,
   readers: 0,
+  matchedViews: 0,
 });
+
+/**
+ * True for a view row `e` whose device had an impression of the same article
+ * at or before it. Unbounded in time on purpose: the impression may fall
+ * before the period starts.
+ */
+export const MATCHED_VIEW: SQL = sql`EXISTS (
+  SELECT 1 FROM news_analytics i
+  WHERE i.event = 'impression'
+    AND i.article_id = e.article_id
+    AND i.device_id = e.device_id
+    AND i.timestamp <= e.timestamp
+)`;
 
 function withRatios(counts: NewsCounts): NewsMetrics {
   return {
     ...counts,
-    ctr: percent(counts.views, counts.impressions),
+    directOpens: counts.views - counts.matchedViews,
+    ctr: percent(counts.matchedViews, counts.impressions),
     readRate: percent(counts.reads, counts.views),
   };
 }
@@ -115,12 +140,14 @@ async function countsFor(
     event: keyof typeof EVENT_FIELD;
     n: number;
     devices: number;
+    matched: number;
   }>(
     db,
     sql`
       SELECT e.event::text AS event,
              COUNT(*)::int AS n,
-             COUNT(DISTINCT e.device_id)::int AS devices
+             COUNT(DISTINCT e.device_id)::int AS devices,
+             COUNT(*) FILTER (WHERE e.event = 'view' AND ${MATCHED_VIEW})::int AS matched
       FROM news_analytics e
       WHERE ${eventsWhere(filter, window)}
       GROUP BY e.event
@@ -135,6 +162,7 @@ async function countsFor(
     }
     if (row.event === "view") {
       counts.readers = row.devices;
+      counts.matchedViews = row.matched;
     }
   }
   return withRatios(counts);
