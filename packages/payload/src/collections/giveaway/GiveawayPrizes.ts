@@ -6,6 +6,28 @@ import {
   PRIZE_TIER_OPTIONS,
 } from "./constants";
 
+const ENDED_STATUSES = ["completed", "cancelled"];
+const PAST_END_BLOCKED_STATUSES = ["draft", "ready", "active"];
+
+/** Whether prizes may no longer be added to this giveaway. */
+function hasEnded(giveaway: { status: string; endDate?: string | null }) {
+  if (ENDED_STATUSES.includes(giveaway.status)) {
+    return true;
+  }
+  return (
+    PAST_END_BLOCKED_STATUSES.includes(giveaway.status) &&
+    !!giveaway.endDate &&
+    new Date(giveaway.endDate) <= new Date()
+  );
+}
+
+function endedMessage(giveaway: { status: string }): string {
+  if (ENDED_STATUSES.includes(giveaway.status)) {
+    return `This giveaway is ${giveaway.status}, so no more prizes can be added.`;
+  }
+  return "This giveaway's End Date has passed, so no more prizes can be added. If it still needs prizes, move its End Date later first.";
+}
+
 /**
  * Prize Pool and Maximum Units for a single giveaway (spec 4, 5).
  *
@@ -69,6 +91,33 @@ export const GiveawayPrizes: CollectionConfig = {
               {
                 path: "giveaway",
                 message: `The prize pool is locked because the giveaway is "${giveaway.status}".`,
+              },
+            ],
+          });
+        }
+
+        /**
+         * No new prize rows once a giveaway is over or its draw is imminent.
+         *
+         * Completed and cancelled giveaways are finished. A draft, ready or
+         * active giveaway past its End Date is about to be drawn, or will be
+         * the moment it is activated, so a prize added now races the draw. A
+         * failed (or authorized, never-started) giveaway stays open on
+         * purpose: its pool often needs one more row before it can be re-run.
+         * Editing an existing row is unaffected; only creating one is blocked.
+         */
+        if (
+          operation === "create" &&
+          giveaway &&
+          !req.context?.giveawayEngine &&
+          hasEnded(giveaway)
+        ) {
+          throw new ValidationError({
+            collection: "giveaway-prizes",
+            errors: [
+              {
+                path: "giveaway",
+                message: endedMessage(giveaway),
               },
             ],
           });

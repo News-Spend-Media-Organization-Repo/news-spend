@@ -19,17 +19,19 @@ function createReq({
   status,
   engine = false,
   drawStartedAt,
+  endDate,
 }: {
   status: string;
   engine?: boolean;
   drawStartedAt?: string | null;
+  endDate?: string;
 }) {
   return {
     context: engine ? { giveawayEngine: true } : {},
     payload: {
       findByID: async ({ collection, id }: Row) => {
         if (collection === "giveaways") {
-          return { id, status, drawStartedAt };
+          return { id, status, drawStartedAt, endDate };
         }
         if (collection === "prize-catalogue") {
           return PRIZE;
@@ -125,5 +127,53 @@ describe("giveaway-prizes pool lock", () => {
     );
 
     expect(message).toContain("cannot be selected under tier1");
+  });
+
+  describe("creating prize rows after the giveaway has ended", () => {
+    const create = (req: Row) => ({
+      ...args(req),
+      operation: "create" as const,
+    });
+    const past = "2020-01-01T00:00:00.000Z";
+    const future = "2999-01-01T00:00:00.000Z";
+
+    it("refuses a new row on a cancelled giveaway", async () => {
+      const req = createReq({ status: "cancelled" });
+
+      expect(await refusal(hook(create(req)))).toContain(
+        "no more prizes can be added"
+      );
+    });
+
+    it("refuses a new row on a completed giveaway", async () => {
+      // The pool lock already covers this; the row is refused either way.
+      const req = createReq({ status: "completed" });
+
+      expect(await refusal(hook(create(req)))).toContain("locked");
+    });
+
+    it("refuses a new row on an active giveaway past its End Date", async () => {
+      const req = createReq({ status: "active", endDate: past });
+
+      expect(await refusal(hook(create(req)))).toContain("End Date has passed");
+    });
+
+    it("allows a new row while the giveaway is still running", async () => {
+      const req = createReq({ status: "active", endDate: future });
+
+      await expect(hook(create(req))).resolves.toBeDefined();
+    });
+
+    it("allows a new row on a failed giveaway past its End Date", async () => {
+      const req = createReq({ status: "failed", endDate: past });
+
+      await expect(hook(create(req))).resolves.toBeDefined();
+    });
+
+    it("does not stop an existing row from being edited", async () => {
+      const req = createReq({ status: "active", endDate: past });
+
+      await expect(hook(args(req))).resolves.toBeDefined();
+    });
   });
 });
