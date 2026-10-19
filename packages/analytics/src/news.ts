@@ -331,6 +331,32 @@ export async function newsEngagement(
   };
 }
 
+/**
+ * How much of the period's data comes from app versions that send no event id,
+ * and so are stored without protection against being counted twice.
+ */
+export async function newsEventQuality(
+  db: AnalyticsDb,
+  scope: AnalyticsScope,
+  filter: NewsFilter
+): Promise<{ events: number; eventsWithoutId: number }> {
+  requireStaff(scope);
+
+  const [row] = await rowsOf<{ events: number; events_without_id: number }>(
+    db,
+    sql`
+      SELECT COUNT(*)::int AS events,
+             COUNT(*) FILTER (WHERE e.event_id IS NULL)::int AS events_without_id
+      FROM news_analytics e
+      WHERE ${eventsWhere(filter, filter.range.current)}
+    `
+  );
+  return {
+    events: row?.events ?? 0,
+    eventsWithoutId: row?.events_without_id ?? 0,
+  };
+}
+
 /** The ways the top-articles list can be ranked, the first being the default. */
 export const TOP_SORTS = [
   "readers",

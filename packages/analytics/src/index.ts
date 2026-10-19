@@ -70,6 +70,7 @@ export {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
@@ -83,6 +84,7 @@ export {
   IMPRESSION_DEFINITION,
   newsNotices,
   READ_DEFINITION,
+  READS_RELIABLE_FROM,
   TRACKING_STARTED,
 } from "./notices";
 export type {

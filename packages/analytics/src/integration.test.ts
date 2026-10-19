@@ -22,6 +22,7 @@ import {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
@@ -101,7 +102,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TABLE news_analytics (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         article_id uuid NOT NULL, event enum_news_analytics_event NOT NULL,
-        user_id varchar, session_id varchar NOT NULL DEFAULT 's', device_id varchar NOT NULL,
+        user_id varchar, session_id varchar NOT NULL DEFAULT 's', device_id varchar NOT NULL, event_id varchar,
         platform enum_news_analytics_platform, metadata jsonb, timestamp timestamptz NOT NULL);
       CREATE TABLE partners (id uuid PRIMARY KEY, company_name varchar);
       CREATE TABLE partner_content (id uuid PRIMARY KEY, title varchar);
@@ -598,6 +599,24 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ).toEqual([]);
       }
     });
+  });
+
+  it("counts events sent without an event id", async () => {
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, event_id, timestamp) VALUES
+        ('${A1}', 'view', 'q-a', 'evt-12345678', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view', 'q-b', NULL, '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view', 'q-c', NULL, '2026-07-30T10:02:00Z')
+    `);
+
+    const quality = await newsEventQuality(db, staff, { range: earlier });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'q-%'");
+
+    expect(quality).toEqual({ events: 3, eventsWithoutId: 2 });
   });
 
   it("assembles an article's whole report", async () => {

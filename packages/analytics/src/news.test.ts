@@ -4,12 +4,14 @@ import {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
   newsTopArticles,
   newsTopCategories,
 } from "./news";
+import { newsNotices } from "./notices";
 import { AnalyticsAccessError } from "./scope";
 import { ARTICLE, PARTNER, range, STAFF, stubDb } from "./test-utils";
 
@@ -28,6 +30,7 @@ describe("news reports are staff only", () => {
     ["newsEngagement", (db) => newsEngagement(db, PARTNER, filter)],
     ["newsTopArticles", (db) => newsTopArticles(db, PARTNER, filter)],
     ["newsTopCategories", (db) => newsTopCategories(db, PARTNER, filter)],
+    ["newsEventQuality", (db) => newsEventQuality(db, PARTNER, filter)],
     [
       "newsArticleReport",
       (db) => newsArticleReport(db, PARTNER, ARTICLE, filter),
@@ -432,5 +435,56 @@ describe("newsArticleReport", () => {
       slug: "t",
       publishedAt: "2026-09-01T00:00:00.000Z",
     });
+  });
+});
+
+describe("newsEventQuality", () => {
+  it("counts the period's events and those sent without an event id", async () => {
+    const { db, queries } = stubDb([{ events: 200, events_without_id: 166 }]);
+
+    const quality = await newsEventQuality(db, STAFF, { range: range() });
+
+    expect(quality).toEqual({ events: 200, eventsWithoutId: 166 });
+    expect(queries[0]?.sql).toContain("event_id IS NULL");
+  });
+
+  it("reports an empty period as zero", async () => {
+    const { db } = stubDb([]);
+
+    expect(await newsEventQuality(db, STAFF, { range: range() })).toEqual({
+      events: 0,
+      eventsWithoutId: 0,
+    });
+  });
+});
+
+describe("newsNotices", () => {
+  const ids = (
+    r: ReturnType<typeof range>,
+    q?: Parameters<typeof newsNotices>[1]
+  ) => newsNotices(r, q).map((n) => n.id);
+  const since = (from: string) => ({
+    ...range(),
+    current: { from, to: "2026-10-20" },
+  });
+
+  it("warns that reads are understated when the period starts before reads were reliable", () => {
+    expect(ids(since("2026-10-01"))).toContain("reads-understated");
+    expect(ids(since("2026-10-11"))).not.toContain("reads-understated");
+    expect(ids(since("2026-10-12"))).not.toContain("reads-understated");
+  });
+
+  it("warns about events without an id above 10% only, and says how many", () => {
+    const r = since("2026-10-12");
+    const some = (events: number, eventsWithoutId: number) =>
+      newsNotices(r, { events, eventsWithoutId });
+
+    expect(some(100, 11).map((n) => n.id)).toContain("no-event-id");
+    expect(some(100, 10).map((n) => n.id)).not.toContain("no-event-id");
+    expect(some(0, 0).map((n) => n.id)).not.toContain("no-event-id");
+    expect(ids(r)).not.toContain("no-event-id");
+    expect(
+      some(19_275, 16_055).find((n) => n.id === "no-event-id")?.message
+    ).toContain("83%");
   });
 });
