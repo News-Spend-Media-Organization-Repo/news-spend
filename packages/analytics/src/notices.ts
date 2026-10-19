@@ -54,6 +54,12 @@ export function newsNotices(
       message:
         "Qualified reads were only recorded reliably from 11 Oct 2026. Reads and read rate for earlier days in this period are understated.",
     });
+  } else if (range.previous.from < READS_RELIABLE_FROM) {
+    notices.push({
+      id: "reads-understated",
+      message:
+        "Qualified reads were only recorded reliably from 11 Oct 2026. The previous period starts earlier, so the change in reads and read rate against it is overstated.",
+    });
   }
 
   if (

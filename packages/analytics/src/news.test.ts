@@ -52,8 +52,8 @@ describe("newsSummary", () => {
     // Both windows get the same rows: the shape is what is under test here.
     query.params.length >= 0
       ? [
-          { event: "impression", n: 200, devices: 90 },
-          { event: "view", n: 90, devices: 60, matched: 54 },
+          { event: "impression", n: 200, devices: 90, pairs: 150 },
+          { event: "view", n: 90, devices: 60, matched: 54, matched_pairs: 45 },
           { event: "read", n: 18, devices: 15 },
           { event: "like", n: 7, devices: 6 },
           { event: "share", n: 3, devices: 3 },
@@ -76,7 +76,9 @@ describe("newsSummary", () => {
       readers: 60,
       matchedViews: 54,
       directOpens: 36,
-      ctr: 27,
+      exposures: 150,
+      clickedExposures: 45,
+      ctr: 30,
       readRate: 20,
     });
   });
@@ -122,9 +124,11 @@ describe("newsSummary", () => {
     await newsSummary(db, STAFF, { range: r });
 
     expect(queries).toHaveLength(2);
-    const dates = queries.map((q) =>
-      q.params.filter((p) => ISO_DATE.test(String(p)))
-    );
+    // The window appears more than once per statement (events, and the
+    // impressions they are matched to), so compare the distinct dates.
+    const dates = queries.map((q) => [
+      ...new Set(q.params.filter((p) => ISO_DATE.test(String(p)))),
+    ]);
     expect(dates).toContainEqual([r.current.from, r.current.to]);
     expect(dates).toContainEqual([r.previous.from, r.previous.to]);
   });
@@ -243,6 +247,8 @@ describe("newsTopArticles", () => {
         reads: 25,
         readers: 60,
         matched_views: 80,
+        exposures: 150,
+        clicked_exposures: 60,
         trend: null,
       },
     ]);
@@ -274,6 +280,8 @@ describe("newsTopArticles", () => {
         reads: 12,
         readers: 17,
         matched_views: 0,
+        exposures: 0,
+        clicked_exposures: 0,
         trend: null,
       },
     ]);
@@ -324,6 +332,8 @@ describe("newsTopArticles", () => {
         reads: 1,
         readers: 8,
         matched_views: 5,
+        exposures: 10,
+        clicked_exposures: 5,
         trend: 2.5,
       },
     ]);
@@ -463,15 +473,24 @@ describe("newsNotices", () => {
     r: ReturnType<typeof range>,
     q?: Parameters<typeof newsNotices>[1]
   ) => newsNotices(r, q).map((n) => n.id);
-  const since = (from: string) => ({
+  const since = (from: string, previousFrom = "2026-10-12") => ({
     ...range(),
     current: { from, to: "2026-10-20" },
+    previous: { from: previousFrom, to: "2026-10-11" },
   });
 
   it("warns that reads are understated when the period starts before reads were reliable", () => {
     expect(ids(since("2026-10-01"))).toContain("reads-understated");
     expect(ids(since("2026-10-11"))).not.toContain("reads-understated");
     expect(ids(since("2026-10-12"))).not.toContain("reads-understated");
+  });
+
+  it("also warns when only the period it is compared with starts before reads were reliable", () => {
+    const message = newsNotices(since("2026-10-13", "2026-10-06")).find(
+      (n) => n.id === "reads-understated"
+    )?.message;
+
+    expect(message).toContain("previous period");
   });
 
   it("warns about events without an id above 10% only, and says how many", () => {

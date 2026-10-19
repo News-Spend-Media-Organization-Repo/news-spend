@@ -138,7 +138,7 @@ export function FunnelPanel({
 export function StepsPanel({ current }: { current: NewsMetrics }): ReactNode {
   return (
     <Panel
-      hint="Each step as a share of the one before"
+      hint="Views include direct opens: views with no earlier impression. Reads as a share of views."
       tag="reported"
       title="From impression to read"
     >
@@ -148,7 +148,7 @@ export function StepsPanel({ current }: { current: NewsMetrics }): ReactNode {
           {
             label: "Views",
             value: current.views,
-            display: `${formatCount(current.views)} · ${formatPercent(current.ctr)}`,
+            display: `${formatCount(current.views)} · ${formatCount(current.directOpens)} direct`,
           },
           {
             label: "Qualified reads",

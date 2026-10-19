@@ -398,7 +398,11 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       // 2 are direct opens. The old definition (views per impression) read 120.
       matchedViews: 4,
       directOpens: 2,
-      ctr: 80,
+      // 5 impressions on 3 device and article pairs, and each of the 3 was
+      // opened. The earlier definitions read 120 (views per impression) and 80.
+      exposures: 3,
+      clickedExposures: 3,
+      ctr: 100,
       readRate: 16.7,
     });
     expect(previous.views).toBe(1);
@@ -507,6 +511,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       views: 3,
       matchedViews: 1,
       directOpens: 2,
+      exposures: 2,
+      clickedExposures: 1,
       ctr: 50,
     });
     await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'm-%'");
@@ -599,6 +605,39 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ).toEqual([]);
       }
     });
+  });
+
+  it("never reports click-through above 100%, however often a reader reopens an article", async () => {
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES
+        ('${A1}', 'impression', 'c-a', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T11:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T12:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T13:00:00Z'),
+        -- seen before the period began, opened inside it: not this period's click
+        ('${A1}', 'impression', 'c-b', '2026-07-10T10:00:00Z'),
+        ('${A1}', 'view',       'c-b', '2026-07-30T10:00:00Z')
+    `);
+
+    const { current } = await newsSummary(db, staff, { range: earlier });
+    const [top] = await newsTopArticles(db, staff, { range: earlier });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'c-%'");
+
+    expect(current).toMatchObject({
+      impressions: 1,
+      views: 5,
+      matchedViews: 4,
+      directOpens: 1,
+      exposures: 1,
+      clickedExposures: 1,
+      ctr: 100,
+    });
+    expect(top).toMatchObject({ id: A1, ctr: 100 });
   });
 
   it("counts events sent without an event id", async () => {

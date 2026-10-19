@@ -45,8 +45,15 @@ export type NewsCounts = {
   comments: number;
   /** Distinct devices that opened an article. */
   readers: number;
-  /** Views whose device had been shown the article as an impression first. */
+  /**
+   * Views whose device had been shown the article, in the same period, as an
+   * impression first.
+   */
   matchedViews: number;
+  /** Distinct device and article pairs shown as an impression in the period. */
+  exposures: number;
+  /** Exposures that the same device went on to open. */
+  clickedExposures: number;
 };
 
 export type NewsMetrics = NewsCounts & {
@@ -56,8 +63,9 @@ export type NewsMetrics = NewsCounts & {
    */
   directOpens: number;
   /**
-   * Matched views per impression, as a percentage. Only views the device saw
-   * as an impression first count, so this cannot exceed 100.
+   * The share of exposures (a device shown an article) that the device went on
+   * to open, as a percentage. Counted per device and article, not per event, so
+   * a reader reopening an article cannot push it past 100.
    */
   ctr: number | null;
   /** Reads per view, as a percentage. */
@@ -84,38 +92,51 @@ const emptyCounts = (): NewsCounts => ({
   comments: 0,
   readers: 0,
   matchedViews: 0,
+  exposures: 0,
+  clickedExposures: 0,
 });
 
 /**
  * True for a view row `e` whose device had an impression of the same article
- * at or before it. Unbounded in time on purpose: the impression may fall
- * before the period starts.
+ * at or before it, inside the same period and on the same platform filter.
+ * Keeping the impression inside the period is what guarantees every clicked
+ * exposure is also an exposure of the period, so click-through is at most 100.
  */
-export const MATCHED_VIEW: SQL = sql`EXISTS (
+export function matchedView(filter: NewsFilter, window: DateWindow): SQL {
+  return sql`EXISTS (
   SELECT 1 FROM news_analytics i
   WHERE i.event = 'impression'
     AND i.article_id = e.article_id
     AND i.device_id = e.device_id
     AND i.timestamp <= e.timestamp
+    AND ${inWindow(sql.raw("i.timestamp"), window, filter.range.timeZone)}
+    ${platformCondition(filter.platform, "i")}
 )`;
+}
+
+/** Distinct device and article pairs among the rows counted. */
+const PAIRS = sql`COUNT(DISTINCT (e.device_id, e.article_id))`;
 
 function withRatios(counts: NewsCounts): NewsMetrics {
   return {
     ...counts,
     directOpens: counts.views - counts.matchedViews,
-    ctr: percent(counts.matchedViews, counts.impressions),
+    ctr: percent(counts.clickedExposures, counts.exposures),
     readRate: percent(counts.reads, counts.views),
   };
 }
 
-function platformCondition(platform: Platform | undefined): SQL {
+function platformCondition(
+  platform: Platform | undefined,
+  alias: "e" | "i" = "e"
+): SQL {
   if (platform === undefined) {
     return sql``;
   }
   if (!(PLATFORMS as readonly string[]).includes(platform)) {
     throw new RangeError(`platform must be one of ${PLATFORMS.join(", ")}`);
   }
-  return sql`AND e.platform = ${platform}::enum_news_analytics_platform`;
+  return sql`AND ${sql.raw(alias)}.platform = ${platform}::enum_news_analytics_platform`;
 }
 
 function articleCondition(articleId: string | undefined): SQL {
@@ -141,13 +162,17 @@ async function countsFor(
     n: number;
     devices: number;
     matched: number;
+    pairs: number;
+    matched_pairs: number;
   }>(
     db,
     sql`
       SELECT e.event::text AS event,
              COUNT(*)::int AS n,
              COUNT(DISTINCT e.device_id)::int AS devices,
-             COUNT(*) FILTER (WHERE e.event = 'view' AND ${MATCHED_VIEW})::int AS matched
+             COUNT(*) FILTER (WHERE e.event = 'view' AND ${matchedView(filter, window)})::int AS matched,
+             ${PAIRS}::int AS pairs,
+             ${PAIRS} FILTER (WHERE e.event = 'view' AND ${matchedView(filter, window)})::int AS matched_pairs
       FROM news_analytics e
       WHERE ${eventsWhere(filter, window)}
       GROUP BY e.event
@@ -160,9 +185,13 @@ async function countsFor(
     if (field) {
       counts[field] = row.n;
     }
+    if (row.event === "impression") {
+      counts.exposures = row.pairs;
+    }
     if (row.event === "view") {
       counts.readers = row.devices;
       counts.matchedViews = row.matched;
+      counts.clickedExposures = row.matched_pairs;
     }
   }
   return withRatios(counts);
@@ -442,6 +471,8 @@ export async function newsTopArticles(
     reads: number;
     readers: number;
     matched_views: number;
+    exposures: number;
+    clicked_exposures: number;
     trend: number | null;
   }>(
     db,
@@ -451,7 +482,9 @@ export async function newsTopArticles(
              COUNT(*) FILTER (WHERE e.event = 'view')::int AS views,
              COUNT(*) FILTER (WHERE e.event = 'read')::int AS reads,
              COUNT(DISTINCT e.device_id) FILTER (WHERE e.event = 'view')::int AS readers,
-             COUNT(*) FILTER (WHERE e.event = 'view' AND ${MATCHED_VIEW})::int AS matched_views,
+             COUNT(*) FILTER (WHERE e.event = 'view' AND ${matchedView(filter, current)})::int AS matched_views,
+             ${PAIRS} FILTER (WHERE e.event = 'impression')::int AS exposures,
+             ${PAIRS} FILTER (WHERE e.event = 'view' AND ${matchedView(filter, current)})::int AS clicked_exposures,
              ${trend} AS trend
       FROM news_analytics e
       JOIN news n ON n.id = e.article_id
@@ -476,7 +509,7 @@ export async function newsTopArticles(
     reads: r.reads,
     readers: r.readers,
     directOpens: r.views - r.matched_views,
-    ctr: percent(r.matched_views, r.impressions),
+    ctr: percent(r.clicked_exposures, r.exposures),
     readRate: percent(r.reads, r.views),
     trend: r.trend,
   }));

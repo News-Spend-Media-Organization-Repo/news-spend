@@ -5,6 +5,7 @@ import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import * as components from "../src/components/Analytics";
+import { StepsPanel } from "../src/components/Analytics/blocks";
 import {
   analyticsDefaultLayout,
   analyticsWidgets,
@@ -128,6 +129,29 @@ describe("the default home layout", () => {
         expect(registered.has(slug)).toBe(true);
       }
     }
+  });
+});
+
+describe("the impression-to-read steps", () => {
+  it("shows direct opens beside views, not a click-through the bar does not measure", () => {
+    const out = html(
+      StepsPanel({
+        current: {
+          impressions: 1960,
+          views: 1119,
+          matchedViews: 197,
+          directOpens: 922,
+          exposures: 1500,
+          clickedExposures: 152,
+          reads: 300,
+          ctr: 10.1,
+          readRate: 26.8,
+        } as never,
+      })
+    );
+
+    expect(out).toContain("922 direct");
+    expect(out).not.toContain("10.1%");
   });
 });
 
