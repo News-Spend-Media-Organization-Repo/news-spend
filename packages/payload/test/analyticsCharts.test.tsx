@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolveRange } from "@news-spend-media/analytics";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -24,6 +25,7 @@ const datesBetween = (from: string, to: string): string[] => {
   return dates;
 };
 
+const Y_ATTR = / y="([^"]+)"/;
 const SHAPE = /<rect|<path/;
 const HEIGHT = /height:(\d+)px/;
 const TEXT = /<text[^>]*>([^<]*)<\/text>/g;
@@ -112,17 +114,6 @@ describe("DayChart", () => {
 
     expect(out).toContain("<svg");
     expect(out).toMatch(SHAPE);
-  });
-
-  it("draws line and area kinds", () => {
-    for (const kind of ["line", "area"] as const) {
-      const out = html(
-        <DayChart days={days(10)} kind={kind} series={SERIES} />
-      );
-
-      expect(out).toContain("<svg");
-      expect(out).toContain("<path");
-    }
   });
 });
 
@@ -269,5 +260,84 @@ describe("the news pages show sparklines for the daily series", () => {
     );
 
     expect(out).not.toContain("<svg");
+  });
+});
+
+describe("the charts follow the theme", () => {
+  it("takes the series colours from CSS variables, so the dark theme can change them", () => {
+    expect(SERIES_COLORS).toEqual({
+      pale: "var(--ts-chart-1)",
+      deep: "var(--ts-chart-2)",
+      gold: "var(--ts-chart-3)",
+    });
+
+    const out = html(<DayChart days={days(7)} series={SERIES} />);
+
+    expect(out).toContain("var(--ts-chart-2)");
+    expect(out).not.toContain("#10264A");
+  });
+});
+
+describe("every chart has its own accessible name", () => {
+  const source = readFileSync(
+    new URL("../src/components/Analytics/blocks.tsx", import.meta.url),
+    "utf8"
+  );
+
+  it("passes a label to every Bars and DayChart", () => {
+    const calls = [...source.matchAll(/<(Bars|DayChart)\b/g)];
+    expect(calls.length).toBeGreaterThan(20);
+
+    const unlabelled = calls.filter(
+      (call) =>
+        !source.slice(call.index, (call.index ?? 0) + 320).includes("label=")
+    );
+    expect(
+      unlabelled.map((c) => source.slice(c.index, (c.index ?? 0) + 60))
+    ).toEqual([]);
+  });
+});
+
+describe("client chart code stays light", () => {
+  it("imports neither the analytics package nor the shared formatters that do", () => {
+    const dir = new URL("../src/components/Analytics/charts/", import.meta.url);
+    for (const file of readdirSync(dir).filter((f) => f.endsWith(".tsx"))) {
+      const text = readFileSync(new URL(file, dir), "utf8");
+
+      expect(text).not.toContain('from "../format"');
+      expect(text).not.toContain("@news-spend-media/analytics");
+    }
+  });
+});
+
+describe("Bars with repeated labels", () => {
+  it("draws one bar per row instead of stacking them into one", () => {
+    const out = html(
+      <Bars
+        rows={[
+          { label: "Android", value: 10 },
+          { label: "Android", value: 4 },
+          { label: "iOS", value: 6 },
+        ]}
+      />
+    );
+    const bars = [
+      ...out.matchAll(/<rect[^>]*ts-chart__bar-x[^>]*>|<rect[^>]*>/g),
+    ]
+      .map((m) => m[0])
+      .filter((tag) => tag.includes("ana-accent"));
+    const tops = new Set(bars.map((tag) => tag.match(Y_ATTR)?.[1]));
+
+    expect(bars).toHaveLength(3);
+    expect(tops.size).toBe(3);
+  });
+});
+
+describe("Kpi sparkline focus", () => {
+  it("is not a keyboard stop, since it has nothing to show", () => {
+    const out = html(<Kpi label="Views" trend={[1, 2, 3]} value="6" />);
+
+    expect(out).toContain("<svg");
+    expect(out).not.toContain('tabindex="0"');
   });
 });

@@ -1,17 +1,15 @@
 "use client";
 
-import { areaY, barY, defineChart, group, lineY } from "@tanstack/charts";
+import { barY, defineChart, group } from "@tanstack/charts";
 import { Chart } from "@tanstack/charts/react";
 import { scaleBand } from "@tanstack/charts/scales/band";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { useMemo } from "react";
 
-import { formatCount, formatDay } from "../format";
+import { formatCount, formatDay } from "../chartFormat";
 import type { Series } from "../ui";
 import type { TrendRow } from "./rows";
-
-export type TrendKind = "bar" | "line" | "area";
 
 const HEIGHT = 150;
 const INITIAL_WIDTH = 600;
@@ -26,12 +24,10 @@ const INITIAL_WIDTH = 600;
 export function TrendChart({
   rows,
   series,
-  kind = "bar",
   ariaLabel,
 }: {
   rows: TrendRow[];
   series: Series[];
-  kind?: TrendKind;
   ariaLabel: string;
 }) {
   const definition = useMemo(() => {
@@ -40,16 +36,11 @@ export function TrendChart({
     const paint = (row: TrendRow) => color.get(row.series) ?? "currentColor";
     const channels = { x: "date", y: "value", z: "series" } as const;
 
-    const mark =
-      kind === "line"
-        ? lineY(rows, { ...channels, stroke: paint })
-        : kind === "area"
-          ? areaY(rows, { ...channels, fill: paint, fillOpacity: 0.35 })
-          : barY(rows, {
-              ...channels,
-              fill: paint,
-              layout: group({ padding: 0.1 }),
-            });
+    const mark = barY(rows, {
+      ...channels,
+      fill: paint,
+      layout: group({ padding: 0.1 }),
+    });
 
     return defineChart({
       marks: [mark],
@@ -77,7 +68,7 @@ export function TrendChart({
           ].join("\n"),
       },
     });
-  }, [rows, series, kind]);
+  }, [rows, series]);
 
   return (
     <Chart

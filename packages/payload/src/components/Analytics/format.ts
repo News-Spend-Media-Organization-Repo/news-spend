@@ -1,15 +1,6 @@
 import { percentChange } from "@news-spend-media/analytics";
 
-/** 1,234 for small numbers, 12.3K from ten thousand up. */
-export function formatCount(value: number): string {
-  if (value >= 100_000) {
-    return `${Math.round(value / 1000)}K`;
-  }
-  if (value >= 10_000) {
-    return `${(value / 1000).toFixed(1)}K`;
-  }
-  return value.toLocaleString("en-US");
-}
+export { formatCount, formatDay } from "./chartFormat";
 
 export const formatPercent = (value: number | null): string =>
   value === null ? "–" : `${value}%`;
@@ -29,26 +20,6 @@ export function describeChange(current: number, previous: number): Change {
     text: `${change > 0 ? "+" : ""}${change}%`,
     tone: change > 0 ? "up" : "down",
   };
-}
-
-/** `2026-09-19` as `19 Sep`. */
-export function formatDay(date: string): string {
-  const [, month, day] = date.split("-");
-  const names = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${Number(day)} ${names[Number(month) - 1] ?? ""}`;
 }
 
 /** A timestamp as `19 Sep, 14:05` in the given zone. */

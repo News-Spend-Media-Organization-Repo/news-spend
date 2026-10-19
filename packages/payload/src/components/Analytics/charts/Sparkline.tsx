@@ -23,6 +23,8 @@ export function Sparkline({
   const definition = useMemo(
     () =>
       defineChart({
+        // Nothing to focus: there is no tooltip, and the figure beside it says it.
+        keyboard: false,
         marks: [
           lineY(
             values.map((value, index) => ({ index, value })),

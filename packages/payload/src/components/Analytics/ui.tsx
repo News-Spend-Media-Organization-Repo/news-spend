@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { RankedBars } from "./charts/RankedBars";
 import { hasData, trendRows } from "./charts/rows";
 import { Sparkline } from "./charts/Sparkline";
-import { TrendChart, type TrendKind } from "./charts/TrendChart";
+import { TrendChart } from "./charts/TrendChart";
 import type { Change } from "./format";
 
 /**
- * Presentation for the analytics screens. Server-rendered, no client code: the
- * charts are plain markup, so nothing here needs a script and nothing can go
- * out of step with the data it was rendered from.
+ * Presentation for the analytics screens. Server-rendered: the panels, tables
+ * and tiles are plain markup. The charts are small client components (see
+ * `charts/`) that take plain rows from here, render their SVG on the server too
+ * and add tooltips in the browser.
  *
  * Colours come from Payload's theme variables so light and dark both work; the
  * two accents are fixed because they read on either.
@@ -163,18 +164,24 @@ export function Kpi({
 
 export type Series = { key: string; label: string; color: string };
 
-export const SERIES_COLORS = { pale: PALE, deep: DEEP, gold: GOLD };
+/**
+ * The palette as CSS variables, defined on `.ana` above, so the dark theme can
+ * swap a colour without touching the charts. The hex values live in `CSS`.
+ */
+export const SERIES_COLORS = {
+  pale: "var(--ts-chart-1)",
+  deep: "var(--ts-chart-2)",
+  gold: "var(--ts-chart-3)",
+};
 
 /** Daily activity, one colour per series, scaled together so they compare honestly. */
 export function DayChart({
   days,
   series,
-  kind = "bar",
   label = "Daily activity chart",
 }: {
   days: ({ date: string } & Record<string, number | string>)[];
   series: Series[];
-  kind?: TrendKind;
   label?: string;
 }): ReactNode {
   const rows = trendRows(days, series);
@@ -192,7 +199,7 @@ export function DayChart({
           </span>
         ))}
       </div>
-      <TrendChart ariaLabel={label} kind={kind} rows={rows} series={series} />
+      <TrendChart ariaLabel={label} rows={rows} series={series} />
     </div>
   );
 }

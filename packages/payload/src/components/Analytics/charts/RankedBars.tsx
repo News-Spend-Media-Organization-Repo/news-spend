@@ -7,7 +7,7 @@ import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { useMemo } from "react";
 
-import { formatCount } from "../format";
+import { formatCount } from "../chartFormat";
 
 export type RankedRow = { label: string; value: number; display?: string };
 
@@ -32,18 +32,21 @@ export function RankedBars({
 }) {
   const definition = useMemo(() => {
     const shown = (row: RankedRow) => row.display ?? formatCount(row.value);
+    // Each row gets its own slot, so rows that share a label stay separate
+    // bars instead of stacking into one.
+    const slots = rows.map((row, slot) => ({ ...row, slot: String(slot) }));
 
     return defineChart({
       marks: [
-        barX(rows, {
+        barX(slots, {
           x: "value",
-          y: "label",
+          y: "slot",
           fill: "var(--ana-accent)",
           radius: 3,
         }),
-        text(rows, {
+        text(slots, {
           x: "value",
-          y: "label",
+          y: "slot",
           text: shown,
           anchor: "start",
           dx: 6,
@@ -52,7 +55,12 @@ export function RankedBars({
       scales: {
         y: {
           scale: () => scaleBand<string>().padding(0.35),
-          axis: { ticks: { format: (value: string) => shorten(value) } },
+          axis: {
+            ticks: {
+              format: (value: string) =>
+                shorten(rows[Number(value)]?.label ?? ""),
+            },
+          },
         },
         x: { scale: scaleLinear, nice: true, axis: false },
       },
