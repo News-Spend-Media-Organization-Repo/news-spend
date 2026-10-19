@@ -238,6 +238,9 @@ describe("newsTopArticles", () => {
         impressions: 200,
         views: 100,
         reads: 25,
+        readers: 60,
+        matched_views: 80,
+        trend: null,
       },
     ]);
 
@@ -247,9 +250,91 @@ describe("newsTopArticles", () => {
       title: "Fuel price review",
       category: "Energy",
       publishedAt: "2026-09-12T08:00:00.000Z",
-      ctr: 50,
+      readers: 60,
+      directOpens: 20,
+      ctr: 40,
       readRate: 25,
+      trend: null,
     });
+  });
+
+  it("gives an article with views and no impressions no click-through, only direct opens", async () => {
+    const { db } = stubDb([
+      {
+        id: ARTICLE,
+        title: "Davido",
+        slug: "d",
+        category: null,
+        published_at: null,
+        impressions: 0,
+        views: 21,
+        reads: 12,
+        readers: 17,
+        matched_views: 0,
+        trend: null,
+      },
+    ]);
+
+    const [top] = await newsTopArticles(db, STAFF, { range: range() });
+
+    expect(top).toMatchObject({ ctr: null, directOpens: 21, readers: 17 });
+  });
+
+  it("ranks by unique readers unless asked otherwise", async () => {
+    const { db, queries } = stubDb();
+
+    await newsTopArticles(db, STAFF, { range: range() });
+
+    expect(queries[0]?.sql).toContain(
+      "ORDER BY readers DESC, reads DESC, views DESC, n.id"
+    );
+  });
+
+  it("orders each sort mode by its own expression", async () => {
+    const orders: Record<string, string> = {
+      readers: "ORDER BY readers DESC, reads DESC, views DESC, n.id",
+      reads: "ORDER BY reads DESC, readers DESC, views DESC, n.id",
+      views: "ORDER BY views DESC, readers DESC, n.id",
+      impressions: "ORDER BY impressions DESC, views DESC, n.id",
+      rising: "ORDER BY trend DESC, views DESC, n.id",
+    };
+    for (const [sortBy, order] of Object.entries(orders)) {
+      const { db, queries } = stubDb();
+      await newsTopArticles(db, STAFF, {
+        range: range(),
+        sortBy: sortBy as never,
+      });
+      expect(queries[0]?.sql).toContain(order);
+    }
+  });
+
+  it("scores only rising articles, and ignores those with fewer than 3 views", async () => {
+    const { db, queries } = stubDb([
+      {
+        id: ARTICLE,
+        title: "Hot",
+        slug: "h",
+        category: null,
+        published_at: null,
+        impressions: 10,
+        views: 9,
+        reads: 1,
+        readers: 8,
+        matched_views: 5,
+        trend: 2.5,
+      },
+    ]);
+
+    const [rising] = await newsTopArticles(db, STAFF, {
+      range: range(),
+      sortBy: "rising",
+    });
+    expect(rising?.trend).toBe(2.5);
+    expect(queries[0]?.sql).toContain("HAVING");
+
+    const plain = stubDb();
+    await newsTopArticles(plain.db, STAFF, { range: range() });
+    expect(plain.queries[0]?.sql).not.toContain("HAVING");
   });
 
   it("clamps the limit and only sorts by a known column", async () => {
@@ -263,7 +348,7 @@ describe("newsTopArticles", () => {
     await newsTopArticles(db, STAFF, { range: range(), limit: -5 });
 
     expect(queries[0]?.params).toContain(50);
-    expect(queries[0]?.sql).toContain("ORDER BY reads DESC");
+    expect(queries[0]?.sql).toContain("ORDER BY reads DESC, readers DESC");
     expect(queries[1]?.params).toContain(1);
     await expect(
       newsTopArticles(db, STAFF, {

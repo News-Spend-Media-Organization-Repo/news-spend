@@ -76,6 +76,7 @@ export {
   newsTopArticles,
   newsTopCategories,
   PLATFORMS,
+  TOP_SORTS,
 } from "./news";
 export type { Notice } from "./notices";
 export {

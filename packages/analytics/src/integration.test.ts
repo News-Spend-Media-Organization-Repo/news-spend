@@ -51,6 +51,7 @@ const SCHEMA = `analytics_test_${Math.random().toString(36).slice(2, 10)}`;
 
 const A1 = "a0000000-0000-4000-8000-000000000001";
 const A2 = "a0000000-0000-4000-8000-000000000002";
+const A3 = "a0000000-0000-4000-8000-000000000003";
 const CAT_ENERGY = "c0000000-0000-4000-8000-000000000001";
 const CAT_SPORT = "c0000000-0000-4000-8000-000000000002";
 const P1 = "b0000000-0000-4000-8000-000000000001";
@@ -193,7 +194,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       INSERT INTO categories VALUES ('${CAT_ENERGY}', 'Energy'), ('${CAT_SPORT}', 'Sports');
       INSERT INTO news VALUES
         ('${A1}', 'Fuel price review', 'fuel', '2026-09-12T08:00:00Z', '${CAT_ENERGY}'),
-        ('${A2}', 'Squad named', 'squad', '2026-09-12T09:00:00Z', '${CAT_SPORT}');
+        ('${A2}', 'Squad named', 'squad', '2026-09-12T09:00:00Z', '${CAT_SPORT}'),
+        ('${A3}', 'Late news', 'late', '2026-09-12T10:00:00Z', '${CAT_SPORT}');
       INSERT INTO partners VALUES ('${P1}', 'Shopwise'), ('${P2}', 'FreshCart');
       INSERT INTO partner_content VALUES ('c1000000-0000-4000-8000-000000000001', 'Weekend offer');
     `);
@@ -467,13 +469,16 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     const top = await newsTopArticles(db, staff, { range });
     const cats = await newsTopCategories(db, staff, { range });
 
+    // Both have three views; Squad named has three devices to Fuel price
+    // review's two, so it ranks first by readers, the default.
     expect(top.map((t) => t.title)).toEqual([
-      "Fuel price review",
       "Squad named",
+      "Fuel price review",
     ]);
-    expect(top[0]).toMatchObject({
+    expect(top.find((t) => t.title === "Fuel price review")).toMatchObject({
       category: "Energy",
       views: 3,
+      readers: 2,
       publishedAt: "2026-09-12T08:00:00.000Z",
     });
     expect(cats.map((c) => c.category)).toEqual(["Energy", "Sports"]);
@@ -504,6 +509,95 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       ctr: 50,
     });
     await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'm-%'");
+  });
+
+  describe("top articles ranking", () => {
+    // A window of its own (see the matched-views test above).
+    const window = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    const at = (day: number, device: string, event: string, article: string) =>
+      `('${article}', '${event}', '${device}', '2026-07-${day}T10:00:00Z')`;
+
+    const seed = async (rows: string[]) =>
+      await conn.unsafe(
+        `INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES ${rows.join(",")}`
+      );
+    const clean = async () =>
+      await conn.unsafe(
+        "DELETE FROM news_analytics WHERE device_id LIKE 'r-%'"
+      );
+
+    it("ranks by distinct readers, not raw views, and by views when asked", async () => {
+      // A1: three devices, one view each. A2: one device, five views.
+      await seed([
+        at(30, "r-1", "view", A1),
+        at(30, "r-2", "view", A1),
+        at(30, "r-3", "view", A1),
+        ...[1, 2, 3, 4, 5].map((_, i) => at(25 + i, "r-4", "view", A2)),
+      ]);
+
+      const byReaders = await newsTopArticles(db, staff, { range: window });
+      const byViews = await newsTopArticles(db, staff, {
+        range: window,
+        sortBy: "views",
+      });
+      await clean();
+
+      expect(byReaders.map((t) => t.id)).toEqual([A1, A2]);
+      expect(byReaders[0]).toMatchObject({ readers: 3, views: 3 });
+      expect(byReaders[1]).toMatchObject({ readers: 1, views: 5 });
+      expect(byViews.map((t) => t.id)).toEqual([A2, A1]);
+    });
+
+    it("orders equal articles by id so the list never shuffles", async () => {
+      await seed([at(30, "r-1", "view", A2), at(30, "r-2", "view", A1)]);
+      const [first, second] = await newsTopArticles(db, staff, {
+        range: window,
+      });
+      await clean();
+
+      expect([first?.id, second?.id]).toEqual([A1, A2]);
+    });
+
+    it("puts a late spike above an evenly spread article under rising, and drops articles with under 3 views", async () => {
+      // A1: 6 views on the last two days. A2: 6 views spread across the week.
+      // The third article would score highest but has only 2 views.
+      await seed([
+        ...[0, 1, 2, 3, 4, 5].map((i) =>
+          at(i < 3 ? 30 : 31, `r-${i}`, "view", A1)
+        ),
+        ...[25, 26, 27, 28, 29, 30].map((day, i) =>
+          at(day, `r-1${i}`, "view", A2)
+        ),
+        at(31, "r-20", "view", A3),
+        at(31, "r-21", "view", A3),
+      ]);
+
+      const rising = await newsTopArticles(db, staff, {
+        range: window,
+        sortBy: "rising",
+      });
+      await clean();
+
+      expect(rising.map((t) => t.id)).toEqual([A1, A2]);
+      expect(rising[0]?.trend).toBeGreaterThan(rising[1]?.trend ?? 0);
+    });
+
+    it("returns an empty list for every sort when nothing happened", async () => {
+      for (const sortBy of [
+        "readers",
+        "reads",
+        "views",
+        "impressions",
+        "rising",
+      ] as const) {
+        expect(
+          await newsTopArticles(db, staff, { range: window, sortBy })
+        ).toEqual([]);
+      }
+    });
   });
 
   it("assembles an article's whole report", async () => {
