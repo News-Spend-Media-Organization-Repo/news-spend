@@ -162,14 +162,57 @@ export async function GiveawaySetupGuideView(
 
         <Step n="Step 3" title="Set the Winner Distribution">
           <P>
-            Each tier&apos;s percentage is the maximum share of all participants
-            who may win in that tier. Enter <strong>0 to disable</strong> a tier
-            entirely — a disabled tier needs no prizes.
+            Each tier&apos;s percentage is a <strong>ceiling</strong> on
+            winners, not a target and not a promise. It is a share of{" "}
+            <strong>participants</strong> (distinct people holding at least one
+            valid ticket, not tickets), <strong>rounded down</strong>:
           </P>
           <P>
-            Percentages round <strong>down</strong>: Tier 1 at 0.1% awards
-            nobody until 1,000 people take part. For the defaults, the first
-            winner becomes possible at:
+            <code>
+              maximum winners = floor(participants × percentage ÷ 100)
+            </code>
+          </P>
+          <P>
+            Enter <strong>0 to disable</strong> a tier entirely; a disabled tier
+            needs no prizes.
+          </P>
+          <P>
+            <strong>Worked example, 8 participants:</strong>
+          </P>
+          <Rows
+            items={[
+              ["Tier at 25%", "floor(8 × 0.25) = 2 winners at most"],
+              [
+                "Tier at 89%",
+                "floor(8 × 0.89) = 7 winners at most — nearly everyone",
+              ],
+              [
+                "Tier at 5%",
+                "floor(8 × 0.05) = 0 winners — nobody, however many prizes are stocked",
+              ],
+            ]}
+          />
+          <P>
+            The real number of winners is the <strong>smallest</strong> of three
+            limits:
+          </P>
+          <Rows
+            items={[
+              ["1. The percentage", "The formula above."],
+              [
+                "2. Prize units",
+                "The total Max Units stocked for that tier. Never more winners than prizes.",
+              ],
+              [
+                "3. Eligible users",
+                "Only users who meet the tier's entry bar (below) can win it. If nobody qualifies, the tier awards nobody, whatever the percentage.",
+              ],
+            ]}
+          />
+          <P>
+            <strong>Which values to use.</strong> Real giveaways: keep the
+            defaults. Percentages are small on purpose, because they scale with
+            the crowd. The first winner becomes possible at:
           </P>
           <Rows
             items={[
@@ -178,7 +221,17 @@ export async function GiveawaySetupGuideView(
               ["Tier 3 — 5%", "20 participants"],
             ]}
           />
-          <P>Who can actually win each tier is fixed by the platform:</P>
+          <P>
+            Small test runs (a handful of users): raise a tier&apos;s percentage
+            so the formula gives at least one winner, or the draw finds none.
+            High values such as 89% only make sense for tests; on a real
+            giveaway they would make most participants winners. The percentages
+            lock once the draw begins.
+          </P>
+          <P>
+            <strong>Entry bar per tier.</strong> This is fixed by the platform,
+            and is why a tier with a generous percentage can still award nobody:
+          </P>
           <Rows
             items={[
               [
@@ -194,7 +247,9 @@ export async function GiveawaySetupGuideView(
           />
           <Muted>
             One prize per person across the whole giveaway, and tiers draw
-            top-down: a Tier 1 winner cannot also win Tier 2 or 3.
+            top-down: a Tier 1 winner cannot also win Tier 2 or 3. The Prize
+            Pool banner shows the ceiling for each tier at the current
+            headcount.
           </Muted>
         </Step>
 

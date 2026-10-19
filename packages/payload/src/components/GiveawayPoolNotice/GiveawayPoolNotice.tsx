@@ -70,23 +70,65 @@ const FixHints = ({ messages }: { messages: string[] }) => {
   );
 };
 
-/** One line per tier: percentage against what is stocked under it. */
-const TierBreakdownList = ({ breakdown }: { breakdown?: TierBreakdown[] }) => {
+const plural = (count: number, word: string) =>
+  `${count} ${word}${count === 1 ? "" : "s"}`;
+
+/** What is stocked under a tier, in words. */
+const stockedText = ({ prizes, units }: TierBreakdown) =>
+  prizes === 0
+    ? "no prizes"
+    : `${plural(prizes, "prize")}, ${plural(units, "unit")}`;
+
+/** The most winners a tier's percentage and stock allow at this headcount. */
+const ceilingText = (
+  { winnerPercentage }: TierBreakdown,
+  sim: PoolTier | undefined,
+  participants: number
+) => {
+  if (!(sim && winnerPercentage)) {
+    return "";
+  }
+  return ` → at most ${plural(sim.effectiveCap, "winner")} at ${plural(participants, "participant")} (${winnerPercentage}% allows ${sim.maxByPercentage}, ${plural(sim.unitsAvailable, "unit")} stocked)`;
+};
+
+/**
+ * One line per tier: percentage against what is stocked under it, and the most
+ * winners that combination allows at the current headcount.
+ */
+const TierBreakdownList = ({
+  breakdown,
+  tiers,
+  participants,
+}: {
+  breakdown?: TierBreakdown[];
+  tiers?: PoolTier[];
+  participants: number;
+}) => {
   if (!breakdown?.length) {
     return null;
   }
   return (
-    <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
-      {breakdown.map(({ tier, winnerPercentage, prizes, units }) => (
-        <li key={tier}>
-          <strong>{tier}</strong>{" "}
-          {winnerPercentage ? `(${winnerPercentage}%)` : "(off)"}:{" "}
-          {prizes === 0
-            ? "no prizes"
-            : `${prizes} prize${prizes === 1 ? "" : "s"}, ${units} unit${units === 1 ? "" : "s"}`}
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
+        {breakdown.map((row) => (
+          <li key={row.tier}>
+            <strong>{row.tier}</strong>{" "}
+            {row.winnerPercentage ? `(${row.winnerPercentage}%)` : "(off)"}:{" "}
+            {stockedText(row)}
+            {ceilingText(
+              row,
+              tiers?.find((entry) => entry.tier === row.tier),
+              participants
+            )}
+          </li>
+        ))}
+      </ul>
+      <div style={{ marginTop: 8 }}>
+        These are ceilings, not promises. A tier only awards users who meet its
+        entry requirements, so it can have fewer winners than shown (see the
+        Setup Guide, Step 3).
+      </div>
+    </>
   );
 };
 
@@ -166,7 +208,11 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
         </strong>{" "}
         {notice.errors.join(" ")}
         <FixHints messages={notice.errors} />
-        <TierBreakdownList breakdown={notice.breakdown} />
+        <TierBreakdownList
+          breakdown={notice.breakdown}
+          participants={notice.participants}
+          tiers={notice.tiers}
+        />
       </Banner>
     );
   }
@@ -180,7 +226,11 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
         </strong>{" "}
         {notice.warnings.join(" ")}
         <FixHints messages={notice.warnings} />
-        <TierBreakdownList breakdown={notice.breakdown} />
+        <TierBreakdownList
+          breakdown={notice.breakdown}
+          participants={notice.participants}
+          tiers={notice.tiers}
+        />
       </Banner>
     );
   }
@@ -193,7 +243,11 @@ export const GiveawayPoolNotice: UIFieldClientComponent = () => {
         .map((tier) => `${tier.tier} × ${tier.effectiveCap}`)
         .join(", ")}
       .
-      <TierBreakdownList breakdown={notice.breakdown} />
+      <TierBreakdownList
+        breakdown={notice.breakdown}
+        participants={notice.participants}
+        tiers={notice.tiers}
+      />
     </Banner>
   );
 };
