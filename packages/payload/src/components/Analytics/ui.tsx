@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-
+import { hasData, trendRows } from "./charts/rows";
+import { TrendChart, type TrendKind } from "./charts/TrendChart";
 import type { Change } from "./format";
-import { formatCount, formatDay } from "./format";
+import { formatCount } from "./format";
 
 /**
  * Presentation for the analytics screens. Server-rendered, no client code: the
@@ -15,10 +16,15 @@ import { formatCount, formatDay } from "./format";
 const NAVY = "#5E7FB3";
 const DEEP = "#10264A";
 const GOLD = "#D9A23B";
+const PALE = "#B9C7E0";
+/** The deep navy is close to invisible on the dark theme, so it is lifted there. */
+const DEEP_ON_DARK = "#7FA0D6";
 
 const CSS = `
 .ana{display:flex;flex-direction:column;gap:16px;font-size:14px;color:var(--theme-text)}
 .ana *{box-sizing:border-box}
+.ana{--ts-chart-1:${PALE};--ts-chart-2:${DEEP};--ts-chart-3:${GOLD}}
+[data-theme=dark] .ana{--ts-chart-2:${DEEP_ON_DARK}}
 .ana-page{padding:0 var(--gutter-h,48px) 48px}
 .ana-head{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end}
 .ana-head h2{margin:0 0 4px;font-size:22px}
@@ -45,10 +51,6 @@ const CSS = `
 .ana-delta[data-tone=up]{color:#3ea262}
 .ana-delta[data-tone=down]{color:#d0473c}
 .ana-delta[data-tone=flat]{color:var(--theme-elevation-500)}
-.ana-chart{display:flex;align-items:flex-end;gap:3px;height:150px}
-.ana-day{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:1px;height:100%;min-width:0}
-.ana-day span{flex:1;border-radius:2px 2px 0 0;min-height:0}
-.ana-axis{display:flex;justify-content:space-between;color:var(--theme-elevation-500);font-size:11px}
 .ana-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--theme-elevation-600)}
 .ana-dot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-right:5px}
 .ana-bar{display:flex;flex-direction:column;gap:4px}
@@ -153,22 +155,24 @@ export function Kpi({
 
 export type Series = { key: string; label: string; color: string };
 
-export const SERIES_COLORS = { pale: "#B9C7E0", deep: DEEP, gold: GOLD };
+export const SERIES_COLORS = { pale: PALE, deep: DEEP, gold: GOLD };
 
-/** Bars per day, one per series, scaled together so they compare honestly. */
+/** Daily activity, one colour per series, scaled together so they compare honestly. */
 export function DayChart({
   days,
   series,
+  kind = "bar",
+  label = "Daily activity chart",
 }: {
   days: ({ date: string } & Record<string, number | string>)[];
   series: Series[];
+  kind?: TrendKind;
+  label?: string;
 }): ReactNode {
-  const max = Math.max(
-    1,
-    ...days.flatMap((d) => series.map((s) => Number(d[s.key] ?? 0)))
-  );
-  const first = days[0]?.date;
-  const last = days.at(-1)?.date;
+  const rows = trendRows(days, series);
+  if (!hasData(rows)) {
+    return <div className="ana-empty">Nothing recorded in this period.</div>;
+  }
 
   return (
     <div>
@@ -180,34 +184,7 @@ export function DayChart({
           </span>
         ))}
       </div>
-      <div aria-label="Daily activity chart" className="ana-chart" role="img">
-        {days.map((d) => (
-          <div
-            className="ana-day"
-            key={d.date}
-            title={`${formatDay(d.date)}: ${series
-              .map((s) => `${s.label} ${formatCount(Number(d[s.key] ?? 0))}`)
-              .join(", ")}`}
-          >
-            {series.map((s) => {
-              const value = Number(d[s.key] ?? 0);
-              return (
-                <span
-                  key={s.key}
-                  style={{
-                    height: `${value === 0 ? 0 : Math.max((value / max) * 100, 2)}%`,
-                    background: s.color,
-                  }}
-                />
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div className="ana-axis">
-        <span>{first ? formatDay(first) : ""}</span>
-        <span>{last ? formatDay(last) : ""}</span>
-      </div>
+      <TrendChart ariaLabel={label} kind={kind} rows={rows} series={series} />
     </div>
   );
 }
