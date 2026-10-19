@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
+import { RankedBars } from "./charts/RankedBars";
 import { hasData, trendRows } from "./charts/rows";
 import { TrendChart, type TrendKind } from "./charts/TrendChart";
 import type { Change } from "./format";
-import { formatCount } from "./format";
 
 /**
  * Presentation for the analytics screens. Server-rendered, no client code: the
@@ -23,7 +23,7 @@ const DEEP_ON_DARK = "#7FA0D6";
 const CSS = `
 .ana{display:flex;flex-direction:column;gap:16px;font-size:14px;color:var(--theme-text)}
 .ana *{box-sizing:border-box}
-.ana{--ts-chart-1:${PALE};--ts-chart-2:${DEEP};--ts-chart-3:${GOLD}}
+.ana{--ana-accent:${NAVY};--ts-chart-1:${PALE};--ts-chart-2:${DEEP};--ts-chart-3:${GOLD}}
 [data-theme=dark] .ana{--ts-chart-2:${DEEP_ON_DARK}}
 .ana-page{padding:0 var(--gutter-h,48px) 48px}
 .ana-head{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end}
@@ -53,10 +53,6 @@ const CSS = `
 .ana-delta[data-tone=flat]{color:var(--theme-elevation-500)}
 .ana-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--theme-elevation-600)}
 .ana-dot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-right:5px}
-.ana-bar{display:flex;flex-direction:column;gap:4px}
-.ana-bar-top{display:flex;justify-content:space-between;gap:8px}
-.ana-track{height:7px;border-radius:999px;background:var(--theme-elevation-100);overflow:hidden}
-.ana-fill{height:100%;background:${NAVY}}
 .ana-table{width:100%;border-collapse:collapse}
 .ana-table th{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-elevation-500);text-align:left;padding:0 8px 8px 0}
 .ana-table td{padding:8px 8px 8px 0;border-top:1px solid var(--theme-elevation-100);vertical-align:top}
@@ -189,38 +185,20 @@ export function DayChart({
   );
 }
 
-/** Labelled horizontal bars, each as a share of the largest. */
+/** Labelled horizontal bars, each scaled against the largest. */
 export function Bars({
   rows,
   empty = "Nothing recorded in this period.",
+  label = "Ranked chart",
 }: {
   rows: { label: string; value: number; display?: string }[];
   empty?: string;
+  label?: string;
 }): ReactNode {
-  const max = Math.max(1, ...rows.map((r) => r.value));
-  if (rows.every((r) => r.value === 0)) {
+  if (!hasData(rows)) {
     return <div className="ana-empty">{empty}</div>;
   }
-  return (
-    <>
-      {rows.map((r) => (
-        <div className="ana-bar" key={r.label}>
-          <div className="ana-bar-top">
-            <span>{r.label}</span>
-            <span className="ana-muted">
-              {r.display ?? formatCount(r.value)}
-            </span>
-          </div>
-          <div className="ana-track">
-            <div
-              className="ana-fill"
-              style={{ width: `${(r.value / max) * 100}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </>
-  );
+  return <RankedBars ariaLabel={label} rows={rows} />;
 }
 
 export type Column = { key: string; label: string; align?: "right" };
