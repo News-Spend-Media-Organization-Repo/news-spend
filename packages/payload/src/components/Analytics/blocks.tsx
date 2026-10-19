@@ -12,6 +12,7 @@ import type {
   GiveawayAttention,
   GiveawayReport,
   GiveawayState,
+  NewsDay,
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
@@ -52,8 +53,20 @@ const SURFACE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
+export function NewsKpis({
+  summary,
+  daily,
+}: {
+  summary: Summary;
+  /** The period's daily series, for the line under each figure. */
+  daily?: NewsDay[];
+}): ReactNode {
   const { current, previous } = summary;
+  const days = daily?.length ?? 0;
+  const trend = (name: string, pick: (day: NewsDay) => number) => ({
+    trend: daily?.map(pick),
+    trendLabel: `${name}, last ${days} days`,
+  });
   const versus = "vs previous period";
   return (
     <div className="ana-grid ana-kpis">
@@ -63,6 +76,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.views)}
+        {...trend("Views", (d) => d.views)}
       />
       <Kpi
         change={describeChange(current.reads, previous.reads)}
@@ -70,6 +84,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.reads)}
+        {...trend("Qualified reads", (d) => d.reads)}
       />
       <Kpi
         label="Read rate"
@@ -89,6 +104,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.impressions)}
+        {...trend("Impressions", (d) => d.impressions)}
       />
       <Kpi
         change={describeChange(current.shares, previous.shares)}
@@ -305,7 +321,7 @@ export function ArticleReportBody({
 }): ReactNode {
   return (
     <>
-      <NewsKpis summary={report.summary} />
+      <NewsKpis daily={report.daily} summary={report.summary} />
       <div className="ana-grid ana-two">
         <FunnelPanel days={report.daily} />
         <StepsPanel current={report.summary.current} />

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { RankedBars } from "./charts/RankedBars";
 import { hasData, trendRows } from "./charts/rows";
+import { Sparkline } from "./charts/Sparkline";
 import { TrendChart, type TrendKind } from "./charts/TrendChart";
 import type { Change } from "./format";
 
@@ -123,12 +124,18 @@ export function Kpi({
   change,
   note,
   tag,
+  trend,
+  trendLabel,
 }: {
   label: string;
   value: string;
   change?: Change;
   note?: string;
   tag?: keyof typeof TAG_LABELS;
+  /** The figure's daily values over the period, drawn as a small line. */
+  trend?: number[];
+  /** What the line shows, for assistive technology; defaults to the label. */
+  trendLabel?: string;
 }): ReactNode {
   return (
     <div className="ana-card">
@@ -137,6 +144,11 @@ export function Kpi({
         {tag ? <TrustTag kind={tag} /> : null}
       </div>
       <div className="ana-kpi-value">{value}</div>
+      {trend &&
+      trend.length >= 2 &&
+      hasData(trend.map((v) => ({ value: v }))) ? (
+        <Sparkline ariaLabel={trendLabel ?? label} values={trend} />
+      ) : null}
       <div>
         {change ? (
           <span className="ana-delta" data-tone={change.tone}>

@@ -1,8 +1,28 @@
 import { describe, expect, it } from "bun:test";
+import { resolveRange } from "@news-spend-media/analytics";
+import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
-
+import * as components from "../src/components/Analytics";
 import { hasData, trendRows } from "../src/components/Analytics/charts/rows";
-import { Bars, DayChart, SERIES_COLORS } from "../src/components/Analytics/ui";
+import {
+  Bars,
+  DayChart,
+  Kpi,
+  SERIES_COLORS,
+} from "../src/components/Analytics/ui";
+
+/** Every calendar date from `from` to `to`, both included. */
+const datesBetween = (from: string, to: string): string[] => {
+  const dates: string[] = [];
+  for (
+    let t = Date.parse(from);
+    t <= Date.parse(to);
+    t += 24 * 60 * 60 * 1000
+  ) {
+    dates.push(new Date(t).toISOString().slice(0, 10));
+  }
+  return dates;
+};
 
 const SHAPE = /<rect|<path/;
 const HEIGHT = /height:(\d+)px/;
@@ -165,5 +185,89 @@ describe("Bars", () => {
     expect(out).toContain("<svg");
     expect(visible.some((t) => t.endsWith("…"))).toBe(true);
     expect(visible.every((t) => t.length <= 30)).toBe(true);
+  });
+});
+
+describe("Kpi sparkline", () => {
+  const trend = [3, 5, 4, 8, 9, 7, 12];
+
+  it("draws a small chart under the figure when it has a trend", () => {
+    const out = html(
+      <Kpi
+        label="Views"
+        trend={trend}
+        trendLabel="Views, last 7 days"
+        value="48"
+      />
+    );
+
+    expect(out).toContain("<svg");
+    expect(out).toContain("Views, last 7 days");
+  });
+
+  it("draws nothing for a trend of under two points or only zeros", () => {
+    for (const none of [undefined, [], [5], [0, 0, 0, 0]]) {
+      expect(html(<Kpi label="Views" trend={none} value="0" />)).not.toContain(
+        "<svg"
+      );
+    }
+  });
+});
+
+describe("the news pages show sparklines for the daily series", () => {
+  const staff = { collection: "admins", role: "editor" };
+
+  /** A request whose daily query returns activity on every day of the period. */
+  const requestWithActivity = () => {
+    const dialect = new PgDialect();
+    const range = resolveRange({ days: 30, timeZone: "Africa/Lagos" });
+    const days = datesBetween(range.current.from, range.current.to);
+    const req = {
+      user: staff,
+      payload: {
+        db: {
+          drizzle: {
+            execute: (query: Parameters<PgDialect["sqlToQuery"]>[0]) => {
+              const { sql } = dialect.sqlToQuery(query);
+              const rows = sql.includes("to_char")
+                ? days.flatMap((day, i) =>
+                    ["impression", "view", "read"].map((event) => ({
+                      day,
+                      event,
+                      n: i + 1,
+                    }))
+                  )
+                : [];
+              return Promise.resolve({ rows });
+            },
+          },
+        },
+      },
+    };
+    return req as never;
+  };
+
+  it("on the analytics page, for views, reads and impressions", async () => {
+    const out = html(
+      await components.AnalyticsPageView({
+        initPageResult: { req: requestWithActivity() },
+        searchParams: {},
+      } as never)
+    );
+
+    for (const label of ["Views", "Qualified reads", "Impressions"]) {
+      expect(out).toContain(`${label}, last 30 days`);
+    }
+  });
+
+  it("not in the dashboard KPI widget, which has no daily series", async () => {
+    const out = html(
+      await components.KpiWidget({
+        req: requestWithActivity(),
+        widgetData: { metric: "views", days: "30" },
+      } as never)
+    );
+
+    expect(out).not.toContain("<svg");
   });
 });
