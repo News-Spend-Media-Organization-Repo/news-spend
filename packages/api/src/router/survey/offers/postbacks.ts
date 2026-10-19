@@ -1,12 +1,28 @@
 import crypto from "node:crypto";
 
-import { sendNotification } from "@news-spend-media/payload/lib/send-notification";
 import { openapi } from "@orpc/openapi";
-import type { BasePayload } from "payload";
 import z from "zod";
 
 import { publicProcedure } from "../../..";
-import { RAPIDO_API_KEY, RAPIDO_SECURE_HASH, THEOREM_API_KEY } from "./schemas";
+import {
+  awardProviderPoints,
+  PointsRefusedError,
+  reverseProviderPoints,
+} from "../providerPoints";
+
+/** A copy of `input` without the named keys, for logging without secrets. */
+const without = <T extends Record<string, unknown>>(
+  input: T,
+  keys: (keyof T)[]
+): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(input).filter(([key]) => !keys.includes(key as keyof T))
+  ) as Partial<T>;
+
+/** Equal hashes, compared without leaking how much of them matched. */
+const sameHash = (received: string, expected: string): boolean =>
+  received.length === expected.length &&
+  crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
 
 function verifyTheoremReachHash(
   secretKey: string,
@@ -23,7 +39,7 @@ function verifyTheoremReachHash(
     .replace(/\//g, "_")
     .replace(/=/g, "");
 
-  return expectedHash === receivedHash;
+  return sameHash(receivedHash, expectedHash);
 }
 
 function verifyRapidoReachHash(
@@ -40,54 +56,70 @@ function verifyRapidoReachHash(
     .update(dataToHash)
     .digest("hex");
 
-  return expectedHash === receivedHash;
+  return sameHash(receivedHash, expectedHash);
 }
 
-async function awardPointsForProvider({
-  userId,
-  amount,
-  description,
-  payload,
-}: {
-  userId: string;
-  amount: number;
-  description: string;
-  payload: BasePayload;
-}): Promise<void> {
+/** Whether TheoremReach signed this exact request with our key. */
+function isSignedByTheorem(
+  input: Record<string, unknown>,
+  hash: string
+): boolean {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(input)) {
+    if (key !== "hash" && value !== undefined) {
+      params.append(key, String(value));
+    }
+  }
+  return verifyTheoremReachHash(
+    theoremApiKey() ?? "",
+    `/survey/theorem/postback?${params.toString()}`,
+    hash
+  );
+}
+
+/**
+ * Runs a Theorem points change. An amount no survey may pay is refused; any
+ * other failure means the points were not saved, and `fail` ends the request
+ * with an error so TheoremReach sends it again.
+ */
+async function settleTheorem(
+  transactionId: string,
+  change: () => Promise<unknown>,
+  fail: () => never
+): Promise<"saved" | "refused"> {
   try {
-    await payload.create({
-      collection: "activities",
-      data: {
-        type: "point",
-        point: amount,
-        description,
-        action: "surveyTask",
-        user: userId,
-      },
-    });
-
-    const { docs: pushTokens } = await payload.find({
-      collection: "push-tokens",
-      where: {
-        user: {
-          in: [userId],
-        },
-      },
-    });
-
-    await sendNotification({
-      pushTokens,
-      title: "Survey Completed",
-      body: `You earned ${amount} points!`,
-      data: {
-        type: "survey",
-        id: userId,
-      },
-    });
+    await change();
+    return "saved";
   } catch (error) {
-    console.error("Error awarding points:", error);
+    if (error instanceof PointsRefusedError) {
+      console.error(error.message);
+      return "refused";
+    }
+    console.error(`Could not save Theorem points for ${transactionId}:`, error);
+    return fail();
   }
 }
+
+const theoremDescription = (input: {
+  profiler?: number;
+  screenout?: number;
+  offer_name?: string;
+  tx_id: string;
+}): string => {
+  if (input.profiler === 1) {
+    return "Completed TheoremReach profile survey";
+  }
+  const name = input.offer_name || input.tx_id;
+  return input.screenout === 1
+    ? `Screen-out: ${name}`
+    : `Completed TheoremReach survey: ${name}`;
+};
+
+// Read when a postback arrives, not when the module loads, so the handlers
+// follow the environment they actually run in.
+const rapidoApiKey = () => process.env.RAPIDO_API_KEY;
+const rapidoSecureHash = () => process.env.RAPIDO_SECURE_HASH;
+const theoremApiKey = () => process.env.THEOREM_API_KEY;
 
 export const rapidoPostbackHandler = publicProcedure
   .meta(
@@ -118,7 +150,11 @@ export const rapidoPostbackHandler = publicProcedure
   )
   .output(z.union([z.object({ success: z.number() })]))
   .handler(async ({ input, context, errors }) => {
-    console.log("Received Rapido postback:", input);
+    // Not the signatures: anyone who reads the logs could replay them.
+    console.log(
+      "Received Rapido postback:",
+      without(input, ["oidHash", "txnHash"])
+    );
     const {
       endUserId,
       status,
@@ -129,13 +165,14 @@ export const rapidoPostbackHandler = publicProcedure
     } = input;
     const { payload } = context;
 
-    if (!RAPIDO_API_KEY) {
+    if (!rapidoApiKey()) {
       throw errors.BAD_REQUEST({
         message: "Rapido not configured",
       });
     }
 
-    if (!RAPIDO_SECURE_HASH) {
+    const secureHash = rapidoSecureHash();
+    if (!secureHash) {
       throw errors.BAD_REQUEST({
         message: "Rapido secure hash not configured",
       });
@@ -152,7 +189,7 @@ export const rapidoPostbackHandler = publicProcedure
     }
 
     const isValid = verifyRapidoReachHash(
-      RAPIDO_SECURE_HASH,
+      secureHash,
       transactionId,
       offerInvitationId,
       oidHash
@@ -175,15 +212,29 @@ export const rapidoPostbackHandler = publicProcedure
 
     const statusUpper = status?.toUpperCase();
     if (statusUpper === "COMPLETE" && currencyAmt && currencyAmt > 0) {
-      await awardPointsForProvider({
-        userId: endUserId,
-        amount: Math.floor(currencyAmt),
-        description: `Completed RapidoReach survey: ${input.offerTitle || transactionId}`,
-        payload,
-      });
-      console.log(
-        `Awarded ${currencyAmt} points to user ${endUserId} for transaction ${transactionId}`
-      );
+      const points = Math.floor(currencyAmt);
+      try {
+        const outcome = await awardProviderPoints(payload, {
+          provider: "rapido",
+          transactionId,
+          userId: endUserId,
+          points,
+          description: `Completed RapidoReach survey: ${input.offerTitle || transactionId}`,
+          title: "Survey Completed",
+          body: `You earned ${points} points!`,
+        });
+        console.log(
+          `Rapido transaction ${transactionId}: ${outcome} ${points} points for user ${endUserId}`
+        );
+      } catch (error) {
+        // Answering "not done" lets RapidoReach try again where it can.
+        console.error(
+          error instanceof PointsRefusedError
+            ? error.message
+            : `Could not save Rapido points for ${transactionId}: ${String(error)}`
+        );
+        return { success: 0 };
+      }
     } else if (statusUpper === "QUOTAFULL" || statusUpper === "TERMINATION") {
       console.log(
         `User ${endUserId} screen-out (${status}) for transaction ${transactionId}`
@@ -231,44 +282,27 @@ export const theoremPostbackHandler = publicProcedure
     ])
   )
   .handler(async ({ input, context, errors }) => {
-    console.log("Received Theorem postback:", input);
-    const {
-      reward,
-      user_id,
-      tx_id,
-      hash,
-      reversal,
-      debug,
-      screenout,
-      profiler,
-      offer_name,
-      transaction_id,
-    } = input;
+    // Not the signature: anyone who reads the logs could replay it.
+    console.log("Received Theorem postback:", without(input, ["hash"]));
+    const { reward, user_id, tx_id, hash, reversal, debug } = input;
     const { payload } = context;
 
-    if (!THEOREM_API_KEY) {
+    if (!theoremApiKey()) {
       throw errors.BAD_REQUEST({
         message: "Theorem not configured",
       });
     }
 
-    if (hash) {
-      const params = new URLSearchParams();
-      for (const [key, value] of Object.entries(input)) {
-        if (key !== "hash" && value !== undefined) {
-          params.append(key, String(value));
-        }
-      }
-      const callbackUrl = `/survey/theorem/postback?${params.toString()}`;
-      const isValid = verifyTheoremReachHash(
-        THEOREM_API_KEY,
-        callbackUrl,
-        hash
-      );
-      if (!isValid) {
-        console.error("Invalid hash in Theorem postback:", hash);
-        return { error: "Invalid hash" };
-      }
+    // Every postback must be signed. Without this check, a request with no
+    // hash would skip verification and could credit any user any amount.
+    if (!hash) {
+      console.error("Theorem postback without a hash, ignoring");
+      return { error: "Invalid hash" };
+    }
+
+    if (!isSignedByTheorem(input, hash)) {
+      console.error("Invalid hash in Theorem postback");
+      return { error: "Invalid hash" };
     }
 
     if (debug === "true") {
@@ -276,14 +310,31 @@ export const theoremPostbackHandler = publicProcedure
       return { success: true, message: "Debug callback ignored" };
     }
 
+    const fail = (): never => {
+      throw errors.INTERNAL_SERVER_ERROR({
+        message: "Could not save the points",
+      });
+    };
+
     if (reversal === "true") {
-      console.log(`Reversal for transaction ${tx_id}, handling...`);
+      await settleTheorem(
+        tx_id,
+        () =>
+          reverseProviderPoints(payload, {
+            provider: "theorem",
+            transactionId: tx_id,
+            requested: Math.floor(Math.abs(reward)),
+            description: `TheoremReach reversal: ${tx_id}`,
+            title: "Survey Points Reversed",
+            body: (points) =>
+              `${points} points have been reversed from your account due to a survey validation issue.`,
+          }),
+        fail
+      );
+      return { success: true };
     }
 
-    const screenoutValue = screenout === 1;
-    const profilerValue = profiler === 1;
-
-    if (reward > 0 && !reversal) {
+    if (reward > 0) {
       const user = await payload.findByID({
         collection: "users",
         id: user_id,
@@ -295,20 +346,24 @@ export const theoremPostbackHandler = publicProcedure
         return { success: true };
       }
 
-      await awardPointsForProvider({
-        userId: user_id,
-        amount: Math.floor(reward),
-        description: profilerValue
-          ? "Completed TheoremReach profile survey"
-          : screenoutValue
-            ? `Screen-out: ${offer_name || tx_id}`
-            : `Completed TheoremReach survey: ${offer_name || tx_id}`,
-        payload,
-      });
-
-      console.log(
-        `Awarded ${reward} points to user ${user_id} for transaction ${tx_id}`
+      const points = Math.floor(reward);
+      const outcome = await settleTheorem(
+        tx_id,
+        () =>
+          awardProviderPoints(payload, {
+            provider: "theorem",
+            transactionId: tx_id,
+            userId: user_id,
+            points,
+            description: theoremDescription(input),
+            title: "Survey Completed",
+            body: `You earned ${points} points!`,
+          }),
+        fail
       );
+      if (outcome === "refused") {
+        return { error: "Reward not accepted" };
+      }
     }
 
     return { success: true };
