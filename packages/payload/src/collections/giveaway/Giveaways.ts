@@ -653,7 +653,7 @@ export const Giveaways: CollectionConfig = {
       label: "Winner Distribution",
       admin: {
         description:
-          "Maximum percentage of Total Valid Participants that may win in each tier. Enter 0 to disable a tier.",
+          "Each percentage is a ceiling on winners in that tier, not a target. It is a share of participants (people with at least one valid ticket), rounded down: at 8 participants and 25%, the tier can have at most 2 winners. The real number is also limited by the prize units stocked for the tier and by how many users meet the tier's entry requirements (see the Setup Guide). Real giveaways use the defaults (0.1 / 0.5 / 5); high values are only for small test runs. Enter 0 to disable a tier.",
       },
       fields: [
         winnerPercentageField("tier1WinnerPercentage", "Tier 1 (%)", 0.1),
@@ -907,7 +907,8 @@ function winnerPercentageField(
     defaultValue,
     admin: {
       step: 0.01,
-      description: "0 disables this tier. Maximum 100.",
+      description:
+        "The most winners this tier may have, as a share of participants, rounded down. Not a promise of winners. 0 disables the tier. Maximum 100.",
     },
     validate: (value: number | null | undefined) => {
       if (value === null || value === undefined) {
