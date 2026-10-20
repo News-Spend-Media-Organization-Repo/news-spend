@@ -528,6 +528,10 @@ export interface Activity {
   id: string;
   type?: ('point' | 'badge' | 'reward') | null;
   point: number;
+  /**
+   * provider:transaction:kind, for provider awards only. The unique index is what stops two servers paying one transaction.
+   */
+  providerRef?: string | null;
   reward?: string | null;
   action:
     | 'signUp'
@@ -3061,6 +3065,7 @@ export interface AccountsSelect<T extends boolean = true> {
 export interface ActivitiesSelect<T extends boolean = true> {
   type?: T;
   point?: T;
+  providerRef?: T;
   reward?: T;
   action?: T;
   description?: T;

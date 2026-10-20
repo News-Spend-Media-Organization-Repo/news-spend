@@ -29,6 +29,30 @@ type Kind = "award" | "reversal";
 const lockKey = (provider: Provider, transactionId: string) =>
   `${provider}:${transactionId}`;
 
+const providerRef = (
+  provider: Provider,
+  transactionId: string,
+  kind: Kind
+) => `${provider}:${transactionId}:${kind}`;
+
+/**
+ * A provider award that another process already wrote. Payload wraps database
+ * errors, so the Postgres code can sit anywhere down the cause chain.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 10; depth += 1) {
+    if (typeof current !== "object" || current === null) {
+      return false;
+    }
+    if ((current as { code?: unknown }).code === "23505") {
+      return true;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
 export const isValidAward = (points: number): boolean =>
   Number.isInteger(points) && points > 0 && points <= MAX_SURVEY_POINTS;
 
@@ -94,17 +118,27 @@ export async function awardProviderPoints(
       return "duplicate";
     }
 
-    await payload.create({
-      collection: "activities",
-      data: {
-        type: "point",
-        point: points,
-        description: award.description,
-        action: "surveyTask",
-        user: userId,
-        metadata: { provider, transactionId, kind: "award" },
-      },
-    });
+    try {
+      await payload.create({
+        collection: "activities",
+        data: {
+          type: "point",
+          point: points,
+          description: award.description,
+          action: "surveyTask",
+          user: userId,
+          providerRef: providerRef(provider, transactionId, "award"),
+          metadata: { provider, transactionId, kind: "award" },
+        },
+      });
+    } catch (error) {
+      // Two instances can pass the in-memory check together; the unique index
+      // decides. The one that loses answers like a normal duplicate.
+      if (isUniqueViolation(error)) {
+        return "duplicate";
+      }
+      throw error;
+    }
 
     await notifyBestEffort(payload, userId, {
       title: award.title,
@@ -150,17 +184,25 @@ export async function reverseProviderPoints(
     const user = award.user;
     const userId = typeof user === "object" && user !== null ? user.id : user;
 
-    await payload.create({
-      collection: "activities",
-      data: {
-        type: "point",
-        point: -points,
-        description: reversal.description,
-        action: "pointReversal",
-        user: userId,
-        metadata: { provider, transactionId, kind: "reversal" },
-      },
-    });
+    try {
+      await payload.create({
+        collection: "activities",
+        data: {
+          type: "point",
+          point: -points,
+          description: reversal.description,
+          action: "pointReversal",
+          user: userId,
+          providerRef: providerRef(provider, transactionId, "reversal"),
+          metadata: { provider, transactionId, kind: "reversal" },
+        },
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        return "duplicate";
+      }
+      throw error;
+    }
 
     await notifyBestEffort(payload, String(userId), {
       title: reversal.title,

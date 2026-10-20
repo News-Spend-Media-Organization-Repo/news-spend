@@ -32,6 +32,7 @@ const { createFakePayload, expectError, mockContext } = await import(
   "../test-utils"
 );
 const { surveyRouter } = await import("./survey");
+const { isUniqueViolation } = await import("./survey/providerPoints");
 const { MAX_SURVEY_POINTS } = await import(
   "@news-spend-media/payload/lib/surveyPoints"
 );
@@ -101,6 +102,20 @@ const theorem = (
 };
 
 describe("TheoremReach postback", () => {
+  it("records the provider reference that makes the award unique", async () => {
+    const payload = freshPayload();
+
+    await theorem(payload, { reward: 100, user_id: "user-1", tx_id: "t1" });
+
+    expect(payload.docs("activities")[0]?.providerRef).toBe("theorem:t1:award");
+  });
+
+  it("recognises a database unique violation through a wrapped error", () => {
+    expect(isUniqueViolation({ cause: { code: "23505" } })).toBe(true);
+    expect(isUniqueViolation({ code: "23505" })).toBe(true);
+    expect(isUniqueViolation(new Error("database down"))).toBe(false);
+  });
+
   it("rejects a request that carries no hash, and pays nothing", async () => {
     const payload = freshPayload();
 
