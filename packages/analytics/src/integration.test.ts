@@ -35,6 +35,7 @@ import {
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";
+import { pointsBySource, pointsDaily, pointsSummary } from "./points";
 import { resolveRange } from "./range";
 import { scopeFor } from "./scope";
 
@@ -125,6 +126,13 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         id uuid PRIMARY KEY, is_anonymous boolean, created_at timestamptz NOT NULL,
         last_active timestamptz, _verified boolean NOT NULL DEFAULT FALSE,
         country varchar, verified_country varchar);
+      CREATE TYPE enum_activities_action AS ENUM('signUp','read','share','connectBrandAd','surveyTask','pointReversal','ticketPurchase','lottery','dailyLogin','referral','watchLive','musicListeningTime','partnerContentTask');
+      CREATE TYPE enum_activities_type AS ENUM('point','badge','reward');
+      CREATE TABLE activities (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        type enum_activities_type NOT NULL DEFAULT 'point',
+        point numeric, action enum_activities_action, user_id uuid,
+        metadata jsonb, created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE push_tokens (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id uuid NOT NULL, status varchar NOT NULL DEFAULT 'active',
@@ -1180,6 +1188,152 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(days.find((d) => d.date === "2026-09-19")?.openers).toBe(2);
       expect(days.find((d) => d.date === "2026-09-20")?.openers).toBe(1);
       expect(days.find((d) => d.date === "2026-09-15")?.openers).toBe(0);
+    });
+  });
+
+  describe("points", () => {
+    const P1 = "91000000-0000-4000-8000-000000000001";
+    const P2 = "91000000-0000-4000-8000-000000000002";
+    const P3 = "91000000-0000-4000-8000-000000000003";
+    const P4 = "91000000-0000-4000-8000-000000000004";
+    const P5 = "91000000-0000-4000-8000-000000000005";
+
+    beforeAll(async () => {
+      await conn.unsafe(`
+        INSERT INTO users (id, created_at) VALUES
+          ('${P1}', '2026-01-01T08:00:00Z'),
+          ('${P2}', '2026-02-01T08:00:00Z'),
+          ('${P3}', '2026-03-01T08:00:00Z'),
+          ('${P4}', '2026-04-01T08:00:00Z'),
+          ('${P5}', '2026-05-01T08:00:00Z');
+        INSERT INTO activities (type, point, action, user_id, metadata, created_at) VALUES
+          ('point', 500, 'signUp', '${P1}', NULL, '2026-09-14T08:00:00Z'),
+          ('point', 10, 'read', '${P1}', NULL, '2026-09-19T09:00:00Z'),
+          ('point', -250, 'ticketPurchase', '${P1}', NULL, '2026-09-19T10:00:00Z'),
+          ('point', -50, 'pointReversal', '${P1}', NULL, '2026-09-20T08:00:00Z'),
+          ('point', 3000, 'lottery', '${P2}', NULL, '2026-09-15T08:00:00Z'),
+          ('point', 6000, 'surveyTask', '${P3}', NULL, '2026-09-16T08:00:00Z'),
+          ('point', 400, 'surveyTask', '${P4}', '{"provider":"cpx"}', '2026-09-17T08:00:00Z'),
+          ('point', 300, 'surveyTask', '${P5}', '{"provider":"rapido"}', '2026-09-18T08:00:00Z'),
+          ('point', 200, 'surveyTask', '${P5}', NULL, '2026-09-18T09:00:00Z'),
+          ('point', 100, 'surveyTask', '${P5}', '"garbage"'::jsonb, '2026-09-20T09:00:00Z'),
+          ('badge', 1000, 'read', '${P1}', NULL, '2026-09-19T11:00:00Z'),
+          ('reward', 1000, 'read', '${P1}', NULL, '2026-09-19T12:00:00Z'),
+          ('point', 9999, 'read', '${P1}', NULL, '2026-08-01T08:00:00Z');
+      `);
+    });
+
+    it("totals issued, spent, reversed, net, earners and outstanding", async () => {
+      const summary = await pointsSummary(db, staff, { range });
+
+      expect(summary.current).toEqual({
+        issued: 10_510,
+        spent: 250,
+        reversed: 50,
+        net: 10_210,
+        activeEarners: 5,
+        largeGrants: 1,
+      });
+      // 10,510 issued, 250 spent, 50 reversed, plus 9,999 from August: all time.
+      expect(summary.outstanding).toBe(20_209);
+    });
+
+    it("splits sources, with legacy survey rows and malformed metadata as form", async () => {
+      const sources = await pointsBySource(db, staff, { range });
+
+      expect(sources).toEqual([
+        { source: "form", issued: 6300, spent: 0, users: 2 },
+        { source: "lottery", issued: 3000, spent: 0, users: 1 },
+        { source: "signUp", issued: 500, spent: 0, users: 1 },
+        { source: "cpx", issued: 400, spent: 0, users: 1 },
+        { source: "rapido", issued: 300, spent: 0, users: 1 },
+        { source: "read", issued: 10, spent: 0, users: 1 },
+        { source: "pointReversal", issued: 0, spent: 0, users: 1 },
+        { source: "ticketPurchase", issued: 0, spent: 250, users: 1 },
+      ]);
+    });
+
+    it("gives one point row per day, with reversals kept out of spent", async () => {
+      const days = await pointsDaily(db, staff, { range });
+
+      expect(days).toHaveLength(7);
+      expect(days.map((d) => d.date)).toEqual([
+        "2026-09-14",
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18",
+        "2026-09-19",
+        "2026-09-20",
+      ]);
+      expect(days.find((d) => d.date === "2026-09-18")).toEqual({
+        date: "2026-09-18",
+        issued: 500,
+        spent: 0,
+      });
+      expect(days.find((d) => d.date === "2026-09-19")).toEqual({
+        date: "2026-09-19",
+        issued: 10,
+        spent: 250,
+      });
+      expect(days.find((d) => d.date === "2026-09-20")).toEqual({
+        date: "2026-09-20",
+        issued: 100,
+        spent: 0,
+      });
+      expect(days.find((d) => d.date === "2026-09-17")?.issued).toBe(400);
+    });
+
+    it("returns a zero-filled week for an empty period without error", async () => {
+      const empty = resolveRange({
+        days: 7,
+        now: new Date("2026-12-01T10:00:00Z"),
+      });
+
+      const summary = await pointsSummary(db, staff, { range: empty });
+      const days = await pointsDaily(db, staff, { range: empty });
+      const sources = await pointsBySource(db, staff, { range: empty });
+
+      expect(summary.current).toEqual({
+        issued: 0,
+        spent: 0,
+        reversed: 0,
+        net: 0,
+        activeEarners: 0,
+        largeGrants: 0,
+      });
+      expect(summary.outstanding).toBe(20_209);
+      expect(days).toHaveLength(7);
+      expect(days.every((d) => d.issued === 0 && d.spent === 0)).toBe(true);
+      expect(sources).toEqual([]);
+    });
+
+    it("reports a reversal-only period as negative net with no spend or earners", async () => {
+      const window = resolveRange({
+        days: 7,
+        now: new Date("2026-06-30T10:00:00Z"),
+      });
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        VALUES ('point', -50, 'pointReversal', '${P1}', '2026-06-29T08:00:00Z')
+      `);
+
+      const summary = await pointsSummary(db, staff, { range: window });
+      const days = await pointsDaily(db, staff, { range: window });
+
+      await conn.unsafe(
+        "DELETE FROM activities WHERE created_at = '2026-06-29T08:00:00Z'"
+      );
+
+      expect(summary.current).toEqual({
+        issued: 0,
+        spent: 0,
+        reversed: 50,
+        net: -50,
+        activeEarners: 0,
+        largeGrants: 0,
+      });
+      expect(days.every((d) => d.issued === 0 && d.spent === 0)).toBe(true);
     });
   });
 });

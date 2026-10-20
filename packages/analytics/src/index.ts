@@ -100,6 +100,18 @@ export {
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";
+export type {
+  PointsDay,
+  PointsFilter,
+  PointsSource,
+  PointsTotals,
+} from "./points";
+export {
+  LARGE_GRANT_POINTS,
+  pointsBySource,
+  pointsDaily,
+  pointsSummary,
+} from "./points";
 export type { DateWindow, Range } from "./range";
 export { percentChange, RANGE_DAYS, resolveRange } from "./range";
 export type {
