@@ -263,7 +263,7 @@ export async function PartnerContentGuideView(
           <p style={{ margin: 0 }}>
             An offer disappears from a user's lists once they have completed it.
             When a user has completed everything, the list says "You've
-            completed all available offers. New ones are added regularly."
+            completed all available offers. Check back later for new ones."
           </p>
         </Block>
 

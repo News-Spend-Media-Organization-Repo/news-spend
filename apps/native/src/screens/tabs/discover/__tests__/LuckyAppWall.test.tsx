@@ -85,4 +85,46 @@ describe("LuckyAppWall", () => {
 
     expect(screen.getAllByText("Pending confirmation")).toHaveLength(1);
   });
+
+  const makeDocs = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `id-${i}`,
+      title: `Offer ${i}`,
+      description: "d",
+    }));
+
+  it("shows 10 of the 15 offers returned", async () => {
+    mockQuery = {
+      data: { docs: makeDocs(15) },
+      isPending: false,
+      refetch: jest.fn(),
+    };
+    await render(<LuckyAppWall />);
+
+    expect(screen.getAllByText(/^Offer \d+$/)).toHaveLength(10);
+  });
+
+  it("shows every offer when fewer than 10 are returned", async () => {
+    mockQuery = {
+      data: { docs: makeDocs(4) },
+      isPending: false,
+      refetch: jest.fn(),
+    };
+    await render(<LuckyAppWall />);
+
+    expect(screen.getAllByText(/^Offer \d+$/)).toHaveLength(4);
+  });
+
+  it("keeps the same offers across a re-render", async () => {
+    const data = { docs: makeDocs(15) };
+    mockQuery = { data, isPending: false, refetch: jest.fn() };
+    const view = await render(<LuckyAppWall />);
+    const titles = () =>
+      screen.getAllByText(/^Offer \d+$/).map((n) => n.props.children);
+    const before = titles();
+
+    await view.rerender(<LuckyAppWall />);
+
+    expect(titles()).toEqual(before);
+  });
 });

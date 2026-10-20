@@ -5,7 +5,7 @@ import {
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useSnapshot } from "valtio";
 
@@ -20,7 +20,21 @@ import { authState } from "#/state/auth";
 import { getImageData } from "#/utils/getImageData";
 
 export const LUCKY_WALL_EMPTY_MESSAGE =
-  "You've done every Featured Offer for now. New ones are added regularly.";
+  "You've done every Featured Offer for now. Check back later for new ones.";
+
+const POOL_SIZE = 50;
+const VISIBLE_COUNT = 10;
+
+function pickRandom<T>(items: readonly T[], count: number): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const a = copy[i] as T;
+    copy[i] = copy[j] as T;
+    copy[j] = a;
+  }
+  return copy.slice(0, count);
+}
 
 function LuckyAppWall() {
   const _navigation = useNavigation();
@@ -31,7 +45,7 @@ function LuckyAppWall() {
   const input = {
     placement: ["lucky-app-wall" as const],
     type: ["app" as const, "book" as const, "survey" as const],
-    limit: 10,
+    limit: POOL_SIZE,
   };
   const queryOptions = orpc.partnerContent.filtered.queryOptions({
     input,
@@ -39,7 +53,12 @@ function LuckyAppWall() {
   });
 
   const { data, isPending, refetch } = useQuery(queryOptions);
-  const items = data?.docs;
+  const docs = data?.docs;
+  // Stable for the lifetime of the loaded data: reshuffles only on new data.
+  const items = useMemo(
+    () => (docs ? pickRandom(docs, VISIBLE_COUNT) : undefined),
+    [docs]
+  );
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 

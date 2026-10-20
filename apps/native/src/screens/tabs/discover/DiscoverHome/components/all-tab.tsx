@@ -109,7 +109,7 @@ const booksQuery = (userId: string | null) =>
   });
 
 export const ALL_OFFERS_DONE_MESSAGE =
-  "You've completed all available offers. New ones are added regularly.";
+  "You've completed all available offers. Check back later for new ones.";
 
 const surveysSelect = (data: unknown) =>
   Array.isArray(data)
