@@ -1,9 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolveRange } from "@news-spend-media/analytics";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
-import * as components from "../src/components/Analytics";
 import { hasData, trendRows } from "../src/components/Analytics/charts/rows";
 import {
   Bars,
@@ -11,6 +10,12 @@ import {
   Kpi,
   SERIES_COLORS,
 } from "../src/components/Analytics/ui";
+import { DefaultTemplateStub } from "./analyticsTemplateStub";
+
+mock.module("@payloadcms/next/templates", () => ({
+  DefaultTemplate: DefaultTemplateStub,
+}));
+const components = await import("../src/components/Analytics");
 
 /** Every calendar date from `from` to `to`, both included. */
 const datesBetween = (from: string, to: string): string[] => {
