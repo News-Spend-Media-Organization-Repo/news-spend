@@ -35,7 +35,14 @@ import {
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";
-import { pointsBySource, pointsDaily, pointsSummary } from "./points";
+import {
+  pointsBySource,
+  pointsConcentration,
+  pointsDaily,
+  pointsLargeGrants,
+  pointsLeaderboard,
+  pointsSummary,
+} from "./points";
 import { resolveRange } from "./range";
 import { scopeFor } from "./scope";
 
@@ -1334,6 +1341,185 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         largeGrants: 0,
       });
       expect(days.every((d) => d.issued === 0 && d.spent === 0)).toBe(true);
+    });
+  });
+
+  describe("points economy ranking", () => {
+    const Q1 = "92000000-0000-4000-8000-000000000001";
+    const Q2 = "92000000-0000-4000-8000-000000000002";
+    const Q3 = "92000000-0000-4000-8000-000000000003";
+    const Q4 = "92000000-0000-4000-8000-000000000004";
+    const Q5 = "92000000-0000-4000-8000-000000000005";
+    const Q6 = "92000000-0000-4000-8000-000000000006";
+    const Q7 = "92000000-0000-4000-8000-000000000007";
+    const Q8 = "92000000-0000-4000-8000-000000000008";
+    const Q9 = "92000000-0000-4000-8000-000000000009";
+    const Q10 = "92000000-0000-4000-8000-000000000010";
+    const ranking = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+
+    beforeAll(async () => {
+      await conn.unsafe("DELETE FROM activities");
+      await conn.unsafe(`
+        INSERT INTO users (id, created_at) VALUES
+          ('${Q1}', '2026-01-01T08:00:00Z'),
+          ('${Q2}', '2026-01-02T08:00:00Z'),
+          ('${Q3}', '2026-01-03T08:00:00Z'),
+          ('${Q4}', '2026-01-04T08:00:00Z'),
+          ('${Q5}', '2026-01-05T08:00:00Z'),
+          ('${Q6}', '2026-01-06T08:00:00Z'),
+          ('${Q7}', '2026-01-07T08:00:00Z'),
+          ('${Q8}', '2026-01-08T08:00:00Z'),
+          ('${Q9}', '2026-01-09T08:00:00Z'),
+          ('${Q10}', '2026-01-10T08:00:00Z');
+        INSERT INTO activities (type, point, action, user_id, metadata, created_at) VALUES
+          ('point', 500, 'signUp', '${Q1}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 5001, 'surveyTask', '${Q2}', NULL, '2026-07-27T08:00:00Z'),
+          ('point', 200, 'read', '${Q2}', NULL, '2026-07-28T08:00:00Z'),
+          ('point', 5000, 'read', '${Q3}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 300, 'read', '${Q4}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 300, 'read', '${Q5}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 400, 'surveyTask', '${Q6}', '{"provider":"cpx"}', '2026-07-25T08:00:00Z'),
+          ('point', 100, 'read', '${Q6}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 4200, 'lottery', '${Q7}', NULL, '2026-07-25T08:00:00Z'),
+          ('point', 300, 'read', '${Q7}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 9000, 'lottery', '${Q8}', NULL, '2026-07-30T08:00:00Z'),
+          ('point', -100, 'ticketPurchase', '${Q9}', NULL, '2026-07-29T08:00:00Z'),
+          ('point', -50, 'pointReversal', '${Q10}', NULL, '2026-07-29T08:00:00Z');
+      `);
+    });
+
+    it("ranks by earned in the period, never by balance", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+
+      expect(rows.map((r) => [r.rank, r.userId, r.earned, r.balance])).toEqual([
+        [1, Q3, 5000, 5000],
+        [2, Q7, 4500, 4500],
+        [3, Q6, 500, 500],
+        [4, Q4, 300, 300],
+        [5, Q5, 300, 300],
+        [6, Q2, 200, 5201],
+      ]);
+      expect(rows[5]?.topSource).toBe("read");
+      expect(rows[2]?.topSource).toBe("cpx");
+      expect(rows[1]?.topSource).toBe("lottery");
+      expect(rows[0]?.joinedAt).toBe("2026-01-03T08:00:00.000Z");
+      expect(JSON.stringify(rows)).not.toContain("@");
+    });
+
+    it("leaves out a user whose only activity is the sign-up bonus", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+
+      expect(rows.some((r) => r.userId === Q1)).toBe(false);
+    });
+
+    it("excludes a grant above 5,000 from earned but not from balance", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+
+      expect(rows.find((r) => r.userId === Q2)).toMatchObject({
+        earned: 200,
+        balance: 5201,
+      });
+    });
+
+    it("does not exclude a grant of exactly 5,000 and does not flag it", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+      const grants = await pointsLargeGrants(db, staff, { range: ranking });
+
+      expect(rows.find((r) => r.userId === Q3)?.earned).toBe(5000);
+      expect(grants.some((g) => g.userId === Q3)).toBe(false);
+      expect(grants.map((g) => g.points)).toEqual([9000, 5001]);
+    });
+
+    it("orders equal earned by user id", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+      const tied = rows.filter((r) => r.earned === 300);
+
+      expect(tied.map((r) => r.userId)).toEqual([Q4, Q5]);
+    });
+
+    it("lists large grants newest first, with the legacy survey source", async () => {
+      const grants = await pointsLargeGrants(db, staff, { range: ranking });
+
+      expect(grants.map((g) => g.userId)).toEqual([Q8, Q2]);
+      expect(grants[1]).toMatchObject({
+        action: "surveyTask",
+        source: "form",
+        points: 5001,
+        at: "2026-07-27T08:00:00.000Z",
+      });
+      expect(grants[0]).toMatchObject({ action: "lottery", source: "lottery" });
+    });
+
+    it("counts large grants in the summary", async () => {
+      const summary = await pointsSummary(db, staff, { range: ranking });
+
+      expect(summary.current.largeGrants).toBe(2);
+    });
+
+    it("clamps a leaderboard limit and keeps ranks contiguous", async () => {
+      const all = await pointsLeaderboard(db, staff, { range: ranking });
+      const two = await pointsLeaderboard(db, staff, {
+        range: ranking,
+        limit: 2,
+      });
+
+      expect(all.map((r) => r.rank)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(two.map((r) => r.rank)).toEqual([1, 2]);
+      expect(
+        await pointsLargeGrants(db, staff, { range: ranking, limit: 1 })
+      ).toHaveLength(1);
+    });
+
+    it("gives median, p90 and the top-ten share over known balances", async () => {
+      await conn.unsafe("DELETE FROM activities");
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        SELECT 'point', n, 'read',
+               ('93000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid,
+               '2026-01-01T08:00:00Z'
+        FROM generate_series(1, 12) AS n
+      `);
+
+      const concentration = await pointsConcentration(db, staff);
+
+      expect(concentration.holders).toBe(12);
+      expect(concentration.median).toBe(6.5);
+      expect(concentration.p90).toBeCloseTo(10.9);
+      // The largest ten hold 75 of the 78 points.
+      expect(concentration.top10Share).toBe(96.2);
+    });
+
+    it("does not throw for a one-holder ledger", async () => {
+      await conn.unsafe("DELETE FROM activities");
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        VALUES ('point', 500, 'read', '${Q1}', '2026-01-01T08:00:00Z')
+      `);
+
+      const concentration = await pointsConcentration(db, staff);
+
+      expect(concentration).toEqual({
+        holders: 1,
+        median: 500,
+        p90: 500,
+        top10Share: 100,
+      });
+    });
+
+    it("gives zero holders and null shares for an empty ledger", async () => {
+      await conn.unsafe("DELETE FROM activities");
+
+      const concentration = await pointsConcentration(db, staff);
+
+      expect(concentration).toEqual({
+        holders: 0,
+        median: null,
+        p90: null,
+        top10Share: null,
+      });
     });
   });
 });

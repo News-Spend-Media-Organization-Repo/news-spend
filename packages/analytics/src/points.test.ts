@@ -3,7 +3,10 @@ import { describe, expect, it } from "bun:test";
 import {
   LARGE_GRANT_POINTS,
   pointsBySource,
+  pointsConcentration,
   pointsDaily,
+  pointsLargeGrants,
+  pointsLeaderboard,
   pointsSummary,
 } from "./points";
 import { AnalyticsAccessError } from "./scope";
@@ -11,6 +14,8 @@ import { PARTNER, range, STAFF, stubDb } from "./test-utils";
 
 const ISO_DATE = /^\d{4}-\d\d-\d\d$/;
 const NAME_COLUMN = /\bname\b/;
+const OUTER_ORDER = /ORDER BY earned DESC, e\.user_id/;
+const INNER_ORDER = /ORDER BY e\.earned DESC, e\.user_id/;
 
 const windows = (queries: { params: unknown[] }[]) =>
   queries.map((q) => q.params.filter((p) => ISO_DATE.test(String(p))));
@@ -24,6 +29,9 @@ describe("points reports are staff only", () => {
     ["pointsSummary", (db) => pointsSummary(db, PARTNER, filter)],
     ["pointsDaily", (db) => pointsDaily(db, PARTNER, filter)],
     ["pointsBySource", (db) => pointsBySource(db, PARTNER, filter)],
+    ["pointsConcentration", (db) => pointsConcentration(db, PARTNER)],
+    ["pointsLeaderboard", (db) => pointsLeaderboard(db, PARTNER, filter)],
+    ["pointsLargeGrants", (db) => pointsLargeGrants(db, PARTNER, filter)],
   ];
 
   it.each(
@@ -205,5 +213,207 @@ describe("pointsBySource", () => {
     expect(sql).not.toContain("email");
     expect(sql).not.toContain("username");
     expect(sql).not.toMatch(NAME_COLUMN);
+  });
+});
+
+describe("pointsConcentration", () => {
+  it("maps holders, median, p90 and the top-ten share", async () => {
+    const { db } = stubDb([
+      { holders: 12, median: 6.5, p90: 10.9, top: 75, total: 78 },
+    ]);
+
+    const concentration = await pointsConcentration(db, STAFF);
+
+    expect(concentration).toEqual({
+      holders: 12,
+      median: 6.5,
+      p90: 10.9,
+      top10Share: 96.2,
+    });
+  });
+
+  it("is zero holders and null shares for an empty ledger", async () => {
+    const { db } = stubDb([]);
+
+    const concentration = await pointsConcentration(db, STAFF);
+
+    expect(concentration).toEqual({
+      holders: 0,
+      median: null,
+      p90: null,
+      top10Share: null,
+    });
+  });
+
+  it("is null, not zero, when the balances sum to nothing", async () => {
+    const { db } = stubDb([
+      { holders: 2, median: 0, p90: 0, top: 0, total: 0 },
+    ]);
+
+    const concentration = await pointsConcentration(db, STAFF);
+
+    expect(concentration.top10Share).toBeNull();
+  });
+
+  it("computes balances from point rows only and selects no name columns", async () => {
+    const { db, queries } = stubDb([]);
+
+    await pointsConcentration(db, STAFF);
+
+    const sql = queries[0]?.sql ?? "";
+    expect(sql).toContain("type = 'point'");
+    expect(sql).toContain("percentile_cont");
+    expect(sql).not.toContain("email");
+    expect(sql).not.toContain("username");
+    expect(sql).not.toMatch(NAME_COLUMN);
+  });
+});
+
+describe("pointsLeaderboard", () => {
+  const rows = [
+    {
+      rank: 1,
+      user_id: "u-1",
+      earned: 900,
+      balance: 1200,
+      joined_at: "2026-01-01T08:00:00.000Z",
+      top_source: "read",
+    },
+    {
+      rank: 2,
+      user_id: "u-2",
+      earned: 400,
+      balance: 400,
+      joined_at: null,
+      top_source: null,
+    },
+  ];
+
+  it("maps rows and leaves an empty ledger empty", async () => {
+    expect(
+      await pointsLeaderboard(stubDb(rows).db, STAFF, { range: range() })
+    ).toEqual([
+      {
+        rank: 1,
+        userId: "u-1",
+        earned: 900,
+        balance: 1200,
+        joinedAt: "2026-01-01T08:00:00.000Z",
+        topSource: "read",
+      },
+      {
+        rank: 2,
+        userId: "u-2",
+        earned: 400,
+        balance: 400,
+        joinedAt: null,
+        topSource: null,
+      },
+    ]);
+    expect(
+      await pointsLeaderboard(stubDb([]).db, STAFF, { range: range() })
+    ).toEqual([]);
+  });
+
+  it("clamps the limit to 1-50, defaulting to 10", async () => {
+    for (const [given, expected] of [
+      [0, 1],
+      [-5, 1],
+      [1000, 50],
+      [7.9, 7],
+      [undefined, 10],
+    ] as const) {
+      const { db, queries } = stubDb([]);
+
+      await pointsLeaderboard(db, STAFF, { range: range(), limit: given });
+
+      expect(queries[0]?.params).toContain(expected);
+    }
+  });
+
+  it("orders by earned then user id, with a fixed ORDER BY text", async () => {
+    const { db, queries } = stubDb([]);
+
+    await pointsLeaderboard(db, STAFF, { range: range() });
+
+    const sql = queries[0]?.sql ?? "";
+    expect(sql).toContain("ROW_NUMBER()");
+    expect(sql).toMatch(OUTER_ORDER);
+    expect(sql).toMatch(INNER_ORDER);
+  });
+
+  it("excludes the sign-up bonus and large grants from earned, never from balance", async () => {
+    const { db, queries } = stubDb([]);
+
+    await pointsLeaderboard(db, STAFF, { range: range() });
+
+    const sql = queries[0]?.sql ?? "";
+    expect(sql).toContain("a.action <> 'signUp'");
+    expect(sql).toContain("a.point <= ");
+    expect(sql).toContain("SUM(a.point)");
+    expect(sql).toContain("WHERE e.earned > 0");
+  });
+
+  it("selects only the columns a leaderboard needs, never a name", async () => {
+    const { db, queries } = stubDb([]);
+
+    await pointsLeaderboard(db, STAFF, { range: range() });
+
+    const sql = queries[0]?.sql ?? "";
+    expect(sql).toContain("u.created_at");
+    expect(sql).not.toContain("email");
+    expect(sql).not.toContain("username");
+    expect(sql).not.toMatch(NAME_COLUMN);
+  });
+});
+
+describe("pointsLargeGrants", () => {
+  it("maps grants, newest first, with a null user allowed", async () => {
+    const { db } = stubDb([
+      {
+        id: "g-1",
+        user_id: null,
+        action: "surveyTask",
+        source: "form",
+        points: 6000,
+        at: "2026-09-19T08:00:00.000Z",
+      },
+    ]);
+
+    const grants = await pointsLargeGrants(db, STAFF, { range: range() });
+
+    expect(grants).toEqual([
+      {
+        id: "g-1",
+        userId: null,
+        action: "surveyTask",
+        source: "form",
+        points: 6000,
+        at: "2026-09-19T08:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("binds the threshold, clamps the limit and orders newest first", async () => {
+    for (const [given, expected] of [
+      [0, 1],
+      [-5, 1],
+      [1000, 50],
+      [7.9, 7],
+      [undefined, 10],
+    ] as const) {
+      const { db, queries } = stubDb([]);
+
+      await pointsLargeGrants(db, STAFF, { range: range(), limit: given });
+
+      const query = queries[0];
+      expect(query?.params).toContain(expected);
+      expect(query?.params).toContain(LARGE_GRANT_POINTS);
+      expect(query?.sql).toContain("a.point > ");
+      expect(query?.sql).toContain("ORDER BY a.created_at DESC, a.id");
+      expect(query?.sql).not.toContain("email");
+      expect(query?.sql).not.toContain("username");
+      expect(query?.sql).not.toMatch(NAME_COLUMN);
+    }
   });
 });

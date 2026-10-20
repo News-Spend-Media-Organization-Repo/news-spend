@@ -101,6 +101,9 @@ export {
   partnerSummary,
 } from "./partner";
 export type {
+  LargeGrant,
+  LeaderboardRow,
+  PointsConcentration,
   PointsDay,
   PointsFilter,
   PointsSource,
@@ -109,7 +112,10 @@ export type {
 export {
   LARGE_GRANT_POINTS,
   pointsBySource,
+  pointsConcentration,
   pointsDaily,
+  pointsLargeGrants,
+  pointsLeaderboard,
   pointsSummary,
 } from "./points";
 export type { DateWindow, Range } from "./range";

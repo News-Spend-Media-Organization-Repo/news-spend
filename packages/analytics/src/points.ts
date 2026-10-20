@@ -2,7 +2,7 @@ import type { SQL } from "@payloadcms/db-postgres/drizzle";
 import { sql } from "@payloadcms/db-postgres/drizzle";
 
 import type { AnalyticsDb } from "./db";
-import { rowsOf } from "./db";
+import { isoOrNull, percent, rowsOf } from "./db";
 import type { DateWindow, Range } from "./range";
 import { eachDay, inWindow } from "./range";
 import type { AnalyticsScope } from "./scope";
@@ -184,4 +184,200 @@ export async function pointsBySource(
       ORDER BY issued DESC, source
     `
   );
+}
+
+const clampLimit = (limit: number | undefined): number =>
+  Math.min(Math.max(Math.trunc(limit ?? 10), 1), 50);
+
+export type PointsConcentration = {
+  holders: number;
+  median: number | null;
+  p90: number | null;
+  /** The share of all balances held by the ten largest, as a percentage. */
+  top10Share: number | null;
+};
+
+type ConcentrationRow = {
+  holders: number;
+  median: number | null;
+  p90: number | null;
+  top: number;
+  total: number;
+};
+
+/** How the balance is spread, over every user with at least one ledger row. */
+export async function pointsConcentration(
+  db: AnalyticsDb,
+  scope: AnalyticsScope
+): Promise<PointsConcentration> {
+  requireStaff(scope);
+
+  const [row] = await rowsOf<ConcentrationRow>(
+    db,
+    sql`
+      WITH balances AS (
+        SELECT a.user_id, COALESCE(SUM(a.point), 0)::float8 AS balance
+        FROM activities a
+        WHERE a.type = 'point' AND a.user_id IS NOT NULL
+        GROUP BY a.user_id
+      ),
+      ranked AS (
+        SELECT balance,
+               ROW_NUMBER() OVER (ORDER BY balance DESC, user_id) AS place
+        FROM balances
+      )
+      SELECT COUNT(*)::int AS holders,
+             percentile_cont(0.5) WITHIN GROUP (ORDER BY balance)::float8 AS median,
+             percentile_cont(0.9) WITHIN GROUP (ORDER BY balance)::float8 AS p90,
+             COALESCE(SUM(balance) FILTER (WHERE place <= 10), 0)::float8 AS top,
+             COALESCE(SUM(balance), 0)::float8 AS total
+      FROM ranked
+    `
+  );
+
+  return {
+    holders: row?.holders ?? 0,
+    median: row?.median ?? null,
+    p90: row?.p90 ?? null,
+    top10Share: row ? percent(row.top, row.total) : null,
+  };
+}
+
+export type LeaderboardRow = {
+  rank: number;
+  userId: string;
+  earned: number;
+  balance: number;
+  joinedAt: string | null;
+  topSource: string | null;
+};
+
+/**
+ * Who earned the most from activity in the period. The sign-up bonus and any
+ * single grant above `LARGE_GRANT_POINTS` are left out of `earned`, so a
+ * giveaway or a mispaid survey cannot decide the ranking. Balance is all-time
+ * and is there to compare, never to sort by.
+ */
+export async function pointsLeaderboard(
+  db: AnalyticsDb,
+  scope: AnalyticsScope,
+  filter: PointsFilter & { limit?: number }
+): Promise<LeaderboardRow[]> {
+  requireStaff(scope);
+  const limit = clampLimit(filter.limit);
+  const { current, timeZone } = filter.range;
+
+  const rows = await rowsOf<{
+    rank: number;
+    user_id: string;
+    earned: number;
+    balance: number;
+    joined_at: unknown;
+    top_source: string | null;
+  }>(
+    db,
+    sql`
+      WITH earned AS (
+        SELECT a.user_id,
+               COALESCE(SUM(a.point) FILTER (
+                 WHERE a.point > 0
+                   AND a.action <> 'signUp'
+                   AND a.point <= ${LARGE_GRANT_POINTS}
+               ), 0)::float8 AS earned
+        FROM activities a
+        WHERE ${ledgerWhere(current, timeZone)}
+        GROUP BY a.user_id
+      ),
+      balances AS (
+        SELECT a.user_id, COALESCE(SUM(a.point), 0)::float8 AS balance
+        FROM activities a
+        WHERE a.type = 'point'
+        GROUP BY a.user_id
+      ),
+      earned_sources AS (
+        SELECT a.user_id, ${SOURCE} AS source,
+               COALESCE(SUM(a.point) FILTER (
+                 WHERE a.point > 0
+                   AND a.action <> 'signUp'
+                   AND a.point <= ${LARGE_GRANT_POINTS}
+               ), 0)::float8 AS points
+        FROM activities a
+        WHERE ${ledgerWhere(current, timeZone)}
+        GROUP BY a.user_id, 2
+      ),
+      top_source AS (
+        SELECT DISTINCT ON (user_id) user_id, source
+        FROM earned_sources
+        WHERE points > 0
+        ORDER BY user_id, points DESC, source
+      )
+      SELECT ROW_NUMBER() OVER (ORDER BY e.earned DESC, e.user_id)::int AS rank,
+             e.user_id, e.earned, COALESCE(b.balance, 0)::float8 AS balance,
+             u.created_at AS joined_at, t.source AS top_source
+      FROM earned e
+      LEFT JOIN balances b ON b.user_id = e.user_id
+      LEFT JOIN users u ON u.id = e.user_id
+      LEFT JOIN top_source t ON t.user_id = e.user_id
+      WHERE e.earned > 0
+      ORDER BY earned DESC, e.user_id
+      LIMIT ${limit}
+    `
+  );
+
+  return rows.map((r) => ({
+    rank: r.rank,
+    userId: r.user_id,
+    earned: r.earned,
+    balance: r.balance,
+    joinedAt: isoOrNull(r.joined_at),
+    topSource: r.top_source,
+  }));
+}
+
+export type LargeGrant = {
+  id: string;
+  userId: string | null;
+  action: string;
+  source: string;
+  points: number;
+  at: string | null;
+};
+
+/** Single grants above the threshold, newest first. */
+export async function pointsLargeGrants(
+  db: AnalyticsDb,
+  scope: AnalyticsScope,
+  filter: PointsFilter & { limit?: number }
+): Promise<LargeGrant[]> {
+  requireStaff(scope);
+  const limit = clampLimit(filter.limit);
+
+  const rows = await rowsOf<{
+    id: string;
+    user_id: string | null;
+    action: string;
+    source: string;
+    points: number;
+    at: unknown;
+  }>(
+    db,
+    sql`
+      SELECT a.id, a.user_id, a.action::text AS action, ${SOURCE} AS source,
+             a.point::float8 AS points, a.created_at AS at
+      FROM activities a
+      WHERE ${ledgerWhere(filter.range.current, filter.range.timeZone)}
+        AND a.point > ${LARGE_GRANT_POINTS}
+      ORDER BY a.created_at DESC, a.id
+      LIMIT ${limit}
+    `
+  );
+
+  return rows.map((r) => ({
+    id: r.id,
+    userId: r.user_id,
+    action: r.action,
+    source: r.source,
+    points: r.points,
+    at: isoOrNull(r.at),
+  }));
 }
