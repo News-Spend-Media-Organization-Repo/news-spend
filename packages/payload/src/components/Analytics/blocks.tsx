@@ -1,7 +1,10 @@
 import type {
+  ActivationWeek,
+  ActiveDay,
   ArticleReport,
   AttentionCounts,
   AudienceSummary,
+  CohortRow,
   ConversionOutcomes,
   DiscoverDay,
   DiscoverGame,
@@ -14,6 +17,7 @@ import type {
   GiveawayState,
   LargeGrant,
   LeaderboardRow,
+  Measure,
   NewsDay,
   NewsEngagement,
   NewsMetrics,
@@ -25,6 +29,7 @@ import type {
   PostbackHealth,
   PushReport,
   RecentConversion,
+  Stickiness,
   TopArticle,
   TopSort,
 } from "@news-spend-media/analytics";
@@ -1023,6 +1028,164 @@ export function LargeGrantsPanel({
             ) : (
               "–"
             ),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+// --- retention --------------------------------------------------------------
+
+/** A percentage from two counts, or null when nothing is eligible. */
+const rateOf = (part: number, whole: number): number | null =>
+  whole === 0 ? null : Math.round((part / whole) * 1000) / 10;
+
+/** `returned / eligible (pct)`, or `–` while nothing is eligible. */
+const measureText = (measure: Measure): ReactNode =>
+  measure.eligible === 0
+    ? "–"
+    : `${formatCount(measure.returned)} / ${formatCount(measure.eligible)} (${formatPercent(rateOf(measure.returned, measure.eligible))})`;
+
+export function RetentionKpis({
+  summary,
+  weeks,
+}: {
+  summary: { current: Stickiness; previous: Stickiness };
+  weeks: ActivationWeek[];
+}): ReactNode {
+  const { current, previous } = summary;
+  const mature = weeks.reduce((total, w) => total + w.mature24h, 0);
+  const activated = weeks.reduce((total, w) => total + w.activated24h, 0);
+  const versus = "vs previous period";
+  return (
+    <div className="ana-grid ana-kpis">
+      <Kpi
+        change={describeChange(current.wau, previous.wau)}
+        label="Active devices (7 days)"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.wau)}
+      />
+      <Kpi
+        change={describeChange(current.mau, previous.mau)}
+        label="Active devices (30 days)"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.mau)}
+      />
+      <Kpi
+        label="Stickiness"
+        note="daily actives / monthly actives"
+        tag="observed"
+        value={formatPercent(current.stickiness)}
+      />
+      <Kpi
+        label="Activation (24 hours)"
+        note={`${formatCount(activated)} of ${formatCount(mature)} mature signups`}
+        tag="observed"
+        value={formatPercent(rateOf(activated, mature))}
+      />
+    </div>
+  );
+}
+
+export function ActiveDevicesPanel({ days }: { days: ActiveDay[] }): ReactNode {
+  return (
+    <Panel
+      hint="Distinct devices with any event, by Lagos day"
+      tag="observed"
+      title="Active devices by day"
+    >
+      <DayChart
+        days={days}
+        label="Active devices by day"
+        series={[
+          {
+            key: "devices",
+            label: "Active devices",
+            color: SERIES_COLORS.deep,
+          },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function ActivationPanel({
+  weeks,
+}: {
+  weeks: ActivationWeek[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Registered accounts by the Lagos week they signed up"
+      tag="observed"
+      title="Activation by signup week"
+    >
+      <DataTable
+        columns={[
+          { key: "week", label: "Week" },
+          { key: "signups", label: "Signups", align: "right" },
+          { key: "day", label: "Read within 24h", align: "right" },
+          { key: "week7", label: "Read within 7d", align: "right" },
+          { key: "never", label: "Never read (mature)", align: "right" },
+        ]}
+        empty="No accounts signed up in this period."
+        rows={weeks.map((w) => ({
+          key: w.week,
+          cells: {
+            week: formatDay(w.week),
+            signups: formatCount(w.signups),
+            day: measureText({
+              returned: w.activated24h,
+              eligible: w.mature24h,
+            }),
+            week7: measureText({
+              returned: w.activated7d,
+              eligible: w.mature7d,
+            }),
+            never: w.mature7d === 0 ? "–" : formatCount(w.neverRead),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function CohortsPanel({ cohorts }: { cohorts: CohortRow[] }): ReactNode {
+  return (
+    <Panel
+      hint="Devices by the Lagos week they were first seen; rates count only elapsed windows"
+      tag="observed"
+      title="Device cohorts"
+    >
+      <DataTable
+        columns={[
+          { key: "week", label: "Week" },
+          { key: "devices", label: "New devices", align: "right" },
+          { key: "d1", label: "D1", align: "right" },
+          { key: "w1", label: "W1", align: "right" },
+          { key: "w2", label: "W2", align: "right" },
+          { key: "w4", label: "W4", align: "right" },
+        ]}
+        empty="No devices were first seen in this period."
+        rows={cohorts.map((c) => ({
+          key: c.week,
+          cells: {
+            week: (
+              <>
+                {formatDay(c.week)}
+                {c.w4.eligible < c.devices ? (
+                  <div className="ana-sub">partial</div>
+                ) : null}
+              </>
+            ),
+            devices: formatCount(c.devices),
+            d1: measureText(c.d1),
+            w1: measureText(c.w1),
+            w2: measureText(c.w2),
+            w4: measureText(c.w4),
           },
         }))}
       />

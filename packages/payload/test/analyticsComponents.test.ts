@@ -26,6 +26,7 @@ import {
   giveawayStatsView,
   partnerPerformanceView,
   pointsPageView,
+  retentionPageView,
 } from "../src/components/Analytics/tabs";
 
 const PARTNER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -543,7 +544,92 @@ describe("the Points page", () => {
   });
 });
 
-describe("the News and Points switch", () => {
+describe("the Retention page", () => {
+  const page = async (user: unknown, rowsFor?: (sql: string) => unknown[]) => {
+    const { req, queries } = requestFor(user, rowsFor);
+    return {
+      out: html(
+        await components.RetentionPageView({
+          initPageResult: { req },
+          searchParams: {},
+        } as never)
+      ),
+      queries,
+    };
+  };
+
+  it("gives staff the figures, both empty states and the notices", async () => {
+    const { out, queries } = await page(staff);
+
+    for (const label of [
+      "Active devices (7 days)",
+      "Active devices (30 days)",
+      "Stickiness",
+      "Activation (24 hours)",
+    ]) {
+      expect(out).toContain(label);
+    }
+    expect(out).toContain("No accounts signed up in this period.");
+    expect(out).toContain("No devices were first seen in this period.");
+    expect(out).toContain("Cohorts under 20 devices are noisy.");
+    expect(out).toContain(
+      "Guest-to-registered conversion is not measured yet."
+    );
+    expect(queries.length).toBeGreaterThan(0);
+  });
+
+  it("refuses a partner, an app user and a signed-out viewer without querying", async () => {
+    for (const user of [partnerA, appUser, null]) {
+      const { out, queries } = await page(user);
+
+      expect(out).toContain(NO_ACCESS);
+      expect(queries).toHaveLength(0);
+    }
+  });
+
+  it("prints no identifier, only week labels and counts", async () => {
+    const rowsFor = (sql: string) => {
+      if (sql.includes("AS signups")) {
+        return [
+          {
+            week: "2026-09-14",
+            signups: 3,
+            mature_24h: 2,
+            activated_24h: 1,
+            mature_7d: 1,
+            activated_7d: 1,
+          },
+        ];
+      }
+      if (sql.includes("AS devices")) {
+        return [
+          {
+            week: "2026-09-14",
+            devices: 3,
+            d1_returned: 1,
+            d1_eligible: 2,
+            w1_returned: 0,
+            w1_eligible: 0,
+            w2_returned: 0,
+            w2_eligible: 0,
+            w4_returned: 0,
+            w4_eligible: 0,
+          },
+        ];
+      }
+      return [];
+    };
+    const { out } = await page(staff, rowsFor);
+    const markup = out.replace(STYLE_BLOCK, "");
+
+    expect(markup).not.toContain("@");
+    for (const identifier of ["email", "username", "user_id", "device_id"]) {
+      expect(markup.toLowerCase()).not.toContain(identifier);
+    }
+  });
+});
+
+describe("the News, Points and Retention switch", () => {
   const currentHrefs = (markup: string) =>
     [...markup.matchAll(/<a aria-current="true" href="([^"]*)"/g)].map(
       (m) => m[1]
@@ -556,16 +642,22 @@ describe("the News and Points switch", () => {
     );
   };
 
-  it("sits on both pages and marks the page being viewed", async () => {
+  it("sits on all three pages and marks the page being viewed", async () => {
     const news = await render(components.AnalyticsPageView);
     const points = await render(components.PointsPageView);
+    const retention = await render(components.RetentionPageView);
 
-    expect(news).toContain('href="/admin/analytics/points"');
-    expect(points).toContain('href="/admin/analytics"');
+    for (const page of [news, points, retention]) {
+      expect(page).toContain('href="/admin/analytics"');
+      expect(page).toContain('href="/admin/analytics/points"');
+      expect(page).toContain('href="/admin/analytics/retention"');
+    }
     expect(currentHrefs(news)).toContain("/admin/analytics");
-    expect(currentHrefs(news)).not.toContain("/admin/analytics/points");
     expect(currentHrefs(points)).toContain("/admin/analytics/points");
-    expect(currentHrefs(points)).not.toContain("/admin/analytics");
+    expect(currentHrefs(retention)).toContain("/admin/analytics/retention");
+    expect(currentHrefs(news)).not.toContain("/admin/analytics/points");
+    expect(currentHrefs(points)).not.toContain("/admin/analytics/retention");
+    expect(currentHrefs(retention)).not.toContain("/admin/analytics");
   });
 });
 
@@ -618,6 +710,7 @@ describe("registration", () => {
     giveawayStatsView.Component,
     analyticsPageView.Component,
     pointsPageView.Component,
+    retentionPageView.Component,
     analyticsNavLink,
   ] as string[];
 
@@ -630,6 +723,14 @@ describe("registration", () => {
 
   it("registers the Points page at its own address", () => {
     expect(pointsPageView.path).toBe("/analytics/points");
+  });
+
+  it("registers the Retention page as an exact route", () => {
+    expect(retentionPageView).toMatchObject({
+      path: "/analytics/retention",
+      exact: true,
+    });
+    expect(analyticsViews.analyticsRetention).toBe(retentionPageView);
   });
 
   it("serves each analytics page at its own address, as Payload matches them", async () => {
@@ -649,6 +750,7 @@ describe("registration", () => {
 
     expect(keyFor("/admin/analytics")).toBe("analytics");
     expect(keyFor("/admin/analytics/points")).toBe("analyticsPoints");
+    expect(keyFor("/admin/analytics/retention")).toBe("analyticsRetention");
   });
 
   it("gives every widget a permanent, unique slug", () => {

@@ -332,6 +332,53 @@ describe("the Points page charts", () => {
   });
 });
 
+describe("the Retention page chart", () => {
+  const staff = { collection: "admins", role: "editor" };
+
+  const requestWithDevices = () => {
+    const dialect = new PgDialect();
+    // The page uses the real clock, so the daily rows have to land in its window.
+    const range = resolveRange({ days: 30, timeZone: "Africa/Lagos" });
+    const days = datesBetween(range.current.from, range.current.to);
+    const req = {
+      user: staff,
+      payload: {
+        db: {
+          drizzle: {
+            execute: (query: Parameters<PgDialect["sqlToQuery"]>[0]) => {
+              const { sql } = dialect.sqlToQuery(query);
+              let rows: unknown[] = [];
+              if (sql.includes("AS signups")) {
+                rows = [];
+              } else if (sql.includes("to_char(c.week")) {
+                rows = [];
+              } else if (sql.includes("AS wau")) {
+                rows = [{ wau: 10, mau: 20, avg_dau_30: 5 }];
+              } else if (sql.includes("AS day")) {
+                rows = days.map((day, i) => ({ day, devices: i + 1 }));
+              }
+              return Promise.resolve({ rows });
+            },
+          },
+        },
+      },
+    };
+    return req as never;
+  };
+
+  it("draws daily active devices with an accessible label", async () => {
+    const out = html(
+      await components.RetentionPageView({
+        initPageResult: { req: requestWithDevices() },
+        searchParams: {},
+      } as never)
+    );
+
+    expect(out).toContain("Active devices by day");
+    expect(out).toContain("<svg");
+  });
+});
+
 describe("the charts follow the theme", () => {
   it("takes the series colours from CSS variables, so the dark theme can change them", () => {
     expect(SERIES_COLORS).toEqual({

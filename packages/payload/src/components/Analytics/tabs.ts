@@ -59,10 +59,18 @@ export const pointsPageView = {
   exact: true as const,
 };
 
+/** Activation and device retention, from the News | Points | Retention switch. */
+export const retentionPageView = {
+  Component: `${PATH}#RetentionPageView`,
+  path: "/analytics/retention" as const,
+  exact: true as const,
+};
+
 /** The admin's custom pages, as `admin.components.views` registers them. */
 export const analyticsViews = {
   analytics: analyticsPageView,
   analyticsPoints: pointsPageView,
+  analyticsRetention: retentionPageView,
 };
 
 export const analyticsNavLink = `${PATH}#AnalyticsNavLink`;
