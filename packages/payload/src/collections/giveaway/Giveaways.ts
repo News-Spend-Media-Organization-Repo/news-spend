@@ -26,14 +26,9 @@ import {
  * go out. `sendAnnouncement` defaults to on, so anything not explicitly
  * switched off still shows it.
  */
-export function showNotificationSection(
-  data:
-    | {
-        sendAnnouncement?: boolean | null;
-      }
-    | null
-    | undefined
-): boolean {
+export function showNotificationSection(data: {
+  sendAnnouncement?: boolean | null;
+} | null | undefined): boolean {
   return data?.sendAnnouncement !== false;
 }
 

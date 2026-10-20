@@ -1,33 +1,33 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ReloadlyClient } from "../../../lib/giveaway/reloadly";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ReloadlyClient } from '../../../lib/giveaway/reloadly';
 
-vi.mock("../../../lib/giveaway/reloadly");
+vi.mock('../../../lib/giveaway/reloadly');
 
-describe("PrizeCatalogue Validation", () => {
+describe('PrizeCatalogue Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("Reloadly data plans validation", () => {
-    it("should validate fixed-amount data plans correctly", async () => {
+  describe('Reloadly data plans validation', () => {
+    it('should validate fixed-amount data plans correctly', async () => {
       const mockReloadlyClient = {
         getOperatorProducts: vi.fn().mockResolvedValue({
           operatorId: 345,
-          operatorName: "MTN Nigeria Data",
-          denominationType: "FIXED",
-          localFixedAmounts: [500, 1000, 2500, 5000, 10_000, 20_000],
+          operatorName: 'MTN Nigeria Data',
+          denominationType: 'FIXED',
+          localFixedAmounts: [500, 1000, 2500, 5000, 10000, 20000],
         }),
       };
 
       (ReloadlyClient as any).mockImplementation(() => mockReloadlyClient);
 
       const data = {
-        name: "MTN 5GB Data",
-        tier: "tier1",
-        fulfilmentType: "data",
+        name: 'MTN 5GB Data',
+        tier: 'tier1',
+        fulfilmentType: 'data',
         reloadlyDataPlans: [
           {
-            network: "mtn",
+            network: 'mtn',
             reloadlyOperatorId: 345,
             reloadlyLocalAmount: 5000, // Valid amount
           },
@@ -37,7 +37,7 @@ describe("PrizeCatalogue Validation", () => {
       // Should not throw for valid amount
       const plans = data.reloadlyDataPlans;
       const operator = await mockReloadlyClient.getOperatorProducts(
-        plans[0].reloadlyOperatorId
+        plans[0].reloadlyOperatorId,
       );
       const isValid =
         operator.localFixedAmounts &&
@@ -45,25 +45,25 @@ describe("PrizeCatalogue Validation", () => {
       expect(isValid).toBe(true);
     });
 
-    it("should reject invalid fixed-amount data plans", async () => {
+    it('should reject invalid fixed-amount data plans', async () => {
       const mockReloadlyClient = {
         getOperatorProducts: vi.fn().mockResolvedValue({
           operatorId: 345,
-          operatorName: "MTN Nigeria Data",
-          denominationType: "FIXED",
-          localFixedAmounts: [500, 1000, 2500, 5000, 10_000, 20_000],
+          operatorName: 'MTN Nigeria Data',
+          denominationType: 'FIXED',
+          localFixedAmounts: [500, 1000, 2500, 5000, 10000, 20000],
         }),
       };
 
       (ReloadlyClient as any).mockImplementation(() => mockReloadlyClient);
 
       const data = {
-        name: "MTN Invalid Data",
-        tier: "tier1",
-        fulfilmentType: "data",
+        name: 'MTN Invalid Data',
+        tier: 'tier1',
+        fulfilmentType: 'data',
         reloadlyDataPlans: [
           {
-            network: "mtn",
+            network: 'mtn',
             reloadlyOperatorId: 345,
             reloadlyLocalAmount: 3000, // NOT in available amounts
           },
@@ -73,21 +73,19 @@ describe("PrizeCatalogue Validation", () => {
       const operator = await mockReloadlyClient.getOperatorProducts(345);
       const isValid =
         operator.localFixedAmounts &&
-        operator.localFixedAmounts.includes(
-          data.reloadlyDataPlans[0].reloadlyLocalAmount
-        );
+        operator.localFixedAmounts.includes(data.reloadlyDataPlans[0].reloadlyLocalAmount);
 
       expect(isValid).toBe(false);
     });
 
-    it("should validate range-based data plans correctly", async () => {
+    it('should validate range-based data plans correctly', async () => {
       const mockReloadlyClient = {
         getOperatorProducts: vi.fn().mockResolvedValue({
           operatorId: 999,
-          operatorName: "Nigeria Data Range",
-          denominationType: "RANGE",
+          operatorName: 'Nigeria Data Range',
+          denominationType: 'RANGE',
           localMinAmount: 500,
-          localMaxAmount: 50_000,
+          localMaxAmount: 50000,
           localFixedAmounts: null,
         }),
       };
@@ -95,36 +93,34 @@ describe("PrizeCatalogue Validation", () => {
       (ReloadlyClient as any).mockImplementation(() => mockReloadlyClient);
 
       const data = {
-        name: "Flexible Data",
-        tier: "tier2",
-        fulfilmentType: "data",
+        name: 'Flexible Data',
+        tier: 'tier2',
+        fulfilmentType: 'data',
         reloadlyDataPlans: [
           {
-            network: "mtn",
+            network: 'mtn',
             reloadlyOperatorId: 999,
-            reloadlyLocalAmount: 15_000, // Within range
+            reloadlyLocalAmount: 15000, // Within range
           },
         ],
       };
 
       const operator = await mockReloadlyClient.getOperatorProducts(999);
       const isValid =
-        data.reloadlyDataPlans[0].reloadlyLocalAmount >=
-          (operator.localMinAmount || 0) &&
-        data.reloadlyDataPlans[0].reloadlyLocalAmount <=
-          (operator.localMaxAmount || Number.POSITIVE_INFINITY);
+        data.reloadlyDataPlans[0].reloadlyLocalAmount >= (operator.localMinAmount || 0) &&
+        data.reloadlyDataPlans[0].reloadlyLocalAmount <= (operator.localMaxAmount || Infinity);
 
       expect(isValid).toBe(true);
     });
 
-    it("should reject range-based amount outside limits", async () => {
+    it('should reject range-based amount outside limits', async () => {
       const mockReloadlyClient = {
         getOperatorProducts: vi.fn().mockResolvedValue({
           operatorId: 999,
-          operatorName: "Nigeria Data Range",
-          denominationType: "RANGE",
+          operatorName: 'Nigeria Data Range',
+          denominationType: 'RANGE',
           localMinAmount: 500,
-          localMaxAmount: 50_000,
+          localMaxAmount: 50000,
           localFixedAmounts: null,
         }),
       };
@@ -132,29 +128,27 @@ describe("PrizeCatalogue Validation", () => {
       (ReloadlyClient as any).mockImplementation(() => mockReloadlyClient);
 
       const data = {
-        name: "Over-limit Data",
-        tier: "tier2",
-        fulfilmentType: "data",
+        name: 'Over-limit Data',
+        tier: 'tier2',
+        fulfilmentType: 'data',
         reloadlyDataPlans: [
           {
-            network: "mtn",
+            network: 'mtn',
             reloadlyOperatorId: 999,
-            reloadlyLocalAmount: 100_000, // Exceeds max
+            reloadlyLocalAmount: 100000, // Exceeds max
           },
         ],
       };
 
       const operator = await mockReloadlyClient.getOperatorProducts(999);
       const isValid =
-        data.reloadlyDataPlans[0].reloadlyLocalAmount >=
-          (operator.localMinAmount || 0) &&
-        data.reloadlyDataPlans[0].reloadlyLocalAmount <=
-          (operator.localMaxAmount || Number.POSITIVE_INFINITY);
+        data.reloadlyDataPlans[0].reloadlyLocalAmount >= (operator.localMinAmount || 0) &&
+        data.reloadlyDataPlans[0].reloadlyLocalAmount <= (operator.localMaxAmount || Infinity);
 
       expect(isValid).toBe(false);
     });
 
-    it("should auto-populate operator IDs from network selection", () => {
+    it('should auto-populate operator IDs from network selection', () => {
       const networkOperatorMap = {
         mtn: 345,
         airtel: 646,
@@ -163,21 +157,20 @@ describe("PrizeCatalogue Validation", () => {
       };
 
       const data = {
-        name: "Multi-network Data",
-        tier: "tier1",
-        fulfilmentType: "data",
+        name: 'Multi-network Data',
+        tier: 'tier1',
+        fulfilmentType: 'data',
         reloadlyDataPlans: [
-          { network: "mtn", reloadlyLocalAmount: 5000 },
-          { network: "airtel", reloadlyLocalAmount: 5000 },
-          { network: "glo", reloadlyLocalAmount: 5000 },
+          { network: 'mtn', reloadlyLocalAmount: 5000 },
+          { network: 'airtel', reloadlyLocalAmount: 5000 },
+          { network: 'glo', reloadlyLocalAmount: 5000 },
         ],
       };
 
       // Simulate auto-population logic
       const populated = data.reloadlyDataPlans.map((plan) => ({
         ...plan,
-        reloadlyOperatorId:
-          networkOperatorMap[plan.network as keyof typeof networkOperatorMap],
+        reloadlyOperatorId: networkOperatorMap[plan.network as keyof typeof networkOperatorMap],
       }));
 
       expect(populated[0].reloadlyOperatorId).toBe(345);
@@ -185,22 +178,20 @@ describe("PrizeCatalogue Validation", () => {
       expect(populated[2].reloadlyOperatorId).toBe(647);
     });
 
-    it("should handle Reloadly API errors gracefully", async () => {
+    it('should handle Reloadly API errors gracefully', async () => {
       const mockReloadlyClient = {
-        getOperatorProducts: vi
-          .fn()
-          .mockRejectedValue(new Error("API request failed")),
+        getOperatorProducts: vi.fn().mockRejectedValue(new Error('API request failed')),
       };
 
       (ReloadlyClient as any).mockImplementation(() => mockReloadlyClient);
 
       const data = {
-        name: "Error Test Data",
-        tier: "tier1",
-        fulfilmentType: "data",
+        name: 'Error Test Data',
+        tier: 'tier1',
+        fulfilmentType: 'data',
         reloadlyDataPlans: [
           {
-            network: "mtn",
+            network: 'mtn',
             reloadlyOperatorId: 345,
             reloadlyLocalAmount: 5000,
           },
@@ -210,24 +201,24 @@ describe("PrizeCatalogue Validation", () => {
       try {
         await mockReloadlyClient.getOperatorProducts(345);
       } catch (err: any) {
-        expect(err.message).toBe("API request failed");
+        expect(err.message).toBe('API request failed');
       }
     });
 
-    it("should skip validation for non-data prizes", () => {
+    it('should skip validation for non-data prizes', () => {
       const data = {
-        name: "Airtime Prize",
-        tier: "tier1",
-        fulfilmentType: "airtime",
+        name: 'Airtime Prize',
+        tier: 'tier1',
+        fulfilmentType: 'airtime',
         reloadlyLocalAmount: 5000,
       };
 
       // Validation should only apply to data prizes
-      const shouldValidate = data.fulfilmentType === "data";
+      const shouldValidate = data.fulfilmentType === 'data';
       expect(shouldValidate).toBe(false);
     });
 
-    it("should skip validation when Reloadly is not configured", () => {
+    it('should skip validation when Reloadly is not configured', () => {
       // Simulate no Reloadly config
       const config = null;
       const shouldSkip = !config;

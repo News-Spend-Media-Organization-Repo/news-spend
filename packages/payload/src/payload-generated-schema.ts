@@ -7,24 +7,24 @@
  */
 
 import type {} from "@payloadcms/db-postgres";
-import { relations, sql } from "@payloadcms/db-postgres/drizzle";
 import {
-  type AnyPgColumn,
-  boolean,
-  foreignKey,
-  index,
-  integer,
-  jsonb,
-  numeric,
-  pgEnum,
   pgTable,
-  serial,
-  text,
-  timestamp,
+  index,
   uniqueIndex,
+  foreignKey,
   uuid,
   varchar,
+  timestamp,
+  serial,
+  integer,
+  numeric,
+  jsonb,
+  boolean,
+  type AnyPgColumn,
+  text,
+  pgEnum,
 } from "@payloadcms/db-postgres/drizzle/pg-core";
+import { sql, relations } from "@payloadcms/db-postgres/drizzle";
 export const enum_activities_type = pgEnum("enum_activities_type", [
   "point",
   "badge",
