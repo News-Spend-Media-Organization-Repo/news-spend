@@ -252,7 +252,8 @@ async function settleConversion(
       return { claimed: false, points: 0 };
     }
   } else {
-    // Nobody to pay and no offer to be paid for once: nothing to guard.
+    // Nobody to pay, or no offer to be paid for once: record it and stop here,
+    // so a payment can never happen without a successful claim.
     await payload.update({
       collection: "partner-conversions",
       id: conversion.id,
@@ -262,6 +263,7 @@ async function settleConversion(
         convertedAt: new Date().toISOString(),
       },
     });
+    return { claimed: true, points: 0 };
   }
 
   if (pointsToAward > 0 && userId) {

@@ -241,6 +241,7 @@
         "dotenv": "catalog:",
         "expo-server-sdk": "catalog:",
         "payload": "catalog:",
+        "pg": "catalog:",
         "react": "catalog:",
         "react-tweet": "catalog:",
         "zod": "catalog:",
@@ -248,6 +249,7 @@
       "devDependencies": {
         "@news-spend-media/config": "workspace:*",
         "@types/bun": "catalog:",
+        "@types/pg": "catalog:",
         "typescript": "catalog:",
       },
     },

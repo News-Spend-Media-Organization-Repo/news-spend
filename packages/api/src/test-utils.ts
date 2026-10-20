@@ -512,7 +512,7 @@ export function stubConversionClaims(
     if (query.sql.includes("UPDATE partner_conversions")) {
       const [partnerOrderId, conversionId] = query.params;
       const target = conversions.find((c) => c.id === conversionId);
-      if (target?.status !== "clicked") {
+      if (target?.status !== "clicked" && target?.status !== "failed") {
         return [];
       }
       target.status = "converted";

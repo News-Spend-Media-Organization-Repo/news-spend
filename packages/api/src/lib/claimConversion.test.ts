@@ -68,14 +68,29 @@ describe("claimConversion", () => {
     expect(drizzle.queries[0]?.params).toEqual([args.userId, args.contentId]);
   });
 
-  it("only moves a conversion that is still a click", async () => {
+  it("only moves a conversion that is still a click or was reported failed", async () => {
     const { payload, drizzle } = run(false);
 
     await claimConversion(payload as never, args);
 
     const update = updatesOf(drizzle.queries)[0];
-    expect(update?.sql).toContain("status = 'clicked'");
+    expect(update?.sql).toContain("status IN ('clicked', 'failed')");
     expect(update?.params).toEqual([args.partnerOrderId, args.conversionId]);
+  });
+
+  it("looks for a settled sibling by user, offer and this conversion, in that order", async () => {
+    const { payload, drizzle } = run(false);
+
+    await claimConversion(payload as never, args);
+
+    const check = drizzle.queries.find((q) =>
+      q.sql.includes("SELECT 1 FROM partner_conversions")
+    );
+    expect(check?.params).toEqual([
+      args.userId,
+      args.contentId,
+      args.conversionId,
+    ]);
   });
 
   it("is not a claim when the conversion was no longer a click", async () => {

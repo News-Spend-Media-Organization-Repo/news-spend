@@ -153,7 +153,7 @@ suite("claimConversion, against a real database", () => {
     expect(results).toEqual([true, true, true]);
   });
 
-  test("does not claim a conversion that is no longer a click", async () => {
+  test("claims a conversion the partner first reported failed", async () => {
     const userId = randomUUID();
     const contentId = randomUUID();
     const id = await addConversion(userId, contentId);
@@ -164,7 +164,22 @@ suite("claimConversion, against a real database", () => {
 
     expect(
       await claimConversion(payload, { conversionId: id, userId, contentId })
+    ).toBe(true);
+    expect(await statusOf(id)).toBe("converted");
+  });
+
+  test("does not claim a conversion that is already settled", async () => {
+    const userId = randomUUID();
+    const contentId = randomUUID();
+    const id = await addConversion(userId, contentId);
+    await pool.query(
+      "UPDATE partner_conversions SET status = 'awarded' WHERE id = $1",
+      [id]
+    );
+
+    expect(
+      await claimConversion(payload, { conversionId: id, userId, contentId })
     ).toBe(false);
-    expect(await statusOf(id)).toBe("failed");
+    expect(await statusOf(id)).toBe("awarded");
   });
 });

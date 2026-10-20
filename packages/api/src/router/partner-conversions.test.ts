@@ -1255,3 +1255,56 @@ describe("partnerConversionRouter: a claim lost to a concurrent settlement", () 
     expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
   });
 });
+
+describe("partnerConversionRouter.webhook: failed, then success", () => {
+  const CLICK = "clk_abc1234567890123";
+
+  it("still pays a click the partner first reported failed, once", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+        activities: [],
+      },
+    });
+    const send = (status: "failed" | "success") =>
+      call(
+        partnerConversionRouter.webhook,
+        { clickId: CLICK, status },
+        {
+          context: mockContext({ payload, headers: signedHeaders({ status }) }),
+        }
+      );
+
+    expect(await send("failed")).toMatchObject({ status: "failed" });
+    const result = await send("success");
+
+    expect(result).toMatchObject({ status: "converted", pointsAwarded: 50 });
+    expect(payload.docs("activities")).toHaveLength(1);
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("awarded");
+  });
+});
+
+describe("partnerConversionRouter.webhook: a conversion with no user", () => {
+  it("settles without a claim and credits nothing", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion({ user: null })],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+        activities: [],
+      },
+    });
+
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: "clk_abc1234567890123", status: "success" },
+      { context: mockContext({ payload, headers: signedHeaders() }) }
+    );
+
+    expect(result).toMatchObject({ status: "converted", pointsAwarded: 0 });
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("converted");
+  });
+});
