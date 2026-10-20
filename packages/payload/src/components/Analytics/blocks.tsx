@@ -12,6 +12,7 @@ import type {
   GiveawayAttention,
   GiveawayReport,
   GiveawayState,
+  NewsDay,
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
@@ -52,8 +53,20 @@ const SURFACE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
+export function NewsKpis({
+  summary,
+  daily,
+}: {
+  summary: Summary;
+  /** The period's daily series, for the line under each figure. */
+  daily?: NewsDay[];
+}): ReactNode {
   const { current, previous } = summary;
+  const days = daily?.length ?? 0;
+  const trend = (name: string, pick: (day: NewsDay) => number) => ({
+    trend: daily?.map(pick),
+    trendLabel: `${name}, last ${days} days`,
+  });
   const versus = "vs previous period";
   return (
     <div className="ana-grid ana-kpis">
@@ -63,6 +76,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.views)}
+        {...trend("Views", (d) => d.views)}
       />
       <Kpi
         change={describeChange(current.reads, previous.reads)}
@@ -70,6 +84,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.reads)}
+        {...trend("Qualified reads", (d) => d.reads)}
       />
       <Kpi
         label="Read rate"
@@ -89,6 +104,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.impressions)}
+        {...trend("Impressions", (d) => d.impressions)}
       />
       <Kpi
         change={describeChange(current.shares, previous.shares)}
@@ -121,6 +137,7 @@ export function FunnelPanel({
     >
       <DayChart
         days={days}
+        label="Reader funnel"
         series={[
           {
             key: "impressions",
@@ -143,6 +160,7 @@ export function StepsPanel({ current }: { current: NewsMetrics }): ReactNode {
       title="From impression to read"
     >
       <Bars
+        label="From impression to read"
         rows={[
           { label: "Impressions", value: current.impressions },
           {
@@ -173,6 +191,7 @@ export function SurfacesPanel({
       title="Impressions by surface"
     >
       <Bars
+        label="Impressions by surface"
         rows={surfaces.map((s) => ({
           label: SURFACE_LABELS[s.surface] ?? s.surface,
           value: s.impressions,
@@ -190,6 +209,7 @@ export function PlatformsPanel({
   return (
     <Panel hint="Views by platform" tag="reported" title="Platforms">
       <Bars
+        label="Platforms"
         rows={platforms.map((p) => ({
           label: platformLabel(p.platform),
           value: p.views,
@@ -212,6 +232,7 @@ export function EngagementPanel({
       title="Engagement"
     >
       <Bars
+        label="Engagement"
         rows={[
           { label: "Likes", value: engagement.likes },
           { label: "Dislikes", value: engagement.dislikes },
@@ -223,6 +244,7 @@ export function EngagementPanel({
         <>
           <div className="ana-muted">Shared through</div>
           <Bars
+            label="Shared through"
             rows={engagement.shareMethods.map((m) => ({
               label: m.method,
               value: m.shares,
@@ -292,6 +314,7 @@ export function CategoriesPanel({
   return (
     <Panel hint="Views by category" tag="reported" title="Top categories">
       <Bars
+        label="Top categories"
         rows={categories.map((c) => ({ label: c.category, value: c.views }))}
       />
     </Panel>
@@ -305,7 +328,7 @@ export function ArticleReportBody({
 }): ReactNode {
   return (
     <>
-      <NewsKpis summary={report.summary} />
+      <NewsKpis daily={report.daily} summary={report.summary} />
       <div className="ana-grid ana-two">
         <FunnelPanel days={report.daily} />
         <StepsPanel current={report.summary.current} />
@@ -378,6 +401,7 @@ export function OutcomesPanel({
     >
       <Bars
         empty="No clicks in this period."
+        label="Outcomes"
         rows={[
           {
             label: postbacksExpected
@@ -403,6 +427,7 @@ export function PartnerDailyPanel({ days }: { days: PartnerDay[] }): ReactNode {
     >
       <DayChart
         days={days}
+        label="Clicks and conversions"
         series={[
           { key: "clicks", label: "Clicks", color: SERIES_COLORS.deep },
           {
@@ -489,6 +514,7 @@ export function ShopPanel({
     >
       <Bars
         empty="No shop activity in this period."
+        label="Shop tab"
         rows={[
           { label: "Views", value: shop.views },
           { label: "Clicks", value: shop.clicks },
@@ -570,6 +596,7 @@ export function GrowthPanel({
     >
       <DayChart
         days={days}
+        label="Audience growth"
         series={[
           {
             key: "newUsers",
@@ -594,11 +621,13 @@ export function DevicesPanel({
       <div className="ana-muted">By device type</div>
       <Bars
         empty="No active push tokens."
+        label="By device type"
         rows={byType.map((d) => ({ label: d.label, value: d.tokens }))}
       />
       <div className="ana-muted">By app version</div>
       <Bars
         empty="No active push tokens."
+        label="By app version"
         rows={byVersion.map((d) => ({ label: d.label, value: d.tokens }))}
       />
     </Panel>
@@ -618,6 +647,7 @@ export function CountriesPanel({
     >
       <Bars
         empty="No country recorded yet."
+        label="Top countries"
         rows={countries.map((c) => ({ label: c.country, value: c.users }))}
       />
     </Panel>
@@ -637,6 +667,7 @@ export function FeedbackPanel({
     >
       <Bars
         empty="No feedback in this period."
+        label="Feedback"
         rows={feedback.byType.map((t) => ({
           label: t.type,
           value: t.count,
@@ -841,6 +872,7 @@ export function GiveawayTicketsPanel({
       <Panel hint="Valid tickets by day" tag="observed" title="Tickets">
         <DayChart
           days={report.ticketDaily}
+          label="Tickets"
           series={[
             { key: "issued", label: "Issued", color: SERIES_COLORS.deep },
             { key: "entrants", label: "Entrants", color: SERIES_COLORS.gold },
@@ -864,6 +896,7 @@ export function GiveawayEngagementsPanel({
     >
       <DayChart
         days={report.engagements.days}
+        label="Engagements by source"
         series={[
           { key: "partner", label: "Partner item", color: SERIES_COLORS.deep },
           {
@@ -894,6 +927,7 @@ export function GiveawayPoolPanel({
     >
       <Bars
         empty="The pool locks when the draw begins; nothing to show before then."
+        label="Pool composition"
         rows={pool.map((t) => ({
           label: t.tier,
           value: t.candidates,
@@ -948,6 +982,7 @@ export function GiveawayWinnersPanel({
     >
       <Bars
         empty="No winners yet."
+        label="Winners"
         rows={report.winners.byTier.map((t) => ({
           label: t.tier,
           value: t.winners,
@@ -956,6 +991,7 @@ export function GiveawayWinnersPanel({
       <div className="ana-muted">By claim</div>
       <Bars
         empty="No winners yet."
+        label="By claim"
         rows={report.winners.byClaim.map((s) => ({
           label: s.status,
           value: s.winners,
@@ -964,6 +1000,7 @@ export function GiveawayWinnersPanel({
       <div className="ana-muted">By fulfilment</div>
       <Bars
         empty="No winners yet."
+        label="By fulfilment"
         rows={report.winners.byFulfilment.map((s) => ({
           label: s.status,
           value: s.winners,
@@ -1014,6 +1051,7 @@ export function GiveawayFulfilmentPanel({
     >
       <Bars
         empty="Nothing dispatched yet."
+        label="Fulfilment"
         rows={[
           { label: "Sent", value: fulfilment.sent },
           { label: "Already sent", value: fulfilment.alreadySent },
@@ -1045,6 +1083,7 @@ export function GiveawayAttentionPanel({
     >
       <Bars
         empty="Nothing needs attention."
+        label="Needs attention"
         rows={[
           { label: "On hold, account flagged", value: attention.onHold },
           {
@@ -1172,6 +1211,7 @@ export function PostbackHealthPanel({
       ) : (
         <>
           <Bars
+            label="Postbacks received"
             rows={[
               { label: "Accepted", value: health.accepted },
               {
@@ -1288,6 +1328,7 @@ export function DiscoverPanel({
       >
         <DayChart
           days={days}
+          label="Opens per day"
           series={[
             {
               key: "openers",
@@ -1301,6 +1342,7 @@ export function DiscoverPanel({
       <div className="ana-grid ana-even">
         <Panel hint="Times a section was shown" tag="reported" title="Sections">
           <Bars
+            label="Sections"
             rows={sections.map((s) => ({
               label: DISCOVER_SECTION_LABELS[s.section] ?? s.section,
               value: s.views,
@@ -1310,6 +1352,7 @@ export function DiscoverPanel({
         </Panel>
         <Panel hint="What was tapped" tag="reported" title="What people open">
           <Bars
+            label="What people open"
             rows={items.map((i) => ({
               label: DISCOVER_ITEM_LABELS[i.type] ?? i.type,
               value: i.opens,

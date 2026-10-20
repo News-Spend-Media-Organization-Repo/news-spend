@@ -270,7 +270,7 @@ export async function AnalyticsPageView(
             }
           />
           <Notices notices={newsNotices(range, quality)} />
-          <NewsKpis summary={summary} />
+          <NewsKpis daily={daily} summary={summary} />
           <div className="ana-grid ana-two">
             <FunnelPanel days={daily} />
             <SurfacesPanel surfaces={surfaces} />

@@ -70,6 +70,7 @@
     "@react-email/editor": "^1.7.11",
     "@sentry/nextjs": "catalog:",
     "@tailwindcss/postcss": "catalog:",
+    "@tanstack/charts": "1.1.0",
     "@tiptap/react": "^3.17.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
