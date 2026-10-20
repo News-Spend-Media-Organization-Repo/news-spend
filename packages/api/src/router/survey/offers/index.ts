@@ -7,6 +7,7 @@ import {
   CPXSurveyResponseSchema,
 } from "../schemas";
 import { getUserCountryCode, getUserIpAddress } from "../utils";
+import { fallbackOffer, rankOffers, withTimeout } from "./ranking";
 import {
   OfferInputSchema,
   RAPIDO_API_KEY,
@@ -15,6 +16,10 @@ import {
   THEOREM_REACH_URL,
   type UnifiedOffer,
 } from "./schemas";
+import { readSurveySettings } from "./settings";
+
+/** A provider that does not answer must not hold the whole survey tab. */
+const PROVIDER_TIMEOUT_MS = 5000;
 
 const mockOffers: UnifiedOffer[] = [
   {
@@ -276,28 +281,77 @@ export const offersRouter = {
 
       // @ts-expect-error
       const userIp = getUserIpAddress(request);
-      const countryCode = await getUserCountryCode(userIp);
+      const countryCode = (await getUserCountryCode(userIp)).toUpperCase();
       const userAgent = request?.headers.get("user-agent") || "";
+      const settings = await readSurveySettings(payload);
 
-      const [cpxOffers, rapidoOffers, theoremOffers] = await Promise.all([
-        fetchCPXOffers(
-          user.id,
-          user.email || "",
-          user.username || "",
-          countryCode,
-          userIp,
-          userAgent,
-          limit
-        ),
-        fetchRapidoOffers(user.id, countryCode, userIp, limit),
-        fetchTheoremOffers(user.id, userIp, countryCode, limit),
-      ]);
+      const servesCountry = (provider: keyof typeof settings.providers) => {
+        const setting = settings.providers[provider];
+        return (
+          setting.enabled &&
+          (setting.countries.length === 0 ||
+            setting.countries.includes(countryCode))
+        );
+      };
 
-      const allOffers = [...cpxOffers, ...rapidoOffers, ...theoremOffers];
+      const timed = (
+        provider: string,
+        pending: Promise<UnifiedOffer[]>
+      ): Promise<UnifiedOffer[]> =>
+        withTimeout(pending, PROVIDER_TIMEOUT_MS).then((offers) => {
+          if (offers === null) {
+            console.warn(`Survey provider ${provider} timed out`);
+          }
+          return offers ?? [];
+        });
 
-      allOffers.sort((a, b) => b.points - a.points);
+      const fetches: Promise<UnifiedOffer[]>[] = [];
 
-      return allOffers.slice(0, limit);
+      if (servesCountry("cpx")) {
+        fetches.push(
+          timed(
+            "cpx",
+            fetchCPXOffers(
+              user.id,
+              user.email || "",
+              user.username || "",
+              countryCode,
+              userIp,
+              userAgent,
+              limit
+            )
+          )
+        );
+      }
+      if (servesCountry("rapido")) {
+        fetches.push(
+          timed(
+            "rapido",
+            fetchRapidoOffers(user.id, countryCode, userIp, limit)
+          )
+        );
+      }
+      if (servesCountry("theorem")) {
+        fetches.push(
+          timed(
+            "theorem",
+            fetchTheoremOffers(user.id, userIp, countryCode, limit)
+          )
+        );
+      }
+
+      const ranked = rankOffers(
+        (await Promise.all(fetches)).flat(),
+        settings,
+        limit
+      );
+
+      if (ranked.length > 0) {
+        return ranked;
+      }
+
+      const wall = fallbackOffer(settings, user.id);
+      return wall ? [wall] : [];
     }),
 };
 

@@ -1,6 +1,6 @@
 import z from "zod";
 
-const PROVIDERS = ["cpx", "rapido", "theorem"] as const;
+const PROVIDERS = ["cpx", "rapido", "theorem", "bitlabs"] as const;
 export type OfferProvider = (typeof PROVIDERS)[number];
 
 export const UnifiedOfferSchema = z.object({

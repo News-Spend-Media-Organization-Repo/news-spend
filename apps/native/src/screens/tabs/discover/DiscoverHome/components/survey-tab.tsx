@@ -24,12 +24,14 @@ const PROVIDER_COLORS: Record<string, string> = {
   cpx: "#4CAF50",
   rapido: "#2196F3",
   theorem: "#FF9800",
+  bitlabs: "#7C3AED",
 };
 
 const PROVIDER_NAMES: Record<string, string> = {
   cpx: "CPX",
   rapido: "Rapido",
   theorem: "Theorem",
+  bitlabs: "BitLabs",
 };
 
 export function SurveyTab() {
@@ -44,9 +46,8 @@ export function SurveyTab() {
     })
   );
 
-  const offers = ((surveyQuery.data ?? []) as Offer[]).sort(
-    (a, b) => b.points - a.points
-  );
+  // Ranking happens on the server; keep its order.
+  const offers = (surveyQuery.data ?? []) as Offer[];
   const topRatedSurvey = offers.length ? offers[0] : null;
   const otherSurveys = offers.slice(1);
 
@@ -117,7 +118,9 @@ export function SurveyTab() {
             {item.description || `${item.estimatedTime || "?"} mins`}
           </Text>
           <Text className="font-bold text-lg">
-            {item.points} pt{item.points === 1 ? "" : "s"}
+            {item.points === 0
+              ? "Earn points"
+              : `${item.points} pt${item.points === 1 ? "" : "s"}`}
           </Text>
         </Card.Body>
         <Card.Footer>
