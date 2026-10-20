@@ -7,6 +7,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { useSnapshot } from "valtio";
 
 import { ScreenHeader } from "#/components";
 import { Image } from "#/components/heroui/image";
@@ -15,20 +16,30 @@ import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { orpc } from "#/lib/orpc";
+import { authState } from "#/state/auth";
 import { getImageData } from "#/utils/getImageData";
+
+export const LUCKY_WALL_EMPTY_MESSAGE =
+  "You've done every Featured Offer for now. New ones are added regularly.";
 
 function LuckyAppWall() {
   const _navigation = useNavigation();
 
-  const queryOptions = orpc.partnerContent.random.queryOptions({
-    input: {
-      placement: ["lucky-app-wall"],
-      type: ["app", "book", "survey"],
-      limit: 10,
-    },
+  // Per user: the list hides what this person has completed and marks what
+  // they started, so a cached answer belongs to one account.
+  const userId = useSnapshot(authState).user?.id ?? null;
+  const input = {
+    placement: ["lucky-app-wall" as const],
+    type: ["app" as const, "book" as const, "survey" as const],
+    limit: 10,
+  };
+  const queryOptions = orpc.partnerContent.filtered.queryOptions({
+    input,
+    queryKey: [...orpc.partnerContent.filtered.queryKey({ input }), { userId }],
   });
 
-  const { data: items, isPending, refetch } = useQuery(queryOptions);
+  const { data, isPending, refetch } = useQuery(queryOptions);
+  const items = data?.docs;
 
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch);
 
@@ -37,7 +48,7 @@ function LuckyAppWall() {
   const emptyList = useCallback(
     () => (
       <View className="h-full items-center justify-center">
-        <Text className="text-base">No offers available</Text>
+        <Text className="text-base">{LUCKY_WALL_EMPTY_MESSAGE}</Text>
       </View>
     ),
     []
@@ -70,7 +81,7 @@ function LuckyAppWall() {
     return (
       <View
         className="flex-row items-start gap-2 p-3"
-        onTouchEnd={() => handleClick(item)}
+        onTouchEnd={() => handleClick(item, "lucky-app-wall")}
       >
         <Image
           className="h-20 w-20 rounded-lg"
@@ -90,6 +101,11 @@ function LuckyAppWall() {
           >
             {item.description}
           </Text>
+          {"userState" in item && item.userState === "pending" ? (
+            <Text className="self-start rounded-full bg-gray-200 px-2 py-1 text-gray-50 text-xs">
+              Pending confirmation
+            </Text>
+          ) : null}
         </View>
       </View>
     );

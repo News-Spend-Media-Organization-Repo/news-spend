@@ -1,11 +1,12 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
 import { Platform } from "react-native";
 
 import { orpc } from "#/lib/orpc";
 import { navigate } from "#/navigation/navigationUtils";
+import type { AdPlacement } from "#/state/adManager";
 import { authState } from "#/state/auth";
 import { openStoreLink } from "#/utils/openStoreLink";
 
@@ -29,9 +30,30 @@ export function usePartnerClick() {
   const trackClickMutation = useMutation(
     orpc.partnerConversions.trackClick.mutationOptions()
   );
+  const queryClient = useQueryClient();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
 
-  const handleClick = async (item: PartnerContent) => {
+  /**
+   * A tap can change what an earn surface should show: a recorded click turns
+   * an offer "pending", and an award hides it. Whatever the outcome, the lists
+   * are re-read rather than left to be stale until their next refetch.
+   */
+  const refreshOfferLists = () =>
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: orpc.partnerContent.filtered.key(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: orpc.activity.pendingOffers.key(),
+      }),
+    ]);
+
+  /**
+   * `surface` is the placement the item was requested with, not where it is
+   * drawn. The server uses it to decide whether the tap may pay out: only an
+   * offer placement does, an ad placement records the click and nothing else.
+   */
+  const handleClick = async (item: PartnerContent, surface: AdPlacement) => {
     if (loadingItemId === item.id) {
       return;
     }
@@ -91,11 +113,14 @@ export function usePartnerClick() {
        */
       setLoadingItemId(item.id);
       trackClickMutation
-        .mutateAsync({ partnerContentId: item.id, clickId })
+        .mutateAsync({ partnerContentId: item.id, clickId, surface })
         .catch((error) => {
           console.error("Failed to track click:", error);
         })
-        .finally(() => setLoadingItemId(null));
+        .finally(() => {
+          setLoadingItemId(null);
+          refreshOfferLists().catch(() => undefined);
+        });
     }
 
     const openInApp = (target: string) =>
