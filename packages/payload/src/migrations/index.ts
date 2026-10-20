@@ -64,6 +64,7 @@ import * as migration_20261014_080850_featured_until from './20261014_080850_fea
 import * as migration_20261014_191943 from './20261014_191943';
 import * as migration_20261017_161124_faq from './20261017_161124_faq';
 import * as migration_20261017_161125_faq_seed from './20261017_161125_faq_seed';
+import * as migration_20261020_080105_guest_conversions from './20261020_080105_guest_conversions';
 
 export const migrations = [
   {
@@ -395,5 +396,10 @@ export const migrations = [
     up: migration_20261017_161125_faq_seed.up,
     down: migration_20261017_161125_faq_seed.down,
     name: '20261017_161125_faq_seed',
+  },
+  {
+    up: migration_20261020_080105_guest_conversions.up,
+    down: migration_20261020_080105_guest_conversions.down,
+    name: '20261020_080105_guest_conversions'
   },
 ];

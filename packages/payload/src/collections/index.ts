@@ -10,6 +10,7 @@ export { EmailTemplates } from "./EmailTemplates";
 export { FaqCategories } from "./FaqCategories";
 export { Faqs } from "./Faqs";
 export { default as Feedback } from "./Feedback";
+export { default as GuestConversions } from "./GuestConversions";
 export {
   GiveawayAccountFlags,
   GiveawayAuditLog,

@@ -24,10 +24,9 @@ import { anonymous, emailOTP, openAPI } from "better-auth/plugins";
 import pg from "pg";
 import z from "zod";
 import type { $ZodIssue } from "zod/v4/core";
-
+import { recordGuestConversion } from "./guestConversions";
 import { generateOTPForRequest } from "./otp";
 import { removeSignedOutPushToken } from "./pushTokens";
-
 /**
  * better-auth reads this in seconds. It was written as `60 * 60 * 1000`, a
  * millisecond hour, which made every emailed code valid for about 41 days.
@@ -420,6 +419,7 @@ export const auth = betterAuth({
           },
         },
       },
+      onLinkAccount: (data) => recordGuestConversion(pool, data),
     }),
     emailOTP({
       // Six digits for builds that ask, four for every build up to 2.6.1,
