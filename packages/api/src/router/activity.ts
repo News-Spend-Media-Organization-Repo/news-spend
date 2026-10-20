@@ -1,3 +1,4 @@
+import { isOfferPlacement } from "@news-spend-media/payload/lib/earnPlacements";
 import {
   activities,
   enum_activities_action,
@@ -7,6 +8,11 @@ import type { Where } from "payload";
 import z from "zod";
 
 import { protectedNoGuestProcedure, protectedProcedure } from "../index";
+import {
+  effectiveConfirmationDays,
+  type PendingOffer,
+  pendingStateFor,
+} from "../lib/pendingOffers";
 import { ActivityCreateInput, addClientActivity } from "../shared/activity";
 
 const ActivityByUserId = z.object({
@@ -119,9 +125,160 @@ const byNewsId = protectedProcedure
     return result.docs;
   });
 
+type Doc = {
+  id: string | number;
+  title?: string;
+  companyName?: string;
+  confirmationDays?: number | null;
+};
+
+const PENDING_OFFERS_LIMIT = 50;
+const PENDING_SCAN_LIMIT = 500;
+
+const relationId = (value: unknown): string | null => {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value && typeof value === "object" && "id" in value) {
+    const { id } = value as { id: unknown };
+    return typeof id === "string" || typeof id === "number" ? String(id) : null;
+  }
+  return null;
+};
+
+/**
+ * Offers the user tapped but has not been paid for yet. Read from
+ * partner-conversions only; nothing is written to activities.
+ */
+const pendingOffers = protectedNoGuestProcedure.handler(
+  async ({ context }): Promise<PendingOffer[]> => {
+    const { user, payload } = context;
+    const now = new Date();
+
+    const settled = await payload.find({
+      collection: "partner-conversions",
+      where: {
+        and: [
+          { user: { equals: user.id } },
+          { status: { in: ["converted", "awarded"] } },
+        ],
+      },
+      depth: 0,
+      limit: PENDING_SCAN_LIMIT,
+      pagination: false,
+    });
+    const settledContent = new Set<string>();
+    for (const doc of settled.docs) {
+      const id = relationId(doc.content);
+      if (id) {
+        settledContent.add(id);
+      }
+    }
+
+    const open = await payload.find({
+      collection: "partner-conversions",
+      where: {
+        and: [
+          { user: { equals: user.id } },
+          { status: { in: ["clicked", "failed"] } },
+        ],
+      },
+      sort: "-clickedAt",
+      depth: 1,
+      limit: PENDING_SCAN_LIMIT,
+      pagination: false,
+    });
+
+    // depth 1 populates relationships; a plain id means it was not resolved,
+    // so look those up once rather than treating them as deleted.
+    const unresolved = (field: "partner" | "content") =>
+      open.docs.flatMap((doc) =>
+        typeof doc[field] === "string" ? [doc[field] as string] : []
+      );
+    const lookup = async (
+      collection: "partners" | "partner-content",
+      ids: string[]
+    ) => {
+      const unique = [...new Set(ids)];
+      if (unique.length === 0) {
+        return new Map<string, Doc>();
+      }
+      const found = await payload.find({
+        collection,
+        where: { id: { in: unique } },
+        depth: 0,
+        limit: unique.length,
+        pagination: false,
+      });
+      return new Map<string, Doc>(found.docs.map((d) => [String(d.id), d]));
+    };
+    const partnersById = await lookup("partners", unresolved("partner"));
+    const contentById = await lookup("partner-content", unresolved("content"));
+
+    const seen = new Set<string>();
+    const offers: PendingOffer[] = [];
+    for (const doc of open.docs) {
+      if (offers.length >= PENDING_OFFERS_LIMIT) {
+        break;
+      }
+      if (!(doc.surface && isOfferPlacement(doc.surface))) {
+        continue;
+      }
+      const contentId = relationId(doc.content);
+      // Docs are newest first, so the first sighting is the latest click.
+      if (!contentId || seen.has(contentId)) {
+        continue;
+      }
+      seen.add(contentId);
+      if (settledContent.has(contentId)) {
+        continue;
+      }
+
+      const content =
+        doc.content && typeof doc.content === "object"
+          ? doc.content
+          : contentById.get(contentId);
+      if (!content?.title) {
+        continue;
+      }
+      const partnerId = relationId(doc.partner);
+      const partner =
+        doc.partner && typeof doc.partner === "object"
+          ? doc.partner
+          : partnerId
+            ? partnersById.get(partnerId)
+            : undefined;
+
+      const state = pendingStateFor({
+        status: doc.status,
+        clickedAt: doc.clickedAt,
+        convertedAt: doc.convertedAt,
+        confirmationDays: partner?.confirmationDays,
+        now,
+      });
+      if (state === "hidden") {
+        continue;
+      }
+
+      offers.push({
+        contentId,
+        title: content.title,
+        partnerName: partner?.companyName ?? null,
+        state,
+        expectedWithinDays: effectiveConfirmationDays(
+          partner?.confirmationDays
+        ),
+        clickedAt: doc.clickedAt,
+      });
+    }
+    return offers;
+  }
+);
+
 export const activityRouter = {
   add: addActivity,
   totalPoints,
   byUserId,
   byNewsId,
+  pendingOffers,
 };

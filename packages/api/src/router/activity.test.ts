@@ -506,3 +506,186 @@ describe("activity.byUserId", () => {
     });
   });
 });
+
+describe("activity.pendingOffers", () => {
+  const hoursAgo = (h: number) =>
+    new Date(Date.now() - h * 60 * 60 * 1000).toISOString();
+
+  function conversion(overrides: Doc = {}): Doc {
+    return {
+      id: "cv1",
+      user: "user-1",
+      partner: "partner-1",
+      content: "content-1",
+      surface: "points-mall-apps",
+      status: "clicked",
+      clickedAt: hoursAgo(1),
+      ...overrides,
+    };
+  }
+
+  function pendingContext({
+    conversions,
+    user = authedUser,
+    partners = [{ id: "partner-1", companyName: "Acme", confirmationDays: 3 }],
+    partnerContent = [content()],
+  }: {
+    conversions: Doc[];
+    user?: typeof authedUser | typeof guestUser;
+    partners?: Doc[];
+    partnerContent?: Doc[];
+  }) {
+    const payload = createFakePayload({
+      collections: {
+        users: [{ id: user.id }],
+        partners,
+        "partner-content": partnerContent,
+        "partner-conversions": conversions,
+      },
+    });
+    return mockContext({ user: user as never, payload });
+  }
+
+  it("returns one entry per offer, from the latest click", async () => {
+    const newest = hoursAgo(2);
+    const ctx = pendingContext({
+      conversions: [
+        conversion({ id: "old", clickedAt: hoursAgo(10) }),
+        conversion({ id: "new", clickedAt: newest }),
+      ],
+    });
+    const result = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      clickedAt: newest,
+      contentId: "content-1",
+      title: "A promotion",
+      state: "pending",
+    });
+  });
+
+  it("excludes ad-surface and null-surface clicks", async () => {
+    const ctx = pendingContext({
+      conversions: [
+        conversion({ id: "a", surface: "news-feed" }),
+        conversion({ id: "b", surface: null }),
+        conversion({ id: "c", surface: undefined }),
+      ],
+    });
+    const result = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(result).toEqual([]);
+  });
+
+  it("excludes an offer that has a settled conversion", async () => {
+    const ctx = pendingContext({
+      conversions: [
+        conversion({ id: "a", clickedAt: hoursAgo(1) }),
+        conversion({ id: "b", status: "awarded", clickedAt: hoursAgo(30) }),
+      ],
+    });
+    const result = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(result).toEqual([]);
+  });
+
+  it("ignores other users' conversions", async () => {
+    const ctx = pendingContext({
+      conversions: [conversion({ user: "someone-else" })],
+    });
+    expect(
+      await call(activityRouter.pendingOffers, undefined, { context: ctx })
+    ).toEqual([]);
+  });
+
+  it("reads the window from the partner and flags a lapsed one as not_confirmed", async () => {
+    const ctx = pendingContext({
+      conversions: [conversion({ clickedAt: hoursAgo(24 * 4) })],
+    });
+    const [offer] = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(offer).toMatchObject({
+      state: "not_confirmed",
+      partnerName: "Acme",
+      expectedWithinDays: 3,
+    });
+  });
+
+  it("still returns an entry when the partner was deleted", async () => {
+    const ctx = pendingContext({ conversions: [conversion()], partners: [] });
+    const [offer] = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(offer).toMatchObject({
+      partnerName: null,
+      expectedWithinDays: 7,
+      state: "pending",
+    });
+  });
+
+  it("skips a conversion whose content was deleted", async () => {
+    const ctx = pendingContext({
+      conversions: [conversion()],
+      partnerContent: [],
+    });
+    expect(
+      await call(activityRouter.pendingOffers, undefined, { context: ctx })
+    ).toEqual([]);
+  });
+
+  it("handles populated partner and content objects", async () => {
+    const ctx = pendingContext({
+      partners: [],
+      partnerContent: [],
+      conversions: [
+        conversion({
+          partner: {
+            id: "partner-1",
+            companyName: "Acme",
+            confirmationDays: 2,
+          },
+          content: { id: "content-9", title: "Populated" },
+        }),
+      ],
+    });
+    const [offer] = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(offer).toMatchObject({
+      contentId: "content-9",
+      title: "Populated",
+      partnerName: "Acme",
+      expectedWithinDays: 2,
+    });
+  });
+
+  it("orders newest first", async () => {
+    const ctx = pendingContext({
+      partnerContent: [
+        content(),
+        content({ id: "content-2", title: "Second" }),
+      ],
+      conversions: [
+        conversion({ id: "a", content: "content-1", clickedAt: hoursAgo(5) }),
+        conversion({ id: "b", content: "content-2", clickedAt: hoursAgo(1) }),
+      ],
+    });
+    const result = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(result.map((r) => r.contentId)).toEqual(["content-2", "content-1"]);
+  });
+
+  it("rejects a guest", async () => {
+    const ctx = pendingContext({ conversions: [], user: guestUser });
+    const error = await expectError(
+      call(activityRouter.pendingOffers, undefined, { context: ctx })
+    );
+    expect(error).toBeDefined();
+  });
+});
