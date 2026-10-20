@@ -18,7 +18,7 @@ export const entries2026: Entry[] = [
           "The Points page shows where Dream Points are issued, spent and held, including the largest single grants.",
           "The Retention page shows whether new accounts start reading, and whether new devices come back.",
           "Top articles are ranked by unique readers, and you can change the ranking from the page.",
-          "The analytics pages now show daily charts, so you can see the shape of a period as well as its totals.",
+          "Charts on the analytics pages were rebuilt: hover a bar for the exact value, and the key figures carry a small trend line.",
           "Guest events records when a guest account is created and when it becomes a registered user.",
         ],
       },
@@ -27,6 +27,8 @@ export const entries2026: Entry[] = [
         items: [
           "Click-through now counts a device once per article it was shown, so it can no longer pass 100%. It is not comparable with earlier weeks.",
           "Survey, news and partner-content points cannot be saved above 5,000.",
+          "The News analytics page has a Direct opens figure: views that did not follow an impression of the article on the same device.",
+          "The Analytics pages now show the admin sidebar and header; before, you had to go back to a collection to see the sidebar.",
         ],
       },
       {

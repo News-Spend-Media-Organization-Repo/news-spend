@@ -1,6 +1,7 @@
-import { describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { entries, latestEntry } from "../src/components/WhatsNew/entries";
 import type { Entry } from "../src/components/WhatsNew/types";
@@ -149,12 +150,116 @@ describe("Whats new sidebar link", () => {
 });
 
 describe("Whats new marker", () => {
+  const originalStorage = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "localStorage"
+  );
+
+  afterEach(() => {
+    if (originalStorage) {
+      Object.defineProperty(globalThis, "localStorage", originalStorage);
+    } else {
+      Reflect.deleteProperty(globalThis, "localStorage");
+    }
+  });
+
+  const withStorage = (value: string | null) => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: () => value,
+        setItem: () => undefined,
+      },
+    });
+  };
+
+  const withoutStorage = () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get: () => {
+        throw new Error("storage is unavailable");
+      },
+    });
+  };
+
   test("knows when the newest entry is unread", () => {
     expect(whatsNew.isNewestUnread("2026-10-20", "2026-10-19")).toBe(true);
     expect(whatsNew.isNewestUnread("2026-10-20", "2026-10-20")).toBe(false);
     expect(whatsNew.isNewestUnread("2026-10-20", "2026-10-21")).toBe(false);
     expect(whatsNew.isNewestUnread("2026-10-20", null)).toBe(true);
     expect(whatsNew.isNewestUnread("2026-10-20", "not a date")).toBe(true);
+  });
+
+  test("hides the dot once the stored date catches up, and shows it when older", () => {
+    withStorage("2026-10-20");
+    expect(whatsNew.shouldShowMarker("2026-10-20", "admin-1")).toBe(false);
+
+    withStorage("2026-10-19");
+    expect(whatsNew.shouldShowMarker("2026-10-20", "admin-1")).toBe(true);
+  });
+
+  test("shows the dot when storage is unavailable", () => {
+    withoutStorage();
+    expect(whatsNew.readLastSeen("admin-1")).toBeNull();
+    expect(whatsNew.shouldShowMarker("2026-10-20", "admin-1")).toBe(true);
+    expect(() =>
+      whatsNew.writeLastSeen("admin-1", "2026-10-20", new EventTarget())
+    ).not.toThrow();
+  });
+
+  test("dispatches the shared event after writing, even without storage", () => {
+    withoutStorage();
+    const target = new EventTarget();
+    const events: CustomEvent[] = [];
+    target.addEventListener(whatsNew.LAST_SEEN_EVENT, (event) => {
+      events.push(event as CustomEvent);
+    });
+
+    whatsNew.writeLastSeen("admin-1", "2026-10-20", target);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.detail).toEqual({
+      userId: "admin-1",
+      date: "2026-10-20",
+    });
+  });
+
+  test("re-evaluates on the custom event and the storage event, and unsubscribes", () => {
+    const target = new EventTarget();
+    let calls = 0;
+    const stop = whatsNew.subscribeLastSeen(() => {
+      calls += 1;
+    }, target);
+
+    target.dispatchEvent(new CustomEvent(whatsNew.LAST_SEEN_EVENT));
+    target.dispatchEvent(new Event("storage"));
+    expect(calls).toBe(2);
+
+    stop();
+    target.dispatchEvent(new Event("storage"));
+    expect(calls).toBe(2);
+  });
+
+  test("announces new entries in text and keeps the dot decorative", () => {
+    const unread = html(
+      createElement(
+        "a",
+        { href: "/admin/whats-new" },
+        whatsNew.MarkerContent({ show: true })
+      )
+    );
+    expect(unread).toContain('aria-hidden="true"');
+    expect(unread).toContain("(new entries)");
+
+    const read = html(
+      createElement(
+        "a",
+        { href: "/admin/whats-new" },
+        whatsNew.MarkerContent({ show: false })
+      )
+    );
+    expect(read).not.toContain("(new entries)");
+    expect(read).not.toContain("aria-hidden");
   });
 });
 
