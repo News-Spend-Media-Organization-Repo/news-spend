@@ -44,7 +44,12 @@ import {
   pointsSummary,
 } from "./points";
 import { resolveRange } from "./range";
-import { activationByWeek } from "./retention";
+import {
+  activationByWeek,
+  activeDevicesDaily,
+  activeDevicesSummary,
+  retentionCohorts,
+} from "./retention";
 import { scopeFor } from "./scope";
 
 /**
@@ -1643,6 +1648,131 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(
         await activationByWeek(db, staff, { range: earlier, now: NOW })
       ).toEqual([]);
+    });
+  });
+
+  describe("retention device cohorts and activity", () => {
+    const cohortRange = resolveRange({
+      days: 90,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+    const dailyRange = resolveRange({
+      days: 7,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+    const summaryRange = resolveRange({
+      days: 30,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+
+    beforeAll(async () => {
+      await conn.unsafe("DELETE FROM news_analytics");
+      await conn.unsafe(`
+        INSERT INTO news_analytics (article_id, event, user_id, device_id, timestamp) VALUES
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-17T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-18T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-20T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-27T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-09-09T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-b', '2026-08-17T10:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-b', '2026-08-23T10:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-c', '2026-08-17T11:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-c', '2026-08-27T11:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-d', '2026-08-17T12:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-d', '2026-09-09T12:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-e', '2026-08-17T13:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-f', '2026-09-14T09:00:00Z'),
+          -- 23:30 UTC on the 8th is 00:30 on the 9th in Lagos; the next
+          -- evening is the day after it, so this is D1 and not D2.
+          ('${A1}', 'view', NULL, 'rt-g', '2026-09-08T23:30:00Z'),
+          ('${A1}', 'view', NULL, 'rt-g', '2026-09-09T23:30:00Z'),
+          -- Late Sunday UTC is Monday in Lagos.
+          ('${A1}', 'view', NULL, 'rt-h', '2026-09-13T23:30:00Z'),
+          ('${A1}', 'view', NULL, 'dev-x', '2026-09-19T10:00:00Z'),
+          ('${A1}', 'read', NULL, 'dev-x', '2026-09-19T11:00:00Z'),
+          ('${A1}', 'view', NULL, 'dev-y', '2026-09-20T08:00:00Z'),
+          -- 21 Sep in Lagos, after the period ends.
+          ('${A1}', 'view', NULL, 'dev-z', '2026-09-20T23:30:00Z');
+      `);
+    });
+
+    it("groups devices by the Lagos week of their first event", async () => {
+      expect(
+        await retentionCohorts(db, staff, { range: cohortRange, now: NOW })
+      ).toEqual([
+        {
+          week: "2026-08-17",
+          devices: 5,
+          d1: { returned: 1, eligible: 5 },
+          w1: { returned: 2, eligible: 5 },
+          w2: { returned: 2, eligible: 5 },
+          w4: { returned: 2, eligible: 5 },
+        },
+        {
+          week: "2026-09-07",
+          devices: 1,
+          d1: { returned: 1, eligible: 1 },
+          w1: { returned: 1, eligible: 1 },
+          w2: { returned: 0, eligible: 0 },
+          w4: { returned: 0, eligible: 0 },
+        },
+        {
+          week: "2026-09-14",
+          devices: 4,
+          d1: { returned: 0, eligible: 2 },
+          w1: { returned: 0, eligible: 0 },
+          w2: { returned: 0, eligible: 0 },
+          w4: { returned: 0, eligible: 0 },
+        },
+      ]);
+    });
+
+    it("counts each device once a day and leaves out after-midnight Lagos events", async () => {
+      const days = await activeDevicesDaily(db, staff, {
+        range: dailyRange,
+        now: NOW,
+      });
+
+      expect(days.at(-1)).toEqual({ date: "2026-09-20", devices: 1 });
+      expect(days.find((d) => d.date === "2026-09-19")).toEqual({
+        date: "2026-09-19",
+        devices: 1,
+      });
+      expect(days.filter((d) => d.devices === 0)).toHaveLength(4);
+    });
+
+    it("measures WAU, MAU and stickiness at each window's last day", async () => {
+      expect(
+        await activeDevicesSummary(db, staff, { range: summaryRange, now: NOW })
+      ).toEqual({
+        current: { wau: 4, mau: 9, avgDau30: 0.4, stickiness: 4.1 },
+        previous: { wau: 5, mau: 5, avgDau30: 0.2, stickiness: 4.7 },
+      });
+    });
+
+    it("returns empty results for an empty event table", async () => {
+      await conn.unsafe("DELETE FROM news_analytics");
+
+      expect(
+        await retentionCohorts(db, staff, { range: cohortRange, now: NOW })
+      ).toEqual([]);
+      expect(
+        await activeDevicesDaily(db, staff, { range: dailyRange, now: NOW })
+      ).toEqual(
+        Array.from({ length: 7 }, (_, i) => ({
+          date: `2026-09-${String(14 + i).padStart(2, "0")}`,
+          devices: 0,
+        }))
+      );
+      expect(
+        await activeDevicesSummary(db, staff, { range: summaryRange, now: NOW })
+      ).toEqual({
+        current: { wau: 0, mau: 0, avgDau30: 0, stickiness: null },
+        previous: { wau: 0, mau: 0, avgDau30: 0, stickiness: null },
+      });
     });
   });
 });

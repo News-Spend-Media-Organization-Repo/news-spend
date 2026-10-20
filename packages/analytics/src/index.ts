@@ -120,8 +120,20 @@ export {
 } from "./points";
 export type { DateWindow, Range } from "./range";
 export { percentChange, RANGE_DAYS, resolveRange } from "./range";
-export type { ActivationWeek, RetentionFilter } from "./retention";
-export { activationByWeek } from "./retention";
+export type {
+  ActivationWeek,
+  ActiveDay,
+  CohortRow,
+  Measure,
+  RetentionFilter,
+  Stickiness,
+} from "./retention";
+export {
+  activationByWeek,
+  activeDevicesDaily,
+  activeDevicesSummary,
+  retentionCohorts,
+} from "./retention";
 export type {
   AnalyticsScope,
   PartnerScope,
