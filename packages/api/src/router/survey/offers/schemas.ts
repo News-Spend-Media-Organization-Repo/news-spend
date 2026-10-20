@@ -42,6 +42,8 @@ export const OfferInputSchema = z.object({
   limit: z.number().min(1).max(50).nullish().default(20),
   country: z.string().optional(),
   type: z.enum(["survey", "game", "offer", "all"]).optional().default("all"),
+  // The app knows this from Platform.OS; the user agent is unreliable on RN.
+  platform: z.enum(["ios", "android"]).optional(),
 });
 
 export type UnifiedOffer = z.infer<typeof UnifiedOfferSchema>;

@@ -289,6 +289,7 @@ export async function fetchBitLabsOffers(
   userIp: string,
   userAgent: string,
   countryCode: string,
+  platform: "ios" | "android" | undefined,
   limit: number
 ): Promise<UnifiedOffer[]> {
   const token = process.env.BITLABS_TOKEN;
@@ -298,12 +299,18 @@ export async function fetchBitLabsOffers(
   }
 
   try {
-    // BitLabs' enums; leave `os` off when the agent names neither platform.
-    const os = ANDROID_AGENT.test(userAgent)
-      ? "ANDROID"
-      : IOS_AGENT.test(userAgent)
-        ? "IOS"
-        : undefined;
+    // BitLabs' enums. The app's Platform.OS is authoritative; the agent is
+    // only a fallback for builds that predate it.
+    const os =
+      platform === "android"
+        ? "ANDROID"
+        : platform === "ios"
+          ? "IOS"
+          : ANDROID_AGENT.test(userAgent)
+            ? "ANDROID"
+            : IOS_AGENT.test(userAgent)
+              ? "IOS"
+              : undefined;
     const params = new URLSearchParams({
       client_ip: userIp,
       client_useragent: userAgent,
@@ -419,7 +426,14 @@ export const offersRouter = {
           "bitlabs",
           runProvider(
             "bitlabs",
-            fetchBitLabsOffers(user.id, userIp, userAgent, countryCode, limit),
+            fetchBitLabsOffers(
+              user.id,
+              userIp,
+              userAgent,
+              countryCode,
+              input.platform,
+              limit
+            ),
             PROVIDER_TIMEOUT_MS
           ),
         ]);

@@ -41,7 +41,10 @@ export function SurveyTab() {
 
   const surveyQuery = useQuery(
     orpc.survey.offers.getOffers.queryOptions({
-      input: { limit: 20 },
+      input: {
+        limit: 20,
+        platform: Platform.OS === "ios" ? "ios" : "android",
+      },
       staleTime: 60 * 1000,
     })
   );

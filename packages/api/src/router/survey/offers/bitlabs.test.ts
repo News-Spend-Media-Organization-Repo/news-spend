@@ -42,6 +42,7 @@ describe("fetchBitLabsOffers", () => {
       "102.88.108.210",
       "agent",
       "NG",
+      "android",
       10
     );
 
@@ -58,9 +59,9 @@ describe("fetchBitLabsOffers", () => {
     });
   });
 
-  it("sends the platform, OS and SDK from the user agent", async () => {
+  it("uses the platform the app reports, not the agent", async () => {
     let called = "";
-    globalThis.fetch = ((input: RequestInfo | URL) => {
+    globalThis.fetch = ((input: string | URL | Request) => {
       called = String(input);
       return Promise.resolve(Response.json({ data: { surveys: [] } }));
     }) as unknown as typeof fetch;
@@ -68,8 +69,9 @@ describe("fetchBitLabsOffers", () => {
     await fetchBitLabsOffers(
       "user-1",
       "1.2.3.4",
-      "Mozilla/5.0 (Linux; Android 14; Pixel 8)",
+      "okhttp/4.12.0",
       "NG",
+      "android",
       10
     );
 
@@ -78,9 +80,28 @@ describe("fetchBitLabsOffers", () => {
     expect(called).toContain("sdk=REACT");
   });
 
-  it("sends IOS for an iPhone", async () => {
+  it("sends IOS for an iOS app", async () => {
     let called = "";
-    globalThis.fetch = ((input: RequestInfo | URL) => {
+    globalThis.fetch = ((input: string | URL | Request) => {
+      called = String(input);
+      return Promise.resolve(Response.json({ data: { surveys: [] } }));
+    }) as unknown as typeof fetch;
+
+    await fetchBitLabsOffers(
+      "user-1",
+      "1.2.3.4",
+      "MyApp/1.0 CFNetwork/1498",
+      "NG",
+      "ios",
+      10
+    );
+
+    expect(called).toContain("os=IOS");
+  });
+
+  it("falls back to the user agent for an old build", async () => {
+    let called = "";
+    globalThis.fetch = ((input: string | URL | Request) => {
       called = String(input);
       return Promise.resolve(Response.json({ data: { surveys: [] } }));
     }) as unknown as typeof fetch;
@@ -90,6 +111,7 @@ describe("fetchBitLabsOffers", () => {
       "1.2.3.4",
       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)",
       "NG",
+      undefined,
       10
     );
 
@@ -100,7 +122,14 @@ describe("fetchBitLabsOffers", () => {
     respond({ error: "forbidden" }, 403);
 
     expect(
-      await fetchBitLabsOffers("user-1", "1.2.3.4", "agent", "NG", 10)
+      await fetchBitLabsOffers(
+        "user-1",
+        "1.2.3.4",
+        "agent",
+        "NG",
+        "android",
+        10
+      )
     ).toEqual([]);
   });
 
@@ -108,7 +137,14 @@ describe("fetchBitLabsOffers", () => {
     respond({ data: { surveys: "nope" } });
 
     expect(
-      await fetchBitLabsOffers("user-1", "1.2.3.4", "agent", "NG", 10)
+      await fetchBitLabsOffers(
+        "user-1",
+        "1.2.3.4",
+        "agent",
+        "NG",
+        "android",
+        10
+      )
     ).toEqual([]);
   });
 });
