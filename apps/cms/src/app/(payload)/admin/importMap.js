@@ -48,6 +48,8 @@ import { ContactExportPanel as ContactExportPanel_97e475a5dc64c58cc30c23eea7083d
 import { Icon as Icon_92876dd9c4e9e3a3794035e4edc8ede5 } from '@news-spend-media/payload/components/Icon'
 import { Logo as Logo_502ee6abc1f396666feea23035509da4 } from '@news-spend-media/payload/components/Logo'
 import { AnalyticsNavLink as AnalyticsNavLink_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { WhatsNewNavLink as WhatsNewNavLink_side_1 } from '@news-spend-media/payload/components/WhatsNew'
+import { WhatsNewPageView as WhatsNewPageView_side_1 } from '@news-spend-media/payload/components/WhatsNew'
 import { AdminErrorBoundary as AdminErrorBoundary_e5a9e14bdbe97e70ba60697217fe7688 } from '@payloadcms/plugin-sentry/client'
 import { AnalyticsPageView as AnalyticsPageView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { PointsPageView as PointsPageView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
@@ -125,6 +127,8 @@ export const importMap = {
   "@news-spend-media/payload/components/Analytics#AnalyticsPageView": AnalyticsPageView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#PointsPageView": PointsPageView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#RetentionPageView": RetentionPageView_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/WhatsNew#WhatsNewPageView": WhatsNewPageView_side_1,
+  "@news-spend-media/payload/components/WhatsNew#WhatsNewNavLink": WhatsNewNavLink_side_1,
   "@news-spend-media/payload/components/Analytics#KpiWidget": KpiWidget_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#FunnelWidget": FunnelWidget_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#TopArticlesWidget": TopArticlesWidget_bba5810d9f91b27f4c3b488ca576e350,

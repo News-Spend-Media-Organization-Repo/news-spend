@@ -26,6 +26,7 @@ import {
   pointsPageView,
   retentionPageView,
 } from "../src/components/Analytics/tabs";
+import { whatsNewPageView } from "../src/components/WhatsNew/tabs";
 import { DefaultTemplateStub, templateCalls } from "./analyticsTemplateStub";
 
 mock.module("@payloadcms/next/templates", () => ({
@@ -835,7 +836,11 @@ describe("registration", () => {
       path.join(dir, "dist/views/Root/getCustomViewByRoute.js")
     );
     const config = {
-      admin: { components: { views: analyticsViews } },
+      admin: {
+        components: {
+          views: { ...analyticsViews, whatsNew: whatsNewPageView },
+        },
+      },
       routes: { admin: "/admin" },
     };
     const keyFor = (currentRoute: string) =>
@@ -844,6 +849,7 @@ describe("registration", () => {
     expect(keyFor("/admin/analytics")).toBe("analytics");
     expect(keyFor("/admin/analytics/points")).toBe("analyticsPoints");
     expect(keyFor("/admin/analytics/retention")).toBe("analyticsRetention");
+    expect(keyFor("/admin/whats-new")).toBe("whatsNew");
   });
 
   it("gives every widget a permanent, unique slug", () => {
