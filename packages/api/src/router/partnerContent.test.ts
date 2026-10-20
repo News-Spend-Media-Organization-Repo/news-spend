@@ -500,6 +500,168 @@ describe("partnerContentRouter.random", () => {
   });
 });
 
+describe("partnerContentRouter.filtered: shaping edge cases", () => {
+  it("shapes a mixed earn and ad placement request as an ad", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({
+            placements: ["news-click-ads"],
+            condition: "Reach level 5",
+            points: 500,
+            adCopy: "Try the app",
+          }),
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["points-mall-apps", "news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]).not.toHaveProperty("points");
+    expect(result.docs[0]?.condition).toBe("Try the app");
+  });
+
+  it("returns an empty condition for an ad with no copy or description", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({
+            placements: ["news-click-ads"],
+            condition: "Reach level 5",
+            points: 500,
+            adCopy: "",
+            description: "",
+          }),
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]?.condition).toBe("");
+  });
+});
+
+describe("partnerContentRouter.filtered: completed and pending offers", () => {
+  const earn = ["points-mall-apps"] as const;
+  const user = { id: "u1", isAnonymous: false } as never;
+
+  function setup(conversions: Doc[]) {
+    return createFakePayload({
+      collections: {
+        "partner-content": ["a", "b", "c"].map((id) =>
+          content({ id, placements: ["points-mall-apps"] })
+        ),
+        "partner-conversions": conversions,
+      },
+    });
+  }
+
+  it("hides settled offers and still fills the page to the limit", async () => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: "a", status: "awarded" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn], limit: 2 },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs.map((d) => d.id)).toEqual(["b", "c"]);
+  });
+
+  it("treats a converted conversion with a populated content object as settled", async () => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: { id: "a" }, status: "converted" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs.map((d) => d.id)).toEqual(["b", "c"]);
+  });
+
+  it("tags userState pending for a clicked offer and available otherwise", async () => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: "a", status: "clicked" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    const states = Object.fromEntries(
+      result.docs.map((d) => [d.id, (d as { userState?: string }).userState])
+    );
+    expect(states).toEqual({ a: "pending", b: "available", c: "available" });
+  });
+
+  it("ignores another person's settled conversions", async () => {
+    const payload = setup([
+      { id: "x1", user: "u2", content: "a", status: "awarded" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs).toHaveLength(3);
+  });
+
+  it("does not filter or tag for a guest", async () => {
+    const payload = setup([
+      { id: "x1", user: "g1", content: "a", status: "awarded" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      {
+        context: mockContext({
+          user: { id: "g1", isAnonymous: true } as never,
+          payload,
+        }),
+      }
+    );
+    expect(result.docs).toHaveLength(3);
+    expect(result.docs[0]).not.toHaveProperty("userState");
+  });
+
+  it("does not filter or tag when nobody is signed in", async () => {
+    const payload = setup([]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs).toHaveLength(3);
+    expect(result.docs[0]).not.toHaveProperty("userState");
+  });
+
+  it("does not filter or tag an ad-shaped request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({ id: "a", placements: ["news-click-ads"] }),
+        ],
+        "partner-conversions": [
+          { id: "x1", user: "u1", content: "a", status: "awarded" },
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs).toHaveLength(1);
+    expect(result.docs[0]).not.toHaveProperty("userState");
+  });
+});
+
 describe("partnerContentRouter.getOne: Boost exclusion", () => {
   function boostPayload(engagements: Doc[]) {
     return createFakePayload({
