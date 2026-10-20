@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Access, PayloadRequest } from "payload";
 
-import GuestConversions from "../src/collections/GuestConversions";
+import GuestEvents from "../src/collections/GuestEvents";
 
 type TestUser = { collection: string; id: string; role?: string };
 
@@ -26,12 +26,12 @@ const partner: TestUser = {
   role: "partner",
 };
 
-const access = GuestConversions.access as Record<
+const access = GuestEvents.access as Record<
   string,
   (args: Parameters<Access>[0]) => boolean
 >;
 
-describe("guest conversions collection", () => {
+describe("guest events collection", () => {
   test("staff read it; partners and the public do not", () => {
     expect(access.read?.(reqFor(superAdmin))).toBe(true);
     expect(access.read?.(reqFor(editor))).toBe(true);
@@ -52,20 +52,23 @@ describe("guest conversions collection", () => {
     }
   });
 
-  test("stores the pair once", () => {
-    expect(GuestConversions.slug).toBe("guest-conversions");
-    expect(GuestConversions.timestamps).toBe(false);
-    expect(GuestConversions.indexes).toContainEqual({
+  test("stores both events with the required unique keys", () => {
+    expect(GuestEvents.slug).toBe("guest-events");
+    expect(GuestEvents.timestamps).toBe(false);
+    expect(GuestEvents.indexes).toContainEqual({
+      fields: ["kind", "anonymousUserId"],
+      unique: true,
+    });
+    expect(GuestEvents.indexes).toContainEqual({
       fields: ["anonymousUserId", "userId"],
       unique: true,
     });
-    expect(
-      GuestConversions.fields.map((f) => ("name" in f ? f.name : ""))
-    ).toEqual([
+    expect(GuestEvents.fields.map((f) => ("name" in f ? f.name : ""))).toEqual([
+      "kind",
       "anonymousUserId",
       "userId",
       "guestCreatedAt",
-      "convertedAt",
+      "occurredAt",
       "createdAt",
     ]);
   });

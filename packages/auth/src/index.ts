@@ -24,7 +24,7 @@ import { anonymous, emailOTP, openAPI } from "better-auth/plugins";
 import pg from "pg";
 import z from "zod";
 import type { $ZodIssue } from "zod/v4/core";
-import { recordGuestConversion } from "./guestConversions";
+import { recordGuestConversion, recordGuestCreated } from "./guestEvents";
 import { generateOTPForRequest } from "./otp";
 import { removeSignedOutPushToken } from "./pushTokens";
 /**
@@ -403,6 +403,9 @@ export const auth = betterAuth({
           return {
             data: user,
           };
+        },
+        after: async (user) => {
+          await recordGuestCreated(pool, user);
         },
       },
       update: {},
