@@ -2,6 +2,7 @@ import type { CollectionConfig } from "payload";
 import { z } from "zod";
 
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
+import { partnerContentGuideView } from "../components/PartnerContentGuide/tabs";
 import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
 import { MAX_ACTIVITY_POINTS } from "../lib/activityPoints";
@@ -158,6 +159,13 @@ export const PartnerContent: CollectionConfig = {
     useAsTitle: "title",
     description:
       "Manage promotions for books, banners, videos, shop items, etc.",
+    components: {
+      views: {
+        edit: {
+          guide: partnerContentGuideView,
+        },
+      },
+    },
   },
   access: { read: () => true },
   hooks: {

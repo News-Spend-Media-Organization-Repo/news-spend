@@ -44,6 +44,7 @@ import { EmailGuide as EmailGuide_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news
 import { VideoPreviewField as VideoPreviewField_a86bb0b13348b042ba24277762780641 } from '@news-spend-media/payload/components/VideoPreviewField'
 import { PartnerPerformanceView as PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { PartnerIntegrationGuideView as PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5 } from '@news-spend-media/payload/components/PartnerIntegrationGuide'
+import { PartnerContentGuideView as PartnerContentGuideView_1a76f92f9b52c89c44ff1664ec73ba05 } from '@news-spend-media/payload/components/PartnerContentGuide'
 import { ContactExportPanel as ContactExportPanel_97e475a5dc64c58cc30c23eea7083d96 } from '@news-spend-media/payload/components/ContactExport'
 import { Icon as Icon_92876dd9c4e9e3a3794035e4edc8ede5 } from '@news-spend-media/payload/components/Icon'
 import { Logo as Logo_502ee6abc1f396666feea23035509da4 } from '@news-spend-media/payload/components/Logo'
@@ -119,6 +120,7 @@ export const importMap = {
   "@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField": VideoPreviewField_a86bb0b13348b042ba24277762780641,
   "@news-spend-media/payload/components/Analytics#PartnerPerformanceView": PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/PartnerIntegrationGuide#PartnerIntegrationGuideView": PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5,
+  "@news-spend-media/payload/components/PartnerContentGuide#PartnerContentGuideView": PartnerContentGuideView_1a76f92f9b52c89c44ff1664ec73ba05,
   "@news-spend-media/payload/components/ContactExport#ContactExportPanel": ContactExportPanel_97e475a5dc64c58cc30c23eea7083d96,
   "@news-spend-media/payload/components/Icon#Icon": Icon_92876dd9c4e9e3a3794035e4edc8ede5,
   "@news-spend-media/payload/components/Logo#Logo": Logo_502ee6abc1f396666feea23035509da4,
