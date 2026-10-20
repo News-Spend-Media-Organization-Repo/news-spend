@@ -125,9 +125,6 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
         {
           newsId: data.id,
           action: "read",
-          type: "point",
-          point: data.points ?? 0,
-          description: "Read a news article",
         },
         {
           onSuccess: (res) => {
@@ -135,7 +132,7 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
               return;
             }
             toast.success("Points earned", {
-              description: `You earned ${data.points} points for reading this article!`,
+              description: `You earned ${res?.pointsAwarded ?? 0} points for reading this article!`,
             });
             queryClient.invalidateQueries({
               queryKey: orpc.activity.byNewsId.queryKey({

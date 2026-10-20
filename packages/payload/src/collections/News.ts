@@ -17,6 +17,7 @@ import {
   calculateNewsMetrics,
   sendNotificationOnCreate,
 } from "../hooks";
+import { MAX_ACTIVITY_POINTS } from "../lib/activityPoints";
 import {
   CAROUSEL_SIZE,
   validateFeaturedRank,
@@ -321,6 +322,8 @@ const News: CollectionConfig = {
       name: "points",
       type: "number",
       defaultValue: 0,
+      min: 0,
+      max: MAX_ACTIVITY_POINTS,
       admin: {
         description: "💡 Amount of points to be awarded for this news",
       },
