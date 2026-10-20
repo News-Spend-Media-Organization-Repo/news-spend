@@ -54,6 +54,12 @@ describe("resolveSurveySettings", () => {
     expect(resolved.maxPointsPerAward).toBe(MAX_POINTS_PER_AWARD_LIMIT);
   });
 
+  it("honours a zero daily cap instead of turning it into the default", () => {
+    const resolved = resolveSurveySettings({ dailyPointsCap: 0 });
+
+    expect(resolved.dailyPointsCap).toBe(0);
+  });
+
   it("keeps a configured wall URL and drops an empty one", () => {
     const resolved = resolveSurveySettings({
       providers: [

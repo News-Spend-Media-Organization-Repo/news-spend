@@ -1,7 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { resolveSurveySettings } from "@news-spend-media/payload/lib/surveySettings";
 
-import { fallbackOffer, rankOffers, withTimeout } from "./ranking";
+import {
+  fallbackOffer,
+  hasUsableUrl,
+  rankOffers,
+  runProvider,
+  withTimeout,
+} from "./ranking";
 import type { UnifiedOffer } from "./schemas";
 
 const offer = (
@@ -94,6 +100,26 @@ describe("fallbackOffer", () => {
     });
 
     expect(fallbackOffer(disabled, "user-1")).toBeNull();
+  });
+});
+
+describe("hasUsableUrl", () => {
+  it("rejects an offer whose url is missing or blank", () => {
+    expect(hasUsableUrl(offer("a", "cpx", 10))).toBe(true);
+    expect(hasUsableUrl({ ...offer("b", "cpx", 10), url: "" })).toBe(false);
+    expect(hasUsableUrl({ ...offer("c", "cpx", 10), url: "  " })).toBe(false);
+  });
+});
+
+describe("runProvider", () => {
+  it("turns a rejection into an empty list", async () => {
+    const result = await runProvider(
+      "cpx",
+      Promise.reject(new Error("boom")),
+      50
+    );
+
+    expect(result).toEqual([]);
   });
 });
 

@@ -84,7 +84,7 @@ const SurveySettings: GlobalConfig = {
     {
       name: "maxPointsPerAward",
       type: "number",
-      defaultValue: 5_000,
+      defaultValue: 5000,
       min: 1,
       max: 50_000,
       admin: {

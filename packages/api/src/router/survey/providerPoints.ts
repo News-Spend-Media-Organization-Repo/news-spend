@@ -45,6 +45,18 @@ export function isUniqueViolation(error: unknown): boolean {
     if ((current as { code?: unknown }).code === "23505") {
       return true;
     }
+    // Payload's Drizzle adapter converts 23505 into a ValidationError on the
+    // field, with no original error left in the cause chain.
+    const validation = current as {
+      name?: unknown;
+      data?: { errors?: Array<{ path?: unknown }> };
+    };
+    if (
+      validation.name === "ValidationError" &&
+      validation.data?.errors?.some((entry) => entry.path === "providerRef")
+    ) {
+      return true;
+    }
     current = (current as { cause?: unknown }).cause;
   }
   return false;
@@ -143,41 +155,49 @@ export async function awardProviderPoints(
       return "duplicate";
     }
 
-    const paidToday = await surveyPointsPaidToday(payload, userId);
-    if (paidToday + points > limits.dailyCap) {
-      throw new PointsRefusedError(
-        `${provider} transaction ${transactionId}: ${paidToday + points} points today would cross the ${limits.dailyCap} daily cap`
-      );
-    }
-
-    try {
-      await payload.create({
-        collection: "activities",
-        data: {
-          type: "point",
-          point: points,
-          description: award.description,
-          action: "surveyTask",
-          user: userId,
-          providerRef: providerRef(provider, transactionId, "award"),
-          metadata: { provider, transactionId, kind: "award" },
-        },
-      });
-    } catch (error) {
-      // Two instances can pass the in-memory check together; the unique index
-      // decides. The one that loses answers like a normal duplicate.
-      if (isUniqueViolation(error)) {
-        return "duplicate";
+    // Different transactions for the same user must not both read the same
+    // total. This serialises them per user on this process; across processes
+    // the cap is best effort, and the per-award maximum bounds the overshoot.
+    return await withKeyedLock(`user:${userId}`, async () => {
+      const paidToday = await surveyPointsPaidToday(payload, userId);
+      if (paidToday + points > limits.dailyCap) {
+        throw new PointsRefusedError(
+          `${provider} transaction ${transactionId}: ${paidToday + points} points today would cross the ${limits.dailyCap} daily cap`
+        );
       }
-      throw error;
-    }
 
-    await notifyBestEffort(payload, userId, {
-      title: award.title,
-      body: award.body,
-      data: { type: "survey", provider, transactionId },
+      try {
+        await payload.create({
+          collection: "activities",
+          data: {
+            type: "point",
+            point: points,
+            description: award.description,
+            action: "surveyTask",
+            user: userId,
+            providerRef: providerRef(provider, transactionId, "award"),
+            metadata: { provider, transactionId, kind: "award" },
+          },
+        });
+      } catch (error) {
+        // Two instances can pass the in-memory checks together; the unique
+        // index decides. The one that loses answers like a normal duplicate.
+        if (
+          isUniqueViolation(error) ||
+          (await findEntry(payload, provider, transactionId, "award"))
+        ) {
+          return "duplicate";
+        }
+        throw error;
+      }
+
+      await notifyBestEffort(payload, userId, {
+        title: award.title,
+        body: award.body,
+        data: { type: "survey", provider, transactionId },
+      });
+      return "awarded";
     });
-    return "awarded";
   });
 }
 

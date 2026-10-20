@@ -62,6 +62,32 @@ export function fallbackOffer(
   };
 }
 
+/** A card without a URL cannot be opened, and must not suppress the wall. */
+export const hasUsableUrl = (offer: UnifiedOffer): boolean =>
+  typeof offer.url === "string" && offer.url.trim().length > 0;
+
+/**
+ * Runs one provider's fetch. A provider that hangs or throws contributes an
+ * empty list and a log line; it never takes the tab down with it.
+ */
+export async function runProvider(
+  provider: string,
+  pending: Promise<UnifiedOffer[]>,
+  ms: number
+): Promise<UnifiedOffer[]> {
+  try {
+    const offers = await withTimeout(pending, ms);
+    if (offers === null) {
+      console.warn(`Survey provider ${provider} timed out`);
+      return [];
+    }
+    return offers;
+  } catch (error) {
+    console.error(`Survey provider ${provider} failed:`, error);
+    return [];
+  }
+}
+
 /** A provider that does not answer must not hold the whole tab. */
 export function withTimeout<T>(
   pending: Promise<T>,

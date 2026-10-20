@@ -30,21 +30,19 @@ export type ResolvedSurveySettings = {
 };
 
 export type SurveySettingsDoc = {
-  providers?:
-    | Array<{
-        provider?: string | null;
-        enabled?: boolean | null;
-        priority?: number | null;
-        countries?: string[] | null;
-        wallUrl?: string | null;
-      }>
-    | null;
+  providers?: Array<{
+    provider?: string | null;
+    enabled?: boolean | null;
+    priority?: number | null;
+    countries?: string[] | null;
+    wallUrl?: string | null;
+  }> | null;
   dailyPointsCap?: number | null;
   maxPointsPerAward?: number | null;
 };
 
 export const DEFAULT_DAILY_POINTS_CAP = 20_000;
-export const DEFAULT_MAX_POINTS_PER_AWARD = 5_000;
+export const DEFAULT_MAX_POINTS_PER_AWARD = 5000;
 export const MAX_POINTS_PER_AWARD_LIMIT = 50_000;
 
 const defaultsFor = (provider: SurveyProviderId): ProviderSetting => ({
@@ -104,7 +102,7 @@ export function resolveSurveySettings(
     }
   }
 
-  const dailyPointsCap = numberOr(doc?.dailyPointsCap, 0);
+  const dailyPointsCap = doc?.dailyPointsCap;
   const maxPointsPerAward = numberOr(
     doc?.maxPointsPerAward,
     DEFAULT_MAX_POINTS_PER_AWARD
@@ -112,8 +110,13 @@ export function resolveSurveySettings(
 
   return {
     providers,
+    // Zero is a real setting (no survey payouts), not a missing value.
     dailyPointsCap:
-      dailyPointsCap > 0 ? dailyPointsCap : DEFAULT_DAILY_POINTS_CAP,
+      typeof dailyPointsCap === "number" &&
+      Number.isFinite(dailyPointsCap) &&
+      dailyPointsCap >= 0
+        ? dailyPointsCap
+        : DEFAULT_DAILY_POINTS_CAP,
     maxPointsPerAward:
       maxPointsPerAward >= 1
         ? Math.min(maxPointsPerAward, MAX_POINTS_PER_AWARD_LIMIT)

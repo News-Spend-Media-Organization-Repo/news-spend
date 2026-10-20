@@ -149,7 +149,9 @@ export function SurveyTab() {
 
           <View className="items-center justify-center">
             <Text className="font-bold text-xl">
-              {topRatedSurvey.points} Points
+              {topRatedSurvey.points === 0
+                ? "Earn points"
+                : `${topRatedSurvey.points} Points`}
             </Text>
             <Text className="text-gray-500">
               {topRatedSurvey.description ||
@@ -175,9 +177,11 @@ export function SurveyTab() {
     return (
       <View className="mb-6 items-center gap-3.5 rounded-lg bg-gray-100 p-3">
         <View className="flex-row gap-1 self-start">
-          <Chip className="bg-green-600" size="sm">
-            Top Rated
-          </Chip>
+          {topRatedSurvey.points > 0 && (
+            <Chip className="bg-green-600" size="sm">
+              Top Rated
+            </Chip>
+          )}
           <Chip
             size="sm"
             style={{
@@ -191,7 +195,9 @@ export function SurveyTab() {
 
         <View className="items-center justify-center">
           <Text className="font-bold text-xl">
-            {topRatedSurvey.points} Points
+            {topRatedSurvey.points === 0
+              ? "Earn points"
+              : `${topRatedSurvey.points} Points`}
           </Text>
           <Text className="text-gray-500">
             {topRatedSurvey.description ||

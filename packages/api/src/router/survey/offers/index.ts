@@ -8,7 +8,12 @@ import {
 } from "../schemas";
 import { getUserCountryCode, getUserIpAddress } from "../utils";
 import { writeOfferEvents } from "./events";
-import { fallbackOffer, rankOffers, withTimeout } from "./ranking";
+import {
+  fallbackOffer,
+  hasUsableUrl,
+  rankOffers,
+  runProvider,
+} from "./ranking";
 import {
   OfferInputSchema,
   RAPIDO_API_KEY,
@@ -295,23 +300,12 @@ export const offersRouter = {
         );
       };
 
-      const timed = (
-        provider: string,
-        pending: Promise<UnifiedOffer[]>
-      ): Promise<UnifiedOffer[]> =>
-        withTimeout(pending, PROVIDER_TIMEOUT_MS).then((offers) => {
-          if (offers === null) {
-            console.warn(`Survey provider ${provider} timed out`);
-          }
-          return offers ?? [];
-        });
-
       const fetches: [UnifiedOffer["provider"], Promise<UnifiedOffer[]>][] = [];
 
       if (servesCountry("cpx")) {
         fetches.push([
           "cpx",
-          timed(
+          runProvider(
             "cpx",
             fetchCPXOffers(
               user.id,
@@ -321,25 +315,28 @@ export const offersRouter = {
               userIp,
               userAgent,
               limit
-            )
+            ),
+            PROVIDER_TIMEOUT_MS
           ),
         ]);
       }
       if (servesCountry("rapido")) {
         fetches.push([
           "rapido",
-          timed(
+          runProvider(
             "rapido",
-            fetchRapidoOffers(user.id, countryCode, userIp, limit)
+            fetchRapidoOffers(user.id, countryCode, userIp, limit),
+            PROVIDER_TIMEOUT_MS
           ),
         ]);
       }
       if (servesCountry("theorem")) {
         fetches.push([
           "theorem",
-          timed(
+          runProvider(
             "theorem",
-            fetchTheoremOffers(user.id, userIp, countryCode, limit)
+            fetchTheoremOffers(user.id, userIp, countryCode, limit),
+            PROVIDER_TIMEOUT_MS
           ),
         ]);
       }
@@ -351,9 +348,14 @@ export const offersRouter = {
         }))
       );
 
+      const usable = results.map(({ provider, offers }) => ({
+        provider,
+        offers: offers.filter(hasUsableUrl),
+      }));
+
       await writeOfferEvents(
         payload,
-        results.map(({ provider, offers }) => ({
+        usable.map(({ provider, offers }) => ({
           provider,
           userId: user.id,
           country: countryCode,
@@ -362,7 +364,7 @@ export const offersRouter = {
       );
 
       const ranked = rankOffers(
-        results.flatMap(({ offers }) => offers),
+        usable.flatMap(({ offers }) => offers),
         settings,
         limit
       );

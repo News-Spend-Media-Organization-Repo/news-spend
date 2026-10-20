@@ -120,6 +120,40 @@ describe("TheoremReach postback", () => {
     expect(isUniqueViolation(new Error("database down"))).toBe(false);
   });
 
+  it("recognises Payload's validation error for a duplicate providerRef", () => {
+    expect(
+      isUniqueViolation({
+        name: "ValidationError",
+        status: 400,
+        data: {
+          errors: [{ path: "providerRef", message: "Value must be unique" }],
+        },
+      })
+    ).toBe(true);
+    expect(
+      isUniqueViolation({
+        name: "ValidationError",
+        status: 400,
+        data: { errors: [{ path: "email", message: "Value must be unique" }] },
+      })
+    ).toBe(false);
+  });
+
+  it("pays only one of two awards that would cross the cap together", async () => {
+    const payload = freshPayload({
+      globals: {
+        "survey-settings": { dailyPointsCap: 100, maxPointsPerAward: 100 },
+      },
+    });
+
+    await Promise.all([
+      theorem(payload, { reward: 60, user_id: "user-1", tx_id: "c1" }),
+      theorem(payload, { reward: 60, user_id: "user-1", tx_id: "c2" }),
+    ]);
+
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
   it("rejects a request that carries no hash, and pays nothing", async () => {
     const payload = freshPayload();
 
