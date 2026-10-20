@@ -75,6 +75,7 @@ import {
 import { analyticsNavLink, analyticsViews } from "./components/Analytics/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
+import SurveySettings from "./globals/SurveySettings";
 import NewsCategory from "./globals/NewsCategory";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
 import { migrations } from "./migrations";
@@ -162,7 +163,7 @@ const baseConfig: Config = {
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  globals: [NewsCategory, ModerationSettings],
+  globals: [NewsCategory, ModerationSettings, SurveySettings],
   collections: [
     Account,
     Activities,
