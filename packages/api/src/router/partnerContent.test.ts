@@ -112,8 +112,8 @@ describe("partnerContentRouter.filtered", () => {
     const payload = createFakePayload({
       collections: {
         "partner-content": [
-          content({ id: "a", placements: ["shop-tab"] }),
-          content({ id: "b", placements: ["discover-tab"] }),
+          content({ id: "a", placements: ["points-mall-apps"] }),
+          content({ id: "b", placements: ["points-mall-books"] }),
         ],
       },
     });
@@ -121,7 +121,7 @@ describe("partnerContentRouter.filtered", () => {
 
     const result = await call(
       partnerContentRouter.filtered,
-      { placement: ["shop-tab"] },
+      { placement: ["points-mall-apps"] },
       { context: ctx }
     );
 
@@ -203,6 +203,120 @@ describe("partnerContentRouter.filtered", () => {
   });
 });
 
+describe("partnerContentRouter: surface shaping", () => {
+  const offer = (overrides: Doc = {}) =>
+    content({
+      condition: "Reach level 5",
+      points: 500,
+      adCopy: "Try the app",
+      description: "desc",
+      ...overrides,
+    });
+
+  it("filtered ad request has no points and condition is adCopy", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["news-click-ads"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]).not.toHaveProperty("points");
+    expect(result.docs[0]?.condition).toBe("Try the app");
+  });
+
+  it("filtered earn request keeps points and stored condition", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["points-mall-apps"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["points-mall-apps"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]?.points).toBe(500);
+    expect(result.docs[0]?.condition).toBe("Reach level 5");
+  });
+
+  it("filtered defaults to active items", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({ id: "a", status: "active" }),
+          content({ id: "b", status: "draft" }),
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      {},
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs.map((d) => d.id)).toEqual(["a"]);
+  });
+
+  it("getOne shapes an ad request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["news-click-ads"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.getOne,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result).not.toHaveProperty("points");
+    expect(result?.condition).toBe("Try the app");
+  });
+
+  it("getOne keeps points for an earn request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["points-mall-apps"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.getOne,
+      { placement: ["points-mall-apps"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result?.points).toBe(500);
+    expect(result?.condition).toBe("Reach level 5");
+  });
+
+  it("random shapes an ad request and keeps an earn request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          offer({ id: "ad", placements: ["news-click-ads"] }),
+          offer({ id: "earn", placements: ["points-mall-apps"] }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+    const ad = await call(
+      partnerContentRouter.random,
+      { placement: ["news-click-ads"] },
+      { context: ctx }
+    );
+    expect(ad[0]).not.toHaveProperty("points");
+    expect(ad[0]?.condition).toBe("Try the app");
+
+    const earn = await call(
+      partnerContentRouter.random,
+      { placement: ["points-mall-apps"] },
+      { context: ctx }
+    );
+    expect(earn[0]?.points).toBe(500);
+  });
+});
+
 describe("partnerContentRouter.getOne", () => {
   it("returns a random active doc", async () => {
     const originalRandom = Math.random;
@@ -276,12 +390,12 @@ describe("partnerContentRouter.getOne", () => {
 
     await call(
       partnerContentRouter.getOne,
-      { placement: ["shop-tab"], type: ["app"], adSize: "BANNER" },
+      { placement: ["points-mall-apps"], type: ["app"], adSize: "BANNER" },
       { context: ctx }
     );
 
     const findCall = payload.calls.find((c) => c.op === "find");
-    expect(findCall?.args.where?.placements?.in).toEqual(["shop-tab"]);
+    expect(findCall?.args.where?.placements?.in).toEqual(["points-mall-apps"]);
     expect(findCall?.args.where?.type?.in).toEqual(["app"]);
     expect(findCall?.args.where?.adSize?.equals).toBe("BANNER");
   });
@@ -358,7 +472,7 @@ describe("partnerContentRouter.random", () => {
         "partner-content": [
           content({
             status: "active",
-            placements: ["shop-tab"],
+            placements: ["points-mall-apps"],
             type: "app",
             adSize: "BANNER",
           }),
@@ -369,12 +483,17 @@ describe("partnerContentRouter.random", () => {
 
     await call(
       partnerContentRouter.random,
-      { placement: ["shop-tab"], type: ["app"], adSize: "BANNER", limit: 5 },
+      {
+        placement: ["points-mall-apps"],
+        type: ["app"],
+        adSize: "BANNER",
+        limit: 5,
+      },
       { context: ctx }
     );
 
     const findCall = payload.calls.find((c) => c.op === "find");
-    expect(findCall?.args.where?.placements?.in).toEqual(["shop-tab"]);
+    expect(findCall?.args.where?.placements?.in).toEqual(["points-mall-apps"]);
     expect(findCall?.args.where?.type?.in).toEqual(["app"]);
     expect(findCall?.args.where?.adSize?.equals).toBe("BANNER");
     expect(findCall?.args.limit).toBe(5);

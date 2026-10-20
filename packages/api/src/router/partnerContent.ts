@@ -8,6 +8,7 @@ import type { SelectType, TransformCollectionWithSelect, Where } from "payload";
 import z from "zod";
 
 import { publicProcedure } from "../index";
+import { shapeForPlacements } from "../lib/shapeForPlacements";
 
 const PlacementEnum = z.enum(enum_partner_content_placements.enumValues);
 const TypeEnum = z.enum(enum_partner_content_type.enumValues);
@@ -84,9 +85,7 @@ export const filteredPartnerContent = publicProcedure
     if (input.placement && input.placement.length > 0) {
       where.placements = { in: input.placement };
     }
-    if (input.status) {
-      where.status = { equals: input.status };
-    }
+    where.status = { equals: input.status ?? "active" };
 
     if (input.type && input.type.length > 0) {
       where.type = { in: input.type };
@@ -101,7 +100,10 @@ export const filteredPartnerContent = publicProcedure
       limit: input.limit ?? 10,
       page: input.page ?? 1,
     });
-    return result;
+    return {
+      ...result,
+      docs: result.docs.map((doc) => shapeForPlacements(doc, input.placement)),
+    };
   });
 
 export const getOnePartnerContent = publicProcedure
@@ -182,7 +184,8 @@ export const getOnePartnerContent = publicProcedure
     > | null = null;
     if (result.docs.length > 0) {
       const randomIndex = Math.floor(Math.random() * result.docs.length);
-      finalResult = result.docs[randomIndex] ?? null;
+      const picked = result.docs[randomIndex];
+      finalResult = picked ? shapeForPlacements(picked, input.placement) : null;
     }
     return finalResult;
   });
@@ -240,7 +243,9 @@ export const randomPartnerContent = publicProcedure
       depth: 2,
     });
 
-    return result.docs.sort(() => Math.random() - 0.5);
+    return result.docs
+      .map((doc) => shapeForPlacements(doc, input.placement))
+      .sort(() => Math.random() - 0.5);
   });
 
 export const partnerContentRouter = {
