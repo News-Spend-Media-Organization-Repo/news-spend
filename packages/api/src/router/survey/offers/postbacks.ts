@@ -5,10 +5,15 @@ import z from "zod";
 
 import { publicProcedure } from "../../..";
 import {
+  type SignedCallbackUrl,
+  signedCallbackUrl,
+} from "../../../lib/callbackUrl";
+import {
   awardProviderPoints,
   PointsRefusedError,
   reverseProviderPoints,
 } from "../providerPoints";
+import { readSurveySettings } from "./settings";
 
 /** A copy of `input` without the named keys, for logging without secrets. */
 const without = <T extends Record<string, unknown>>(
@@ -63,83 +68,15 @@ function verifyRapidoReachHash(
   return sameHash(receivedHash, expectedHash);
 }
 
-/** Drops `hash` from a raw query string, leaving every other byte untouched. */
-function removeHashParam(rawQuery: string): string {
-  return rawQuery
-    .split("&")
-    .filter((part) => {
-      const separator = part.indexOf("=");
-      const name = separator === -1 ? part : part.slice(0, separator);
-      return name !== "hash";
-    })
-    .join("&");
-}
-
-type TheoremSignedUrl = {
-  url: string;
-  /** Where the public origin came from, for diagnosing a bad configuration. */
-  source: "forwarded" | "railway" | "request";
-  path: string;
-};
-
-/**
- * The public origin of this request. The host the process sees is internal
- * behind Railway, but provider signatures cover the public URL, so prefer the
- * proxy's forwarded host and then Railway's own public domain.
- */
-export function publicOriginForRequest(request: {
-  url: string;
-  headers: Headers;
-}): { origin: string; source: TheoremSignedUrl["source"] } {
-  const url = new URL(request.url);
-  const forwarded = (name: string) =>
-    request.headers.get(name)?.split(",")[0]?.trim();
-
-  const forwardedHost = forwarded("x-forwarded-host");
-  if (forwardedHost) {
-    const proto =
-      forwarded("x-forwarded-proto") ?? url.protocol.replace(":", "");
-    return { origin: `${proto}://${forwardedHost}`, source: "forwarded" };
-  }
-
-  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
-  if (railwayDomain) {
-    return {
-      origin: railwayDomain.includes("://")
-        ? railwayDomain
-        : `https://${railwayDomain}`,
-      source: "railway",
-    };
-  }
-
-  return { origin: url.origin, source: "request" };
-}
-
 /**
  * The URL TheoremReach signed: the public origin + the path as served + the
- * query in their order and encoding, with `hash` removed. Never rebuild this
- * from parsed input — any reordering or re-encoding changes the signature.
+ * query in their order and encoding, with `hash` removed. Shared with every
+ * provider so the raw-URL rule is written once.
  */
 function theoremUrlToSign(
   request: { url?: string; headers: Headers } | undefined
-): TheoremSignedUrl | null {
-  if (!request?.url) {
-    return null;
-  }
-
-  const withoutQuery = request.url.split("?")[0] ?? "";
-  const afterScheme = withoutQuery.slice(withoutQuery.indexOf("://") + 3);
-  const pathStart = afterScheme.indexOf("/");
-  const path = pathStart === -1 ? "/" : afterScheme.slice(pathStart);
-  const rawQuery = request.url.split("?").slice(1).join("?");
-  const query = removeHashParam(rawQuery);
-  const { origin, source } = publicOriginForRequest({
-    url: request.url,
-    headers: request.headers,
-  });
-  const base = `${origin}${path}`;
-
-  return { url: query ? `${base}?${query}` : base, source, path };
+): SignedCallbackUrl | null {
+  return signedCallbackUrl(request);
 }
 
 /**
@@ -299,25 +236,36 @@ export const rapidoPostbackHandler = publicProcedure
     const statusUpper = status?.toUpperCase();
     if (statusUpper === "COMPLETE" && currencyAmt && currencyAmt > 0) {
       const points = Math.floor(currencyAmt);
+      const settings = await readSurveySettings(payload);
       try {
-        const outcome = await awardProviderPoints(payload, {
-          provider: "rapido",
-          transactionId,
-          userId: endUserId,
-          points,
-          description: `Completed RapidoReach survey: ${input.offerTitle || transactionId}`,
-          title: "Survey Completed",
-          body: `You earned ${points} points!`,
-        });
+        const outcome = await awardProviderPoints(
+          payload,
+          {
+            provider: "rapido",
+            transactionId,
+            userId: endUserId,
+            points,
+            description: `Completed RapidoReach survey: ${input.offerTitle || transactionId}`,
+            title: "Survey Completed",
+            body: `You earned ${points} points!`,
+          },
+          {
+            maxPoints: settings.maxPointsPerAward,
+            dailyCap: settings.dailyPointsCap,
+          }
+        );
         console.log(
           `Rapido transaction ${transactionId}: ${outcome} ${points} points for user ${endUserId}`
         );
       } catch (error) {
+        if (error instanceof PointsRefusedError) {
+          // Permanent: answering "not done" would only make Rapido retry.
+          console.error(error.message);
+          return { success: 1 };
+        }
         // Answering "not done" lets RapidoReach try again where it can.
         console.error(
-          error instanceof PointsRefusedError
-            ? error.message
-            : `Could not save Rapido points for ${transactionId}: ${String(error)}`
+          `Could not save Rapido points for ${transactionId}: ${String(error)}`
         );
         return { success: 0 };
       }
@@ -484,23 +432,30 @@ export const theoremPostbackHandler = publicProcedure
       }
 
       const points = Math.floor(reward);
-      const outcome = await settleTheorem(
+      const settings = await readSurveySettings(payload);
+      await settleTheorem(
         transactionId,
         () =>
-          awardProviderPoints(payload, {
-            provider: "theorem",
-            transactionId,
-            userId,
-            points,
-            description: theoremDescription({ ...input, transactionId }),
-            title: "Survey Completed",
-            body: `You earned ${points} points!`,
-          }),
+          awardProviderPoints(
+            payload,
+            {
+              provider: "theorem",
+              transactionId,
+              userId,
+              points,
+              description: theoremDescription({ ...input, transactionId }),
+              title: "Survey Completed",
+              body: `You earned ${points} points!`,
+            },
+            {
+              maxPoints: settings.maxPointsPerAward,
+              dailyCap: settings.dailyPointsCap,
+            }
+          ),
         fail
       );
-      if (outcome === "refused") {
-        return { error: "Reward not accepted" };
-      }
+      // A refusal is permanent; settleTheorem logged it. Answer success so
+      // TheoremReach does not retry an award that can never be paid.
     }
 
     return { success: true };

@@ -97,6 +97,8 @@ export type FakePayloadOptions = {
   collections?: Record<string, Doc[]>;
   /** Generate an id for a created doc. Defaults to `<collection>-<n>`. */
   generateID?: (collection: string, index: number) => string;
+  /** Seed globals keyed by slug; `findGlobal` returns these. */
+  globals?: Record<string, Doc | null>;
 };
 
 /**
@@ -213,6 +215,9 @@ export function createFakePayload(options: FakePayloadOptions = {}) {
         status: 404,
       });
     },
+
+    findGlobal: async ({ slug }: { slug: string }) =>
+      options.globals?.[slug] ?? null,
 
     count: async ({ collection, where }: Doc) => {
       record("count", collection, { where });

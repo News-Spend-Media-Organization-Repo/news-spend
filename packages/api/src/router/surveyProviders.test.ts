@@ -32,6 +32,7 @@ const { createFakePayload, expectError, mockContext } = await import(
   "../test-utils"
 );
 const { surveyRouter } = await import("./survey");
+const { isUniqueViolation } = await import("./survey/providerPoints");
 const { signTheoremUrl } = await import("./survey/offers/postbacks");
 const { MAX_SURVEY_POINTS } = await import(
   "@news-spend-media/payload/lib/surveyPoints"
@@ -39,11 +40,15 @@ const { MAX_SURVEY_POINTS } = await import(
 
 type Fake = ReturnType<typeof createFakePayload>;
 
-const freshPayload = (): Fake =>
+const freshPayload = (
+  options: Parameters<typeof createFakePayload>[0] = {}
+): Fake =>
   createFakePayload({
+    ...options,
     collections: {
       users: [{ id: "user-1" }, { id: "user-2" }],
       "push-tokens": [],
+      ...options.collections,
     },
   });
 
@@ -142,6 +147,54 @@ const theorem = (
 };
 
 describe("TheoremReach postback", () => {
+  it("records the provider reference that makes the award unique", async () => {
+    const payload = freshPayload();
+
+    await theorem(payload, { reward: 100, user_id: "user-1", tx_id: "t1" });
+
+    expect(payload.docs("activities")[0]?.providerRef).toBe("theorem:t1:award");
+  });
+
+  it("recognises a database unique violation through a wrapped error", () => {
+    expect(isUniqueViolation({ cause: { code: "23505" } })).toBe(true);
+    expect(isUniqueViolation({ code: "23505" })).toBe(true);
+    expect(isUniqueViolation(new Error("database down"))).toBe(false);
+  });
+
+  it("recognises Payload's validation error for a duplicate providerRef", () => {
+    expect(
+      isUniqueViolation({
+        name: "ValidationError",
+        status: 400,
+        data: {
+          errors: [{ path: "providerRef", message: "Value must be unique" }],
+        },
+      })
+    ).toBe(true);
+    expect(
+      isUniqueViolation({
+        name: "ValidationError",
+        status: 400,
+        data: { errors: [{ path: "email", message: "Value must be unique" }] },
+      })
+    ).toBe(false);
+  });
+
+  it("pays only one of two awards that would cross the cap together", async () => {
+    const payload = freshPayload({
+      globals: {
+        "survey-settings": { dailyPointsCap: 100, maxPointsPerAward: 100 },
+      },
+    });
+
+    await Promise.all([
+      theorem(payload, { reward: 60, user_id: "user-1", tx_id: "c1" }),
+      theorem(payload, { reward: 60, user_id: "user-1", tx_id: "c2" }),
+    ]);
+
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
   it("matches Theorem's published signature example", () => {
     expect(
       signTheoremUrl(
@@ -427,7 +480,7 @@ describe("TheoremReach postback", () => {
     expect(payload.docs("activities")).toHaveLength(1);
   });
 
-  it("refuses an award above the maximum", async () => {
+  it("refuses an award above the maximum and answers success so it is not retried", async () => {
     const payload = freshPayload();
 
     const res = await theorem(payload, {
@@ -436,8 +489,81 @@ describe("TheoremReach postback", () => {
       tx_id: "big",
     });
 
-    expect(res).toMatchObject({ error: expect.any(String) });
+    expect(res).toEqual({ success: true });
     expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("refuses an award that would cross the daily cap", async () => {
+    const payload = freshPayload({
+      collections: {
+        activities: [
+          {
+            id: "a1",
+            type: "point",
+            point: 4900,
+            action: "surveyTask",
+            user: "user-1",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+      globals: {
+        "survey-settings": { dailyPointsCap: 5000, maxPointsPerAward: 5000 },
+      },
+    });
+
+    const res = await theorem(payload, {
+      reward: 200,
+      user_id: "user-1",
+      tx_id: "cap-1",
+    });
+
+    expect(res).toEqual({ success: true });
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("still allows a reversal after the cap is reached", async () => {
+    const payload = freshPayload({
+      collections: {
+        activities: [
+          {
+            id: "a1",
+            type: "point",
+            point: 100,
+            action: "surveyTask",
+            user: "user-1",
+            createdAt: new Date().toISOString(),
+            metadata: {
+              provider: "theorem",
+              transactionId: "t1",
+              kind: "award",
+            },
+          },
+          {
+            id: "a2",
+            type: "point",
+            point: 4900,
+            action: "surveyTask",
+            user: "user-1",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+      globals: {
+        "survey-settings": { dailyPointsCap: 5000, maxPointsPerAward: 5000 },
+      },
+    });
+
+    await theorem(payload, {
+      reward: 100,
+      user_id: "user-1",
+      tx_id: "t1",
+      reversal: "true",
+    });
+
+    const docs = payload.docs("activities");
+    expect(docs).toHaveLength(3);
+    expect(docs[2]).toMatchObject({ point: -100, action: "pointReversal" });
   });
 
   it("takes back what a transaction paid when it is reversed, once", async () => {
@@ -572,7 +698,7 @@ describe("RapidoReach postback", () => {
     });
   });
 
-  it("refuses an award above the maximum", async () => {
+  it("refuses an award above the maximum and answers success so it is not retried", async () => {
     const payload = freshPayload();
 
     const res = await rapido(payload, {
@@ -581,7 +707,7 @@ describe("RapidoReach postback", () => {
       amount: MAX_SURVEY_POINTS + 1,
     });
 
-    expect(res).toEqual({ success: 0 });
+    expect(res).toEqual({ success: 1 });
     expect(payload.docs("activities")).toHaveLength(0);
   });
 
@@ -684,14 +810,15 @@ describe("CPX postback", () => {
     expect(payload.docs("activities")).toHaveLength(2);
   });
 
-  it("refuses an award above the maximum", async () => {
+  it("refuses an award above the maximum and answers success so it is not retried", async () => {
     const payload = freshPayload();
 
-    const error = await expectError(
-      cpx(payload, { trans_id: "c2", amount_local: MAX_SURVEY_POINTS + 1 })
-    );
+    const res = await cpx(payload, {
+      trans_id: "c2",
+      amount_local: MAX_SURVEY_POINTS + 1,
+    });
 
-    expect(error.code).toBe("BAD_REQUEST");
+    expect(res).toMatchObject({ success: true });
     expect(payload.docs("activities")).toHaveLength(0);
   });
 
