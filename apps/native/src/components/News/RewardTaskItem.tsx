@@ -1,5 +1,4 @@
 import type { RewardTaskItem } from "@news-spend-media/api/router/news/content-builders";
-import { Chip } from "heroui-native/chip";
 import { Linking, Platform, Pressable, View } from "react-native";
 import { getImageData } from "#/utils/getImageData";
 import { Image } from "../heroui/image";
@@ -43,11 +42,6 @@ function RewardTaskItemCard({ item }: { item: RewardTaskItem }) {
           <Text ellipsizeMode="tail" numberOfLines={2}>
             {ad?.condition}
           </Text>
-          <View className="flex-row items-center justify-end">
-            <Chip className="bg-s-300" size="sm">
-              {ad.points} points
-            </Chip>
-          </View>
         </View>
       </View>
     </Pressable>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { createFakePayload } from "../../test-utils";
 import { type AdConfig, createAdManager } from "./ad-manager";
+import { buildRelatedNews, buildRewardTask } from "./content-builders";
 
 const PLACEMENT = "homepage-ads-banner";
 
@@ -130,5 +131,45 @@ describe("AdManager weighted selection", () => {
     expect(manager.getPartnerContent()).toBeUndefined();
     // With nothing in-house to serve, the slot falls back to Google.
     expect(manager.pickAd().type).toBe("gAd");
+  });
+});
+
+describe("AdManager ad shaping", () => {
+  it("serves pool items without points, carrying the ad copy", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          {
+            id: "book",
+            title: "Book",
+            status: "active",
+            placements: [PLACEMENT],
+            points: 30,
+            condition: "earn 30 points",
+            adCopy: "Great book",
+          },
+        ],
+      },
+    });
+    const manager = await createAdManager(payload as any, CONFIG);
+
+    const task = buildRewardTask(manager.getPartnerContent() as never);
+    const related = buildRelatedNews(
+      [],
+      manager.getSeededPartnerContent("seed") as never,
+      "seed"
+    );
+    const ad = manager.pickAd();
+
+    const payloads = [
+      task.payload,
+      related.data[0],
+      ad.type === "inHouse" ? ad.payload : undefined,
+    ] as Record<string, unknown>[];
+    for (const item of payloads) {
+      expect(item).toBeDefined();
+      expect("points" in item).toBe(false);
+      expect(item.condition).toBe("Great book");
+    }
   });
 });

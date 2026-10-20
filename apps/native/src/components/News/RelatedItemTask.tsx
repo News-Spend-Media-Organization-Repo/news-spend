@@ -1,5 +1,4 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { Chip } from "heroui-native/chip";
 import {
   Linking,
   Platform,
@@ -57,11 +56,6 @@ const RelatedItemTask = ({ item }: { item: PartnerContent }) => {
         >
           {item.condition}
         </Text>
-        <View className="flex-row items-center justify-between">
-          <Chip className="bg-s-300" size="sm">
-            {item.points} points
-          </Chip>
-        </View>
       </View>
     </Pressable>
   );
