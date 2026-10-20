@@ -19,7 +19,7 @@ import { withKeyedLock } from "../../lib/keyedLock";
  * ledger is its own record of what has been processed.
  */
 
-export type Provider = "cpx" | "rapido" | "theorem";
+export type Provider = "cpx" | "rapido" | "theorem" | "bitlabs";
 
 /** The points were not an amount a survey may pay. */
 export class PointsRefusedError extends Error {}

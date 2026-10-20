@@ -15,6 +15,7 @@ import {
   runProvider,
 } from "./ranking";
 import {
+  BitLabsSurveyResponseSchema,
   OfferInputSchema,
   RAPIDO_API_KEY,
   RAPIDO_APP_ID,
@@ -274,6 +275,67 @@ async function fetchTheoremOffers(
   ];
 }
 
+/**
+ * BitLabs is called server-side, which needs their backend activation and the
+ * client_ip/client_useragent overrides enabled on the app. Without that the
+ * API answers 401/403 and this returns an empty list rather than failing the
+ * tab.
+ */
+export async function fetchBitLabsOffers(
+  userId: string,
+  userIp: string,
+  userAgent: string,
+  countryCode: string,
+  limit: number
+): Promise<UnifiedOffer[]> {
+  const token = process.env.BITLABS_TOKEN;
+  if (!token) {
+    console.warn("BITLABS_TOKEN not configured");
+    return [];
+  }
+
+  try {
+    const params = new URLSearchParams({
+      client_ip: userIp,
+      client_useragent: userAgent,
+    });
+    const response = await fetch(
+      `https://api.bitlabs.ai/v2/client/surveys?${params}`,
+      {
+        headers: {
+          "X-Api-Token": token,
+          "X-User-Id": userId,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("BitLabs API error:", response.status);
+      return [];
+    }
+
+    const parsed = BitLabsSurveyResponseSchema.parse(await response.json());
+
+    return parsed.data.surveys.slice(0, limit).map((survey) => ({
+      id: `bitlabs-${survey.id}`,
+      provider: "bitlabs" as const,
+      title: survey.category?.name || "Survey",
+      description: survey.loi ? `LOI: ${survey.loi} mins` : undefined,
+      points: Math.floor(Number(survey.value)),
+      estimatedTime: survey.loi,
+      url: survey.click_url,
+      imageUrl: undefined,
+      country: survey.country || countryCode,
+      type: "survey" as const,
+      qualificationRate:
+        typeof survey.cr === "number" ? Math.round(survey.cr * 100) : undefined,
+    }));
+  } catch (error) {
+    console.error("Error fetching BitLabs offers:", error);
+    return [];
+  }
+}
+
 export const offersRouter = {
   getOffers: publicProcedure
     .input(OfferInputSchema)
@@ -336,6 +398,16 @@ export const offersRouter = {
           runProvider(
             "theorem",
             fetchTheoremOffers(user.id, userIp, countryCode, limit),
+            PROVIDER_TIMEOUT_MS
+          ),
+        ]);
+      }
+      if (servesCountry("bitlabs")) {
+        fetches.push([
+          "bitlabs",
+          runProvider(
+            "bitlabs",
+            fetchBitLabsOffers(user.id, userIp, userAgent, countryCode, limit),
             PROVIDER_TIMEOUT_MS
           ),
         ]);

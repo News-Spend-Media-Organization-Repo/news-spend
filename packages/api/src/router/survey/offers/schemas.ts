@@ -17,6 +17,27 @@ export const UnifiedOfferSchema = z.object({
   qualificationRate: z.number().optional(),
 });
 
+export const BitLabsSurveyResponseSchema = z.object({
+  data: z.object({
+    surveys: z.array(
+      z.object({
+        id: z.string(),
+        click_url: z.string(),
+        value: z.union([z.string(), z.number()]),
+        cpi: z.union([z.string(), z.number()]).optional(),
+        cr: z.number().optional(),
+        loi: z.number().optional(),
+        country: z.string().optional(),
+        category: z
+          .object({
+            name: z.string().optional(),
+          })
+          .optional(),
+      })
+    ),
+  }),
+});
+
 export const OfferInputSchema = z.object({
   limit: z.number().min(1).max(50).nullish().default(20),
   country: z.string().optional(),
