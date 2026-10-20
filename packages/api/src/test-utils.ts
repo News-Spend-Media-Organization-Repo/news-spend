@@ -339,10 +339,16 @@ const operators: Record<
 > = {
   equals: (actual, expected) => String(actual) === String(expected),
   not_equals: (actual, expected) => String(actual) !== String(expected),
+  // Like real Payload, an array field matches `in` when any element is in the
+  // list, and `not_in` when none is.
   in: (actual, expected) =>
-    toList(expected).some((v) => String(v) === String(actual)),
+    asArray(actual).some((a) =>
+      toList(expected).some((v) => String(v) === String(a))
+    ),
   not_in: (actual, expected) =>
-    !toList(expected).some((v) => String(v) === String(actual)),
+    !asArray(actual).some((a) =>
+      toList(expected).some((v) => String(v) === String(a))
+    ),
   exists: (actual, expected) =>
     (actual !== undefined && actual !== null) === Boolean(expected),
   greater_than: (actual, expected) => compare(actual, expected) > 0,
@@ -382,6 +388,10 @@ export function matchesWhere(doc: Doc, where: Doc | undefined): boolean {
       return check ? check(actual, expected) : true;
     });
   });
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [value];
 }
 
 function toList(value: unknown): unknown[] {

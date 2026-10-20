@@ -600,6 +600,23 @@ describe("partnerContentRouter.filtered: completed and pending offers", () => {
     expect(states).toEqual({ a: "pending", b: "available", c: "available" });
   });
 
+  it.each([
+    ["news-click-ads", "available"],
+    ["points-mall-apps", "pending"],
+    [null, "pending"],
+  ])("a clicked row from surface %p leaves the item %s", async (surface, expected) => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: "a", status: "clicked", surface },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    const a = result.docs.find((d) => d.id === "a") as { userState?: string };
+    expect(a.userState).toBe(expected);
+  });
+
   it("ignores another person's settled conversions", async () => {
     const payload = setup([
       { id: "x1", user: "u2", content: "a", status: "awarded" },
@@ -659,6 +676,40 @@ describe("partnerContentRouter.filtered: completed and pending offers", () => {
     );
     expect(result.docs).toHaveLength(1);
     expect(result.docs[0]).not.toHaveProperty("userState");
+  });
+});
+
+describe("partnerContentRouter.filtered: multi-placement item", () => {
+  it("shapes by the requested placements, not the stored ones", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({
+            id: "m",
+            placements: ["homepage-ads-banner", "points-mall-apps"],
+            points: 30,
+            adCopy: "Plain ad",
+            condition: "Earn 30 points",
+          }),
+        ],
+      },
+    });
+    const ctx = { context: mockContext({ payload }) };
+    const ad = await call(
+      partnerContentRouter.filtered,
+      { placement: ["homepage-ads-banner"] },
+      ctx
+    );
+    expect(ad.docs[0]).not.toHaveProperty("points");
+    expect(ad.docs[0]?.condition).toBe("Plain ad");
+
+    const offer = await call(
+      partnerContentRouter.filtered,
+      { placement: ["points-mall-apps"] },
+      ctx
+    );
+    expect(offer.docs[0]?.points).toBe(30);
+    expect(offer.docs[0]?.condition).toBe("Earn 30 points");
   });
 });
 

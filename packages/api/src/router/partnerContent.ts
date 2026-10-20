@@ -1,4 +1,7 @@
-import { isEarnRequest } from "@news-spend-media/payload/lib/earnPlacements";
+import {
+  isEarnRequest,
+  isOfferPlacement,
+} from "@news-spend-media/payload/lib/earnPlacements";
 import {
   enum_partner_content_ad_size,
   enum_partner_content_placements,
@@ -96,7 +99,7 @@ async function loadOfferState(payload: BasePayload, userId: string) {
         { status: { in: ["clicked", "converted", "awarded"] } },
       ],
     },
-    select: { content: true, status: true },
+    select: { content: true, status: true, surface: true },
     pagination: false,
     depth: 0,
   });
@@ -110,7 +113,12 @@ async function loadOfferState(payload: BasePayload, userId: string) {
       continue;
     }
     if (row.status === "clicked") {
-      clickedIds.add(contentId);
+      // A tap on an ad surface can never pay, so it must not read as a
+      // pending offer. Rows from before `surface` existed carry none.
+      const surface = (row as { surface?: string | null }).surface;
+      if (!surface || isOfferPlacement(surface)) {
+        clickedIds.add(contentId);
+      }
     } else {
       settledIds.add(contentId);
     }

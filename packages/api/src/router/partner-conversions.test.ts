@@ -19,6 +19,7 @@ function partnerContent(overrides: Doc = {}): Doc {
   return {
     id: "pc1",
     title: "Test CPA",
+    placements: ["points-mall-apps"],
     points: 50,
     links: { website: "https://from-content.com" },
     partner: { id: "p1", websiteUrl: "https://from-partner.com" },
@@ -838,12 +839,18 @@ describe("partnerConversionRouter.trackClick: surface-gated payment", () => {
 
 describe("partnerConversionRouter.webhook: surface and one-time settlement", () => {
   const CLICK = "clk_abc1234567890123";
-  const run = (conversions: Doc[], clickId = CLICK) => {
+  const run = (
+    conversions: Doc[],
+    clickId = CLICK,
+    contentOverrides: Doc = {}
+  ) => {
     const payload = createFakePayload({
       collections: {
         "partner-conversions": conversions,
         partners: [partner()],
-        "partner-content": [partnerContent({ points: 50 })],
+        "partner-content": [
+          partnerContent({ points: 50, ...contentOverrides }),
+        ],
         activities: [],
       },
     });
@@ -879,8 +886,34 @@ describe("partnerConversionRouter.webhook: surface and one-time settlement", () 
     expect(drizzle.queries).toHaveLength(0);
   });
 
-  it("settles a conversion with no stored surface as before", async () => {
-    const { payload, ctx } = run([conversion({ surface: null })]);
+  it("pays nothing for a conversion with no stored surface on an ads-only item", async () => {
+    const { payload, ctx } = run([conversion({ surface: null })], CLICK, {
+      placements: ["homepage-ads-banner"],
+    });
+    const warnings: unknown[] = [];
+    payload.logger.warn = () => {
+      warnings.push(1);
+    };
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "success" },
+      { context: ctx }
+    );
+    expect(result).toEqual({
+      success: true,
+      clickId: CLICK,
+      message: "Ignored: not an offer surface",
+      pointsAwarded: 0,
+    });
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
+    expect(warnings.length).toBeGreaterThan(0);
+  });
+
+  it("settles a conversion with no stored surface when the item has an offer placement", async () => {
+    const { payload, ctx } = run([conversion({ surface: null })], CLICK, {
+      placements: ["points-mall-apps"],
+    });
     const result = await call(
       partnerConversionRouter.webhook,
       { clickId: CLICK, status: "success" },

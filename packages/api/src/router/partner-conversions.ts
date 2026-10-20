@@ -416,11 +416,17 @@ export const handleWebhook = publicProcedure
        * settled nor paid. Left `clicked` and unrecorded on purpose: the
        * postback outcome is a database enum, and this is not a new outcome
        * worth a migration. A missing surface is a click from before the
-       * field existed and settles as it always did.
+       * field existed; it follows the tap rule and settles only when the item
+       * itself has an offer placement.
        */
-      if (conversion.surface && !isOfferPlacement(conversion.surface)) {
+      const placements = (content?.placements ?? []) as readonly string[];
+      const fromNonOfferSurface = conversion.surface
+        ? !isOfferPlacement(conversion.surface)
+        : // Deleted content pays nothing either way; let it settle as before.
+          Boolean(content) && !placements.some(isOfferPlacement);
+      if (fromNonOfferSurface) {
         payload.logger.warn(
-          { clickId: input.clickId, surface: conversion.surface },
+          { clickId: input.clickId, surface: conversion.surface ?? null },
           "[partner] ignored a postback for a conversion from a non-offer surface"
         );
         return {
