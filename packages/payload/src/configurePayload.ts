@@ -73,7 +73,11 @@ import {
   analyticsDefaultLayout,
   analyticsWidgets,
 } from "./components/Analytics/layout";
-import { analyticsNavLink, analyticsViews } from "./components/Analytics/tabs";
+import {
+  analyticsNavLink,
+  analyticsViews,
+  surveyPerformanceNavLink,
+} from "./components/Analytics/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
@@ -159,7 +163,11 @@ const baseConfig: Config = {
         Logo: "@news-spend-media/payload/components/Logo#Logo",
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
-      beforeNavLinks: [analyticsNavLink, whatsNewNavLink],
+      beforeNavLinks: [
+        analyticsNavLink,
+        surveyPerformanceNavLink,
+        whatsNewNavLink,
+      ],
       views: { ...analyticsViews, ...whatsNewViews },
     },
   },
