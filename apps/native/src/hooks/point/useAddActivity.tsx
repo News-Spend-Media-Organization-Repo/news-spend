@@ -17,7 +17,7 @@ export default function useAddActivity(options?: UseAddActivityOptions) {
 
         queryClient.setQueryData(
           orpc.activity.totalPoints.queryKey(),
-          (previousPoints) => (previousPoints ?? 0) + variables.point
+          (previousPoints) => (previousPoints ?? 0) + (variables.point ?? 0)
         );
 
         return { previousPoints };

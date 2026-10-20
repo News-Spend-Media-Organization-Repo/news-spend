@@ -37,16 +37,14 @@ const AdCarousel: React.FC<
     addActivityMutation.mutate(
       {
         action: "share",
-        type: "point",
-        point: item?.points,
-        description: `Shared Promotion Video ${item?.title || ""}`,
+        partnerContentId: item.id,
       },
       {
-        onSuccess: (_response) => {
+        onSuccess: (response) => {
           setTimeout(
             () => {
               toast.success("Points earned", {
-                description: `You earned ${item?.points} points for sharing promo video!`,
+                description: `You earned ${response?.pointsAwarded ?? 0} points for sharing promo video!`,
               });
             },
             1 * 60 * 1000
@@ -54,7 +52,7 @@ const AdCarousel: React.FC<
         },
       }
     );
-  }, [item?.points, item?.title, addActivityMutation]);
+  }, [item.id, addActivityMutation]);
 
   const adCarouselRef = useRef<AdCarouselRef | null>(null);
   const promoListRef = useRef<LegendListRef | null>(null);

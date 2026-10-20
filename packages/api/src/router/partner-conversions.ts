@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { activityPoints } from "@news-spend-media/payload/lib/activityPoints";
 import { recordFeaturedOffer } from "@news-spend-media/payload/lib/giveaway/featuredOffer";
 
 import { openapi } from "@orpc/openapi";
@@ -199,7 +200,18 @@ async function settleConversion(
     partnerOrderId?: string;
   }
 ): Promise<number> {
-  const pointsToAward = Number(content?.points ?? 0);
+  const contentId =
+    typeof conversion.content === "string"
+      ? conversion.content
+      : conversion.content?.id;
+  const decidedPoints = activityPoints(content?.points);
+  if (decidedPoints === null) {
+    payload.logger.error(
+      { contentId, points: content?.points },
+      "Partner content points outside the allowed range"
+    );
+  }
+  const pointsToAward = decidedPoints ?? 0;
 
   await payload.update({
     collection: "partner-conversions",
@@ -244,11 +256,6 @@ async function settleConversion(
    * already credited, so a giveaway that is closed, or an offer already
    * counted, must not turn a settled conversion into a failure.
    */
-  const contentId =
-    typeof conversion.content === "string"
-      ? conversion.content
-      : conversion.content?.id;
-
   if (contentId && userId) {
     await recordFeaturedOffer(payload, { userId, contentId });
   }
