@@ -12,10 +12,16 @@ import type {
   GiveawayAttention,
   GiveawayReport,
   GiveawayState,
+  LargeGrant,
+  LeaderboardRow,
   NewsDay,
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
+  PointsConcentration,
+  PointsDay,
+  PointsSource,
+  PointsTotals,
   PostbackHealth,
   PushReport,
   RecentConversion,
@@ -24,13 +30,15 @@ import type {
 } from "@news-spend-media/analytics";
 import type { ReactNode } from "react";
 
-import { ADMIN_PATH } from "./access";
+import { ADMIN_PATH, ANALYTICS_TIME_ZONE } from "./access";
 import {
   describeChange,
   formatCount,
   formatDateTime,
+  formatDay,
   formatDuration,
   formatPercent,
+  localDay,
 } from "./format";
 import { SORT_LABELS } from "./params";
 import { Bars, DataTable, DayChart, Kpi, Panel, SERIES_COLORS } from "./ui";
@@ -683,7 +691,8 @@ export function FeedbackPanel({
 const QUEUE_ROWS: {
   key: keyof AttentionCounts;
   label: string;
-  slug: string;
+  slug?: string;
+  href?: string;
   note?: string;
 }[] = [
   {
@@ -717,6 +726,12 @@ const QUEUE_ROWS: {
     slug: "witness-reports",
     note: "A count, not a queue: witness reports carry no status.",
   },
+  {
+    key: "largeGrants",
+    label: "Large point grants, 7 days",
+    href: `${ADMIN_PATH}/analytics/points`,
+    note: "A count, not a queue: open the Points page to review each grant.",
+  },
 ];
 
 export function NeedsAttentionPanel({
@@ -741,7 +756,11 @@ export function NeedsAttentionPanel({
           cells: {
             area: (
               <>
-                <a href={`${ADMIN_PATH}/collections/${row.slug}`}>
+                <a
+                  href={
+                    row.href ?? `${ADMIN_PATH}/collections/${row.slug ?? ""}`
+                  }
+                >
                   {row.label}
                 </a>
                 {row.note ? <div className="ana-sub">{row.note}</div> : null}
@@ -783,6 +802,227 @@ export function PushPanel({
             sent: formatDateTime(c.sentAt, timeZone),
             delivered: formatCount(c.delivered),
             opened: formatPercent(c.openedRate),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+// --- points -----------------------------------------------------------------
+
+export function PointsKpis({
+  summary,
+  daily,
+}: {
+  summary: {
+    current: PointsTotals;
+    previous: PointsTotals;
+    outstanding: number;
+  };
+  /** The period's daily series, for the line under each figure. */
+  daily?: PointsDay[];
+}): ReactNode {
+  const { current, previous, outstanding } = summary;
+  const days = daily?.length ?? 0;
+  const trend = (name: string, pick: (day: PointsDay) => number) => ({
+    trend: daily?.map(pick),
+    trendLabel: `${name}, last ${days} days`,
+  });
+  const versus = "vs previous period";
+  return (
+    <div className="ana-grid ana-kpis">
+      <Kpi
+        change={describeChange(current.issued, previous.issued)}
+        label="Issued"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.issued)}
+        {...trend("Issued", (d) => d.issued)}
+      />
+      <Kpi
+        change={describeChange(current.spent, previous.spent)}
+        label="Spent"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.spent)}
+        {...trend("Spent", (d) => d.spent)}
+      />
+      <Kpi
+        change={describeChange(current.net, previous.net)}
+        label="Net"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.net)}
+      />
+      <Kpi
+        label="Outstanding"
+        note="all time"
+        tag="observed"
+        value={formatCount(outstanding)}
+      />
+      <Kpi
+        change={describeChange(current.activeEarners, previous.activeEarners)}
+        label="Active earners"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.activeEarners)}
+      />
+      <Kpi
+        change={describeChange(current.largeGrants, previous.largeGrants)}
+        label="Large grants"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.largeGrants)}
+      />
+    </div>
+  );
+}
+
+export function PointsDailyPanel({ days }: { days: PointsDay[] }): ReactNode {
+  return (
+    <Panel
+      hint="Issued and spent by day"
+      tag="observed"
+      title="Issued and spent by day"
+    >
+      <DayChart
+        days={days}
+        label="Issued and spent by day"
+        series={[
+          { key: "issued", label: "Issued", color: SERIES_COLORS.deep },
+          { key: "spent", label: "Spent", color: SERIES_COLORS.gold },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function PointsSourcesPanel({
+  sources,
+}: {
+  sources: PointsSource[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Points issued, by source"
+      tag="observed"
+      title="Issued by source"
+    >
+      <Bars
+        empty="No points were issued in this period."
+        label="Issued by source"
+        rows={sources.map((s) => ({
+          label: s.source,
+          value: s.issued,
+          display: formatCount(s.issued),
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function ConcentrationPanel({
+  concentration,
+}: {
+  concentration: PointsConcentration;
+}): ReactNode {
+  const figure = (value: number | null) =>
+    value === null ? "–" : formatCount(value);
+  return (
+    <Panel
+      hint="Every account with at least one ledger row"
+      tag="observed"
+      title="Balance concentration"
+    >
+      <div className="ana-grid ana-kpis">
+        <Kpi label="Holders" value={formatCount(concentration.holders)} />
+        <Kpi label="Median balance" value={figure(concentration.median)} />
+        <Kpi label="90th percentile" value={figure(concentration.p90)} />
+        <Kpi
+          label="Top 10 share"
+          value={formatPercent(concentration.top10Share)}
+        />
+      </div>
+    </Panel>
+  );
+}
+
+export function LeaderboardPanel({
+  rows,
+}: {
+  rows: LeaderboardRow[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Earned from activity; the sign-up bonus and large grants are left out"
+      tag="observed"
+      title="Leaderboard"
+    >
+      <DataTable
+        columns={[
+          { key: "rank", label: "Rank" },
+          { key: "earned", label: "Earned", align: "right" },
+          { key: "balance", label: "Balance", align: "right" },
+          { key: "joined", label: "Joined" },
+          { key: "source", label: "Top source" },
+          { key: "account", label: "Account" },
+        ]}
+        empty="No one earned points from activity in this period."
+        rows={rows.map((r) => ({
+          key: r.userId,
+          cells: {
+            rank: r.rank,
+            earned: formatCount(r.earned),
+            balance: formatCount(r.balance),
+            joined: r.joinedAt
+              ? formatDay(localDay(r.joinedAt, ANALYTICS_TIME_ZONE))
+              : "–",
+            source: r.topSource ?? "–",
+            account: (
+              <a href={`${ADMIN_PATH}/collections/users/${r.userId}`}>
+                Open account
+              </a>
+            ),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function LargeGrantsPanel({
+  grants,
+}: {
+  grants: LargeGrant[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Single grants above 5,000 points"
+      tag="observed"
+      title="Large point grants"
+    >
+      <DataTable
+        columns={[
+          { key: "date", label: "Date" },
+          { key: "source", label: "Source" },
+          { key: "points", label: "Points", align: "right" },
+          { key: "account", label: "Account" },
+        ]}
+        empty="No single grant above 5,000 points in this period."
+        rows={grants.map((g) => ({
+          key: g.id,
+          cells: {
+            date: g.at ? formatDay(localDay(g.at, ANALYTICS_TIME_ZONE)) : "–",
+            source: g.source,
+            points: formatCount(g.points),
+            account: g.userId ? (
+              <a href={`${ADMIN_PATH}/collections/users/${g.userId}`}>
+                Open account
+              </a>
+            ) : (
+              "–"
+            ),
           },
         }))}
       />

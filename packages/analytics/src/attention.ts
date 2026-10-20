@@ -2,6 +2,7 @@ import { sql } from "@payloadcms/db-postgres/drizzle";
 
 import type { AnalyticsDb } from "./db";
 import { isoOrNull, percent, rowsOf } from "./db";
+import { LARGE_GRANT_POINTS } from "./points";
 import type { Range } from "./range";
 import { inWindow } from "./range";
 import type { AnalyticsScope } from "./scope";
@@ -49,6 +50,11 @@ export type AttentionCounts = {
    * so this is a count to glance at, not a queue to work down.
    */
   witnessWeek: number;
+  /**
+   * Single point grants above `LARGE_GRANT_POINTS` in the last 7 days. A count
+   * to look at, not a queue: the owner decides what to do about each one.
+   */
+  largeGrants: number;
 };
 
 export async function needsAttention(
@@ -68,6 +74,7 @@ export async function needsAttention(
     flags_unreviewed: number;
     push_failed: number;
     witness_week: number;
+    large_grants: number;
   }>(
     db,
     sql`
@@ -84,7 +91,11 @@ export async function needsAttention(
                WHERE status = 'failed'
                  AND created_at >= ${since}::timestamptz) AS push_failed,
              (SELECT COUNT(*)::int FROM witness_reports
-               WHERE created_at >= ${since}::timestamptz) AS witness_week
+               WHERE created_at >= ${since}::timestamptz) AS witness_week,
+             (SELECT COUNT(*)::int FROM activities
+               WHERE type = 'point'
+                 AND point > ${LARGE_GRANT_POINTS}
+                 AND created_at >= ${since}::timestamptz) AS large_grants
     `
   );
 
@@ -95,6 +106,7 @@ export async function needsAttention(
     flagsUnreviewed: row?.flags_unreviewed ?? 0,
     pushFailed: row?.push_failed ?? 0,
     witnessWeek: row?.witness_week ?? 0,
+    largeGrants: row?.large_grants ?? 0,
   };
 }
 

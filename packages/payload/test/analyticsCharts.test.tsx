@@ -263,6 +263,75 @@ describe("the news pages show sparklines for the daily series", () => {
   });
 });
 
+describe("the Points page charts", () => {
+  const staff = { collection: "admins", role: "editor" };
+
+  /** A request whose ledger has activity on every day of the period. */
+  const requestWithLedger = () => {
+    const dialect = new PgDialect();
+    const range = resolveRange({ days: 30, timeZone: "Africa/Lagos" });
+    const days = datesBetween(range.current.from, range.current.to);
+    const req = {
+      user: staff,
+      payload: {
+        db: {
+          drizzle: {
+            execute: (query: Parameters<PgDialect["sqlToQuery"]>[0]) => {
+              const { sql } = dialect.sqlToQuery(query);
+              let rows: unknown[] = [];
+              if (sql.includes("to_char")) {
+                rows = days.map((day, i) => ({
+                  day,
+                  issued: i + 1,
+                  spent: Math.floor((i + 1) / 2),
+                }));
+              } else if (sql.includes("GROUP BY 1")) {
+                rows = [
+                  { source: "read", issued: 40, spent: 0, users: 3 },
+                  { source: "form", issued: 12, spent: 4, users: 2 },
+                ];
+              } else if (sql.includes("AS outstanding")) {
+                rows = [{ outstanding: 500 }];
+              } else if (sql.includes("active_earners")) {
+                rows = [
+                  {
+                    issued: 60,
+                    spent: 20,
+                    reversed: 0,
+                    active_earners: 5,
+                    large_grants: 0,
+                  },
+                ];
+              }
+              return Promise.resolve({ rows });
+            },
+          },
+        },
+      },
+    };
+    return req as never;
+  };
+
+  it("draws the daily issued and spent chart, the source bars and the sparklines", async () => {
+    const out = html(
+      await components.PointsPageView({
+        initPageResult: { req: requestWithLedger() },
+        searchParams: {},
+      } as never)
+    );
+
+    expect(out).toContain("Issued and spent by day");
+    expect(out).toContain("Issued by source");
+    for (const label of ["Issued", "Spent"]) {
+      expect(out).toContain(`${label}, last 30 days`);
+    }
+    // Net has no line: the daily series carries no reversals to match it.
+    expect(out).not.toContain("Net, last 30 days");
+    expect(out).toContain("<svg");
+    expect(out).toContain("read");
+  });
+});
+
 describe("the charts follow the theme", () => {
   it("takes the series colours from CSS variables, so the dark theme can change them", () => {
     expect(SERIES_COLORS).toEqual({

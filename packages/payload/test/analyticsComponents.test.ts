@@ -1,11 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import * as components from "../src/components/Analytics";
-import { StepsPanel } from "../src/components/Analytics/blocks";
+import {
+  LargeGrantsPanel,
+  LeaderboardPanel,
+  NeedsAttentionPanel,
+  PointsKpis,
+  StepsPanel,
+} from "../src/components/Analytics/blocks";
 import {
   analyticsDefaultLayout,
   analyticsWidgets,
@@ -14,9 +21,11 @@ import { parseAnalyticsParams } from "../src/components/Analytics/params";
 import {
   analyticsNavLink,
   analyticsPageView,
+  analyticsViews,
   articleStatsView,
   giveawayStatsView,
   partnerPerformanceView,
+  pointsPageView,
 } from "../src/components/Analytics/tabs";
 
 const PARTNER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -29,7 +38,10 @@ const unassignedPartner = { collection: "admins", role: "partner" };
 const appUser = { collection: "users", role: "super-admin" };
 
 /** A request whose database records what it is asked. */
-function requestFor(user: unknown) {
+function requestFor(
+  user: unknown,
+  rowsFor: (sql: string) => unknown[] = () => []
+) {
   const dialect = new PgDialect();
   const queries: { sql: string; params: unknown[] }[] = [];
   const req = {
@@ -40,7 +52,7 @@ function requestFor(user: unknown) {
           execute: (query: Parameters<PgDialect["sqlToQuery"]>[0]) => {
             const compiled = dialect.sqlToQuery(query);
             queries.push({ sql: compiled.sql, params: compiled.params });
-            return Promise.resolve({ rows: [] });
+            return Promise.resolve({ rows: rowsFor(compiled.sql) });
           },
         },
       },
@@ -52,6 +64,7 @@ function requestFor(user: unknown) {
 const html = (node: unknown) => renderToStaticMarkup(node as never);
 const NO_ACCESS = "No access";
 const ISO_DATE = /^\d{4}-\d\d-\d\d$/;
+const STYLE_BLOCK = /<style>[\s\S]*?<\/style>/g;
 
 describe("parseAnalyticsParams", () => {
   it("accepts the offered periods and platforms", () => {
@@ -452,6 +465,131 @@ describe("a widget added by hand shows nothing it should not", () => {
   });
 });
 
+describe("the Points page", () => {
+  const POINTS_USER_A = "33333333-3333-4333-8333-333333333333";
+  const POINTS_USER_B = "44444444-4444-4444-8444-444444444444";
+
+  const page = async (user: unknown, rowsFor?: (sql: string) => unknown[]) => {
+    const { req, queries } = requestFor(user, rowsFor);
+    return {
+      out: html(
+        await components.PointsPageView({
+          initPageResult: { req },
+          searchParams: {},
+        } as never)
+      ),
+      queries,
+    };
+  };
+
+  it("gives staff every figure and both empty states when the ledger is empty", async () => {
+    const { out, queries } = await page(staff);
+
+    for (const label of [
+      "Issued",
+      "Spent",
+      "Net",
+      "Outstanding",
+      "Active earners",
+      "Large grants",
+    ]) {
+      expect(out).toContain(label);
+    }
+    expect(out).toContain("No single grant above 5,000 points in this period.");
+    expect(out).toContain("No one earned points from activity in this period.");
+    expect(queries.length).toBeGreaterThan(0);
+  });
+
+  it("refuses a partner, an app user and a signed-out viewer without querying", async () => {
+    for (const user of [partnerA, appUser, null]) {
+      const { out, queries } = await page(user);
+
+      expect(out).toContain(NO_ACCESS);
+      expect(queries).toHaveLength(0);
+    }
+  });
+
+  it("links every account to its admin record without printing a name or an email", async () => {
+    const rowsFor = (sql: string) =>
+      sql.includes("ROW_NUMBER() OVER (ORDER BY e.earned")
+        ? [
+            {
+              rank: 1,
+              user_id: POINTS_USER_A,
+              earned: 1200,
+              balance: 6200,
+              joined_at: "2026-01-01T00:00:00.000Z",
+              top_source: "read",
+            },
+            {
+              rank: 2,
+              user_id: POINTS_USER_B,
+              earned: 900,
+              balance: 1400,
+              joined_at: "2026-02-01T00:00:00.000Z",
+              top_source: "surveyTask",
+            },
+          ]
+        : [];
+    const { out } = await page(staff, rowsFor);
+    const markup = out.replace(STYLE_BLOCK, "");
+
+    for (const id of [POINTS_USER_A, POINTS_USER_B]) {
+      expect(markup).toContain(`href="/admin/collections/users/${id}"`);
+    }
+    expect(markup).not.toContain("@");
+    expect(markup.toLowerCase()).not.toContain("email");
+    expect(markup.toLowerCase()).not.toContain("username");
+  });
+});
+
+describe("the News and Points switch", () => {
+  const currentHrefs = (markup: string) =>
+    [...markup.matchAll(/<a aria-current="true" href="([^"]*)"/g)].map(
+      (m) => m[1]
+    );
+
+  const render = async (View: typeof components.AnalyticsPageView) => {
+    const { req } = requestFor(staff);
+    return html(
+      await View({ initPageResult: { req }, searchParams: {} } as never)
+    );
+  };
+
+  it("sits on both pages and marks the page being viewed", async () => {
+    const news = await render(components.AnalyticsPageView);
+    const points = await render(components.PointsPageView);
+
+    expect(news).toContain('href="/admin/analytics/points"');
+    expect(points).toContain('href="/admin/analytics"');
+    expect(currentHrefs(news)).toContain("/admin/analytics");
+    expect(currentHrefs(news)).not.toContain("/admin/analytics/points");
+    expect(currentHrefs(points)).toContain("/admin/analytics/points");
+    expect(currentHrefs(points)).not.toContain("/admin/analytics");
+  });
+});
+
+describe("the large point grants alert", () => {
+  it("links to the Points page", () => {
+    const out = html(
+      NeedsAttentionPanel({
+        counts: {
+          commentsHidden: 0,
+          reportsPending: 0,
+          identityInReview: 0,
+          flagsUnreviewed: 0,
+          pushFailed: 0,
+          witnessWeek: 0,
+          largeGrants: 3,
+        },
+      })
+    );
+
+    expect(out).toContain("Large point grants, 7 days");
+    expect(out).toContain('href="/admin/analytics/points"');
+  });
+});
+
 describe("the nav link", () => {
   it("is for staff only", () => {
     expect(
@@ -479,6 +617,7 @@ describe("registration", () => {
     partnerPerformanceView.Component,
     giveawayStatsView.Component,
     analyticsPageView.Component,
+    pointsPageView.Component,
     analyticsNavLink,
   ] as string[];
 
@@ -489,8 +628,104 @@ describe("registration", () => {
     expect(importMap).toContain(`"${ref}"`);
   });
 
+  it("registers the Points page at its own address", () => {
+    expect(pointsPageView.path).toBe("/analytics/points");
+  });
+
+  it("serves each analytics page at its own address, as Payload matches them", async () => {
+    // Payload treats a view without `exact` as a prefix, and takes the first
+    // match, so /analytics would otherwise answer for /analytics/points too.
+    const require = createRequire(import.meta.url);
+    const dir = path.dirname(require.resolve("@payloadcms/next/package.json"));
+    const { getCustomViewByRoute } = await import(
+      path.join(dir, "dist/views/Root/getCustomViewByRoute.js")
+    );
+    const config = {
+      admin: { components: { views: analyticsViews } },
+      routes: { admin: "/admin" },
+    };
+    const keyFor = (currentRoute: string) =>
+      getCustomViewByRoute({ config, currentRoute }).viewKey;
+
+    expect(keyFor("/admin/analytics")).toBe("analytics");
+    expect(keyFor("/admin/analytics/points")).toBe("analyticsPoints");
+  });
+
   it("gives every widget a permanent, unique slug", () => {
     const slugs = analyticsWidgets.map((w) => w.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
+  });
+});
+
+describe("points dates are Lagos days", () => {
+  // 23:30 UTC on the 19th is 00:30 on the 20th in Lagos.
+  const late = "2026-10-19T23:30:00.000Z";
+
+  it("shows a late-evening join on the Lagos day", () => {
+    const out = renderToStaticMarkup(
+      LeaderboardPanel({
+        rows: [
+          {
+            rank: 1,
+            userId: "u1",
+            earned: 10,
+            balance: 10,
+            joinedAt: late,
+            topSource: "read",
+          },
+        ],
+      }) as never
+    );
+
+    expect(out).toContain("20 Oct");
+    expect(out).not.toContain("19 Oct");
+  });
+
+  it("shows a late-evening grant on the Lagos day", () => {
+    const out = renderToStaticMarkup(
+      LargeGrantsPanel({
+        grants: [
+          {
+            id: "g1",
+            userId: "u1",
+            action: "surveyTask",
+            source: "form",
+            points: 9000,
+            at: late,
+          },
+        ],
+      }) as never
+    );
+
+    expect(out).toContain("20 Oct");
+  });
+});
+
+describe("the points tiles", () => {
+  const totals = {
+    issued: 100,
+    spent: 40,
+    reversed: 10,
+    net: 50,
+    activeEarners: 3,
+    largeGrants: 0,
+  };
+  const days = Array.from({ length: 7 }, (_, i) => ({
+    date: `2026-10-${String(i + 1).padStart(2, "0")}`,
+    issued: i + 1,
+    spent: i,
+  }));
+
+  it("draws lines for Issued and Spent but not Net, which the daily series cannot match", () => {
+    const out = renderToStaticMarkup(
+      PointsKpis({
+        summary: { current: totals, previous: totals, outstanding: 500 },
+        daily: days,
+      }) as never
+    );
+
+    expect(out).toContain("Issued, last 7 days");
+    expect(out).toContain("Spent, last 7 days");
+    expect(out).not.toContain("Net, last 7 days");
   });
 });

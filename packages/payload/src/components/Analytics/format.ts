@@ -53,3 +53,9 @@ export function formatDuration(ms: number | null): string {
   }
   return `${mins}m`;
 }
+
+/** The calendar date, `YYYY-MM-DD`, that an instant falls on in `timeZone`. */
+export function localDay(iso: string, timeZone: string): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(iso));
+}
