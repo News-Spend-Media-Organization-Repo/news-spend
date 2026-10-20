@@ -770,7 +770,25 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         flagsUnreviewed: 2,
         pushFailed: 1,
         witnessWeek: 1,
+        largeGrants: 0,
       });
+    });
+
+    it("counts only large point grants in the last 7 days", async () => {
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at) VALUES
+          ('point', 6000, 'surveyTask', '${USER}', '2026-09-19T08:00:00Z'),
+          ('point', 6000, 'surveyTask', '${USER}', '2026-09-10T08:00:00Z'),
+          ('point', 5000, 'surveyTask', '${USER}', '2026-09-19T09:00:00Z')
+      `);
+
+      const counts = await needsAttention(db, staff, { now: NOW });
+
+      await conn.unsafe(
+        `DELETE FROM activities WHERE user_id = '${USER}' AND point >= 5000`
+      );
+
+      expect(counts.largeGrants).toBe(1);
     });
 
     it("rates the period's campaigns from their deliveries", async () => {
