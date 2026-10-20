@@ -78,9 +78,42 @@ function removeHashParam(rawQuery: string): string {
 type TheoremSignedUrl = {
   url: string;
   /** Where the public origin came from, for diagnosing a bad configuration. */
-  source: "env" | "headers";
+  source: "forwarded" | "railway" | "request";
   path: string;
 };
+
+/**
+ * The public origin of this request. The host the process sees is internal
+ * behind Railway, but provider signatures cover the public URL, so prefer the
+ * proxy's forwarded host and then Railway's own public domain.
+ */
+export function publicOriginForRequest(request: {
+  url: string;
+  headers: Headers;
+}): { origin: string; source: TheoremSignedUrl["source"] } {
+  const url = new URL(request.url);
+  const forwarded = (name: string) =>
+    request.headers.get(name)?.split(",")[0]?.trim();
+
+  const forwardedHost = forwarded("x-forwarded-host");
+  if (forwardedHost) {
+    const proto =
+      forwarded("x-forwarded-proto") ?? url.protocol.replace(":", "");
+    return { origin: `${proto}://${forwardedHost}`, source: "forwarded" };
+  }
+
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
+  if (railwayDomain) {
+    return {
+      origin: railwayDomain.includes("://")
+        ? railwayDomain
+        : `https://${railwayDomain}`,
+      source: "railway",
+    };
+  }
+
+  return { origin: url.origin, source: "request" };
+}
 
 /**
  * The URL TheoremReach signed: the public origin + the path as served + the
@@ -100,26 +133,11 @@ function theoremUrlToSign(
   const path = pathStart === -1 ? "/" : afterScheme.slice(pathStart);
   const rawQuery = request.url.split("?").slice(1).join("?");
   const query = removeHashParam(rawQuery);
-
-  const configured = process.env.THEOREM_CALLBACK_BASE_URL?.trim();
-  let base: string;
-  let source: TheoremSignedUrl["source"];
-
-  if (configured) {
-    base = configured.replace(/\?+$/, "");
-    source = "env";
-  } else {
-    // Behind Railway the request's own host is internal.
-    const url = new URL(request.url);
-    const forwarded = (name: string) =>
-      request.headers.get(name)?.split(",")[0]?.trim();
-    const proto =
-      forwarded("x-forwarded-proto") ?? url.protocol.replace(":", "");
-    const host =
-      forwarded("x-forwarded-host") ?? request.headers.get("host") ?? url.host;
-    base = `${proto}://${host}${path}`;
-    source = "headers";
-  }
+  const { origin, source } = publicOriginForRequest({
+    url: request.url,
+    headers: request.headers,
+  });
+  const base = `${origin}${path}`;
 
   return { url: query ? `${base}?${query}` : base, source, path };
 }

@@ -280,9 +280,9 @@ describe("TheoremReach postback", () => {
     expect(payload.docs("activities")).toHaveLength(0);
   });
 
-  it("uses THEOREM_CALLBACK_BASE_URL when the request host is internal", async () => {
+  it("uses Railway's public domain when the request host is internal", async () => {
     const payload = freshPayload();
-    process.env.THEOREM_CALLBACK_BASE_URL = THEOREM_BASE;
+    process.env.RAILWAY_PUBLIC_DOMAIN = "api.newsspend.com";
 
     try {
       const query = "user_id=user-1&reward=100&tx_id=t1";
@@ -299,8 +299,22 @@ describe("TheoremReach postback", () => {
       expect(res).toEqual({ success: true });
       expect(payload.docs("activities")).toHaveLength(1);
     } finally {
-      delete process.env.THEOREM_CALLBACK_BASE_URL;
+      delete process.env.RAILWAY_PUBLIC_DOMAIN;
     }
+  });
+
+  it("signs the request's own origin when it is already public", async () => {
+    const payload = freshPayload();
+
+    // The default tests do exactly this: the Request carries the public URL
+    // and there is no forwarded host or Railway variable.
+    const res = await theorem(payload, {
+      reward: 100,
+      user_id: "user-1",
+      tx_id: "t1",
+    });
+
+    expect(res).toEqual({ success: true });
   });
 
   it("falls back to the forwarded headers without the env var", async () => {
