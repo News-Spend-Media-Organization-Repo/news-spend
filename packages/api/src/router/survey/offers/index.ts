@@ -28,6 +28,9 @@ import { readSurveySettings } from "./settings";
 /** A provider that does not answer must not hold the whole survey tab. */
 const PROVIDER_TIMEOUT_MS = 5000;
 
+const ANDROID_AGENT = /android/i;
+const IOS_AGENT = /iphone|ipad|ios/i;
+
 const mockOffers: UnifiedOffer[] = [
   {
     id: "mock-1",
@@ -295,9 +298,18 @@ export async function fetchBitLabsOffers(
   }
 
   try {
+    // BitLabs' enums; leave `os` off when the agent names neither platform.
+    const os = ANDROID_AGENT.test(userAgent)
+      ? "ANDROID"
+      : IOS_AGENT.test(userAgent)
+        ? "IOS"
+        : undefined;
     const params = new URLSearchParams({
       client_ip: userIp,
       client_useragent: userAgent,
+      platform: "MOBILE",
+      sdk: "REACT",
+      ...(os ? { os } : {}),
     });
     const response = await fetch(
       `https://api.bitlabs.ai/v2/client/surveys?${params}`,

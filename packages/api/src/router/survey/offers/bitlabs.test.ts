@@ -58,6 +58,44 @@ describe("fetchBitLabsOffers", () => {
     });
   });
 
+  it("sends the platform, OS and SDK from the user agent", async () => {
+    let called = "";
+    globalThis.fetch = ((input: RequestInfo | URL) => {
+      called = String(input);
+      return Promise.resolve(Response.json({ data: { surveys: [] } }));
+    }) as unknown as typeof fetch;
+
+    await fetchBitLabsOffers(
+      "user-1",
+      "1.2.3.4",
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8)",
+      "NG",
+      10
+    );
+
+    expect(called).toContain("os=ANDROID");
+    expect(called).toContain("platform=MOBILE");
+    expect(called).toContain("sdk=REACT");
+  });
+
+  it("sends IOS for an iPhone", async () => {
+    let called = "";
+    globalThis.fetch = ((input: RequestInfo | URL) => {
+      called = String(input);
+      return Promise.resolve(Response.json({ data: { surveys: [] } }));
+    }) as unknown as typeof fetch;
+
+    await fetchBitLabsOffers(
+      "user-1",
+      "1.2.3.4",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)",
+      "NG",
+      10
+    );
+
+    expect(called).toContain("os=IOS");
+  });
+
   it("returns an empty list when BitLabs refuses backend access", async () => {
     respond({ error: "forbidden" }, 403);
 
