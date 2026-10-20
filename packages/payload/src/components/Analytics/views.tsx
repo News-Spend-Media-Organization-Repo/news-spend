@@ -68,6 +68,7 @@ import {
   SurfacesPanel,
   TopArticlesPanel,
 } from "./blocks";
+import { PageFrame } from "./PageFrame";
 import type { Days } from "./params";
 import { parseAnalyticsParams, SORT_LABELS } from "./params";
 import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
@@ -309,7 +310,11 @@ export async function AnalyticsPageView(
   const { req } = props.initPageResult;
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
-    return <Denied />;
+    return (
+      <PageFrame view={props}>
+        <Denied />
+      </PageFrame>
+    );
   }
 
   return await guarded(async () => {
@@ -339,7 +344,7 @@ export async function AnalyticsPageView(
     ]);
 
     return (
-      <>
+      <PageFrame view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -372,7 +377,7 @@ export async function AnalyticsPageView(
           </div>
           <EngagementPanel engagement={engagement} />
         </div>
-      </>
+      </PageFrame>
     );
   });
 }
@@ -384,7 +389,11 @@ export async function PointsPageView(
   const { req } = props.initPageResult;
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
-    return <Denied />;
+    return (
+      <PageFrame view={props}>
+        <Denied />
+      </PageFrame>
+    );
   }
 
   return await guarded(async () => {
@@ -404,7 +413,7 @@ export async function PointsPageView(
       ]);
 
     return (
-      <>
+      <PageFrame view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -431,7 +440,7 @@ export async function PointsPageView(
             <LargeGrantsPanel grants={grants} />
           </div>
         </div>
-      </>
+      </PageFrame>
     );
   });
 }
@@ -443,7 +452,11 @@ export async function RetentionPageView(
   const { req } = props.initPageResult;
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
-    return <Denied />;
+    return (
+      <PageFrame view={props}>
+        <Denied />
+      </PageFrame>
+    );
   }
 
   return await guarded(async () => {
@@ -465,7 +478,7 @@ export async function RetentionPageView(
     ]);
 
     return (
-      <>
+      <PageFrame view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -486,7 +499,7 @@ export async function RetentionPageView(
           <ActivationPanel weeks={activation} />
           <CohortsPanel cohorts={cohorts} />
         </div>
-      </>
+      </PageFrame>
     );
   });
 }

@@ -1,11 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
-
-import * as components from "../src/components/Analytics";
 import {
   LargeGrantsPanel,
   LeaderboardPanel,
@@ -28,6 +26,12 @@ import {
   pointsPageView,
   retentionPageView,
 } from "../src/components/Analytics/tabs";
+import { DefaultTemplateStub, templateCalls } from "./analyticsTemplateStub";
+
+mock.module("@payloadcms/next/templates", () => ({
+  DefaultTemplate: DefaultTemplateStub,
+}));
+const components = await import("../src/components/Analytics");
 
 const PARTNER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PARTNER_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -463,6 +467,95 @@ describe("a widget added by hand shows nothing it should not", () => {
       (Date.parse(dates.at(-1) ?? "") - Date.parse(dates[0] ?? "")) /
       86_400_000;
     expect(spanDays).toBeLessThan(120);
+  });
+});
+
+describe("the admin template", () => {
+  const PERMISSIONS = { canAccessAdmin: true };
+  const VISIBLE = {
+    collections: { news: true },
+    globals: { "site-settings": true },
+  };
+
+  const pageProps = (
+    user: unknown,
+    searchParams: Record<string, string> = {}
+  ) => {
+    const { req } = requestFor(user);
+    return {
+      initPageResult: {
+        req,
+        locale: "en",
+        permissions: PERMISSIONS,
+        visibleEntities: VISIBLE,
+      },
+      params: { segments: ["analytics"] },
+      searchParams,
+    } as never;
+  };
+
+  it("wraps all three full-page views in the default template", async () => {
+    for (const View of [
+      components.AnalyticsPageView,
+      components.PointsPageView,
+      components.RetentionPageView,
+    ]) {
+      templateCalls.length = 0;
+      const out = html(await View(pageProps(staff)));
+
+      expect(out).toContain('data-template="default"');
+      expect(templateCalls).toHaveLength(1);
+    }
+  });
+
+  it("wraps their No access screens too", async () => {
+    for (const View of [
+      components.AnalyticsPageView,
+      components.PointsPageView,
+      components.RetentionPageView,
+    ]) {
+      templateCalls.length = 0;
+      const out = html(await View(pageProps(partnerA)));
+
+      expect(out).toContain('data-template="default"');
+      expect(out).toContain(NO_ACCESS);
+      expect(templateCalls).toHaveLength(1);
+    }
+  });
+
+  it("does not wrap the document-level Stats tabs", async () => {
+    const { req } = requestFor(staff);
+    const props = {
+      initPageResult: { req, docID: ARTICLE },
+      searchParams: {},
+      doc: { id: ARTICLE },
+    } as never;
+
+    for (const View of [
+      components.ArticleStatsView,
+      components.PartnerPerformanceView,
+      components.GiveawayStatsView,
+    ]) {
+      templateCalls.length = 0;
+      const out = html(await View(props));
+
+      expect(out).not.toContain('data-template="default"');
+      expect(templateCalls).toHaveLength(0);
+    }
+  });
+
+  it("hands the template the user, permissions and plain visible entities", async () => {
+    const out = html(await components.AnalyticsPageView(pageProps(staff)));
+
+    expect(out).toContain('data-template="default"');
+    const last = templateCalls.at(-1);
+    expect(last?.user).toBe(staff);
+    expect(last?.permissions).toBe(PERMISSIONS);
+    expect(last?.visibleEntities).not.toBe(VISIBLE);
+    expect(last?.visibleEntities).toEqual({
+      collections: VISIBLE.collections,
+      globals: VISIBLE.globals,
+    });
   });
 });
 
