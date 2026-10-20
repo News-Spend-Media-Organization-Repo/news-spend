@@ -120,6 +120,8 @@ export {
 } from "./points";
 export type { DateWindow, Range } from "./range";
 export { percentChange, RANGE_DAYS, resolveRange } from "./range";
+export type { ActivationWeek, RetentionFilter } from "./retention";
+export { activationByWeek } from "./retention";
 export type {
   AnalyticsScope,
   PartnerScope,

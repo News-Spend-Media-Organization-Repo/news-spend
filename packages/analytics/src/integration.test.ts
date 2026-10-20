@@ -44,6 +44,7 @@ import {
   pointsSummary,
 } from "./points";
 import { resolveRange } from "./range";
+import { activationByWeek } from "./retention";
 import { scopeFor } from "./scope";
 
 /**
@@ -1553,6 +1554,95 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         p90: null,
         top10Share: null,
       });
+    });
+  });
+
+  describe("retention activation", () => {
+    const U1 = "93000000-0000-4000-8000-000000000001";
+    const U2 = "93000000-0000-4000-8000-000000000002";
+    const U3 = "93000000-0000-4000-8000-000000000003";
+    const U4 = "93000000-0000-4000-8000-000000000004";
+    const U5 = "93000000-0000-4000-8000-000000000005";
+    const U6 = "93000000-0000-4000-8000-000000000006";
+    const U7 = "93000000-0000-4000-8000-000000000007";
+    const U8 = "93000000-0000-4000-8000-000000000008";
+    const ACTIVE = resolveRange({
+      days: 30,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+    const filter = { range: ACTIVE, now: NOW };
+
+    beforeAll(async () => {
+      await conn.unsafe("DELETE FROM news_analytics");
+      await conn.unsafe("DELETE FROM users");
+      await conn.unsafe(`
+        INSERT INTO users (id, is_anonymous, created_at) VALUES
+          ('${U1}', FALSE, '2026-09-08T09:00:00Z'),
+          ('${U2}', FALSE, '2026-09-08T10:00:00Z'),
+          ('${U3}', FALSE, '2026-09-08T11:00:00Z'),
+          ('${U4}', FALSE, '2026-09-08T12:00:00Z'),
+          ('${U5}', TRUE,  '2026-09-15T08:00:00Z'),
+          ('${U6}', FALSE, '2026-09-15T09:00:00Z'),
+          ('${U7}', FALSE, '2026-09-19T23:30:00Z'),
+          ('${U8}', FALSE, '2026-09-13T23:30:00Z');
+        INSERT INTO news_analytics (article_id, event, user_id, device_id, timestamp) VALUES
+          ('${A1}', 'view', '${U1}', 'r-1', '2026-09-08T09:00:00Z'),
+          ('${A1}', 'read', '${U1}', 'r-1', '2026-09-09T09:00:00Z'),
+          ('${A1}', 'view', '${U2}', 'r-2', '2026-09-09T11:00:00Z'),
+          ('${A1}', 'view', '${U3}', 'r-3', '2026-09-08T10:30:00Z'),
+          ('${A1}', 'read', '${U4}', 'r-4', '2026-09-15T12:00:00Z'),
+          ('${A1}', 'like', '${U6}', 'r-6', '2026-09-15T10:00:00Z'),
+          ('${A1}', 'view', '99999999-9999-4999-8999-999999999999', 'r-x', '2026-09-09T10:00:00Z'),
+          ('${A1}', 'view', NULL, 'r-n', '2026-09-09T10:00:00Z');
+      `);
+    });
+
+    it("counts each signup week, its mature accounts and who read", async () => {
+      expect(await activationByWeek(db, staff, filter)).toEqual([
+        {
+          week: "2026-09-07",
+          signups: 4,
+          mature24h: 4,
+          activated24h: 1,
+          mature7d: 4,
+          activated7d: 3,
+          neverRead: 1,
+        },
+        {
+          week: "2026-09-14",
+          signups: 3,
+          mature24h: 2,
+          activated24h: 0,
+          mature7d: 0,
+          activated7d: 0,
+          neverRead: 0,
+        },
+      ]);
+    });
+
+    it("counts a signup inside the last 24 hours but not in the 24-hour rate", async () => {
+      const [week] = (await activationByWeek(db, staff, filter)).slice(-1);
+
+      expect(week).toMatchObject({ signups: 3, mature24h: 2, activated24h: 0 });
+    });
+
+    it("puts a late Sunday UTC signup in the next Lagos week", async () => {
+      const weeks = await activationByWeek(db, staff, filter);
+
+      expect(weeks.map((w) => w.week)).toEqual(["2026-09-07", "2026-09-14"]);
+    });
+
+    it("returns nothing for a period with no signups", async () => {
+      const earlier = resolveRange({
+        days: 7,
+        now: new Date("2025-01-10T10:00:00Z"),
+        timeZone: "Africa/Lagos",
+      });
+
+      expect(
+        await activationByWeek(db, staff, { range: earlier, now: NOW })
+      ).toEqual([]);
     });
   });
 });
