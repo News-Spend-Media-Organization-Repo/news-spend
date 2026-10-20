@@ -7,6 +7,7 @@ import {
   CPXSurveyResponseSchema,
 } from "../schemas";
 import { getUserCountryCode, getUserIpAddress } from "../utils";
+import { writeOfferEvents } from "./events";
 import { fallbackOffer, rankOffers, withTimeout } from "./ranking";
 import {
   OfferInputSchema,
@@ -305,10 +306,11 @@ export const offersRouter = {
           return offers ?? [];
         });
 
-      const fetches: Promise<UnifiedOffer[]>[] = [];
+      const fetches: [UnifiedOffer["provider"], Promise<UnifiedOffer[]>][] = [];
 
       if (servesCountry("cpx")) {
-        fetches.push(
+        fetches.push([
+          "cpx",
           timed(
             "cpx",
             fetchCPXOffers(
@@ -320,28 +322,47 @@ export const offersRouter = {
               userAgent,
               limit
             )
-          )
-        );
+          ),
+        ]);
       }
       if (servesCountry("rapido")) {
-        fetches.push(
+        fetches.push([
+          "rapido",
           timed(
             "rapido",
             fetchRapidoOffers(user.id, countryCode, userIp, limit)
-          )
-        );
+          ),
+        ]);
       }
       if (servesCountry("theorem")) {
-        fetches.push(
+        fetches.push([
+          "theorem",
           timed(
             "theorem",
             fetchTheoremOffers(user.id, userIp, countryCode, limit)
-          )
-        );
+          ),
+        ]);
       }
 
+      const results = await Promise.all(
+        fetches.map(async ([provider, pending]) => ({
+          provider,
+          offers: await pending,
+        }))
+      );
+
+      await writeOfferEvents(
+        payload,
+        results.map(({ provider, offers }) => ({
+          provider,
+          userId: user.id,
+          country: countryCode,
+          offerCount: offers.length,
+        }))
+      );
+
       const ranked = rankOffers(
-        (await Promise.all(fetches)).flat(),
+        results.flatMap(({ offers }) => offers),
         settings,
         limit
       );

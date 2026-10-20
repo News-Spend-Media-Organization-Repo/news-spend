@@ -62,6 +62,7 @@ import {
   Session,
   ShopAnalytics,
   Survey,
+  SurveyOfferEvents,
   Users,
   Verification,
   WitnessReport,
@@ -75,8 +76,8 @@ import {
 import { analyticsNavLink, analyticsViews } from "./components/Analytics/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
-import SurveySettings from "./globals/SurveySettings";
 import NewsCategory from "./globals/NewsCategory";
+import SurveySettings from "./globals/SurveySettings";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
@@ -167,6 +168,7 @@ const baseConfig: Config = {
   collections: [
     Account,
     Activities,
+    SurveyOfferEvents,
     Admins,
     // Ads,
     // Apps,

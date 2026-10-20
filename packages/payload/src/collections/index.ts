@@ -47,6 +47,7 @@ export { Session } from "./Session";
 export { default as ShopAnalytics } from "./ShopAnalytics";
 export { Stores } from "./Stores";
 export { Survey } from "./Survey";
+export { SurveyOfferEvents } from "./SurveyOfferEvents";
 export { Users } from "./Users";
 export { Verification } from "./Verification";
 export { default as VerificationOTP } from "./VerificationOTP";

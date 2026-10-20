@@ -73,6 +73,7 @@ export interface Config {
   collections: {
     accounts: Account;
     activities: Activity;
+    'survey-offer-events': SurveyOfferEvent;
     admins: Admin;
     categories: Category;
     comments: Comment;
@@ -136,6 +137,7 @@ export interface Config {
   collectionsSelect: {
     accounts: AccountsSelect<false> | AccountsSelect<true>;
     activities: ActivitiesSelect<false> | ActivitiesSelect<true>;
+    'survey-offer-events': SurveyOfferEventsSelect<false> | SurveyOfferEventsSelect<true>;
     admins: AdminsSelect<false> | AdminsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
@@ -1183,6 +1185,29 @@ export interface Category {
   slug: string;
   description?: string | null;
   image?: (string | null) | Media;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Provider offer counts per request. Used to measure survey fill; not a payments record.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-offer-events".
+ */
+export interface SurveyOfferEvent {
+  id: string;
+  provider: 'cpx' | 'rapido' | 'theorem' | 'bitlabs';
+  user?: (string | null) | User;
+  country?: string | null;
+  offerCount: number;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -2816,6 +2841,10 @@ export interface PayloadLockedDocument {
         value: string | Activity;
       } | null)
     | ({
+        relationTo: 'survey-offer-events';
+        value: string | SurveyOfferEvent;
+      } | null)
+    | ({
         relationTo: 'admins';
         value: string | Admin;
       } | null)
@@ -3072,6 +3101,20 @@ export interface ActivitiesSelect<T extends boolean = true> {
   user?: T;
   news?: T;
   metadata?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-offer-events_select".
+ */
+export interface SurveyOfferEventsSelect<T extends boolean = true> {
+  provider?: T;
+  user?: T;
+  country?: T;
+  offerCount?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
