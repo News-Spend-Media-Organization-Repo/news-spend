@@ -11,7 +11,7 @@ const registered = { id: "guest-1", createdAt, isAnonymous: false };
 
 const link = {
   anonymousUser: { user: guest },
-  newUser: { user: { id: "user-1" } },
+  newUser: { user: { id: "user-1", isAnonymous: false } },
 };
 
 const fakeDb = () => {
@@ -83,7 +83,7 @@ describe("recordGuestCreated", () => {
 });
 
 describe("recordGuestConversion", () => {
-  test("records the guest, the new user and when the guest signed up", async () => {
+  test("records a registered user that is not the guest", async () => {
     const db = fakeDb();
 
     await recordGuestConversion(db, link);
@@ -103,6 +103,28 @@ describe("recordGuestConversion", () => {
     ]);
     expect(values[5]).toBeInstanceOf(Date);
     expect(values[6]).toBeInstanceOf(Date);
+  });
+
+  test("writes nothing when the new user is the same guest", async () => {
+    const db = fakeDb();
+
+    await recordGuestConversion(db, {
+      anonymousUser: { user: guest },
+      newUser: { user: guest },
+    });
+
+    expect(db.calls).toHaveLength(0);
+  });
+
+  test("writes nothing when the new session is still anonymous", async () => {
+    const db = fakeDb();
+
+    await recordGuestConversion(db, {
+      anonymousUser: { user: guest },
+      newUser: { user: { id: "guest-2", isAnonymous: true } },
+    });
+
+    expect(db.calls).toHaveLength(0);
   });
 
   test("records the same pair once", async () => {

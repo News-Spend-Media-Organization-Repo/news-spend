@@ -14,7 +14,7 @@ type GuestUser = {
 
 type LinkAccountData = {
   anonymousUser: { user: GuestUser };
-  newUser: { user: { id: string } };
+  newUser: { user: { id: string; isAnonymous?: boolean | null } };
 };
 
 const insertEvent = async (
@@ -70,6 +70,12 @@ export async function recordGuestConversion(
   db: Queryable,
   { anonymousUser, newUser }: LinkAccountData
 ): Promise<void> {
+  // Better Auth calls this hook before it decides whether a conversion
+  // happened. Linking the guest to itself, or starting another anonymous
+  // session, is not a conversion.
+  if (newUser.user.isAnonymous || newUser.user.id === anonymousUser.user.id) {
+    return;
+  }
   await insertEvent(
     db,
     "converted",
