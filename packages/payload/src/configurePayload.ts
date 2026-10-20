@@ -74,6 +74,7 @@ import {
 import {
   analyticsNavLink,
   analyticsPageView,
+  pointsPageView,
 } from "./components/Analytics/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
@@ -157,7 +158,10 @@ const baseConfig: Config = {
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
       beforeNavLinks: [analyticsNavLink],
-      views: { analytics: analyticsPageView },
+      views: {
+        analytics: analyticsPageView,
+        analyticsPoints: pointsPageView,
+      },
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],

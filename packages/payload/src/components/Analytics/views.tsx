@@ -17,6 +17,12 @@ import {
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
+  pointsBySource,
+  pointsConcentration,
+  pointsDaily,
+  pointsLargeGrants,
+  pointsLeaderboard,
+  pointsSummary,
   READ_DEFINITION,
   resolveRange,
   TOP_SORTS,
@@ -33,14 +39,20 @@ import {
 import {
   ArticleReportBody,
   CategoriesPanel,
+  ConcentrationPanel,
   EngagementPanel,
   FunnelPanel,
   GiveawayReportBody,
+  LargeGrantsPanel,
+  LeaderboardPanel,
   NewsKpis,
   OutcomesPanel,
   PartnerDailyPanel,
   PartnerKpis,
   PlatformsPanel,
+  PointsDailyPanel,
+  PointsKpis,
+  PointsSourcesPanel,
   PostbackHealthPanel,
   RecentConversionsPanel,
   ShopPanel,
@@ -59,12 +71,33 @@ import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
  * never the protection.
  */
 
+/** News or Points, whichever page is open. */
+function PageSwitch({ page }: { page: "news" | "points" }): ReactNode {
+  return (
+    <Segmented
+      links={[
+        {
+          label: "News",
+          href: `${ADMIN_PATH}/analytics`,
+          current: page === "news",
+        },
+        {
+          label: "Points",
+          href: `${ADMIN_PATH}/analytics/points`,
+          current: page === "points",
+        },
+      ]}
+    />
+  );
+}
+
 function Toolbar({
   basePath,
   days,
   platform,
   showPlatform,
   sort,
+  navigation,
 }: {
   basePath: string;
   days: Days;
@@ -72,6 +105,8 @@ function Toolbar({
   showPlatform: boolean;
   /** Offers the top-articles sort when given. */
   sort?: TopSort;
+  /** Sits with the period choices, such as the News | Points switch. */
+  navigation?: ReactNode;
 }): ReactNode {
   const href = (next: {
     days?: Days;
@@ -92,6 +127,7 @@ function Toolbar({
 
   return (
     <div className="ana-controls">
+      {navigation}
       <Segmented
         links={([7, 30, 90] as const).map((d) => ({
           label: `${d} days`,
@@ -154,6 +190,19 @@ function Header({
 }
 
 const ZONE_NOTE = "Days are Lagos time.";
+
+const POINTS_NOTICES = [
+  {
+    id: "ranking",
+    message:
+      "The leaderboard leaves out the sign-up bonus and any single grant above 5,000 points.",
+  },
+  {
+    id: "provider",
+    message:
+      "Older survey rows have no provider recorded, so they are shown as form.",
+  },
+];
 
 /**
  * Runs a loader, turning "not allowed" and "bad input" into a screen rather
@@ -263,6 +312,7 @@ export async function AnalyticsPageView(
               <Toolbar
                 basePath={`${ADMIN_PATH}/analytics`}
                 days={days}
+                navigation={<PageSwitch page="news" />}
                 platform={platform}
                 showPlatform
                 sort={sort}
@@ -284,6 +334,65 @@ export async function AnalyticsPageView(
             <CategoriesPanel categories={categories} />
           </div>
           <EngagementPanel engagement={engagement} />
+        </div>
+      </>
+    );
+  });
+}
+
+/** The Dream Points economy page, at /admin/analytics/points. */
+export async function PointsPageView(
+  props: AdminViewServerProps
+): Promise<ReactNode> {
+  const { req } = props.initPageResult;
+  const scope = scopeOfRequest(req);
+  if (scope?.kind !== "staff") {
+    return <Denied />;
+  }
+
+  return await guarded(async () => {
+    const { days } = parseAnalyticsParams(props.searchParams);
+    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const db = dbOf(req);
+    const filter = { range };
+
+    const [summary, daily, sources, concentration, leaderboard, grants] =
+      await Promise.all([
+        pointsSummary(db, scope, filter),
+        pointsDaily(db, scope, filter),
+        pointsBySource(db, scope, filter),
+        pointsConcentration(db, scope),
+        pointsLeaderboard(db, scope, { ...filter, limit: 10 }),
+        pointsLargeGrants(db, scope, { ...filter, limit: 10 }),
+      ]);
+
+    return (
+      <>
+        <Styles />
+        <div className="ana ana-page">
+          <Header
+            hint={`How points are issued, spent and held. ${ZONE_NOTE}`}
+            title="Dream Points"
+            toolbar={
+              <Toolbar
+                basePath={`${ADMIN_PATH}/analytics/points`}
+                days={days}
+                navigation={<PageSwitch page="points" />}
+                showPlatform={false}
+              />
+            }
+          />
+          <Notices notices={POINTS_NOTICES} />
+          <PointsKpis daily={daily} summary={summary} />
+          <div className="ana-grid ana-two">
+            <PointsDailyPanel days={daily} />
+            <PointsSourcesPanel sources={sources} />
+          </div>
+          <ConcentrationPanel concentration={concentration} />
+          <div className="ana-grid ana-even">
+            <LeaderboardPanel rows={leaderboard} />
+            <LargeGrantsPanel grants={grants} />
+          </div>
         </div>
       </>
     );

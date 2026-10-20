@@ -49,4 +49,10 @@ export const analyticsPageView = {
   path: "/analytics" as const,
 };
 
+/** The Dream Points economy page, reached from the News | Points switch. */
+export const pointsPageView = {
+  Component: `${PATH}#PointsPageView`,
+  path: "/analytics/points" as const,
+};
+
 export const analyticsNavLink = `${PATH}#AnalyticsNavLink`;

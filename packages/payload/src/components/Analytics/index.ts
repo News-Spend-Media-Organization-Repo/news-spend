@@ -4,6 +4,7 @@ export {
   ArticleStatsView,
   GiveawayStatsView,
   PartnerPerformanceView,
+  PointsPageView,
 } from "./views";
 export {
   AttentionWidget,
