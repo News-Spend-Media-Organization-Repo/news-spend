@@ -71,11 +71,7 @@ import {
   analyticsDefaultLayout,
   analyticsWidgets,
 } from "./components/Analytics/layout";
-import {
-  analyticsNavLink,
-  analyticsPageView,
-  pointsPageView,
-} from "./components/Analytics/tabs";
+import { analyticsNavLink, analyticsViews } from "./components/Analytics/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { migrations } from "./migrations";
@@ -158,10 +154,7 @@ const baseConfig: Config = {
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
       beforeNavLinks: [analyticsNavLink],
-      views: {
-        analytics: analyticsPageView,
-        analyticsPoints: pointsPageView,
-      },
+      views: analyticsViews,
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],

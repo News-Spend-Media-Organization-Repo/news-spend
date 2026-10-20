@@ -1,12 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import * as components from "../src/components/Analytics";
 import {
+  LargeGrantsPanel,
+  LeaderboardPanel,
   NeedsAttentionPanel,
+  PointsKpis,
   StepsPanel,
 } from "../src/components/Analytics/blocks";
 import {
@@ -17,6 +21,7 @@ import { parseAnalyticsParams } from "../src/components/Analytics/params";
 import {
   analyticsNavLink,
   analyticsPageView,
+  analyticsViews,
   articleStatsView,
   giveawayStatsView,
   partnerPerformanceView,
@@ -627,8 +632,100 @@ describe("registration", () => {
     expect(pointsPageView.path).toBe("/analytics/points");
   });
 
+  it("serves each analytics page at its own address, as Payload matches them", async () => {
+    // Payload treats a view without `exact` as a prefix, and takes the first
+    // match, so /analytics would otherwise answer for /analytics/points too.
+    const require = createRequire(import.meta.url);
+    const dir = path.dirname(require.resolve("@payloadcms/next/package.json"));
+    const { getCustomViewByRoute } = await import(
+      path.join(dir, "dist/views/Root/getCustomViewByRoute.js")
+    );
+    const config = {
+      admin: { components: { views: analyticsViews } },
+      routes: { admin: "/admin" },
+    };
+    const keyFor = (currentRoute: string) =>
+      getCustomViewByRoute({ config, currentRoute }).viewKey;
+
+    expect(keyFor("/admin/analytics")).toBe("analytics");
+    expect(keyFor("/admin/analytics/points")).toBe("analyticsPoints");
+  });
+
   it("gives every widget a permanent, unique slug", () => {
     const slugs = analyticsWidgets.map((w) => w.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
+  });
+});
+
+describe("points dates are Lagos days", () => {
+  // 23:30 UTC on the 19th is 00:30 on the 20th in Lagos.
+  const late = "2026-10-19T23:30:00.000Z";
+
+  it("shows a late-evening join on the Lagos day", () => {
+    const out = renderToStaticMarkup(
+      LeaderboardPanel({
+        rows: [
+          {
+            rank: 1,
+            userId: "u1",
+            earned: 10,
+            balance: 10,
+            joinedAt: late,
+            topSource: "read",
+          },
+        ],
+      }) as never
+    );
+
+    expect(out).toContain("20 Oct");
+    expect(out).not.toContain("19 Oct");
+  });
+
+  it("shows a late-evening grant on the Lagos day", () => {
+    const out = renderToStaticMarkup(
+      LargeGrantsPanel({
+        grants: [
+          {
+            id: "g1",
+            userId: "u1",
+            action: "surveyTask",
+            source: "form",
+            points: 9000,
+            at: late,
+          },
+        ],
+      }) as never
+    );
+
+    expect(out).toContain("20 Oct");
+  });
+});
+
+describe("the points tiles", () => {
+  const totals = {
+    issued: 100,
+    spent: 40,
+    reversed: 10,
+    net: 50,
+    activeEarners: 3,
+    largeGrants: 0,
+  };
+  const days = Array.from({ length: 7 }, (_, i) => ({
+    date: `2026-10-${String(i + 1).padStart(2, "0")}`,
+    issued: i + 1,
+    spent: i,
+  }));
+
+  it("draws lines for Issued and Spent but not Net, which the daily series cannot match", () => {
+    const out = renderToStaticMarkup(
+      PointsKpis({
+        summary: { current: totals, previous: totals, outstanding: 500 },
+        daily: days,
+      }) as never
+    );
+
+    expect(out).toContain("Issued, last 7 days");
+    expect(out).toContain("Spent, last 7 days");
+    expect(out).not.toContain("Net, last 7 days");
   });
 });

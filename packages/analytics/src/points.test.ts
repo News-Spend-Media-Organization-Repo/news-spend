@@ -255,6 +255,16 @@ describe("pointsConcentration", () => {
     expect(concentration.top10Share).toBeNull();
   });
 
+  it("is null, not a negative share, when the balances sum below zero", async () => {
+    const { db } = stubDb([
+      { holders: 3, median: -10, p90: 0, top: 50, total: -200 },
+    ]);
+
+    const concentration = await pointsConcentration(db, STAFF);
+
+    expect(concentration.top10Share).toBeNull();
+  });
+
   it("computes balances from point rows only and selects no name columns", async () => {
     const { db, queries } = stubDb([]);
 
@@ -364,6 +374,18 @@ describe("pointsLeaderboard", () => {
     expect(sql).not.toContain("email");
     expect(sql).not.toContain("username");
     expect(sql).not.toMatch(NAME_COLUMN);
+  });
+});
+
+describe("pointsLeaderboard leaves out rows with no user", () => {
+  it("filters them in both the totals and the top-source query", async () => {
+    const { db, queries } = stubDb([]);
+
+    await pointsLeaderboard(db, STAFF, { range: range() });
+
+    const sql = queries[0]?.sql ?? "";
+    // One filter per CTE that groups by user (earned and earned_sources).
+    expect(sql.match(/user_id IS NOT NULL/g)?.length).toBeGreaterThanOrEqual(2);
   });
 });
 

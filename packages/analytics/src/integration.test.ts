@@ -1451,6 +1451,21 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(grants.map((g) => g.points)).toEqual([9000, 5001]);
     });
 
+    it("does not rank activity that belongs to no user", async () => {
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        VALUES ('point', 4000, 'share', NULL, '2026-07-26T09:00:00Z')
+      `);
+
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+      await conn.unsafe("DELETE FROM activities WHERE user_id IS NULL");
+
+      expect(rows.every((row) => row.userId !== null)).toBe(true);
+      expect(rows.map((row) => row.rank)).toEqual(
+        rows.map((_, index) => index + 1)
+      );
+    });
+
     it("orders equal earned by user id", async () => {
       const rows = await pointsLeaderboard(db, staff, { range: ranking });
       const tied = rows.filter((r) => r.earned === 300);

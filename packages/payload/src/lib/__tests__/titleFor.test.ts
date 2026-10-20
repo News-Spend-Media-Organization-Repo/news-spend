@@ -1,7 +1,7 @@
 import type { PushToken } from "@news-spend-media/payload/types";
 import { describe, expect, it } from "vitest";
-import { titleFor } from "../expo-push-service";
 import type { Notification } from "../../payload-types";
+import { titleFor } from "../expo-push-service";
 
 function token(name: unknown): PushToken {
   return { user: { name } } as unknown as PushToken;

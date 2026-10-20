@@ -322,9 +322,11 @@ describe("the Points page charts", () => {
 
     expect(out).toContain("Issued and spent by day");
     expect(out).toContain("Issued by source");
-    for (const label of ["Issued", "Spent", "Net"]) {
+    for (const label of ["Issued", "Spent"]) {
       expect(out).toContain(`${label}, last 30 days`);
     }
+    // Net has no line: the daily series carries no reversals to match it.
+    expect(out).not.toContain("Net, last 30 days");
     expect(out).toContain("<svg");
     expect(out).toContain("read");
   });

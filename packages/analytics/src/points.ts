@@ -239,7 +239,8 @@ export async function pointsConcentration(
     holders: row?.holders ?? 0,
     median: row?.median ?? null,
     p90: row?.p90 ?? null,
-    top10Share: row ? percent(row.top, row.total) : null,
+    // A share of nothing, or of a negative total, is not a share.
+    top10Share: row && row.total > 0 ? percent(row.top, row.total) : null,
   };
 }
 
@@ -286,6 +287,7 @@ export async function pointsLeaderboard(
                ), 0)::float8 AS earned
         FROM activities a
         WHERE ${ledgerWhere(current, timeZone)}
+          AND a.user_id IS NOT NULL
         GROUP BY a.user_id
       ),
       balances AS (
@@ -303,6 +305,7 @@ export async function pointsLeaderboard(
                ), 0)::float8 AS points
         FROM activities a
         WHERE ${ledgerWhere(current, timeZone)}
+          AND a.user_id IS NOT NULL
         GROUP BY a.user_id, 2
       ),
       top_source AS (

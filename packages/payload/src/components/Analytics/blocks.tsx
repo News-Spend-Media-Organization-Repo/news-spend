@@ -30,7 +30,7 @@ import type {
 } from "@news-spend-media/analytics";
 import type { ReactNode } from "react";
 
-import { ADMIN_PATH } from "./access";
+import { ADMIN_PATH, ANALYTICS_TIME_ZONE } from "./access";
 import {
   describeChange,
   formatCount,
@@ -38,6 +38,7 @@ import {
   formatDay,
   formatDuration,
   formatPercent,
+  localDay,
 } from "./format";
 import { SORT_LABELS } from "./params";
 import { Bars, DataTable, DayChart, Kpi, Panel, SERIES_COLORS } from "./ui";
@@ -729,7 +730,7 @@ const QUEUE_ROWS: {
     key: "largeGrants",
     label: "Large point grants, 7 days",
     href: `${ADMIN_PATH}/analytics/points`,
-    note: "A count, not a queue: the owner decides what to do about each one.",
+    note: "A count, not a queue: open the Points page to review each grant.",
   },
 ];
 
@@ -853,7 +854,6 @@ export function PointsKpis({
         note={versus}
         tag="observed"
         value={formatCount(current.net)}
-        {...trend("Net", (d) => d.issued - d.spent)}
       />
       <Kpi
         label="Outstanding"
@@ -975,7 +975,9 @@ export function LeaderboardPanel({
             rank: r.rank,
             earned: formatCount(r.earned),
             balance: formatCount(r.balance),
-            joined: r.joinedAt ? formatDay(r.joinedAt.slice(0, 10)) : "–",
+            joined: r.joinedAt
+              ? formatDay(localDay(r.joinedAt, ANALYTICS_TIME_ZONE))
+              : "–",
             source: r.topSource ?? "–",
             account: (
               <a href={`${ADMIN_PATH}/collections/users/${r.userId}`}>
@@ -1011,7 +1013,7 @@ export function LargeGrantsPanel({
         rows={grants.map((g) => ({
           key: g.id,
           cells: {
-            date: g.at ? formatDay(g.at.slice(0, 10)) : "–",
+            date: g.at ? formatDay(localDay(g.at, ANALYTICS_TIME_ZONE)) : "–",
             source: g.source,
             points: formatCount(g.points),
             account: g.userId ? (
