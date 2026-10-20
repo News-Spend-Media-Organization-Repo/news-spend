@@ -34,8 +34,9 @@ export const isEarnRequest = (
   placements.every(isEarnPlacement);
 
 /**
- * Whether a tap may pay points. With a surface, it must be an offer placement
- * the request asked for. Without one, any requested offer placement is enough.
+ * Whether a tap may pay points. `placements` is the item's own placements.
+ * With a surface, it must be an offer placement the item is placed on. Without
+ * one, any offer placement on the item is enough.
  */
 export const canPayOnTap = ({
   surface,

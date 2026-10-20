@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { activityPoints } from "@news-spend-media/payload/lib/activityPoints";
+import {
+  canPayOnTap,
+  isOfferPlacement,
+} from "@news-spend-media/payload/lib/earnPlacements";
 import { recordFeaturedOffer } from "@news-spend-media/payload/lib/giveaway/featuredOffer";
 
+import { enum_partner_content_placements } from "@news-spend-media/payload/payload-generated-schema";
 import { openapi } from "@orpc/openapi";
 import type { BasePayload } from "payload";
 import z from "zod";
@@ -10,6 +15,7 @@ import { protectedNoGuestProcedure, publicProcedure } from "../index";
 import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
 import { recordPostback } from "../lib/postbackLog";
 import { partnerWebhookRateLimitMiddleware } from "../lib/ratelimit";
+import { hasSettledConversion } from "../lib/settledConversion";
 
 // Input schema for tracking a click
 const trackClickInput = z.object({
@@ -29,6 +35,11 @@ const trackClickInput = z.object({
     .string()
     .regex(/^clk_[0-9a-f]{16}$/, "Invalid click id")
     .optional(),
+  /**
+   * Which surface the tap came from. Partner ads only pay points from offer
+   * placements; a tap from the news feed or a click ad is just a click.
+   */
+  surface: z.enum(enum_partner_content_placements.enumValues).optional(),
 });
 
 // Track a click on CPA content
@@ -74,6 +85,7 @@ export const trackClick = protectedNoGuestProcedure
         partner: partnerId,
         content: input.partnerContentId,
         clickId,
+        surface: input.surface ?? null,
         status: "clicked",
         pointsAwarded: 0,
         clickedAt: new Date().toISOString(),
@@ -108,7 +120,13 @@ export const trackClick = protectedNoGuestProcedure
      * Never throws. The person has tapped a link and is waiting on a
      * redirect; a bookkeeping failure must not strand them on a spinner.
      */
-    if (partner?.awardOnClick) {
+    if (
+      partner?.awardOnClick &&
+      canPayOnTap({
+        surface: input.surface,
+        placements: content.placements ?? [],
+      })
+    ) {
       try {
         /**
          * Once per person per offer, ever.
@@ -125,18 +143,12 @@ export const trackClick = protectedNoGuestProcedure
          * repeat), which is exactly why this gap would have been easy to miss:
          * eligibility looked correct while the points quietly multiplied.
          */
-        const settled = await payload.count({
-          collection: "partner-conversions",
-          where: {
-            and: [
-              { user: { equals: user.id } },
-              { content: { equals: input.partnerContentId } },
-              { status: { in: ["converted", "awarded"] } },
-            ],
-          },
+        const settled = await hasSettledConversion(payload, {
+          userId: user.id,
+          contentId: input.partnerContentId,
         });
 
-        if (settled.totalDocs === 0) {
+        if (!settled) {
           await settleConversion(payload, {
             conversion: created,
             content,
@@ -391,6 +403,56 @@ export const handleWebhook = publicProcedure
       id: contentId,
       disableErrors: true,
     });
+
+    const conversionUserId =
+      typeof conversion.user === "string"
+        ? conversion.user
+        : conversion.user?.id;
+
+    if (input.status === "success") {
+      /**
+       * Partner ads pay from offer placements only. A conversion tapped on
+       * any other surface (stored at click time) is acknowledged but neither
+       * settled nor paid. Left `clicked` and unrecorded on purpose: the
+       * postback outcome is a database enum, and this is not a new outcome
+       * worth a migration. A missing surface is a click from before the
+       * field existed and settles as it always did.
+       */
+      if (conversion.surface && !isOfferPlacement(conversion.surface)) {
+        payload.logger.warn(
+          { clickId: input.clickId, surface: conversion.surface },
+          "[partner] ignored a postback for a conversion from a non-offer surface"
+        );
+        return {
+          success: true,
+          clickId: input.clickId,
+          message: "Ignored: not an offer surface",
+          pointsAwarded: 0,
+        };
+      }
+
+      // One payout per person per offer, whichever click the partner confirms.
+      if (
+        conversionUserId &&
+        (await hasSettledConversion(payload, {
+          userId: conversionUserId,
+          contentId,
+        }))
+      ) {
+        if (partnerId) {
+          await recordPostback(payload, {
+            partnerId,
+            clickId: input.clickId,
+            outcome: "duplicate",
+          });
+        }
+        return {
+          success: true,
+          message: "Already processed",
+          clickId: input.clickId,
+        };
+      }
+    }
 
     if (input.status !== "success") {
       await payload.update({

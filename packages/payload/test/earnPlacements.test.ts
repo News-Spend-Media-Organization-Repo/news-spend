@@ -29,13 +29,13 @@ describe("isEarnRequest", () => {
 });
 
 describe("canPayOnTap", () => {
-  test("pays when the surface is an offer placement the request asked for", () => {
+  test("pays when the surface is an offer placement the item is placed on", () => {
     expect(
       canPayOnTap({ surface: "lucky-app-wall", placements: ["lucky-app-wall"] })
     ).toBe(true);
   });
 
-  test("does not pay when the request did not ask for the surface", () => {
+  test("does not pay when the item is not placed on the surface", () => {
     expect(
       canPayOnTap({ surface: "lucky-app-wall", placements: ["news-click-ads"] })
     ).toBe(false);
@@ -56,7 +56,7 @@ describe("canPayOnTap", () => {
     ).toBe(false);
   });
 
-  test("without a surface, pays if any requested placement is an offer placement", () => {
+  test("without a surface, pays if any of the item's placements is an offer placement", () => {
     expect(
       canPayOnTap({
         surface: undefined,

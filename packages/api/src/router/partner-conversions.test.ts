@@ -640,7 +640,12 @@ describe("partnerConversionRouter.trackClick: award on click", () => {
     return createFakePayload({
       collections: {
         "partner-content": [
-          partnerContent({ id: "pc1", points: 50, partner: "p1" }),
+          partnerContent({
+            id: "pc1",
+            points: 50,
+            partner: "p1",
+            placements: ["points-mall-apps", "news-click-ads"],
+          }),
         ],
         partners: [partner(partnerOverrides)],
         "partner-conversions": [],
@@ -750,6 +755,212 @@ describe("partnerConversionRouter.trackClick: award on click", () => {
     );
 
     expect(payload.docs("activities")).toHaveLength(2);
+  });
+});
+
+describe("partnerConversionRouter.trackClick: surface-gated payment", () => {
+  const setup = (partnerOverrides: Doc = { awardOnClick: true }) =>
+    createFakePayload({
+      collections: {
+        "partner-content": [
+          partnerContent({
+            id: "pc1",
+            points: 50,
+            partner: "p1",
+            placements: ["points-mall-apps", "news-click-ads"],
+          }),
+        ],
+        partners: [partner(partnerOverrides)],
+        "partner-conversions": [],
+        activities: [],
+        giveaways: [],
+        "giveaway-engagements": [],
+      },
+    });
+  const tap = (
+    payload: ReturnType<typeof setup>,
+    input: Doc,
+    userId = "user-1"
+  ) =>
+    call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1", ...input } as never,
+      { context: mockContext({ payload, user: { id: userId } as never }) }
+    );
+
+  it("records the surface and pays nothing from a click ad", async () => {
+    const payload = setup();
+    await tap(payload, { surface: "news-click-ads" });
+    const conv = payload.docs("partner-conversions")[0];
+    expect(conv?.surface).toBe("news-click-ads");
+    expect(conv?.status).toBe("clicked");
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("pays from an offer surface the item is placed on", async () => {
+    const payload = setup();
+    await tap(payload, { surface: "points-mall-apps" });
+    expect(payload.docs("partner-conversions")[0]?.surface).toBe(
+      "points-mall-apps"
+    );
+    expect(payload.docs("activities")).toHaveLength(1);
+    expect(payload.docs("activities")[0]?.point).toBe(50);
+  });
+
+  it("records the click but pays nothing on an offer surface the item is not on", async () => {
+    const payload = setup();
+    await tap(payload, { surface: "lucky-app-wall" });
+    expect(payload.docs("partner-conversions")).toHaveLength(1);
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("pays with no surface when the item has an offer placement", async () => {
+    const payload = setup();
+    await tap(payload, {});
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("pays nothing with no surface when the item is placed on ads only", async () => {
+    const payload = setup();
+    payload.docs("partner-content")[0]!.placements = ["news-click-ads"];
+    await tap(payload, {});
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("does not pay a second offer-surface tap", async () => {
+    const payload = setup();
+    await tap(payload, { surface: "points-mall-apps" });
+    await tap(payload, { surface: "points-mall-apps" });
+    expect(payload.docs("partner-conversions")).toHaveLength(2);
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+});
+
+describe("partnerConversionRouter.webhook: surface and one-time settlement", () => {
+  const CLICK = "clk_abc1234567890123";
+  const run = (conversions: Doc[], clickId = CLICK) => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": conversions,
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+        activities: [],
+      },
+    });
+    const drizzle = stubDrizzle(payload);
+    const ctx = mockContext({ payload, headers: signedHeaders({ clickId }) });
+    return { payload, drizzle, ctx, clickId };
+  };
+
+  it("pays nothing for a conversion from a click ad and leaves it clicked", async () => {
+    const { payload, drizzle, ctx } = run([
+      conversion({ surface: "news-click-ads" }),
+    ]);
+    const warnings: unknown[] = [];
+    payload.logger.warn = () => {
+      warnings.push(1);
+    };
+
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "success" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({
+      success: true,
+      clickId: CLICK,
+      message: "Ignored: not an offer surface",
+      pointsAwarded: 0,
+    });
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(drizzle.queries).toHaveLength(0);
+  });
+
+  it("settles a conversion with no stored surface as before", async () => {
+    const { payload, ctx } = run([conversion({ surface: null })]);
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "success" },
+      { context: ctx }
+    );
+    expect(result).toMatchObject({ status: "converted", pointsAwarded: 50 });
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("pays a conversion from an offer surface", async () => {
+    const { payload, ctx } = run([conversion({ surface: "points-mall-apps" })]);
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "success" },
+      { context: ctx }
+    );
+    expect(result).toMatchObject({ status: "converted", pointsAwarded: 50 });
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("still records a failed postback from a click ad as failed", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion({ surface: "news-click-ads" })],
+        partners: [partner()],
+        "partner-content": [partnerContent()],
+      },
+    });
+    const ctx = mockContext({
+      payload,
+      headers: signedHeaders({ status: "failed" }),
+    });
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "failed" },
+      { context: ctx }
+    );
+    expect(result).toMatchObject({ status: "failed", pointsAwarded: 0 });
+  });
+
+  it("pays two conversions of one offer once, recording the second as a duplicate", async () => {
+    const { payload, drizzle, ctx } = run([
+      conversion({ id: "conv1", clickId: CLICK, surface: "points-mall-apps" }),
+      conversion({
+        id: "conv2",
+        clickId: "clk_second000000001",
+        surface: "points-mall-apps",
+      }),
+    ]);
+
+    await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "success" },
+      { context: ctx }
+    );
+    const second = await call(
+      partnerConversionRouter.webhook,
+      { clickId: "clk_second000000001", status: "success" },
+      {
+        context: mockContext({
+          payload,
+          headers: signedHeaders({ clickId: "clk_second000000001" }),
+        }),
+      }
+    );
+
+    expect(second).toEqual({
+      success: true,
+      message: "Already processed",
+      clickId: "clk_second000000001",
+    });
+    expect(payload.docs("activities")).toHaveLength(1);
+    const convs = payload.docs("partner-conversions");
+    expect(convs.find((c) => c.id === "conv2")?.status).toBe("clicked");
+    expect(
+      drizzle.queries.some(
+        (q) =>
+          q.sql.includes("duplicate") && q.sql.includes("clk_second000000001")
+      )
+    ).toBe(true);
   });
 });
 
