@@ -1735,6 +1735,21 @@ describe("resuming an interrupted draw (spec 19)", () => {
     expect(authorization.message).toMatch(/Only an interrupted or failed draw/);
   });
 
+  it("refuses to authorize a resumption for a draw that never started", async () => {
+    const { payload } = createFakePayload({
+      giveaway: { status: "failed", drawStartedAt: null },
+      tickets: participants(10).ticketRows,
+      prizes: [prizeRow("p3", "tier3", 5)],
+    });
+
+    const authorization = await makeEngine(payload).authorizeResumption("g1", {
+      authorizedBy: "admin@newsspend.com",
+    });
+
+    expect(authorization.authorized).toBe(false);
+    expect(authorization.message).toMatch(/never started/);
+  });
+
   it("counts a half-drawn tier's winners against its percentage cap", async () => {
     const { ticketRows } = participants(100);
 
@@ -1853,7 +1868,7 @@ describe("GiveawayEngine.validateDraw (spec 19)", () => {
     expect(valid).toBe(true);
     expect(errors).toEqual([]);
     expect(warnings.join(" ")).toMatch(
-      /tier1 is enabled .* Prize Pool is empty/
+      /tier1 is enabled .* no prize is assigned to tier1/
     );
     expect(warnings.join(" ")).toMatch(/below 100 participants/);
   });
@@ -1873,7 +1888,9 @@ describe("GiveawayEngine.validateDraw (spec 19)", () => {
     // 1% of 150 is one real winner, denied by the empty pool.
     const { valid, errors } = await makeEngine(payload).validateDraw("g1");
     expect(valid).toBe(false);
-    expect(errors.join(" ")).toMatch(/tier1 is enabled .* Prize Pool is empty/);
+    expect(errors.join(" ")).toMatch(
+      /tier1 is enabled .* no prize is assigned to tier1/
+    );
   });
 
   it("refuses to start before the countdown ends", async () => {
@@ -2014,7 +2031,7 @@ describe("GiveawayEngine.validatePrizePool (pool notice)", () => {
 
     expect(errors).toEqual([]);
     expect(warnings.join(" ")).toMatch(
-      /tier1 is enabled .* Prize Pool is empty/
+      /tier1 is enabled .* no prize is assigned to tier1/
     );
   });
 
@@ -2031,7 +2048,9 @@ describe("GiveawayEngine.validatePrizePool (pool notice)", () => {
 
     const { errors } = await makeEngine(payload).validatePrizePool(giveaway);
 
-    expect(errors.join(" ")).toMatch(/tier1 is enabled .* Prize Pool is empty/);
+    expect(errors.join(" ")).toMatch(
+      /tier1 is enabled .* no prize is assigned to tier1/
+    );
   });
 
   it("reports nothing for a covered pool", async () => {

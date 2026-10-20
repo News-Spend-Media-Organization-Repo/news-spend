@@ -22,8 +22,9 @@ const NotificationInbox: CollectionConfig = {
     hidden: () => process.env.NODE_ENV === "production",
   },
   access: {
-    // System creates these during the send pipeline
-    create: () => true,
+    // The send pipeline writes through the local API, which bypasses this;
+    // over REST an open create let anyone drop a notification into any inbox.
+    create: adminOnly,
     // Users can only read their own notifications
     read: ({ req }) => {
       if (!req.user) {

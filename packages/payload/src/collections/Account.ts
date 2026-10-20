@@ -1,9 +1,17 @@
 import type { CollectionConfig } from "payload";
+import { isStaff } from "../access/adminRoles";
+
+/**
+ * Credentials and one-time codes BetterAuth stores here. Nobody needs to read
+ * them through Payload, staff included: BetterAuth talks to the database
+ * directly, and a session token or OTP shown in the admin panel is a login.
+ */
+const hiddenSecret = () => false;
 
 export const Account: CollectionConfig = {
   slug: "accounts",
   access: {
-    read: () => true,
+    read: isStaff,
     create: () => false,
     update: () => false,
     delete: () => false,
@@ -30,10 +38,12 @@ export const Account: CollectionConfig = {
     {
       name: "password",
       type: "text",
+      access: { read: hiddenSecret },
     },
     {
       name: "idToken",
       type: "text",
+      access: { read: hiddenSecret },
       admin: {
         description:
           "OIDC ID token. Mapped to the id_token column, which BetterAuth also uses. Managed by BetterAuth; added in better-auth 1.7.",
@@ -42,10 +52,12 @@ export const Account: CollectionConfig = {
     {
       name: "accessToken",
       type: "text",
+      access: { read: hiddenSecret },
     },
     {
       name: "refreshToken",
       type: "text",
+      access: { read: hiddenSecret },
     },
     {
       name: "accessTokenExpiresAt",

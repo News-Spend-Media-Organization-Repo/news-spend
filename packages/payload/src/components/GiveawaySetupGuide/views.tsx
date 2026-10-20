@@ -85,13 +85,15 @@ export async function GiveawaySetupGuideView(
           <P>
             A giveaway cannot hold prizes directly — it borrows them from the{" "}
             <strong>Prize Catalogue</strong> (Giveaway group in the sidebar).
-            Create each prize there before touching the giveaway.
+            Create each prize there <strong>once</strong>. Every later giveaway
+            picks it from a dropdown, so nothing is ever created again just
+            because a new giveaway is being set up.
           </P>
           <Rows
             items={[
               [
                 "Tier",
-                "High, Mid or Low — must match the tier you pool it under later.",
+                "High, Mid or Low. Fixed here: a giveaway uses the prize under this tier and cannot change it. To offer the same prize in another tier, create a second catalogue entry for it.",
               ],
               [
                 "Fulfilment type",
@@ -100,6 +102,10 @@ export async function GiveawaySetupGuideView(
               [
                 "Value (₦)",
                 "Optional. A prize with no value counts as ₦0 against a spend cap — it never blocks a draw. Fill it in for anything with a real retail price so cap reporting means something.",
+              ],
+              [
+                "Active",
+                "Inactive prizes cannot be added to a new giveaway. Switch it off to retire a prize without deleting it.",
               ],
             ]}
           />
@@ -156,14 +162,57 @@ export async function GiveawaySetupGuideView(
 
         <Step n="Step 3" title="Set the Winner Distribution">
           <P>
-            Each tier&apos;s percentage is the maximum share of all participants
-            who may win in that tier. Enter <strong>0 to disable</strong> a tier
-            entirely — a disabled tier needs no prizes.
+            Each tier&apos;s percentage is a <strong>ceiling</strong> on
+            winners, not a target and not a promise. It is a share of{" "}
+            <strong>participants</strong> (distinct people holding at least one
+            valid ticket, not tickets), <strong>rounded down</strong>:
           </P>
           <P>
-            Percentages round <strong>down</strong>: Tier 1 at 0.1% awards
-            nobody until 1,000 people take part. For the defaults, the first
-            winner becomes possible at:
+            <code>
+              maximum winners = floor(participants × percentage ÷ 100)
+            </code>
+          </P>
+          <P>
+            Enter <strong>0 to disable</strong> a tier entirely; a disabled tier
+            needs no prizes.
+          </P>
+          <P>
+            <strong>Worked example, 8 participants:</strong>
+          </P>
+          <Rows
+            items={[
+              ["Tier at 25%", "floor(8 × 0.25) = 2 winners at most"],
+              [
+                "Tier at 89%",
+                "floor(8 × 0.89) = 7 winners at most — nearly everyone",
+              ],
+              [
+                "Tier at 5%",
+                "floor(8 × 0.05) = 0 winners — nobody, however many prizes are stocked",
+              ],
+            ]}
+          />
+          <P>
+            The real number of winners is the <strong>smallest</strong> of three
+            limits:
+          </P>
+          <Rows
+            items={[
+              ["1. The percentage", "The formula above."],
+              [
+                "2. Prize units",
+                "The total Max Units stocked for that tier. Never more winners than prizes.",
+              ],
+              [
+                "3. Eligible users",
+                "Only users who meet the tier's entry bar (below) can win it. If nobody qualifies, the tier awards nobody, whatever the percentage.",
+              ],
+            ]}
+          />
+          <P>
+            <strong>Which values to use.</strong> Real giveaways: keep the
+            defaults. Percentages are small on purpose, because they scale with
+            the crowd. The first winner becomes possible at:
           </P>
           <Rows
             items={[
@@ -172,7 +221,17 @@ export async function GiveawaySetupGuideView(
               ["Tier 3 — 5%", "20 participants"],
             ]}
           />
-          <P>Who can actually win each tier is fixed by the platform:</P>
+          <P>
+            Small test runs (a handful of users): raise a tier&apos;s percentage
+            so the formula gives at least one winner, or the draw finds none.
+            High values such as 89% only make sense for tests; on a real
+            giveaway they would make most participants winners. The percentages
+            lock once the draw begins.
+          </P>
+          <P>
+            <strong>Entry bar per tier.</strong> This is fixed by the platform,
+            and is why a tier with a generous percentage can still award nobody:
+          </P>
           <Rows
             items={[
               [
@@ -188,22 +247,63 @@ export async function GiveawaySetupGuideView(
           />
           <Muted>
             One prize per person across the whole giveaway, and tiers draw
-            top-down: a Tier 1 winner cannot also win Tier 2 or 3.
+            top-down: a Tier 1 winner cannot also win Tier 2 or 3. The Prize
+            Pool banner shows the ceiling for each tier at the current
+            headcount.
           </Muted>
         </Step>
 
-        <Step n="Step 4" title="Build the prize pool">
+        <Step n="Step 4" title="Add the prizes to this giveaway">
           <P>
-            Open <strong>Giveaway Prizes</strong> and add one row per prize:
-            which catalogue prize, which tier it belongs to, and{" "}
-            <strong>Maximum Units</strong> — how many of it this giveaway may
-            award. The draw never awards more winners than units pooled, so a
-            selected winner always has a prize behind them.
+            A prize only counts for a giveaway once it has a row in{" "}
+            <strong>Giveaway Prizes</strong>. A prize that sits in the catalogue
+            without a row is never awarded. The giveaway&apos;s own{" "}
+            <strong>Prizes</strong> list (lower down on this record) shows the
+            rows added so far.
+          </P>
+          <P>
+            <strong>For each prize:</strong> open{" "}
+            <strong>Giveaway Prizes</strong> in the sidebar (Giveaway group),
+            click <strong>Create New</strong>, then fill in:
+          </P>
+          <Rows
+            items={[
+              ["Giveaway", "This giveaway."],
+              [
+                "Prize",
+                "Pick from the dropdown of catalogue prizes. Each option shows its tier, like “1GB Data – Tier 2”. Pick the same prize again in any future giveaway.",
+              ],
+              [
+                "Tier",
+                "Filled in for you once a prize is chosen. It comes from the catalogue and cannot be edited here.",
+              ],
+              [
+                "Max Units",
+                "How many of this prize this giveaway may award, a whole number of 1 or more. The draw never awards more winners than units pooled, so a selected winner always has a prize behind them.",
+              ],
+            ]}
+          />
+          <P>
+            Click <strong>Save</strong>, then repeat for the next prize. The
+            same prize cannot be added twice to one giveaway; raise its Max
+            Units instead.
+          </P>
+          <P>
+            <strong>
+              Every tier above 0% needs at least one prize of that tier.
+            </strong>{" "}
+            Count them against Step 3: a tier set to 89% with prizes only on
+            Tier 2 and Tier 3 will refuse the draw. The Prize Pool banner lists
+            how many prizes and units each tier has.
           </P>
           <Muted>
-            Every tier left above 0% needs at least one pooled prize — unless
-            the tier cannot award anyone yet (see the headcounts in Step 3), in
-            which case the banner says so and the draw proceeds.
+            The one exception is a tier that cannot award anyone yet (see the
+            headcounts in Step 3), where the banner says so and the draw
+            proceeds. The pool and the percentages lock once the draw begins, so
+            finish them before the End Date. Once the End Date has passed, new
+            prize rows are refused; move the End Date later first if a giveaway
+            still needs one. After the draw, the giveaway&apos;s{" "}
+            <strong>Winners</strong> list shows who won.
           </Muted>
         </Step>
 
@@ -243,7 +343,7 @@ export async function GiveawaySetupGuideView(
               ],
               [
                 "Red — cannot run yet",
-                "The draw will refuse. Fix exactly what it names — usually an enabled tier with an empty pool that could award someone, or no prizes at all — then come back.",
+                "The draw will refuse. Fix exactly what it names — usually an enabled tier with no prize assigned that could award someone, or no prizes at all — then come back.",
               ],
             ]}
           />
@@ -283,8 +383,40 @@ export async function GiveawaySetupGuideView(
                   "The pool is completely empty. Add Giveaway Prizes rows, set Status back to Active, and the next hourly run draws it.",
                 ],
                 [
-                  "“Tier N is enabled but its Prize Pool is empty”",
-                  "That tier could have awarded someone. Either pool a prize under it or set its percentage to 0, then set Status back to Active.",
+                  "“tierN is enabled … but no prize is assigned to tierN”",
+                  "That tier could have awarded someone, but no prize row is on it. A prize's tier comes from the Master Prize Catalogue, so add a catalogue prize that belongs to that tier (or set the tier's percentage to 0), then set Status back to Active. The banner's tier list shows what is stocked under each tier.",
+                ],
+                [
+                  "“Prize row … does not have a valid Maximum Units value”",
+                  "A Giveaway Prizes row has Maximum Units empty, zero or fractional. Open that row, set a whole number of 1 or more, then set Status back to Active.",
+                ],
+                [
+                  "“Winner Distribution is not configured for tier N”",
+                  "That tier's percentage is blank. Fill it in under Winner Distribution (0 switches the tier off), then set Status back to Active.",
+                ],
+                [
+                  "“The countdown has not ended yet”",
+                  "Only appears on a manual draw. Wait for the End Date, or move the End Date earlier.",
+                ],
+                [
+                  "“A draw is already in progress” / “stopped part-way through”",
+                  "Wait for the running draw to finish. If it stopped part-way, a Super Admin must authorize its resumption; it cannot be restarted.",
+                ],
+                [
+                  "“Prize row … does not have a valid Maximum Units value”",
+                  "A Giveaway Prizes row has Maximum Units empty, zero or fractional. Open that row, set a whole number of 1 or more, then set Status back to Active.",
+                ],
+                [
+                  "“Winner Distribution is not configured for tier N”",
+                  "That tier's percentage is blank. Fill it in under Winner Distribution (0 switches the tier off), then set Status back to Active.",
+                ],
+                [
+                  "“The countdown has not ended yet”",
+                  "Only appears on a manual draw. Wait for the End Date, or move the End Date earlier.",
+                ],
+                [
+                  "“A draw is already in progress” / “stopped part-way through”",
+                  "Wait for the running draw to finish. If it stopped part-way, a Super Admin must authorize its resumption; it cannot be restarted.",
                 ],
               ]}
             />

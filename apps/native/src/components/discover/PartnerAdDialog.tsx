@@ -9,13 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  Alert,
-  Linking,
-  Platform,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Alert, Platform, useWindowDimensions, View } from "react-native";
 import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
 import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
@@ -25,6 +19,7 @@ import { useGlobalBackHandler } from "#/hooks/useBackHandler";
 import { authClient } from "#/lib/authClient";
 import { XIcon } from "#/lib/icons";
 import { navigate } from "#/navigation/navigationUtils";
+import { openStoreLink } from "#/utils/openStoreLink";
 
 import { PartnerAdContent } from "./partner-ad-content";
 
@@ -284,7 +279,7 @@ export function PartnerAdDialog({
     ]
   );
 
-  const handleAdClick = useCallback(() => {
+  const handleAdClick = useCallback(async () => {
     if (onAdClick) {
       onAdClick(ad);
       return;
@@ -311,9 +306,17 @@ export function PartnerAdDialog({
       ad?.links?.website
     );
 
-    if (link) {
-      Linking.openURL(link).catch(() => {
-        // A malformed or unopenable URL should not take the app down.
+    /*
+     * Not a bare `Linking.openURL`: some Android phones refuse a
+     * play.google.com link ("Permission Denial") and the tap then does
+     * nothing, on a click that earns money. `openStoreLink` retries through
+     * the store's own scheme, and the in-app page is the last resort.
+     */
+    if (link && !(await openStoreLink(link))) {
+      navigate("InAppBrowser", {
+        url: link,
+        title: ad?.title ?? "",
+        confirmOnLeave: false,
       });
     }
   }, [onAdClick, ad]);

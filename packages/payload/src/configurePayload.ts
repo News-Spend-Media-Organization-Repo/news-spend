@@ -43,6 +43,7 @@ import {
   Giveaways,
   GiveawayTickets,
   GiveawayWinners,
+  GuestEvents,
   IdentityChecks,
   Media,
   News,
@@ -77,6 +78,7 @@ import {
 } from "./components/Analytics/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
+import { cmsTrustedOrigins } from "./lib/trustedOrigins";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
 import {
@@ -98,7 +100,8 @@ const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 const baseConfig: Config = {
-  cors: "*",
+  cors: cmsTrustedOrigins(),
+  csrf: cmsTrustedOrigins(),
   logger: "sync",
   admin: {
     user: Admins.slug,
@@ -186,6 +189,7 @@ const baseConfig: Config = {
     GiveawayStreaks,
     GiveawayTickets,
     GiveawayWinners,
+    GuestEvents,
     IdentityChecks,
     PrizeCatalogue,
     Media,

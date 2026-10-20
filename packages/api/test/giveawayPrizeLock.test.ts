@@ -18,16 +18,20 @@ const PRIZE = { id: "p1", name: "500 Dream Points", tier: "tier3" };
 function createReq({
   status,
   engine = false,
+  drawStartedAt,
+  endDate,
 }: {
   status: string;
   engine?: boolean;
+  drawStartedAt?: string | null;
+  endDate?: string;
 }) {
   return {
     context: engine ? { giveawayEngine: true } : {},
     payload: {
       findByID: async ({ collection, id }: Row) => {
         if (collection === "giveaways") {
-          return { id, status };
+          return { id, status, drawStartedAt, endDate };
         }
         if (collection === "prize-catalogue") {
           return PRIZE;
@@ -93,6 +97,17 @@ describe("giveaway-prizes pool lock", () => {
     }
   });
 
+  it("lets an administrator fix the pool of an authorized draw that never started", async () => {
+    // Authorizing a resumption on a draw that was refused at validation used
+    // to lock the very pool that needed fixing.
+    const req = createReq({
+      status: "resumption_authorized",
+      drawStartedAt: null,
+    });
+
+    await expect(hook(args(req))).resolves.toBeDefined();
+  });
+
   it("allows an administrator to edit the pool before the draw begins", async () => {
     const req = createReq({ status: "active" });
 
@@ -112,5 +127,53 @@ describe("giveaway-prizes pool lock", () => {
     );
 
     expect(message).toContain("cannot be selected under tier1");
+  });
+
+  describe("creating prize rows after the giveaway has ended", () => {
+    const create = (req: Row) => ({
+      ...args(req),
+      operation: "create" as const,
+    });
+    const past = "2020-01-01T00:00:00.000Z";
+    const future = "2999-01-01T00:00:00.000Z";
+
+    it("refuses a new row on a cancelled giveaway", async () => {
+      const req = createReq({ status: "cancelled" });
+
+      expect(await refusal(hook(create(req)))).toContain(
+        "no more prizes can be added"
+      );
+    });
+
+    it("refuses a new row on a completed giveaway", async () => {
+      // The pool lock already covers this; the row is refused either way.
+      const req = createReq({ status: "completed" });
+
+      expect(await refusal(hook(create(req)))).toContain("locked");
+    });
+
+    it("refuses a new row on an active giveaway past its End Date", async () => {
+      const req = createReq({ status: "active", endDate: past });
+
+      expect(await refusal(hook(create(req)))).toContain("End Date has passed");
+    });
+
+    it("allows a new row while the giveaway is still running", async () => {
+      const req = createReq({ status: "active", endDate: future });
+
+      await expect(hook(create(req))).resolves.toBeDefined();
+    });
+
+    it("allows a new row on a failed giveaway past its End Date", async () => {
+      const req = createReq({ status: "failed", endDate: past });
+
+      await expect(hook(create(req))).resolves.toBeDefined();
+    });
+
+    it("does not stop an existing row from being edited", async () => {
+      const req = createReq({ status: "active", endDate: past });
+
+      await expect(hook(args(req))).resolves.toBeDefined();
+    });
   });
 });

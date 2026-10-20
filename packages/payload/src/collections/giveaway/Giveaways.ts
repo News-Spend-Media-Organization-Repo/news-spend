@@ -1,5 +1,6 @@
 import { addWeeks, startOfWeek } from "date-fns";
 import { APIError, type CollectionConfig, ValidationError } from "payload";
+import { isStaff } from "../../access/adminRoles";
 import { giveawayStatsView } from "../../components/Analytics/tabs";
 import { giveawaySetupGuideView } from "../../components/GiveawaySetupGuide/tabs";
 import {
@@ -9,7 +10,7 @@ import {
   GIVEAWAY_DESCRIPTION_MAX_LENGTH,
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
-  LOCKED_GIVEAWAY_STATUSES,
+  isConfigurationLocked,
 } from "./constants";
 
 /**
@@ -26,9 +27,14 @@ import {
  * go out. `sendAnnouncement` defaults to on, so anything not explicitly
  * switched off still shows it.
  */
-export function showNotificationSection(data: {
-  sendAnnouncement?: boolean | null;
-} | null | undefined): boolean {
+export function showNotificationSection(
+  data:
+    | {
+        sendAnnouncement?: boolean | null;
+      }
+    | null
+    | undefined
+): boolean {
   return data?.sendAnnouncement !== false;
 }
 
@@ -51,7 +57,7 @@ export const Giveaways: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: isStaff,
   },
   endpoints: [
     {
@@ -198,13 +204,39 @@ export const Giveaways: CollectionConfig = {
             .filter(Boolean)
         ).size;
 
-        const [pool, simulation] = await Promise.all([
+        const [pool, simulation, prizeRows] = await Promise.all([
           new GiveawayEngine(req.payload).validatePrizePool(giveaway),
           simulateDraw(req.payload, id, { participants }),
+          req.payload.find({
+            collection: "giveaway-prizes",
+            where: { giveaway: { equals: id } },
+            pagination: false,
+            depth: 0,
+          }),
         ]);
+
+        // What is stocked under each tier, beside the percentage that
+        // enables it: a tier with a percentage and no rows is the usual
+        // reason a draw refuses.
+        const breakdown = (
+          [
+            ["tier1", giveaway.tier1WinnerPercentage],
+            ["tier2", giveaway.tier2WinnerPercentage],
+            ["tier3", giveaway.tier3WinnerPercentage],
+          ] as const
+        ).map(([tier, winnerPercentage]) => {
+          const rows = prizeRows.docs.filter((row) => row.tier === tier);
+          return {
+            tier,
+            winnerPercentage,
+            prizes: rows.length,
+            units: rows.reduce((sum, row) => sum + (row.maxUnits ?? 0), 0),
+          };
+        });
 
         return Response.json({
           participants,
+          breakdown,
           errors: pool.errors,
           warnings: [...pool.warnings, ...simulation.warnings],
           tiers: simulation.tiers,
@@ -442,7 +474,8 @@ export const Giveaways: CollectionConfig = {
         if (
           operation === "update" &&
           prevStatus &&
-          LOCKED_GIVEAWAY_STATUSES.includes(prevStatus)
+          originalDoc &&
+          isConfigurationLocked(originalDoc)
         ) {
           const lockedFields = [
             "ticketPrice",
@@ -620,7 +653,7 @@ export const Giveaways: CollectionConfig = {
       label: "Winner Distribution",
       admin: {
         description:
-          "Maximum percentage of Total Valid Participants that may win in each tier. Enter 0 to disable a tier.",
+          "Each percentage is a ceiling on winners in that tier, not a target. It is a share of participants (people with at least one valid ticket), rounded down: at 8 participants and 25%, the tier can have at most 2 winners. The real number is also limited by the prize units stocked for the tier and by how many users meet the tier's entry requirements (see the Setup Guide). Real giveaways use the defaults (0.1 / 0.5 / 5); high values are only for small test runs. Enter 0 to disable a tier.",
       },
       fields: [
         winnerPercentageField("tier1WinnerPercentage", "Tier 1 (%)", 0.1),
@@ -782,6 +815,34 @@ export const Giveaways: CollectionConfig = {
       },
     },
     {
+      name: "prizes",
+      type: "join",
+      collection: "giveaway-prizes",
+      on: "giveaway",
+      admin: {
+        description:
+          "The prizes selected for this giveaway. A prize's tier comes from the Master Prize Catalogue, so to give a tier prizes, add a catalogue prize that belongs to that tier.",
+        defaultColumns: ["prize", "tier", "maxUnits", "unitsAwarded"],
+      },
+    },
+    {
+      name: "winners",
+      type: "join",
+      collection: "giveaway-winners",
+      on: "giveaway",
+      admin: {
+        description:
+          "Who won, once the draw has run. Open a winner to see their claim and fulfilment status.",
+        defaultColumns: [
+          "user",
+          "tier",
+          "prizeName",
+          "claimStatus",
+          "fulfilmentStatus",
+        ],
+      },
+    },
+    {
       name: "poolNotice",
       type: "ui",
       label: "Prize Pool",
@@ -846,7 +907,8 @@ function winnerPercentageField(
     defaultValue,
     admin: {
       step: 0.01,
-      description: "0 disables this tier. Maximum 100.",
+      description:
+        "The most winners this tier may have, as a share of participants, rounded down. Not a promise of winners. 0 disables the tier. Maximum 100.",
     },
     validate: (value: number | null | undefined) => {
       if (value === null || value === undefined) {

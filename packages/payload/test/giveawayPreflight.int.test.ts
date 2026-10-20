@@ -110,7 +110,7 @@ describe("a draw refused before it starts", () => {
 
     const giveaway = await readGiveaway(giveawayId);
     expect(giveaway.status).toBe("failed");
-    expect(giveaway.drawError).toContain("Prize Pool is empty");
+    expect(giveaway.drawError).toContain("no prize is assigned to tier1");
   }, 120_000);
 
   /**

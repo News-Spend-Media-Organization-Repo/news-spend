@@ -8,6 +8,7 @@ mock.module("@news-spend-media/payload/lib/send-notification", () => ({
   sendNotification: notificationMock,
 }));
 
+import { MAX_SURVEY_POINTS } from "@news-spend-media/payload/lib/surveyPoints";
 import {
   createFakePayload,
   type Doc,
@@ -138,6 +139,133 @@ describe("survey.awardGoogleFormPoints", () => {
     );
 
     expect(payload.docs("activities")[0]).toMatchObject({ point: 10 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// survey.awardGoogleFormPoints: who is paid, how often, and how much
+// ---------------------------------------------------------------------------
+describe("survey.awardGoogleFormPoints hardening", () => {
+  beforeEach(() => {
+    notificationMock.mockClear();
+  });
+
+  const award = (
+    payload: ReturnType<typeof createFakePayload>,
+    input: { gFormId: string; userId?: string }
+  ) =>
+    call(surveyRouter.awardGoogleFormPoints, input as never, {
+      context: mockContext({ user: authedUser as never, payload }),
+    });
+
+  const seeded = (survey: Doc = {}) =>
+    createFakePayload({
+      collections: {
+        survey: [
+          {
+            id: "s1",
+            googleFormId: "form-1",
+            users: [],
+            points: 50,
+            ...survey,
+          },
+        ],
+        "push-tokens": [],
+      },
+    });
+
+  it("credits and records the signed-in user, not a userId sent by the client", async () => {
+    const payload = seeded();
+
+    await award(payload, { gFormId: "form-1", userId: "someone-else" });
+
+    expect(payload.docs("survey")[0]?.users).toEqual(["user-1"]);
+    expect(payload.docs("activities")[0]).toMatchObject({ user: "user-1" });
+  });
+
+  it("works without a userId in the request", async () => {
+    const payload = seeded();
+
+    await award(payload, { gFormId: "form-1" });
+
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("does not pay again when the client varies the userId it sends", async () => {
+    const payload = seeded();
+
+    await award(payload, { gFormId: "form-1", userId: "a" });
+    await award(payload, { gFormId: "form-1", userId: "b" });
+    await award(payload, { gFormId: "form-1", userId: "c" });
+
+    expect(payload.docs("activities")).toHaveLength(1);
+    expect(notificationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("pays once when the same user's requests arrive at the same time", async () => {
+    const payload = seeded();
+
+    await Promise.all(
+      Array.from({ length: 8 }, (_, i) =>
+        award(payload, { gFormId: "form-1", userId: `u${i}` })
+      )
+    );
+
+    expect(payload.docs("activities")).toHaveLength(1);
+    expect(payload.docs("survey")[0]?.users).toEqual(["user-1"]);
+  });
+
+  it("recognises a completed survey whose users come back as full documents", async () => {
+    // Payload returns relationships as documents, not ids, at depth 1 and up.
+    const payload = seeded({ users: [{ id: "user-1", username: "tester" }] });
+
+    await award(payload, { gFormId: "form-1" });
+    await award(payload, { gFormId: "form-1" });
+
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(notificationMock).not.toHaveBeenCalled();
+  });
+
+  it("stores only ids when it adds a completion, even if earlier users came back as documents", async () => {
+    const payload = seeded({ users: [{ id: "user-2", username: "other" }] });
+
+    await award(payload, { gFormId: "form-1" });
+
+    expect(payload.docs("survey")[0]?.users).toEqual(["user-2", "user-1"]);
+  });
+
+  it("refuses a survey worth more than the maximum, and records nothing", async () => {
+    const payload = seeded({ points: 200_000 });
+
+    const error = await expectError(
+      award(payload, { gFormId: "form-1", userId: "user-1" })
+    );
+
+    expect(error.code).toBe("BAD_REQUEST");
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("survey")[0]?.users).toEqual([]);
+    expect(notificationMock).not.toHaveBeenCalled();
+  });
+
+  it("pays a survey worth exactly the maximum", async () => {
+    const payload = seeded({ points: MAX_SURVEY_POINTS });
+
+    await award(payload, { gFormId: "form-1" });
+
+    expect(payload.docs("activities")[0]).toMatchObject({
+      point: MAX_SURVEY_POINTS,
+    });
+  });
+
+  it("refuses a negative, zero or non-numeric points value", async () => {
+    for (const points of [-50, 0, Number.NaN, "lots"]) {
+      const payload = seeded({ points });
+
+      const error = await expectError(award(payload, { gFormId: "form-1" }));
+
+      expect(error.code).toBe("BAD_REQUEST");
+      expect(payload.docs("activities")).toHaveLength(0);
+    }
   });
 });
 

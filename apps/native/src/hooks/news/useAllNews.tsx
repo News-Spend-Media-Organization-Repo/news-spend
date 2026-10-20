@@ -33,7 +33,7 @@ export default function useAllNews({
           forceRefresh: forceRefreshRef.current,
         }),
       initialPageParam: undefined,
-      getNextPageParam: (lastPage) => lastPage.nextPage,
+      getNextPageParam: (lastPage) => lastPage?.nextPage,
       staleTime: NEWS_FEED_STALE_TIME_MS,
       // Poll while the category is on screen so a new post shows up without the
       // reader having to leave and come back, or pull to refresh.

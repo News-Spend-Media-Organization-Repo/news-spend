@@ -4,6 +4,7 @@ import { z } from "zod";
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
 import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
+import { MAX_ACTIVITY_POINTS } from "../lib/activityPoints";
 
 // ─── Google Ads standard sizes ────────────────────────────────────────────────
 export const AD_SIZES = {
@@ -573,7 +574,7 @@ export const PartnerContent: CollectionConfig = {
               type: "number",
               required: true,
               min: 0,
-              max: 10_000,
+              max: MAX_ACTIVITY_POINTS,
               admin: {
                 description: "Points awarded for completing this action",
                 placeholder: "e.g. 200",
