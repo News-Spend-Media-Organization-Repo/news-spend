@@ -17,9 +17,12 @@ import { Denied, Panel, Styles } from "../Analytics/ui";
  */
 
 const SURFACE_NOTES: Record<string, string> = {
-  "points-mall-books": "Discover, books. Pays when the user taps.",
-  "points-mall-apps": "Discover, apps. Pays when the user taps.",
-  "lucky-app-wall": "Lucky App Wall. Pays when the user taps.",
+  "points-mall-books":
+    "Discover, books. Pays on tap for click-award partners, otherwise after the partner confirms.",
+  "points-mall-apps":
+    "Discover, apps. Pays on tap for click-award partners, otherwise after the partner confirms.",
+  "lucky-app-wall":
+    "Lucky App Wall. Pays on tap for click-award partners, otherwise after the partner confirms.",
   "connect-brand-video": "Boost video. Pays when the ad is watched.",
   "connect-brands-tab": "Boost brands tab. Pays when the ad is watched.",
 };
@@ -87,6 +90,7 @@ export async function PartnerContentGuideView(
     collection: "partner-content",
     id,
     depth: 0,
+    disableErrors: true,
     req,
   })) as Doc | null;
   const doc: Doc = item ?? {};
@@ -97,6 +101,7 @@ export async function PartnerContentGuideView(
         collection: "partners",
         id: partnerId,
         depth: 0,
+        disableErrors: true,
         req,
       })) as PartnerDoc | null)
     : null;

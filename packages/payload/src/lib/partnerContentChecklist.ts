@@ -45,10 +45,11 @@ export function partnerContentChecklist(doc: ChecklistDoc): ChecklistItem[] {
     {
       key: "missing-ad-copy",
       ok: !needsAdCopy || hasAdCopy,
-      message:
-        !needsAdCopy || hasAdCopy
+      message: needsAdCopy
+        ? hasAdCopy
           ? "Ad copy is in place."
-          : "This item is active but has no ad copy; ad surfaces will have nothing to show.",
+          : "This item is active but has no ad copy; ad surfaces will have nothing to show."
+        : "Ad copy is only required once the item is active.",
     },
   ];
 }

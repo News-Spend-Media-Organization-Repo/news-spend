@@ -83,4 +83,14 @@ describe("partnerContentChecklist", () => {
       true
     );
   });
+
+  it("words the ad copy mark by whether it is required", () => {
+    expect(
+      check({ status: "draft", adCopy: "" }, "missing-ad-copy")?.message
+    ).toBe("Ad copy is only required once the item is active.");
+    expect(
+      check({ status: "active", adCopy: "Read now" }, "missing-ad-copy")
+        ?.message
+    ).toBe("Ad copy is in place.");
+  });
 });
