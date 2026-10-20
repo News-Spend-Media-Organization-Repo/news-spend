@@ -1,12 +1,16 @@
 import crypto from "node:crypto";
 
-import { sendNotification } from "@news-spend-media/payload/lib/send-notification";
 import { createORPCErrorConstructorMap } from "@orpc/contract";
 import { openapi } from "@orpc/openapi";
 import type { BasePayload } from "payload";
 
 import { commonErrors } from "../../errors";
 import { protectedProcedure, publicProcedure } from "../../index";
+import {
+  awardProviderPoints,
+  PointsRefusedError,
+  reverseProviderPoints,
+} from "./providerPoints";
 import {
   CPX_APP_ID,
   CPXPostBackInputSchema,
@@ -25,97 +29,27 @@ import {
 // the shared error map so thrown errors stay defined/inferable on the wire.
 const errors = createORPCErrorConstructorMap(commonErrors);
 
-async function awardPoints({
-  input,
-  title,
-  body,
-  payload,
-}: {
-  input: { user_id: string; amount_local?: number; trans_id: string };
-  title?: string;
-  body?: string;
-  payload: BasePayload;
-}): Promise<void> {
+const sameHash = (received: string, expected: string): boolean =>
+  received.length === expected.length &&
+  crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+
+/**
+ * Runs a points change and turns its failures into answers CPX understands: an
+ * amount no survey may pay is refused outright, and anything that stopped the
+ * points being saved fails the request, so CPX sends it again.
+ */
+async function settle<T>(change: () => Promise<T>): Promise<T> {
   try {
-    await payload.create({
-      collection: "activities",
-      data: {
-        type: "point",
-        point: input.amount_local || 0,
-        description: "Completed a survey",
-        action: "surveyTask",
-        user: input.user_id,
-        metadata: input,
-      },
-    });
-
-    const { docs: pushTokens } = await payload.find({
-      collection: "push-tokens",
-      where: {
-        user: {
-          in: [input.user_id],
-        },
-      },
-    });
-
-    await sendNotification({
-      pushTokens,
-      title: title ?? "Survey Completed",
-      body: body ?? "You have completed a survey and earned points!",
-      data: input,
-    });
+    return await change();
   } catch (error) {
-    console.error("Error awarding points:", error);
-  }
-}
-
-async function reversePoints({
-  input,
-  title,
-  body,
-  payload,
-}: {
-  input: { user_id: string; amount_local?: number; trans_id: string };
-  title?: string;
-  body?: string;
-  payload: BasePayload;
-}): Promise<void> {
-  try {
-    await payload.create({
-      collection: "activities",
-      data: {
-        type: "point",
-        point: -(input.amount_local || 0),
-        description: "Survey point reversal",
-        action: "pointReversal",
-        user: input.user_id,
-        metadata: input,
-      },
+    if (error instanceof PointsRefusedError) {
+      console.error(error.message);
+      throw errors.BAD_REQUEST({ message: "Points amount not accepted" });
+    }
+    console.error("Could not save CPX points:", error);
+    throw errors.INTERNAL_SERVER_ERROR({
+      message: "Could not save the points",
     });
-
-    const { docs: pushTokens } = await payload.find({
-      collection: "push-tokens",
-      where: {
-        user: {
-          in: [input.user_id],
-        },
-      },
-    });
-
-    await sendNotification({
-      pushTokens,
-      title: title ?? "Points Adjustment",
-      body:
-        body ??
-        `${input.amount_local} points have been reversed from your account.`,
-      data: input,
-    });
-
-    console.log(
-      `Reversed ${input.amount_local} points from user ${input.user_id} (Transaction: ${input.trans_id})`
-    );
-  } catch (error) {
-    console.error("Error processing point reversal:", error);
   }
 }
 
@@ -143,7 +77,7 @@ export async function processCPXPostback(input: {
     .update(`${trans_id}-${process.env.CPX_SECURE_HASH}`)
     .digest("hex");
 
-  if (secure_hash !== expectedHash) {
+  if (!sameHash(secure_hash, expectedHash)) {
     console.error("Invalid secure hash in CPX postback");
     throw errors.BAD_REQUEST({
       message: "Invalid secure hash",
@@ -164,61 +98,53 @@ export async function processCPXPostback(input: {
   }
 
   if (type === "reversal") {
-    const pointsToReverse = Math.floor(amount_local || 0);
+    const requested = Math.floor(amount_local || 0);
 
-    if (pointsToReverse <= 0) {
+    if (requested <= 0) {
       console.warn(
         `Zero or negative reversal amount (${amount_local}), skipping`
       );
       return { success: true, message: "No points to reverse" };
     }
 
-    await reversePoints({
-      input: { user_id, amount_local, trans_id },
-      title: "Survey Points Reversed",
-      body: `${pointsToReverse} points have been reversed from your account due to a survey validation issue.`,
-      payload,
-    });
-
-    console.log(
-      `Reversed ${pointsToReverse} points from user ${user_id} for survey ${trans_id}`
+    const outcome = await settle(() =>
+      reverseProviderPoints(payload, {
+        provider: "cpx",
+        transactionId: `${trans_id}:complete`,
+        requested,
+        description: "Survey point reversal",
+        title: "Survey Points Reversed",
+        body: (points) =>
+          `${points} points have been reversed from your account due to a survey validation issue.`,
+      })
     );
 
     return {
       success: true,
-      message: "Reversal processed successfully",
+      message:
+        outcome === "reversed"
+          ? "Reversal processed successfully"
+          : "Nothing to reverse",
     };
   }
 
-  if (status === "1" && type === "complete") {
-    const pointsAwarded = Math.floor(amount_local || 0);
-
-    await awardPoints({
-      input: { user_id, amount_local, trans_id },
-      title: "Completed survey",
-      body: `You got ${pointsAwarded} points for completing the survey!`,
-      payload,
-    });
-
-    console.log(
-      `Awarded ${pointsAwarded} points to user ${user_id} for survey ${trans_id}`
-    );
-  }
-
-  if (status === "1" && type === "out") {
-    const pointsAwarded = Math.floor(amount_local || 0);
-
-    if (pointsAwarded > 0) {
-      await awardPoints({
-        input: { user_id, amount_local, trans_id },
-        title: "Survey Bonus",
-        body: `You received ${pointsAwarded} bonus points for participating in a survey!`,
-        payload,
-      });
-    }
-
-    console.log(
-      `Bonus ${pointsAwarded} points to user ${user_id} for survey ${trans_id}`
+  const points = Math.floor(amount_local || 0);
+  // A zero bonus or an empty completion pays nothing.
+  if (status === "1" && (type === "complete" || type === "out") && points > 0) {
+    await settle(() =>
+      awardProviderPoints(payload, {
+        provider: "cpx",
+        transactionId: `${trans_id}:${type}`,
+        userId: user_id,
+        points,
+        description:
+          type === "complete" ? "Completed a survey" : "Survey bonus",
+        title: type === "complete" ? "Completed survey" : "Survey Bonus",
+        body:
+          type === "complete"
+            ? `You got ${points} points for completing the survey!`
+            : `You received ${points} bonus points for participating in a survey!`,
+      })
     );
   }
 
@@ -297,7 +223,9 @@ export const cpxRouter = {
     )
     .input(CPXPostBackInputSchema)
     .handler(({ input, context }) => {
-      console.log("Received CPX postback (GET):", input);
+      // Not the signature: anyone who reads the logs could replay it.
+      const { secure_hash: _signature, ...loggable } = input;
+      console.log("Received CPX postback (GET):", loggable);
 
       return processCPXPostback({
         ...input,
