@@ -9,6 +9,7 @@ import {
   PointsRefusedError,
   reverseProviderPoints,
 } from "../providerPoints";
+import { readSurveySettings } from "./settings";
 
 /** A copy of `input` without the named keys, for logging without secrets. */
 const without = <T extends Record<string, unknown>>(
@@ -213,25 +214,36 @@ export const rapidoPostbackHandler = publicProcedure
     const statusUpper = status?.toUpperCase();
     if (statusUpper === "COMPLETE" && currencyAmt && currencyAmt > 0) {
       const points = Math.floor(currencyAmt);
+      const settings = await readSurveySettings(payload);
       try {
-        const outcome = await awardProviderPoints(payload, {
-          provider: "rapido",
-          transactionId,
-          userId: endUserId,
-          points,
-          description: `Completed RapidoReach survey: ${input.offerTitle || transactionId}`,
-          title: "Survey Completed",
-          body: `You earned ${points} points!`,
-        });
+        const outcome = await awardProviderPoints(
+          payload,
+          {
+            provider: "rapido",
+            transactionId,
+            userId: endUserId,
+            points,
+            description: `Completed RapidoReach survey: ${input.offerTitle || transactionId}`,
+            title: "Survey Completed",
+            body: `You earned ${points} points!`,
+          },
+          {
+            maxPoints: settings.maxPointsPerAward,
+            dailyCap: settings.dailyPointsCap,
+          }
+        );
         console.log(
           `Rapido transaction ${transactionId}: ${outcome} ${points} points for user ${endUserId}`
         );
       } catch (error) {
+        if (error instanceof PointsRefusedError) {
+          // Permanent: answering "not done" would only make Rapido retry.
+          console.error(error.message);
+          return { success: 1 };
+        }
         // Answering "not done" lets RapidoReach try again where it can.
         console.error(
-          error instanceof PointsRefusedError
-            ? error.message
-            : `Could not save Rapido points for ${transactionId}: ${String(error)}`
+          `Could not save Rapido points for ${transactionId}: ${String(error)}`
         );
         return { success: 0 };
       }
@@ -347,23 +359,30 @@ export const theoremPostbackHandler = publicProcedure
       }
 
       const points = Math.floor(reward);
-      const outcome = await settleTheorem(
+      const settings = await readSurveySettings(payload);
+      await settleTheorem(
         tx_id,
         () =>
-          awardProviderPoints(payload, {
-            provider: "theorem",
-            transactionId: tx_id,
-            userId: user_id,
-            points,
-            description: theoremDescription(input),
-            title: "Survey Completed",
-            body: `You earned ${points} points!`,
-          }),
+          awardProviderPoints(
+            payload,
+            {
+              provider: "theorem",
+              transactionId: tx_id,
+              userId: user_id,
+              points,
+              description: theoremDescription(input),
+              title: "Survey Completed",
+              body: `You earned ${points} points!`,
+            },
+            {
+              maxPoints: settings.maxPointsPerAward,
+              dailyCap: settings.dailyPointsCap,
+            }
+          ),
         fail
       );
-      if (outcome === "refused") {
-        return { error: "Reward not accepted" };
-      }
+      // A refusal is permanent; settleTheorem logged it. Answer success so
+      // TheoremReach does not retry an award that can never be paid.
     }
 
     return { success: true };
