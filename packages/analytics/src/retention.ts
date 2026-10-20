@@ -44,6 +44,7 @@ export async function activationByWeek(
 ): Promise<ActivationWeek[]> {
   requireStaff(scope);
   const { timeZone, current } = filter.range;
+  const now = nowOf(filter);
 
   const rows = await rowsOf<ActivationRow>(
     db,
@@ -59,10 +60,10 @@ export async function activationByWeek(
       SELECT to_char(week, 'YYYY-MM-DD') AS week,
              COUNT(*)::int AS signups,
              COUNT(*) FILTER (
-               WHERE a.created_at + interval '24 hours' <= ${nowOf(filter)}::timestamptz
+               WHERE a.created_at + interval '24 hours' <= ${now}::timestamptz
              )::int AS mature_24h,
              COUNT(*) FILTER (
-               WHERE a.created_at + interval '24 hours' <= ${nowOf(filter)}::timestamptz
+               WHERE a.created_at + interval '24 hours' <= ${now}::timestamptz
                  AND EXISTS (
                    SELECT 1 FROM news_analytics n
                    WHERE n.user_id = a.id::text
@@ -72,10 +73,10 @@ export async function activationByWeek(
                  )
              )::int AS activated_24h,
              COUNT(*) FILTER (
-               WHERE a.created_at + interval '7 days' <= ${nowOf(filter)}::timestamptz
+               WHERE a.created_at + interval '7 days' <= ${now}::timestamptz
              )::int AS mature_7d,
              COUNT(*) FILTER (
-               WHERE a.created_at + interval '7 days' <= ${nowOf(filter)}::timestamptz
+               WHERE a.created_at + interval '7 days' <= ${now}::timestamptz
                  AND EXISTS (
                    SELECT 1 FROM news_analytics n
                    WHERE n.user_id = a.id::text
@@ -156,6 +157,8 @@ export async function retentionCohorts(
       activity AS (
         SELECT DISTINCT n.device_id, (n.timestamp AT TIME ZONE ${timeZone})::date AS day
         FROM news_analytics n
+        WHERE n.timestamp >= ((${current.from}::date)::timestamp AT TIME ZONE ${timeZone})
+          AND n.timestamp < (((${current.to}::date + 29)::timestamp) AT TIME ZONE ${timeZone})
       ),
       bounds AS (
         SELECT (${nowOf(filter)}::timestamptz AT TIME ZONE ${timeZone})::date AS today

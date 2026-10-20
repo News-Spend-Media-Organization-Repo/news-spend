@@ -1590,7 +1590,9 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
           ('${U5}', TRUE,  '2026-09-15T08:00:00Z'),
           ('${U6}', FALSE, '2026-09-15T09:00:00Z'),
           ('${U7}', FALSE, '2026-09-19T23:30:00Z'),
-          ('${U8}', FALSE, '2026-09-13T23:30:00Z');
+          ('${U8}', FALSE, '2026-09-13T23:30:00Z'),
+          -- Its only event is exactly 24 hours after signup; it must count.
+          ('93000000-0000-4000-8000-000000000009', FALSE, '2026-09-08T13:00:00Z');
         INSERT INTO news_analytics (article_id, event, user_id, device_id, timestamp) VALUES
           ('${A1}', 'view', '${U1}', 'r-1', '2026-09-08T09:00:00Z'),
           ('${A1}', 'read', '${U1}', 'r-1', '2026-09-09T09:00:00Z'),
@@ -1599,7 +1601,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
           ('${A1}', 'read', '${U4}', 'r-4', '2026-09-15T12:00:00Z'),
           ('${A1}', 'like', '${U6}', 'r-6', '2026-09-15T10:00:00Z'),
           ('${A1}', 'view', '99999999-9999-4999-8999-999999999999', 'r-x', '2026-09-09T10:00:00Z'),
-          ('${A1}', 'view', NULL, 'r-n', '2026-09-09T10:00:00Z');
+          ('${A1}', 'view', NULL, 'r-n', '2026-09-09T10:00:00Z'),
+          ('${A1}', 'view', '93000000-0000-4000-8000-000000000009', 'r-9', '2026-09-09T13:00:00Z');
       `);
     });
 
@@ -1607,11 +1610,11 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(await activationByWeek(db, staff, filter)).toEqual([
         {
           week: "2026-09-07",
-          signups: 4,
-          mature24h: 4,
-          activated24h: 1,
-          mature7d: 4,
-          activated7d: 3,
+          signups: 5,
+          mature24h: 5,
+          activated24h: 2,
+          mature7d: 5,
+          activated7d: 4,
           neverRead: 1,
         },
         {
@@ -1648,6 +1651,12 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(
         await activationByWeek(db, staff, { range: earlier, now: NOW })
       ).toEqual([]);
+    });
+
+    it("returns nothing for an empty users table", async () => {
+      await conn.unsafe("DELETE FROM users");
+
+      expect(await activationByWeek(db, staff, filter)).toEqual([]);
     });
   });
 

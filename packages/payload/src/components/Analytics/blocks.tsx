@@ -1129,7 +1129,7 @@ export function ActivationPanel({
           { key: "signups", label: "Signups", align: "right" },
           { key: "day", label: "Read within 24h", align: "right" },
           { key: "week7", label: "Read within 7d", align: "right" },
-          { key: "never", label: "Never read", align: "right" },
+          { key: "never", label: "Never read (mature)", align: "right" },
         ]}
         empty="No accounts signed up in this period."
         rows={weeks.map((w) => ({
@@ -1145,7 +1145,7 @@ export function ActivationPanel({
               returned: w.activated7d,
               eligible: w.mature7d,
             }),
-            never: formatCount(w.neverRead),
+            never: w.mature7d === 0 ? "–" : formatCount(w.neverRead),
           },
         }))}
       />
@@ -1170,13 +1170,13 @@ export function CohortsPanel({ cohorts }: { cohorts: CohortRow[] }): ReactNode {
           { key: "w4", label: "W4", align: "right" },
         ]}
         empty="No devices were first seen in this period."
-        rows={cohorts.map((c, index) => ({
+        rows={cohorts.map((c) => ({
           key: c.week,
           cells: {
             week: (
               <>
                 {formatDay(c.week)}
-                {index >= cohorts.length - 2 ? (
+                {c.w4.eligible < c.devices ? (
                   <div className="ana-sub">partial</div>
                 ) : null}
               </>
