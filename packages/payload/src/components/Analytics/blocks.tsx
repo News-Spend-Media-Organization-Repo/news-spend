@@ -1,7 +1,10 @@
 import type {
+  ActivationWeek,
+  ActiveDay,
   ArticleReport,
   AttentionCounts,
   AudienceSummary,
+  CohortRow,
   ConversionOutcomes,
   DiscoverDay,
   DiscoverGame,
@@ -12,24 +15,37 @@ import type {
   GiveawayAttention,
   GiveawayReport,
   GiveawayState,
+  LargeGrant,
+  LeaderboardRow,
+  Measure,
+  NewsDay,
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
+  PointsConcentration,
+  PointsDay,
+  PointsSource,
+  PointsTotals,
   PostbackHealth,
   PushReport,
   RecentConversion,
+  Stickiness,
   TopArticle,
+  TopSort,
 } from "@news-spend-media/analytics";
 import type { ReactNode } from "react";
 
-import { ADMIN_PATH } from "./access";
+import { ADMIN_PATH, ANALYTICS_TIME_ZONE } from "./access";
 import {
   describeChange,
   formatCount,
   formatDateTime,
+  formatDay,
   formatDuration,
   formatPercent,
+  localDay,
 } from "./format";
+import { SORT_LABELS } from "./params";
 import { Bars, DataTable, DayChart, Kpi, Panel, SERIES_COLORS } from "./ui";
 
 /** Presentation of each report, from data already loaded. No queries here. */
@@ -50,8 +66,20 @@ const SURFACE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
+export function NewsKpis({
+  summary,
+  daily,
+}: {
+  summary: Summary;
+  /** The period's daily series, for the line under each figure. */
+  daily?: NewsDay[];
+}): ReactNode {
   const { current, previous } = summary;
+  const days = daily?.length ?? 0;
+  const trend = (name: string, pick: (day: NewsDay) => number) => ({
+    trend: daily?.map(pick),
+    trendLabel: `${name}, last ${days} days`,
+  });
   const versus = "vs previous period";
   return (
     <div className="ana-grid ana-kpis">
@@ -61,6 +89,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.views)}
+        {...trend("Views", (d) => d.views)}
       />
       <Kpi
         change={describeChange(current.reads, previous.reads)}
@@ -68,6 +97,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.reads)}
+        {...trend("Qualified reads", (d) => d.reads)}
       />
       <Kpi
         label="Read rate"
@@ -77,7 +107,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
       />
       <Kpi
         label="Click-through"
-        note="views per impression"
+        note="matched views per impression"
         tag="reported"
         value={formatPercent(current.ctr)}
       />
@@ -87,6 +117,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.impressions)}
+        {...trend("Impressions", (d) => d.impressions)}
       />
       <Kpi
         change={describeChange(current.shares, previous.shares)}
@@ -94,6 +125,13 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.shares)}
+      />
+      <Kpi
+        change={describeChange(current.directOpens, previous.directOpens)}
+        label="Direct opens"
+        note="views with no earlier impression"
+        tag="reported"
+        value={formatCount(current.directOpens)}
       />
     </div>
   );
@@ -112,6 +150,7 @@ export function FunnelPanel({
     >
       <DayChart
         days={days}
+        label="Reader funnel"
         series={[
           {
             key: "impressions",
@@ -129,17 +168,18 @@ export function FunnelPanel({
 export function StepsPanel({ current }: { current: NewsMetrics }): ReactNode {
   return (
     <Panel
-      hint="Each step as a share of the one before"
+      hint="Views include direct opens: views with no earlier impression. Reads as a share of views."
       tag="reported"
       title="From impression to read"
     >
       <Bars
+        label="From impression to read"
         rows={[
           { label: "Impressions", value: current.impressions },
           {
             label: "Views",
             value: current.views,
-            display: `${formatCount(current.views)} · ${formatPercent(current.ctr)}`,
+            display: `${formatCount(current.views)} · ${formatCount(current.directOpens)} direct`,
           },
           {
             label: "Qualified reads",
@@ -164,6 +204,7 @@ export function SurfacesPanel({
       title="Impressions by surface"
     >
       <Bars
+        label="Impressions by surface"
         rows={surfaces.map((s) => ({
           label: SURFACE_LABELS[s.surface] ?? s.surface,
           value: s.impressions,
@@ -181,6 +222,7 @@ export function PlatformsPanel({
   return (
     <Panel hint="Views by platform" tag="reported" title="Platforms">
       <Bars
+        label="Platforms"
         rows={platforms.map((p) => ({
           label: platformLabel(p.platform),
           value: p.views,
@@ -203,6 +245,7 @@ export function EngagementPanel({
       title="Engagement"
     >
       <Bars
+        label="Engagement"
         rows={[
           { label: "Likes", value: engagement.likes },
           { label: "Dislikes", value: engagement.dislikes },
@@ -214,6 +257,7 @@ export function EngagementPanel({
         <>
           <div className="ana-muted">Shared through</div>
           <Bars
+            label="Shared through"
             rows={engagement.shareMethods.map((m) => ({
               label: m.method,
               value: m.shares,
@@ -227,18 +271,25 @@ export function EngagementPanel({
 
 export function TopArticlesPanel({
   articles,
+  days,
+  sort,
   title = "Top articles",
-  hint = "By views",
 }: {
   articles: TopArticle[];
+  days: number;
+  sort: TopSort;
   title?: string;
-  hint?: string;
 }): ReactNode {
   return (
-    <Panel hint={hint} tag="reported" title={title}>
+    <Panel
+      hint={`By ${SORT_LABELS[sort].toLowerCase()}, last ${days} days`}
+      tag="reported"
+      title={title}
+    >
       <DataTable
         columns={[
           { key: "article", label: "Article" },
+          { key: "readers", label: "Readers", align: "right" },
           { key: "views", label: "Views", align: "right" },
           { key: "reads", label: "Reads", align: "right" },
           { key: "ctr", label: "CTR", align: "right" },
@@ -257,6 +308,7 @@ export function TopArticlesPanel({
                 ) : null}
               </>
             ),
+            readers: formatCount(a.readers),
             views: formatCount(a.views),
             reads: formatCount(a.reads),
             ctr: formatPercent(a.ctr),
@@ -275,6 +327,7 @@ export function CategoriesPanel({
   return (
     <Panel hint="Views by category" tag="reported" title="Top categories">
       <Bars
+        label="Top categories"
         rows={categories.map((c) => ({ label: c.category, value: c.views }))}
       />
     </Panel>
@@ -288,7 +341,7 @@ export function ArticleReportBody({
 }): ReactNode {
   return (
     <>
-      <NewsKpis summary={report.summary} />
+      <NewsKpis daily={report.daily} summary={report.summary} />
       <div className="ana-grid ana-two">
         <FunnelPanel days={report.daily} />
         <StepsPanel current={report.summary.current} />
@@ -361,6 +414,7 @@ export function OutcomesPanel({
     >
       <Bars
         empty="No clicks in this period."
+        label="Outcomes"
         rows={[
           {
             label: postbacksExpected
@@ -386,6 +440,7 @@ export function PartnerDailyPanel({ days }: { days: PartnerDay[] }): ReactNode {
     >
       <DayChart
         days={days}
+        label="Clicks and conversions"
         series={[
           { key: "clicks", label: "Clicks", color: SERIES_COLORS.deep },
           {
@@ -472,6 +527,7 @@ export function ShopPanel({
     >
       <Bars
         empty="No shop activity in this period."
+        label="Shop tab"
         rows={[
           { label: "Views", value: shop.views },
           { label: "Clicks", value: shop.clicks },
@@ -553,6 +609,7 @@ export function GrowthPanel({
     >
       <DayChart
         days={days}
+        label="Audience growth"
         series={[
           {
             key: "newUsers",
@@ -577,11 +634,13 @@ export function DevicesPanel({
       <div className="ana-muted">By device type</div>
       <Bars
         empty="No active push tokens."
+        label="By device type"
         rows={byType.map((d) => ({ label: d.label, value: d.tokens }))}
       />
       <div className="ana-muted">By app version</div>
       <Bars
         empty="No active push tokens."
+        label="By app version"
         rows={byVersion.map((d) => ({ label: d.label, value: d.tokens }))}
       />
     </Panel>
@@ -601,6 +660,7 @@ export function CountriesPanel({
     >
       <Bars
         empty="No country recorded yet."
+        label="Top countries"
         rows={countries.map((c) => ({ label: c.country, value: c.users }))}
       />
     </Panel>
@@ -620,6 +680,7 @@ export function FeedbackPanel({
     >
       <Bars
         empty="No feedback in this period."
+        label="Feedback"
         rows={feedback.byType.map((t) => ({
           label: t.type,
           value: t.count,
@@ -635,7 +696,8 @@ export function FeedbackPanel({
 const QUEUE_ROWS: {
   key: keyof AttentionCounts;
   label: string;
-  slug: string;
+  slug?: string;
+  href?: string;
   note?: string;
 }[] = [
   {
@@ -669,6 +731,12 @@ const QUEUE_ROWS: {
     slug: "witness-reports",
     note: "A count, not a queue: witness reports carry no status.",
   },
+  {
+    key: "largeGrants",
+    label: "Large point grants, 7 days",
+    href: `${ADMIN_PATH}/analytics/points`,
+    note: "A count, not a queue: open the Points page to review each grant.",
+  },
 ];
 
 export function NeedsAttentionPanel({
@@ -693,7 +761,11 @@ export function NeedsAttentionPanel({
           cells: {
             area: (
               <>
-                <a href={`${ADMIN_PATH}/collections/${row.slug}`}>
+                <a
+                  href={
+                    row.href ?? `${ADMIN_PATH}/collections/${row.slug ?? ""}`
+                  }
+                >
                   {row.label}
                 </a>
                 {row.note ? <div className="ana-sub">{row.note}</div> : null}
@@ -735,6 +807,385 @@ export function PushPanel({
             sent: formatDateTime(c.sentAt, timeZone),
             delivered: formatCount(c.delivered),
             opened: formatPercent(c.openedRate),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+// --- points -----------------------------------------------------------------
+
+export function PointsKpis({
+  summary,
+  daily,
+}: {
+  summary: {
+    current: PointsTotals;
+    previous: PointsTotals;
+    outstanding: number;
+  };
+  /** The period's daily series, for the line under each figure. */
+  daily?: PointsDay[];
+}): ReactNode {
+  const { current, previous, outstanding } = summary;
+  const days = daily?.length ?? 0;
+  const trend = (name: string, pick: (day: PointsDay) => number) => ({
+    trend: daily?.map(pick),
+    trendLabel: `${name}, last ${days} days`,
+  });
+  const versus = "vs previous period";
+  return (
+    <div className="ana-grid ana-kpis">
+      <Kpi
+        change={describeChange(current.issued, previous.issued)}
+        label="Issued"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.issued)}
+        {...trend("Issued", (d) => d.issued)}
+      />
+      <Kpi
+        change={describeChange(current.spent, previous.spent)}
+        label="Spent"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.spent)}
+        {...trend("Spent", (d) => d.spent)}
+      />
+      <Kpi
+        change={describeChange(current.net, previous.net)}
+        label="Net"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.net)}
+      />
+      <Kpi
+        label="Outstanding"
+        note="all time"
+        tag="observed"
+        value={formatCount(outstanding)}
+      />
+      <Kpi
+        change={describeChange(current.activeEarners, previous.activeEarners)}
+        label="Active earners"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.activeEarners)}
+      />
+      <Kpi
+        change={describeChange(current.largeGrants, previous.largeGrants)}
+        label="Large grants"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.largeGrants)}
+      />
+    </div>
+  );
+}
+
+export function PointsDailyPanel({ days }: { days: PointsDay[] }): ReactNode {
+  return (
+    <Panel
+      hint="Issued and spent by day"
+      tag="observed"
+      title="Issued and spent by day"
+    >
+      <DayChart
+        days={days}
+        label="Issued and spent by day"
+        series={[
+          { key: "issued", label: "Issued", color: SERIES_COLORS.deep },
+          { key: "spent", label: "Spent", color: SERIES_COLORS.gold },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function PointsSourcesPanel({
+  sources,
+}: {
+  sources: PointsSource[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Points issued, by source"
+      tag="observed"
+      title="Issued by source"
+    >
+      <Bars
+        empty="No points were issued in this period."
+        label="Issued by source"
+        rows={sources.map((s) => ({
+          label: s.source,
+          value: s.issued,
+          display: formatCount(s.issued),
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function ConcentrationPanel({
+  concentration,
+}: {
+  concentration: PointsConcentration;
+}): ReactNode {
+  const figure = (value: number | null) =>
+    value === null ? "–" : formatCount(value);
+  return (
+    <Panel
+      hint="Every account with at least one ledger row"
+      tag="observed"
+      title="Balance concentration"
+    >
+      <div className="ana-grid ana-kpis">
+        <Kpi label="Holders" value={formatCount(concentration.holders)} />
+        <Kpi label="Median balance" value={figure(concentration.median)} />
+        <Kpi label="90th percentile" value={figure(concentration.p90)} />
+        <Kpi
+          label="Top 10 share"
+          value={formatPercent(concentration.top10Share)}
+        />
+      </div>
+    </Panel>
+  );
+}
+
+export function LeaderboardPanel({
+  rows,
+}: {
+  rows: LeaderboardRow[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Earned from activity; the sign-up bonus and large grants are left out"
+      tag="observed"
+      title="Leaderboard"
+    >
+      <DataTable
+        columns={[
+          { key: "rank", label: "Rank" },
+          { key: "earned", label: "Earned", align: "right" },
+          { key: "balance", label: "Balance", align: "right" },
+          { key: "joined", label: "Joined" },
+          { key: "source", label: "Top source" },
+          { key: "account", label: "Account" },
+        ]}
+        empty="No one earned points from activity in this period."
+        rows={rows.map((r) => ({
+          key: r.userId,
+          cells: {
+            rank: r.rank,
+            earned: formatCount(r.earned),
+            balance: formatCount(r.balance),
+            joined: r.joinedAt
+              ? formatDay(localDay(r.joinedAt, ANALYTICS_TIME_ZONE))
+              : "–",
+            source: r.topSource ?? "–",
+            account: (
+              <a href={`${ADMIN_PATH}/collections/users/${r.userId}`}>
+                Open account
+              </a>
+            ),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function LargeGrantsPanel({
+  grants,
+}: {
+  grants: LargeGrant[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Single grants above 5,000 points"
+      tag="observed"
+      title="Large point grants"
+    >
+      <DataTable
+        columns={[
+          { key: "date", label: "Date" },
+          { key: "source", label: "Source" },
+          { key: "points", label: "Points", align: "right" },
+          { key: "account", label: "Account" },
+        ]}
+        empty="No single grant above 5,000 points in this period."
+        rows={grants.map((g) => ({
+          key: g.id,
+          cells: {
+            date: g.at ? formatDay(localDay(g.at, ANALYTICS_TIME_ZONE)) : "–",
+            source: g.source,
+            points: formatCount(g.points),
+            account: g.userId ? (
+              <a href={`${ADMIN_PATH}/collections/users/${g.userId}`}>
+                Open account
+              </a>
+            ) : (
+              "–"
+            ),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+// --- retention --------------------------------------------------------------
+
+/** A percentage from two counts, or null when nothing is eligible. */
+const rateOf = (part: number, whole: number): number | null =>
+  whole === 0 ? null : Math.round((part / whole) * 1000) / 10;
+
+/** `returned / eligible (pct)`, or `–` while nothing is eligible. */
+const measureText = (measure: Measure): ReactNode =>
+  measure.eligible === 0
+    ? "–"
+    : `${formatCount(measure.returned)} / ${formatCount(measure.eligible)} (${formatPercent(rateOf(measure.returned, measure.eligible))})`;
+
+export function RetentionKpis({
+  summary,
+  weeks,
+}: {
+  summary: { current: Stickiness; previous: Stickiness };
+  weeks: ActivationWeek[];
+}): ReactNode {
+  const { current, previous } = summary;
+  const mature = weeks.reduce((total, w) => total + w.mature24h, 0);
+  const activated = weeks.reduce((total, w) => total + w.activated24h, 0);
+  const versus = "vs previous period";
+  return (
+    <div className="ana-grid ana-kpis">
+      <Kpi
+        change={describeChange(current.wau, previous.wau)}
+        label="Active devices (7 days)"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.wau)}
+      />
+      <Kpi
+        change={describeChange(current.mau, previous.mau)}
+        label="Active devices (30 days)"
+        note={versus}
+        tag="observed"
+        value={formatCount(current.mau)}
+      />
+      <Kpi
+        label="Stickiness"
+        note="daily actives / monthly actives"
+        tag="observed"
+        value={formatPercent(current.stickiness)}
+      />
+      <Kpi
+        label="Activation (24 hours)"
+        note={`${formatCount(activated)} of ${formatCount(mature)} mature signups`}
+        tag="observed"
+        value={formatPercent(rateOf(activated, mature))}
+      />
+    </div>
+  );
+}
+
+export function ActiveDevicesPanel({ days }: { days: ActiveDay[] }): ReactNode {
+  return (
+    <Panel
+      hint="Distinct devices with any event, by Lagos day"
+      tag="observed"
+      title="Active devices by day"
+    >
+      <DayChart
+        days={days}
+        label="Active devices by day"
+        series={[
+          {
+            key: "devices",
+            label: "Active devices",
+            color: SERIES_COLORS.deep,
+          },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function ActivationPanel({
+  weeks,
+}: {
+  weeks: ActivationWeek[];
+}): ReactNode {
+  return (
+    <Panel
+      hint="Registered accounts by the Lagos week they signed up"
+      tag="observed"
+      title="Activation by signup week"
+    >
+      <DataTable
+        columns={[
+          { key: "week", label: "Week" },
+          { key: "signups", label: "Signups", align: "right" },
+          { key: "day", label: "Read within 24h", align: "right" },
+          { key: "week7", label: "Read within 7d", align: "right" },
+          { key: "never", label: "Never read (mature)", align: "right" },
+        ]}
+        empty="No accounts signed up in this period."
+        rows={weeks.map((w) => ({
+          key: w.week,
+          cells: {
+            week: formatDay(w.week),
+            signups: formatCount(w.signups),
+            day: measureText({
+              returned: w.activated24h,
+              eligible: w.mature24h,
+            }),
+            week7: measureText({
+              returned: w.activated7d,
+              eligible: w.mature7d,
+            }),
+            never: w.mature7d === 0 ? "–" : formatCount(w.neverRead),
+          },
+        }))}
+      />
+    </Panel>
+  );
+}
+
+export function CohortsPanel({ cohorts }: { cohorts: CohortRow[] }): ReactNode {
+  return (
+    <Panel
+      hint="Devices by the Lagos week they were first seen; rates count only elapsed windows"
+      tag="observed"
+      title="Device cohorts"
+    >
+      <DataTable
+        columns={[
+          { key: "week", label: "Week" },
+          { key: "devices", label: "New devices", align: "right" },
+          { key: "d1", label: "D1", align: "right" },
+          { key: "w1", label: "W1", align: "right" },
+          { key: "w2", label: "W2", align: "right" },
+          { key: "w4", label: "W4", align: "right" },
+        ]}
+        empty="No devices were first seen in this period."
+        rows={cohorts.map((c) => ({
+          key: c.week,
+          cells: {
+            week: (
+              <>
+                {formatDay(c.week)}
+                {c.w4.eligible < c.devices ? (
+                  <div className="ana-sub">partial</div>
+                ) : null}
+              </>
+            ),
+            devices: formatCount(c.devices),
+            d1: measureText(c.d1),
+            w1: measureText(c.w1),
+            w2: measureText(c.w2),
+            w4: measureText(c.w4),
           },
         }))}
       />
@@ -824,6 +1275,7 @@ export function GiveawayTicketsPanel({
       <Panel hint="Valid tickets by day" tag="observed" title="Tickets">
         <DayChart
           days={report.ticketDaily}
+          label="Tickets"
           series={[
             { key: "issued", label: "Issued", color: SERIES_COLORS.deep },
             { key: "entrants", label: "Entrants", color: SERIES_COLORS.gold },
@@ -847,6 +1299,7 @@ export function GiveawayEngagementsPanel({
     >
       <DayChart
         days={report.engagements.days}
+        label="Engagements by source"
         series={[
           { key: "partner", label: "Partner item", color: SERIES_COLORS.deep },
           {
@@ -877,6 +1330,7 @@ export function GiveawayPoolPanel({
     >
       <Bars
         empty="The pool locks when the draw begins; nothing to show before then."
+        label="Pool composition"
         rows={pool.map((t) => ({
           label: t.tier,
           value: t.candidates,
@@ -931,6 +1385,7 @@ export function GiveawayWinnersPanel({
     >
       <Bars
         empty="No winners yet."
+        label="Winners"
         rows={report.winners.byTier.map((t) => ({
           label: t.tier,
           value: t.winners,
@@ -939,6 +1394,7 @@ export function GiveawayWinnersPanel({
       <div className="ana-muted">By claim</div>
       <Bars
         empty="No winners yet."
+        label="By claim"
         rows={report.winners.byClaim.map((s) => ({
           label: s.status,
           value: s.winners,
@@ -947,6 +1403,7 @@ export function GiveawayWinnersPanel({
       <div className="ana-muted">By fulfilment</div>
       <Bars
         empty="No winners yet."
+        label="By fulfilment"
         rows={report.winners.byFulfilment.map((s) => ({
           label: s.status,
           value: s.winners,
@@ -997,6 +1454,7 @@ export function GiveawayFulfilmentPanel({
     >
       <Bars
         empty="Nothing dispatched yet."
+        label="Fulfilment"
         rows={[
           { label: "Sent", value: fulfilment.sent },
           { label: "Already sent", value: fulfilment.alreadySent },
@@ -1028,6 +1486,7 @@ export function GiveawayAttentionPanel({
     >
       <Bars
         empty="Nothing needs attention."
+        label="Needs attention"
         rows={[
           { label: "On hold, account flagged", value: attention.onHold },
           {
@@ -1155,6 +1614,7 @@ export function PostbackHealthPanel({
       ) : (
         <>
           <Bars
+            label="Postbacks received"
             rows={[
               { label: "Accepted", value: health.accepted },
               {
@@ -1271,6 +1731,7 @@ export function DiscoverPanel({
       >
         <DayChart
           days={days}
+          label="Opens per day"
           series={[
             {
               key: "openers",
@@ -1284,6 +1745,7 @@ export function DiscoverPanel({
       <div className="ana-grid ana-even">
         <Panel hint="Times a section was shown" tag="reported" title="Sections">
           <Bars
+            label="Sections"
             rows={sections.map((s) => ({
               label: DISCOVER_SECTION_LABELS[s.section] ?? s.section,
               value: s.views,
@@ -1293,6 +1755,7 @@ export function DiscoverPanel({
         </Panel>
         <Panel hint="What was tapped" tag="reported" title="What people open">
           <Bars
+            label="What people open"
             rows={items.map((i) => ({
               label: DISCOVER_ITEM_LABELS[i.type] ?? i.type,
               value: i.opens,

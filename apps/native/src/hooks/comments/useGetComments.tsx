@@ -17,7 +17,7 @@ export default function useGetComments(
         sort,
       }),
       initialPageParam: undefined,
-      getNextPageParam: (lastPage) => lastPage.nextPage,
+      getNextPageParam: (lastPage) => lastPage?.nextPage,
       staleTime: 0,
       enabled: !!newsId,
       /*

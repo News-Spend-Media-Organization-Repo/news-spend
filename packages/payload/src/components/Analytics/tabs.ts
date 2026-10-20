@@ -47,6 +47,30 @@ export const giveawayStatsView = {
 export const analyticsPageView = {
   Component: `${PATH}#AnalyticsPageView`,
   path: "/analytics" as const,
+  // Payload matches a view without `exact` as a prefix, and takes the first
+  // one that matches, so /analytics would answer for /analytics/points too.
+  exact: true as const,
+};
+
+/** The Dream Points economy page, reached from the News | Points switch. */
+export const pointsPageView = {
+  Component: `${PATH}#PointsPageView`,
+  path: "/analytics/points" as const,
+  exact: true as const,
+};
+
+/** Activation and device retention, from the News | Points | Retention switch. */
+export const retentionPageView = {
+  Component: `${PATH}#RetentionPageView`,
+  path: "/analytics/retention" as const,
+  exact: true as const,
+};
+
+/** The admin's custom pages, as `admin.components.views` registers them. */
+export const analyticsViews = {
+  analytics: analyticsPageView,
+  analyticsPoints: pointsPageView,
+  analyticsRetention: retentionPageView,
 };
 
 export const analyticsNavLink = `${PATH}#AnalyticsNavLink`;

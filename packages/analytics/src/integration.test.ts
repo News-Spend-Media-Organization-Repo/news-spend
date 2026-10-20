@@ -22,6 +22,7 @@ import {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
@@ -34,7 +35,21 @@ import {
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";
+import {
+  pointsBySource,
+  pointsConcentration,
+  pointsDaily,
+  pointsLargeGrants,
+  pointsLeaderboard,
+  pointsSummary,
+} from "./points";
 import { resolveRange } from "./range";
+import {
+  activationByWeek,
+  activeDevicesDaily,
+  activeDevicesSummary,
+  retentionCohorts,
+} from "./retention";
 import { scopeFor } from "./scope";
 
 /**
@@ -51,6 +66,7 @@ const SCHEMA = `analytics_test_${Math.random().toString(36).slice(2, 10)}`;
 
 const A1 = "a0000000-0000-4000-8000-000000000001";
 const A2 = "a0000000-0000-4000-8000-000000000002";
+const A3 = "a0000000-0000-4000-8000-000000000003";
 const CAT_ENERGY = "c0000000-0000-4000-8000-000000000001";
 const CAT_SPORT = "c0000000-0000-4000-8000-000000000002";
 const P1 = "b0000000-0000-4000-8000-000000000001";
@@ -100,7 +116,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TABLE news_analytics (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         article_id uuid NOT NULL, event enum_news_analytics_event NOT NULL,
-        user_id varchar, session_id varchar NOT NULL DEFAULT 's', device_id varchar NOT NULL,
+        user_id varchar, session_id varchar NOT NULL DEFAULT 's', device_id varchar NOT NULL, event_id varchar,
         platform enum_news_analytics_platform, metadata jsonb, timestamp timestamptz NOT NULL);
       CREATE TABLE partners (id uuid PRIMARY KEY, company_name varchar);
       CREATE TABLE partner_content (id uuid PRIMARY KEY, title varchar);
@@ -123,6 +139,13 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         id uuid PRIMARY KEY, is_anonymous boolean, created_at timestamptz NOT NULL,
         last_active timestamptz, _verified boolean NOT NULL DEFAULT FALSE,
         country varchar, verified_country varchar);
+      CREATE TYPE enum_activities_action AS ENUM('signUp','read','share','connectBrandAd','surveyTask','pointReversal','ticketPurchase','lottery','dailyLogin','referral','watchLive','musicListeningTime','partnerContentTask');
+      CREATE TYPE enum_activities_type AS ENUM('point','badge','reward');
+      CREATE TABLE activities (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        type enum_activities_type NOT NULL DEFAULT 'point',
+        point numeric, action enum_activities_action, user_id uuid,
+        metadata jsonb, created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE push_tokens (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id uuid NOT NULL, status varchar NOT NULL DEFAULT 'active',
@@ -193,7 +216,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       INSERT INTO categories VALUES ('${CAT_ENERGY}', 'Energy'), ('${CAT_SPORT}', 'Sports');
       INSERT INTO news VALUES
         ('${A1}', 'Fuel price review', 'fuel', '2026-09-12T08:00:00Z', '${CAT_ENERGY}'),
-        ('${A2}', 'Squad named', 'squad', '2026-09-12T09:00:00Z', '${CAT_SPORT}');
+        ('${A2}', 'Squad named', 'squad', '2026-09-12T09:00:00Z', '${CAT_SPORT}'),
+        ('${A3}', 'Late news', 'late', '2026-09-12T10:00:00Z', '${CAT_SPORT}');
       INSERT INTO partners VALUES ('${P1}', 'Shopwise'), ('${P2}', 'FreshCart');
       INSERT INTO partner_content VALUES ('c1000000-0000-4000-8000-000000000001', 'Weekend offer');
     `);
@@ -391,7 +415,15 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       likes: 1,
       shares: 3,
       readers: 4,
-      ctr: 120,
+      // 4 of the 6 views follow an impression from the same device; the other
+      // 2 are direct opens. The old definition (views per impression) read 120.
+      matchedViews: 4,
+      directOpens: 2,
+      // 5 impressions on 3 device and article pairs, and each of the 3 was
+      // opened. The earlier definitions read 120 (views per impression) and 80.
+      exposures: 3,
+      clickedExposures: 3,
+      ctr: 100,
       readRate: 16.7,
     });
     expect(previous.views).toBe(1);
@@ -463,16 +495,188 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     const top = await newsTopArticles(db, staff, { range });
     const cats = await newsTopCategories(db, staff, { range });
 
+    // Both have three views; Squad named has three devices to Fuel price
+    // review's two, so it ranks first by readers, the default.
     expect(top.map((t) => t.title)).toEqual([
-      "Fuel price review",
       "Squad named",
+      "Fuel price review",
     ]);
-    expect(top[0]).toMatchObject({
+    expect(top.find((t) => t.title === "Fuel price review")).toMatchObject({
       category: "Energy",
       views: 3,
+      readers: 2,
       publishedAt: "2026-09-12T08:00:00.000Z",
     });
     expect(cats.map((c) => c.category)).toEqual(["Energy", "Sports"]);
+  });
+
+  it("counts a view toward click-through only when its device saw the article first", async () => {
+    // A period of its own, so the fixtures above are not disturbed.
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES
+        ('${A1}', 'impression', 'm-a', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view',       'm-a', '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view',       'm-b', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'impression', 'm-b', '2026-07-30T10:05:00Z'),
+        ('${A1}', 'view',       'm-c', '2026-07-30T11:00:00Z')
+    `);
+
+    const { current } = await newsSummary(db, staff, { range: earlier });
+
+    expect(current).toMatchObject({
+      impressions: 2,
+      views: 3,
+      matchedViews: 1,
+      directOpens: 2,
+      exposures: 2,
+      clickedExposures: 1,
+      ctr: 50,
+    });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'm-%'");
+  });
+
+  describe("top articles ranking", () => {
+    // A window of its own (see the matched-views test above).
+    const window = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    const at = (day: number, device: string, event: string, article: string) =>
+      `('${article}', '${event}', '${device}', '2026-07-${day}T10:00:00Z')`;
+
+    const seed = async (rows: string[]) =>
+      await conn.unsafe(
+        `INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES ${rows.join(",")}`
+      );
+    const clean = async () =>
+      await conn.unsafe(
+        "DELETE FROM news_analytics WHERE device_id LIKE 'r-%'"
+      );
+
+    it("ranks by distinct readers, not raw views, and by views when asked", async () => {
+      // A1: three devices, one view each. A2: one device, five views.
+      await seed([
+        at(30, "r-1", "view", A1),
+        at(30, "r-2", "view", A1),
+        at(30, "r-3", "view", A1),
+        ...[1, 2, 3, 4, 5].map((_, i) => at(25 + i, "r-4", "view", A2)),
+      ]);
+
+      const byReaders = await newsTopArticles(db, staff, { range: window });
+      const byViews = await newsTopArticles(db, staff, {
+        range: window,
+        sortBy: "views",
+      });
+      await clean();
+
+      expect(byReaders.map((t) => t.id)).toEqual([A1, A2]);
+      expect(byReaders[0]).toMatchObject({ readers: 3, views: 3 });
+      expect(byReaders[1]).toMatchObject({ readers: 1, views: 5 });
+      expect(byViews.map((t) => t.id)).toEqual([A2, A1]);
+    });
+
+    it("orders equal articles by id so the list never shuffles", async () => {
+      await seed([at(30, "r-1", "view", A2), at(30, "r-2", "view", A1)]);
+      const [first, second] = await newsTopArticles(db, staff, {
+        range: window,
+      });
+      await clean();
+
+      expect([first?.id, second?.id]).toEqual([A1, A2]);
+    });
+
+    it("puts a late spike above an evenly spread article under rising, and drops articles with under 3 views", async () => {
+      // A1: 6 views on the last two days. A2: 6 views spread across the week.
+      // The third article would score highest but has only 2 views.
+      await seed([
+        ...[0, 1, 2, 3, 4, 5].map((i) =>
+          at(i < 3 ? 30 : 31, `r-${i}`, "view", A1)
+        ),
+        ...[25, 26, 27, 28, 29, 30].map((day, i) =>
+          at(day, `r-1${i}`, "view", A2)
+        ),
+        at(31, "r-20", "view", A3),
+        at(31, "r-21", "view", A3),
+      ]);
+
+      const rising = await newsTopArticles(db, staff, {
+        range: window,
+        sortBy: "rising",
+      });
+      await clean();
+
+      expect(rising.map((t) => t.id)).toEqual([A1, A2]);
+      expect(rising[0]?.trend).toBeGreaterThan(rising[1]?.trend ?? 0);
+    });
+
+    it("returns an empty list for every sort when nothing happened", async () => {
+      for (const sortBy of [
+        "readers",
+        "reads",
+        "views",
+        "impressions",
+        "rising",
+      ] as const) {
+        expect(
+          await newsTopArticles(db, staff, { range: window, sortBy })
+        ).toEqual([]);
+      }
+    });
+  });
+
+  it("never reports click-through above 100%, however often a reader reopens an article", async () => {
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES
+        ('${A1}', 'impression', 'c-a', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T11:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T12:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T13:00:00Z'),
+        -- seen before the period began, opened inside it: not this period's click
+        ('${A1}', 'impression', 'c-b', '2026-07-10T10:00:00Z'),
+        ('${A1}', 'view',       'c-b', '2026-07-30T10:00:00Z')
+    `);
+
+    const { current } = await newsSummary(db, staff, { range: earlier });
+    const [top] = await newsTopArticles(db, staff, { range: earlier });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'c-%'");
+
+    expect(current).toMatchObject({
+      impressions: 1,
+      views: 5,
+      matchedViews: 4,
+      directOpens: 1,
+      exposures: 1,
+      clickedExposures: 1,
+      ctr: 100,
+    });
+    expect(top).toMatchObject({ id: A1, ctr: 100 });
+  });
+
+  it("counts events sent without an event id", async () => {
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, event_id, timestamp) VALUES
+        ('${A1}', 'view', 'q-a', 'evt-12345678', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view', 'q-b', NULL, '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view', 'q-c', NULL, '2026-07-30T10:02:00Z')
+    `);
+
+    const quality = await newsEventQuality(db, staff, { range: earlier });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'q-%'");
+
+    expect(quality).toEqual({ events: 3, eventsWithoutId: 2 });
   });
 
   it("assembles an article's whole report", async () => {
@@ -572,7 +776,25 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         flagsUnreviewed: 2,
         pushFailed: 1,
         witnessWeek: 1,
+        largeGrants: 0,
       });
+    });
+
+    it("counts only large point grants in the last 7 days", async () => {
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at) VALUES
+          ('point', 6000, 'surveyTask', '${USER}', '2026-09-19T08:00:00Z'),
+          ('point', 6000, 'surveyTask', '${USER}', '2026-09-10T08:00:00Z'),
+          ('point', 5000, 'surveyTask', '${USER}', '2026-09-19T09:00:00Z')
+      `);
+
+      const counts = await needsAttention(db, staff, { now: NOW });
+
+      await conn.unsafe(
+        `DELETE FROM activities WHERE user_id = '${USER}' AND point >= 5000`
+      );
+
+      expect(counts.largeGrants).toBe(1);
     });
 
     it("rates the period's campaigns from their deliveries", async () => {
@@ -997,6 +1219,569 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(days.find((d) => d.date === "2026-09-19")?.openers).toBe(2);
       expect(days.find((d) => d.date === "2026-09-20")?.openers).toBe(1);
       expect(days.find((d) => d.date === "2026-09-15")?.openers).toBe(0);
+    });
+  });
+
+  describe("points", () => {
+    const P1 = "91000000-0000-4000-8000-000000000001";
+    const P2 = "91000000-0000-4000-8000-000000000002";
+    const P3 = "91000000-0000-4000-8000-000000000003";
+    const P4 = "91000000-0000-4000-8000-000000000004";
+    const P5 = "91000000-0000-4000-8000-000000000005";
+
+    beforeAll(async () => {
+      await conn.unsafe(`
+        INSERT INTO users (id, created_at) VALUES
+          ('${P1}', '2026-01-01T08:00:00Z'),
+          ('${P2}', '2026-02-01T08:00:00Z'),
+          ('${P3}', '2026-03-01T08:00:00Z'),
+          ('${P4}', '2026-04-01T08:00:00Z'),
+          ('${P5}', '2026-05-01T08:00:00Z');
+        INSERT INTO activities (type, point, action, user_id, metadata, created_at) VALUES
+          ('point', 500, 'signUp', '${P1}', NULL, '2026-09-14T08:00:00Z'),
+          ('point', 10, 'read', '${P1}', NULL, '2026-09-19T09:00:00Z'),
+          ('point', -250, 'ticketPurchase', '${P1}', NULL, '2026-09-19T10:00:00Z'),
+          ('point', -50, 'pointReversal', '${P1}', NULL, '2026-09-20T08:00:00Z'),
+          ('point', 3000, 'lottery', '${P2}', NULL, '2026-09-15T08:00:00Z'),
+          ('point', 6000, 'surveyTask', '${P3}', NULL, '2026-09-16T08:00:00Z'),
+          ('point', 400, 'surveyTask', '${P4}', '{"provider":"cpx"}', '2026-09-17T08:00:00Z'),
+          ('point', 300, 'surveyTask', '${P5}', '{"provider":"rapido"}', '2026-09-18T08:00:00Z'),
+          ('point', 200, 'surveyTask', '${P5}', NULL, '2026-09-18T09:00:00Z'),
+          ('point', 100, 'surveyTask', '${P5}', '"garbage"'::jsonb, '2026-09-20T09:00:00Z'),
+          ('badge', 1000, 'read', '${P1}', NULL, '2026-09-19T11:00:00Z'),
+          ('reward', 1000, 'read', '${P1}', NULL, '2026-09-19T12:00:00Z'),
+          ('point', 9999, 'read', '${P1}', NULL, '2026-08-01T08:00:00Z');
+      `);
+    });
+
+    it("totals issued, spent, reversed, net, earners and outstanding", async () => {
+      const summary = await pointsSummary(db, staff, { range });
+
+      expect(summary.current).toEqual({
+        issued: 10_510,
+        spent: 250,
+        reversed: 50,
+        net: 10_210,
+        activeEarners: 5,
+        largeGrants: 1,
+      });
+      // 10,510 issued, 250 spent, 50 reversed, plus 9,999 from August: all time.
+      expect(summary.outstanding).toBe(20_209);
+    });
+
+    it("splits sources, with legacy survey rows and malformed metadata as form", async () => {
+      const sources = await pointsBySource(db, staff, { range });
+
+      expect(sources).toEqual([
+        { source: "form", issued: 6300, spent: 0, users: 2 },
+        { source: "lottery", issued: 3000, spent: 0, users: 1 },
+        { source: "signUp", issued: 500, spent: 0, users: 1 },
+        { source: "cpx", issued: 400, spent: 0, users: 1 },
+        { source: "rapido", issued: 300, spent: 0, users: 1 },
+        { source: "read", issued: 10, spent: 0, users: 1 },
+        { source: "pointReversal", issued: 0, spent: 0, users: 1 },
+        { source: "ticketPurchase", issued: 0, spent: 250, users: 1 },
+      ]);
+    });
+
+    it("gives one point row per day, with reversals kept out of spent", async () => {
+      const days = await pointsDaily(db, staff, { range });
+
+      expect(days).toHaveLength(7);
+      expect(days.map((d) => d.date)).toEqual([
+        "2026-09-14",
+        "2026-09-15",
+        "2026-09-16",
+        "2026-09-17",
+        "2026-09-18",
+        "2026-09-19",
+        "2026-09-20",
+      ]);
+      expect(days.find((d) => d.date === "2026-09-18")).toEqual({
+        date: "2026-09-18",
+        issued: 500,
+        spent: 0,
+      });
+      expect(days.find((d) => d.date === "2026-09-19")).toEqual({
+        date: "2026-09-19",
+        issued: 10,
+        spent: 250,
+      });
+      expect(days.find((d) => d.date === "2026-09-20")).toEqual({
+        date: "2026-09-20",
+        issued: 100,
+        spent: 0,
+      });
+      expect(days.find((d) => d.date === "2026-09-17")?.issued).toBe(400);
+    });
+
+    it("returns a zero-filled week for an empty period without error", async () => {
+      const empty = resolveRange({
+        days: 7,
+        now: new Date("2026-12-01T10:00:00Z"),
+      });
+
+      const summary = await pointsSummary(db, staff, { range: empty });
+      const days = await pointsDaily(db, staff, { range: empty });
+      const sources = await pointsBySource(db, staff, { range: empty });
+
+      expect(summary.current).toEqual({
+        issued: 0,
+        spent: 0,
+        reversed: 0,
+        net: 0,
+        activeEarners: 0,
+        largeGrants: 0,
+      });
+      expect(summary.outstanding).toBe(20_209);
+      expect(days).toHaveLength(7);
+      expect(days.every((d) => d.issued === 0 && d.spent === 0)).toBe(true);
+      expect(sources).toEqual([]);
+    });
+
+    it("reports a reversal-only period as negative net with no spend or earners", async () => {
+      const window = resolveRange({
+        days: 7,
+        now: new Date("2026-06-30T10:00:00Z"),
+      });
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        VALUES ('point', -50, 'pointReversal', '${P1}', '2026-06-29T08:00:00Z')
+      `);
+
+      const summary = await pointsSummary(db, staff, { range: window });
+      const days = await pointsDaily(db, staff, { range: window });
+
+      await conn.unsafe(
+        "DELETE FROM activities WHERE created_at = '2026-06-29T08:00:00Z'"
+      );
+
+      expect(summary.current).toEqual({
+        issued: 0,
+        spent: 0,
+        reversed: 50,
+        net: -50,
+        activeEarners: 0,
+        largeGrants: 0,
+      });
+      expect(days.every((d) => d.issued === 0 && d.spent === 0)).toBe(true);
+    });
+  });
+
+  describe("points economy ranking", () => {
+    const Q1 = "92000000-0000-4000-8000-000000000001";
+    const Q2 = "92000000-0000-4000-8000-000000000002";
+    const Q3 = "92000000-0000-4000-8000-000000000003";
+    const Q4 = "92000000-0000-4000-8000-000000000004";
+    const Q5 = "92000000-0000-4000-8000-000000000005";
+    const Q6 = "92000000-0000-4000-8000-000000000006";
+    const Q7 = "92000000-0000-4000-8000-000000000007";
+    const Q8 = "92000000-0000-4000-8000-000000000008";
+    const Q9 = "92000000-0000-4000-8000-000000000009";
+    const Q10 = "92000000-0000-4000-8000-000000000010";
+    const ranking = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+
+    beforeAll(async () => {
+      await conn.unsafe("DELETE FROM activities");
+      await conn.unsafe(`
+        INSERT INTO users (id, created_at) VALUES
+          ('${Q1}', '2026-01-01T08:00:00Z'),
+          ('${Q2}', '2026-01-02T08:00:00Z'),
+          ('${Q3}', '2026-01-03T08:00:00Z'),
+          ('${Q4}', '2026-01-04T08:00:00Z'),
+          ('${Q5}', '2026-01-05T08:00:00Z'),
+          ('${Q6}', '2026-01-06T08:00:00Z'),
+          ('${Q7}', '2026-01-07T08:00:00Z'),
+          ('${Q8}', '2026-01-08T08:00:00Z'),
+          ('${Q9}', '2026-01-09T08:00:00Z'),
+          ('${Q10}', '2026-01-10T08:00:00Z');
+        INSERT INTO activities (type, point, action, user_id, metadata, created_at) VALUES
+          ('point', 500, 'signUp', '${Q1}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 5001, 'surveyTask', '${Q2}', NULL, '2026-07-27T08:00:00Z'),
+          ('point', 200, 'read', '${Q2}', NULL, '2026-07-28T08:00:00Z'),
+          ('point', 5000, 'read', '${Q3}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 300, 'read', '${Q4}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 300, 'read', '${Q5}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 400, 'surveyTask', '${Q6}', '{"provider":"cpx"}', '2026-07-25T08:00:00Z'),
+          ('point', 100, 'read', '${Q6}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 4200, 'lottery', '${Q7}', NULL, '2026-07-25T08:00:00Z'),
+          ('point', 300, 'read', '${Q7}', NULL, '2026-07-26T08:00:00Z'),
+          ('point', 9000, 'lottery', '${Q8}', NULL, '2026-07-30T08:00:00Z'),
+          ('point', -100, 'ticketPurchase', '${Q9}', NULL, '2026-07-29T08:00:00Z'),
+          ('point', -50, 'pointReversal', '${Q10}', NULL, '2026-07-29T08:00:00Z');
+      `);
+    });
+
+    it("ranks by earned in the period, never by balance", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+
+      expect(rows.map((r) => [r.rank, r.userId, r.earned, r.balance])).toEqual([
+        [1, Q3, 5000, 5000],
+        [2, Q7, 4500, 4500],
+        [3, Q6, 500, 500],
+        [4, Q4, 300, 300],
+        [5, Q5, 300, 300],
+        [6, Q2, 200, 5201],
+      ]);
+      expect(rows[5]?.topSource).toBe("read");
+      expect(rows[2]?.topSource).toBe("cpx");
+      expect(rows[1]?.topSource).toBe("lottery");
+      expect(rows[0]?.joinedAt).toBe("2026-01-03T08:00:00.000Z");
+      expect(JSON.stringify(rows)).not.toContain("@");
+    });
+
+    it("leaves out a user whose only activity is the sign-up bonus", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+
+      expect(rows.some((r) => r.userId === Q1)).toBe(false);
+    });
+
+    it("excludes a grant above 5,000 from earned but not from balance", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+
+      expect(rows.find((r) => r.userId === Q2)).toMatchObject({
+        earned: 200,
+        balance: 5201,
+      });
+    });
+
+    it("does not exclude a grant of exactly 5,000 and does not flag it", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+      const grants = await pointsLargeGrants(db, staff, { range: ranking });
+
+      expect(rows.find((r) => r.userId === Q3)?.earned).toBe(5000);
+      expect(grants.some((g) => g.userId === Q3)).toBe(false);
+      expect(grants.map((g) => g.points)).toEqual([9000, 5001]);
+    });
+
+    it("does not rank activity that belongs to no user", async () => {
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        VALUES ('point', 4000, 'share', NULL, '2026-07-26T09:00:00Z')
+      `);
+
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+      await conn.unsafe("DELETE FROM activities WHERE user_id IS NULL");
+
+      expect(rows.every((row) => row.userId !== null)).toBe(true);
+      expect(rows.map((row) => row.rank)).toEqual(
+        rows.map((_, index) => index + 1)
+      );
+    });
+
+    it("orders equal earned by user id", async () => {
+      const rows = await pointsLeaderboard(db, staff, { range: ranking });
+      const tied = rows.filter((r) => r.earned === 300);
+
+      expect(tied.map((r) => r.userId)).toEqual([Q4, Q5]);
+    });
+
+    it("lists large grants newest first, with the legacy survey source", async () => {
+      const grants = await pointsLargeGrants(db, staff, { range: ranking });
+
+      expect(grants.map((g) => g.userId)).toEqual([Q8, Q2]);
+      expect(grants[1]).toMatchObject({
+        action: "surveyTask",
+        source: "form",
+        points: 5001,
+        at: "2026-07-27T08:00:00.000Z",
+      });
+      expect(grants[0]).toMatchObject({ action: "lottery", source: "lottery" });
+    });
+
+    it("counts large grants in the summary", async () => {
+      const summary = await pointsSummary(db, staff, { range: ranking });
+
+      expect(summary.current.largeGrants).toBe(2);
+    });
+
+    it("clamps a leaderboard limit and keeps ranks contiguous", async () => {
+      const all = await pointsLeaderboard(db, staff, { range: ranking });
+      const two = await pointsLeaderboard(db, staff, {
+        range: ranking,
+        limit: 2,
+      });
+
+      expect(all.map((r) => r.rank)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(two.map((r) => r.rank)).toEqual([1, 2]);
+      expect(
+        await pointsLargeGrants(db, staff, { range: ranking, limit: 1 })
+      ).toHaveLength(1);
+    });
+
+    it("gives median, p90 and the top-ten share over known balances", async () => {
+      await conn.unsafe("DELETE FROM activities");
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        SELECT 'point', n, 'read',
+               ('93000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid,
+               '2026-01-01T08:00:00Z'
+        FROM generate_series(1, 12) AS n
+      `);
+
+      const concentration = await pointsConcentration(db, staff);
+
+      expect(concentration.holders).toBe(12);
+      expect(concentration.median).toBe(6.5);
+      expect(concentration.p90).toBeCloseTo(10.9);
+      // The largest ten hold 75 of the 78 points.
+      expect(concentration.top10Share).toBe(96.2);
+    });
+
+    it("does not throw for a one-holder ledger", async () => {
+      await conn.unsafe("DELETE FROM activities");
+      await conn.unsafe(`
+        INSERT INTO activities (type, point, action, user_id, created_at)
+        VALUES ('point', 500, 'read', '${Q1}', '2026-01-01T08:00:00Z')
+      `);
+
+      const concentration = await pointsConcentration(db, staff);
+
+      expect(concentration).toEqual({
+        holders: 1,
+        median: 500,
+        p90: 500,
+        top10Share: 100,
+      });
+    });
+
+    it("gives zero holders and null shares for an empty ledger", async () => {
+      await conn.unsafe("DELETE FROM activities");
+
+      const concentration = await pointsConcentration(db, staff);
+
+      expect(concentration).toEqual({
+        holders: 0,
+        median: null,
+        p90: null,
+        top10Share: null,
+      });
+    });
+  });
+
+  describe("retention activation", () => {
+    const U1 = "93000000-0000-4000-8000-000000000001";
+    const U2 = "93000000-0000-4000-8000-000000000002";
+    const U3 = "93000000-0000-4000-8000-000000000003";
+    const U4 = "93000000-0000-4000-8000-000000000004";
+    const U5 = "93000000-0000-4000-8000-000000000005";
+    const U6 = "93000000-0000-4000-8000-000000000006";
+    const U7 = "93000000-0000-4000-8000-000000000007";
+    const U8 = "93000000-0000-4000-8000-000000000008";
+    const ACTIVE = resolveRange({
+      days: 30,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+    const filter = { range: ACTIVE, now: NOW };
+
+    beforeAll(async () => {
+      await conn.unsafe("DELETE FROM news_analytics");
+      await conn.unsafe("DELETE FROM users");
+      await conn.unsafe(`
+        INSERT INTO users (id, is_anonymous, created_at) VALUES
+          ('${U1}', FALSE, '2026-09-08T09:00:00Z'),
+          ('${U2}', FALSE, '2026-09-08T10:00:00Z'),
+          ('${U3}', FALSE, '2026-09-08T11:00:00Z'),
+          ('${U4}', FALSE, '2026-09-08T12:00:00Z'),
+          ('${U5}', TRUE,  '2026-09-15T08:00:00Z'),
+          ('${U6}', FALSE, '2026-09-15T09:00:00Z'),
+          ('${U7}', FALSE, '2026-09-19T23:30:00Z'),
+          ('${U8}', FALSE, '2026-09-13T23:30:00Z'),
+          -- Its only event is exactly 24 hours after signup; it must count.
+          ('93000000-0000-4000-8000-000000000009', FALSE, '2026-09-08T13:00:00Z');
+        INSERT INTO news_analytics (article_id, event, user_id, device_id, timestamp) VALUES
+          ('${A1}', 'view', '${U1}', 'r-1', '2026-09-08T09:00:00Z'),
+          ('${A1}', 'read', '${U1}', 'r-1', '2026-09-09T09:00:00Z'),
+          ('${A1}', 'view', '${U2}', 'r-2', '2026-09-09T11:00:00Z'),
+          ('${A1}', 'view', '${U3}', 'r-3', '2026-09-08T10:30:00Z'),
+          ('${A1}', 'read', '${U4}', 'r-4', '2026-09-15T12:00:00Z'),
+          ('${A1}', 'like', '${U6}', 'r-6', '2026-09-15T10:00:00Z'),
+          ('${A1}', 'view', '99999999-9999-4999-8999-999999999999', 'r-x', '2026-09-09T10:00:00Z'),
+          ('${A1}', 'view', NULL, 'r-n', '2026-09-09T10:00:00Z'),
+          ('${A1}', 'view', '93000000-0000-4000-8000-000000000009', 'r-9', '2026-09-09T13:00:00Z');
+      `);
+    });
+
+    it("counts each signup week, its mature accounts and who read", async () => {
+      expect(await activationByWeek(db, staff, filter)).toEqual([
+        {
+          week: "2026-09-07",
+          signups: 5,
+          mature24h: 5,
+          activated24h: 2,
+          mature7d: 5,
+          activated7d: 4,
+          neverRead: 1,
+        },
+        {
+          week: "2026-09-14",
+          signups: 3,
+          mature24h: 2,
+          activated24h: 0,
+          mature7d: 0,
+          activated7d: 0,
+          neverRead: 0,
+        },
+      ]);
+    });
+
+    it("counts a signup inside the last 24 hours but not in the 24-hour rate", async () => {
+      const [week] = (await activationByWeek(db, staff, filter)).slice(-1);
+
+      expect(week).toMatchObject({ signups: 3, mature24h: 2, activated24h: 0 });
+    });
+
+    it("puts a late Sunday UTC signup in the next Lagos week", async () => {
+      const weeks = await activationByWeek(db, staff, filter);
+
+      expect(weeks.map((w) => w.week)).toEqual(["2026-09-07", "2026-09-14"]);
+    });
+
+    it("returns nothing for a period with no signups", async () => {
+      const earlier = resolveRange({
+        days: 7,
+        now: new Date("2025-01-10T10:00:00Z"),
+        timeZone: "Africa/Lagos",
+      });
+
+      expect(
+        await activationByWeek(db, staff, { range: earlier, now: NOW })
+      ).toEqual([]);
+    });
+
+    it("returns nothing for an empty users table", async () => {
+      await conn.unsafe("DELETE FROM users");
+
+      expect(await activationByWeek(db, staff, filter)).toEqual([]);
+    });
+  });
+
+  describe("retention device cohorts and activity", () => {
+    const cohortRange = resolveRange({
+      days: 90,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+    const dailyRange = resolveRange({
+      days: 7,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+    const summaryRange = resolveRange({
+      days: 30,
+      now: NOW,
+      timeZone: "Africa/Lagos",
+    });
+
+    beforeAll(async () => {
+      await conn.unsafe("DELETE FROM news_analytics");
+      await conn.unsafe(`
+        INSERT INTO news_analytics (article_id, event, user_id, device_id, timestamp) VALUES
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-17T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-18T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-20T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-08-27T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-a', '2026-09-09T09:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-b', '2026-08-17T10:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-b', '2026-08-23T10:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-c', '2026-08-17T11:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-c', '2026-08-27T11:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-d', '2026-08-17T12:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-d', '2026-09-09T12:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-e', '2026-08-17T13:00:00Z'),
+          ('${A1}', 'view', NULL, 'rt-f', '2026-09-14T09:00:00Z'),
+          -- 23:30 UTC on the 8th is 00:30 on the 9th in Lagos; the next
+          -- evening is the day after it, so this is D1 and not D2.
+          ('${A1}', 'view', NULL, 'rt-g', '2026-09-08T23:30:00Z'),
+          ('${A1}', 'view', NULL, 'rt-g', '2026-09-09T23:30:00Z'),
+          -- Late Sunday UTC is Monday in Lagos.
+          ('${A1}', 'view', NULL, 'rt-h', '2026-09-13T23:30:00Z'),
+          ('${A1}', 'view', NULL, 'dev-x', '2026-09-19T10:00:00Z'),
+          ('${A1}', 'read', NULL, 'dev-x', '2026-09-19T11:00:00Z'),
+          ('${A1}', 'view', NULL, 'dev-y', '2026-09-20T08:00:00Z'),
+          -- 21 Sep in Lagos, after the period ends.
+          ('${A1}', 'view', NULL, 'dev-z', '2026-09-20T23:30:00Z');
+      `);
+    });
+
+    it("groups devices by the Lagos week of their first event", async () => {
+      expect(
+        await retentionCohorts(db, staff, { range: cohortRange, now: NOW })
+      ).toEqual([
+        {
+          week: "2026-08-17",
+          devices: 5,
+          d1: { returned: 1, eligible: 5 },
+          w1: { returned: 2, eligible: 5 },
+          w2: { returned: 2, eligible: 5 },
+          w4: { returned: 2, eligible: 5 },
+        },
+        {
+          week: "2026-09-07",
+          devices: 1,
+          d1: { returned: 1, eligible: 1 },
+          w1: { returned: 1, eligible: 1 },
+          w2: { returned: 0, eligible: 0 },
+          w4: { returned: 0, eligible: 0 },
+        },
+        {
+          week: "2026-09-14",
+          devices: 4,
+          d1: { returned: 0, eligible: 2 },
+          w1: { returned: 0, eligible: 0 },
+          w2: { returned: 0, eligible: 0 },
+          w4: { returned: 0, eligible: 0 },
+        },
+      ]);
+    });
+
+    it("counts each device once a day and leaves out after-midnight Lagos events", async () => {
+      const days = await activeDevicesDaily(db, staff, {
+        range: dailyRange,
+        now: NOW,
+      });
+
+      expect(days.at(-1)).toEqual({ date: "2026-09-20", devices: 1 });
+      expect(days.find((d) => d.date === "2026-09-19")).toEqual({
+        date: "2026-09-19",
+        devices: 1,
+      });
+      expect(days.filter((d) => d.devices === 0)).toHaveLength(4);
+    });
+
+    it("measures WAU, MAU and stickiness at each window's last day", async () => {
+      expect(
+        await activeDevicesSummary(db, staff, { range: summaryRange, now: NOW })
+      ).toEqual({
+        current: { wau: 4, mau: 9, avgDau30: 0.4, stickiness: 4.1 },
+        previous: { wau: 5, mau: 5, avgDau30: 0.2, stickiness: 4.7 },
+      });
+    });
+
+    it("returns empty results for an empty event table", async () => {
+      await conn.unsafe("DELETE FROM news_analytics");
+
+      expect(
+        await retentionCohorts(db, staff, { range: cohortRange, now: NOW })
+      ).toEqual([]);
+      expect(
+        await activeDevicesDaily(db, staff, { range: dailyRange, now: NOW })
+      ).toEqual(
+        Array.from({ length: 7 }, (_, i) => ({
+          date: `2026-09-${String(14 + i).padStart(2, "0")}`,
+          devices: 0,
+        }))
+      );
+      expect(
+        await activeDevicesSummary(db, staff, { range: summaryRange, now: NOW })
+      ).toEqual({
+        current: { wau: 0, mau: 0, avgDau30: 0, stickiness: null },
+        previous: { wau: 0, mau: 0, avgDau30: 0, stickiness: null },
+      });
     });
   });
 });

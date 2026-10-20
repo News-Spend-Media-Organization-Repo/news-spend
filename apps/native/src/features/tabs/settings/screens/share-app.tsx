@@ -42,15 +42,11 @@ const ShareApp = () => {
     addActivityMutation.mutate(
       {
         action: "share",
-        type: "point",
-        point: 20, // TODO: make this dynamic
-        description: "Shared app",
       },
       {
-        onSuccess: (_response) => {
+        onSuccess: (response) => {
           toast.success("Points earned", {
-            description:
-              "You earned 20 points for sharing News Spend Media App!",
+            description: `You earned ${response?.pointsAwarded ?? 0} points for sharing News Spend Media App!`,
           });
         },
       }

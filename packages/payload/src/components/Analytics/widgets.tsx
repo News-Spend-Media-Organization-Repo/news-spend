@@ -46,7 +46,7 @@ import {
   TopArticlesPanel,
 } from "./blocks";
 import { describeChange, formatCount, formatPercent } from "./format";
-import { toDays } from "./params";
+import { toDays, toSort } from "./params";
 import { Denied, Kpi, Styles } from "./ui";
 
 /**
@@ -58,7 +58,7 @@ import { Denied, Kpi, Styles } from "./ui";
  * the viewer may see it, exactly as the pages and tabs do.
  */
 
-type Data = { metric?: string; days?: string };
+type Data = { metric?: string; days?: string; sort?: string };
 
 const dataOf = (props: WidgetServerProps): Data =>
   (props.widgetData ?? {}) as Data;
@@ -179,12 +179,22 @@ export const FunnelWidget = (props: WidgetServerProps): Promise<ReactNode> =>
 export const TopArticlesWidget = (
   props: WidgetServerProps
 ): Promise<ReactNode> =>
-  staffWidget(props, async ({ scope, db, range }) => (
-    <TopArticlesPanel
-      articles={await newsTopArticles(db, scope, { range, limit: 5 })}
-      hint={`By views, last ${range.days} days`}
-    />
-  ));
+  staffWidget(props, async ({ scope, db, range }) => {
+    const sort = toSort(dataOf(props).sort);
+    return (
+      <TopArticlesPanel
+        articles={
+          await newsTopArticles(db, scope, {
+            range,
+            limit: 5,
+            sortBy: sort,
+          })
+        }
+        days={range.days}
+        sort={sort}
+      />
+    );
+  });
 
 export const SurfacesWidget = (props: WidgetServerProps): Promise<ReactNode> =>
   staffWidget(props, async ({ scope, db, range }) => (

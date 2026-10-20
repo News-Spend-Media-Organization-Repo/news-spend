@@ -45,10 +45,28 @@ export type NewsCounts = {
   comments: number;
   /** Distinct devices that opened an article. */
   readers: number;
+  /**
+   * Views whose device had been shown the article, in the same period, as an
+   * impression first.
+   */
+  matchedViews: number;
+  /** Distinct device and article pairs shown as an impression in the period. */
+  exposures: number;
+  /** Exposures that the same device went on to open. */
+  clickedExposures: number;
 };
 
 export type NewsMetrics = NewsCounts & {
-  /** Views per impression, as a percentage. */
+  /**
+   * Views with no impression before them (push, links, search): opens that
+   * did not come through a feed the app counts impressions on.
+   */
+  directOpens: number;
+  /**
+   * The share of exposures (a device shown an article) that the device went on
+   * to open, as a percentage. Counted per device and article, not per event, so
+   * a reader reopening an article cannot push it past 100.
+   */
   ctr: number | null;
   /** Reads per view, as a percentage. */
   readRate: number | null;
@@ -73,24 +91,52 @@ const emptyCounts = (): NewsCounts => ({
   shares: 0,
   comments: 0,
   readers: 0,
+  matchedViews: 0,
+  exposures: 0,
+  clickedExposures: 0,
 });
+
+/**
+ * True for a view row `e` whose device had an impression of the same article
+ * at or before it, inside the same period and on the same platform filter.
+ * Keeping the impression inside the period is what guarantees every clicked
+ * exposure is also an exposure of the period, so click-through is at most 100.
+ */
+export function matchedView(filter: NewsFilter, window: DateWindow): SQL {
+  return sql`EXISTS (
+  SELECT 1 FROM news_analytics i
+  WHERE i.event = 'impression'
+    AND i.article_id = e.article_id
+    AND i.device_id = e.device_id
+    AND i.timestamp <= e.timestamp
+    AND ${inWindow(sql.raw("i.timestamp"), window, filter.range.timeZone)}
+    ${platformCondition(filter.platform, "i")}
+)`;
+}
+
+/** Distinct device and article pairs among the rows counted. */
+const PAIRS = sql`COUNT(DISTINCT (e.device_id, e.article_id))`;
 
 function withRatios(counts: NewsCounts): NewsMetrics {
   return {
     ...counts,
-    ctr: percent(counts.views, counts.impressions),
+    directOpens: counts.views - counts.matchedViews,
+    ctr: percent(counts.clickedExposures, counts.exposures),
     readRate: percent(counts.reads, counts.views),
   };
 }
 
-function platformCondition(platform: Platform | undefined): SQL {
+function platformCondition(
+  platform: Platform | undefined,
+  alias: "e" | "i" = "e"
+): SQL {
   if (platform === undefined) {
     return sql``;
   }
   if (!(PLATFORMS as readonly string[]).includes(platform)) {
     throw new RangeError(`platform must be one of ${PLATFORMS.join(", ")}`);
   }
-  return sql`AND e.platform = ${platform}::enum_news_analytics_platform`;
+  return sql`AND ${sql.raw(alias)}.platform = ${platform}::enum_news_analytics_platform`;
 }
 
 function articleCondition(articleId: string | undefined): SQL {
@@ -115,12 +161,18 @@ async function countsFor(
     event: keyof typeof EVENT_FIELD;
     n: number;
     devices: number;
+    matched: number;
+    pairs: number;
+    matched_pairs: number;
   }>(
     db,
     sql`
       SELECT e.event::text AS event,
              COUNT(*)::int AS n,
-             COUNT(DISTINCT e.device_id)::int AS devices
+             COUNT(DISTINCT e.device_id)::int AS devices,
+             COUNT(*) FILTER (WHERE e.event = 'view' AND ${matchedView(filter, window)})::int AS matched,
+             ${PAIRS}::int AS pairs,
+             ${PAIRS} FILTER (WHERE e.event = 'view' AND ${matchedView(filter, window)})::int AS matched_pairs
       FROM news_analytics e
       WHERE ${eventsWhere(filter, window)}
       GROUP BY e.event
@@ -133,8 +185,13 @@ async function countsFor(
     if (field) {
       counts[field] = row.n;
     }
+    if (row.event === "impression") {
+      counts.exposures = row.pairs;
+    }
     if (row.event === "view") {
       counts.readers = row.devices;
+      counts.matchedViews = row.matched;
+      counts.clickedExposures = row.matched_pairs;
     }
   }
   return withRatios(counts);
@@ -303,13 +360,56 @@ export async function newsEngagement(
   };
 }
 
-export type TopSort = "views" | "impressions" | "reads";
+/**
+ * How much of the period's data comes from app versions that send no event id,
+ * and so are stored without protection against being counted twice.
+ */
+export async function newsEventQuality(
+  db: AnalyticsDb,
+  scope: AnalyticsScope,
+  filter: NewsFilter
+): Promise<{ events: number; eventsWithoutId: number }> {
+  requireStaff(scope);
 
-const SORT_COLUMN: Record<TopSort, SQL> = {
-  views: sql.raw("views"),
-  impressions: sql.raw("impressions"),
-  reads: sql.raw("reads"),
+  const [row] = await rowsOf<{ events: number; events_without_id: number }>(
+    db,
+    sql`
+      SELECT COUNT(*)::int AS events,
+             COUNT(*) FILTER (WHERE e.event_id IS NULL)::int AS events_without_id
+      FROM news_analytics e
+      WHERE ${eventsWhere(filter, filter.range.current)}
+    `
+  );
+  return {
+    events: row?.events ?? 0,
+    eventsWithoutId: row?.events_without_id ?? 0,
+  };
+}
+
+/** The ways the top-articles list can be ranked, the first being the default. */
+export const TOP_SORTS = [
+  "readers",
+  "reads",
+  "views",
+  "impressions",
+  "rising",
+] as const;
+export type TopSort = (typeof TOP_SORTS)[number];
+
+/**
+ * One fixed ORDER BY per sort, so caller input never reaches the text. Each
+ * ends in the article id, so articles that tie never swap places between loads.
+ */
+const SORT_ORDER: Record<TopSort, SQL> = {
+  readers: sql.raw("readers DESC, reads DESC, views DESC, n.id"),
+  reads: sql.raw("reads DESC, readers DESC, views DESC, n.id"),
+  views: sql.raw("views DESC, readers DESC, n.id"),
+  impressions: sql.raw("impressions DESC, views DESC, n.id"),
+  rising: sql.raw("trend DESC, views DESC, n.id"),
 };
+
+/** The fewest views an article needs in the period to be ranked as rising. */
+const RISING_MIN_VIEWS = 3;
 
 export type TopArticle = {
   id: string;
@@ -320,11 +420,20 @@ export type TopArticle = {
   impressions: number;
   views: number;
   reads: number;
+  /** Distinct devices that opened the article. */
+  readers: number;
+  /** Views with no impression from the same device before them. */
+  directOpens: number;
   ctr: number | null;
   readRate: number | null;
+  /**
+   * How much busier the last two days were than an average two days of the
+   * period. Set only when ranking by `rising`.
+   */
+  trend: number | null;
 };
 
-/** The articles with the most activity in the period. */
+/** The articles ranked highest in the period, by unique readers unless told otherwise. */
 export async function newsTopArticles(
   db: AnalyticsDb,
   scope: AnalyticsScope,
@@ -332,11 +441,24 @@ export async function newsTopArticles(
 ): Promise<TopArticle[]> {
   requireStaff(scope);
   const limit = Math.min(Math.max(Math.trunc(filter.limit ?? 10), 1), 50);
-  const sortBy = filter.sortBy ?? "views";
-  const order = SORT_COLUMN[sortBy];
+  const sortBy = filter.sortBy ?? "readers";
+  const order = SORT_ORDER[sortBy];
   if (!order) {
-    throw new RangeError("sortBy must be views, impressions or reads");
+    throw new RangeError(`sortBy must be one of ${TOP_SORTS.join(", ")}`);
   }
+
+  const { current, timeZone, days } = filter.range;
+  const rising = sortBy === "rising";
+  const lastTwoDays = sql`e.timestamp >= (((${current.to}::date - 1)::timestamp) AT TIME ZONE ${timeZone})`;
+  const trend = rising
+    ? sql`ROUND(
+        (COUNT(*) FILTER (WHERE e.event = 'view' AND ${lastTwoDays}) * ${days}::numeric
+          / (2 * NULLIF(COUNT(*) FILTER (WHERE e.event = 'view'), 0)))::numeric, 2
+      )::float8`
+    : sql`NULL::float8`;
+  const having = rising
+    ? sql`HAVING COUNT(*) FILTER (WHERE e.event = 'view') >= ${RISING_MIN_VIEWS}`
+    : sql``;
 
   const rows = await rowsOf<{
     id: string;
@@ -347,20 +469,31 @@ export async function newsTopArticles(
     impressions: number;
     views: number;
     reads: number;
+    readers: number;
+    matched_views: number;
+    exposures: number;
+    clicked_exposures: number;
+    trend: number | null;
   }>(
     db,
     sql`
       SELECT n.id, n.title, n.slug, c.title AS category, n.published_at,
              COUNT(*) FILTER (WHERE e.event = 'impression')::int AS impressions,
              COUNT(*) FILTER (WHERE e.event = 'view')::int AS views,
-             COUNT(*) FILTER (WHERE e.event = 'read')::int AS reads
+             COUNT(*) FILTER (WHERE e.event = 'read')::int AS reads,
+             COUNT(DISTINCT e.device_id) FILTER (WHERE e.event = 'view')::int AS readers,
+             COUNT(*) FILTER (WHERE e.event = 'view' AND ${matchedView(filter, current)})::int AS matched_views,
+             ${PAIRS} FILTER (WHERE e.event = 'impression')::int AS exposures,
+             ${PAIRS} FILTER (WHERE e.event = 'view' AND ${matchedView(filter, current)})::int AS clicked_exposures,
+             ${trend} AS trend
       FROM news_analytics e
       JOIN news n ON n.id = e.article_id
       LEFT JOIN categories c ON c.id = n.category_id
-      WHERE ${eventsWhere(filter, filter.range.current)}
+      WHERE ${eventsWhere(filter, current)}
         AND e.event IN ('impression', 'view', 'read')
       GROUP BY n.id, c.title
-      ORDER BY ${order} DESC, n.id
+      ${having}
+      ORDER BY ${order}
       LIMIT ${limit}
     `
   );
@@ -374,8 +507,11 @@ export async function newsTopArticles(
     impressions: r.impressions,
     views: r.views,
     reads: r.reads,
-    ctr: percent(r.views, r.impressions),
+    readers: r.readers,
+    directOpens: r.views - r.matched_views,
+    ctr: percent(r.clicked_exposures, r.exposures),
     readRate: percent(r.reads, r.views),
+    trend: r.trend,
   }));
 }
 

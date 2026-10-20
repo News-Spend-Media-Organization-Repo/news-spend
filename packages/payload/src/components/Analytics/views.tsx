@@ -1,11 +1,15 @@
-import type { Platform } from "@news-spend-media/analytics";
+import type { Platform, TopSort } from "@news-spend-media/analytics";
 import {
   AnalyticsAccessError,
+  activationByWeek,
+  activeDevicesDaily,
+  activeDevicesSummary,
   giveawayReport,
   IMPRESSION_DEFINITION,
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsNotices,
   newsPlatforms,
   newsSummary,
@@ -16,8 +20,16 @@ import {
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
+  pointsBySource,
+  pointsConcentration,
+  pointsDaily,
+  pointsLargeGrants,
+  pointsLeaderboard,
+  pointsSummary,
   READ_DEFINITION,
   resolveRange,
+  retentionCohorts,
+  TOP_SORTS,
 } from "@news-spend-media/analytics";
 import type { AdminViewServerProps, DocumentViewServerProps } from "payload";
 import type { ReactNode } from "react";
@@ -29,25 +41,36 @@ import {
   scopeOfRequest,
 } from "./access";
 import {
+  ActivationPanel,
+  ActiveDevicesPanel,
   ArticleReportBody,
   CategoriesPanel,
+  CohortsPanel,
+  ConcentrationPanel,
   EngagementPanel,
   FunnelPanel,
   GiveawayReportBody,
+  LargeGrantsPanel,
+  LeaderboardPanel,
   NewsKpis,
   OutcomesPanel,
   PartnerDailyPanel,
   PartnerKpis,
   PlatformsPanel,
+  PointsDailyPanel,
+  PointsKpis,
+  PointsSourcesPanel,
   PostbackHealthPanel,
   RecentConversionsPanel,
+  RetentionKpis,
   ShopPanel,
   StepsPanel,
   SurfacesPanel,
   TopArticlesPanel,
 } from "./blocks";
+import { PageFrame } from "./PageFrame";
 import type { Days } from "./params";
-import { parseAnalyticsParams } from "./params";
+import { parseAnalyticsParams, SORT_LABELS } from "./params";
 import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
 
 /**
@@ -57,28 +80,72 @@ import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
  * never the protection.
  */
 
+/** News, Points or Retention, whichever page is open. */
+function PageSwitch({
+  page,
+}: {
+  page: "news" | "points" | "retention";
+}): ReactNode {
+  return (
+    <Segmented
+      links={[
+        {
+          label: "News",
+          href: `${ADMIN_PATH}/analytics`,
+          current: page === "news",
+        },
+        {
+          label: "Points",
+          href: `${ADMIN_PATH}/analytics/points`,
+          current: page === "points",
+        },
+        {
+          label: "Retention",
+          href: `${ADMIN_PATH}/analytics/retention`,
+          current: page === "retention",
+        },
+      ]}
+    />
+  );
+}
+
 function Toolbar({
   basePath,
   days,
   platform,
   showPlatform,
+  sort,
+  navigation,
 }: {
   basePath: string;
   days: Days;
   platform?: Platform;
   showPlatform: boolean;
+  /** Offers the top-articles sort when given. */
+  sort?: TopSort;
+  /** Sits with the period choices, such as the News | Points switch. */
+  navigation?: ReactNode;
 }): ReactNode {
-  const href = (next: { days?: Days; platform?: Platform | null }) => {
+  const href = (next: {
+    days?: Days;
+    platform?: Platform | null;
+    sort?: TopSort;
+  }) => {
     const query = new URLSearchParams({ days: String(next.days ?? days) });
     const chosen = next.platform === undefined ? platform : next.platform;
     if (chosen) {
       query.set("platform", chosen);
+    }
+    const ranked = next.sort ?? sort;
+    if (ranked) {
+      query.set("sort", ranked);
     }
     return `${basePath}?${query}`;
   };
 
   return (
     <div className="ana-controls">
+      {navigation}
       <Segmented
         links={([7, 30, 90] as const).map((d) => ({
           label: `${d} days`,
@@ -107,6 +174,15 @@ function Toolbar({
           ]}
         />
       ) : null}
+      {sort ? (
+        <Segmented
+          links={TOP_SORTS.map((option) => ({
+            label: SORT_LABELS[option],
+            href: href({ sort: option }),
+            current: option === sort,
+          }))}
+        />
+      ) : null}
     </div>
   );
 }
@@ -132,6 +208,39 @@ function Header({
 }
 
 const ZONE_NOTE = "Days are Lagos time.";
+
+const RETENTION_NOTICES = [
+  {
+    id: "device-ids",
+    message:
+      "Device ids are reported by the app, so a reinstall counts as a new device.",
+  },
+  {
+    id: "small-cohorts",
+    message: "Cohorts under 20 devices are noisy.",
+  },
+  {
+    id: "incomplete",
+    message: "The latest weeks are incomplete.",
+  },
+  {
+    id: "conversion",
+    message: "Guest-to-registered conversion is not measured yet.",
+  },
+];
+
+const POINTS_NOTICES = [
+  {
+    id: "ranking",
+    message:
+      "The leaderboard leaves out the sign-up bonus and any single grant above 5,000 points.",
+  },
+  {
+    id: "provider",
+    message:
+      "Older survey rows have no provider recorded, so they are shown as form.",
+  },
+];
 
 /**
  * Runs a loader, turning "not allowed" and "bad input" into a screen rather
@@ -201,28 +310,41 @@ export async function AnalyticsPageView(
   const { req } = props.initPageResult;
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
-    return <Denied />;
+    return (
+      <PageFrame view={props}>
+        <Denied />
+      </PageFrame>
+    );
   }
 
   return await guarded(async () => {
-    const { days, platform } = parseAnalyticsParams(props.searchParams);
+    const { days, platform, sort } = parseAnalyticsParams(props.searchParams);
     const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
     const db = dbOf(req);
     const filter = { range, platform };
 
-    const [summary, daily, surfaces, platforms, engagement, top, categories] =
-      await Promise.all([
-        newsSummary(db, scope, filter),
-        newsDaily(db, scope, filter),
-        newsSurfaces(db, scope, filter),
-        newsPlatforms(db, scope, filter),
-        newsEngagement(db, scope, filter),
-        newsTopArticles(db, scope, { ...filter, limit: 10 }),
-        newsTopCategories(db, scope, { ...filter, limit: 8 }),
-      ]);
+    const [
+      summary,
+      daily,
+      surfaces,
+      platforms,
+      engagement,
+      top,
+      categories,
+      quality,
+    ] = await Promise.all([
+      newsSummary(db, scope, filter),
+      newsDaily(db, scope, filter),
+      newsSurfaces(db, scope, filter),
+      newsPlatforms(db, scope, filter),
+      newsEngagement(db, scope, filter),
+      newsTopArticles(db, scope, { ...filter, limit: 10, sortBy: sort }),
+      newsTopCategories(db, scope, { ...filter, limit: 8 }),
+      newsEventQuality(db, scope, filter),
+    ]);
 
     return (
-      <>
+      <PageFrame view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -232,19 +354,21 @@ export async function AnalyticsPageView(
               <Toolbar
                 basePath={`${ADMIN_PATH}/analytics`}
                 days={days}
+                navigation={<PageSwitch page="news" />}
                 platform={platform}
                 showPlatform
+                sort={sort}
               />
             }
           />
-          <Notices notices={newsNotices(range)} />
-          <NewsKpis summary={summary} />
+          <Notices notices={newsNotices(range, quality)} />
+          <NewsKpis daily={daily} summary={summary} />
           <div className="ana-grid ana-two">
             <FunnelPanel days={daily} />
             <SurfacesPanel surfaces={surfaces} />
           </div>
           <div className="ana-grid ana-two">
-            <TopArticlesPanel articles={top} />
+            <TopArticlesPanel articles={top} days={days} sort={sort} />
             <StepsPanel current={summary.current} />
           </div>
           <div className="ana-grid ana-even">
@@ -253,7 +377,129 @@ export async function AnalyticsPageView(
           </div>
           <EngagementPanel engagement={engagement} />
         </div>
-      </>
+      </PageFrame>
+    );
+  });
+}
+
+/** The Dream Points economy page, at /admin/analytics/points. */
+export async function PointsPageView(
+  props: AdminViewServerProps
+): Promise<ReactNode> {
+  const { req } = props.initPageResult;
+  const scope = scopeOfRequest(req);
+  if (scope?.kind !== "staff") {
+    return (
+      <PageFrame view={props}>
+        <Denied />
+      </PageFrame>
+    );
+  }
+
+  return await guarded(async () => {
+    const { days } = parseAnalyticsParams(props.searchParams);
+    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const db = dbOf(req);
+    const filter = { range };
+
+    const [summary, daily, sources, concentration, leaderboard, grants] =
+      await Promise.all([
+        pointsSummary(db, scope, filter),
+        pointsDaily(db, scope, filter),
+        pointsBySource(db, scope, filter),
+        pointsConcentration(db, scope),
+        pointsLeaderboard(db, scope, { ...filter, limit: 10 }),
+        pointsLargeGrants(db, scope, { ...filter, limit: 10 }),
+      ]);
+
+    return (
+      <PageFrame view={props}>
+        <Styles />
+        <div className="ana ana-page">
+          <Header
+            hint={`How points are issued, spent and held. ${ZONE_NOTE}`}
+            title="Dream Points"
+            toolbar={
+              <Toolbar
+                basePath={`${ADMIN_PATH}/analytics/points`}
+                days={days}
+                navigation={<PageSwitch page="points" />}
+                showPlatform={false}
+              />
+            }
+          />
+          <Notices notices={POINTS_NOTICES} />
+          <PointsKpis daily={daily} summary={summary} />
+          <div className="ana-grid ana-two">
+            <PointsDailyPanel days={daily} />
+            <PointsSourcesPanel sources={sources} />
+          </div>
+          <ConcentrationPanel concentration={concentration} />
+          <div className="ana-grid ana-even">
+            <LeaderboardPanel rows={leaderboard} />
+            <LargeGrantsPanel grants={grants} />
+          </div>
+        </div>
+      </PageFrame>
+    );
+  });
+}
+
+/** The retention and activation page, at /admin/analytics/retention. */
+export async function RetentionPageView(
+  props: AdminViewServerProps
+): Promise<ReactNode> {
+  const { req } = props.initPageResult;
+  const scope = scopeOfRequest(req);
+  if (scope?.kind !== "staff") {
+    return (
+      <PageFrame view={props}>
+        <Denied />
+      </PageFrame>
+    );
+  }
+
+  return await guarded(async () => {
+    const { days } = parseAnalyticsParams(props.searchParams);
+    const now = new Date();
+    const range = resolveRange({
+      days,
+      now,
+      timeZone: ANALYTICS_TIME_ZONE,
+    });
+    const filter = { range, now };
+    const db = dbOf(req);
+
+    const [activation, cohorts, daily, summary] = await Promise.all([
+      activationByWeek(db, scope, filter),
+      retentionCohorts(db, scope, filter),
+      activeDevicesDaily(db, scope, filter),
+      activeDevicesSummary(db, scope, filter),
+    ]);
+
+    return (
+      <PageFrame view={props}>
+        <Styles />
+        <div className="ana ana-page">
+          <Header
+            hint={`Whether new accounts start reading and whether new devices come back. ${ZONE_NOTE}`}
+            title="Retention"
+            toolbar={
+              <Toolbar
+                basePath={`${ADMIN_PATH}/analytics/retention`}
+                days={days}
+                navigation={<PageSwitch page="retention" />}
+                showPlatform={false}
+              />
+            }
+          />
+          <Notices notices={RETENTION_NOTICES} />
+          <RetentionKpis summary={summary} weeks={activation} />
+          <ActiveDevicesPanel days={daily} />
+          <ActivationPanel weeks={activation} />
+          <CohortsPanel cohorts={cohorts} />
+        </div>
+      </PageFrame>
     );
   });
 }

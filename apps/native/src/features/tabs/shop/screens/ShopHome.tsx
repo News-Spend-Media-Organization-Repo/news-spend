@@ -32,7 +32,7 @@ function ShopHome() {
         sortBy: "newest",
       }),
       initialPageParam: undefined,
-      getNextPageParam: (lastPage) => lastPage.nextPage,
+      getNextPageParam: (lastPage) => lastPage?.nextPage,
     })
   );
 

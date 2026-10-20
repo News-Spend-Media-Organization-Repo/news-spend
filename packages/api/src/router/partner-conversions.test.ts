@@ -415,6 +415,37 @@ describe("partnerConversionRouter.webhook", () => {
     expect(updatedConv?.status).toBe("converted");
   });
 
+  it("does not award points above the activity ceiling", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion()],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 5001 })],
+      },
+    });
+    const logs: unknown[] = [];
+    payload.logger.error = (...args: unknown[]) => logs.push(args);
+    const ctx = mockContext({ payload, headers: signedHeaders() });
+
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: "clk_abc1234567890123", status: "success" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({
+      success: true,
+      clickId: "clk_abc1234567890123",
+      status: "converted",
+      pointsAwarded: 0,
+    });
+    expect(payload.docs("activities")).toHaveLength(0);
+    const updatedConv = payload.docs("partner-conversions")[0];
+    expect(updatedConv?.status).toBe("converted");
+    expect(updatedConv?.pointsAwarded).toBe(0);
+    expect(logs.length).toBeGreaterThan(0);
+  });
+
   it("still settles when the partner content was deleted since the click", async () => {
     const payload = createFakePayload({
       collections: {

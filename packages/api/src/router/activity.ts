@@ -1,23 +1,13 @@
 import {
   activities,
   enum_activities_action,
-  enum_activities_type,
 } from "@news-spend-media/payload/payload-generated-schema";
 import { eq, sum } from "@payloadcms/db-postgres/drizzle";
 import type { Where } from "payload";
 import z from "zod";
 
 import { protectedNoGuestProcedure, protectedProcedure } from "../index";
-import { addActivity as sharedAddActivity } from "../shared/activity";
-
-const ActivityCreateInput = z.object({
-  type: z.enum(enum_activities_type.enumValues).default("point"),
-  point: z.number(),
-  reward: z.string().optional(),
-  description: z.string().optional(),
-  action: z.enum(enum_activities_action.enumValues),
-  newsId: z.string().optional(),
-});
+import { ActivityCreateInput, addClientActivity } from "../shared/activity";
 
 const ActivityByUserId = z.object({
   category: z
@@ -40,7 +30,7 @@ const ActivityByUserId = z.object({
 
 const addActivity = protectedNoGuestProcedure
   .input(ActivityCreateInput)
-  .handler(async ({ input, context }) => sharedAddActivity(input, context));
+  .handler(async ({ input, context }) => addClientActivity(input, context));
 
 const totalPoints = protectedProcedure.handler(async ({ context }) => {
   const { user, payload } = context;
@@ -102,7 +92,7 @@ const byNewsId = protectedProcedure
   .input(
     z.object({
       newsId: z.string(),
-      action: ActivityCreateInput.shape.action.optional(),
+      action: z.enum(enum_activities_action.enumValues).optional(),
     })
   )
   .handler(async ({ input, context }) => {

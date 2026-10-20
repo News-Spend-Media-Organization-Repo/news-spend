@@ -43,6 +43,7 @@ import {
   Giveaways,
   GiveawayTickets,
   GiveawayWinners,
+  GuestEvents,
   IdentityChecks,
   Media,
   News,
@@ -71,10 +72,8 @@ import {
   analyticsDefaultLayout,
   analyticsWidgets,
 } from "./components/Analytics/layout";
-import {
-  analyticsNavLink,
-  analyticsPageView,
-} from "./components/Analytics/tabs";
+import { analyticsNavLink, analyticsViews } from "./components/Analytics/tabs";
+import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
@@ -158,8 +157,8 @@ const baseConfig: Config = {
         Logo: "@news-spend-media/payload/components/Logo#Logo",
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
-      beforeNavLinks: [analyticsNavLink],
-      views: { analytics: analyticsPageView },
+      beforeNavLinks: [analyticsNavLink, whatsNewNavLink],
+      views: { ...analyticsViews, ...whatsNewViews },
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
@@ -188,6 +187,7 @@ const baseConfig: Config = {
     GiveawayStreaks,
     GiveawayTickets,
     GiveawayWinners,
+    GuestEvents,
     IdentityChecks,
     PrizeCatalogue,
     Media,

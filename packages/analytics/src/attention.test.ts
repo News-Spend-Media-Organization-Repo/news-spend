@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { needsAttention, pushReport } from "./attention";
+import { LARGE_GRANT_POINTS } from "./points";
 import { AnalyticsAccessError } from "./scope";
 import { NOW, PARTNER, range, STAFF, stubDb } from "./test-utils";
 
@@ -34,6 +35,7 @@ describe("needsAttention", () => {
         flags_unreviewed: 0,
         push_failed: 5,
         witness_week: 4,
+        large_grants: 2,
       },
     ]);
 
@@ -46,14 +48,24 @@ describe("needsAttention", () => {
       flagsUnreviewed: 0,
       pushFailed: 5,
       witnessWeek: 4,
+      largeGrants: 2,
     });
     expect(queries).toHaveLength(1);
     expect(queries[0]?.params).toContain("2026-09-13T10:00:00.000Z");
+    expect(queries[0]?.params).toContain(LARGE_GRANT_POINTS);
     expect(queries[0]?.sql).toContain("moderation_status = 'hidden'");
     // Only suspicious flags nobody has reviewed: not cleared ones, and not
     // ones already disqualified.
     expect(queries[0]?.sql).toContain("trust_status = 'suspicious'");
     expect(queries[0]?.sql).toContain("reviewed_by_id IS NULL");
+  });
+
+  it("defaults large grants to zero when the column is absent", async () => {
+    const { db } = stubDb([{ comments_hidden: 0 }]);
+
+    const counts = await needsAttention(db, STAFF, { now: NOW });
+
+    expect(counts.largeGrants).toBe(0);
   });
 });
 

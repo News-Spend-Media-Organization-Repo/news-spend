@@ -70,18 +70,21 @@ export {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
   newsTopArticles,
   newsTopCategories,
   PLATFORMS,
+  TOP_SORTS,
 } from "./news";
 export type { Notice } from "./notices";
 export {
   IMPRESSION_DEFINITION,
   newsNotices,
   READ_DEFINITION,
+  READS_RELIABLE_FROM,
   TRACKING_STARTED,
 } from "./notices";
 export type {
@@ -97,8 +100,40 @@ export {
   partnerRecentConversions,
   partnerSummary,
 } from "./partner";
+export type {
+  LargeGrant,
+  LeaderboardRow,
+  PointsConcentration,
+  PointsDay,
+  PointsFilter,
+  PointsSource,
+  PointsTotals,
+} from "./points";
+export {
+  LARGE_GRANT_POINTS,
+  pointsBySource,
+  pointsConcentration,
+  pointsDaily,
+  pointsLargeGrants,
+  pointsLeaderboard,
+  pointsSummary,
+} from "./points";
 export type { DateWindow, Range } from "./range";
 export { percentChange, RANGE_DAYS, resolveRange } from "./range";
+export type {
+  ActivationWeek,
+  ActiveDay,
+  CohortRow,
+  Measure,
+  RetentionFilter,
+  Stickiness,
+} from "./retention";
+export {
+  activationByWeek,
+  activeDevicesDaily,
+  activeDevicesSummary,
+  retentionCohorts,
+} from "./retention";
 export type {
   AnalyticsScope,
   PartnerScope,

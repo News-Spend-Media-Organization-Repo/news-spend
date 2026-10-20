@@ -46,7 +46,11 @@ export const CPXPostBackInputSchema = z
 
 export const AwardGoogleFormInputSchema = z.object({
   gFormId: z.string(),
-  userId: z.string(),
+  /**
+   * Ignored. Older app builds still send it, so it is accepted, but the user
+   * paid and recorded is always the signed-in one.
+   */
+  userId: z.string().optional(),
 });
 
 export type CPXSurvey = z.infer<typeof CPXSurveySchema>;

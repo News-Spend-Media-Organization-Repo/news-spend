@@ -10,7 +10,6 @@ import { authState } from "#/state/auth";
 const MAX_REWARDED_COUNT = 8;
 const LUCKY_WALL_EVERY_N = 4;
 const STORAGE_KEY = "CONNECT_BRAND_COUNT_DATA";
-const AD_POINTS = 10;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,9 +69,6 @@ export function useConnectBrand(): UseConnectBrandReturn {
     addActivityMutation.mutate(
       {
         action: "connectBrandAd",
-        type: "point",
-        point: AD_POINTS,
-        description: "Connect brand ad",
       },
       {
         onSuccess: (response) => {
@@ -81,7 +77,7 @@ export function useConnectBrand(): UseConnectBrandReturn {
             return;
           }
           increment();
-          toast.success(`You earned ${AD_POINTS} points!`, {
+          toast.success(`You earned ${response?.pointsAwarded ?? 0} points!`, {
             description: "You can earn more points by connecting more brands",
           });
         },

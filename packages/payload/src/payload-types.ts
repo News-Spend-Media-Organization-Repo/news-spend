@@ -2020,6 +2020,9 @@ export interface Faq {
   _faqs_questions_order?: string | null;
   question: string;
   answer: string;
+  /**
+   * After moving a question to another category, drag it into place on that category's page.
+   */
   category: string | FaqCategory;
   createdBy?: {
     relationTo: 'admins';
@@ -4282,6 +4285,7 @@ export interface AnalyticsFunnelWidget {
  */
 export interface AnalyticsTopArticlesWidget {
   data?: {
+    sort?: ('readers' | 'reads' | 'views' | 'impressions' | 'rising') | null;
     days?: ('7' | '30' | '90') | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';

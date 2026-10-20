@@ -4,7 +4,6 @@ import { Dialog } from "heroui-native/dialog";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Platform,
   useWindowDimensions,
   View,
@@ -26,8 +25,10 @@ import { adUnits } from "#/lib/adUnits";
 import { XIcon } from "#/lib/icons";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
+import { navigate } from "#/navigation/navigationUtils";
 import { getCtaLabel } from "#/utils";
 import { getImageData } from "#/utils/getImageData";
+import { openStoreLink } from "#/utils/openStoreLink";
 
 /** What the server says was actually bought, at what price, and what it unlocked. */
 type BuyTicketsResult = RouterOutputs["giveaway"]["buyTickets"];
@@ -154,7 +155,7 @@ export function DialogWithAd({
     }
   };
 
-  const handlePress = () => {
+  const handlePress = async () => {
     const urlToOpen =
       Platform.select({
         ios: ad.data?.links?.iosAppStore,
@@ -165,10 +166,15 @@ export function DialogWithAd({
       toast.error("No link available for this ad.");
       return;
     }
-    Linking.openURL(urlToOpen).catch((err) => {
-      console.error("Failed to open URL:", err);
-      toast.error("Failed to open the link.");
-    });
+    // `openStoreLink` retries through the Play Store's own scheme when a phone
+    // refuses the https link; the in-app page is the last resort.
+    if (!(await openStoreLink(urlToOpen))) {
+      navigate("InAppBrowser", {
+        url: urlToOpen,
+        title: ad.data?.title ?? "",
+        confirmOnLeave: false,
+      });
+    }
   };
 
   return (

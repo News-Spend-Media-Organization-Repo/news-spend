@@ -55,7 +55,7 @@ export default function Activities() {
       }),
       initialPageParam: undefined,
       enabled: !!authState.user,
-      getNextPageParam: (lastPage) => lastPage.nextPage,
+      getNextPageParam: (lastPage) => lastPage?.nextPage,
     })
   );
 

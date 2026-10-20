@@ -1,8 +1,13 @@
 import { sendNotification } from "@news-spend-media/payload/lib/send-notification";
+import {
+  DEFAULT_SURVEY_POINTS,
+  MAX_SURVEY_POINTS,
+} from "@news-spend-media/payload/lib/surveyPoints";
 import { openapi } from "@orpc/openapi";
 import z from "zod";
 
 import { protectedProcedure } from "../../index";
+import { withKeyedLock } from "../../lib/keyedLock";
 import { addActivity } from "../../shared/activity";
 import { cpxRouter } from "./cpx";
 import {
@@ -25,71 +30,98 @@ const awardGoogleFormPoints = protectedProcedure
   .output(z.any())
   .handler(async ({ input, context, errors }) => {
     try {
-      const { gFormId, userId } = input;
+      const { gFormId } = input;
       const { payload } = context;
+      // Always the signed-in user. A userId in the request is never trusted:
+      // it would let a caller choose which "already completed" list to be
+      // checked against while being paid on their own account.
+      const userId = context.user.id;
 
-      const gForm = await payload.find({
-        collection: "survey",
-        where: {
-          googleFormId: {
-            equals: gFormId,
+      // One request at a time per user and form, so two arriving together
+      // cannot both find the survey not yet completed.
+      return await withKeyedLock(`${gFormId}:${userId}`, async () => {
+        const gForm = await payload.find({
+          collection: "survey",
+          where: {
+            googleFormId: {
+              equals: gFormId,
+            },
           },
-        },
-        depth: 1,
-      });
-
-      const survey = gForm.docs[0];
-
-      if (!survey) {
-        throw errors.NOT_FOUND({
-          message: "Survey not found",
+          depth: 0,
         });
-      }
 
-      if (userId && survey.users?.includes(userId)) {
-        return survey;
-      }
+        const survey = gForm.docs[0];
 
-      const res = await payload.update({
-        collection: "survey",
-        id: survey.id,
-        data: {
-          users: [...((survey.users as string[]) ?? []), userId],
-        },
-      });
+        if (!survey) {
+          throw errors.NOT_FOUND({
+            message: "Survey not found",
+          });
+        }
 
-      await addActivity(
-        {
-          type: "point",
-          point: res.points ?? 10,
-          description: "Awarded for completing survey",
-          action: "surveyTask",
-        },
-        context
-      );
+        // Ids, whether the relationship came back as ids or as documents.
+        const completedBy = (survey.users ?? []).map((user) =>
+          typeof user === "string" ? user : user.id
+        );
+        if (completedBy.includes(userId)) {
+          return survey;
+        }
 
-      const pushTokens = await payload.find({
-        collection: "push-tokens",
-        where: {
-          user: {
-            equals: userId,
+        const points = survey.points ?? DEFAULT_SURVEY_POINTS;
+        if (
+          typeof points !== "number" ||
+          !Number.isFinite(points) ||
+          points <= 0 ||
+          points > MAX_SURVEY_POINTS
+        ) {
+          console.error(
+            `Refusing to award survey ${survey.id}: points ${String(points)} is outside 1-${MAX_SURVEY_POINTS}`
+          );
+          throw errors.BAD_REQUEST({
+            message: "This survey cannot award points",
+          });
+        }
+
+        const res = await payload.update({
+          collection: "survey",
+          id: survey.id,
+          data: {
+            users: [...completedBy, userId],
           },
-        },
-        pagination: false,
-      });
+        });
 
-      await sendNotification({
-        pushTokens: pushTokens.docs,
-        title: "Point awarded",
-        body: `You have been awarded ${res.points} points for completing a survey`,
-        data: {
-          surveyId: gFormId,
-          type: "survey",
-          url: "settings/activities",
-        },
-      });
+        await addActivity(
+          {
+            type: "point",
+            point: points,
+            description: "Awarded for completing survey",
+            action: "surveyTask",
+          },
+          context
+        );
 
-      return res;
+        const pushTokens = await payload.find({
+          collection: "push-tokens",
+          where: {
+            user: {
+              equals: userId,
+            },
+          },
+          pagination: false,
+        });
+
+        await sendNotification({
+          pushTokens: pushTokens.docs,
+          title: "Point awarded",
+          body: `You have been awarded ${points} points for completing a survey`,
+          data: {
+            surveyId: gFormId,
+            type: "survey",
+            url: "settings/activities",
+          },
+        });
+
+        return res;
+      });
     } catch (error) {
       console.error(error);
       throw error;
