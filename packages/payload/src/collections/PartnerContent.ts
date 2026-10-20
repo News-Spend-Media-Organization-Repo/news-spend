@@ -298,14 +298,26 @@ export const PartnerContent: CollectionConfig = {
               },
             },
             {
+              name: "adCopy",
+              label: "Ad copy (shown everywhere)",
+              type: "text",
+              admin: {
+                placeholder: "Plain ad text with no reward wording",
+                description:
+                  "Shown on every surface, including the news feed. Never mention points or rewards here.",
+              },
+            },
+            {
               name: "condition",
+              label: "Offer copy (earn surfaces only)",
               type: "text",
               required: true,
               defaultValue: "",
               admin: {
                 placeholder:
                   "Enter a condition eg Visit website, earn 30 points",
-                description: "Max 90 characters recommended",
+                description:
+                  "Reward text. Hidden off earn surfaces. Max 90 characters recommended",
               },
             },
             {
@@ -571,12 +583,14 @@ export const PartnerContent: CollectionConfig = {
           fields: [
             {
               name: "points",
+              label: "Offer points",
               type: "number",
               required: true,
               min: 0,
               max: MAX_ACTIVITY_POINTS,
               admin: {
-                description: "Points awarded for completing this action",
+                description:
+                  "Points awarded for completing this action. Hidden off earn surfaces.",
                 placeholder: "e.g. 200",
               },
             },
@@ -605,19 +619,14 @@ export const PartnerContent: CollectionConfig = {
                   label: "Homepage - Ads Banner",
                   value: "homepage-ads-banner",
                 },
-                { label: "Discover Tab - Points Mall", value: "discover-tab" },
                 { label: "Points Mall - Books", value: "points-mall-books" },
                 { label: "Points Mall - Apps", value: "points-mall-apps" },
                 { label: "Connect Brand Video", value: "connect-brand-video" },
                 { label: "Connect Brands Tab", value: "connect-brands-tab" },
                 { label: "Lucky App Wall", value: "lucky-app-wall" },
-                { label: "Shop Tab", value: "shop-tab" },
                 { label: "Ads Display - News Click", value: "news-click-ads" },
                 { label: "Banner in News Post", value: "banner-news-post" },
                 { label: "News Post", value: "news-post" },
-                { label: "Product Display", value: "product-display" },
-                { label: "Push Notification", value: "push-notification" },
-                { label: "Email Campaign", value: "email-campaign" },
                 { label: "Video Section (YouTube)", value: "video-section" },
               ],
               admin: {
