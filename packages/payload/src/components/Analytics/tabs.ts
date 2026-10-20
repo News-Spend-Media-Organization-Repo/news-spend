@@ -66,11 +66,20 @@ export const retentionPageView = {
   exact: true as const,
 };
 
+/** Survey provider performance, reached from the sidebar. */
+export const surveyPerformanceView = {
+  Component: `${PATH}#SurveyPerformanceView`,
+  path: "/survey-performance" as const,
+  exact: true as const,
+};
+
 /** The admin's custom pages, as `admin.components.views` registers them. */
 export const analyticsViews = {
   analytics: analyticsPageView,
   analyticsPoints: pointsPageView,
   analyticsRetention: retentionPageView,
+  surveyPerformance: surveyPerformanceView,
 };
 
 export const analyticsNavLink = `${PATH}#AnalyticsNavLink`;
+export const surveyPerformanceNavLink = `${PATH}#SurveyNavLink`;

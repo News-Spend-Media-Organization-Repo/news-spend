@@ -73,6 +73,7 @@ export interface Config {
   collections: {
     accounts: Account;
     activities: Activity;
+    'survey-offer-events': SurveyOfferEvent;
     admins: Admin;
     categories: Category;
     comments: Comment;
@@ -136,6 +137,7 @@ export interface Config {
   collectionsSelect: {
     accounts: AccountsSelect<false> | AccountsSelect<true>;
     activities: ActivitiesSelect<false> | ActivitiesSelect<true>;
+    'survey-offer-events': SurveyOfferEventsSelect<false> | SurveyOfferEventsSelect<true>;
     admins: AdminsSelect<false> | AdminsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
@@ -194,11 +196,13 @@ export interface Config {
   globals: {
     'news-category': NewsCategory;
     'moderation-settings': ModerationSetting;
+    'survey-settings': SurveySetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'news-category': NewsCategorySelect<false> | NewsCategorySelect<true>;
     'moderation-settings': ModerationSettingsSelect<false> | ModerationSettingsSelect<true>;
+    'survey-settings': SurveySettingsSelect<false> | SurveySettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -530,6 +534,10 @@ export interface Activity {
   id: string;
   type?: ('point' | 'badge' | 'reward') | null;
   point: number;
+  /**
+   * provider:transaction:kind, for provider awards only. The unique index is what stops two servers paying one transaction.
+   */
+  providerRef?: string | null;
   reward?: string | null;
   action:
     | 'signUp'
@@ -1181,6 +1189,29 @@ export interface Category {
   slug: string;
   description?: string | null;
   image?: (string | null) | Media;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Provider offer counts per request. Used to measure survey fill; not a payments record.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-offer-events".
+ */
+export interface SurveyOfferEvent {
+  id: string;
+  provider: 'cpx' | 'rapido' | 'theorem' | 'bitlabs';
+  user?: (string | null) | User;
+  country?: string | null;
+  offerCount: number;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -2817,6 +2848,10 @@ export interface PayloadLockedDocument {
         value: string | Activity;
       } | null)
     | ({
+        relationTo: 'survey-offer-events';
+        value: string | SurveyOfferEvent;
+      } | null)
+    | ({
         relationTo: 'admins';
         value: string | Admin;
       } | null)
@@ -3066,12 +3101,27 @@ export interface AccountsSelect<T extends boolean = true> {
 export interface ActivitiesSelect<T extends boolean = true> {
   type?: T;
   point?: T;
+  providerRef?: T;
   reward?: T;
   action?: T;
   description?: T;
   user?: T;
   news?: T;
   metadata?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-offer-events_select".
+ */
+export interface SurveyOfferEventsSelect<T extends boolean = true> {
+  provider?: T;
+  user?: T;
+  country?: T;
+  offerCount?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -4261,6 +4311,53 @@ export interface ModerationSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-settings".
+ */
+export interface SurveySetting {
+  id: string;
+  /**
+   * One row per provider. A provider with no row uses its built-in default: CPX and Rapido on, Theorem and BitLabs off.
+   */
+  providers?:
+    | {
+        provider: 'cpx' | 'rapido' | 'theorem' | 'bitlabs';
+        enabled?: boolean | null;
+        /**
+         * Lower numbers show first.
+         */
+        priority?: number | null;
+        /**
+         * ISO country codes; empty means every country.
+         */
+        countries?: string[] | null;
+        /**
+         * Opened when the merged list is empty. {userId} is replaced with the signed-in user's id.
+         */
+        wallUrl?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Most points one user may earn from surveys in a day. Reversals do not count.
+   */
+  dailyPointsCap?: number | null;
+  /**
+   * Most points one completed survey may pay. Raise it when a real payout shows the default is too low.
+   */
+  maxPointsPerAward?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -4313,6 +4410,29 @@ export interface ModerationSettingsSelect<T extends boolean = true> {
   autoHideThreshold?: T;
   hideOnFirstReportReasons?: T;
   urgentReasons?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "survey-settings_select".
+ */
+export interface SurveySettingsSelect<T extends boolean = true> {
+  providers?:
+    | T
+    | {
+        provider?: T;
+        enabled?: T;
+        priority?: T;
+        countries?: T;
+        wallUrl?: T;
+        id?: T;
+      };
+  dailyPointsCap?: T;
+  maxPointsPerAward?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

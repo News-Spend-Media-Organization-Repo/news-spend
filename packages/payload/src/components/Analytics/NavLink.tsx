@@ -15,3 +15,15 @@ export function AnalyticsNavLink({ user }: ServerProps): ReactNode {
     </a>
   );
 }
+
+/** A link to the survey provider page, for staff only. */
+export function SurveyNavLink({ user }: ServerProps): ReactNode {
+  if (scopeFor(user)?.kind !== "staff") {
+    return null;
+  }
+  return (
+    <a className="nav__link" href={`${ADMIN_PATH}/survey-performance`}>
+      <span className="nav__link-label">Survey performance</span>
+    </a>
+  );
+}
