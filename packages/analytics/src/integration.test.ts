@@ -22,6 +22,7 @@ import {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
@@ -51,6 +52,7 @@ const SCHEMA = `analytics_test_${Math.random().toString(36).slice(2, 10)}`;
 
 const A1 = "a0000000-0000-4000-8000-000000000001";
 const A2 = "a0000000-0000-4000-8000-000000000002";
+const A3 = "a0000000-0000-4000-8000-000000000003";
 const CAT_ENERGY = "c0000000-0000-4000-8000-000000000001";
 const CAT_SPORT = "c0000000-0000-4000-8000-000000000002";
 const P1 = "b0000000-0000-4000-8000-000000000001";
@@ -100,7 +102,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TABLE news_analytics (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         article_id uuid NOT NULL, event enum_news_analytics_event NOT NULL,
-        user_id varchar, session_id varchar NOT NULL DEFAULT 's', device_id varchar NOT NULL,
+        user_id varchar, session_id varchar NOT NULL DEFAULT 's', device_id varchar NOT NULL, event_id varchar,
         platform enum_news_analytics_platform, metadata jsonb, timestamp timestamptz NOT NULL);
       CREATE TABLE partners (id uuid PRIMARY KEY, company_name varchar);
       CREATE TABLE partner_content (id uuid PRIMARY KEY, title varchar);
@@ -193,7 +195,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       INSERT INTO categories VALUES ('${CAT_ENERGY}', 'Energy'), ('${CAT_SPORT}', 'Sports');
       INSERT INTO news VALUES
         ('${A1}', 'Fuel price review', 'fuel', '2026-09-12T08:00:00Z', '${CAT_ENERGY}'),
-        ('${A2}', 'Squad named', 'squad', '2026-09-12T09:00:00Z', '${CAT_SPORT}');
+        ('${A2}', 'Squad named', 'squad', '2026-09-12T09:00:00Z', '${CAT_SPORT}'),
+        ('${A3}', 'Late news', 'late', '2026-09-12T10:00:00Z', '${CAT_SPORT}');
       INSERT INTO partners VALUES ('${P1}', 'Shopwise'), ('${P2}', 'FreshCart');
       INSERT INTO partner_content VALUES ('c1000000-0000-4000-8000-000000000001', 'Weekend offer');
     `);
@@ -391,7 +394,15 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       likes: 1,
       shares: 3,
       readers: 4,
-      ctr: 120,
+      // 4 of the 6 views follow an impression from the same device; the other
+      // 2 are direct opens. The old definition (views per impression) read 120.
+      matchedViews: 4,
+      directOpens: 2,
+      // 5 impressions on 3 device and article pairs, and each of the 3 was
+      // opened. The earlier definitions read 120 (views per impression) and 80.
+      exposures: 3,
+      clickedExposures: 3,
+      ctr: 100,
       readRate: 16.7,
     });
     expect(previous.views).toBe(1);
@@ -463,16 +474,188 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     const top = await newsTopArticles(db, staff, { range });
     const cats = await newsTopCategories(db, staff, { range });
 
+    // Both have three views; Squad named has three devices to Fuel price
+    // review's two, so it ranks first by readers, the default.
     expect(top.map((t) => t.title)).toEqual([
-      "Fuel price review",
       "Squad named",
+      "Fuel price review",
     ]);
-    expect(top[0]).toMatchObject({
+    expect(top.find((t) => t.title === "Fuel price review")).toMatchObject({
       category: "Energy",
       views: 3,
+      readers: 2,
       publishedAt: "2026-09-12T08:00:00.000Z",
     });
     expect(cats.map((c) => c.category)).toEqual(["Energy", "Sports"]);
+  });
+
+  it("counts a view toward click-through only when its device saw the article first", async () => {
+    // A period of its own, so the fixtures above are not disturbed.
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES
+        ('${A1}', 'impression', 'm-a', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view',       'm-a', '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view',       'm-b', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'impression', 'm-b', '2026-07-30T10:05:00Z'),
+        ('${A1}', 'view',       'm-c', '2026-07-30T11:00:00Z')
+    `);
+
+    const { current } = await newsSummary(db, staff, { range: earlier });
+
+    expect(current).toMatchObject({
+      impressions: 2,
+      views: 3,
+      matchedViews: 1,
+      directOpens: 2,
+      exposures: 2,
+      clickedExposures: 1,
+      ctr: 50,
+    });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'm-%'");
+  });
+
+  describe("top articles ranking", () => {
+    // A window of its own (see the matched-views test above).
+    const window = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    const at = (day: number, device: string, event: string, article: string) =>
+      `('${article}', '${event}', '${device}', '2026-07-${day}T10:00:00Z')`;
+
+    const seed = async (rows: string[]) =>
+      await conn.unsafe(
+        `INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES ${rows.join(",")}`
+      );
+    const clean = async () =>
+      await conn.unsafe(
+        "DELETE FROM news_analytics WHERE device_id LIKE 'r-%'"
+      );
+
+    it("ranks by distinct readers, not raw views, and by views when asked", async () => {
+      // A1: three devices, one view each. A2: one device, five views.
+      await seed([
+        at(30, "r-1", "view", A1),
+        at(30, "r-2", "view", A1),
+        at(30, "r-3", "view", A1),
+        ...[1, 2, 3, 4, 5].map((_, i) => at(25 + i, "r-4", "view", A2)),
+      ]);
+
+      const byReaders = await newsTopArticles(db, staff, { range: window });
+      const byViews = await newsTopArticles(db, staff, {
+        range: window,
+        sortBy: "views",
+      });
+      await clean();
+
+      expect(byReaders.map((t) => t.id)).toEqual([A1, A2]);
+      expect(byReaders[0]).toMatchObject({ readers: 3, views: 3 });
+      expect(byReaders[1]).toMatchObject({ readers: 1, views: 5 });
+      expect(byViews.map((t) => t.id)).toEqual([A2, A1]);
+    });
+
+    it("orders equal articles by id so the list never shuffles", async () => {
+      await seed([at(30, "r-1", "view", A2), at(30, "r-2", "view", A1)]);
+      const [first, second] = await newsTopArticles(db, staff, {
+        range: window,
+      });
+      await clean();
+
+      expect([first?.id, second?.id]).toEqual([A1, A2]);
+    });
+
+    it("puts a late spike above an evenly spread article under rising, and drops articles with under 3 views", async () => {
+      // A1: 6 views on the last two days. A2: 6 views spread across the week.
+      // The third article would score highest but has only 2 views.
+      await seed([
+        ...[0, 1, 2, 3, 4, 5].map((i) =>
+          at(i < 3 ? 30 : 31, `r-${i}`, "view", A1)
+        ),
+        ...[25, 26, 27, 28, 29, 30].map((day, i) =>
+          at(day, `r-1${i}`, "view", A2)
+        ),
+        at(31, "r-20", "view", A3),
+        at(31, "r-21", "view", A3),
+      ]);
+
+      const rising = await newsTopArticles(db, staff, {
+        range: window,
+        sortBy: "rising",
+      });
+      await clean();
+
+      expect(rising.map((t) => t.id)).toEqual([A1, A2]);
+      expect(rising[0]?.trend).toBeGreaterThan(rising[1]?.trend ?? 0);
+    });
+
+    it("returns an empty list for every sort when nothing happened", async () => {
+      for (const sortBy of [
+        "readers",
+        "reads",
+        "views",
+        "impressions",
+        "rising",
+      ] as const) {
+        expect(
+          await newsTopArticles(db, staff, { range: window, sortBy })
+        ).toEqual([]);
+      }
+    });
+  });
+
+  it("never reports click-through above 100%, however often a reader reopens an article", async () => {
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, timestamp) VALUES
+        ('${A1}', 'impression', 'c-a', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T11:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T12:00:00Z'),
+        ('${A1}', 'view',       'c-a', '2026-07-30T13:00:00Z'),
+        -- seen before the period began, opened inside it: not this period's click
+        ('${A1}', 'impression', 'c-b', '2026-07-10T10:00:00Z'),
+        ('${A1}', 'view',       'c-b', '2026-07-30T10:00:00Z')
+    `);
+
+    const { current } = await newsSummary(db, staff, { range: earlier });
+    const [top] = await newsTopArticles(db, staff, { range: earlier });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'c-%'");
+
+    expect(current).toMatchObject({
+      impressions: 1,
+      views: 5,
+      matchedViews: 4,
+      directOpens: 1,
+      exposures: 1,
+      clickedExposures: 1,
+      ctr: 100,
+    });
+    expect(top).toMatchObject({ id: A1, ctr: 100 });
+  });
+
+  it("counts events sent without an event id", async () => {
+    const earlier = resolveRange({
+      days: 7,
+      now: new Date("2026-07-31T10:00:00Z"),
+    });
+    await conn.unsafe(`
+      INSERT INTO news_analytics (article_id, event, device_id, event_id, timestamp) VALUES
+        ('${A1}', 'view', 'q-a', 'evt-12345678', '2026-07-30T10:00:00Z'),
+        ('${A1}', 'view', 'q-b', NULL, '2026-07-30T10:01:00Z'),
+        ('${A1}', 'view', 'q-c', NULL, '2026-07-30T10:02:00Z')
+    `);
+
+    const quality = await newsEventQuality(db, staff, { range: earlier });
+    await conn.unsafe("DELETE FROM news_analytics WHERE device_id LIKE 'q-%'");
+
+    expect(quality).toEqual({ events: 3, eventsWithoutId: 2 });
   });
 
   it("assembles an article's whole report", async () => {

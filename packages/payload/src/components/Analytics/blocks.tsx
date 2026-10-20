@@ -19,6 +19,7 @@ import type {
   PushReport,
   RecentConversion,
   TopArticle,
+  TopSort,
 } from "@news-spend-media/analytics";
 import type { ReactNode } from "react";
 
@@ -30,6 +31,7 @@ import {
   formatDuration,
   formatPercent,
 } from "./format";
+import { SORT_LABELS } from "./params";
 import { Bars, DataTable, DayChart, Kpi, Panel, SERIES_COLORS } from "./ui";
 
 /** Presentation of each report, from data already loaded. No queries here. */
@@ -77,7 +79,7 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
       />
       <Kpi
         label="Click-through"
-        note="views per impression"
+        note="matched views per impression"
         tag="reported"
         value={formatPercent(current.ctr)}
       />
@@ -94,6 +96,13 @@ export function NewsKpis({ summary }: { summary: Summary }): ReactNode {
         note={versus}
         tag="reported"
         value={formatCount(current.shares)}
+      />
+      <Kpi
+        change={describeChange(current.directOpens, previous.directOpens)}
+        label="Direct opens"
+        note="views with no earlier impression"
+        tag="reported"
+        value={formatCount(current.directOpens)}
       />
     </div>
   );
@@ -129,7 +138,7 @@ export function FunnelPanel({
 export function StepsPanel({ current }: { current: NewsMetrics }): ReactNode {
   return (
     <Panel
-      hint="Each step as a share of the one before"
+      hint="Views include direct opens: views with no earlier impression. Reads as a share of views."
       tag="reported"
       title="From impression to read"
     >
@@ -139,7 +148,7 @@ export function StepsPanel({ current }: { current: NewsMetrics }): ReactNode {
           {
             label: "Views",
             value: current.views,
-            display: `${formatCount(current.views)} · ${formatPercent(current.ctr)}`,
+            display: `${formatCount(current.views)} · ${formatCount(current.directOpens)} direct`,
           },
           {
             label: "Qualified reads",
@@ -227,18 +236,25 @@ export function EngagementPanel({
 
 export function TopArticlesPanel({
   articles,
+  days,
+  sort,
   title = "Top articles",
-  hint = "By views",
 }: {
   articles: TopArticle[];
+  days: number;
+  sort: TopSort;
   title?: string;
-  hint?: string;
 }): ReactNode {
   return (
-    <Panel hint={hint} tag="reported" title={title}>
+    <Panel
+      hint={`By ${SORT_LABELS[sort].toLowerCase()}, last ${days} days`}
+      tag="reported"
+      title={title}
+    >
       <DataTable
         columns={[
           { key: "article", label: "Article" },
+          { key: "readers", label: "Readers", align: "right" },
           { key: "views", label: "Views", align: "right" },
           { key: "reads", label: "Reads", align: "right" },
           { key: "ctr", label: "CTR", align: "right" },
@@ -257,6 +273,7 @@ export function TopArticlesPanel({
                 ) : null}
               </>
             ),
+            readers: formatCount(a.readers),
             views: formatCount(a.views),
             reads: formatCount(a.reads),
             ctr: formatPercent(a.ctr),

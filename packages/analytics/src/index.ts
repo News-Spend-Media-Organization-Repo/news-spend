@@ -70,18 +70,21 @@ export {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
   newsTopArticles,
   newsTopCategories,
   PLATFORMS,
+  TOP_SORTS,
 } from "./news";
 export type { Notice } from "./notices";
 export {
   IMPRESSION_DEFINITION,
   newsNotices,
   READ_DEFINITION,
+  READS_RELIABLE_FROM,
   TRACKING_STARTED,
 } from "./notices";
 export type {

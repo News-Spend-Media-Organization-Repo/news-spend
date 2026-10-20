@@ -4,12 +4,14 @@ import {
   newsArticleReport,
   newsDaily,
   newsEngagement,
+  newsEventQuality,
   newsPlatforms,
   newsSummary,
   newsSurfaces,
   newsTopArticles,
   newsTopCategories,
 } from "./news";
+import { newsNotices } from "./notices";
 import { AnalyticsAccessError } from "./scope";
 import { ARTICLE, PARTNER, range, STAFF, stubDb } from "./test-utils";
 
@@ -28,6 +30,7 @@ describe("news reports are staff only", () => {
     ["newsEngagement", (db) => newsEngagement(db, PARTNER, filter)],
     ["newsTopArticles", (db) => newsTopArticles(db, PARTNER, filter)],
     ["newsTopCategories", (db) => newsTopCategories(db, PARTNER, filter)],
+    ["newsEventQuality", (db) => newsEventQuality(db, PARTNER, filter)],
     [
       "newsArticleReport",
       (db) => newsArticleReport(db, PARTNER, ARTICLE, filter),
@@ -49,8 +52,8 @@ describe("newsSummary", () => {
     // Both windows get the same rows: the shape is what is under test here.
     query.params.length >= 0
       ? [
-          { event: "impression", n: 200, devices: 90 },
-          { event: "view", n: 90, devices: 60 },
+          { event: "impression", n: 200, devices: 90, pairs: 150 },
+          { event: "view", n: 90, devices: 60, matched: 54, matched_pairs: 45 },
           { event: "read", n: 18, devices: 15 },
           { event: "like", n: 7, devices: 6 },
           { event: "share", n: 3, devices: 3 },
@@ -71,8 +74,36 @@ describe("newsSummary", () => {
       dislikes: 0,
       comments: 0,
       readers: 60,
-      ctr: 45,
+      matchedViews: 54,
+      directOpens: 36,
+      exposures: 150,
+      clickedExposures: 45,
+      ctr: 30,
       readRate: 20,
+    });
+  });
+
+  it("counts a view toward click-through only when its device saw the article first", async () => {
+    const { db, queries } = stubDb(rowsByEvent);
+
+    await newsSummary(db, STAFF, { range: range() });
+
+    const sql = queries[0]?.sql ?? "";
+    expect(sql).toContain("EXISTS");
+    expect(sql).toContain("i.device_id = e.device_id");
+    expect(sql).toContain("i.timestamp <= e.timestamp");
+  });
+
+  it("reports every view as a direct open, and no click-through, when there are no impressions", async () => {
+    const { db } = stubDb([{ event: "view", n: 21, devices: 17, matched: 0 }]);
+
+    const { current } = await newsSummary(db, STAFF, { range: range() });
+
+    expect(current).toMatchObject({
+      views: 21,
+      matchedViews: 0,
+      directOpens: 21,
+      ctr: null,
     });
   });
 
@@ -93,9 +124,11 @@ describe("newsSummary", () => {
     await newsSummary(db, STAFF, { range: r });
 
     expect(queries).toHaveLength(2);
-    const dates = queries.map((q) =>
-      q.params.filter((p) => ISO_DATE.test(String(p)))
-    );
+    // The window appears more than once per statement (events, and the
+    // impressions they are matched to), so compare the distinct dates.
+    const dates = queries.map((q) => [
+      ...new Set(q.params.filter((p) => ISO_DATE.test(String(p)))),
+    ]);
     expect(dates).toContainEqual([r.current.from, r.current.to]);
     expect(dates).toContainEqual([r.previous.from, r.previous.to]);
   });
@@ -212,6 +245,11 @@ describe("newsTopArticles", () => {
         impressions: 200,
         views: 100,
         reads: 25,
+        readers: 60,
+        matched_views: 80,
+        exposures: 150,
+        clicked_exposures: 60,
+        trend: null,
       },
     ]);
 
@@ -221,9 +259,95 @@ describe("newsTopArticles", () => {
       title: "Fuel price review",
       category: "Energy",
       publishedAt: "2026-09-12T08:00:00.000Z",
-      ctr: 50,
+      readers: 60,
+      directOpens: 20,
+      ctr: 40,
       readRate: 25,
+      trend: null,
     });
+  });
+
+  it("gives an article with views and no impressions no click-through, only direct opens", async () => {
+    const { db } = stubDb([
+      {
+        id: ARTICLE,
+        title: "Davido",
+        slug: "d",
+        category: null,
+        published_at: null,
+        impressions: 0,
+        views: 21,
+        reads: 12,
+        readers: 17,
+        matched_views: 0,
+        exposures: 0,
+        clicked_exposures: 0,
+        trend: null,
+      },
+    ]);
+
+    const [top] = await newsTopArticles(db, STAFF, { range: range() });
+
+    expect(top).toMatchObject({ ctr: null, directOpens: 21, readers: 17 });
+  });
+
+  it("ranks by unique readers unless asked otherwise", async () => {
+    const { db, queries } = stubDb();
+
+    await newsTopArticles(db, STAFF, { range: range() });
+
+    expect(queries[0]?.sql).toContain(
+      "ORDER BY readers DESC, reads DESC, views DESC, n.id"
+    );
+  });
+
+  it("orders each sort mode by its own expression", async () => {
+    const orders: Record<string, string> = {
+      readers: "ORDER BY readers DESC, reads DESC, views DESC, n.id",
+      reads: "ORDER BY reads DESC, readers DESC, views DESC, n.id",
+      views: "ORDER BY views DESC, readers DESC, n.id",
+      impressions: "ORDER BY impressions DESC, views DESC, n.id",
+      rising: "ORDER BY trend DESC, views DESC, n.id",
+    };
+    for (const [sortBy, order] of Object.entries(orders)) {
+      const { db, queries } = stubDb();
+      await newsTopArticles(db, STAFF, {
+        range: range(),
+        sortBy: sortBy as never,
+      });
+      expect(queries[0]?.sql).toContain(order);
+    }
+  });
+
+  it("scores only rising articles, and ignores those with fewer than 3 views", async () => {
+    const { db, queries } = stubDb([
+      {
+        id: ARTICLE,
+        title: "Hot",
+        slug: "h",
+        category: null,
+        published_at: null,
+        impressions: 10,
+        views: 9,
+        reads: 1,
+        readers: 8,
+        matched_views: 5,
+        exposures: 10,
+        clicked_exposures: 5,
+        trend: 2.5,
+      },
+    ]);
+
+    const [rising] = await newsTopArticles(db, STAFF, {
+      range: range(),
+      sortBy: "rising",
+    });
+    expect(rising?.trend).toBe(2.5);
+    expect(queries[0]?.sql).toContain("HAVING");
+
+    const plain = stubDb();
+    await newsTopArticles(plain.db, STAFF, { range: range() });
+    expect(plain.queries[0]?.sql).not.toContain("HAVING");
   });
 
   it("clamps the limit and only sorts by a known column", async () => {
@@ -237,7 +361,7 @@ describe("newsTopArticles", () => {
     await newsTopArticles(db, STAFF, { range: range(), limit: -5 });
 
     expect(queries[0]?.params).toContain(50);
-    expect(queries[0]?.sql).toContain("ORDER BY reads DESC");
+    expect(queries[0]?.sql).toContain("ORDER BY reads DESC, readers DESC");
     expect(queries[1]?.params).toContain(1);
     await expect(
       newsTopArticles(db, STAFF, {
@@ -321,5 +445,65 @@ describe("newsArticleReport", () => {
       slug: "t",
       publishedAt: "2026-09-01T00:00:00.000Z",
     });
+  });
+});
+
+describe("newsEventQuality", () => {
+  it("counts the period's events and those sent without an event id", async () => {
+    const { db, queries } = stubDb([{ events: 200, events_without_id: 166 }]);
+
+    const quality = await newsEventQuality(db, STAFF, { range: range() });
+
+    expect(quality).toEqual({ events: 200, eventsWithoutId: 166 });
+    expect(queries[0]?.sql).toContain("event_id IS NULL");
+  });
+
+  it("reports an empty period as zero", async () => {
+    const { db } = stubDb([]);
+
+    expect(await newsEventQuality(db, STAFF, { range: range() })).toEqual({
+      events: 0,
+      eventsWithoutId: 0,
+    });
+  });
+});
+
+describe("newsNotices", () => {
+  const ids = (
+    r: ReturnType<typeof range>,
+    q?: Parameters<typeof newsNotices>[1]
+  ) => newsNotices(r, q).map((n) => n.id);
+  const since = (from: string, previousFrom = "2026-10-12") => ({
+    ...range(),
+    current: { from, to: "2026-10-20" },
+    previous: { from: previousFrom, to: "2026-10-11" },
+  });
+
+  it("warns that reads are understated when the period starts before reads were reliable", () => {
+    expect(ids(since("2026-10-01"))).toContain("reads-understated");
+    expect(ids(since("2026-10-11"))).not.toContain("reads-understated");
+    expect(ids(since("2026-10-12"))).not.toContain("reads-understated");
+  });
+
+  it("also warns when only the period it is compared with starts before reads were reliable", () => {
+    const message = newsNotices(since("2026-10-13", "2026-10-06")).find(
+      (n) => n.id === "reads-understated"
+    )?.message;
+
+    expect(message).toContain("previous period");
+  });
+
+  it("warns about events without an id above 10% only, and says how many", () => {
+    const r = since("2026-10-12");
+    const some = (events: number, eventsWithoutId: number) =>
+      newsNotices(r, { events, eventsWithoutId });
+
+    expect(some(100, 11).map((n) => n.id)).toContain("no-event-id");
+    expect(some(100, 10).map((n) => n.id)).not.toContain("no-event-id");
+    expect(some(0, 0).map((n) => n.id)).not.toContain("no-event-id");
+    expect(ids(r)).not.toContain("no-event-id");
+    expect(
+      some(19_275, 16_055).find((n) => n.id === "no-event-id")?.message
+    ).toContain("83%");
   });
 });

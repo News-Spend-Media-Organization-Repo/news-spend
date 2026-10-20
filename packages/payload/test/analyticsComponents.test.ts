@@ -5,6 +5,7 @@ import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import * as components from "../src/components/Analytics";
+import { StepsPanel } from "../src/components/Analytics/blocks";
 import {
   analyticsDefaultLayout,
   analyticsWidgets,
@@ -57,6 +58,7 @@ describe("parseAnalyticsParams", () => {
     expect(parseAnalyticsParams({ days: "7", platform: "ios" })).toEqual({
       days: 7,
       platform: "ios",
+      sort: "readers",
     });
   });
 
@@ -64,12 +66,25 @@ describe("parseAnalyticsParams", () => {
     expect(parseAnalyticsParams({ days: "999", platform: "symbian" })).toEqual({
       days: 30,
       platform: undefined,
+      sort: "readers",
     });
     expect(parseAnalyticsParams({ days: "1; DROP TABLE x" }).days).toBe(30);
     expect(parseAnalyticsParams(undefined)).toEqual({
       days: 30,
       platform: undefined,
+      sort: "readers",
     });
+  });
+
+  it("ranks by unique readers unless one of the offered sorts is asked for", () => {
+    expect(parseAnalyticsParams({}).sort).toBe("readers");
+    expect(parseAnalyticsParams({ sort: "rising" }).sort).toBe("rising");
+    expect(parseAnalyticsParams({ sort: "1; DROP TABLE news" }).sort).toBe(
+      "readers"
+    );
+    expect(parseAnalyticsParams({ sort: ["reads", "views"] }).sort).toBe(
+      "reads"
+    );
   });
 
   it("takes the first when a parameter is repeated", () => {
@@ -105,13 +120,54 @@ describe("the default home layout", () => {
   it("only refers to widgets that exist", () => {
     const registered = new Set([
       ...analyticsWidgets.map((w) => w.slug),
+      // Registered by Payload and by the contact-export widget's own module.
       "collections",
+      "contact-export",
     ]);
     for (const user of [staff, partnerA]) {
       for (const slug of layoutFor(user)) {
         expect(registered.has(slug)).toBe(true);
       }
     }
+  });
+});
+
+describe("the impression-to-read steps", () => {
+  it("shows direct opens beside views, not a click-through the bar does not measure", () => {
+    const out = html(
+      StepsPanel({
+        current: {
+          impressions: 1960,
+          views: 1119,
+          matchedViews: 197,
+          directOpens: 922,
+          exposures: 1500,
+          clickedExposures: 152,
+          reads: 300,
+          ctr: 10.1,
+          readRate: 26.8,
+        } as never,
+      })
+    );
+
+    expect(out).toContain("922 direct");
+    expect(out).not.toContain("10.1%");
+  });
+});
+
+describe("the Top articles widget settings", () => {
+  it("offers every sort, defaulting to unique readers, so saved layouts keep working", () => {
+    const widget = analyticsWidgets.find(
+      (w) => w.slug === "analytics-top-articles"
+    );
+    const field = (widget?.fields ?? []).find(
+      (f) => "name" in f && f.name === "sort"
+    );
+
+    expect(field).toMatchObject({ type: "select", defaultValue: "readers" });
+    expect(
+      (field as { options: { value: string }[] }).options.map((o) => o.value)
+    ).toEqual(["readers", "reads", "views", "impressions", "rising"]);
   });
 });
 
@@ -208,6 +264,29 @@ describe("a screen refuses a viewer it is not for, whatever the address", () => 
       expect(out).toContain(NO_ACCESS);
       expect(queries).toHaveLength(0);
     }
+  });
+
+  it("says what the top articles are ranked by, and offers the other sorts", async () => {
+    const page = async (searchParams: Record<string, string>) => {
+      const { req } = requestFor(staff);
+      return html(
+        await components.AnalyticsPageView({
+          initPageResult: { req },
+          searchParams,
+        } as never)
+      );
+    };
+
+    const byDefault = await page({});
+    const rising = await page({ sort: "rising", days: "7", platform: "ios" });
+
+    expect(byDefault).toContain("By unique readers, last 30 days");
+    expect(rising).toContain("By rising, last 7 days");
+    // The sort links keep the period and platform that were chosen.
+    expect(rising).toContain("sort=reads");
+    expect(rising).toContain("days=7");
+    expect(rising).toContain("platform=ios");
+    expect(byDefault).toContain("Direct opens");
   });
 
   it("shows staff an article's stats", async () => {
@@ -337,6 +416,21 @@ describe("a widget added by hand shows nothing it should not", () => {
       );
       expect(queries).toHaveLength(0);
     }
+  });
+
+  it("ranks the Top articles widget by readers when its saved settings have no sort or a bad one", async () => {
+    for (const data of [{ days: "30" }, { days: "30", sort: "nonsense" }]) {
+      const { props, queries } = widgetProps(staff, data);
+
+      const out = html(await components.TopArticlesWidget(props));
+
+      expect(out).toContain("By unique readers, last 30 days");
+      expect(queries.length).toBeGreaterThan(0);
+    }
+    const { props } = widgetProps(staff, { days: "7", sort: "views" });
+    expect(html(await components.TopArticlesWidget(props))).toContain(
+      "By views, last 7 days"
+    );
   });
 
   it("ignores a period that is not one of the choices", async () => {
