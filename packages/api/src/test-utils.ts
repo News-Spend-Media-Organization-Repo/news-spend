@@ -432,22 +432,94 @@ export function stubDrizzle(
 ): { queries: CapturedQuery[] } {
   const queries: CapturedQuery[] = [];
 
+  const execute = (
+    statement: { queryChunks?: unknown[] } | string
+  ): Promise<{ rows: unknown[] }> => {
+    // Drizzle's tagged-template object exposes its chunks; stringify
+    // whatever shape arrives so assertions can match on substrings.
+    const text =
+      typeof statement === "string" ? statement : JSON.stringify(statement);
+    const query: CapturedQuery = { sql: text, params: paramsOf(statement) };
+    queries.push(query);
+
+    return Promise.resolve({
+      rows: typeof rows === "function" ? rows(query) : rows,
+    });
+  };
+
   Object.assign(payload.db, {
     drizzle: {
-      execute: (statement: { queryChunks?: unknown[] } | string) => {
-        // Drizzle's tagged-template object exposes its chunks; stringify
-        // whatever shape arrives so assertions can match on substrings.
-        const text =
-          typeof statement === "string" ? statement : JSON.stringify(statement);
-        const query: CapturedQuery = { sql: text, params: [] };
-        queries.push(query);
-
-        return Promise.resolve({
-          rows: typeof rows === "function" ? rows(query) : rows,
-        });
-      },
+      execute,
+      // A transaction here shares the same recorder, so a test sees the
+      // statements of a transaction in the order they were issued.
+      transaction: async <T>(
+        run: (tx: { execute: typeof execute }) => Promise<T>
+      ): Promise<T> => run({ execute }),
     },
   });
 
   return { queries };
+}
+
+/** The bound values of a drizzle `sql` template, in order. */
+function paramsOf(statement: { queryChunks?: unknown[] } | string): unknown[] {
+  if (typeof statement === "string") {
+    return [];
+  }
+  return (statement.queryChunks ?? []).filter(
+    (chunk) =>
+      !(
+        typeof chunk === "object" &&
+        chunk !== null &&
+        "value" in chunk &&
+        Array.isArray((chunk as { value: unknown }).value)
+      )
+  );
+}
+
+/**
+ * A drizzle stub that answers `claimConversion`'s three statements against the
+ * fake payload's `partner-conversions`, the way the real database would, so a
+ * router test sees the claim's effect (status moves to `converted`) without a
+ * database.
+ *
+ * `refuse: true` models losing a race: the pre-checks in the handler saw no
+ * settled sibling, but by the time the claim looks, one has been committed.
+ */
+export function stubConversionClaims(
+  payload: ReturnType<typeof createFakePayload>,
+  { refuse = false }: { refuse?: boolean } = {}
+): { queries: CapturedQuery[] } {
+  return stubDrizzle(payload, (query) => {
+    const conversions = payload.docs("partner-conversions");
+    if (query.sql.includes("pg_advisory_xact_lock")) {
+      return [];
+    }
+    if (query.sql.includes("SELECT 1 FROM partner_conversions")) {
+      if (refuse) {
+        return [{ "?column?": 1 }];
+      }
+      const [userId, contentId, conversionId] = query.params;
+      const sibling = conversions.find(
+        (c) =>
+          c.id !== conversionId &&
+          (c.user?.id ?? c.user) === userId &&
+          (c.content?.id ?? c.content) === contentId &&
+          (c.status === "converted" || c.status === "awarded")
+      );
+      return sibling ? [{ "?column?": 1 }] : [];
+    }
+    if (query.sql.includes("UPDATE partner_conversions")) {
+      const [partnerOrderId, conversionId] = query.params;
+      const target = conversions.find((c) => c.id === conversionId);
+      if (target?.status !== "clicked") {
+        return [];
+      }
+      target.status = "converted";
+      target.partnerOrderId = partnerOrderId ?? target.partnerOrderId;
+      target.convertedAt = new Date().toISOString();
+      return [{ id: conversionId }];
+    }
+    return [];
+  });
 }

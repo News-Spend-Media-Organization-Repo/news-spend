@@ -3,13 +3,25 @@ import { createHmac } from "node:crypto";
 import { call } from "@orpc/server";
 import { canonicalString } from "../lib/partnerWebhookSignature";
 import {
-  createFakePayload,
+  createFakePayload as createBareFakePayload,
   type Doc,
   expectError,
+  type FakePayloadOptions,
   mockContext,
-  stubDrizzle,
+  stubConversionClaims,
 } from "../test-utils";
 import { partnerConversionRouter } from "./partner-conversions";
+
+/**
+ * Settling a conversion claims it in the database first, so every fake payload
+ * here answers the claim's statements the way the database would. A test that
+ * wants to watch the statements, or lose the race, installs its own stub.
+ */
+function createFakePayload(options: FakePayloadOptions = {}) {
+  const payload = createBareFakePayload(options);
+  stubConversionClaims(payload);
+  return payload;
+}
 
 const authedUser = { id: "user-1", isAnonymous: false, username: "tester" };
 const guestUser = { id: "guest-1", isAnonymous: true, username: "guest" };
@@ -624,7 +636,7 @@ describe("partnerConversionRouter.webhook: dry run", () => {
       },
     });
     const ctx = mockContext({ payload, headers: signedHeaders() });
-    const drizzle = stubDrizzle(payload);
+    const drizzle = stubConversionClaims(payload);
 
     await call(
       partnerConversionRouter.webhook,
@@ -854,7 +866,7 @@ describe("partnerConversionRouter.webhook: surface and one-time settlement", () 
         activities: [],
       },
     });
-    const drizzle = stubDrizzle(payload);
+    const drizzle = stubConversionClaims(payload);
     const ctx = mockContext({ payload, headers: signedHeaders({ clickId }) });
     return { payload, drizzle, ctx, clickId };
   };
@@ -1015,7 +1027,7 @@ describe("partnerConversionRouter.webhook records what became of each postback",
         activities: [],
       },
     });
-    const drizzle = stubDrizzle(payload);
+    const drizzle = stubConversionClaims(payload);
     const ctx = mockContext({ payload, headers });
     return { payload, drizzle, ctx };
   };
@@ -1108,8 +1120,13 @@ describe("partnerConversionRouter.webhook records what became of each postback",
     // A database that refuses the insert must not turn a paid conversion into an
     // error, or the partner would retry one we already settled.
     const { payload, ctx } = setup();
+    // Only the postback log is broken; the claim runs in its own transaction.
+    const { transaction } = payload.db.drizzle as { transaction: unknown };
     Object.assign(payload.db, {
-      drizzle: { execute: () => Promise.reject(new Error("disk full")) },
+      drizzle: {
+        transaction,
+        execute: () => Promise.reject(new Error("disk full")),
+      },
     });
 
     const result = await call(partnerConversionRouter.webhook, input(), {
@@ -1118,5 +1135,123 @@ describe("partnerConversionRouter.webhook records what became of each postback",
 
     expect(result).toMatchObject({ success: true, status: "converted" });
     expect(payload.docs("partner-conversions")[0]?.status).toBe("awarded");
+  });
+});
+
+describe("partnerConversionRouter: a claim lost to a concurrent settlement", () => {
+  const CLICK = "clk_abc1234567890123";
+  const PARTNER_ID = "11111111-1111-4111-8111-111111111111";
+
+  const losingRace = (
+    conversionOverrides: Doc = {},
+    partnerOverrides: Doc = {}
+  ) => {
+    const payload = createBareFakePayload({
+      collections: {
+        "partner-conversions": [
+          conversion({ partner: PARTNER_ID, ...conversionOverrides }),
+        ],
+        partners: [partner({ id: PARTNER_ID, ...partnerOverrides })],
+        "partner-content": [
+          partnerContent({ points: 50, partner: PARTNER_ID }),
+        ],
+        activities: [],
+        giveaways: [],
+        "giveaway-engagements": [],
+      },
+    });
+    // The handler's own pre-check saw nothing settled; the claim finds a
+    // sibling that committed in between.
+    const drizzle = stubConversionClaims(payload, { refuse: true });
+    return { payload, drizzle };
+  };
+
+  it("answers a postback as already processed, pays nothing, and records a duplicate", async () => {
+    const { payload, drizzle } = losingRace();
+
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "success" },
+      { context: mockContext({ payload, headers: signedHeaders() }) }
+    );
+
+    expect(result).toEqual({
+      success: true,
+      message: "Already processed",
+      clickId: CLICK,
+    });
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
+    const recorded = drizzle.queries.filter((q) =>
+      q.sql.includes("partner_postbacks")
+    );
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]?.params).toContain("duplicate");
+  });
+
+  it("does not record a Featured Offer for a refused claim", async () => {
+    const { payload } = losingRace();
+
+    await call(
+      partnerConversionRouter.webhook,
+      { clickId: CLICK, status: "success" },
+      { context: mockContext({ payload, headers: signedHeaders() }) }
+    );
+
+    expect(
+      payload.calls.some(
+        (c) => c.op === "create" && c.collection === "giveaway-engagements"
+      )
+    ).toBe(false);
+  });
+
+  it("lets a database error in the claim reach the partner so they retry", async () => {
+    const { payload } = losingRace();
+    Object.assign(payload.db, {
+      drizzle: {
+        execute: () => Promise.reject(new Error("connection lost")),
+        transaction: () => Promise.reject(new Error("connection lost")),
+      },
+    });
+
+    await expect(
+      call(
+        partnerConversionRouter.webhook,
+        { clickId: CLICK, status: "success" },
+        { context: mockContext({ payload, headers: signedHeaders() }) }
+      )
+    ).rejects.toThrow("connection lost");
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("pays nothing for an award-on-click tap, and still redirects", async () => {
+    const payload = createBareFakePayload({
+      collections: {
+        "partner-content": [
+          partnerContent({
+            id: "pc1",
+            points: 50,
+            partner: "p1",
+            placements: ["points-mall-apps"],
+          }),
+        ],
+        partners: [partner({ awardOnClick: true })],
+        "partner-conversions": [],
+        activities: [],
+        giveaways: [],
+        "giveaway-engagements": [],
+      },
+    });
+    stubConversionClaims(payload, { refuse: true });
+
+    const result = await call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1" },
+      { context: mockContext({ payload, user: { id: "user-1" } as never }) }
+    );
+
+    expect(result.success).toBe(true);
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
   });
 });

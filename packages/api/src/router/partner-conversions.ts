@@ -12,6 +12,7 @@ import type { BasePayload } from "payload";
 import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
+import { claimConversion } from "../lib/claimConversion";
 import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
 import { recordPostback } from "../lib/postbackLog";
 import { partnerWebhookRateLimitMiddleware } from "../lib/ratelimit";
@@ -149,11 +150,17 @@ export const trackClick = protectedNoGuestProcedure
         });
 
         if (!settled) {
-          await settleConversion(payload, {
+          const result = await settleConversion(payload, {
             conversion: created,
             content,
             partnerOrderId: `click:${clickId}`,
           });
+          if (!result.claimed) {
+            payload.logger.info(
+              { clickId },
+              "[partner] award-on-click refused: this offer was settled at the same moment"
+            );
+          }
         }
       } catch (error) {
         payload.logger.error(
@@ -198,7 +205,13 @@ const webhookInput = z.object({
  * Featured Offer because they mean the same thing; two copies would be two
  * things to keep in step.
  *
- * Returns the points credited.
+ * The conversion is claimed before anything is paid (see `claimConversion`):
+ * the pre-checks callers run are only a cheap shortcut, and the claim is what
+ * actually stops two simultaneous settlements for one person and offer both
+ * paying. A refused claim pays nothing and reports `claimed: false`, so the
+ * caller can answer it as the duplicate it is.
+ *
+ * Returns whether the claim was won, and the points credited (0 if refused).
  */
 async function settleConversion(
   payload: BasePayload,
@@ -211,7 +224,7 @@ async function settleConversion(
     content: Record<string, any> | null;
     partnerOrderId?: string;
   }
-): Promise<number> {
+): Promise<{ claimed: boolean; points: number }> {
   const contentId =
     typeof conversion.content === "string"
       ? conversion.content
@@ -225,18 +238,31 @@ async function settleConversion(
   }
   const pointsToAward = decidedPoints ?? 0;
 
-  await payload.update({
-    collection: "partner-conversions",
-    id: conversion.id,
-    data: {
-      status: "converted",
-      partnerOrderId,
-      convertedAt: new Date().toISOString(),
-    },
-  });
-
   const userId =
     typeof conversion.user === "string" ? conversion.user : conversion.user?.id;
+
+  if (contentId && userId) {
+    const claimed = await claimConversion(payload, {
+      conversionId: String(conversion.id),
+      userId: String(userId),
+      contentId: String(contentId),
+      partnerOrderId,
+    });
+    if (!claimed) {
+      return { claimed: false, points: 0 };
+    }
+  } else {
+    // Nobody to pay and no offer to be paid for once: nothing to guard.
+    await payload.update({
+      collection: "partner-conversions",
+      id: conversion.id,
+      data: {
+        status: "converted",
+        partnerOrderId,
+        convertedAt: new Date().toISOString(),
+      },
+    });
+  }
 
   if (pointsToAward > 0 && userId) {
     await payload.create({
@@ -272,7 +298,7 @@ async function settleConversion(
     await recordFeaturedOffer(payload, { userId, contentId });
   }
 
-  return pointsToAward;
+  return { claimed: true, points: pointsToAward };
 }
 
 // Webhook for partner to confirm conversions
@@ -487,11 +513,29 @@ export const handleWebhook = publicProcedure
       };
     }
 
-    const pointsToAward = await settleConversion(payload, {
+    const settlement = await settleConversion(payload, {
       conversion,
       content,
       partnerOrderId: input.partnerOrderId,
     });
+
+    // Lost a race with another settlement for the same person and offer that
+    // the pre-check above could not see. Answered exactly like a duplicate.
+    if (!settlement.claimed) {
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "duplicate",
+        });
+      }
+      return {
+        success: true,
+        message: "Already processed",
+        clickId: input.clickId,
+      };
+    }
+    const pointsToAward = settlement.points;
 
     if (partnerId) {
       await recordPostback(payload, {
