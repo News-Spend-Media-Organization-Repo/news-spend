@@ -1,6 +1,9 @@
 import type { Platform, TopSort } from "@news-spend-media/analytics";
 import {
   AnalyticsAccessError,
+  activationByWeek,
+  activeDevicesDaily,
+  activeDevicesSummary,
   giveawayReport,
   IMPRESSION_DEFINITION,
   newsArticleReport,
@@ -25,6 +28,7 @@ import {
   pointsSummary,
   READ_DEFINITION,
   resolveRange,
+  retentionCohorts,
   TOP_SORTS,
 } from "@news-spend-media/analytics";
 import type { AdminViewServerProps, DocumentViewServerProps } from "payload";
@@ -37,8 +41,11 @@ import {
   scopeOfRequest,
 } from "./access";
 import {
+  ActivationPanel,
+  ActiveDevicesPanel,
   ArticleReportBody,
   CategoriesPanel,
+  CohortsPanel,
   ConcentrationPanel,
   EngagementPanel,
   FunnelPanel,
@@ -55,6 +62,7 @@ import {
   PointsSourcesPanel,
   PostbackHealthPanel,
   RecentConversionsPanel,
+  RetentionKpis,
   ShopPanel,
   StepsPanel,
   SurfacesPanel,
@@ -71,8 +79,12 @@ import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
  * never the protection.
  */
 
-/** News or Points, whichever page is open. */
-function PageSwitch({ page }: { page: "news" | "points" }): ReactNode {
+/** News, Points or Retention, whichever page is open. */
+function PageSwitch({
+  page,
+}: {
+  page: "news" | "points" | "retention";
+}): ReactNode {
   return (
     <Segmented
       links={[
@@ -85,6 +97,11 @@ function PageSwitch({ page }: { page: "news" | "points" }): ReactNode {
           label: "Points",
           href: `${ADMIN_PATH}/analytics/points`,
           current: page === "points",
+        },
+        {
+          label: "Retention",
+          href: `${ADMIN_PATH}/analytics/retention`,
+          current: page === "retention",
         },
       ]}
     />
@@ -190,6 +207,26 @@ function Header({
 }
 
 const ZONE_NOTE = "Days are Lagos time.";
+
+const RETENTION_NOTICES = [
+  {
+    id: "device-ids",
+    message:
+      "Device ids are reported by the app, so a reinstall counts as a new device.",
+  },
+  {
+    id: "small-cohorts",
+    message: "Cohorts under 20 devices are noisy.",
+  },
+  {
+    id: "incomplete",
+    message: "The latest weeks are incomplete.",
+  },
+  {
+    id: "conversion",
+    message: "Guest-to-registered conversion is not measured yet.",
+  },
+];
 
 const POINTS_NOTICES = [
   {
@@ -393,6 +430,61 @@ export async function PointsPageView(
             <LeaderboardPanel rows={leaderboard} />
             <LargeGrantsPanel grants={grants} />
           </div>
+        </div>
+      </>
+    );
+  });
+}
+
+/** The retention and activation page, at /admin/analytics/retention. */
+export async function RetentionPageView(
+  props: AdminViewServerProps
+): Promise<ReactNode> {
+  const { req } = props.initPageResult;
+  const scope = scopeOfRequest(req);
+  if (scope?.kind !== "staff") {
+    return <Denied />;
+  }
+
+  return await guarded(async () => {
+    const { days } = parseAnalyticsParams(props.searchParams);
+    const now = new Date();
+    const range = resolveRange({
+      days,
+      now,
+      timeZone: ANALYTICS_TIME_ZONE,
+    });
+    const filter = { range, now };
+    const db = dbOf(req);
+
+    const [activation, cohorts, daily, summary] = await Promise.all([
+      activationByWeek(db, scope, filter),
+      retentionCohorts(db, scope, filter),
+      activeDevicesDaily(db, scope, filter),
+      activeDevicesSummary(db, scope, filter),
+    ]);
+
+    return (
+      <>
+        <Styles />
+        <div className="ana ana-page">
+          <Header
+            hint={`Whether new accounts start reading and whether new devices come back. ${ZONE_NOTE}`}
+            title="Retention"
+            toolbar={
+              <Toolbar
+                basePath={`${ADMIN_PATH}/analytics/retention`}
+                days={days}
+                navigation={<PageSwitch page="retention" />}
+                showPlatform={false}
+              />
+            }
+          />
+          <Notices notices={RETENTION_NOTICES} />
+          <RetentionKpis summary={summary} weeks={activation} />
+          <ActiveDevicesPanel days={daily} />
+          <ActivationPanel weeks={activation} />
+          <CohortsPanel cohorts={cohorts} />
         </div>
       </>
     );
