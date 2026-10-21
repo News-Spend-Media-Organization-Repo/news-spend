@@ -5,6 +5,7 @@ import { usePartnerClick } from "../usePartnerClick";
 const mockMutateAsync = jest.fn();
 const mockInvalidateQueries = jest.fn();
 const mockNavigate = jest.fn();
+const mockTrackEvent = jest.fn();
 
 let mockUser: { isAnonymous?: boolean } | null = { isAnonymous: false };
 
@@ -29,6 +30,13 @@ jest.mock("#/lib/orpc", () => ({
       pendingOffers: { key: () => ["activity", "pendingOffers"] },
     },
   },
+}));
+
+jest.mock("../usePartnerEvents", () => ({
+  usePartnerEvents: () => ({
+    trackImpression: jest.fn(),
+    trackClick: (...args: unknown[]) => mockTrackEvent(...args),
+  }),
 }));
 
 jest.mock("expo-crypto", () => ({
@@ -115,5 +123,68 @@ describe("usePartnerClick", () => {
 
     expect(mockMutateAsync).not.toHaveBeenCalled();
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
+  });
+
+  describe("click events", () => {
+    it("records the event and the mutation for a signed-in tap", async () => {
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await act(async () => {
+        await result.current.handleClick(item, "points-mall-apps");
+      });
+
+      expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith("pc-1", "points-mall-apps");
+    });
+
+    it("records only the event for a guest's tap", async () => {
+      mockUser = { isAnonymous: true };
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await act(async () => {
+        await result.current.handleClick(item, "points-mall-apps");
+      });
+
+      expect(mockTrackEvent).toHaveBeenCalledWith("pc-1", "points-mall-apps");
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("records nothing for an item with no link", async () => {
+      const noLink = { id: "pc-2", title: "No link", links: {} } as never;
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await act(async () => {
+        await result.current.handleClick(noLink, "points-mall-apps");
+      });
+
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it("records the event even when the mutation rejects", async () => {
+      mockMutateAsync.mockRejectedValue(new Error("boom"));
+      jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await act(async () => {
+        await result.current.handleClick(item, "points-mall-apps");
+      });
+
+      expect(mockTrackEvent).toHaveBeenCalledWith("pc-1", "points-mall-apps");
+    });
+
+    it("records the event before navigating", async () => {
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await act(async () => {
+        await result.current.handleClick(item, "points-mall-apps");
+      });
+
+      const trackOrder = mockTrackEvent.mock.invocationCallOrder[0];
+      const navigateOrder = mockNavigate.mock.invocationCallOrder[0];
+      expect(trackOrder).toBeDefined();
+      expect(navigateOrder).toBeDefined();
+      expect(trackOrder as number).toBeLessThan(navigateOrder as number);
+    });
   });
 });

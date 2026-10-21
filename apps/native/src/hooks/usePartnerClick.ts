@@ -10,6 +10,8 @@ import type { AdPlacement } from "#/state/adManager";
 import { authState } from "#/state/auth";
 import { openStoreLink } from "#/utils/openStoreLink";
 
+import { usePartnerEvents } from "./usePartnerEvents";
+
 /**
  * Mint the click id here rather than waiting for the server to return one.
  *
@@ -31,6 +33,7 @@ export function usePartnerClick() {
     orpc.partnerConversions.trackClick.mutationOptions()
   );
   const queryClient = useQueryClient();
+  const { trackClick: trackClickEvent } = usePartnerEvents();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
 
   /**
@@ -89,6 +92,10 @@ export function usePartnerClick() {
     }
 
     const isStoreLink = Boolean(storeUrl);
+
+    // Recorded for everyone, guests included, and independent of the CPA
+    // mutation below: this feeds the partner's tap count, not attribution.
+    trackClickEvent(item.id, surface);
 
     if (shouldTrackClick) {
       const clickId = mintClickId();
