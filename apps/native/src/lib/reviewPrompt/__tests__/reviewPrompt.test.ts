@@ -4,6 +4,7 @@ const mockStore = new Map<string, number>();
 const mockRecordPrompt = jest.fn();
 const mockLoadStoreReview = jest.fn();
 const mockBreadcrumb = jest.fn();
+let mockUser: { id: string } | null = { id: "user-1" };
 
 jest.mock("#/utils/storage", () => ({
   storage: {
@@ -22,6 +23,14 @@ jest.mock("#/lib/orpc", () => ({
   },
 }));
 
+jest.mock("#/state/auth", () => ({
+  authState: {
+    get user() {
+      return mockUser;
+    },
+  },
+}));
+
 jest.mock("../storeReview", () => ({
   loadStoreReview: () => mockLoadStoreReview(),
 }));
@@ -31,7 +40,7 @@ jest.mock("@sentry/react-native", () => ({
 }));
 
 const DAY = 24 * 60 * 60 * 1000;
-const PROMPTED_KEY = "review.promptedAt";
+const PROMPTED_KEY = "review.promptedAt.user-1";
 
 const requestReview = jest.fn();
 const hasAction = jest.fn();
@@ -60,6 +69,7 @@ beforeEach(() => {
   mockStore.clear();
   jest.clearAllMocks();
   appState = "active";
+  mockUser = { id: "user-1" };
   Object.defineProperty(AppState, "currentState", {
     configurable: true,
     get: () => appState,
@@ -126,6 +136,41 @@ describe("maybeRequestReview", () => {
 
     expect(mockRecordPrompt).not.toHaveBeenCalled();
     expect(requestReview).not.toHaveBeenCalled();
+  });
+
+  it("skips when nobody is signed in, without asking the server", async () => {
+    mockUser = null;
+    const { maybeRequestReview } = load();
+
+    await run(maybeRequestReview);
+
+    expect(mockRecordPrompt).not.toHaveBeenCalled();
+    expect(requestReview).not.toHaveBeenCalled();
+  });
+
+  it("does not let one account's stamp block another on the same device", async () => {
+    mockStore.set("review.promptedAt.user-1", Date.now() - 5 * DAY);
+    mockUser = { id: "user-2" };
+    const { maybeRequestReview } = load();
+
+    await run(maybeRequestReview);
+
+    expect(requestReview).toHaveBeenCalledTimes(1);
+    expect(mockStore.get("review.promptedAt.user-2")).toBeGreaterThan(0);
+  });
+
+  it("mirrors the server's own timestamp when it reports a cooldown", async () => {
+    const promptedAt = Date.now() - 80 * DAY;
+    mockRecordPrompt.mockResolvedValue({
+      won: false,
+      reason: "cooldown",
+      promptedAt: new Date(promptedAt).toISOString(),
+    });
+    const { maybeRequestReview } = load();
+
+    await run(maybeRequestReview);
+
+    expect(mockStore.get(PROMPTED_KEY)).toBe(promptedAt);
   });
 
   it("goes ahead when the local stamp is older than 90 days", async () => {

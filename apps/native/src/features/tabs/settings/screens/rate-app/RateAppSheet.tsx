@@ -1,7 +1,7 @@
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import NetInfo from "@react-native-community/netinfo";
 import { BottomSheet } from "heroui-native/bottom-sheet";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -167,15 +167,30 @@ export function RateAppSheet({
     }
   };
 
+  // A second tap while the first is still checking the connection would open
+  // the store twice.
+  const opening = useRef(false);
+
   const onStorePress = async () => {
-    const connection = await NetInfo.fetch();
-    if (!isOnline(connection)) {
-      setNotice("offline");
+    if (opening.current) {
       return;
     }
-    const opened = await openStoreReviewPage();
-    if (!opened) {
+    opening.current = true;
+    try {
+      const connection = await NetInfo.fetch();
+      if (!isOnline(connection)) {
+        setNotice("offline");
+        return;
+      }
+      const opened = await openStoreReviewPage();
+      if (!opened) {
+        setNotice("unavailable");
+      }
+    } catch {
+      // A failed connection check is not a reason to crash a button press.
       setNotice("unavailable");
+    } finally {
+      opening.current = false;
     }
   };
 

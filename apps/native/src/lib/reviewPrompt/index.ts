@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react-native";
 import { AppState } from "react-native";
 
 import { client } from "#/lib/orpc";
+import { authState } from "#/state/auth";
 import { storage } from "#/utils/storage";
 
 import { loadStoreReview } from "./storeReview";
@@ -10,7 +11,11 @@ export { openStoreReviewPage } from "./storeLink";
 
 export type ReviewTrigger = "PRIZE_CLAIMED" | "PRIZE_DELIVERED" | "LOYAL_USER";
 
-const PROMPTED_AT_KEY = "review.promptedAt";
+/**
+ * Per account, not per device: on a shared phone the second person to sign in
+ * would otherwise inherit the first one's cap and never be asked.
+ */
+const promptedAtKey = (userId: string) => `review.promptedAt.${userId}`;
 const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
@@ -66,7 +71,13 @@ export async function maybeRequestReview(
       return skipped(trigger, "inactive");
     }
 
-    const lastPromptedAt = storage.getNumber(PROMPTED_AT_KEY);
+    const userId = authState.user?.id;
+    if (!userId) {
+      return skipped(trigger, "signed_out");
+    }
+    const key = promptedAtKey(userId);
+
+    const lastPromptedAt = storage.getNumber(key);
     if (
       lastPromptedAt !== undefined &&
       Date.now() - lastPromptedAt < COOLDOWN_MS
@@ -93,12 +104,15 @@ export async function maybeRequestReview(
       // Only a cooldown means the user was prompted recently. "Not loyal yet"
       // and "switched off" must not use up the local cap.
       if (result.reason === "cooldown") {
-        storage.set(PROMPTED_AT_KEY, Date.now());
+        // Mirror the server's own date so the local cap ends when the real one
+        // does, not 90 days after we happened to find out.
+        const serverDate = Date.parse(result.promptedAt);
+        storage.set(key, Number.isNaN(serverDate) ? Date.now() : serverDate);
       }
       return skipped(trigger, result.reason);
     }
 
-    storage.set(PROMPTED_AT_KEY, Date.now());
+    storage.set(key, Date.now());
     await storeReview.requestReview();
   } catch (error) {
     Sentry.addBreadcrumb({

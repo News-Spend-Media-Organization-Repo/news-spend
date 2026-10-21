@@ -37,7 +37,12 @@ const RecordPromptInput = z.object({ trigger: z.enum(REVIEW_TRIGGERS) });
 
 type RecordPromptResult =
   | { won: true }
-  | { won: false; reason: "disabled" | "cooldown" | "not_loyal" };
+  /**
+   * `promptedAt` is when this user was last prompted, so the app can mirror the
+   * real date instead of guessing "now" and over-extending its own cap.
+   */
+  | { won: false; reason: "cooldown"; promptedAt: string }
+  | { won: false; reason: "disabled" | "not_loyal" };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -71,7 +76,11 @@ const recordPrompt = protectedNoGuestProcedure
 
     const promptedAt = capRows[0]?.review_prompted_at;
     if (promptedAt && new Date(promptedAt) > cooldownCutoff(now)) {
-      return { won: false, reason: "cooldown" };
+      return {
+        won: false,
+        reason: "cooldown",
+        promptedAt: new Date(promptedAt).toISOString(),
+      };
     }
 
     // The engagement scan only runs for this trigger, and only once the cap has
@@ -115,9 +124,11 @@ const recordPrompt = protectedNoGuestProcedure
       RETURNING id
     `);
 
+    // Losing the update means another device claimed the slot a moment ago, so
+    // "now" is the closest honest answer.
     return claimed.length > 0
       ? { won: true }
-      : { won: false, reason: "cooldown" };
+      : { won: false, reason: "cooldown", promptedAt: now.toISOString() };
   });
 
 export const reviewRouter = {

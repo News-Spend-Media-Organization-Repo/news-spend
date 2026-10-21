@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -232,6 +233,52 @@ describe("RateAppSheet", () => {
     expect(
       await screen.findByText("We couldn't open the store right now.")
     ).toBeTruthy();
+  });
+
+  it("opens the store once when the button is tapped twice in a row", async () => {
+    let release: () => void = () => {};
+    mockNetInfoFetch.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve({ isConnected: true, isInternetReachable: true });
+        })
+    );
+    await renderSheet();
+
+    const button = screen.getByText("Rate on Google Play");
+    // The first press is still waiting on the connection check when the
+    // second arrives; only then is the check allowed to finish.
+    await act(async () => {
+      const first = fireEvent.press(button);
+      const second = fireEvent.press(button);
+      release();
+      await Promise.all([first, second]);
+    });
+
+    expect(mockNetInfoFetch).toHaveBeenCalledTimes(1);
+    expect(mockOpenStoreReviewPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("can open the store again after the first attempt has finished", async () => {
+    await renderSheet();
+
+    await fireEvent.press(screen.getByText("Rate on Google Play"));
+    await fireEvent.press(screen.getByText("Rate on Google Play"));
+
+    expect(mockOpenStoreReviewPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the friendly message when the connection check itself fails", async () => {
+    mockNetInfoFetch.mockRejectedValue(new Error("native module unavailable"));
+    await renderSheet();
+
+    await fireEvent.press(screen.getByText("Rate on Google Play"));
+
+    expect(
+      await screen.findByText("We couldn't open the store right now.")
+    ).toBeTruthy();
+    expect(mockOpenStoreReviewPage).not.toHaveBeenCalled();
   });
 
   it("sends feedback to the team and closes", async () => {
