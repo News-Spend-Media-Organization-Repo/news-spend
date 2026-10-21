@@ -973,6 +973,101 @@ describe("partnerConversionRouter.trackClick: REQUIRE_TAP_SURFACE", () => {
   });
 });
 
+describe("partnerConversionRouter.trackClick: counting surface-less taps", () => {
+  const original = process.env.REQUIRE_TAP_SURFACE;
+  afterEach(() => {
+    if (original === undefined) {
+      delete process.env.REQUIRE_TAP_SURFACE;
+    } else {
+      process.env.REQUIRE_TAP_SURFACE = original;
+    }
+  });
+
+  const setup = () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          partnerContent({
+            id: "pc1",
+            points: 50,
+            partner: "p1",
+            placements: ["points-mall-apps", "news-click-ads"],
+          }),
+        ],
+        partners: [partner({ awardOnClick: true })],
+        "partner-conversions": [],
+        activities: [],
+        giveaways: [],
+        "giveaway-engagements": [],
+      },
+    });
+    const logged: unknown[][] = [];
+    payload.logger.info = ((...args: unknown[]) => {
+      logged.push(args);
+    }) as never;
+    return { payload, logged };
+  };
+
+  const tap = (
+    payload: ReturnType<typeof setup>["payload"],
+    input: Doc = {},
+    headers?: Headers
+  ) =>
+    call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1", ...input } as never,
+      {
+        context: mockContext({
+          payload,
+          user: { id: "user-1" } as never,
+          headers,
+        }),
+      }
+    );
+
+  it("logs a tap that arrives without a surface, with the app version", async () => {
+    delete process.env.REQUIRE_TAP_SURFACE;
+    const { payload, logged } = setup();
+    await tap(payload, {}, new Headers({ "x-app-version": "2.6.0" }));
+
+    expect(logged).toHaveLength(1);
+    const [fields, message] = logged[0] ?? [];
+    expect(fields).toEqual({
+      event: "tap_without_surface",
+      appVersion: "2.6.0",
+      enforced: false,
+      partnerContentId: "pc1",
+    });
+    expect(message).toBe("[partner] tap arrived without a surface");
+  });
+
+  it("logs a null app version when the request carried none, and whether the switch was on", async () => {
+    process.env.REQUIRE_TAP_SURFACE = "true";
+    const { payload, logged } = setup();
+    await tap(payload);
+
+    expect(logged).toHaveLength(1);
+    expect(logged[0]?.[0]).toEqual({
+      event: "tap_without_surface",
+      appVersion: null,
+      enforced: true,
+      partnerContentId: "pc1",
+    });
+  });
+
+  it("logs nothing for a tap that names a surface", async () => {
+    const { payload, logged } = setup();
+    await tap(payload, { surface: "points-mall-apps" });
+    expect(logged).toHaveLength(0);
+  });
+
+  it("never puts the user in the log line", async () => {
+    const { payload, logged } = setup();
+    await tap(payload);
+    expect(JSON.stringify(logged)).not.toContain("user-1");
+  });
+});
+
 describe("partnerConversionRouter.webhook: surface and one-time settlement", () => {
   const CLICK = "clk_abc1234567890123";
   const run = (

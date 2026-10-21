@@ -12,6 +12,7 @@ import type { BasePayload } from "payload";
 import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
+import { APP_VERSION_HEADER } from "../lib/appVersion";
 import { claimConversion } from "../lib/claimConversion";
 import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
 import { recordPostback } from "../lib/postbackLog";
@@ -83,6 +84,22 @@ export const trackClick = protectedNoGuestProcedure
     // owner has switched that on; otherwise it keeps its legacy null.
     const surface =
       input.surface ?? (requireTapSurface() ? MISSING_TAP_SURFACE : undefined);
+
+    // The data for deciding when the legacy "no surface" behaviour can go: how
+    // many taps still arrive without one, and from which app versions (null =
+    // a build that predates the version header). Search the logs for
+    // `tap_without_surface`. Deliberately carries no user or click id.
+    if (input.surface === undefined) {
+      payload.logger.info(
+        {
+          event: "tap_without_surface",
+          appVersion: context.headers?.get(APP_VERSION_HEADER) ?? null,
+          enforced: requireTapSurface(),
+          partnerContentId: input.partnerContentId,
+        },
+        "[partner] tap arrived without a surface"
+      );
+    }
 
     // Create conversion record
     const created = await payload.create({
