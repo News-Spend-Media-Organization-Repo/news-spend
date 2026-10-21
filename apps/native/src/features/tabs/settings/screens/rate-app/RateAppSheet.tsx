@@ -1,3 +1,4 @@
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 import NetInfo from "@react-native-community/netinfo";
 import { BottomSheet } from "heroui-native/bottom-sheet";
 import { useEffect, useState } from "react";
@@ -13,20 +14,25 @@ import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import {
+  ArrowSquareOutIcon,
+  ChatDotsIcon,
   HeartIcon,
   SmileyIcon,
   SmileyMehIcon,
   SmileySadIcon,
+  SparkleIcon,
   StarIcon,
 } from "#/lib/icons";
 import { openStoreReviewPage } from "#/lib/reviewPrompt/storeLink";
 import { isOnline } from "#/utils/networkState";
 
+import { Confetti } from "./Confetti";
 import {
   type Mood,
   RATINGS,
   type Rating,
   ratingContent,
+  TONE_COLORS,
 } from "./ratingContent";
 
 type RateAppSheetProps = {
@@ -38,12 +44,18 @@ type RateAppSheetProps = {
 
 type Notice = "offline" | "unavailable" | null;
 
+const NAVY = "#00223d";
+const STAR_ON = "#FFB800";
+const STAR_OFF = "#CBD5E1";
+
 const MOOD_ICON = {
   sad: SmileySadIcon,
   meh: SmileyMehIcon,
   happy: SmileyIcon,
   love: HeartIcon,
 } as const satisfies Record<Mood, unknown>;
+
+const BEFORE_RATING = { tile: "#F1F5F9", icon: "#F5B301" };
 
 function Star({
   rating,
@@ -80,13 +92,42 @@ function Star({
       <Animated.View style={style}>
         {/* Filled vs outlined, so selection is not carried by colour alone. */}
         <Icon
-          color={filled ? "#F5B301" : undefined}
+          color={filled ? STAR_ON : STAR_OFF}
           name={StarIcon}
-          size={34}
+          size={38}
           weight={filled ? "fill" : "regular"}
         />
       </Animated.View>
     </Pressable>
+  );
+}
+
+function ActionButton({
+  label,
+  leading,
+  trailing,
+  primary,
+  onPress,
+}: {
+  label: string;
+  leading: React.ComponentProps<typeof Icon>["name"];
+  trailing?: React.ComponentProps<typeof Icon>["name"];
+  primary: boolean;
+  onPress: () => void;
+}) {
+  const color = primary ? "#FFFFFF" : NAVY;
+  return (
+    <Button
+      className="h-14 w-full rounded-2xl"
+      onPress={onPress}
+      variant={primary ? "primary" : "secondary"}
+    >
+      <Icon color={color} name={leading} size={20} />
+      <Button.Label className="font-semibold uppercase tracking-wide">
+        {label}
+      </Button.Label>
+      {trailing ? <Icon color={color} name={trailing} size={18} /> : null}
+    </Button>
   );
 }
 
@@ -98,7 +139,9 @@ function Star({
  * in the OS review dialog, which Apple and Google may decline to show.
  *
  * The stars are a reaction on screen and nothing more: they are never stored
- * or sent, and every rating, including one star, gets the same store button.
+ * or sent. They change what is emphasised, never what is available: a low
+ * rating leads with feedback, but the store page stays one tap away, because
+ * keeping unhappy users off the public review page is review gating.
  * Nothing here offers or implies a reward.
  */
 export function RateAppSheet({
@@ -107,6 +150,7 @@ export function RateAppSheet({
   onSendFeedback,
 }: RateAppSheetProps) {
   const [rating, setRating] = useState<Rating | null>(null);
+  const [burst, setBurst] = useState(0);
   const [notice, setNotice] = useState<Notice>(null);
 
   useEffect(() => {
@@ -115,6 +159,13 @@ export function RateAppSheet({
       setNotice(null);
     }
   }, [isOpen]);
+
+  const onStar = (next: Rating) => {
+    setRating(next);
+    if (next === 5) {
+      setBurst((n) => n + 1);
+    }
+  };
 
   const onStorePress = async () => {
     const connection = await NetInfo.fetch();
@@ -133,10 +184,34 @@ export function RateAppSheet({
     onSendFeedback();
   };
 
-  const storeLabel =
-    Platform.OS === "ios" ? "Rate on the App Store" : "Rate on Google Play";
   const content = rating ? ratingContent(rating) : null;
-  const MoodIcon = content ? MOOD_ICON[content.mood] : null;
+  const colors = content ? TONE_COLORS[content.tone] : BEFORE_RATING;
+  const TileIcon = content ? MOOD_ICON[content.mood] : SparkleIcon;
+
+  // Who leads. Never who is shown.
+  const leadWith = rating === null ? null : rating >= 4 ? "store" : "feedback";
+
+  const storeButton = (
+    <ActionButton
+      key="store"
+      label={
+        Platform.OS === "ios" ? "Rate on the App Store" : "Rate on Google Play"
+      }
+      leading={StarIcon}
+      onPress={onStorePress}
+      primary={leadWith === "store"}
+      trailing={ArrowSquareOutIcon}
+    />
+  );
+  const feedbackButton = (
+    <ActionButton
+      key="feedback"
+      label={leadWith === "feedback" ? "Send direct feedback" : "Send feedback"}
+      leading={ChatDotsIcon}
+      onPress={onFeedbackPress}
+      primary={leadWith === "feedback"}
+    />
+  );
 
   return (
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -144,85 +219,87 @@ export function RateAppSheet({
       <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
         <BottomSheet.Overlay />
         <BottomSheet.Content
-          enableDynamicSizing={false}
+          contentContainerClassName="pb-safe"
+          enableDynamicSizing
           enableOverDrag={false}
-          snapPoints={["62%"]}
         >
-          <View className="items-center gap-3 px-4 pb-8">
-            {MoodIcon ? (
-              <Icon
-                color="#00223d"
-                name={MoodIcon}
-                size={56}
-                weight="duotone"
-              />
-            ) : (
-              <Icon
-                color="#00223d"
-                name={StarIcon}
-                size={56}
-                weight="duotone"
-              />
-            )}
+          <BottomSheetView>
+            <View className="items-center gap-6 px-6 pt-6 pb-4">
+              {rating === 5 ? <Confetti key={burst} /> : null}
 
-            <BottomSheet.Title className="text-center font-semibold text-lg">
-              {content ? content.title : "Rate your NewsSpend experience"}
-            </BottomSheet.Title>
-            <Text className="text-center text-secondary text-sm">
-              {content
-                ? content.subtitle
-                : "Your feedback helps us make NewsSpend better."}
-            </Text>
-
-            <View className="flex-row items-center justify-center">
-              {RATINGS.map((n) => (
-                <Star
-                  filled={rating !== null && n <= rating}
-                  key={n}
-                  onPress={setRating}
-                  rating={n}
+              <View
+                className="h-24 w-24 items-center justify-center"
+                style={{ backgroundColor: colors.tile, borderRadius: 28 }}
+              >
+                <Icon
+                  color={colors.icon}
+                  name={TileIcon}
+                  size={52}
+                  weight={content?.mood === "love" ? "fill" : "regular"}
                 />
-              ))}
-            </View>
+              </View>
 
-            {notice ? (
-              <View className="w-full items-center gap-3 pt-2">
-                <Text className="font-semibold text-base">
-                  {notice === "offline"
-                    ? "You're offline"
-                    : "We couldn't open the store right now."}
+              <View className="items-center gap-2">
+                <BottomSheet.Title className="text-center font-bold text-xl">
+                  {content ? content.title : "Rate your NewsSpend experience"}
+                </BottomSheet.Title>
+                <Text className="text-center text-base text-secondary">
+                  {content
+                    ? content.subtitle
+                    : "Your feedback helps us make NewsSpend better."}
                 </Text>
-                <Text className="text-center text-secondary text-sm">
-                  {notice === "offline"
-                    ? "Connect to the internet and try again to rate NewsSpend."
-                    : "Please try again in a little while."}
-                </Text>
-                <Button className="w-full" onPress={() => setNotice(null)}>
-                  <Button.Label>OK</Button.Label>
-                </Button>
               </View>
-            ) : (
-              <View className="w-full gap-2 pt-2">
-                <Button className="w-full" onPress={onStorePress}>
-                  <Button.Label>{storeLabel}</Button.Label>
-                </Button>
-                <Button
-                  className="w-full"
-                  onPress={onFeedbackPress}
-                  variant="secondary"
-                >
-                  <Button.Label>Send feedback</Button.Label>
-                </Button>
-                <Button
-                  className="w-full"
-                  onPress={() => onOpenChange(false)}
-                  variant="ghost"
-                >
-                  <Button.Label>Not now</Button.Label>
-                </Button>
+
+              <View className="flex-row items-center justify-center gap-1">
+                {RATINGS.map((n) => (
+                  <Star
+                    filled={rating !== null && n <= rating}
+                    key={n}
+                    onPress={onStar}
+                    rating={n}
+                  />
+                ))}
               </View>
-            )}
-          </View>
+
+              {notice ? (
+                <View className="w-full items-center gap-3">
+                  <Text className="font-semibold text-base">
+                    {notice === "offline"
+                      ? "You're offline"
+                      : "We couldn't open the store right now."}
+                  </Text>
+                  <Text className="text-center text-secondary text-sm">
+                    {notice === "offline"
+                      ? "Connect to the internet and try again to rate NewsSpend."
+                      : "Please try again in a little while."}
+                  </Text>
+                  <Button
+                    className="h-14 w-full rounded-2xl"
+                    onPress={() => setNotice(null)}
+                  >
+                    <Button.Label className="font-semibold uppercase tracking-wide">
+                      OK
+                    </Button.Label>
+                  </Button>
+                </View>
+              ) : (
+                <View className="w-full gap-3">
+                  {leadWith === "feedback"
+                    ? [feedbackButton, storeButton]
+                    : [storeButton, feedbackButton]}
+                  <Button
+                    className="h-12 w-full"
+                    onPress={() => onOpenChange(false)}
+                    variant="ghost"
+                  >
+                    <Button.Label className="text-secondary">
+                      Not now
+                    </Button.Label>
+                  </Button>
+                </View>
+              )}
+            </View>
+          </BottomSheetView>
         </BottomSheet.Content>
       </BottomSheet.Portal>
     </BottomSheet>

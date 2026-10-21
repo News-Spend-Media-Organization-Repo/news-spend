@@ -1,5 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Platform } from "react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
+import { AccessibilityInfo, Platform } from "react-native";
 
 const mockOpenStoreReviewPage = jest.fn();
 const mockNetInfoFetch = jest.fn();
@@ -12,6 +17,11 @@ jest.mock("@react-native-community/netinfo", () => ({
   __esModule: true,
   default: { fetch: (...args: unknown[]) => mockNetInfoFetch(...args) },
 }));
+
+jest.mock("@gorhom/bottom-sheet", () => {
+  const { View } = require("react-native");
+  return { BottomSheetView: ({ children }: any) => <View>{children}</View> };
+});
 
 jest.mock("heroui-native/bottom-sheet", () => {
   const { View, Text } = require("react-native");
@@ -40,14 +50,9 @@ jest.mock("#/components/heroui/text", () => {
   return { Text };
 });
 
-/** Renders the weight so a test can tell a filled star from an outlined one. */
 jest.mock("#/components/heroui/icon", () => {
   const { View } = require("react-native");
-  return {
-    Icon: ({ weight }: { weight?: string }) => (
-      <View testID={`icon-${weight ?? "regular"}`} />
-    ),
-  };
+  return { Icon: () => <View /> };
 });
 
 import { RateAppSheet } from "../RateAppSheet";
@@ -59,6 +64,8 @@ const setPlatform = (os: "ios" | "android") => {
 const onOpenChange = jest.fn();
 const onSendFeedback = jest.fn();
 
+const STAR_LABELS = ["1 star", "2 stars", "3 stars", "4 stars", "5 stars"];
+
 const renderSheet = () =>
   render(
     <RateAppSheet
@@ -68,7 +75,16 @@ const renderSheet = () =>
     />
   );
 
-const filledStars = () => screen.queryAllByTestId("icon-fill").length;
+/** A star is filled exactly when it reports itself selected. */
+const filledStars = () =>
+  STAR_LABELS.filter(
+    (label) => screen.getByLabelText(label).props.accessibilityState?.selected
+  ).length;
+
+const tapStar = (n: number) =>
+  fireEvent.press(screen.getByLabelText(STAR_LABELS[n - 1] as string));
+
+const rendered = () => JSON.stringify(screen.toJSON());
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -78,6 +94,9 @@ beforeEach(() => {
     isConnected: true,
     isInternetReachable: true,
   });
+  jest
+    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+    .mockResolvedValue(false);
 });
 
 describe("RateAppSheet", () => {
@@ -91,13 +110,7 @@ describe("RateAppSheet", () => {
   it("gives every star an accessible label", async () => {
     await renderSheet();
 
-    for (const label of [
-      "1 star",
-      "2 stars",
-      "3 stars",
-      "4 stars",
-      "5 stars",
-    ]) {
+    for (const label of STAR_LABELS) {
       expect(screen.getByLabelText(label)).toBeTruthy();
     }
   });
@@ -107,9 +120,7 @@ describe("RateAppSheet", () => {
   ])("fills stars 1 through %i when star %i is tapped", async (n) => {
     await renderSheet();
 
-    await fireEvent.press(
-      screen.getByLabelText(n === 1 ? "1 star" : `${n} stars`)
-    );
+    await tapStar(n);
 
     expect(filledStars()).toBe(n);
   });
@@ -117,10 +128,10 @@ describe("RateAppSheet", () => {
   it("changes the message with the rating", async () => {
     await renderSheet();
 
-    await fireEvent.press(screen.getByLabelText("3 stars"));
+    await tapStar(3);
     expect(screen.getByText("Thanks for your feedback.")).toBeTruthy();
 
-    await fireEvent.press(screen.getByLabelText("5 stars"));
+    await tapStar(5);
     expect(screen.getByText("We love that you love NewsSpend!")).toBeTruthy();
   });
 
@@ -138,9 +149,44 @@ describe("RateAppSheet", () => {
     expect(screen.getByText("Rate on the App Store")).toBeTruthy();
   });
 
-  it("opens the store from a 1-star rating: the rating never gates it", async () => {
+  it.each([
+    0, 1, 2, 3, 4, 5,
+  ])("keeps the store button on screen at %i stars: a rating never removes it", async (n) => {
     await renderSheet();
-    await fireEvent.press(screen.getByLabelText("1 star"));
+    if (n > 0) {
+      await tapStar(n);
+    }
+
+    expect(screen.getByText("Rate on Google Play")).toBeTruthy();
+  });
+
+  it.each([
+    1, 2, 3,
+  ])("offers direct feedback first and the store second at %i stars", async (n) => {
+    await renderSheet();
+    await tapStar(n);
+
+    expect(screen.getByText("Send direct feedback")).toBeTruthy();
+    expect(rendered().indexOf("Send direct feedback")).toBeLessThan(
+      rendered().indexOf("Rate on Google Play")
+    );
+  });
+
+  it.each([
+    4, 5,
+  ])("offers the store first and feedback second at %i stars", async (n) => {
+    await renderSheet();
+    await tapStar(n);
+
+    expect(screen.getByText("Send feedback")).toBeTruthy();
+    expect(rendered().indexOf("Rate on Google Play")).toBeLessThan(
+      rendered().indexOf("Send feedback")
+    );
+  });
+
+  it("opens the store from a 1-star rating", async () => {
+    await renderSheet();
+    await tapStar(1);
 
     await fireEvent.press(screen.getByText("Rate on Google Play"));
 
@@ -205,20 +251,49 @@ describe("RateAppSheet", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  describe("confetti", () => {
+    it("plays at 5 stars", async () => {
+      await renderSheet();
+
+      await tapStar(5);
+
+      expect(await screen.findByTestId("confetti")).toBeTruthy();
+    });
+
+    it.each([0, 1, 2, 3, 4])("stays off at %i stars", async (n) => {
+      await renderSheet();
+      if (n > 0) {
+        await tapStar(n);
+      }
+
+      expect(screen.queryByTestId("confetti")).toBeNull();
+    });
+
+    it("stays off when the system asks for reduced motion", async () => {
+      jest
+        .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+        .mockResolvedValue(true);
+      await renderSheet();
+
+      await tapStar(5);
+      // Wait for the setting to have been read, so "off" is a decision and
+      // not just the state before the answer arrives.
+      await waitFor(() =>
+        expect(AccessibilityInfo.isReduceMotionEnabled).toHaveBeenCalled()
+      );
+
+      expect(screen.queryByTestId("confetti")).toBeNull();
+    });
+  });
+
   it("never mentions points, rewards or bonuses in any state", async () => {
     await renderSheet();
     const words = /\b(points?|earn|rewards?|bonus)\b/i;
-    expect(JSON.stringify(screen.toJSON())).not.toMatch(words);
+    expect(rendered()).not.toMatch(words);
 
-    for (const label of [
-      "1 star",
-      "2 stars",
-      "3 stars",
-      "4 stars",
-      "5 stars",
-    ]) {
+    for (const label of STAR_LABELS) {
       await fireEvent.press(screen.getByLabelText(label));
-      expect(JSON.stringify(screen.toJSON())).not.toMatch(words);
+      expect(rendered()).not.toMatch(words);
     }
   });
 });

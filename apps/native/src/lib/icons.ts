@@ -93,6 +93,7 @@ export { SkipForwardIcon } from "phosphor-react-native/src/icons/SkipForward";
 export { SmileyIcon } from "phosphor-react-native/src/icons/Smiley";
 export { SmileyMehIcon } from "phosphor-react-native/src/icons/SmileyMeh";
 export { SmileySadIcon } from "phosphor-react-native/src/icons/SmileySad";
+export { SparkleIcon } from "phosphor-react-native/src/icons/Sparkle";
 export { SpeakerHighIcon } from "phosphor-react-native/src/icons/SpeakerHigh";
 export { SpeakerSlashIcon } from "phosphor-react-native/src/icons/SpeakerSlash";
 export { SpeakerXIcon } from "phosphor-react-native/src/icons/SpeakerX";
