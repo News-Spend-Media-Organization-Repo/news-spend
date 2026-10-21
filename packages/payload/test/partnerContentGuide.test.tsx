@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { partnerContentGuideView } from "../src/components/PartnerContentGuide/tabs";
 import { PartnerContentGuideView } from "../src/components/PartnerContentGuide/views";
+import { entries } from "../src/components/WhatsNew/entries";
 import {
   ENGAGEMENT_PLACEMENTS,
   OFFER_PLACEMENTS,
@@ -121,5 +122,33 @@ describe("partner content guide tab", () => {
     );
     expect(out).toContain("Promo media items");
     expect(out).not.toContain("data-check=");
+  });
+
+  it("explains how partners see performance, staff only", async () => {
+    const out = html(await PartnerContentGuideView(propsFor(staff, baseItem)));
+    expect(out).toContain("How partners see performance");
+    expect(out).toContain("impressions");
+    expect(out).toContain("taps");
+    expect(out).toContain("tap-through");
+    expect(out).toContain("reported by the app");
+    expect(out).toContain("lag by up to about a minute");
+    expect(out).toContain("related-news card");
+    expect(out).toContain("banners inside articles");
+    expect(out).toContain("Discover lists");
+    expect(out).toContain("clicks sent to the partner");
+
+    const denied = html(
+      await PartnerContentGuideView(propsFor(partnerUser, baseItem))
+    );
+    expect(denied).not.toContain("How partners see performance");
+  });
+
+  it("has a What's new entry for partner performance", () => {
+    const entry = entries.find(
+      (e) => e.id === "2026-10-21-partner-performance"
+    );
+    expect(entry?.date).toBe("2026-10-21");
+    const changed = entry?.sections.find((s) => s.heading === "Changed");
+    expect(changed?.items.join(" ")).toContain("article impressions");
   });
 });

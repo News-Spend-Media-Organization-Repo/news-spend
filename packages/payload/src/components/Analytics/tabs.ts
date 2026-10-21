@@ -59,6 +59,13 @@ export const pointsPageView = {
   exact: true as const,
 };
 
+/** Partner impressions and taps for every partner, staff only. */
+export const partnerEventsPageView = {
+  Component: `${PATH}#PartnerEventsPageView`,
+  path: "/analytics/partners-events" as const,
+  exact: true as const,
+};
+
 /** Activation and device retention, from the News | Points | Retention switch. */
 export const retentionPageView = {
   Component: `${PATH}#RetentionPageView`,
@@ -78,6 +85,7 @@ export const analyticsViews = {
   analytics: analyticsPageView,
   analyticsPoints: pointsPageView,
   analyticsRetention: retentionPageView,
+  analyticsPartnerEvents: partnerEventsPageView,
   surveyPerformance: surveyPerformanceView,
 };
 

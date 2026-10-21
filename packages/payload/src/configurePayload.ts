@@ -52,6 +52,7 @@ import {
   NotificationInbox,
   Notifications,
   PartnerContent,
+  PartnerContentEvents,
   PartnerConversions,
   PartnerPostbacks,
   Partners,
@@ -95,6 +96,7 @@ import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processGiveawayTask } from "./tasks/processGiveaway";
 import { pruneNewsAnalyticsTask } from "./tasks/pruneNewsAnalytics";
+import { prunePartnerContentEventsTask } from "./tasks/prunePartnerContentEvents";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
@@ -212,6 +214,7 @@ const baseConfig: Config = {
     NotificationInbox,
     Notifications,
     PartnerContent,
+    PartnerContentEvents,
     PartnerConversions,
     PartnerPostbacks,
     Partners,
@@ -240,6 +243,7 @@ const baseConfig: Config = {
       processGiveawayTask,
       cleanupAnonymousUsersTask,
       pruneNewsAnalyticsTask,
+      prunePartnerContentEventsTask,
       generateVideoThumbnailTask,
       deleteVideoThumbTempTask,
     ],

@@ -37,6 +37,7 @@ export {
 } from "./NotificationInbox";
 export { default as Notifications } from "./Notifications";
 export { PartnerContent } from "./PartnerContent";
+export { PartnerContentEvents } from "./PartnerContentEvents";
 export { PartnerConversions } from "./PartnerConversions";
 export { default as PartnerPostbacks } from "./PartnerPostbacks";
 export { Partners } from "./Partners";

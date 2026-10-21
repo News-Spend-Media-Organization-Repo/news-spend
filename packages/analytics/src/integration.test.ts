@@ -30,7 +30,14 @@ import {
   newsTopCategories,
 } from "./news";
 import {
+  OUTLIER_MIN_SESSIONS,
+  OUTLIER_TAP_THROUGH,
   partnerDaily,
+  partnerEventsByItem,
+  partnerEventsByPartner,
+  partnerEventsDaily,
+  partnerEventsOutliers,
+  partnerEventsSummary,
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
@@ -132,6 +139,17 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         partner_id uuid NOT NULL, click_id varchar NOT NULL,
         outcome enum_partner_postbacks_outcome NOT NULL, reason varchar,
         received_at timestamptz NOT NULL);
+      CREATE TYPE enum_partner_content_events_event AS ENUM('impression','click');
+      CREATE TYPE enum_partner_content_events_platform AS ENUM('android','ios','web');
+      CREATE TABLE partner_content_events (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        content_id uuid NOT NULL, partner_id uuid NOT NULL,
+        event enum_partner_content_events_event NOT NULL,
+        surface varchar NOT NULL, position numeric,
+        user_id varchar, session_id varchar NOT NULL, device_id varchar NOT NULL,
+        platform enum_partner_content_events_platform,
+        timestamp timestamptz NOT NULL, received_at timestamptz,
+        event_id varchar, dedupe_key varchar);
       CREATE TABLE shop_analytics (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         store_id uuid, type enum_shop_analytics_type NOT NULL, timestamp timestamptz NOT NULL);
@@ -1781,6 +1799,310 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       ).toEqual({
         current: { wau: 0, mau: 0, avgDau30: 0, stickiness: null },
         previous: { wau: 0, mau: 0, avgDau30: 0, stickiness: null },
+      });
+    });
+  });
+
+  describe("partner impressions and taps", () => {
+    const C1 = "c1000000-0000-4000-8000-000000000001";
+    const C2 = "c1000000-0000-4000-8000-000000000002";
+    const C3 = "c1000000-0000-4000-8000-000000000003";
+    const C4 = "c1000000-0000-4000-8000-000000000004";
+    const C5 = "c1000000-0000-4000-8000-000000000005";
+    const C6 = "c1000000-0000-4000-8000-000000000006";
+    const C7 = "c1000000-0000-4000-8000-000000000007";
+    const C8 = "c1000000-0000-4000-8000-000000000008";
+    const C9 = "c1000000-0000-4000-8000-000000000009";
+    const C10 = "c1000000-0000-4000-8000-000000000010";
+    const C11 = "c1000000-0000-4000-8000-000000000011";
+    const NONE = "c1000000-0000-4000-8000-0000000000ff";
+
+    // One statement per batch of events: `n` sessions s<from>..s<to>, each
+    // doing `event` once on `surface` at `at`.
+    const events = (
+      content: string,
+      partner: string,
+      event: "impression" | "click",
+      surface: string,
+      at: string,
+      sessions: [number, number],
+      prefix = "s"
+    ) =>
+      `INSERT INTO partner_content_events (content_id, partner_id, event, surface, session_id, device_id, user_id, timestamp)
+       SELECT '${content}', '${partner}', '${event}', '${surface}', '${prefix}' || g, 'dev-' || g, 'user-' || g, '${at}'::timestamptz
+       FROM generate_series(${sessions[0]}, ${sessions[1]}) g;`;
+
+    beforeAll(async () => {
+      const at = "2026-09-15T12:00:00Z";
+      await conn.unsafe(`
+        INSERT INTO partner_content VALUES
+          ('${C2}', 'Flash sale'), ('${C3}', 'Click only'), ('${C4}', 'Hot item'),
+          ('${C5}', 'Exactly half'), ('${C6}', 'Small sample'), ('${C7}', 'Other partner'),
+          ('${C8}', 'Just over'), ('${C9}', 'Just half'), ('${C10}', 'Split periods'), ('${C11}', 'Barely over');
+
+        -- C1 on the carousel: 10 impressions over 8 sessions, 3 taps from 2 of them.
+        ${events(C1, P1, "impression", "carousel", at, [1, 8])}
+        ${events(C1, P1, "impression", "carousel", at, [1, 2])}
+        ${events(C1, P1, "click", "carousel", at, [1, 2])}
+        ${events(C1, P1, "click", "carousel", at, [1, 1])}
+        -- C1 on the feed: a second surface for the same item.
+        ${events(C1, P1, "impression", "feed", "2026-09-16T12:00:00Z", [1, 2])}
+        ${events(C1, P1, "click", "feed", "2026-09-16T12:00:00Z", [1, 1])}
+        -- C1 in the previous period.
+        ${events(C1, P1, "impression", "carousel", "2026-09-10T12:00:00Z", [1, 4])}
+        ${events(C1, P1, "click", "carousel", "2026-09-10T12:00:00Z", [1, 1])}
+        -- C2: a tap from a session that never saw it, and one that did not tap.
+        ${events(C2, P1, "impression", "carousel", at, [1, 2])}
+        ${events(C2, P1, "click", "carousel", at, [9, 9], "ghost")}
+        -- C3: a tap and no impression at all.
+        ${events(C3, P1, "click", "carousel", at, [1, 1])}
+        -- C4: 60 sessions seen, 40 tapped (66.7%). C5: 60 seen, 30 tapped (50%).
+        ${events(C4, P1, "impression", "carousel", at, [1, 60])}
+        ${events(C4, P1, "click", "carousel", at, [1, 40])}
+        ${events(C5, P1, "impression", "carousel", at, [1, 60])}
+        ${events(C5, P1, "click", "carousel", at, [1, 30])}
+        -- C6: every viewer tapped, but only 10 sessions.
+        ${events(C6, P1, "impression", "carousel", at, [1, 10])}
+        ${events(C6, P1, "click", "carousel", at, [1, 10])}
+        -- C8: 100 seen, 51 tapped (51%, flagged). C9: 100 seen, 50 tapped (50%, not).
+        ${events(C8, P1, "impression", "carousel", at, [1, 100])}
+        ${events(C8, P1, "click", "carousel", at, [1, 51])}
+        ${events(C9, P1, "impression", "carousel", at, [1, 100])}
+        ${events(C9, P1, "click", "carousel", at, [1, 50])}
+        -- C11: 4000 seen, 2001 tapped: 50.025%, flagged although it displays as 50.
+        ${events(C11, P1, "impression", "carousel", at, [1, 4000])}
+        ${events(C11, P1, "click", "carousel", at, [1, 2001])}
+        -- C10: seen on the 10th (previous period), tapped on the 15th (current).
+        ${events(C10, P1, "impression", "carousel", "2026-09-10T12:00:00Z", [1, 3])}
+        ${events(C10, P1, "click", "carousel", at, [1, 3])}
+        -- C7 belongs to the other partner: 50 sessions, 40 tapped.
+        ${events(C7, P2, "impression", "carousel", at, [1, 50])}
+        ${events(C7, P2, "click", "carousel", at, [1, 40])}
+      `);
+    });
+
+    it("counts impressions, taps and sessions, and tap-through from sessions", async () => {
+      const { current } = await partnerEventsSummary(db, partner1, {
+        range,
+        contentId: C1,
+      });
+
+      // carousel 10/3/8/2 plus feed 2/1/2/1: sessions are summed per surface.
+      expect(current).toEqual({
+        impressions: 12,
+        taps: 4,
+        sessionsSeen: 10,
+        sessionsTapped: 3,
+        tapThrough: 30,
+      });
+    });
+
+    it("gives 25 for 10 impressions, 3 taps, 8 sessions seen and 2 tapped", async () => {
+      const rows = await partnerEventsByItem(db, partner1, {
+        range,
+        contentId: C1,
+      });
+
+      expect(rows.find((r) => r.surface === "carousel")).toEqual({
+        contentId: C1,
+        title: "Weekend offer",
+        surface: "carousel",
+        impressions: 10,
+        taps: 3,
+        sessionsSeen: 8,
+        sessionsTapped: 2,
+        tapThrough: 25,
+      });
+    });
+
+    it("counts a tap from a session that never saw the item, but not as a tapped session", async () => {
+      const [row] = await partnerEventsByItem(db, partner1, {
+        range,
+        contentId: C2,
+      });
+
+      expect(row).toMatchObject({
+        impressions: 2,
+        taps: 1,
+        sessionsSeen: 2,
+        sessionsTapped: 0,
+        tapThrough: 0,
+      });
+    });
+
+    it("reports no tap-through, not NaN or 0, when nothing was seen", async () => {
+      const [row] = await partnerEventsByItem(db, partner1, {
+        range,
+        contentId: C3,
+      });
+      const none = await partnerEventsSummary(db, partner1, {
+        range,
+        contentId: NONE,
+      });
+
+      expect(row).toMatchObject({
+        impressions: 0,
+        taps: 1,
+        sessionsSeen: 0,
+        tapThrough: null,
+      });
+      expect(none.current.tapThrough).toBeNull();
+      expect(none.current.impressions).toBe(0);
+    });
+
+    it("gives an item on two surfaces two rows, most seen first", async () => {
+      const rows = await partnerEventsByItem(db, partner1, {
+        range,
+        contentId: C1,
+      });
+
+      expect(rows.map((r) => [r.surface, r.impressions])).toEqual([
+        ["carousel", 10],
+        ["feed", 2],
+      ]);
+    });
+
+    it("computes the previous period from the previous window", async () => {
+      const { current, previous } = await partnerEventsSummary(db, partner1, {
+        range,
+        contentId: C1,
+      });
+
+      expect(previous).toEqual({
+        impressions: 4,
+        taps: 1,
+        sessionsSeen: 4,
+        sessionsTapped: 1,
+        tapThrough: 25,
+      });
+      expect(current.impressions).toBe(12);
+    });
+
+    it("gives every surface a series of every day, with zeros on quiet days", async () => {
+      const days = await partnerEventsDaily(db, partner1, {
+        range,
+        contentId: C1,
+      });
+
+      expect(days).toHaveLength(14);
+      for (const surface of ["carousel", "feed"]) {
+        expect(days.filter((d) => d.surface === surface)).toHaveLength(7);
+      }
+      expect(
+        days.find((d) => d.surface === "carousel" && d.date === "2026-09-15")
+      ).toEqual({
+        date: "2026-09-15",
+        surface: "carousel",
+        impressions: 10,
+        taps: 3,
+      });
+      expect(
+        days.find((d) => d.surface === "carousel" && d.date === "2026-09-14")
+      ).toEqual({
+        date: "2026-09-14",
+        surface: "carousel",
+        impressions: 0,
+        taps: 0,
+      });
+      expect(
+        days.find((d) => d.surface === "feed" && d.date === "2026-09-16")
+      ).toMatchObject({ impressions: 2, taps: 1 });
+    });
+
+    it("returns no series when nothing happened", async () => {
+      expect(
+        await partnerEventsDaily(db, partner1, { range, contentId: NONE })
+      ).toEqual([]);
+    });
+
+    it("lists only items above the tap-through and session thresholds", async () => {
+      expect(OUTLIER_TAP_THROUGH).toBe(50);
+      expect(OUTLIER_MIN_SESSIONS).toBe(50);
+
+      const rows = await partnerEventsOutliers(db, staff, { range });
+
+      // C11 is 50.025%: above 50 as the ratio stands, shown as 50 once rounded.
+      // C8 (51% of 100), C4 (66.7% of 60) and C7 (80% of 50). C5 and C9 are
+      // exactly 50%, C6 has too few sessions, C1 and C2 are neither.
+      expect(
+        rows.map((r) => [r.contentId, r.sessionsSeen, r.tapThrough])
+      ).toEqual([
+        [C11, 4000, 50],
+        [C8, 100, 51],
+        [C4, 60, 66.7],
+        [C7, 50, 80],
+      ]);
+      expect(rows.find((r) => r.contentId === C4)).toMatchObject({
+        partnerId: P1,
+        title: "Hot item",
+      });
+    });
+
+    it("gives a partner nothing, and no error, for another partner's content id", async () => {
+      const opts = { range, contentId: C7 };
+
+      expect(await partnerEventsByItem(db, partner1, opts)).toEqual([]);
+      expect(await partnerEventsDaily(db, partner1, opts)).toEqual([]);
+      const { current } = await partnerEventsSummary(db, partner1, opts);
+      expect(current).toEqual({
+        impressions: 0,
+        taps: 0,
+        sessionsSeen: 0,
+        sessionsTapped: 0,
+        tapThrough: null,
+      });
+    });
+
+    it("does not count a tap as tapped when the impression was in the previous period", async () => {
+      const { current, previous } = await partnerEventsSummary(db, partner1, {
+        range,
+        contentId: C10,
+      });
+
+      expect(current).toMatchObject({
+        impressions: 0,
+        taps: 3,
+        sessionsSeen: 0,
+        sessionsTapped: 0,
+        tapThrough: null,
+      });
+      expect(previous).toMatchObject({
+        impressions: 3,
+        taps: 0,
+        sessionsSeen: 3,
+        sessionsTapped: 0,
+        tapThrough: 0,
+      });
+    });
+
+    it("never shows a partner another partner's rows", async () => {
+      const items = await partnerEventsByItem(db, partner1, { range });
+      const total = await partnerEventsSummary(db, partner1, { range });
+      const days = await partnerEventsDaily(db, partner1, { range });
+
+      expect(items.some((r) => r.contentId === C7)).toBe(false);
+      // C1 12 (10 carousel + 2 feed), C2 2, C4 60, C5 60, C6 10, C8 100, C9 100, C11 4000.
+      expect(total.current.impressions).toBe(4344);
+      expect(days.reduce((n, d) => n + d.impressions, 0)).toBe(4344);
+    });
+
+    it("gives staff every partner, or one by request", async () => {
+      const all = await partnerEventsByPartner(db, staff, { range });
+      const one = await partnerEventsSummary(db, staff, {
+        range,
+        partnerId: P2,
+      });
+
+      expect(
+        all.map((r) => [r.partnerId, r.companyName, r.impressions])
+      ).toEqual([
+        [P1, "Shopwise", 4344],
+        [P2, "FreshCart", 50],
+      ]);
+      expect(one.current).toMatchObject({
+        impressions: 50,
+        taps: 40,
+        tapThrough: 80,
       });
     });
   });

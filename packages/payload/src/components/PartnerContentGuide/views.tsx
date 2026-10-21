@@ -208,6 +208,36 @@ export async function PartnerContentGuideView(
           </table>
         </Panel>
 
+        <Block title="How partners see performance">
+          <p style={{ margin: 0 }}>
+            On their Performance tab a partner sees impressions, taps and
+            tap-through for each item, by surface and by day. Staff see every
+            partner together at /admin/analytics/partners-events.
+          </p>
+          <p style={{ margin: 0 }}>
+            An impression is counted when at least half of the item has been on
+            screen for a full second, once per item per surface per session. A
+            tap is counted every time, for everyone, guests included.
+            Tap-through is the share of sessions that saw an item on a surface
+            and tapped it.
+          </p>
+          <p style={{ margin: 0 }}>
+            At launch the numbers cover feed ad rows, promo media rows in the
+            feed, and the app-open ad. Not yet covered: the related-news card,
+            banners inside articles, and Discover lists.
+          </p>
+          <p style={{ margin: 0 }}>
+            All numbers are reported by the app, so a modified app can inflate
+            them. The staff page flags outliers. Numbers can lag by up to about
+            a minute behind what happens in the app, so a fresh impression may
+            not show straight away.
+          </p>
+          <p style={{ margin: 0 }}>
+            These taps are not the same as "clicks sent to the partner", because
+            they include guests and ad surfaces.
+          </p>
+        </Block>
+
         <Block title="1. Ad versus offer">
           <p style={{ margin: 0 }}>
             One item can be both. On Discover and Lucky App Wall it is an offer:

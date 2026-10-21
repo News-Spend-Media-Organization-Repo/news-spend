@@ -55,6 +55,7 @@ import { AdminErrorBoundary as AdminErrorBoundary_e5a9e14bdbe97e70ba60697217fe76
 import { AnalyticsPageView as AnalyticsPageView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { PointsPageView as PointsPageView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { RetentionPageView as RetentionPageView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
+import { PartnerEventsPageView as PartnerEventsPageView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { KpiWidget as KpiWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { FunnelWidget as FunnelWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { TopArticlesWidget as TopArticlesWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
@@ -129,6 +130,7 @@ export const importMap = {
   "@news-spend-media/payload/components/Analytics#AnalyticsPageView": AnalyticsPageView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#PointsPageView": PointsPageView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#RetentionPageView": RetentionPageView_bba5810d9f91b27f4c3b488ca576e350,
+  "@news-spend-media/payload/components/Analytics#PartnerEventsPageView": PartnerEventsPageView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/WhatsNew#WhatsNewPageView": WhatsNewPageView_side_1,
   "@news-spend-media/payload/components/WhatsNew#WhatsNewNavLink": WhatsNewNavLink_side_1,
   "@news-spend-media/payload/components/Analytics#KpiWidget": KpiWidget_bba5810d9f91b27f4c3b488ca576e350,

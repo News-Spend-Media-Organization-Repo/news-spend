@@ -22,11 +22,9 @@ import {
 } from "#/hooks/news/constants";
 import { homeFeedInfiniteKey, homeFeedInput } from "#/hooks/news/feedKeys";
 import { relatedArticlesSeenOnArrival } from "#/hooks/news/relatedImpressions";
-import {
-  IMPRESSION_VIEWABILITY_CONFIG,
-  type ImpressionToken,
-} from "#/hooks/news/useImpressionViewability";
+import type { ImpressionToken } from "#/hooks/news/useImpressionViewability";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
+import { usePartnerImpressionViewability } from "#/hooks/news/usePartnerImpressionViewability";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -39,6 +37,7 @@ import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
 import RelatedNews from "../RelatedNews";
+import { buildLatestViewabilityPairs } from "./feedViewability";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 
@@ -46,16 +45,6 @@ type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 // render and defeat MemoizedListHeader's memo.
 const EMPTY_DOCS: RouterOutputs["news"]["home"]["docs"] = [];
 const EMPTY_BOOKS: PartnerContent[] = [];
-
-/**
- * Drives the feed's mechanics — pausing a carousel that scrolled away and
- * preloading the next Google ad slots. Deliberately loose and immediate:
- * these want to fire as early as possible, and delaying a preload leaves an
- * ad slot blank for longer.
- */
-const MECHANICS_VIEWABILITY_CONFIG = {
-  itemVisiblePercentThreshold: 40,
-};
 
 const MemoizedListHeader = memo(
   ({
@@ -466,16 +455,15 @@ const Latest = memo(
       }
     );
 
-    const viewabilityConfigCallbackPairs = useRef([
-      {
-        viewabilityConfig: MECHANICS_VIEWABILITY_CONFIG,
-        onViewableItemsChanged: onViewableItemsChanged.current,
-      },
-      {
-        viewabilityConfig: IMPRESSION_VIEWABILITY_CONFIG,
-        onViewableItemsChanged: onImpressionItemsChanged.current,
-      },
-    ]);
+    const partnerImpressionPairs = usePartnerImpressionViewability();
+
+    const viewabilityConfigCallbackPairs = useRef(
+      buildLatestViewabilityPairs(
+        onViewableItemsChanged.current,
+        onImpressionItemsChanged.current,
+        partnerImpressionPairs
+      )
+    );
     // #endregion
     useScrollToTop(ref);
 
