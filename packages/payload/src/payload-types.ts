@@ -105,6 +105,7 @@ export interface Config {
     'notification-inbox': NotificationInbox;
     notifications: Notification;
     'partner-content': PartnerContent;
+    'partner-content-events': PartnerContentEvent;
     'partner-conversions': PartnerConversion;
     'partner-postbacks': PartnerPostback;
     partners: Partner;
@@ -169,6 +170,7 @@ export interface Config {
     'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'partner-content': PartnerContentSelect<false> | PartnerContentSelect<true>;
+    'partner-content-events': PartnerContentEventsSelect<false> | PartnerContentEventsSelect<true>;
     'partner-conversions': PartnerConversionsSelect<false> | PartnerConversionsSelect<true>;
     'partner-postbacks': PartnerPostbacksSelect<false> | PartnerPostbacksSelect<true>;
     partners: PartnersSelect<false> | PartnersSelect<true>;
@@ -235,6 +237,7 @@ export interface Config {
       processGiveaway: TaskProcessGiveaway;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       pruneNewsAnalytics: TaskPruneNewsAnalytics;
+      prunePartnerContentEvents: TaskPrunePartnerContentEvents;
       generateVideoThumbnail: TaskGenerateVideoThumbnail;
       deleteVideoThumbTemp: TaskDeleteVideoThumbTemp;
       cleanupAuditLogs: TaskCleanupAuditLogs;
@@ -2416,6 +2419,60 @@ export interface NotificationInbox {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partner-content-events".
+ */
+export interface PartnerContentEvent {
+  id: string;
+  content: string | PartnerContent;
+  /**
+   * Set by the server from the content item, never the app.
+   */
+  partner: string | Partner;
+  event: 'impression' | 'click';
+  /**
+   * The partner-content placement the item was requested with.
+   */
+  surface: string;
+  /**
+   * Position of the item in the list, if known.
+   */
+  position?: number | null;
+  /**
+   * From the session only. Empty for guests.
+   */
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
+  /**
+   * When the reader did it, as the device reported, held to within 14 days before and 5 minutes after arrival.
+   */
+  timestamp: string;
+  /**
+   * When the server received it.
+   */
+  receivedAt?: string | null;
+  /**
+   * Minted by the app for this event and reused on every retry.
+   */
+  eventId?: string | null;
+  /**
+   * Set on impressions only: one per device, session, item and surface. Empty on clicks.
+   */
+  dedupeKey?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-postbacks".
  */
 export interface PartnerPostback {
@@ -2764,6 +2821,7 @@ export interface PayloadJob {
           | 'processGiveaway'
           | 'cleanupAnonymousUsers'
           | 'pruneNewsAnalytics'
+          | 'prunePartnerContentEvents'
           | 'generateVideoThumbnail'
           | 'deleteVideoThumbTemp'
           | 'cleanupAuditLogs'
@@ -2811,6 +2869,7 @@ export interface PayloadJob {
         | 'processGiveaway'
         | 'cleanupAnonymousUsers'
         | 'pruneNewsAnalytics'
+        | 'prunePartnerContentEvents'
         | 'generateVideoThumbnail'
         | 'deleteVideoThumbTemp'
         | 'cleanupAuditLogs'
@@ -2974,6 +3033,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'partner-content';
         value: string | PartnerContent;
+      } | null)
+    | ({
+        relationTo: 'partner-content-events';
+        value: string | PartnerContentEvent;
       } | null)
     | ({
         relationTo: 'partner-conversions';
@@ -3879,6 +3942,29 @@ export interface PromoImageSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partner-content-events_select".
+ */
+export interface PartnerContentEventsSelect<T extends boolean = true> {
+  content?: T;
+  partner?: T;
+  event?: T;
+  surface?: T;
+  position?: T;
+  userId?: T;
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  timestamp?: T;
+  receivedAt?: T;
+  eventId?: T;
+  dedupeKey?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-conversions_select".
  */
 export interface PartnerConversionsSelect<T extends boolean = true> {
@@ -4696,6 +4782,17 @@ export interface TaskCleanupAnonymousUsers {
  * via the `definition` "TaskPruneNewsAnalytics".
  */
 export interface TaskPruneNewsAnalytics {
+  input?: unknown;
+  output: {
+    deletedCount?: number | null;
+    hasMore?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPrunePartnerContentEvents".
+ */
+export interface TaskPrunePartnerContentEvents {
   input?: unknown;
   output: {
     deletedCount?: number | null;
