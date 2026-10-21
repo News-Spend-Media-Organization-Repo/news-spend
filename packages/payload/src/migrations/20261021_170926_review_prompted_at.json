@@ -17694,21 +17694,6 @@
           "method": "btree",
           "with": {}
         },
-        "users_review_prompted_at_idx": {
-          "name": "users_review_prompted_at_idx",
-          "columns": [
-            {
-              "expression": "review_prompted_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "users_updated_at_idx": {
           "name": "users_updated_at_idx",
           "columns": [
@@ -23162,6 +23147,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "4dd6ca8b-55c6-40e3-84c3-b2fafa7633d9",
+  "id": "3b13c5da-1ab4-4da4-beaf-2f4d4aca8b14",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }
