@@ -10,6 +10,12 @@ import type { AdPlacement } from "#/state/adManager";
  * placement of its own, and sits in the same home feed, so it is counted under
  * the same surface.
  */
+/** Its own id: the list shares viewability state between configs with the same one. */
+export const PARTNER_IMPRESSION_VIEWABILITY_CONFIG = {
+  ...IMPRESSION_VIEWABILITY_CONFIG,
+  id: "partner-impression",
+};
+
 const FEED_SURFACE: AdPlacement = "homepage-ads-banner";
 
 /**
@@ -53,7 +59,7 @@ export function usePartnerImpressionViewability() {
   // Stable, because the list re-reads it whenever the reference changes.
   return useRef([
     {
-      viewabilityConfig: IMPRESSION_VIEWABILITY_CONFIG,
+      viewabilityConfig: PARTNER_IMPRESSION_VIEWABILITY_CONFIG,
       onViewableItemsChanged: ({
         changed,
       }: {

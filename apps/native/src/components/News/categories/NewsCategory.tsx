@@ -16,6 +16,7 @@ import { preloadAdsAhead } from "#/utils/ad-preload";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
+import { buildCategoryViewabilityProps } from "./feedViewability";
 
 /** A Google ad row is taller than an article row: see MIN_AD_HEIGHT. */
 const estimateItemSize = (_index: number, item: FeedAdItem) =>
@@ -156,7 +157,9 @@ const NewsCategory = ({
 
   // Merged by the list with onViewableItemsChanged above, so the ad preload
   // keeps its own mechanics config while impressions use the 50%/1s one.
-  const partnerImpressionPairs = usePartnerImpressionViewability();
+  const viewabilityProps = buildCategoryViewabilityProps(
+    usePartnerImpressionViewability()
+  );
 
   if (isPending) {
     return <NewsItemPlaceholder show />;
@@ -184,7 +187,10 @@ const NewsCategory = ({
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
-      viewabilityConfigCallbackPairs={partnerImpressionPairs}
+      viewabilityConfig={viewabilityProps.viewabilityConfig}
+      viewabilityConfigCallbackPairs={
+        viewabilityProps.viewabilityConfigCallbackPairs
+      }
     />
     // </Stack>
   );

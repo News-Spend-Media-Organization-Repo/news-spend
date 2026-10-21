@@ -107,4 +107,27 @@ describe("CustomNewsOpenAd impression", () => {
     });
     expect(mockTrackImpression).toHaveBeenCalledTimes(1);
   });
+
+  it("restarts the timer for a changed ad and records the new ad with the placement at mount", async () => {
+    const view = await render(<CustomNewsOpenAd ad={ad} />);
+    await act(async () => {
+      jest.advanceTimersByTime(600);
+    });
+    appOpenAdSheetState.placement = "banner-news-post";
+    await view.rerender(
+      <CustomNewsOpenAd ad={{ ...(ad as object), id: "ad-2" } as never} />
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(600);
+    });
+    expect(mockTrackImpression).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.advanceTimersByTime(400);
+    });
+    expect(mockTrackImpression).toHaveBeenCalledTimes(1);
+    expect(mockTrackImpression).toHaveBeenCalledWith(
+      "ad-2",
+      "banner-news-post"
+    );
+  });
 });

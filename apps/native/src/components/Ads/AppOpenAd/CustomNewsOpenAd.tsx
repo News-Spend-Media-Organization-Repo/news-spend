@@ -133,8 +133,9 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   // the timer; closing unmounts this and cancels it before a second passes.
   const adId = ad.id;
   useEffect(() => {
+    const placement = appOpenAdSheetState.placement;
     const timer = setTimeout(() => {
-      trackImpression(adId, appOpenAdSheetState.placement);
+      trackImpression(adId, placement);
     }, IMPRESSION_DWELL_MS);
     return () => clearTimeout(timer);
   }, [adId, trackImpression]);

@@ -2,6 +2,8 @@ import { renderHook } from "@testing-library/react-native";
 
 const mockTrackImpression = jest.fn();
 
+// Not called by the hook, but useImpressionViewability (imported for its config)
+// pulls this module in, and its MMKV storage import cannot load under jest.
 jest.mock("#/hooks/news/useNewsAnalytics", () => ({
   useNewsAnalytics: () => ({ trackImpression: jest.fn() }),
 }));
@@ -34,7 +36,10 @@ describe("usePartnerImpressionViewability", () => {
       usePartnerImpressionViewability()
     );
     const first = result.current;
-    expect(first[0]?.viewabilityConfig).toBe(IMPRESSION_VIEWABILITY_CONFIG);
+    expect(first[0]?.viewabilityConfig).toEqual({
+      ...IMPRESSION_VIEWABILITY_CONFIG,
+      id: "partner-impression",
+    });
     await rerender({});
     expect(result.current).toBe(first);
   });
