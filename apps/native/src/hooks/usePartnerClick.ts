@@ -28,6 +28,29 @@ import { usePartnerEvents } from "./usePartnerEvents";
 const mintClickId = () =>
   `clk_${Crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
+/** Taps on the same item this close together are one tap to the partner. */
+const DOUBLE_TAP_WINDOW_MS = 1000;
+
+/**
+ * When each item was last tapped. Module-level rather than state: state only
+ * covered signed-in taps and does not survive a remount of the card.
+ */
+const lastTapAt = new Map<string, number>();
+
+/** True when this tap repeats one on the same item inside the window. */
+function isRepeatTap(itemId: string, now: number): boolean {
+  for (const [id, at] of lastTapAt) {
+    if (now - at >= DOUBLE_TAP_WINDOW_MS) {
+      lastTapAt.delete(id);
+    }
+  }
+  const repeat = lastTapAt.has(itemId);
+  if (!repeat) {
+    lastTapAt.set(itemId, now);
+  }
+  return repeat;
+}
+
 export function usePartnerClick() {
   const trackClickMutation = useMutation(
     orpc.partnerConversions.trackClick.mutationOptions()
@@ -95,9 +118,14 @@ export function usePartnerClick() {
 
     // Recorded for everyone, guests included, and independent of the CPA
     // mutation below: this feeds the partner's tap count, not attribution.
-    trackClickEvent(item.id, surface);
+    // A repeat tap inside the window still opens the link, but is not
+    // reported again, to the event feed or to the CPA mutation.
+    const repeatTap = isRepeatTap(item.id, Date.now());
+    if (!repeatTap) {
+      trackClickEvent(item.id, surface);
+    }
 
-    if (shouldTrackClick) {
+    if (shouldTrackClick && !repeatTap) {
       const clickId = mintClickId();
       const separator = url.includes("?") ? "&" : "?";
       url = `${url}${separator}clickId=${clickId}`;

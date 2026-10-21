@@ -66,8 +66,13 @@ const item = {
 } as never;
 
 describe("usePartnerClick", () => {
+  let now = new Date("2026-10-21T12:00:00Z").getTime();
   beforeEach(() => {
     jest.clearAllMocks();
+    // The double-tap guard is module state keyed by item id; a minute between
+    // tests keeps one test's taps out of the next one's window.
+    now += 60_000;
+    jest.spyOn(Date, "now").mockImplementation(() => now);
     mockUser = { isAnonymous: false };
     mockMutateAsync.mockResolvedValue({});
   });
@@ -185,6 +190,78 @@ describe("usePartnerClick", () => {
       expect(trackOrder).toBeDefined();
       expect(navigateOrder).toBeDefined();
       expect(trackOrder as number).toBeLessThan(navigateOrder as number);
+    });
+  });
+
+  describe("double taps", () => {
+    const tap = async (
+      result: { current: ReturnType<typeof usePartnerClick> },
+      target: never = item
+    ) => {
+      await act(async () => {
+        await result.current.handleClick(target, "points-mall-apps");
+      });
+    };
+
+    it("records one event for a guest's double tap within a second", async () => {
+      mockUser = { isAnonymous: true };
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await tap(result);
+      now += 400;
+      await tap(result);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
+    });
+
+    it("records a second event for a tap after a second", async () => {
+      mockUser = { isAnonymous: true };
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await tap(result);
+      now += 1001;
+      await tap(result);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(2);
+    });
+
+    it("records each of two different items", async () => {
+      mockUser = { isAnonymous: true };
+      const other = {
+        id: "pc-9",
+        title: "Another",
+        links: { website: "https://example.com/other" },
+      } as never;
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await tap(result);
+      await tap(result, other);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not repeat the CPA mutation or the event for a signed-in double tap, but still opens the link", async () => {
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await tap(result);
+      now += 300;
+      await tap(result);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
+    });
+
+    it("leaves a signed-in tap after the window unchanged", async () => {
+      const { result } = await renderHook(() => usePartnerClick());
+
+      await tap(result);
+      now += 1500;
+      await tap(result);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(2);
+      expect(mockMutateAsync).toHaveBeenCalledTimes(2);
     });
   });
 });

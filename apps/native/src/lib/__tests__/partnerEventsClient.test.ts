@@ -186,6 +186,27 @@ describe("partnerEventsClient delivery", () => {
     expect(queued()).toEqual([]);
   });
 
+  it("skips stored elements that are not objects, and still sends the valid one", async () => {
+    const valid = {
+      contentId: ID,
+      event: "impression",
+      surface: "homepage-ads-banner",
+      sessionId: "s",
+      deviceId: "d",
+      eventId: "abcdefgh",
+      platform: "ios",
+      timestamp: "2026-10-21T00:00:00Z",
+    };
+    mockStore.set(QUEUE_KEY, JSON.stringify([null, 5, "x", valid]));
+    const client = load();
+    await client.flush();
+    expect(mockTrack).toHaveBeenCalledTimes(1);
+    expect(sentEvents()).toEqual([
+      expect.objectContaining({ eventId: "abcdefgh" }),
+    ]);
+    expect(sentEvents()).toHaveLength(1);
+  });
+
   it("keeps a batch it could not deliver, with the same eventId", async () => {
     mockTrack.mockRejectedValueOnce(new TypeError("Network request failed"));
     const client = load();

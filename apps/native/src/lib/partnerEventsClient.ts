@@ -136,7 +136,10 @@ class PartnerEventsClient {
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          return parsed as PartnerEvent[];
+          // A corrupt element must never reach isSendable or flush.
+          return parsed.filter(
+            (e): e is PartnerEvent => typeof e === "object" && e !== null
+          );
         }
       }
     } catch {}

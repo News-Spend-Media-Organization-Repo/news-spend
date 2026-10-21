@@ -4,18 +4,18 @@ import { IMPRESSION_VIEWABILITY_CONFIG } from "#/hooks/news/useImpressionViewabi
 import { usePartnerEvents } from "#/hooks/usePartnerEvents";
 import type { AdPlacement } from "#/state/adManager";
 
-/**
- * The feed's in-house ads come from the pool the ad manager fetches with
- * "homepage-ads-banner". Promo media is fetched by type alone, with no
- * placement of its own, and sits in the same home feed, so it is counted under
- * the same surface.
- */
 /** Its own id: the list shares viewability state between configs with the same one. */
 export const PARTNER_IMPRESSION_VIEWABILITY_CONFIG = {
   ...IMPRESSION_VIEWABILITY_CONFIG,
   id: "partner-impression",
 };
 
+/**
+ * The feed's in-house ads come from the pool the ad manager fetches with
+ * "homepage-ads-banner". Promo media is fetched by type alone, with no
+ * placement of its own, and sits in the same home feed, so it is counted under
+ * the same surface.
+ */
 const FEED_SURFACE: AdPlacement = "homepage-ads-banner";
 
 /**
