@@ -342,7 +342,7 @@ export const Users: CollectionConfig = {
     {
       name: "reviewPromptedAt",
       type: "date",
-      index: true,
+      // Not indexed: every query reads or updates it by the user's id.
       admin: {
         readOnly: true,
         description:
