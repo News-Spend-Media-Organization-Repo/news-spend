@@ -39,7 +39,6 @@ import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
 import RelatedNews from "../RelatedNews";
-import RewardTaskItemCard from "../RewardTaskItem";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 
@@ -341,9 +340,6 @@ const Latest = memo(
         if (kind === "relatedNews") {
           return 220;
         }
-        if (kind === "rewardTask") {
-          return 140;
-        }
         // Article and video rows: a 100px thumbnail plus padding.
         return 116;
       },
@@ -392,8 +388,6 @@ const Latest = memo(
           } else {
             content = <NewsItemAd index={index} item={item} />;
           }
-        } else if (item && "_type" in item && item._type === "rewardTask") {
-          content = <RewardTaskItemCard item={item} />;
         } else {
           content = null;
         }

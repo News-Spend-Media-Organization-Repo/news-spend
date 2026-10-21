@@ -2,15 +2,11 @@ import type { News, PartnerContent } from "@news-spend-media/payload/types";
 
 import type { AdManager } from "./ad-manager";
 import type { FeedItem } from "./content-builders";
-import {
-  buildPromotionMedia,
-  buildRelatedNews,
-  buildRewardTask,
-} from "./content-builders";
+import { buildPromotionMedia, buildRelatedNews } from "./content-builders";
 import { createRandom, hashSeed } from "./seeded-random";
 
 export type FeedRule = {
-  type: "ad" | "promotionMedia" | "rewardTask" | "relatedNews";
+  type: "ad" | "promotionMedia" | "relatedNews";
   frequency: number; // Every nth item
   probability: number; // Chance of injection (0-1)
   priority: number; // Lower number = higher priority
@@ -54,13 +50,6 @@ export const DEFAULT_FEED_RULES: FeedRule[] = [
     frequency: 5, // Every 5th item
     probability: 0.7, // 70% chance
     priority: 2,
-    position: "inline",
-  },
-  {
-    type: "rewardTask",
-    frequency: 7, // Every 7th item
-    probability: 0.5, // 50% chance
-    priority: 4,
     position: "inline",
   },
   {
@@ -209,14 +198,6 @@ export class FeedComposer {
             }
           }
           return null;
-
-        case "rewardTask": {
-          const taskContent = this.adManager.getPartnerContent();
-          if (!taskContent) {
-            return null;
-          }
-          return buildRewardTask(taskContent);
-        }
 
         case "relatedNews": {
           const taskContentForRelated = data.relatedSeed

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { createFakePayload } from "../../test-utils";
 import { type AdConfig, createAdManager } from "./ad-manager";
-import { buildRelatedNews, buildRewardTask } from "./content-builders";
+import { buildRelatedNews } from "./content-builders";
 
 const PLACEMENT = "homepage-ads-banner";
 
@@ -153,7 +153,7 @@ describe("AdManager ad shaping", () => {
     });
     const manager = await createAdManager(payload as any, CONFIG);
 
-    const task = buildRewardTask(manager.getPartnerContent() as never);
+    const task = manager.getPartnerContent();
     const related = buildRelatedNews(
       [],
       manager.getSeededPartnerContent("seed") as never,
@@ -162,7 +162,7 @@ describe("AdManager ad shaping", () => {
     const ad = manager.pickAd();
 
     const payloads = [
-      task.payload,
+      task,
       related.data[0],
       ad.type === "inHouse" ? ad.payload : undefined,
     ] as Record<string, unknown>[];

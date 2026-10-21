@@ -1,30 +1,18 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import {
-  Linking,
-  Platform,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { Image } from "#/components/ui";
+import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { getImageData } from "#/utils/getImageData";
 
 const RelatedItemTask = ({ item }: { item: PartnerContent }) => {
   const { width } = useWindowDimensions();
   const { url, blurhash } = getImageData(item?.media);
 
-  const onPress = async () => {
-    const url =
-      Platform.select({
-        ios: item?.links?.iosAppStore,
-        android: item?.links?.androidPlayStore,
-      }) ?? item?.links?.website;
+  const { handleClick } = usePartnerClick();
 
-    if (url) {
-      await Linking.openURL(url);
-    }
-  };
+  // The placement the feed's partner pool is fetched with, so the click is
+  // recorded like every other ad.
+  const onPress = () => handleClick(item, "homepage-ads-banner");
 
   if (!item) {
     return null;
