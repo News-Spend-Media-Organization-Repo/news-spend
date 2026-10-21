@@ -15,6 +15,7 @@ import { partnerContentRouter } from "./partnerContent";
 import { postReportRouter } from "./postReport";
 import { publisherRouter } from "./publisher";
 import { reportRouter } from "./report";
+import { reviewRouter } from "./review";
 import { storeRouter } from "./store";
 import { surveyRouter } from "./survey";
 import { tweetRouter } from "./tweet";
@@ -38,6 +39,7 @@ export const router = {
   postReport: postReportRouter,
   publisher: publisherRouter,
   report: reportRouter,
+  review: reviewRouter,
   store: storeRouter,
   survey: surveyRouter,
   verification: verificationRouter,
