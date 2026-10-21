@@ -89,13 +89,26 @@ export {
 } from "./notices";
 export type {
   ConversionOutcomes,
+  EventsDay,
+  EventsOutlier,
+  EventTotals,
+  ItemSurfaceRow,
   PartnerDay,
+  PartnerEventsFilter,
+  PartnerEventsRow,
   PartnerFilter,
   PostbackHealth,
   RecentConversion,
 } from "./partner";
 export {
+  OUTLIER_MIN_SESSIONS,
+  OUTLIER_TAP_THROUGH,
   partnerDaily,
+  partnerEventsByItem,
+  partnerEventsByPartner,
+  partnerEventsDaily,
+  partnerEventsOutliers,
+  partnerEventsSummary,
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
