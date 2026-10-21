@@ -228,7 +228,9 @@ export async function PartnerContentGuideView(
           </p>
           <p style={{ margin: 0 }}>
             All numbers are reported by the app, so a modified app can inflate
-            them. The staff page flags outliers.
+            them. The staff page flags outliers. Numbers can lag by up to about
+            a minute behind what happens in the app, so a fresh impression may
+            not show straight away.
           </p>
           <p style={{ margin: 0 }}>
             These taps are not the same as "clicks sent to the partner", because

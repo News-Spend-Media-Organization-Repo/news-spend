@@ -16,7 +16,7 @@ const NO_RATE = "—";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const REPORTED_NOTE =
-  "Reported by the app. The related-news card, banners inside articles and Discover lists are not counted yet; taps are counted everywhere.";
+  "Reported by the app. Numbers can lag by up to about a minute behind what happens in the app. The related-news card, banners inside articles and Discover lists are not counted yet; taps are counted everywhere.";
 
 export const CLICKS_DIFFER_NOTE =
   "These taps differ from 'clicks sent to the partner' above because they include guests and ad surfaces.";

@@ -94,6 +94,7 @@ describe("partner events panels", () => {
 
     expect(out).toContain(REPORTED_NOTE);
     expect(out).toContain("Reported by the app.");
+    expect(out).toContain("lag by up to about a minute");
     expect(out).toContain("not counted yet");
     expect(out).toContain(CLICKS_DIFFER_NOTE.replace(/'/g, "&#x27;"));
   });

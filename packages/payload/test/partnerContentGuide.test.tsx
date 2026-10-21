@@ -131,6 +131,7 @@ describe("partner content guide tab", () => {
     expect(out).toContain("taps");
     expect(out).toContain("tap-through");
     expect(out).toContain("reported by the app");
+    expect(out).toContain("lag by up to about a minute");
     expect(out).toContain("related-news card");
     expect(out).toContain("banners inside articles");
     expect(out).toContain("Discover lists");
