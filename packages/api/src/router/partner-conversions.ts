@@ -1,15 +1,24 @@
 import { randomUUID } from "node:crypto";
 import { activityPoints } from "@news-spend-media/payload/lib/activityPoints";
+import {
+  canPayOnTap,
+  isOfferPlacement,
+} from "@news-spend-media/payload/lib/earnPlacements";
 import { recordFeaturedOffer } from "@news-spend-media/payload/lib/giveaway/featuredOffer";
 
+import { enum_partner_content_placements } from "@news-spend-media/payload/payload-generated-schema";
 import { openapi } from "@orpc/openapi";
 import type { BasePayload } from "payload";
 import z from "zod";
 
 import { protectedNoGuestProcedure, publicProcedure } from "../index";
+import { APP_VERSION_HEADER } from "../lib/appVersion";
+import { claimConversion } from "../lib/claimConversion";
 import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
 import { recordPostback } from "../lib/postbackLog";
 import { partnerWebhookRateLimitMiddleware } from "../lib/ratelimit";
+import { hasSettledConversion } from "../lib/settledConversion";
+import { MISSING_TAP_SURFACE, requireTapSurface } from "../lib/tapSurface";
 
 // Input schema for tracking a click
 const trackClickInput = z.object({
@@ -29,6 +38,11 @@ const trackClickInput = z.object({
     .string()
     .regex(/^clk_[0-9a-f]{16}$/, "Invalid click id")
     .optional(),
+  /**
+   * Which surface the tap came from. Partner ads only pay points from offer
+   * placements; a tap from the news feed or a click ad is just a click.
+   */
+  surface: z.enum(enum_partner_content_placements.enumValues).optional(),
 });
 
 // Track a click on CPA content
@@ -66,6 +80,27 @@ export const trackClick = protectedNoGuestProcedure
     const clickId =
       input.clickId ?? `clk_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
+    // A tap that names no surface is a surface that can never pay when the
+    // owner has switched that on; otherwise it keeps its legacy null.
+    const surface =
+      input.surface ?? (requireTapSurface() ? MISSING_TAP_SURFACE : undefined);
+
+    // The data for deciding when the legacy "no surface" behaviour can go: how
+    // many taps still arrive without one, and from which app versions (null =
+    // a build that predates the version header). Search the logs for
+    // `tap_without_surface`. Deliberately carries no user or click id.
+    if (input.surface === undefined) {
+      payload.logger.info(
+        {
+          event: "tap_without_surface",
+          appVersion: context.headers?.get(APP_VERSION_HEADER) ?? null,
+          enforced: requireTapSurface(),
+          partnerContentId: input.partnerContentId,
+        },
+        "[partner] tap arrived without a surface"
+      );
+    }
+
     // Create conversion record
     const created = await payload.create({
       collection: "partner-conversions",
@@ -74,6 +109,7 @@ export const trackClick = protectedNoGuestProcedure
         partner: partnerId,
         content: input.partnerContentId,
         clickId,
+        surface: surface ?? null,
         status: "clicked",
         pointsAwarded: 0,
         clickedAt: new Date().toISOString(),
@@ -108,7 +144,13 @@ export const trackClick = protectedNoGuestProcedure
      * Never throws. The person has tapped a link and is waiting on a
      * redirect; a bookkeeping failure must not strand them on a spinner.
      */
-    if (partner?.awardOnClick) {
+    if (
+      partner?.awardOnClick &&
+      canPayOnTap({
+        surface,
+        placements: content.placements ?? [],
+      })
+    ) {
       try {
         /**
          * Once per person per offer, ever.
@@ -125,23 +167,23 @@ export const trackClick = protectedNoGuestProcedure
          * repeat), which is exactly why this gap would have been easy to miss:
          * eligibility looked correct while the points quietly multiplied.
          */
-        const settled = await payload.count({
-          collection: "partner-conversions",
-          where: {
-            and: [
-              { user: { equals: user.id } },
-              { content: { equals: input.partnerContentId } },
-              { status: { in: ["converted", "awarded"] } },
-            ],
-          },
+        const settled = await hasSettledConversion(payload, {
+          userId: user.id,
+          contentId: input.partnerContentId,
         });
 
-        if (settled.totalDocs === 0) {
-          await settleConversion(payload, {
+        if (!settled) {
+          const result = await settleConversion(payload, {
             conversion: created,
             content,
             partnerOrderId: `click:${clickId}`,
           });
+          if (!result.claimed) {
+            payload.logger.info(
+              { clickId },
+              "[partner] award-on-click refused: this offer was settled at the same moment"
+            );
+          }
         }
       } catch (error) {
         payload.logger.error(
@@ -186,7 +228,13 @@ const webhookInput = z.object({
  * Featured Offer because they mean the same thing; two copies would be two
  * things to keep in step.
  *
- * Returns the points credited.
+ * The conversion is claimed before anything is paid (see `claimConversion`):
+ * the pre-checks callers run are only a cheap shortcut, and the claim is what
+ * actually stops two simultaneous settlements for one person and offer both
+ * paying. A refused claim pays nothing and reports `claimed: false`, so the
+ * caller can answer it as the duplicate it is.
+ *
+ * Returns whether the claim was won, and the points credited (0 if refused).
  */
 async function settleConversion(
   payload: BasePayload,
@@ -199,7 +247,7 @@ async function settleConversion(
     content: Record<string, any> | null;
     partnerOrderId?: string;
   }
-): Promise<number> {
+): Promise<{ claimed: boolean; points: number }> {
   const contentId =
     typeof conversion.content === "string"
       ? conversion.content
@@ -213,18 +261,33 @@ async function settleConversion(
   }
   const pointsToAward = decidedPoints ?? 0;
 
-  await payload.update({
-    collection: "partner-conversions",
-    id: conversion.id,
-    data: {
-      status: "converted",
-      partnerOrderId,
-      convertedAt: new Date().toISOString(),
-    },
-  });
-
   const userId =
     typeof conversion.user === "string" ? conversion.user : conversion.user?.id;
+
+  if (contentId && userId) {
+    const claimed = await claimConversion(payload, {
+      conversionId: String(conversion.id),
+      userId: String(userId),
+      contentId: String(contentId),
+      partnerOrderId,
+    });
+    if (!claimed) {
+      return { claimed: false, points: 0 };
+    }
+  } else {
+    // Nobody to pay, or no offer to be paid for once: record it and stop here,
+    // so a payment can never happen without a successful claim.
+    await payload.update({
+      collection: "partner-conversions",
+      id: conversion.id,
+      data: {
+        status: "converted",
+        partnerOrderId,
+        convertedAt: new Date().toISOString(),
+      },
+    });
+    return { claimed: true, points: 0 };
+  }
 
   if (pointsToAward > 0 && userId) {
     await payload.create({
@@ -260,7 +323,7 @@ async function settleConversion(
     await recordFeaturedOffer(payload, { userId, contentId });
   }
 
-  return pointsToAward;
+  return { claimed: true, points: pointsToAward };
 }
 
 // Webhook for partner to confirm conversions
@@ -392,6 +455,62 @@ export const handleWebhook = publicProcedure
       disableErrors: true,
     });
 
+    const conversionUserId =
+      typeof conversion.user === "string"
+        ? conversion.user
+        : conversion.user?.id;
+
+    if (input.status === "success") {
+      /**
+       * Partner ads pay from offer placements only. A conversion tapped on
+       * any other surface (stored at click time) is acknowledged but neither
+       * settled nor paid. Left `clicked` and unrecorded on purpose: the
+       * postback outcome is a database enum, and this is not a new outcome
+       * worth a migration. A missing surface is a click from before the
+       * field existed; it follows the tap rule and settles only when the item
+       * itself has an offer placement.
+       */
+      const placements = (content?.placements ?? []) as readonly string[];
+      const fromNonOfferSurface = conversion.surface
+        ? !isOfferPlacement(conversion.surface)
+        : // Deleted content pays nothing either way; let it settle as before.
+          Boolean(content) && !placements.some(isOfferPlacement);
+      if (fromNonOfferSurface) {
+        payload.logger.warn(
+          { clickId: input.clickId, surface: conversion.surface ?? null },
+          "[partner] ignored a postback for a conversion from a non-offer surface"
+        );
+        return {
+          success: true,
+          clickId: input.clickId,
+          message: "Ignored: not an offer surface",
+          pointsAwarded: 0,
+        };
+      }
+
+      // One payout per person per offer, whichever click the partner confirms.
+      if (
+        conversionUserId &&
+        (await hasSettledConversion(payload, {
+          userId: conversionUserId,
+          contentId,
+        }))
+      ) {
+        if (partnerId) {
+          await recordPostback(payload, {
+            partnerId,
+            clickId: input.clickId,
+            outcome: "duplicate",
+          });
+        }
+        return {
+          success: true,
+          message: "Already processed",
+          clickId: input.clickId,
+        };
+      }
+    }
+
     if (input.status !== "success") {
       await payload.update({
         collection: "partner-conversions",
@@ -419,11 +538,29 @@ export const handleWebhook = publicProcedure
       };
     }
 
-    const pointsToAward = await settleConversion(payload, {
+    const settlement = await settleConversion(payload, {
       conversion,
       content,
       partnerOrderId: input.partnerOrderId,
     });
+
+    // Lost a race with another settlement for the same person and offer that
+    // the pre-check above could not see. Answered exactly like a duplicate.
+    if (!settlement.claimed) {
+      if (partnerId) {
+        await recordPostback(payload, {
+          partnerId,
+          clickId: input.clickId,
+          outcome: "duplicate",
+        });
+      }
+      return {
+        success: true,
+        message: "Already processed",
+        clickId: input.clickId,
+      };
+    }
+    const pointsToAward = settlement.points;
 
     if (partnerId) {
       await recordPostback(payload, {

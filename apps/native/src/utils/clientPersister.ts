@@ -4,6 +4,7 @@ import type {
 } from "@tanstack/react-query-persist-client";
 import * as Application from "expo-application";
 
+import { QUERY_CACHE_VERSION } from "./queryCacheVersion";
 import { storage } from "./storage";
 
 /**
@@ -29,13 +30,15 @@ export const PERSISTED_QUERY_MAX_AGE_MS = 10 * 60 * 1000;
  * data has changed" — the previous format is rehydrated forever. Keying on the
  * native version means every release starts from a clean cache, and a user
  * picking up an update is not reading a schema that no longer matches.
+ * An OTA update keeps the native version, so QUERY_CACHE_VERSION is appended
+ * and bumped by hand when an OTA changes the cached response shape.
  */
 export function getCacheBuster(): string {
-  return (
+  const appVersion =
     Application.nativeApplicationVersion ??
     Application.nativeBuildVersion ??
-    "dev"
-  );
+    "dev";
+  return `${appVersion}:${QUERY_CACHE_VERSION}`;
 }
 
 export function createMMKVPersister(key = "reactQuery") {

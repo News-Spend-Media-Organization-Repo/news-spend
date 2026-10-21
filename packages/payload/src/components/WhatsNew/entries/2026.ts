@@ -7,6 +7,38 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-10-20-partner-offers",
+    date: "2026-10-20",
+    title: "Partner ads and offers now behave differently",
+    sections: [
+      {
+        heading: "New",
+        items: [
+          "Partner content has an Ad copy field. It is the only text shown off the earn surfaces, such as the news feed.",
+          "A Guide tab on each partner content item shows what users see on each of its placements and checks it for mistakes.",
+        ],
+      },
+      {
+        heading: "Changed",
+        items: [
+          "Points only pay on Discover and Lucky App Wall. Tapping an ad anywhere else never pays.",
+          "Offers a user has completed disappear from their lists.",
+          "Offers waiting for the partner to confirm show in the app's Activities screen.",
+        ],
+      },
+      {
+        heading: "What to do",
+        items: [
+          "Fill in Ad copy on every partner content item, especially active ones, and keep reward wording out of it. Open the Guide tab to check an item.",
+        ],
+      },
+    ],
+    link: {
+      label: "Partner content",
+      href: "/admin/collections/partner-content",
+    },
+  },
+  {
     id: "2026-10-20-release-2-7-0",
     date: "2026-10-20",
     version: "2.7.0",

@@ -7,12 +7,14 @@ import { cn } from "heroui-native/utils";
 import { useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { useSnapshot } from "valtio";
 import { Text } from "#/components/heroui/text";
 import { Image } from "#/components/ui";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { orpc } from "#/lib/orpc";
+import { authState } from "#/state/auth";
 import { useTabBarHeight } from "#/state/route-state";
 import { getImageData } from "#/utils/getImageData";
 import {
@@ -26,15 +28,25 @@ function BooksTabComponent() {
   const { handleClick, isLoading } = usePartnerClick();
   const tabBarHeight = useTabBarHeight();
 
+  // Per user: the list hides what this person has completed. See all-tab.
+  const userId = useSnapshot(authState).user?.id ?? null;
+  const input = (pageParam: number | undefined) => ({
+    limit: 6,
+    type: ["book" as const],
+    placement: ["points-mall-books" as const],
+    page: pageParam,
+  });
   const queryOptions = orpc.partnerContent.filtered.infiniteOptions({
-    input: (pageParam: number | undefined) => ({
-      limit: 6,
-      type: ["book"],
-      placement: ["points-mall-books"],
-      page: pageParam,
-    }),
+    input,
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => lastPage?.nextPage,
+    queryKey: [
+      ...orpc.partnerContent.filtered.infiniteKey({
+        input,
+        initialPageParam: undefined,
+      }),
+      { userId },
+    ],
   });
 
   const {
@@ -80,7 +92,7 @@ function BooksTabComponent() {
               itemId: item.id,
               section: "books",
             });
-            handleClick(item);
+            handleClick(item, "points-mall-books");
           }}
         >
           <PressableFeedback.Scale>

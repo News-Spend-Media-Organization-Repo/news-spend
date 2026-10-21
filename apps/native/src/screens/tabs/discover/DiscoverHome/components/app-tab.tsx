@@ -5,11 +5,13 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { useSnapshot } from "valtio";
 import { Text } from "#/components/heroui/text";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { orpc } from "#/lib/orpc";
+import { authState } from "#/state/auth";
 import { useTabBarHeight } from "#/state/route-state";
 import { AppItem } from "./app-item";
 import {
@@ -21,15 +23,25 @@ export const AppTab = () => {
   const { handleClick, isLoading } = usePartnerClick();
   const tabBarHeight = useTabBarHeight();
 
+  // Per user: the list hides what this person has completed. See all-tab.
+  const userId = useSnapshot(authState).user?.id ?? null;
+  const input = (pageParam: number | undefined) => ({
+    limit: 5,
+    type: ["app" as const],
+    placement: ["points-mall-apps" as const],
+    page: pageParam,
+  });
   const queryOptions = orpc.partnerContent.filtered.infiniteOptions({
-    input: (pageParam: number | undefined) => ({
-      limit: 5,
-      type: ["app"],
-      placement: ["points-mall-apps"],
-      page: pageParam,
-    }),
+    input,
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => lastPage?.nextPage,
+    queryKey: [
+      ...orpc.partnerContent.filtered.infiniteKey({
+        input,
+        initialPageParam: undefined,
+      }),
+      { userId },
+    ],
   });
 
   const {
@@ -75,7 +87,7 @@ export const AppTab = () => {
               itemId: item.id,
               section: "apps",
             });
-            handleClick(item);
+            handleClick(item, "points-mall-apps");
           }}
         />
       );

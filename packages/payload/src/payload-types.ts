@@ -430,6 +430,10 @@ export interface Partner {
    */
   webhookSecret?: string | null;
   /**
+   * Days a conversion may stay unconfirmed before it is treated as stale
+   */
+  confirmationDays?: number | null;
+  /**
    * ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.
    */
   awardOnClick?: boolean | null;
@@ -1514,7 +1518,11 @@ export interface PartnerContent {
    */
   title: string;
   /**
-   * Max 90 characters recommended
+   * Shown on every surface, including the news feed. Never mention points or rewards here.
+   */
+  adCopy?: string | null;
+  /**
+   * Reward text. Hidden off earn surfaces. Max 90 characters recommended
    */
   condition: string;
   description?: string | null;
@@ -1588,7 +1596,7 @@ export interface PartnerContent {
     androidPlayStore?: string | null;
   };
   /**
-   * Points awarded for completing this action
+   * Points awarded for completing this action. Hidden off earn surfaces.
    */
   points: number;
   /**
@@ -1602,19 +1610,14 @@ export interface PartnerContent {
     | (
         | 'homepage-trending-books'
         | 'homepage-ads-banner'
-        | 'discover-tab'
         | 'points-mall-books'
         | 'points-mall-apps'
         | 'connect-brand-video'
         | 'connect-brands-tab'
         | 'lucky-app-wall'
-        | 'shop-tab'
         | 'news-click-ads'
         | 'banner-news-post'
         | 'news-post'
-        | 'product-display'
-        | 'push-notification'
-        | 'email-campaign'
         | 'video-section'
       )[]
     | null;
@@ -1694,6 +1697,10 @@ export interface PartnerConversion {
    * Unique tracking ID for this click/conversion
    */
   clickId: string;
+  /**
+   * Where the tap came from; set by the app
+   */
+  surface?: string | null;
   status: 'clicked' | 'converted' | 'awarded' | 'failed';
   /**
    * Points awarded to user upon conversion
@@ -3802,6 +3809,7 @@ export interface NotificationsSelect<T extends boolean = true> {
  */
 export interface PartnerContentSelect<T extends boolean = true> {
   title?: T;
+  adCopy?: T;
   condition?: T;
   description?: T;
   type?: T;
@@ -3878,6 +3886,7 @@ export interface PartnerConversionsSelect<T extends boolean = true> {
   partner?: T;
   content?: T;
   clickId?: T;
+  surface?: T;
   status?: T;
   pointsAwarded?: T;
   partnerOrderId?: T;
@@ -3932,6 +3941,7 @@ export interface PartnersSelect<T extends boolean = true> {
   integrationMethod?: T;
   webhookUrl?: T;
   webhookSecret?: T;
+  confirmationDays?: T;
   awardOnClick?: T;
   createdBy?: T;
   lastModifiedBy?: T;

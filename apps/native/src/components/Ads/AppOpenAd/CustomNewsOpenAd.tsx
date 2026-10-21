@@ -3,12 +3,6 @@ import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Spinner } from "heroui-native/spinner";
-import {
-  PauseIcon,
-  PlayIcon,
-  SpeakerHighIcon,
-  SpeakerSlashIcon,
-} from "#/lib/icons";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Button } from "#/components/heroui/button";
@@ -16,6 +10,12 @@ import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { getThumbnailWithCache } from "#/components/videoPlayer/thumbnailCache";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
+import {
+  PauseIcon,
+  PlayIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
+} from "#/lib/icons";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
@@ -119,7 +119,8 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
    */
   const onPress = useCallback(() => {
     appOpenAdSheetState.close();
-    handleClick(ad);
+    // The sheet shows the ad it consumed for this placement.
+    handleClick(ad, appOpenAdSheetState.placement);
   }, [handleClick, ad]);
 
   const videoHeight = (width / 16) * 9;

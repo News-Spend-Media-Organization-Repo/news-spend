@@ -183,6 +183,17 @@ export const Partners: CollectionConfig = {
           },
         },
         {
+          name: "confirmationDays",
+          type: "number",
+          min: 1,
+          max: 60,
+          defaultValue: 7,
+          admin: {
+            description:
+              "Days a conversion may stay unconfirmed before it is treated as stale",
+          },
+        },
+        {
           name: "awardOnClick",
           label: "Count a click as a completed conversion",
           type: "checkbox",
