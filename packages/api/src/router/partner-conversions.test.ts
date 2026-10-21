@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createHmac } from "node:crypto";
 import { call } from "@orpc/server";
 import { canonicalString } from "../lib/partnerWebhookSignature";
@@ -85,6 +85,13 @@ function signedHeaders({
 }
 
 // ---- trackClick ----
+
+// The switch is read from the environment on every call, so a value exported
+// in a developer's shell or in CI must not leak into tests that expect the
+// default (off).
+beforeEach(() => {
+  delete process.env.REQUIRE_TAP_SURFACE;
+});
 
 describe("partnerConversionRouter.trackClick", () => {
   it("rejects an unauthenticated caller", async () => {
