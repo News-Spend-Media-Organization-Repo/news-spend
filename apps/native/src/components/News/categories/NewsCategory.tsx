@@ -7,6 +7,7 @@ import NewsItemAds from "#/components/Ads/NewsItemAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
 import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
+import { usePartnerImpressionViewability } from "#/hooks/news/usePartnerImpressionViewability";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { useTabBarHeight } from "#/state/route-state";
@@ -153,6 +154,10 @@ const NewsCategory = ({
     [route]
   );
 
+  // Merged by the list with onViewableItemsChanged above, so the ad preload
+  // keeps its own mechanics config while impressions use the 50%/1s one.
+  const partnerImpressionPairs = usePartnerImpressionViewability();
+
   if (isPending) {
     return <NewsItemPlaceholder show />;
   }
@@ -179,6 +184,7 @@ const NewsCategory = ({
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
+      viewabilityConfigCallbackPairs={partnerImpressionPairs}
     />
     // </Stack>
   );

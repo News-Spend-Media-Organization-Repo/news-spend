@@ -27,6 +27,7 @@ import {
   type ImpressionToken,
 } from "#/hooks/news/useImpressionViewability";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
+import { usePartnerImpressionViewability } from "#/hooks/news/usePartnerImpressionViewability";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -466,6 +467,8 @@ const Latest = memo(
       }
     );
 
+    const partnerImpressionPairs = usePartnerImpressionViewability();
+
     const viewabilityConfigCallbackPairs = useRef([
       {
         viewabilityConfig: MECHANICS_VIEWABILITY_CONFIG,
@@ -475,6 +478,7 @@ const Latest = memo(
         viewabilityConfig: IMPRESSION_VIEWABILITY_CONFIG,
         onViewableItemsChanged: onImpressionItemsChanged.current,
       },
+      ...partnerImpressionPairs,
     ]);
     // #endregion
     useScrollToTop(ref);
