@@ -7,6 +7,36 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-10-21-partner-performance",
+    date: "2026-10-21",
+    title: "Partners can see impressions and taps",
+    sections: [
+      {
+        heading: "New",
+        items: [
+          "Partners see impressions, taps and tap-through by surface on their Performance tab.",
+          "Staff get a page covering all partners, with outlier flags for numbers that look inflated, at /admin/analytics/partners-events.",
+        ],
+      },
+      {
+        heading: "Changed",
+        items: [
+          "Home-feed article impressions will rise from this release because they were under-counted before. They are not comparable with earlier weeks.",
+        ],
+      },
+      {
+        heading: "What to do",
+        items: [
+          "Nothing required. The Guide tab on a partner content item explains how these numbers are counted.",
+        ],
+      },
+    ],
+    link: {
+      label: "Partner events",
+      href: "/admin/analytics/partners-events",
+    },
+  },
+  {
     id: "2026-10-20-partner-offers",
     date: "2026-10-20",
     title: "Partner ads and offers now behave differently",
