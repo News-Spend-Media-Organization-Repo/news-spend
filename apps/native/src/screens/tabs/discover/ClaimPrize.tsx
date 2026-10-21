@@ -13,6 +13,7 @@ import { Text } from "#/components/heroui/text";
 import FormTextInput from "#/components/heroui/text-input";
 import { toast } from "#/components/heroui/toast";
 import { orpc } from "#/lib/orpc";
+import { reviewAfterClaim } from "#/lib/reviewPrompt/prizeTriggers";
 import { queryClient } from "#/lib/tanstackQuery";
 import { useSafeBack } from "#/navigation/useSafeBack";
 
@@ -103,6 +104,7 @@ const ClaimPrize = () => {
         }
 
         goBack();
+        reviewAfterClaim(result);
       },
       onError: (error) => {
         // The window may have closed while this screen was open (a new
