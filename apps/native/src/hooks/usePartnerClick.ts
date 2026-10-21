@@ -10,6 +10,8 @@ import type { AdPlacement } from "#/state/adManager";
 import { authState } from "#/state/auth";
 import { openStoreLink } from "#/utils/openStoreLink";
 
+import { usePartnerEvents } from "./usePartnerEvents";
+
 /**
  * Mint the click id here rather than waiting for the server to return one.
  *
@@ -26,11 +28,35 @@ import { openStoreLink } from "#/utils/openStoreLink";
 const mintClickId = () =>
   `clk_${Crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
+/** Taps on the same item this close together are one tap to the partner. */
+const DOUBLE_TAP_WINDOW_MS = 1000;
+
+/**
+ * When each item was last tapped. Module-level rather than state: state only
+ * covered signed-in taps and does not survive a remount of the card.
+ */
+const lastTapAt = new Map<string, number>();
+
+/** True when this tap repeats one on the same item inside the window. */
+function isRepeatTap(itemId: string, now: number): boolean {
+  for (const [id, at] of lastTapAt) {
+    if (now - at >= DOUBLE_TAP_WINDOW_MS) {
+      lastTapAt.delete(id);
+    }
+  }
+  const repeat = lastTapAt.has(itemId);
+  if (!repeat) {
+    lastTapAt.set(itemId, now);
+  }
+  return repeat;
+}
+
 export function usePartnerClick() {
   const trackClickMutation = useMutation(
     orpc.partnerConversions.trackClick.mutationOptions()
   );
   const queryClient = useQueryClient();
+  const { trackClick: trackClickEvent } = usePartnerEvents();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
 
   /**
@@ -88,7 +114,18 @@ export function usePartnerClick() {
       return;
     }
 
+    // A repeat tap of the same item inside the window is a full no-op: no
+    // event, no CPA mutation, and no second screen. Opening the link again
+    // without a fresh clickId would send the user to an unattributable page.
+    if (isRepeatTap(item.id, Date.now())) {
+      return;
+    }
+
     const isStoreLink = Boolean(storeUrl);
+
+    // Recorded for everyone, guests included, and independent of the CPA
+    // mutation below: this feeds the partner's tap count, not attribution.
+    trackClickEvent(item.id, surface);
 
     if (shouldTrackClick) {
       const clickId = mintClickId();

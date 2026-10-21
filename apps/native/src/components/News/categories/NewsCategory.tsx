@@ -7,6 +7,7 @@ import NewsItemAds from "#/components/Ads/NewsItemAd";
 import NewsItemGoogleAds from "#/components/Ads/NewsItemGoogleAd";
 import { useAllNews } from "#/hooks/news";
 import { NEWS_FEED_STALE_TIME_MS } from "#/hooks/news/constants";
+import { usePartnerImpressionViewability } from "#/hooks/news/usePartnerImpressionViewability";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { useTabBarHeight } from "#/state/route-state";
@@ -15,6 +16,7 @@ import { preloadAdsAhead } from "#/utils/ad-preload";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import NewsItem from "../NewsItem";
 import NewsItemPlaceholder from "../NewsItemPlaceholder";
+import { buildCategoryViewabilityProps } from "./feedViewability";
 
 /** A Google ad row is taller than an article row: see MIN_AD_HEIGHT. */
 const estimateItemSize = (_index: number, item: FeedAdItem) =>
@@ -153,6 +155,12 @@ const NewsCategory = ({
     [route]
   );
 
+  // Merged by the list with onViewableItemsChanged above, so the ad preload
+  // keeps its own mechanics config while impressions use the 50%/1s one.
+  const viewabilityProps = buildCategoryViewabilityProps(
+    usePartnerImpressionViewability()
+  );
+
   if (isPending) {
     return <NewsItemPlaceholder show />;
   }
@@ -179,6 +187,10 @@ const NewsCategory = ({
       refreshing={isRefetchingByUser}
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
+      viewabilityConfig={viewabilityProps.viewabilityConfig}
+      viewabilityConfigCallbackPairs={
+        viewabilityProps.viewabilityConfigCallbackPairs
+      }
     />
     // </Stack>
   );
