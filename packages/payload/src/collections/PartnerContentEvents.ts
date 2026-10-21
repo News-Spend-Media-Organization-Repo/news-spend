@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-import { isStaff } from "../access/adminRoles";
+import { isStaff, isSuperAdmin } from "../access/adminRoles";
 
 export const PartnerContentEvents: CollectionConfig = {
   slug: "partner-content-events",
@@ -10,8 +10,8 @@ export const PartnerContentEvents: CollectionConfig = {
     // Payload, so nothing is creatable or editable over REST.
     create: () => false,
     update: () => false,
-    // Staff can purge events by device or time window in the CMS.
-    delete: isStaff,
+    // Only super admins can purge events; read-only staff roles cannot.
+    delete: isSuperAdmin,
   },
   admin: {
     useAsTitle: "event",

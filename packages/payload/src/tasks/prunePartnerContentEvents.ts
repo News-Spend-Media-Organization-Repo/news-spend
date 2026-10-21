@@ -61,7 +61,7 @@ export const prunePartnerContentEventsTask: TaskConfig<"prunePartnerContentEvent
       ).toISOString();
 
       logger.info(
-        `Pruning partner-content-events events older than ${retentionDays} days (before ${cutoff})`
+        `Pruning partner content events older than ${retentionDays} days (before ${cutoff})`
       );
 
       let deletedCount = 0;
@@ -93,7 +93,7 @@ export const prunePartnerContentEventsTask: TaskConfig<"prunePartnerContentEvent
       }
 
       logger.info(
-        `Pruned ${deletedCount} partner-content-events events${hasMore ? " (more remain)" : ""}`
+        `Pruned ${deletedCount} partner content events${hasMore ? " (more remain)" : ""}`
       );
 
       return { output: { deletedCount, hasMore } };

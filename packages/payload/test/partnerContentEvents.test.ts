@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Field } from "payload";
-import { isStaff } from "../src/access/adminRoles";
+import { isStaff, isSuperAdmin } from "../src/access/adminRoles";
 import { PartnerContentEvents } from "../src/collections/PartnerContentEvents";
 import { prunePartnerContentEventsTask } from "../src/tasks/prunePartnerContentEvents";
 
@@ -14,7 +14,7 @@ describe("partner-content-events collection", () => {
   test("slug and access", async () => {
     expect(PartnerContentEvents.slug).toBe("partner-content-events");
     expect(PartnerContentEvents.access?.read).toBe(isStaff);
-    expect(PartnerContentEvents.access?.delete).toBe(isStaff);
+    expect(PartnerContentEvents.access?.delete).toBe(isSuperAdmin);
     const create = PartnerContentEvents.access?.create;
     const update = PartnerContentEvents.access?.update;
     expect(await create?.({} as never)).toBe(false);
