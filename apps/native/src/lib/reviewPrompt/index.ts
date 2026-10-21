@@ -76,6 +76,12 @@ export async function maybeRequestReview(
 
     await settle();
 
+    // The app can leave the foreground during the wait. Claiming the slot then
+    // would spend the user's 90 days on a dialog the OS will not show.
+    if (AppState.currentState !== "active") {
+      return skipped(trigger, "inactive");
+    }
+
     // A single attempt: the client retries network errors by default, and a
     // review prompt must not be re-sent behind the user's back.
     const result = await client.review.recordPrompt(

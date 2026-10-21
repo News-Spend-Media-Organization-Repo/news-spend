@@ -115,6 +115,19 @@ describe("maybeRequestReview", () => {
     expect(requestReview).not.toHaveBeenCalled();
   });
 
+  it("does not use up the slot when the app is backgrounded during the settle wait", async () => {
+    const { maybeRequestReview } = load();
+
+    const pending = maybeRequestReview("PRIZE_CLAIMED");
+    await jest.advanceTimersByTimeAsync(100);
+    appState = "background";
+    await jest.runAllTimersAsync();
+    await pending;
+
+    expect(mockRecordPrompt).not.toHaveBeenCalled();
+    expect(requestReview).not.toHaveBeenCalled();
+  });
+
   it("goes ahead when the local stamp is older than 90 days", async () => {
     mockStore.set(PROMPTED_KEY, Date.now() - 91 * DAY);
     const { maybeRequestReview } = load();

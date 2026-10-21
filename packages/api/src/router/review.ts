@@ -6,14 +6,26 @@ import { createRateLimitMiddleware } from "../lib/ratelimit";
 import { cooldownCutoff, isLoyal, REVIEW_COOLDOWN_DAYS } from "../review/rules";
 
 /**
- * Its own budget, not the shared public bucket: the app calls this at most a
- * few times a day, and a reader's other traffic must never throttle it (or the
- * other way round).
+ * Its own budget, not the shared one. Without a `name` every limiter shares a
+ * single counter per user in production, so a reader who has just made a few
+ * dozen engagement calls and then claims a prize would have the review prompt
+ * silently refused, and review calls would eat the allowance comments and
+ * reports need.
  */
-const reviewRateLimit = createRateLimitMiddleware({
+export const REVIEW_RATE_LIMIT = {
+  name: "review",
   maxRequests: 10,
   window: 60_000,
-});
+} as const;
+
+const reviewRateLimit = createRateLimitMiddleware(REVIEW_RATE_LIMIT);
+
+/** The kill switch must work however an operator spells "off". */
+function promptsDisabled(value: string | undefined): boolean {
+  return ["false", "0", "off", "no"].includes(
+    value?.trim().toLowerCase() ?? ""
+  );
+}
 
 const REVIEW_TRIGGERS = [
   "PRIZE_CLAIMED",
@@ -45,7 +57,7 @@ const recordPrompt = protectedNoGuestProcedure
   .input(RecordPromptInput)
   .handler(async ({ input, context }): Promise<RecordPromptResult> => {
     // Read on every call so the switch can be flipped without a code change.
-    if (process.env.REVIEW_PROMPTS_ENABLED === "false") {
+    if (promptsDisabled(process.env.REVIEW_PROMPTS_ENABLED)) {
       return { won: false, reason: "disabled" };
     }
 

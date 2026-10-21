@@ -7,7 +7,7 @@ import {
   mockContext,
   stubDrizzle,
 } from "../test-utils";
-import { reviewRouter } from "./review";
+import { REVIEW_RATE_LIMIT, reviewRouter } from "./review";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -217,6 +217,51 @@ describe("review.recordPrompt", () => {
 
     expect(result).toEqual({ won: false, reason: "disabled" });
     expect(queries).toHaveLength(0);
+  });
+
+  it.each([
+    "FALSE",
+    "False",
+    " false ",
+    "0",
+    "off",
+    "no",
+  ])("treats REVIEW_PROMPTS_ENABLED=%j as off", async (value) => {
+    process.env.REVIEW_PROMPTS_ENABLED = value;
+    const { ctx, queries } = setup(`kill-${value.trim()}`);
+
+    const result = await call(
+      reviewRouter.recordPrompt,
+      { trigger: "PRIZE_CLAIMED" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({ won: false, reason: "disabled" });
+    expect(queries).toHaveLength(0);
+  });
+
+  it.each([
+    "true",
+    "1",
+    "",
+  ])("leaves prompts on for REVIEW_PROMPTS_ENABLED=%j", async (value) => {
+    process.env.REVIEW_PROMPTS_ENABLED = value;
+    const { ctx } = setup(`on-${value || "empty"}`);
+
+    const result = await call(
+      reviewRouter.recordPrompt,
+      { trigger: "PRIZE_CLAIMED" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({ won: true });
+  });
+
+  it("has a named rate-limit bucket of its own", () => {
+    // Without a name every limiter shares one counter per user in production
+    // (Redis), so claims and comments would throttle review prompts and back.
+    expect(REVIEW_RATE_LIMIT.name).toBe("review");
+    expect(REVIEW_RATE_LIMIT.maxRequests).toBe(10);
   });
 
   it("rejects a guest", async () => {
