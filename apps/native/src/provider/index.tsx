@@ -21,6 +21,7 @@ import { detourConfig } from "#/lib/detour";
 import { discoverAnalyticsClient } from "#/lib/discoverAnalyticsClient";
 import { IconContext } from "#/lib/icons";
 import { newsAnalyticsClient } from "#/lib/newsAnalyticsClient";
+import { partnerEventsClient } from "#/lib/partnerEventsClient";
 import { useUpdates } from "#/lib/UpdatesProvider";
 import { useAfterStartup } from "#/utils/afterStartup";
 
@@ -76,9 +77,11 @@ export const Provider = ({ children }: Props) => {
     }
     newsAnalyticsClient.start();
     discoverAnalyticsClient.start();
+    partnerEventsClient.start();
     return () => {
       newsAnalyticsClient.stop();
       discoverAnalyticsClient.stop();
+      partnerEventsClient.stop();
     };
   }, [startupSettled]);
 
