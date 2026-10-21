@@ -114,18 +114,20 @@ export function usePartnerClick() {
       return;
     }
 
+    // A repeat tap of the same item inside the window is a full no-op: no
+    // event, no CPA mutation, and no second screen. Opening the link again
+    // without a fresh clickId would send the user to an unattributable page.
+    if (isRepeatTap(item.id, Date.now())) {
+      return;
+    }
+
     const isStoreLink = Boolean(storeUrl);
 
     // Recorded for everyone, guests included, and independent of the CPA
     // mutation below: this feeds the partner's tap count, not attribution.
-    // A repeat tap inside the window still opens the link, but is not
-    // reported again, to the event feed or to the CPA mutation.
-    const repeatTap = isRepeatTap(item.id, Date.now());
-    if (!repeatTap) {
-      trackClickEvent(item.id, surface);
-    }
+    trackClickEvent(item.id, surface);
 
-    if (shouldTrackClick && !repeatTap) {
+    if (shouldTrackClick) {
       const clickId = mintClickId();
       const separator = url.includes("?") ? "&" : "?";
       url = `${url}${separator}clickId=${clickId}`;

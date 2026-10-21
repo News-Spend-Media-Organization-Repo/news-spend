@@ -6,6 +6,7 @@ const mockMutateAsync = jest.fn();
 const mockInvalidateQueries = jest.fn();
 const mockNavigate = jest.fn();
 const mockTrackEvent = jest.fn();
+const mockRandomUuid = jest.fn(() => "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
 let mockUser: { isAnonymous?: boolean } | null = { isAnonymous: false };
 
@@ -40,7 +41,7 @@ jest.mock("../usePartnerEvents", () => ({
 }));
 
 jest.mock("expo-crypto", () => ({
-  randomUUID: () => "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  randomUUID: () => mockRandomUuid(),
 }));
 
 jest.mock("#/navigation/navigationUtils", () => ({
@@ -203,7 +204,10 @@ describe("usePartnerClick", () => {
       });
     };
 
-    it("records one event for a guest's double tap within a second", async () => {
+    const navigatedUrl = (call: number) =>
+      (mockNavigate.mock.calls[call]?.[1] as { url: string }).url;
+
+    it("a guest's double tap within a second is one event and one screen", async () => {
       mockUser = { isAnonymous: true };
       const { result } = await renderHook(() => usePartnerClick());
 
@@ -212,10 +216,10 @@ describe("usePartnerClick", () => {
       await tap(result);
 
       expect(mockTrackEvent).toHaveBeenCalledTimes(1);
-      expect(mockNavigate).toHaveBeenCalledTimes(2);
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
     });
 
-    it("records a second event for a tap after a second", async () => {
+    it("a guest's tap after a second is a full second tap", async () => {
       mockUser = { isAnonymous: true };
       const { result } = await renderHook(() => usePartnerClick());
 
@@ -224,9 +228,10 @@ describe("usePartnerClick", () => {
       await tap(result);
 
       expect(mockTrackEvent).toHaveBeenCalledTimes(2);
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
     });
 
-    it("records each of two different items", async () => {
+    it("taps on different items inside the window are independent", async () => {
       mockUser = { isAnonymous: true };
       const other = {
         id: "pc-9",
@@ -239,9 +244,10 @@ describe("usePartnerClick", () => {
       await tap(result, other);
 
       expect(mockTrackEvent).toHaveBeenCalledTimes(2);
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
     });
 
-    it("does not repeat the CPA mutation or the event for a signed-in double tap, but still opens the link", async () => {
+    it("a signed-in second tap at +300 ms (first settled) does nothing", async () => {
       const { result } = await renderHook(() => usePartnerClick());
 
       await tap(result);
@@ -250,18 +256,29 @@ describe("usePartnerClick", () => {
 
       expect(mockTrackEvent).toHaveBeenCalledTimes(1);
       expect(mockMutateAsync).toHaveBeenCalledTimes(1);
-      expect(mockNavigate).toHaveBeenCalledTimes(2);
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
     });
 
-    it("leaves a signed-in tap after the window unchanged", async () => {
+    it("a signed-in second tap at +1,100 ms is a full tap with its own clickId", async () => {
       const { result } = await renderHook(() => usePartnerClick());
 
       await tap(result);
-      now += 1500;
+      now += 1100;
+      mockRandomUuid.mockReturnValueOnce(
+        "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+      );
       await tap(result);
 
       expect(mockTrackEvent).toHaveBeenCalledTimes(2);
       expect(mockMutateAsync).toHaveBeenCalledTimes(2);
+      expect(mockMutateAsync.mock.calls[0]?.[0].clickId).toBe(
+        "clk_aaaaaaaabbbbcccc"
+      );
+      expect(mockMutateAsync.mock.calls[1]?.[0].clickId).toBe(
+        "clk_bbbbbbbbccccdddd"
+      );
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
+      expect(navigatedUrl(1)).toContain("clickId=clk_bbbbbbbbccccdddd");
     });
   });
 });
