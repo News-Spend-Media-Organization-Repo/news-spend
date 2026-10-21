@@ -68,6 +68,7 @@ import * as migration_20261020_080630_guest_events from './20261020_080630_guest
 import * as migration_20261020_152240_survey_settings_and_provider_ref from './20261020_152240_survey_settings_and_provider_ref';
 import * as migration_20261020_152616_add_survey_offer_events from './20261020_152616_add_survey_offer_events';
 import * as migration_20261020_214706_partner_offers from './20261020_214706_partner_offers';
+import * as migration_20261021_034146_partner_content_events from './20261021_034146_partner_content_events';
 
 export const migrations = [
   {
@@ -418,6 +419,11 @@ export const migrations = [
   {
     up: migration_20261020_214706_partner_offers.up,
     down: migration_20261020_214706_partner_offers.down,
-    name: '20261020_214706_partner_offers'
+    name: '20261020_214706_partner_offers',
+  },
+  {
+    up: migration_20261021_034146_partner_content_events.up,
+    down: migration_20261021_034146_partner_content_events.down,
+    name: '20261021_034146_partner_content_events'
   },
 ];
