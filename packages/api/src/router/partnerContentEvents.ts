@@ -18,6 +18,9 @@ import {
   partnerEventsRateLimitMiddleware,
 } from "../lib/ratelimit";
 
+/** The surface the feed records promo-media impressions under. */
+const PROMO_MEDIA_SURFACE = "homepage-ads-banner";
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const eventSchema = z.object({
@@ -40,7 +43,8 @@ const eventSchema = z.object({
  * Public and write-heavy, so nothing in a row is believed unchecked:
  *
  * - **What.** The item must exist, be `active`, and list the stated surface in
- *   its own `placements`; anything else is dropped. The partner comes from the
+ *   its own `placements` (promo media has none, so only the feed surface
+ *   `homepage-ads-banner` is accepted for it); anything else is dropped. The partner comes from the
  *   item, never the caller.
  * - **Who.** The user is the signed-in caller's, from the session. A `userId`
  *   in the body is ignored.
@@ -85,7 +89,12 @@ const track = publicProcedure
             limit: keptIds.size,
             depth: 0,
             pagination: false,
-            select: { status: true, placements: true, partner: true },
+            select: {
+              type: true,
+              status: true,
+              placements: true,
+              partner: true,
+            },
           });
     const itemById = new Map(items.docs.map((d) => [String(d.id), d]));
 
@@ -93,11 +102,16 @@ const track = publicProcedure
       const item = itemById.get(e.contentId);
       const partner = item?.partner;
       const partnerId = typeof partner === "object" ? partner?.id : partner;
-      if (
-        item?.status !== "active" ||
-        !partnerId ||
-        !item.placements?.includes(e.surface)
-      ) {
+      if (item?.status !== "active" || !partnerId) {
+        return [];
+      }
+      // Promo media has no placements of its own (the field is hidden and may
+      // be empty); the feed records it under one fixed surface.
+      const surfaceAllowed =
+        item.type === "promo-media"
+          ? e.surface === PROMO_MEDIA_SURFACE
+          : item.placements?.includes(e.surface);
+      if (!surfaceAllowed) {
         return [];
       }
       return [{ e, partnerId: String(partnerId) }];

@@ -19,6 +19,8 @@ const authedUser = { id: "user-1", isAnonymous: false, username: "tester" };
 const id = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const PARTNER = id(900);
+const UUID_SHAPE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const item = (n: number, over: Record<string, unknown> = {}) => ({
   id: id(n),
@@ -128,6 +130,17 @@ describe("partnerContentEvents.track", () => {
     expect(insert?.sql).not.toContain("attacker");
   });
 
+  it("accepts a promo-media item with empty placements on the feed surface", async () => {
+    const { payload, drizzle } = setup([
+      item(1, { type: "promo-media", placements: [] }),
+    ]);
+    const result = await track(payload, [
+      ev({ surface: "homepage-ads-banner" }),
+    ]);
+    expect(result.inserted).toBe(1);
+    expect(drizzle.queries.find(isInsert)).toBeDefined();
+  });
+
   it("accepts a populated partner relationship", async () => {
     const { payload, drizzle } = setup([item(1, { partner: { id: PARTNER } })]);
     const result = await track(payload, [ev()]);
@@ -177,6 +190,30 @@ describe("partnerContentEvents.track", () => {
         failed: 0,
         dropped: 2,
       });
+      // The lookup itself must never be handed a malformed id.
+      const lookups = payload.calls.filter(
+        (c) => c.op === "find" && c.collection === "partner-content"
+      );
+      expect(lookups).toHaveLength(1);
+      const asked = (lookups[0]?.args as { where: { id: { in: string[] } } })
+        .where.id.in;
+      expect(asked).toEqual([id(1)]);
+      expect(asked.every((v) => UUID_SHAPE.test(v))).toBe(true);
+    });
+
+    it("a non-promo item with empty placements", async () => {
+      const { payload } = setup([item(1, { type: "ad", placements: [] })]);
+      expect((await track(payload, [ev()])).dropped).toBe(1);
+    });
+
+    it("a promo-media item on any surface but the feed's", async () => {
+      const { payload } = setup([
+        item(1, { type: "promo-media", placements: [] }),
+      ]);
+      const result = await track(payload, [
+        ev({ surface: "homepage-trending-books" }),
+      ]);
+      expect(result.dropped).toBe(1);
     });
 
     it("an item with no partner", async () => {
