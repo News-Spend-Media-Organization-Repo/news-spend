@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import { createHmac } from "node:crypto";
 import { call } from "@orpc/server";
 import { canonicalString } from "../lib/partnerWebhookSignature";
@@ -845,6 +845,123 @@ describe("partnerConversionRouter.trackClick: surface-gated payment", () => {
     await tap(payload, { surface: "points-mall-apps" });
     await tap(payload, { surface: "points-mall-apps" });
     expect(payload.docs("partner-conversions")).toHaveLength(2);
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+});
+
+describe("partnerConversionRouter.trackClick: REQUIRE_TAP_SURFACE", () => {
+  const original = process.env.REQUIRE_TAP_SURFACE;
+  afterEach(() => {
+    if (original === undefined) {
+      delete process.env.REQUIRE_TAP_SURFACE;
+    } else {
+      process.env.REQUIRE_TAP_SURFACE = original;
+    }
+  });
+
+  const setup = () =>
+    createFakePayload({
+      collections: {
+        "partner-content": [
+          partnerContent({
+            id: "pc1",
+            points: 50,
+            partner: "p1",
+            placements: ["points-mall-apps", "news-click-ads"],
+          }),
+        ],
+        partners: [partner({ awardOnClick: true })],
+        "partner-conversions": [],
+        activities: [],
+        giveaways: [],
+        "giveaway-engagements": [],
+      },
+    });
+  const tap = (payload: ReturnType<typeof setup>, input: Doc = {}) =>
+    call(
+      partnerConversionRouter.trackClick,
+      { partnerContentId: "pc1", ...input } as never,
+      { context: mockContext({ payload, user: { id: "user-1" } as never }) }
+    );
+
+  it("off: a surface-less tap still pays and stores a null surface", async () => {
+    delete process.env.REQUIRE_TAP_SURFACE;
+    const payload = setup();
+    await tap(payload);
+    expect(payload.docs("partner-conversions")[0]?.surface).toBeNull();
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("on: a surface-less tap pays nothing and is stored as unknown", async () => {
+    process.env.REQUIRE_TAP_SURFACE = "true";
+    const payload = setup();
+    await tap(payload);
+    const conv = payload.docs("partner-conversions")[0];
+    expect(conv?.surface).toBe("unknown");
+    expect(conv?.status).toBe("clicked");
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("on: an explicit offer-surface tap still pays once and is stored as sent", async () => {
+    process.env.REQUIRE_TAP_SURFACE = "1";
+    const payload = setup();
+    await tap(payload, { surface: "points-mall-apps" });
+    expect(payload.docs("partner-conversions")[0]?.surface).toBe(
+      "points-mall-apps"
+    );
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("on: an explicit ad-surface tap still pays nothing and is stored as sent", async () => {
+    process.env.REQUIRE_TAP_SURFACE = "1";
+    const payload = setup();
+    await tap(payload, { surface: "news-click-ads" });
+    expect(payload.docs("partner-conversions")[0]?.surface).toBe(
+      "news-click-ads"
+    );
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("on: a postback for a surface-less tap pays nothing and leaves it clicked", async () => {
+    process.env.REQUIRE_TAP_SURFACE = "true";
+    const payload = setup();
+    const { clickId } = await tap(payload);
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId, status: "success" },
+      {
+        context: mockContext({
+          payload,
+          headers: signedHeaders({ clickId }),
+        }),
+      }
+    );
+    expect(result).toEqual({
+      success: true,
+      clickId,
+      message: "Ignored: not an offer surface",
+      pointsAwarded: 0,
+    });
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("partner-conversions")[0]?.status).toBe("clicked");
+  });
+
+  it("on: a postback for a conversion clicked before the switch (null surface) still pays", async () => {
+    process.env.REQUIRE_TAP_SURFACE = "true";
+    const payload = createFakePayload({
+      collections: {
+        "partner-conversions": [conversion({ surface: null })],
+        partners: [partner()],
+        "partner-content": [partnerContent({ points: 50 })],
+        activities: [],
+      },
+    });
+    const result = await call(
+      partnerConversionRouter.webhook,
+      { clickId: "clk_abc1234567890123", status: "success" },
+      { context: mockContext({ payload, headers: signedHeaders() }) }
+    );
+    expect(result).toMatchObject({ status: "converted", pointsAwarded: 50 });
     expect(payload.docs("activities")).toHaveLength(1);
   });
 });

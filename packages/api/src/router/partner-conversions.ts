@@ -17,6 +17,7 @@ import { verifyPartnerSignature } from "../lib/partnerWebhookSignature";
 import { recordPostback } from "../lib/postbackLog";
 import { partnerWebhookRateLimitMiddleware } from "../lib/ratelimit";
 import { hasSettledConversion } from "../lib/settledConversion";
+import { MISSING_TAP_SURFACE, requireTapSurface } from "../lib/tapSurface";
 
 // Input schema for tracking a click
 const trackClickInput = z.object({
@@ -78,6 +79,11 @@ export const trackClick = protectedNoGuestProcedure
     const clickId =
       input.clickId ?? `clk_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
+    // A tap that names no surface is a surface that can never pay when the
+    // owner has switched that on; otherwise it keeps its legacy null.
+    const surface =
+      input.surface ?? (requireTapSurface() ? MISSING_TAP_SURFACE : undefined);
+
     // Create conversion record
     const created = await payload.create({
       collection: "partner-conversions",
@@ -86,7 +92,7 @@ export const trackClick = protectedNoGuestProcedure
         partner: partnerId,
         content: input.partnerContentId,
         clickId,
-        surface: input.surface ?? null,
+        surface: surface ?? null,
         status: "clicked",
         pointsAwarded: 0,
         clickedAt: new Date().toISOString(),
@@ -124,7 +130,7 @@ export const trackClick = protectedNoGuestProcedure
     if (
       partner?.awardOnClick &&
       canPayOnTap({
-        surface: input.surface,
+        surface,
         placements: content.placements ?? [],
       })
     ) {

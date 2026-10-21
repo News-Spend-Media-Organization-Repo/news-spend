@@ -602,6 +602,7 @@ describe("partnerContentRouter.filtered: completed and pending offers", () => {
 
   it.each([
     ["news-click-ads", "available"],
+    ["unknown", "available"],
     ["points-mall-apps", "pending"],
     [null, "pending"],
   ])("a clicked row from surface %p leaves the item %s", async (surface, expected) => {
