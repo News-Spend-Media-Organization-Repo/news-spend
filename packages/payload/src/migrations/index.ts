@@ -65,6 +65,7 @@ import * as migration_20261014_191943 from './20261014_191943';
 import * as migration_20261017_161124_faq from './20261017_161124_faq';
 import * as migration_20261017_161125_faq_seed from './20261017_161125_faq_seed';
 import * as migration_20261020_080630_guest_events from './20261020_080630_guest_events';
+import * as migration_20261021_161211_review_prompted_at from './20261021_161211_review_prompted_at';
 
 export const migrations = [
   {
@@ -400,6 +401,11 @@ export const migrations = [
   {
     up: migration_20261020_080630_guest_events.up,
     down: migration_20261020_080630_guest_events.down,
-    name: '20261020_080630_guest_events'
+    name: '20261020_080630_guest_events',
+  },
+  {
+    up: migration_20261021_161211_review_prompted_at.up,
+    down: migration_20261021_161211_review_prompted_at.down,
+    name: '20261021_161211_review_prompted_at'
   },
 ];
