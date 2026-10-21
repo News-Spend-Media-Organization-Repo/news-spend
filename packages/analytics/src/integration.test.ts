@@ -1811,6 +1811,10 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     const C5 = "c1000000-0000-4000-8000-000000000005";
     const C6 = "c1000000-0000-4000-8000-000000000006";
     const C7 = "c1000000-0000-4000-8000-000000000007";
+    const C8 = "c1000000-0000-4000-8000-000000000008";
+    const C9 = "c1000000-0000-4000-8000-000000000009";
+    const C10 = "c1000000-0000-4000-8000-000000000010";
+    const C11 = "c1000000-0000-4000-8000-000000000011";
     const NONE = "c1000000-0000-4000-8000-0000000000ff";
 
     // One statement per batch of events: `n` sessions s<from>..s<to>, each
@@ -1833,7 +1837,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       await conn.unsafe(`
         INSERT INTO partner_content VALUES
           ('${C2}', 'Flash sale'), ('${C3}', 'Click only'), ('${C4}', 'Hot item'),
-          ('${C5}', 'Exactly half'), ('${C6}', 'Small sample'), ('${C7}', 'Other partner');
+          ('${C5}', 'Exactly half'), ('${C6}', 'Small sample'), ('${C7}', 'Other partner'),
+          ('${C8}', 'Just over'), ('${C9}', 'Just half'), ('${C10}', 'Split periods'), ('${C11}', 'Barely over');
 
         -- C1 on the carousel: 10 impressions over 8 sessions, 3 taps from 2 of them.
         ${events(C1, P1, "impression", "carousel", at, [1, 8])}
@@ -1859,6 +1864,17 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         -- C6: every viewer tapped, but only 10 sessions.
         ${events(C6, P1, "impression", "carousel", at, [1, 10])}
         ${events(C6, P1, "click", "carousel", at, [1, 10])}
+        -- C8: 100 seen, 51 tapped (51%, flagged). C9: 100 seen, 50 tapped (50%, not).
+        ${events(C8, P1, "impression", "carousel", at, [1, 100])}
+        ${events(C8, P1, "click", "carousel", at, [1, 51])}
+        ${events(C9, P1, "impression", "carousel", at, [1, 100])}
+        ${events(C9, P1, "click", "carousel", at, [1, 50])}
+        -- C11: 4000 seen, 2001 tapped: 50.025%, flagged although it displays as 50.
+        ${events(C11, P1, "impression", "carousel", at, [1, 4000])}
+        ${events(C11, P1, "click", "carousel", at, [1, 2001])}
+        -- C10: seen on the 10th (previous period), tapped on the 15th (current).
+        ${events(C10, P1, "impression", "carousel", "2026-09-10T12:00:00Z", [1, 3])}
+        ${events(C10, P1, "click", "carousel", at, [1, 3])}
         -- C7 belongs to the other partner: 50 sessions, 40 tapped.
         ${events(C7, P2, "impression", "carousel", at, [1, 50])}
         ${events(C7, P2, "click", "carousel", at, [1, 40])}
@@ -2005,15 +2021,58 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
 
       const rows = await partnerEventsOutliers(db, staff, { range });
 
-      // C4 (66.7% of 60) and C7 (80% of 50). C5 is exactly 50%, C6 has too
-      // few sessions, C1 and C2 are neither.
+      // C11 is 50.025%: above 50 as the ratio stands, shown as 50 once rounded.
+      // C8 (51% of 100), C4 (66.7% of 60) and C7 (80% of 50). C5 and C9 are
+      // exactly 50%, C6 has too few sessions, C1 and C2 are neither.
       expect(
         rows.map((r) => [r.contentId, r.sessionsSeen, r.tapThrough])
       ).toEqual([
+        [C11, 4000, 50],
+        [C8, 100, 51],
         [C4, 60, 66.7],
         [C7, 50, 80],
       ]);
-      expect(rows[0]).toMatchObject({ partnerId: P1, title: "Hot item" });
+      expect(rows.find((r) => r.contentId === C4)).toMatchObject({
+        partnerId: P1,
+        title: "Hot item",
+      });
+    });
+
+    it("gives a partner nothing, and no error, for another partner's content id", async () => {
+      const opts = { range, contentId: C7 };
+
+      expect(await partnerEventsByItem(db, partner1, opts)).toEqual([]);
+      expect(await partnerEventsDaily(db, partner1, opts)).toEqual([]);
+      const { current } = await partnerEventsSummary(db, partner1, opts);
+      expect(current).toEqual({
+        impressions: 0,
+        taps: 0,
+        sessionsSeen: 0,
+        sessionsTapped: 0,
+        tapThrough: null,
+      });
+    });
+
+    it("does not count a tap as tapped when the impression was in the previous period", async () => {
+      const { current, previous } = await partnerEventsSummary(db, partner1, {
+        range,
+        contentId: C10,
+      });
+
+      expect(current).toMatchObject({
+        impressions: 0,
+        taps: 3,
+        sessionsSeen: 0,
+        sessionsTapped: 0,
+        tapThrough: null,
+      });
+      expect(previous).toMatchObject({
+        impressions: 3,
+        taps: 0,
+        sessionsSeen: 3,
+        sessionsTapped: 0,
+        tapThrough: 0,
+      });
     });
 
     it("never shows a partner another partner's rows", async () => {
@@ -2022,9 +2081,9 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       const days = await partnerEventsDaily(db, partner1, { range });
 
       expect(items.some((r) => r.contentId === C7)).toBe(false);
-      // C1 12 (10 carousel + 2 feed), C2 2, C4 60, C5 60, C6 10.
-      expect(total.current.impressions).toBe(144);
-      expect(days.reduce((n, d) => n + d.impressions, 0)).toBe(144);
+      // C1 12 (10 carousel + 2 feed), C2 2, C4 60, C5 60, C6 10, C8 100, C9 100, C11 4000.
+      expect(total.current.impressions).toBe(4344);
+      expect(days.reduce((n, d) => n + d.impressions, 0)).toBe(4344);
     });
 
     it("gives staff every partner, or one by request", async () => {
@@ -2037,7 +2096,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(
         all.map((r) => [r.partnerId, r.companyName, r.impressions])
       ).toEqual([
-        [P1, "Shopwise", 144],
+        [P1, "Shopwise", 4344],
         [P2, "FreshCart", 50],
       ]);
       expect(one.current).toMatchObject({

@@ -111,8 +111,18 @@ describe("partner events: staff only reports", () => {
   });
 });
 
+const READER_COLUMN = /session_id|device_id|user_id/;
+const COUNTED = /COUNT\(DISTINCT [\w.]+\)/g;
+const SESSION_JOIN = /\b\w+\.session_id = \w+\.session_id/g;
+// Internal CTE select lists: a session id carried between CTEs, never output.
+const CTE_LISTS = [
+  /SELECT e\.content_id, e\.partner_id, e\.surface, e\.event, e\.session_id\s+FROM partner_content_events e/g,
+  /SELECT DISTINCT content_id, partner_id, surface, session_id\s+FROM ev/g,
+];
+const WILDCARD = /(\w+)\.\*|SELECT \*/g;
+
 describe("partner events: no reader leaves the database", () => {
-  it("never selects a reader column, only counts and compares them", async () => {
+  async function allQueries() {
     const { db, queries } = stubDb();
     const r = range();
 
@@ -121,15 +131,45 @@ describe("partner events: no reader leaves the database", () => {
     await partnerEventsDaily(db, STAFF, { range: r });
     await partnerEventsOutliers(db, STAFF, { range: r });
     await partnerEventsByPartner(db, STAFF, { range: r });
+    return queries;
+  }
+
+  it("never selects a reader column, only counts and compares them", async () => {
+    const queries = await allQueries();
 
     expect(queries.length).toBeGreaterThanOrEqual(6);
     for (const q of queries) {
-      // The only places a reader column may appear: COUNT(DISTINCT ...) and the
-      // session equality that joins a tap to its impression.
-      const rest = q.sql
-        .replace(/COUNT\(DISTINCT [\w.]+\)/g, "")
-        .replace(/\bi\.session_id = e\.session_id/g, "");
-      expect(rest).not.toMatch(/session_id|device_id|user_id/);
+      let rest = q.sql.replace(COUNTED, "").replace(SESSION_JOIN, "");
+      for (const list of CTE_LISTS) {
+        rest = rest.replace(list, "");
+      }
+      expect(rest).not.toMatch(READER_COLUMN);
+    }
+  });
+
+  it("never selects a wildcard of the events table", async () => {
+    for (const q of await allQueries()) {
+      // Only the derived table `t` (the pair counts) may be selected whole.
+      const wildcards = [...q.sql.matchAll(WILDCARD)].map((m) => m[0]);
+      expect(wildcards.filter((w) => w !== "t.*")).toEqual([]);
+    }
+  });
+});
+
+describe("partner events: the partner limit is applied where events are read", () => {
+  it("binds the partner id once in each query's single event scan", async () => {
+    // Every report reads partner_content_events once, in the `ev` CTE (or the
+    // daily query), and everything else derives from it. Removing the
+    // condition there leaves the partner id bound zero times.
+    for (const [, run] of scoped) {
+      const { db, queries } = stubDb();
+      await run(db);
+      for (const q of queries) {
+        const scans = q.sql.match(/FROM partner_content_events/g) ?? [];
+        const bound = q.params.filter((p) => p === PARTNER_A);
+        expect(scans).toHaveLength(1);
+        expect(bound).toHaveLength(scans.length);
+      }
     }
   });
 });

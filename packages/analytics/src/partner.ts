@@ -432,35 +432,69 @@ function totalsOf(row: {
   };
 }
 
-/** One row per (content, surface) pair with events in the window. */
+/** `AND`-ready condition limiting events to one content item, or nothing. */
+function contentCondition(contentId: string | undefined): SQL {
+  return contentId === undefined
+    ? sql``
+    : sql`AND e.content_id = ${assertUuid(contentId, "contentId")}::uuid`;
+}
+
+/**
+ * One row per (content, partner, surface) with events in the window.
+ *
+ * The events are read once (`ev`, where the window, partner and content limits
+ * are applied) and everything else derives from that. `seen` is the distinct
+ * sessions with an impression; a tapped session is a distinct clicking session
+ * joined to `seen` on the same content, partner, surface and session, so it
+ * had an impression of that item on that surface in the same window and
+ * `sessions_tapped` can never exceed `sessions_seen`.
+ */
 function pairsQuery(
   window: DateWindow,
   timeZone: string,
   partnerId: string | undefined,
   contentId: string | undefined
 ): SQL {
-  const content =
-    contentId === undefined
-      ? sql``
-      : sql`AND e.content_id = ${assertUuid(contentId, "contentId")}::uuid`;
-  const seen = sql`SELECT 1 FROM partner_content_events i
-            WHERE i.event = 'impression'
-              AND i.content_id = e.content_id
-              AND i.surface = e.surface
-              AND i.session_id = e.session_id
-              AND ${inWindow(sql.raw("i.timestamp"), window, timeZone)}
-              ${partnerCondition(sql.raw("i.partner_id"), partnerId)}`;
   return sql`
-    SELECT e.content_id, e.partner_id, e.surface,
-           COUNT(*) FILTER (WHERE e.event = 'impression')::int AS impressions,
-           COUNT(*) FILTER (WHERE e.event = 'click')::int AS taps,
-           COUNT(DISTINCT e.session_id) FILTER (WHERE e.event = 'impression')::int AS sessions_seen,
-           COUNT(DISTINCT e.session_id) FILTER (WHERE e.event = 'click' AND EXISTS (${seen}))::int AS sessions_tapped
-    FROM partner_content_events e
-    WHERE ${inWindow(sql.raw("e.timestamp"), window, timeZone)}
-      ${partnerCondition(sql.raw("e.partner_id"), partnerId)}
-      ${content}
-    GROUP BY e.content_id, e.partner_id, e.surface`;
+    WITH ev AS (
+      SELECT e.content_id, e.partner_id, e.surface, e.event, e.session_id
+      FROM partner_content_events e
+      WHERE ${inWindow(sql.raw("e.timestamp"), window, timeZone)}
+        ${partnerCondition(sql.raw("e.partner_id"), partnerId)}
+        ${contentCondition(contentId)}
+    ),
+    seen AS (
+      SELECT DISTINCT content_id, partner_id, surface, session_id
+      FROM ev WHERE event = 'impression'
+    ),
+    seen_n AS (
+      SELECT content_id, partner_id, surface, COUNT(*)::int AS n
+      FROM seen GROUP BY content_id, partner_id, surface
+    ),
+    tapped_n AS (
+      SELECT c.content_id, c.partner_id, c.surface, COUNT(*)::int AS n
+      FROM (
+        SELECT DISTINCT content_id, partner_id, surface, session_id
+        FROM ev WHERE event = 'click'
+      ) c
+      JOIN seen s ON s.content_id = c.content_id AND s.partner_id = c.partner_id
+        AND s.surface = c.surface AND s.session_id = c.session_id
+      GROUP BY c.content_id, c.partner_id, c.surface
+    ),
+    raw AS (
+      SELECT content_id, partner_id, surface,
+             COUNT(*) FILTER (WHERE event = 'impression')::int AS impressions,
+             COUNT(*) FILTER (WHERE event = 'click')::int AS taps
+      FROM ev GROUP BY content_id, partner_id, surface
+    )
+    SELECT r.content_id, r.partner_id, r.surface, r.impressions, r.taps,
+           COALESCE(sn.n, 0)::int AS sessions_seen,
+           COALESCE(tn.n, 0)::int AS sessions_tapped
+    FROM raw r
+    LEFT JOIN seen_n sn ON sn.content_id = r.content_id
+      AND sn.partner_id = r.partner_id AND sn.surface = r.surface
+    LEFT JOIN tapped_n tn ON tn.content_id = r.content_id
+      AND tn.partner_id = r.partner_id AND tn.surface = r.surface`;
 }
 
 async function eventTotalsFor(
@@ -545,11 +579,6 @@ export async function partnerEventsDaily(
 ): Promise<EventsDay[]> {
   const partnerId = partnerFilter(scope, filter.partnerId);
   const { timeZone, current } = filter.range;
-  const content =
-    filter.contentId === undefined
-      ? sql``
-      : sql`AND e.content_id = ${assertUuid(filter.contentId, "contentId")}::uuid`;
-
   const rows = await rowsOf<{
     day: string;
     surface: string;
@@ -565,7 +594,7 @@ export async function partnerEventsDaily(
       FROM partner_content_events e
       WHERE ${inWindow(sql.raw("e.timestamp"), current, timeZone)}
         ${partnerCondition(sql.raw("e.partner_id"), partnerId)}
-        ${content}
+        ${contentCondition(filter.contentId)}
       GROUP BY 1, 2
     `
   );
@@ -619,14 +648,15 @@ export async function partnerEventsOutliers(
       FROM (${pairsQuery(current, timeZone, undefined, undefined)}) t
       LEFT JOIN partner_content c ON c.id = t.content_id
       WHERE t.sessions_seen >= ${OUTLIER_MIN_SESSIONS}
-        AND t.sessions_tapped * 100 >= ${OUTLIER_TAP_THROUGH} * t.sessions_seen
+        AND t.sessions_tapped * 100 > ${OUTLIER_TAP_THROUGH}::int * t.sessions_seen
       ORDER BY t.sessions_seen DESC, t.content_id, t.surface
     `
   );
   const outliers: EventsOutlier[] = [];
   for (const r of rows) {
     const { tapThrough, sessionsSeen } = totalsOf(r);
-    if (tapThrough !== null && tapThrough > OUTLIER_TAP_THROUGH) {
+    // The SQL decided on the exact ratio; the number shown is rounded.
+    if (tapThrough !== null) {
       outliers.push({
         partnerId: r.partner_id,
         contentId: r.content_id,
