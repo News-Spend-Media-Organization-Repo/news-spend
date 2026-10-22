@@ -13,9 +13,13 @@ import {
 
 import Latest from "#/components/News/categories/Latest";
 import NewsCategoryComponent from "#/components/News/categories/NewsCategory";
+import { useLoyalReviewPrompt } from "#/lib/reviewPrompt/useLoyalReviewPrompt";
 import { setTabName } from "#/state/route-state";
 
 export default function NewsHome() {
+  // Asks an engaged reader for a review when they come back to Home.
+  useLoyalReviewPrompt();
+
   const [index, setIndex] = useState(0);
   const layout = useWindowDimensions();
 
