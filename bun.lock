@@ -59,7 +59,7 @@
     },
     "apps/native": {
       "name": "@news-spend-media/native",
-      "version": "2.7.0",
+      "version": "2.7.1",
       "dependencies": {
         "@better-auth/expo": "catalog:",
         "@callstack/liquid-glass": "^0.8.2",
