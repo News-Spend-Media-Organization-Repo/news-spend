@@ -165,17 +165,15 @@ const Latest = memo(
     }, [refetch]);
 
     const partnerContent = useQuery(
-      orpc.partnerContent.filtered.queryOptions({
+      orpc.partnerContent.random.queryOptions({
         input: {
           placement: ["homepage-trending-books"],
-          status: "active",
           limit: 12,
-          page: 1,
         },
       })
     );
 
-    const flattenedPartnerContent = partnerContent?.data?.docs;
+    const flattenedPartnerContent = partnerContent?.data;
 
     const trendingNews = useQuery(
       orpc.news.trending.queryOptions({ input: { limit: 3 } })
@@ -289,12 +287,15 @@ const Latest = memo(
       resetInfiniteQueryPagination();
       refetchByUser();
       trendingRefetch.refetchByUser();
+      // Books and ads re-roll together with the rest of the feed.
+      partnerContent.refetch();
       markTabAdsStale("latest");
       lastVisibleIndexRef.current = 0;
     }, [
       resetInfiniteQueryPagination,
       refetchByUser,
       trendingRefetch.refetchByUser,
+      partnerContent.refetch,
     ]);
 
     const onEndReached = useCallback(() => {
