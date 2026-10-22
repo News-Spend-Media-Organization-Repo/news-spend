@@ -235,3 +235,34 @@ describe("iWitness data", () => {
     });
   });
 });
+
+describe("Admins deletion", () => {
+  /**
+   * The FK from news.author to admins is ON DELETE SET NULL, so a permanent
+   * delete silently orphans articles (and crashes nothing, which is worse).
+   * Trash keeps the row; the guard only has to hold on permanent delete.
+   */
+  const beforeDelete = Admins.hooks?.beforeDelete?.[0] as unknown as (args: {
+    id: string;
+    req: {
+      payload: { count: (args: unknown) => Promise<{ totalDocs: number }> };
+    };
+  }) => Promise<void>;
+
+  const withCount = (totalDocs: number) => ({
+    id: "admin-1",
+    req: { payload: { count: async () => ({ totalDocs }) } },
+  });
+
+  test("deletes go to trash by default", () => {
+    expect(Admins.trash).toBe(true);
+  });
+
+  test("permanent delete is refused while the admin authored articles", async () => {
+    await expect(beforeDelete(withCount(12))).rejects.toThrow("12 article(s)");
+  });
+
+  test("permanent delete is allowed once the articles are reassigned", async () => {
+    await expect(beforeDelete(withCount(0))).resolves.toBeUndefined();
+  });
+});

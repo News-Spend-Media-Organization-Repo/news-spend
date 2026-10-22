@@ -70,6 +70,7 @@ import * as migration_20261020_152616_add_survey_offer_events from './20261020_1
 import * as migration_20261020_214706_partner_offers from './20261020_214706_partner_offers';
 import * as migration_20261021_034146_partner_content_events from './20261021_034146_partner_content_events';
 import * as migration_20261022_150623_review_prompted_at from './20261022_150623_review_prompted_at';
+import * as migration_20261022_170313_admins_trash from './20261022_170313_admins_trash';
 
 export const migrations = [
   {
@@ -431,5 +432,10 @@ export const migrations = [
     up: migration_20261022_150623_review_prompted_at.up,
     down: migration_20261022_150623_review_prompted_at.down,
     name: '20261022_150623_review_prompted_at'
+  },
+  {
+    up: migration_20261022_170313_admins_trash.up,
+    down: migration_20261022_170313_admins_trash.down,
+    name: '20261022_170313_admins_trash'
   },
 ];
