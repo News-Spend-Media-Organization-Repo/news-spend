@@ -370,6 +370,7 @@ export interface Admin {
   } | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -641,6 +642,10 @@ export interface User {
    * Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.
    */
   lastGiveawayResultSeen?: (string | null) | Giveaway;
+  /**
+   * Last time the automatic store-review prompt was recorded for this user. Never set by rating.
+   */
+  reviewPromptedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -3204,6 +3209,7 @@ export interface AdminsSelect<T extends boolean = true> {
   lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
@@ -4171,6 +4177,7 @@ export interface UsersSelect<T extends boolean = true> {
   lastActive?: T;
   customAttributes?: T;
   lastGiveawayResultSeen?: T;
+  reviewPromptedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

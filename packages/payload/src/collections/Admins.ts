@@ -5,6 +5,9 @@ import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 const Admins: CollectionConfig = {
   slug: "admins",
   auth: true,
+  // Deleting an admin nulls the author on every article they wrote (the FK is
+  // ON DELETE SET NULL), so default deletes go to Trash instead.
+  trash: true,
   access: {
     // Partners sign in here too, so they may read only their own record.
     read: ({ req: { user } }) => {
@@ -29,6 +32,25 @@ const Admins: CollectionConfig = {
   admin: {
     useAsTitle: "fullName",
     group: "User Management",
+  },
+  hooks: {
+    // Trashing keeps the row, so articles keep their author. Only a permanent
+    // delete would null it, which is why it has to be reassigned first.
+    beforeDelete: [
+      async ({ id, req }) => {
+        const { totalDocs } = await req.payload.count({
+          collection: "news",
+          where: { author: { equals: id } },
+          req,
+        });
+
+        if (totalDocs > 0) {
+          throw new Error(
+            `${totalDocs} article(s) still list this account as their author. Reassign them before deleting it permanently.`
+          );
+        }
+      },
+    ],
   },
   fields: [
     // uuidField(),
