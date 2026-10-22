@@ -28,7 +28,7 @@ import { GAMES, type Game } from "#/features/games/catalog";
 import { openGame } from "#/features/games/openGame";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { trackDiscover } from "#/lib/discoverAnalyticsClient";
-import { orpc } from "#/lib/orpc";
+import { orpc, type RouterInputs } from "#/lib/orpc";
 import { navigationRef } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
 import { useTabBarHeight } from "#/state/route-state";
@@ -69,13 +69,47 @@ type SectionItem =
 
 // ─── Query definitions ───────────────────────────────────────────────────────
 
-const appsQuery = orpc.partnerContent.filtered.queryOptions({
-  input: { limit: 5, type: ["app"], placement: ["points-mall-apps"] },
-});
+/**
+ * The key carries the signed-in user: these lists hide the offers this person
+ * has completed and mark the ones they started, so the cached answer belongs to
+ * them. Without it, signing in as someone else would show the previous
+ * account's list until it refetched. The id is not sent to the server; it only
+ * separates cache entries.
+ */
+type FilteredInput = RouterInputs["partnerContent"]["filtered"];
 
-const booksQuery = orpc.partnerContent.filtered.queryOptions({
-  input: { limit: 5, type: ["book"], placement: ["points-mall-books"] },
-});
+const appsInput: FilteredInput = {
+  limit: 5,
+  type: ["app"],
+  placement: ["points-mall-apps"],
+};
+
+const booksInput: FilteredInput = {
+  limit: 5,
+  type: ["book"],
+  placement: ["points-mall-books"],
+};
+
+const appsQuery = (userId: string | null) =>
+  orpc.partnerContent.filtered.queryOptions({
+    input: appsInput,
+    queryKey: [
+      ...orpc.partnerContent.filtered.queryKey({ input: appsInput }),
+      { userId },
+    ],
+  });
+
+const booksQuery = (userId: string | null) =>
+  orpc.partnerContent.filtered.queryOptions({
+    input: booksInput,
+    queryKey: [
+      ...orpc.partnerContent.filtered.queryKey({ input: booksInput }),
+      { userId },
+    ],
+  });
+
+export const ALL_OFFERS_DONE_MESSAGE =
+  "You've completed all available offers. Check back later for new ones.";
 
 const surveysSelect = (data: unknown) =>
   Array.isArray(data)
@@ -114,8 +148,21 @@ function buildSection(
   title: string,
   state: SectionState,
   onRetry: () => void,
-  renderData: () => SectionItem | SectionItem[]
+  renderData: () => SectionItem | SectionItem[],
+  hideWhenEmpty = false
 ): void {
+  // An offers section with nothing left is dropped rather than shown as a
+  // header over "No apps available"; loading and errors still show, since
+  // neither says the section is empty.
+  if (
+    hideWhenEmpty &&
+    !state.pending &&
+    !state.error &&
+    state.dataLength === 0
+  ) {
+    return;
+  }
+
   items.push({ type: "header", title });
 
   if (state.pending && state.dataLength === 0) {
@@ -337,6 +384,7 @@ function renderSectionContent(item: SectionItem) {
 
 export const AllTab = () => {
   const { user } = useSnapshot(authState);
+  const userId = user?.id ?? null;
   const isFocused = useIsFocused();
   const { handleClick, isLoading: isPartnerLoading } = usePartnerClick();
   const listRef = useRef<LegendListRef>(null);
@@ -356,8 +404,8 @@ export const AllTab = () => {
     refetchAll,
   } = useQueries({
     queries: [
-      appsQuery,
-      booksQuery,
+      appsQuery(userId),
+      booksQuery(userId),
       {
         ...orpc.survey.cpx.getSurveys.queryOptions({
           refetchInterval: user && isFocused ? 10 * 60 * 1000 : undefined, // every 15 minutes
@@ -371,6 +419,30 @@ export const AllTab = () => {
 
   const sections: SectionItem[] = useMemo(() => {
     const items: SectionItem[] = [];
+
+    // Surveys count as an offer here, so the message only appears once every
+    // one of the three has finished loading, cleanly, with nothing in it.
+    const settledEmpty = (s: SectionState) =>
+      !(s.pending || s.error) && s.dataLength === 0;
+    if (
+      settledEmpty({
+        pending: appsPending,
+        error: appsError,
+        dataLength: appsData.length,
+      }) &&
+      settledEmpty({
+        pending: booksPending,
+        error: booksError,
+        dataLength: booksData.length,
+      }) &&
+      settledEmpty({
+        pending: surveysPending,
+        error: surveysError,
+        dataLength: surveysData.length,
+      })
+    ) {
+      items.push({ type: "empty", message: ALL_OFFERS_DONE_MESSAGE });
+    }
 
     buildSection(
       items,
@@ -388,10 +460,11 @@ export const AllTab = () => {
               itemId: app.id,
               section: "all",
             });
-            handleClick(app);
+            handleClick(app, "points-mall-apps");
           },
           loading: isPartnerLoading(app.id),
-        }))
+        })),
+      true
     );
 
     buildSection(
@@ -426,10 +499,11 @@ export const AllTab = () => {
             itemId: book.id,
             section: "all",
           });
-          handleClick(book);
+          handleClick(book, "points-mall-books");
         },
         loading: isPartnerLoading,
-      })
+      }),
+      true
     );
 
     buildSection(

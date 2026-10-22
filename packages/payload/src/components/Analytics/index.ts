@@ -1,8 +1,10 @@
-export { AnalyticsNavLink } from "./NavLink";
+export { AnalyticsNavLink, SurveyNavLink } from "./NavLink";
+export { SurveyPerformanceView } from "./SurveyPerformanceView";
 export {
   AnalyticsPageView,
   ArticleStatsView,
   GiveawayStatsView,
+  PartnerEventsPageView,
   PartnerPerformanceView,
   PointsPageView,
   RetentionPageView,

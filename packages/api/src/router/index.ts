@@ -12,6 +12,7 @@ import { notificationSettingsRouter } from "./notificationSettings";
 import { notificationsRouter } from "./notifications";
 import { partnerConversionRouter } from "./partner-conversions";
 import { partnerContentRouter } from "./partnerContent";
+import { partnerContentEventsRouter } from "./partnerContentEvents";
 import { postReportRouter } from "./postReport";
 import { publisherRouter } from "./publisher";
 import { reportRouter } from "./report";
@@ -35,6 +36,7 @@ export const router = {
   notificationSettings: notificationSettingsRouter,
   notifications: notificationsRouter,
   partnerContent: partnerContentRouter,
+  partnerContentEvents: partnerContentEventsRouter,
   partnerConversions: partnerConversionRouter,
   postReport: postReportRouter,
   publisher: publisherRouter,

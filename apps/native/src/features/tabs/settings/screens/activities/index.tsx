@@ -3,7 +3,7 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { Activity } from "@news-spend-media/payload/types";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { addDays } from "date-fns/addDays";
 import { subDays } from "date-fns/subDays";
 import { Select } from "heroui-native/select";
@@ -11,6 +11,7 @@ import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import React, { useCallback, useState } from "react";
 import { View } from "react-native";
+import { useSnapshot } from "valtio";
 import { DateRangePicker } from "#/components/heroui/date-range-picker";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
@@ -19,6 +20,7 @@ import { orpc } from "#/lib/orpc";
 import { authState } from "#/state/auth";
 import { ActivityRow } from "./components/activity-row";
 import { ActivitySheet } from "./components/activity-sheet";
+import { PendingOfferRow } from "./components/pending-offer-row";
 import {
   type ActivityType,
   activityOptions,
@@ -58,6 +60,16 @@ export default function Activities() {
       getNextPageParam: (lastPage) => lastPage?.nextPage,
     })
   );
+
+  const { user } = useSnapshot(authState);
+  const pendingOffers = useQuery({
+    ...orpc.activity.pendingOffers.queryOptions(),
+    enabled: Boolean(user) && !user?.isAnonymous,
+  });
+  const pendingList =
+    pendingOffers.isError || pendingOffers.isPending
+      ? []
+      : (pendingOffers.data ?? []);
 
   const allPages = activities.data?.pages.flatMap((page) => page?.docs) ?? [];
 
@@ -157,6 +169,14 @@ export default function Activities() {
         }
         ListHeaderComponent={
           <View className="my-3 gap-4">
+            {pendingList.length > 0 && (
+              <View className="gap-2">
+                <Text className="font-semibold text-sm">Pending</Text>
+                {pendingList.map((offer) => (
+                  <PendingOfferRow key={offer.contentId} offer={offer} />
+                ))}
+              </View>
+            )}
             <View className="flex-row gap-2.5">
               <Select
                 className="flex-1"

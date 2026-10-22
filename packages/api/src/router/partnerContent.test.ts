@@ -112,8 +112,8 @@ describe("partnerContentRouter.filtered", () => {
     const payload = createFakePayload({
       collections: {
         "partner-content": [
-          content({ id: "a", placements: ["shop-tab"] }),
-          content({ id: "b", placements: ["discover-tab"] }),
+          content({ id: "a", placements: ["points-mall-apps"] }),
+          content({ id: "b", placements: ["points-mall-books"] }),
         ],
       },
     });
@@ -121,7 +121,7 @@ describe("partnerContentRouter.filtered", () => {
 
     const result = await call(
       partnerContentRouter.filtered,
-      { placement: ["shop-tab"] },
+      { placement: ["points-mall-apps"] },
       { context: ctx }
     );
 
@@ -203,6 +203,120 @@ describe("partnerContentRouter.filtered", () => {
   });
 });
 
+describe("partnerContentRouter: surface shaping", () => {
+  const offer = (overrides: Doc = {}) =>
+    content({
+      condition: "Reach level 5",
+      points: 500,
+      adCopy: "Try the app",
+      description: "desc",
+      ...overrides,
+    });
+
+  it("filtered ad request has no points and condition is adCopy", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["news-click-ads"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]).not.toHaveProperty("points");
+    expect(result.docs[0]?.condition).toBe("Try the app");
+  });
+
+  it("filtered earn request keeps points and stored condition", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["points-mall-apps"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["points-mall-apps"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]?.points).toBe(500);
+    expect(result.docs[0]?.condition).toBe("Reach level 5");
+  });
+
+  it("filtered defaults to active items", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({ id: "a", status: "active" }),
+          content({ id: "b", status: "draft" }),
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      {},
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs.map((d) => d.id)).toEqual(["a"]);
+  });
+
+  it("getOne shapes an ad request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["news-click-ads"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.getOne,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result).not.toHaveProperty("points");
+    expect(result?.condition).toBe("Try the app");
+  });
+
+  it("getOne keeps points for an earn request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [offer({ placements: ["points-mall-apps"] })],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.getOne,
+      { placement: ["points-mall-apps"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result?.points).toBe(500);
+    expect(result?.condition).toBe("Reach level 5");
+  });
+
+  it("random shapes an ad request and keeps an earn request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          offer({ id: "ad", placements: ["news-click-ads"] }),
+          offer({ id: "earn", placements: ["points-mall-apps"] }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+    const ad = await call(
+      partnerContentRouter.random,
+      { placement: ["news-click-ads"] },
+      { context: ctx }
+    );
+    expect(ad[0]).not.toHaveProperty("points");
+    expect(ad[0]?.condition).toBe("Try the app");
+
+    const earn = await call(
+      partnerContentRouter.random,
+      { placement: ["points-mall-apps"] },
+      { context: ctx }
+    );
+    expect(earn[0]?.points).toBe(500);
+  });
+});
+
 describe("partnerContentRouter.getOne", () => {
   it("returns a random active doc", async () => {
     const originalRandom = Math.random;
@@ -276,12 +390,12 @@ describe("partnerContentRouter.getOne", () => {
 
     await call(
       partnerContentRouter.getOne,
-      { placement: ["shop-tab"], type: ["app"], adSize: "BANNER" },
+      { placement: ["points-mall-apps"], type: ["app"], adSize: "BANNER" },
       { context: ctx }
     );
 
     const findCall = payload.calls.find((c) => c.op === "find");
-    expect(findCall?.args.where?.placements?.in).toEqual(["shop-tab"]);
+    expect(findCall?.args.where?.placements?.in).toEqual(["points-mall-apps"]);
     expect(findCall?.args.where?.type?.in).toEqual(["app"]);
     expect(findCall?.args.where?.adSize?.equals).toBe("BANNER");
   });
@@ -358,7 +472,7 @@ describe("partnerContentRouter.random", () => {
         "partner-content": [
           content({
             status: "active",
-            placements: ["shop-tab"],
+            placements: ["points-mall-apps"],
             type: "app",
             adSize: "BANNER",
           }),
@@ -369,15 +483,234 @@ describe("partnerContentRouter.random", () => {
 
     await call(
       partnerContentRouter.random,
-      { placement: ["shop-tab"], type: ["app"], adSize: "BANNER", limit: 5 },
+      {
+        placement: ["points-mall-apps"],
+        type: ["app"],
+        adSize: "BANNER",
+        limit: 5,
+      },
       { context: ctx }
     );
 
     const findCall = payload.calls.find((c) => c.op === "find");
-    expect(findCall?.args.where?.placements?.in).toEqual(["shop-tab"]);
+    expect(findCall?.args.where?.placements?.in).toEqual(["points-mall-apps"]);
     expect(findCall?.args.where?.type?.in).toEqual(["app"]);
     expect(findCall?.args.where?.adSize?.equals).toBe("BANNER");
     expect(findCall?.args.limit).toBe(5);
+  });
+});
+
+describe("partnerContentRouter.filtered: shaping edge cases", () => {
+  it("shapes a mixed earn and ad placement request as an ad", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({
+            placements: ["news-click-ads"],
+            condition: "Reach level 5",
+            points: 500,
+            adCopy: "Try the app",
+          }),
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["points-mall-apps", "news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]).not.toHaveProperty("points");
+    expect(result.docs[0]?.condition).toBe("Try the app");
+  });
+
+  it("returns an empty condition for an ad with no copy or description", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({
+            placements: ["news-click-ads"],
+            condition: "Reach level 5",
+            points: 500,
+            adCopy: "",
+            description: "",
+          }),
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs[0]?.condition).toBe("");
+  });
+});
+
+describe("partnerContentRouter.filtered: completed and pending offers", () => {
+  const earn = ["points-mall-apps"] as const;
+  const user = { id: "u1", isAnonymous: false } as never;
+
+  function setup(conversions: Doc[]) {
+    return createFakePayload({
+      collections: {
+        "partner-content": ["a", "b", "c"].map((id) =>
+          content({ id, placements: ["points-mall-apps"] })
+        ),
+        "partner-conversions": conversions,
+      },
+    });
+  }
+
+  it("hides settled offers and still fills the page to the limit", async () => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: "a", status: "awarded" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn], limit: 2 },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs.map((d) => d.id)).toEqual(["b", "c"]);
+  });
+
+  it("treats a converted conversion with a populated content object as settled", async () => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: { id: "a" }, status: "converted" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs.map((d) => d.id)).toEqual(["b", "c"]);
+  });
+
+  it("tags userState pending for a clicked offer and available otherwise", async () => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: "a", status: "clicked" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    const states = Object.fromEntries(
+      result.docs.map((d) => [d.id, (d as { userState?: string }).userState])
+    );
+    expect(states).toEqual({ a: "pending", b: "available", c: "available" });
+  });
+
+  it.each([
+    ["news-click-ads", "available"],
+    ["unknown", "available"],
+    ["points-mall-apps", "pending"],
+    [null, "pending"],
+  ])("a clicked row from surface %p leaves the item %s", async (surface, expected) => {
+    const payload = setup([
+      { id: "x1", user: "u1", content: "a", status: "clicked", surface },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    const a = result.docs.find((d) => d.id === "a") as { userState?: string };
+    expect(a.userState).toBe(expected);
+  });
+
+  it("ignores another person's settled conversions", async () => {
+    const payload = setup([
+      { id: "x1", user: "u2", content: "a", status: "awarded" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs).toHaveLength(3);
+  });
+
+  it("does not filter or tag for a guest", async () => {
+    const payload = setup([
+      { id: "x1", user: "g1", content: "a", status: "awarded" },
+    ]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      {
+        context: mockContext({
+          user: { id: "g1", isAnonymous: true } as never,
+          payload,
+        }),
+      }
+    );
+    expect(result.docs).toHaveLength(3);
+    expect(result.docs[0]).not.toHaveProperty("userState");
+  });
+
+  it("does not filter or tag when nobody is signed in", async () => {
+    const payload = setup([]);
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: [...earn] },
+      { context: mockContext({ payload }) }
+    );
+    expect(result.docs).toHaveLength(3);
+    expect(result.docs[0]).not.toHaveProperty("userState");
+  });
+
+  it("does not filter or tag an ad-shaped request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({ id: "a", placements: ["news-click-ads"] }),
+        ],
+        "partner-conversions": [
+          { id: "x1", user: "u1", content: "a", status: "awarded" },
+        ],
+      },
+    });
+    const result = await call(
+      partnerContentRouter.filtered,
+      { placement: ["news-click-ads"] },
+      { context: mockContext({ user, payload }) }
+    );
+    expect(result.docs).toHaveLength(1);
+    expect(result.docs[0]).not.toHaveProperty("userState");
+  });
+});
+
+describe("partnerContentRouter.filtered: multi-placement item", () => {
+  it("shapes by the requested placements, not the stored ones", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({
+            id: "m",
+            placements: ["homepage-ads-banner", "points-mall-apps"],
+            points: 30,
+            adCopy: "Plain ad",
+            condition: "Earn 30 points",
+          }),
+        ],
+      },
+    });
+    const ctx = { context: mockContext({ payload }) };
+    const ad = await call(
+      partnerContentRouter.filtered,
+      { placement: ["homepage-ads-banner"] },
+      ctx
+    );
+    expect(ad.docs[0]).not.toHaveProperty("points");
+    expect(ad.docs[0]?.condition).toBe("Plain ad");
+
+    const offer = await call(
+      partnerContentRouter.filtered,
+      { placement: ["points-mall-apps"] },
+      ctx
+    );
+    expect(offer.docs[0]?.points).toBe(30);
+    expect(offer.docs[0]?.condition).toBe("Earn 30 points");
   });
 });
 

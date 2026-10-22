@@ -60,7 +60,6 @@ Creates standardized content items for the feed with consistent structure and ID
 
 - `buildRelatedNews(docs, taskItem?)` - Creates related news section
 - `buildPromotionMedia(promo)` - Creates promotion media item
-- `buildRewardTask(task)` - Creates reward task item
 - `buildGoogleAd(slot)` - Creates Google ad item
 - `buildInHouseAd(content)` - Creates in-house ad item
 

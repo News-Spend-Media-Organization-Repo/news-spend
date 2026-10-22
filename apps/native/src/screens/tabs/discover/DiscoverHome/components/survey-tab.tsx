@@ -24,12 +24,14 @@ const PROVIDER_COLORS: Record<string, string> = {
   cpx: "#4CAF50",
   rapido: "#2196F3",
   theorem: "#FF9800",
+  bitlabs: "#7C3AED",
 };
 
 const PROVIDER_NAMES: Record<string, string> = {
   cpx: "CPX",
   rapido: "Rapido",
   theorem: "Theorem",
+  bitlabs: "BitLabs",
 };
 
 export function SurveyTab() {
@@ -39,14 +41,16 @@ export function SurveyTab() {
 
   const surveyQuery = useQuery(
     orpc.survey.offers.getOffers.queryOptions({
-      input: { limit: 20 },
+      input: {
+        limit: 20,
+        platform: Platform.OS === "ios" ? "ios" : "android",
+      },
       staleTime: 60 * 1000,
     })
   );
 
-  const offers = ((surveyQuery.data ?? []) as Offer[]).sort(
-    (a, b) => b.points - a.points
-  );
+  // Ranking happens on the server; keep its order.
+  const offers = (surveyQuery.data ?? []) as Offer[];
   const topRatedSurvey = offers.length ? offers[0] : null;
   const otherSurveys = offers.slice(1);
 
@@ -117,7 +121,9 @@ export function SurveyTab() {
             {item.description || `${item.estimatedTime || "?"} mins`}
           </Text>
           <Text className="font-bold text-lg">
-            {item.points} pt{item.points === 1 ? "" : "s"}
+            {item.points === 0
+              ? "Earn points"
+              : `${item.points} pt${item.points === 1 ? "" : "s"}`}
           </Text>
         </Card.Body>
         <Card.Footer>
@@ -146,7 +152,9 @@ export function SurveyTab() {
 
           <View className="items-center justify-center">
             <Text className="font-bold text-xl">
-              {topRatedSurvey.points} Points
+              {topRatedSurvey.points === 0
+                ? "Earn points"
+                : `${topRatedSurvey.points} Points`}
             </Text>
             <Text className="text-gray-500">
               {topRatedSurvey.description ||
@@ -172,9 +180,11 @@ export function SurveyTab() {
     return (
       <View className="mb-6 items-center gap-3.5 rounded-lg bg-gray-100 p-3">
         <View className="flex-row gap-1 self-start">
-          <Chip className="bg-green-600" size="sm">
-            Top Rated
-          </Chip>
+          {topRatedSurvey.points > 0 && (
+            <Chip className="bg-green-600" size="sm">
+              Top Rated
+            </Chip>
+          )}
           <Chip
             size="sm"
             style={{
@@ -188,7 +198,9 @@ export function SurveyTab() {
 
         <View className="items-center justify-center">
           <Text className="font-bold text-xl">
-            {topRatedSurvey.points} Points
+            {topRatedSurvey.points === 0
+              ? "Earn points"
+              : `${topRatedSurvey.points} Points`}
           </Text>
           <Text className="text-gray-500">
             {topRatedSurvey.description ||

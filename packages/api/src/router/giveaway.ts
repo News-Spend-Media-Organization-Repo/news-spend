@@ -7,6 +7,7 @@ import {
   PRIZE_TIERS,
   type PrizeTier,
 } from "@news-spend-media/payload/collections/giveaway";
+import { ENGAGEMENT_PLACEMENTS as SHARED_ENGAGEMENT_PLACEMENTS } from "@news-spend-media/payload/lib/earnPlacements";
 import {
   claimRequirements,
   claimWindowFor,
@@ -88,7 +89,7 @@ function relationId(value: unknown): string | null {
  * easy way to satisfy Tier 1's three-boost requirement from a single surface.
  */
 const ENGAGEMENT_PLACEMENTS: Record<EngagementType, readonly string[]> = {
-  boost: ["connect-brand-video", "connect-brands-tab"],
+  boost: [...SHARED_ENGAGEMENT_PLACEMENTS],
   featured_offer: ["lucky-app-wall"],
 };
 

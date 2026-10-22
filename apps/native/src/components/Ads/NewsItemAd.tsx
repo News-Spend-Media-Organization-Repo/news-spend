@@ -32,13 +32,17 @@ function NewsItemAds({
   const { handleClick } = usePartnerClick();
 
   /**
+   * "homepage-ads-banner" is where every item reaching this component was
+   * requested: the server-composed feed draws its in-house ads from it
+   * (news/ad-manager.ts) and NewsItemFallbackAd queries it directly.
+   *
    * Routed through usePartnerClick rather than opening the URL directly. A
    * CPA partner's click has to be recorded and its clickId appended before
    * the link opens, or the postback lands with nothing to attribute it to.
    * The hook also decides in-app browser vs leaving for the store.
    */
   const onPress = useCallback(
-    () => handleClick(partnerContent),
+    () => handleClick(partnerContent, "homepage-ads-banner"),
     [handleClick, partnerContent]
   );
 
