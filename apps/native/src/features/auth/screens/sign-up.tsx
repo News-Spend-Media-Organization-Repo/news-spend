@@ -177,15 +177,14 @@ export default function SignUp() {
               />
               <FormInput isPassword name="password" placeholder="Password" />
 
-              {/* Twenty wishes in a popover would not scroll on Samsung
-                  devices — the drag is swallowed by the signup form's own
-                  scroll view. A sheet has its own gesture area, so the list
-                  scrolls. See heroui-inc/heroui-native#209. */}
+              {/* The popover's scroll now works on Android since
+                  heroui-inc/heroui-native#209 was fixed in 1.0.11, so the
+                  twenty wishes no longer need a bottom sheet. */}
               <FormSelectField
                 name="wish"
                 options={options}
                 placeholder="Make a wish"
-                presentation="bottom-sheet"
+                presentation="popover"
                 renderItem={(option, { isSelected }) => (
                   <StandardItem isSelected={isSelected} label={option.label} />
                 )}
