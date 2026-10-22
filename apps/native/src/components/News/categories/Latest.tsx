@@ -46,6 +46,9 @@ type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 const EMPTY_DOCS: RouterOutputs["news"]["home"]["docs"] = [];
 const EMPTY_BOOKS: PartnerContent[] = [];
 
+/** Rotation belongs to pull-to-refresh, not to the app regaining focus. */
+const TRENDING_BOOKS_STALE_TIME_MS = 5 * 60 * 1000;
+
 const MemoizedListHeader = memo(
   ({
     news,
@@ -164,14 +167,23 @@ const Latest = memo(
       }
     }, [refetch]);
 
-    const partnerContent = useQuery(
-      orpc.partnerContent.random.queryOptions({
+    const partnerContent = useQuery({
+      ...orpc.partnerContent.random.queryOptions({
         input: {
           placement: ["homepage-trending-books"],
           limit: 12,
         },
-      })
-    );
+        /**
+         * Without a stale time, every background/foreground cycle marked the
+         * query stale and fetched a new random batch, so the row visibly
+         * reshuffled each time the reader came back. See CustomBannerAd: the
+         * creative should only rotate on a new mount or a deliberate refresh.
+         */
+        staleTime: TRENDING_BOOKS_STALE_TIME_MS,
+      }),
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    });
 
     const flattenedPartnerContent = partnerContent?.data;
 
