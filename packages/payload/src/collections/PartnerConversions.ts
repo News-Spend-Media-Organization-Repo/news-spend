@@ -57,6 +57,15 @@ export const PartnerConversions: CollectionConfig = {
       },
     },
     {
+      name: "surface",
+      type: "text",
+      index: true,
+      admin: {
+        readOnly: true,
+        description: "Where the tap came from; set by the app",
+      },
+    },
+    {
       name: "status",
       type: "select",
       required: true,

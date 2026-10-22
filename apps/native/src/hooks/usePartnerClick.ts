@@ -1,13 +1,16 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
 import { Platform } from "react-native";
 
 import { orpc } from "#/lib/orpc";
 import { navigate } from "#/navigation/navigationUtils";
+import type { AdPlacement } from "#/state/adManager";
 import { authState } from "#/state/auth";
 import { openStoreLink } from "#/utils/openStoreLink";
+
+import { usePartnerEvents } from "./usePartnerEvents";
 
 /**
  * Mint the click id here rather than waiting for the server to return one.
@@ -25,13 +28,58 @@ import { openStoreLink } from "#/utils/openStoreLink";
 const mintClickId = () =>
   `clk_${Crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
+/** Taps on the same item this close together are one tap to the partner. */
+const DOUBLE_TAP_WINDOW_MS = 1000;
+
+/**
+ * When each item was last tapped. Module-level rather than state: state only
+ * covered signed-in taps and does not survive a remount of the card.
+ */
+const lastTapAt = new Map<string, number>();
+
+/** True when this tap repeats one on the same item inside the window. */
+function isRepeatTap(itemId: string, now: number): boolean {
+  for (const [id, at] of lastTapAt) {
+    if (now - at >= DOUBLE_TAP_WINDOW_MS) {
+      lastTapAt.delete(id);
+    }
+  }
+  const repeat = lastTapAt.has(itemId);
+  if (!repeat) {
+    lastTapAt.set(itemId, now);
+  }
+  return repeat;
+}
+
 export function usePartnerClick() {
   const trackClickMutation = useMutation(
     orpc.partnerConversions.trackClick.mutationOptions()
   );
+  const queryClient = useQueryClient();
+  const { trackClick: trackClickEvent } = usePartnerEvents();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
 
-  const handleClick = async (item: PartnerContent) => {
+  /**
+   * A tap can change what an earn surface should show: a recorded click turns
+   * an offer "pending", and an award hides it. Whatever the outcome, the lists
+   * are re-read rather than left to be stale until their next refetch.
+   */
+  const refreshOfferLists = () =>
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: orpc.partnerContent.filtered.key(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: orpc.activity.pendingOffers.key(),
+      }),
+    ]);
+
+  /**
+   * `surface` is the placement the item was requested with, not where it is
+   * drawn. The server uses it to decide whether the tap may pay out: only an
+   * offer placement does, an ad placement records the click and nothing else.
+   */
+  const handleClick = async (item: PartnerContent, surface: AdPlacement) => {
     if (loadingItemId === item.id) {
       return;
     }
@@ -66,7 +114,18 @@ export function usePartnerClick() {
       return;
     }
 
+    // A repeat tap of the same item inside the window is a full no-op: no
+    // event, no CPA mutation, and no second screen. Opening the link again
+    // without a fresh clickId would send the user to an unattributable page.
+    if (isRepeatTap(item.id, Date.now())) {
+      return;
+    }
+
     const isStoreLink = Boolean(storeUrl);
+
+    // Recorded for everyone, guests included, and independent of the CPA
+    // mutation below: this feeds the partner's tap count, not attribution.
+    trackClickEvent(item.id, surface);
 
     if (shouldTrackClick) {
       const clickId = mintClickId();
@@ -91,11 +150,14 @@ export function usePartnerClick() {
        */
       setLoadingItemId(item.id);
       trackClickMutation
-        .mutateAsync({ partnerContentId: item.id, clickId })
+        .mutateAsync({ partnerContentId: item.id, clickId, surface })
         .catch((error) => {
           console.error("Failed to track click:", error);
         })
-        .finally(() => setLoadingItemId(null));
+        .finally(() => {
+          setLoadingItemId(null);
+          refreshOfferLists().catch(() => undefined);
+        });
     }
 
     const openInApp = (target: string) =>

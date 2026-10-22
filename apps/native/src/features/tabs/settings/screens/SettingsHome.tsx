@@ -10,7 +10,7 @@ import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import { cn } from "heroui-native/utils";
 import { Fragment, useCallback, useState } from "react";
-import { Alert, Linking, Platform, ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSnapshot } from "valtio";
 import { Button } from "#/components/heroui/button";
@@ -38,6 +38,7 @@ import { orpc } from "#/lib/orpc";
 import { authState, logout } from "#/state/auth";
 import { useTabBarHeight } from "#/state/route-state";
 import { avatarColor } from "#/utils/index";
+import { RateAppSheet } from "./rate-app/RateAppSheet";
 
 type SettingsItem = {
   title: string;
@@ -129,6 +130,7 @@ function SettingsHome() {
   const { user } = useSnapshot(authState);
   const isGuest = user?.isAnonymous === true;
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [rateSheetOpen, setRateSheetOpen] = useState(false);
 
   // Static menu screen: interactive as soon as it renders.
   useMarkInteractive(true);
@@ -154,20 +156,8 @@ function SettingsHome() {
         return navigation.navigate("SignIn", { redirect: true });
       }
       if (screen === "RateApp") {
-        const storeUrl = Platform.select({
-          ios: "https://apps.apple.com/app/id6776046600",
-          android: "market://details?id=com.newsspend.app",
-        });
-        try {
-          const supported = await Linking.canOpenURL(storeUrl!);
-          if (supported) {
-            await Linking.openURL(storeUrl!);
-          } else {
-            Alert.alert("Error", "Unable to open the store page.");
-          }
-        } catch {
-          Alert.alert("Error", "An error occurred. Please try again later.");
-        }
+        // Not a route: Rate This App opens a sheet over this screen.
+        setRateSheetOpen(true);
         return;
       }
       navigation.navigate(screen);
@@ -210,6 +200,11 @@ function SettingsHome() {
         {isLoggingOut ? <Spinner /> : null}
         <Button.Label>{isGuest ? "Sign In" : "Log Out"}</Button.Label>
       </Button>
+      <RateAppSheet
+        isOpen={rateSheetOpen}
+        onOpenChange={setRateSheetOpen}
+        onSendFeedback={() => navigation.navigate("Support")}
+      />
     </Screen>
   );
 }

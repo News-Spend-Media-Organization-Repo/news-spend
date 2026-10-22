@@ -26,7 +26,6 @@ import { XIcon } from "#/lib/icons";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { navigate } from "#/navigation/navigationUtils";
-import { getCtaLabel } from "#/utils";
 import { getImageData } from "#/utils/getImageData";
 import { openStoreLink } from "#/utils/openStoreLink";
 
@@ -235,14 +234,6 @@ export function DialogWithAd({
             )}
 
             <View className="mt-2 items-center gap-2.5">
-              {randomNumber < 0.4 ? (
-                <Text className="text-center text-sm">
-                  {getCtaLabel(ad.data?.cta)} and Get{" "}
-                  <Text className="text-s-500">{ad.data?.points ?? 0}</Text>{" "}
-                  points
-                </Text>
-              ) : null}
-
               <PurchaseStatus
                 error={serverError}
                 isPending={lotteryTicketMutation.isPending}

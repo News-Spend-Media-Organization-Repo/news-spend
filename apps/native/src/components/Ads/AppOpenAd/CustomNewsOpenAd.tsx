@@ -3,12 +3,6 @@ import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Spinner } from "heroui-native/spinner";
-import {
-  PauseIcon,
-  PlayIcon,
-  SpeakerHighIcon,
-  SpeakerSlashIcon,
-} from "#/lib/icons";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Button } from "#/components/heroui/button";
@@ -16,17 +10,28 @@ import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { getThumbnailWithCache } from "#/components/videoPlayer/thumbnailCache";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
+import { usePartnerEvents } from "#/hooks/usePartnerEvents";
+import {
+  PauseIcon,
+  PlayIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
+} from "#/lib/icons";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
 
 // YouTube removed: ToS violation in ad context
 
+/** Same dwell as IMPRESSION_VIEWABILITY_CONFIG: one continuous second. */
+const IMPRESSION_DWELL_MS = 1000;
+
 type VideoPlayerStatus = "idle" | "loading" | "readyToPlay" | "error";
 
 export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const { width } = useWindowDimensions();
   const { handleClick } = usePartnerClick();
+  const { trackImpression } = usePartnerEvents();
 
   const isVideoAd =
     ad.type === "video" &&
@@ -119,8 +124,21 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
    */
   const onPress = useCallback(() => {
     appOpenAdSheetState.close();
-    handleClick(ad);
+    // The sheet shows the ad it consumed for this placement.
+    handleClick(ad, appOpenAdSheetState.placement);
   }, [handleClick, ad]);
+
+  // The ad is mounted only while the sheet is open, so being mounted is being
+  // visible. Keyed on the ad's id so a re-render neither restarts nor doubles
+  // the timer; closing unmounts this and cancels it before a second passes.
+  const adId = ad.id;
+  useEffect(() => {
+    const placement = appOpenAdSheetState.placement;
+    const timer = setTimeout(() => {
+      trackImpression(adId, placement);
+    }, IMPRESSION_DWELL_MS);
+    return () => clearTimeout(timer);
+  }, [adId, trackImpression]);
 
   const videoHeight = (width / 16) * 9;
 

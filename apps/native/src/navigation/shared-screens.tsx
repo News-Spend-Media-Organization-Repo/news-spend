@@ -45,9 +45,6 @@ const Notifications = lazy(
   () => import("#/features/tabs/settings/screens/notification")
 );
 const Profile = lazy(() => import("#/features/tabs/settings/screens/profile"));
-const RateAppScreen = lazy(
-  () => import("#/features/tabs/settings/screens/rate-app")
-);
 const Report = lazy(() => import("#/features/tabs/settings/screens/report"));
 const ShareApp = lazy(
   () => import("#/features/tabs/settings/screens/share-app")
@@ -106,7 +103,6 @@ const ROUTE_TITLES = {
   Legal: "Legal Agreement",
   TermsOfUse: "Terms of Use",
   PrivacyPolicy: "Privacy Policy",
-  RateApp: "Rate App",
   ShareApp: "Share App",
   Socials: "Follow Us",
   IdentityVerification: "Verify Identity",
@@ -239,13 +235,6 @@ export const sharedScreens = {
     screen: DeleteAccount,
     linking: {
       path: "delete-account",
-    },
-    options: { ...detailScreenOptions },
-  }),
-  RateApp: createNativeStackScreen({
-    screen: RateAppScreen,
-    linking: {
-      path: "rate-app",
     },
     options: { ...detailScreenOptions },
   }),

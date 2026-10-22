@@ -18,6 +18,7 @@ import type { CollectionConfig } from "payload";
 import slugify from "slugify";
 
 import { readStaffOrOwnPartnerLogo } from "../access/adminRoles";
+import { guardReferencedDelete } from "../hooks/guardReferencedDelete";
 
 const execAsync = promisify(child_process.exec);
 
@@ -42,6 +43,9 @@ export const Media: CollectionConfig = {
     read: readStaffOrOwnPartnerLogo,
   },
   hooks: {
+    // A file still used by an article, logo or promo block must not disappear:
+    // the FK would silently blank that reference.
+    beforeDelete: [guardReferencedDelete("media")],
     beforeChange: [
       ({ data }) => {
         if (!data.filename) {

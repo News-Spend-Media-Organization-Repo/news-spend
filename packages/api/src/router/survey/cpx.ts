@@ -6,6 +6,7 @@ import type { BasePayload } from "payload";
 
 import { commonErrors } from "../../errors";
 import { protectedProcedure, publicProcedure } from "../../index";
+import { readSurveySettings } from "./offers/settings";
 import {
   awardProviderPoints,
   PointsRefusedError,
@@ -34,17 +35,18 @@ const sameHash = (received: string, expected: string): boolean =>
   crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
 
 /**
- * Runs a points change and turns its failures into answers CPX understands: an
- * amount no survey may pay is refused outright, and anything that stopped the
- * points being saved fails the request, so CPX sends it again.
+ * Runs a points change and turns its failures into answers CPX understands. A
+ * refused amount is permanent, so the request still succeeds and CPX stops
+ * retrying; anything that stopped the points being saved fails the request, so
+ * CPX sends it again.
  */
-async function settle<T>(change: () => Promise<T>): Promise<T> {
+async function settle<T>(change: () => Promise<T>): Promise<T | undefined> {
   try {
     return await change();
   } catch (error) {
     if (error instanceof PointsRefusedError) {
       console.error(error.message);
-      throw errors.BAD_REQUEST({ message: "Points amount not accepted" });
+      return;
     }
     console.error("Could not save CPX points:", error);
     throw errors.INTERNAL_SERVER_ERROR({
@@ -97,6 +99,12 @@ export async function processCPXPostback(input: {
     });
   }
 
+  const settings = await readSurveySettings(payload);
+  const limits = {
+    maxPoints: settings.maxPointsPerAward,
+    dailyCap: settings.dailyPointsCap,
+  };
+
   if (type === "reversal") {
     const requested = Math.floor(amount_local || 0);
 
@@ -132,19 +140,23 @@ export async function processCPXPostback(input: {
   // A zero bonus or an empty completion pays nothing.
   if (status === "1" && (type === "complete" || type === "out") && points > 0) {
     await settle(() =>
-      awardProviderPoints(payload, {
-        provider: "cpx",
-        transactionId: `${trans_id}:${type}`,
-        userId: user_id,
-        points,
-        description:
-          type === "complete" ? "Completed a survey" : "Survey bonus",
-        title: type === "complete" ? "Completed survey" : "Survey Bonus",
-        body:
-          type === "complete"
-            ? `You got ${points} points for completing the survey!`
-            : `You received ${points} bonus points for participating in a survey!`,
-      })
+      awardProviderPoints(
+        payload,
+        {
+          provider: "cpx",
+          transactionId: `${trans_id}:${type}`,
+          userId: user_id,
+          points,
+          description:
+            type === "complete" ? "Completed a survey" : "Survey bonus",
+          title: type === "complete" ? "Completed survey" : "Survey Bonus",
+          body:
+            type === "complete"
+              ? `You got ${points} points for completing the survey!`
+              : `You received ${points} bonus points for participating in a survey!`,
+        },
+        limits
+      )
     );
   }
 

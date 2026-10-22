@@ -19,9 +19,9 @@ type ItemRenderProps = { isSelected: boolean };
 /**
  * How the option list is presented.
  *
- * `popover` is a floating, positioned panel. That is fine for a short list, but
- * it does not scroll reliably on Android — see the note on the list body below
- * — so longer option sets should use `bottom-sheet`.
+ * `popover` is a floating, positioned panel and scrolls reliably since
+ * heroui-native 1.0.11 (heroui-inc/heroui-native#209). `bottom-sheet` remains
+ * for lists that read better as a sheet.
  */
 export type SelectPresentation = "popover" | "bottom-sheet";
 
@@ -196,14 +196,10 @@ export function FormSelectField({
 /**
  * The scrolling body of the option list.
  *
- * A popover is a positioned overlay whose drag competes with the ancestor
- * scroll view, and on some Android devices the gesture never reaches the list
- * at all — the options are there but they do not scroll. That is a known
- * upstream problem (heroui-inc/heroui-native#209). The constant-height
- * workaround on the popover branch below is the maintainers' own suggestion and
- * it still does not hold on every device, which is why a long list belongs in a
- * sheet: a sheet is a real modal with its own scroll container, so there is no
- * competing ancestor to lose the drag to.
+ * A popover is a positioned overlay whose drag competes with an ancestor
+ * scroll view, so a long list needs its own bounded scroll container — that is
+ * what `scrollable` adds on the popover branch below. Since heroui-native
+ * 1.0.11 the drag reaches the list on Android as well (#209).
  */
 function SelectList({
   presentation,

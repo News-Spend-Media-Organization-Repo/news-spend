@@ -31,6 +31,17 @@ const Activities: CollectionConfig = {
       index: true,
     },
     {
+      name: "providerRef",
+      type: "text",
+      index: true,
+      unique: true,
+      admin: {
+        position: "sidebar",
+        description:
+          "provider:transaction:kind, for provider awards only. The unique index is what stops two servers paying one transaction.",
+      },
+    },
+    {
       name: "reward",
       type: "text",
     },

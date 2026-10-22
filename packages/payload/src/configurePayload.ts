@@ -52,6 +52,7 @@ import {
   NotificationInbox,
   Notifications,
   PartnerContent,
+  PartnerContentEvents,
   PartnerConversions,
   PartnerPostbacks,
   Partners,
@@ -62,6 +63,7 @@ import {
   Session,
   ShopAnalytics,
   Survey,
+  SurveyOfferEvents,
   Users,
   Verification,
   WitnessReport,
@@ -72,10 +74,15 @@ import {
   analyticsDefaultLayout,
   analyticsWidgets,
 } from "./components/Analytics/layout";
-import { analyticsNavLink, analyticsViews } from "./components/Analytics/tabs";
+import {
+  analyticsNavLink,
+  analyticsViews,
+  surveyPerformanceNavLink,
+} from "./components/Analytics/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
+import SurveySettings from "./globals/SurveySettings";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
@@ -89,6 +96,7 @@ import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processGiveawayTask } from "./tasks/processGiveaway";
 import { pruneNewsAnalyticsTask } from "./tasks/pruneNewsAnalytics";
+import { prunePartnerContentEventsTask } from "./tasks/prunePartnerContentEvents";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
 import { sendModerationDigestTask } from "./tasks/sendModerationDigest";
 import { sendScheduledNotificationTask } from "./tasks/sendScheduledNotification";
@@ -157,15 +165,20 @@ const baseConfig: Config = {
         Logo: "@news-spend-media/payload/components/Logo#Logo",
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
-      beforeNavLinks: [analyticsNavLink, whatsNewNavLink],
+      beforeNavLinks: [
+        analyticsNavLink,
+        surveyPerformanceNavLink,
+        whatsNewNavLink,
+      ],
       views: { ...analyticsViews, ...whatsNewViews },
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  globals: [NewsCategory, ModerationSettings],
+  globals: [NewsCategory, ModerationSettings, SurveySettings],
   collections: [
     Account,
     Activities,
+    SurveyOfferEvents,
     Admins,
     // Ads,
     // Apps,
@@ -201,6 +214,7 @@ const baseConfig: Config = {
     NotificationInbox,
     Notifications,
     PartnerContent,
+    PartnerContentEvents,
     PartnerConversions,
     PartnerPostbacks,
     Partners,
@@ -229,6 +243,7 @@ const baseConfig: Config = {
       processGiveawayTask,
       cleanupAnonymousUsersTask,
       pruneNewsAnalyticsTask,
+      prunePartnerContentEventsTask,
       generateVideoThumbnailTask,
       deleteVideoThumbTempTask,
     ],

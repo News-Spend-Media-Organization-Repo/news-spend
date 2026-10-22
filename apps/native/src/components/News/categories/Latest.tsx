@@ -22,11 +22,9 @@ import {
 } from "#/hooks/news/constants";
 import { homeFeedInfiniteKey, homeFeedInput } from "#/hooks/news/feedKeys";
 import { relatedArticlesSeenOnArrival } from "#/hooks/news/relatedImpressions";
-import {
-  IMPRESSION_VIEWABILITY_CONFIG,
-  type ImpressionToken,
-} from "#/hooks/news/useImpressionViewability";
+import type { ImpressionToken } from "#/hooks/news/useImpressionViewability";
 import { useNewsAnalytics } from "#/hooks/news/useNewsAnalytics";
+import { usePartnerImpressionViewability } from "#/hooks/news/usePartnerImpressionViewability";
 import { useRefetchOnReturn } from "#/hooks/news/useRefetchOnReturn";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -39,7 +37,7 @@ import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
 import RelatedNews from "../RelatedNews";
-import RewardTaskItemCard from "../RewardTaskItem";
+import { buildLatestViewabilityPairs } from "./feedViewability";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 
@@ -48,15 +46,8 @@ type ItemType = RouterOutputs["news"]["home"]["docs"][number];
 const EMPTY_DOCS: RouterOutputs["news"]["home"]["docs"] = [];
 const EMPTY_BOOKS: PartnerContent[] = [];
 
-/**
- * Drives the feed's mechanics — pausing a carousel that scrolled away and
- * preloading the next Google ad slots. Deliberately loose and immediate:
- * these want to fire as early as possible, and delaying a preload leaves an
- * ad slot blank for longer.
- */
-const MECHANICS_VIEWABILITY_CONFIG = {
-  itemVisiblePercentThreshold: 40,
-};
+/** Rotation belongs to pull-to-refresh, not to the app regaining focus. */
+const TRENDING_BOOKS_STALE_TIME_MS = 5 * 60 * 1000;
 
 const MemoizedListHeader = memo(
   ({
@@ -176,18 +167,25 @@ const Latest = memo(
       }
     }, [refetch]);
 
-    const partnerContent = useQuery(
-      orpc.partnerContent.filtered.queryOptions({
+    const partnerContent = useQuery({
+      ...orpc.partnerContent.random.queryOptions({
         input: {
           placement: ["homepage-trending-books"],
-          status: "active",
           limit: 12,
-          page: 1,
         },
-      })
-    );
+        /**
+         * Without a stale time, every background/foreground cycle marked the
+         * query stale and fetched a new random batch, so the row visibly
+         * reshuffled each time the reader came back. See CustomBannerAd: the
+         * creative should only rotate on a new mount or a deliberate refresh.
+         */
+        staleTime: TRENDING_BOOKS_STALE_TIME_MS,
+      }),
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    });
 
-    const flattenedPartnerContent = partnerContent?.data?.docs;
+    const flattenedPartnerContent = partnerContent?.data;
 
     const trendingNews = useQuery(
       orpc.news.trending.queryOptions({ input: { limit: 3 } })
@@ -301,12 +299,15 @@ const Latest = memo(
       resetInfiniteQueryPagination();
       refetchByUser();
       trendingRefetch.refetchByUser();
+      // Books and ads re-roll together with the rest of the feed.
+      partnerContent.refetch();
       markTabAdsStale("latest");
       lastVisibleIndexRef.current = 0;
     }, [
       resetInfiniteQueryPagination,
       refetchByUser,
       trendingRefetch.refetchByUser,
+      partnerContent.refetch,
     ]);
 
     const onEndReached = useCallback(() => {
@@ -340,9 +341,6 @@ const Latest = memo(
         }
         if (kind === "relatedNews") {
           return 220;
-        }
-        if (kind === "rewardTask") {
-          return 140;
         }
         // Article and video rows: a 100px thumbnail plus padding.
         return 116;
@@ -392,8 +390,6 @@ const Latest = memo(
           } else {
             content = <NewsItemAd index={index} item={item} />;
           }
-        } else if (item && "_type" in item && item._type === "rewardTask") {
-          content = <RewardTaskItemCard item={item} />;
         } else {
           content = null;
         }
@@ -472,16 +468,15 @@ const Latest = memo(
       }
     );
 
-    const viewabilityConfigCallbackPairs = useRef([
-      {
-        viewabilityConfig: MECHANICS_VIEWABILITY_CONFIG,
-        onViewableItemsChanged: onViewableItemsChanged.current,
-      },
-      {
-        viewabilityConfig: IMPRESSION_VIEWABILITY_CONFIG,
-        onViewableItemsChanged: onImpressionItemsChanged.current,
-      },
-    ]);
+    const partnerImpressionPairs = usePartnerImpressionViewability();
+
+    const viewabilityConfigCallbackPairs = useRef(
+      buildLatestViewabilityPairs(
+        onViewableItemsChanged.current,
+        onImpressionItemsChanged.current,
+        partnerImpressionPairs
+      )
+    );
     // #endregion
     useScrollToTop(ref);
 

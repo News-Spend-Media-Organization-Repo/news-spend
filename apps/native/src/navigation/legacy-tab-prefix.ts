@@ -27,7 +27,6 @@ const DETAIL_LEADS = new Set([
   "notification",
   "data-manager",
   "delete-account",
-  "rate-app",
   "share-app",
   "socials",
   "support",

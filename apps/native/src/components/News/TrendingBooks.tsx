@@ -1,17 +1,18 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useCallback } from "react";
+import { useMemo } from "react";
 import {
   Dimensions,
-  Linking,
   Pressable,
   type ScrollViewProps,
   View,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { getImageData } from "#/utils/getImageData";
 import { Image } from "../heroui/image";
 import { Text } from "../heroui/text";
+import { alternateBooksAndAds } from "./trendingBooksOrder";
 
 const { width } = Dimensions.get("window");
 
@@ -22,13 +23,13 @@ export default function TrendingBooks({
 }: {
   books: PartnerContent[];
 }) {
-  const booksRenderItem = useCallback(({ item }: { item: PartnerContent }) => {
+  const { handleClick } = usePartnerClick();
+  const orderedBooks = useMemo(() => alternateBooksAndAds(books), [books]);
+  const booksRenderItem = ({ item }: { item: PartnerContent }) => {
     const { url, blurhash } = getImageData(item?.media);
     return (
       <Pressable
-        onPress={() =>
-          Linking.openURL(item?.links?.website ?? "").catch(console.error)
-        }
+        onPress={() => handleClick(item, "homepage-trending-books")}
         style={{ width: width * 0.31 }}
       >
         <Image
@@ -41,15 +42,17 @@ export default function TrendingBooks({
           source={{ uri: url ?? "" }}
           style={{ aspectRatio: 0.7, width: "100%" }}
         />
-        <Text
-          className="mt-2 font-semibold text-gray-500 italic"
-          numberOfLines={2}
-        >
-          {item.condition}
-        </Text>
+        {item.condition ? (
+          <Text
+            className="mt-2 font-semibold text-gray-500 italic"
+            numberOfLines={2}
+          >
+            {item.condition}
+          </Text>
+        ) : null}
       </Pressable>
     );
-  }, []);
+  };
 
   if (books.length === 0) {
     return null;
@@ -64,9 +67,10 @@ export default function TrendingBooks({
           paddingHorizontal: 15,
           gap: 15,
         }}
-        data={books}
+        data={orderedBooks}
         estimatedItemSize={136}
         horizontal
+        keyExtractor={(item) => String(item.id)}
         recycleItems
         renderItem={booksRenderItem}
         renderScrollComponent={CustomScrollView}

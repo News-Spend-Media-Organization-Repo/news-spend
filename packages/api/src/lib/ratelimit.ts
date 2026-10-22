@@ -38,11 +38,19 @@ export function createRateLimitMiddleware(options?: {
    * default bucket; pass a name for anything wanting its own allowance.
    */
   name?: string;
+  /**
+   * What the bucket is keyed on. "caller" (the default, and what every
+   * existing middleware uses) is the signed-in user, else the address. "ip"
+   * is the address alone, ignoring any signed-in user, for a second, wider
+   * ceiling that a caller cannot escape by minting accounts or guest ids.
+   */
+  by?: "caller" | "ip";
 }) {
   const maxRequests = options?.maxRequests ?? 10;
   const window = options?.window ?? 60_000;
   const limiter = options?.limiter ?? createDefaultLimiter(maxRequests, window);
   const prefix = options?.name ? `${options.name}:` : "";
+  const byIp = options?.by === "ip";
 
   // Typed to the app's context. Left to inference it widens to "any object",
   // and every handler behind this middleware then sees a loosely typed
@@ -54,7 +62,7 @@ export function createRateLimitMiddleware(options?: {
         return `${prefix}dev-mode`;
       }
 
-      if (context.user) {
+      if (context.user && !byIp) {
         return `${prefix}user:${context.user.id}`;
       }
 
@@ -68,7 +76,7 @@ export function createRateLimitMiddleware(options?: {
           ?.trim() ||
         context.request?.headers.get("cf-connecting-ip") ||
         "unknown";
-      return `${prefix}anon:${ip}`;
+      return `${prefix}${byIp ? "ip" : "anon"}:${ip}`;
     },
   });
 }
@@ -126,4 +134,25 @@ export const partnerWebhookRateLimitMiddleware = createRateLimitMiddleware({
 export const discoverTrackRateLimitMiddleware = createRateLimitMiddleware({
   name: "discover-track",
   maxRequests: 30,
+});
+
+/**
+ * Buckets for partner content impressions and taps.
+ *
+ * The endpoint is public and writes a row per event, so it has two ceilings.
+ * The first is per caller (user, else address) at 30 a minute: the app flushes
+ * about eight times a minute, so this is roomy for a real device and tight
+ * for a script. The second is per address alone at 300 a minute, so a caller
+ * cannot multiply the first by changing user or guest identity, while a whole
+ * carrier or office NAT of real readers still fits under it.
+ */
+export const partnerEventsRateLimitMiddleware = createRateLimitMiddleware({
+  name: "partner-events",
+  maxRequests: 30,
+});
+
+export const partnerEventsIpRateLimitMiddleware = createRateLimitMiddleware({
+  name: "partner-events-ip",
+  maxRequests: 300,
+  by: "ip",
 });

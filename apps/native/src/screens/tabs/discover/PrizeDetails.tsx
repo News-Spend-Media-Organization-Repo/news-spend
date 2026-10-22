@@ -15,6 +15,7 @@ import {
   PackageIcon,
 } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
+import { usePrizeDeliveredReview } from "#/lib/reviewPrompt/prizeTriggers";
 import { toInstant } from "#/utils/toInstant";
 
 const PRIZE_ICON: Record<string, typeof GiftIcon> = {
@@ -70,6 +71,9 @@ function PrizeDetails({
       enabled: Boolean(winnerId),
     })
   );
+
+  // Before the early returns below: hooks cannot be conditional.
+  usePrizeDeliveredReview(data);
 
   if (isPending) {
     return (

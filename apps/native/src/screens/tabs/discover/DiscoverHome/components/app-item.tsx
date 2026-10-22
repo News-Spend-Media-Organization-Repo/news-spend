@@ -7,7 +7,8 @@ import { Text } from "#/components/heroui/text";
 import { getImageData } from "#/utils/getImageData";
 
 type AppItemProps = {
-  item: PartnerContent;
+  /** `userState` is set by the server on earn surfaces for signed-in users. */
+  item: PartnerContent & { userState?: "available" | "pending" };
   onPress: () => void;
   loading?: boolean;
 };
@@ -40,9 +41,15 @@ export function AppItem({ item, onPress, loading }: AppItemProps) {
               {item.condition}
             </Text>
           </View>
-          <View className="flex-row self-end rounded-full bg-s-300 px-2 py-1">
-            <Text className="text-white text-xs">{item.points} points</Text>
-          </View>
+          {item.userState === "pending" ? (
+            <View className="flex-row self-end rounded-full bg-gray-200 px-2 py-1">
+              <Text className="text-gray-50 text-xs">Pending confirmation</Text>
+            </View>
+          ) : (
+            <View className="flex-row self-end rounded-full bg-s-300 px-2 py-1">
+              <Text className="text-white text-xs">{item.points} points</Text>
+            </View>
+          )}
         </View>
       </View>
     </PressableFeedback>

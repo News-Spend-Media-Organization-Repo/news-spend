@@ -331,5 +331,23 @@ export const Users: CollectionConfig = {
           "Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.",
       },
     },
+    /**
+     * When the automatic store-review prompt was last recorded for this user.
+     *
+     * On the user rather than in the app so the 90-day cap survives a
+     * reinstall and agrees across devices, the same reasoning as
+     * `lastGiveawayResultSeen`. It records that we asked, never that anyone
+     * reviewed: neither store reports that back.
+     */
+    {
+      name: "reviewPromptedAt",
+      type: "date",
+      // Not indexed: every query reads or updates it by the user's id.
+      admin: {
+        readOnly: true,
+        description:
+          "Last time the automatic store-review prompt was recorded for this user. Never set by rating.",
+      },
+    },
   ],
 };

@@ -65,6 +65,12 @@ import * as migration_20261014_191943 from './20261014_191943';
 import * as migration_20261017_161124_faq from './20261017_161124_faq';
 import * as migration_20261017_161125_faq_seed from './20261017_161125_faq_seed';
 import * as migration_20261020_080630_guest_events from './20261020_080630_guest_events';
+import * as migration_20261020_152240_survey_settings_and_provider_ref from './20261020_152240_survey_settings_and_provider_ref';
+import * as migration_20261020_152616_add_survey_offer_events from './20261020_152616_add_survey_offer_events';
+import * as migration_20261020_214706_partner_offers from './20261020_214706_partner_offers';
+import * as migration_20261021_034146_partner_content_events from './20261021_034146_partner_content_events';
+import * as migration_20261022_150623_review_prompted_at from './20261022_150623_review_prompted_at';
+import * as migration_20261022_170313_admins_trash from './20261022_170313_admins_trash';
 
 export const migrations = [
   {
@@ -400,6 +406,36 @@ export const migrations = [
   {
     up: migration_20261020_080630_guest_events.up,
     down: migration_20261020_080630_guest_events.down,
-    name: '20261020_080630_guest_events'
+    name: '20261020_080630_guest_events',
+  },
+  {
+    up: migration_20261020_152240_survey_settings_and_provider_ref.up,
+    down: migration_20261020_152240_survey_settings_and_provider_ref.down,
+    name: '20261020_152240_survey_settings_and_provider_ref',
+  },
+  {
+    up: migration_20261020_152616_add_survey_offer_events.up,
+    down: migration_20261020_152616_add_survey_offer_events.down,
+    name: '20261020_152616_add_survey_offer_events',
+  },
+  {
+    up: migration_20261020_214706_partner_offers.up,
+    down: migration_20261020_214706_partner_offers.down,
+    name: '20261020_214706_partner_offers',
+  },
+  {
+    up: migration_20261021_034146_partner_content_events.up,
+    down: migration_20261021_034146_partner_content_events.down,
+    name: '20261021_034146_partner_content_events',
+  },
+  {
+    up: migration_20261022_150623_review_prompted_at.up,
+    down: migration_20261022_150623_review_prompted_at.down,
+    name: '20261022_150623_review_prompted_at'
+  },
+  {
+    up: migration_20261022_170313_admins_trash.up,
+    down: migration_20261022_170313_admins_trash.down,
+    name: '20261022_170313_admins_trash'
   },
 ];

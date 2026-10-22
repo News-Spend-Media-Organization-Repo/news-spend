@@ -118,7 +118,7 @@
   "packageManager": "bun@1.4.3",
   "patchedDependencies": {
     "node-internet-radio@0.2.1": "patches/node-internet-radio@0.2.1.patch",
-    "heroui-native@1.0.10": "patches/heroui-native@1.0.10.patch"
+    "heroui-native@1.0.11": "patches/heroui-native@1.0.11.patch"
   },
   "dependencies": {
     "varlock": "^1.22.0"
