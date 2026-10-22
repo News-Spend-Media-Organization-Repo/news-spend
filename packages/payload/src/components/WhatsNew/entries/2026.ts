@@ -7,6 +7,28 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-10-22-delete-guards",
+    date: "2026-10-22",
+    title:
+      "Deletes no longer strip articles of their category, image or author",
+    sections: [
+      {
+        heading: "Changed",
+        items: [
+          "Deleting a category or a media file now stops while anything still uses it, and says how many records to move first.",
+          "Deleting an admin now sends the account to Trash instead of removing it, so their articles keep the byline. The permanent delete is refused while they are still credited.",
+        ],
+      },
+      {
+        heading: "What to do",
+        items: [
+          "When retiring a category or file, move the articles and promo blocks that use it to the replacement first.",
+          "If an admin leaves, keep the account in Trash. Restore it from Trash if you removed one by mistake.",
+        ],
+      },
+    ],
+  },
+  {
     id: "2026-10-21-partner-performance",
     date: "2026-10-21",
     title: "Partners can see impressions and taps",
