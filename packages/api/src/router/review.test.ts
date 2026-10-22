@@ -88,8 +88,29 @@ describe("review.recordPrompt", () => {
       { context: ctx }
     );
 
-    expect(result).toEqual({ won: false, reason: "cooldown" });
+    expect(result).toEqual({
+      won: false,
+      reason: "cooldown",
+      promptedAt: expect.any(String),
+    });
     expect(ranUpdate(queries)).toBe(false);
+  });
+
+  it("reports when the user was actually prompted, so the app can mirror it", async () => {
+    const promptedAt = new Date(Date.now() - 10 * DAY_MS);
+    const { ctx } = setup("mirror", { promptedAt });
+
+    const result = await call(
+      reviewRouter.recordPrompt,
+      { trigger: "PRIZE_CLAIMED" },
+      { context: ctx }
+    );
+
+    expect(result).toEqual({
+      won: false,
+      reason: "cooldown",
+      promptedAt: promptedAt.toISOString(),
+    });
   });
 
   it("wins when the last prompt is older than 90 days", async () => {
@@ -115,7 +136,12 @@ describe("review.recordPrompt", () => {
       { context: ctx }
     );
 
-    expect(result).toEqual({ won: false, reason: "cooldown" });
+    // Someone else just won the slot, so "now" is as close as we can say.
+    expect(result).toEqual({
+      won: false,
+      reason: "cooldown",
+      promptedAt: expect.any(String),
+    });
   });
 
   it("makes the cap check conditional in the update itself", async () => {
@@ -201,7 +227,11 @@ describe("review.recordPrompt", () => {
       { context: ctx }
     );
 
-    expect(result).toEqual({ won: false, reason: "cooldown" });
+    expect(result).toEqual({
+      won: false,
+      reason: "cooldown",
+      promptedAt: expect.any(String),
+    });
     expect(ranEngagement(queries)).toBe(false);
   });
 
