@@ -84,7 +84,7 @@ const BannerAd = ({ size }: { size: AllowedAdSizeKeys }) => {
    */
   const onPress = () => {
     if (data) {
-      handleClick(data);
+      handleClick(data, "banner-news-post");
     }
   };
 

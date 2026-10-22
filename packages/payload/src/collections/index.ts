@@ -37,6 +37,7 @@ export {
 } from "./NotificationInbox";
 export { default as Notifications } from "./Notifications";
 export { PartnerContent } from "./PartnerContent";
+export { PartnerContentEvents } from "./PartnerContentEvents";
 export { PartnerConversions } from "./PartnerConversions";
 export { default as PartnerPostbacks } from "./PartnerPostbacks";
 export { Partners } from "./Partners";
@@ -47,6 +48,7 @@ export { Session } from "./Session";
 export { default as ShopAnalytics } from "./ShopAnalytics";
 export { Stores } from "./Stores";
 export { Survey } from "./Survey";
+export { SurveyOfferEvents } from "./SurveyOfferEvents";
 export { Users } from "./Users";
 export { Verification } from "./Verification";
 export { default as VerificationOTP } from "./VerificationOTP";

@@ -2,6 +2,7 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import type { Payload } from "payload";
 
 import { withCache } from "../../lib/cache";
+import { shapeForPlacements } from "../../lib/shapeForPlacements";
 import { type AdItem, buildGoogleAd, buildInHouseAd } from "./content-builders";
 import { fetchPartnerContent } from "./content-fetchers";
 import { createRandom, hashSeed } from "./seeded-random";
@@ -91,7 +92,10 @@ export class AdManager {
       // No shuffle: `nextFromPool` draws at random already, so ordering the
       // pool decides nothing. (The previous `sort(() => Math.random() - 0.5)`
       // was not a uniform shuffle either.)
-      this.pool = [...docs];
+      // The feed is an ad surface: shape once so neither `points` nor the
+      // stored task `condition` reaches reward tasks, related-news tasks or
+      // in-house ads. Shaping after the cache keeps the cached docs raw.
+      this.pool = docs.map((doc) => shapeForPlacements(doc, placements));
       this.resetDraw();
     } catch {
       // If fetching fails, pool stays empty, and pickAd() will return Google ads

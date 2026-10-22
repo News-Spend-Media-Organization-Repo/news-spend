@@ -558,6 +558,56 @@ describe("survey.offers.getOffers", () => {
 
     expect(result).toHaveLength(1);
   });
+
+  it("returns the configured wall when no provider has offers", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ country_code: "NG" }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+
+    try {
+      const payload = createFakePayload({
+        collections: {
+          users: [{ id: "user-1" }],
+          "push-tokens": [],
+        },
+        globals: {
+          "survey-settings": {
+            providers: [
+              { provider: "cpx", enabled: false },
+              { provider: "rapido", enabled: false },
+              {
+                provider: "theorem",
+                enabled: true,
+                wallUrl: "https://wall.example/?u={userId}",
+              },
+            ],
+          },
+        },
+      });
+      const ctx = mockContext({
+        user: { id: "user-1", isAnonymous: false } as never,
+        payload,
+      });
+
+      const result = await call(
+        surveyRouter.offers.getOffers,
+        {},
+        { context: ctx }
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: "wall-theorem",
+        provider: "theorem",
+        points: 0,
+        url: "https://wall.example/?u=user-1",
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

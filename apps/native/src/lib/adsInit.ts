@@ -5,7 +5,7 @@ import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 
 import { ensureTrackingPermission } from "./tracking";
 
-const PRELOAD_PLACEMENTS = ["news-click-ads", "discover-tab"] as const;
+const PRELOAD_PLACEMENTS = ["news-click-ads"] as const;
 
 let initPromise: Promise<void> | null = null;
 

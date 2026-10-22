@@ -1,13 +1,23 @@
 import {
+  isEarnRequest,
+  isOfferPlacement,
+} from "@news-spend-media/payload/lib/earnPlacements";
+import {
   enum_partner_content_ad_size,
   enum_partner_content_placements,
   enum_partner_content_status,
   enum_partner_content_type,
 } from "@news-spend-media/payload/payload-generated-schema";
-import type { SelectType, TransformCollectionWithSelect, Where } from "payload";
+import type {
+  BasePayload,
+  SelectType,
+  TransformCollectionWithSelect,
+  Where,
+} from "payload";
 import z from "zod";
 
 import { publicProcedure } from "../index";
+import { shapeForPlacements } from "../lib/shapeForPlacements";
 
 const PlacementEnum = z.enum(enum_partner_content_placements.enumValues);
 const TypeEnum = z.enum(enum_partner_content_type.enumValues);
@@ -76,6 +86,46 @@ export const partnerContentById = publicProcedure
     return result;
   });
 
+async function loadOfferState(payload: BasePayload, userId: string) {
+  const settledIds = new Set<string>();
+  const clickedIds = new Set<string>();
+  // pagination: false is safe: bounded to one person's conversions, and
+  // depth 0 keeps each row to ids.
+  const conversions = await payload.find({
+    collection: "partner-conversions",
+    where: {
+      and: [
+        { user: { equals: userId } },
+        { status: { in: ["clicked", "converted", "awarded"] } },
+      ],
+    },
+    select: { content: true, status: true, surface: true },
+    pagination: false,
+    depth: 0,
+  });
+
+  for (const row of conversions.docs) {
+    const contentId =
+      typeof row.content === "string"
+        ? row.content
+        : (row.content as { id?: string } | null | undefined)?.id;
+    if (!contentId) {
+      continue;
+    }
+    if (row.status === "clicked") {
+      // A tap on an ad surface can never pay, so it must not read as a
+      // pending offer. Rows from before `surface` existed carry none.
+      const surface = (row as { surface?: string | null }).surface;
+      if (!surface || isOfferPlacement(surface)) {
+        clickedIds.add(contentId);
+      }
+    } else {
+      settledIds.add(contentId);
+    }
+  }
+  return { settledIds, clickedIds };
+}
+
 export const filteredPartnerContent = publicProcedure
   .input(FilteredInput)
   .handler(async ({ input, context }) => {
@@ -84,9 +134,7 @@ export const filteredPartnerContent = publicProcedure
     if (input.placement && input.placement.length > 0) {
       where.placements = { in: input.placement };
     }
-    if (input.status) {
-      where.status = { equals: input.status };
-    }
+    where.status = { equals: input.status ?? "active" };
 
     if (input.type && input.type.length > 0) {
       where.type = { in: input.type };
@@ -95,13 +143,42 @@ export const filteredPartnerContent = publicProcedure
       where.adSize = { equals: input.adSize };
     }
 
+    /**
+     * Earn surfaces only, and only for a real account: hide offers this
+     * person has already been paid for and mark the ones they have started.
+     * Guests and ad surfaces see the catalogue unchanged, with no `userState`.
+     */
+    const user = context.user;
+    const tracksUser =
+      isEarnRequest(input.placement) && !!user && !user.isAnonymous;
+    const { settledIds, clickedIds } =
+      tracksUser && user
+        ? await loadOfferState(payload, user.id)
+        : { settledIds: new Set<string>(), clickedIds: new Set<string>() };
+    if (settledIds.size > 0) {
+      where.id = { not_in: [...settledIds] };
+    }
+
     const result = await payload.find({
       collection: "partner-content",
       where,
       limit: input.limit ?? 10,
       page: input.page ?? 1,
     });
-    return result;
+    return {
+      ...result,
+      docs: result.docs.map((doc) => {
+        const shaped = shapeForPlacements(doc, input.placement);
+        if (!tracksUser) {
+          return shaped;
+        }
+        const userState: "available" | "pending" =
+          clickedIds.has(String(doc.id)) && !settledIds.has(String(doc.id))
+            ? "pending"
+            : "available";
+        return { ...shaped, userState };
+      }),
+    };
   });
 
 export const getOnePartnerContent = publicProcedure
@@ -182,7 +259,8 @@ export const getOnePartnerContent = publicProcedure
     > | null = null;
     if (result.docs.length > 0) {
       const randomIndex = Math.floor(Math.random() * result.docs.length);
-      finalResult = result.docs[randomIndex] ?? null;
+      const picked = result.docs[randomIndex];
+      finalResult = picked ? shapeForPlacements(picked, input.placement) : null;
     }
     return finalResult;
   });
@@ -240,7 +318,9 @@ export const randomPartnerContent = publicProcedure
       depth: 2,
     });
 
-    return result.docs.sort(() => Math.random() - 0.5);
+    return result.docs
+      .map((doc) => shapeForPlacements(doc, input.placement))
+      .sort(() => Math.random() - 0.5);
   });
 
 export const partnerContentRouter = {

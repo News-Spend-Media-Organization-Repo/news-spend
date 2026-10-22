@@ -1,6 +1,6 @@
 import z from "zod";
 
-const PROVIDERS = ["cpx", "rapido", "theorem"] as const;
+const PROVIDERS = ["cpx", "rapido", "theorem", "bitlabs"] as const;
 export type OfferProvider = (typeof PROVIDERS)[number];
 
 export const UnifiedOfferSchema = z.object({
@@ -17,10 +17,33 @@ export const UnifiedOfferSchema = z.object({
   qualificationRate: z.number().optional(),
 });
 
+export const BitLabsSurveyResponseSchema = z.object({
+  data: z.object({
+    surveys: z.array(
+      z.object({
+        id: z.string(),
+        click_url: z.string(),
+        value: z.union([z.string(), z.number()]),
+        cpi: z.union([z.string(), z.number()]).optional(),
+        cr: z.number().optional(),
+        loi: z.number().optional(),
+        country: z.string().optional(),
+        category: z
+          .object({
+            name: z.string().optional(),
+          })
+          .optional(),
+      })
+    ),
+  }),
+});
+
 export const OfferInputSchema = z.object({
   limit: z.number().min(1).max(50).nullish().default(20),
   country: z.string().optional(),
   type: z.enum(["survey", "game", "offer", "all"]).optional().default("all"),
+  // The app knows this from Platform.OS; the user agent is unreliable on RN.
+  platform: z.enum(["ios", "android"]).optional(),
 });
 
 export type UnifiedOffer = z.infer<typeof UnifiedOfferSchema>;

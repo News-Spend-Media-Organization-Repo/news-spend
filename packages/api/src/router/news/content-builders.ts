@@ -16,13 +16,6 @@ export type PromotionMediaItem = {
   payload: PartnerContent;
 };
 
-export type RewardTaskItem = {
-  _type: "rewardTask";
-  type: "rewardTask";
-  id: string;
-  payload: PartnerContent;
-};
-
 export type GoogleAdItem = {
   _type: "ad";
   type: "gAd";
@@ -38,12 +31,7 @@ export type InHouseAdItem = {
 };
 
 export type AdItem = GoogleAdItem | InHouseAdItem;
-export type FeedItem =
-  | News
-  | RelatedNewsItem
-  | PromotionMediaItem
-  | RewardTaskItem
-  | AdItem;
+export type FeedItem = News | RelatedNewsItem | PromotionMediaItem | AdItem;
 
 /**
  * Builds a related news section with optional reward task insertion
@@ -66,6 +54,7 @@ export function buildRelatedNews(
     const insertIndex = Math.floor(rng() * (shuffledDocs.length + 1));
     shuffledDocs = [
       ...shuffledDocs.slice(0, insertIndex),
+      // "rewardTask" is a historical tag, kept because old and new clients both render it in the carousel.
       { _type: "rewardTask", ...randomTaskItem },
       ...shuffledDocs.slice(insertIndex),
     ];
@@ -96,18 +85,6 @@ export function buildPromotionMedia(promo: PartnerContent): PromotionMediaItem {
     type: "adCarousel",
     id: `promo-${randomUUID()}`,
     payload: promo,
-  };
-}
-
-/**
- * Builds a reward task item for the feed
- */
-export function buildRewardTask(task: PartnerContent): RewardTaskItem {
-  return {
-    _type: "rewardTask",
-    type: "rewardTask",
-    id: `reward-${randomUUID()}`,
-    payload: task,
   };
 }
 

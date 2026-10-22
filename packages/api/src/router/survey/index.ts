@@ -15,6 +15,7 @@ import {
   rapidoPostbackHandler,
   theoremPostbackHandler,
 } from "./offers";
+import { bitlabsPostbackHandler } from "./offers/bitlabsPostback";
 import { AwardGoogleFormInputSchema } from "./schemas";
 
 const awardGoogleFormPoints = protectedProcedure
@@ -148,4 +149,5 @@ export const surveyRouter = {
   offers: offersRouter,
   rapidoPostback: rapidoPostbackHandler,
   theoremPostback: theoremPostbackHandler,
+  bitlabsPostback: bitlabsPostbackHandler,
 };

@@ -17,6 +17,11 @@ import {
   newsTopArticles,
   newsTopCategories,
   partnerDaily,
+  partnerEventsByItem,
+  partnerEventsByPartner,
+  partnerEventsDaily,
+  partnerEventsOutliers,
+  partnerEventsSummary,
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
@@ -71,6 +76,16 @@ import {
 import { PageFrame } from "./PageFrame";
 import type { Days } from "./params";
 import { parseAnalyticsParams, SORT_LABELS } from "./params";
+import {
+  PartnerEventsByPartnerPanel,
+  PartnerEventsDailyPanel,
+  PartnerEventsItemsPanel,
+  PartnerEventsKpis,
+  PartnerEventsNotes,
+  PartnerEventsOutliersPanel,
+  parseContentParam,
+  parseSurfaceParam,
+} from "./partnerEventsPanels";
 import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
 
 /**
@@ -84,7 +99,7 @@ import { Denied, Notices, Problem, Segmented, Styles } from "./ui";
 function PageSwitch({
   page,
 }: {
-  page: "news" | "points" | "retention";
+  page: "news" | "points" | "retention" | "partners";
 }): ReactNode {
   return (
     <Segmented
@@ -103,6 +118,11 @@ function PageSwitch({
           label: "Retention",
           href: `${ADMIN_PATH}/analytics/retention`,
           current: page === "retention",
+        },
+        {
+          label: "Partners",
+          href: `${ADMIN_PATH}/analytics/partners-events`,
+          current: page === "partners",
         },
       ]}
     />
@@ -445,6 +465,56 @@ export async function PointsPageView(
   });
 }
 
+/** Partner impressions and taps for every partner, at /admin/analytics/partners-events. */
+export async function PartnerEventsPageView(
+  props: AdminViewServerProps
+): Promise<ReactNode> {
+  const { req } = props.initPageResult;
+  const scope = scopeOfRequest(req);
+  if (scope?.kind !== "staff") {
+    return (
+      <PageFrame view={props}>
+        <Denied />
+      </PageFrame>
+    );
+  }
+
+  return await guarded(async () => {
+    const { days } = parseAnalyticsParams(props.searchParams);
+    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const db = dbOf(req);
+    const filter = { range };
+
+    const [partners, outliers] = await Promise.all([
+      partnerEventsByPartner(db, scope, filter),
+      partnerEventsOutliers(db, scope, filter),
+    ]);
+
+    return (
+      <PageFrame view={props}>
+        <Styles />
+        <div className="ana ana-page">
+          <Header
+            hint={`Impressions and taps on partner content, by partner. ${ZONE_NOTE}`}
+            title="Partner impressions and taps"
+            toolbar={
+              <Toolbar
+                basePath={`${ADMIN_PATH}/analytics/partners-events`}
+                days={days}
+                navigation={<PageSwitch page="partners" />}
+                showPlatform={false}
+              />
+            }
+          />
+          <PartnerEventsByPartnerPanel rows={partners} />
+          <PartnerEventsOutliersPanel rows={outliers} />
+          <PartnerEventsNotes />
+        </div>
+      </PageFrame>
+    );
+  });
+}
+
 /** The retention and activation page, at /admin/analytics/retention. */
 export async function RetentionPageView(
   props: AdminViewServerProps
@@ -526,12 +596,24 @@ export async function PartnerPerformanceView(
     const method = props.doc?.integrationMethod;
     const postbacksExpected = method === "webhook" || method === "postback";
 
-    const [summary, daily, recent, postbacks] = await Promise.all([
-      partnerSummary(db, scope, filter),
-      partnerDaily(db, scope, filter),
-      partnerRecentConversions(db, scope, { partnerId: id, limit: 10 }),
-      partnerPostbackHealth(db, scope, filter),
-    ]);
+    const contentId = parseContentParam(props.searchParams?.content);
+    const eventsFilter = { range, partnerId: id, contentId };
+
+    const [summary, daily, recent, postbacks, events, eventItems, eventDays] =
+      await Promise.all([
+        partnerSummary(db, scope, filter),
+        partnerDaily(db, scope, filter),
+        partnerRecentConversions(db, scope, { partnerId: id, limit: 10 }),
+        partnerPostbackHealth(db, scope, filter),
+        partnerEventsSummary(db, scope, eventsFilter),
+        partnerEventsByItem(db, scope, eventsFilter),
+        partnerEventsDaily(db, scope, eventsFilter),
+      ]);
+    const performancePath = `${ADMIN_PATH}/collections/partners/${id}/performance`;
+    const surface = parseSurfaceParam(
+      props.searchParams?.surface,
+      eventItems.map((r) => r.surface)
+    );
 
     return (
       <>
@@ -575,6 +657,21 @@ export async function PartnerPerformanceView(
               <ShopPanel shop={summary.shop.current} />
             </div>
           </div>
+          <h3>Impressions and taps</h3>
+          <PartnerEventsKpis
+            current={events.current}
+            daily={eventDays}
+            previous={events.previous}
+          />
+          <PartnerEventsDailyPanel days={eventDays} />
+          <PartnerEventsItemsPanel
+            basePath={performancePath}
+            contentId={contentId}
+            days={days}
+            rows={eventItems}
+            surface={surface}
+          />
+          <PartnerEventsNotes />
         </div>
       </>
     );

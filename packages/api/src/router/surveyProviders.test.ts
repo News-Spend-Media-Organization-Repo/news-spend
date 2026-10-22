@@ -32,17 +32,23 @@ const { createFakePayload, expectError, mockContext } = await import(
   "../test-utils"
 );
 const { surveyRouter } = await import("./survey");
+const { isUniqueViolation } = await import("./survey/providerPoints");
+const { signTheoremUrl } = await import("./survey/offers/postbacks");
 const { MAX_SURVEY_POINTS } = await import(
   "@news-spend-media/payload/lib/surveyPoints"
 );
 
 type Fake = ReturnType<typeof createFakePayload>;
 
-const freshPayload = (): Fake =>
+const freshPayload = (
+  options: Parameters<typeof createFakePayload>[0] = {}
+): Fake =>
   createFakePayload({
+    ...options,
     collections: {
       users: [{ id: "user-1" }, { id: "user-2" }],
       "push-tokens": [],
+      ...options.collections,
     },
   });
 
@@ -69,45 +75,209 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 // TheoremReach
 // ---------------------------------------------------------------------------
-const theoremHash = (query: Record<string, string>) =>
-  crypto
-    .createHmac("sha1", "theorem-secret")
-    .update(`/survey/theorem/postback?${new URLSearchParams(query)}`)
-    .digest("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
+const THEOREM_PATH = "/api/survey/theorem/postback";
+const THEOREM_BASE = `https://api.newsspend.com${THEOREM_PATH}`;
 
-/** A postback signed the way TheoremReach signs it. */
+const signTheorem = (url: string) => signTheoremUrl("theorem-secret", url);
+
+/**
+ * Calls the postback with the URL TheoremReach would have called. `fields` are
+ * also used as the parsed input, as oRPC would hand them to the handler.
+ */
 const theorem = (
   payload: Fake,
-  fields: { reward: number; user_id: string; tx_id: string; reversal?: string },
-  options: { sign?: boolean } = {}
+  fields: Record<string, string | number>,
+  options: {
+    at?: "first" | "middle" | "last" | "only";
+    hash?: "valid" | "wrong" | "none";
+    /** Query string to sign, when it differs from `fields`. */
+    query?: string;
+    /** URL to sign, when it differs from the request URL. */
+    signedUrl?: string;
+    /** URL actually received, hash included. */
+    requestUrl?: string;
+    headers?: Record<string, string>;
+  } = {}
 ) => {
-  const query: Record<string, string> = {
-    reward: String(fields.reward),
-    user_id: fields.user_id,
-    tx_id: fields.tx_id,
-    ...(fields.reversal ? { reversal: fields.reversal } : {}),
-  };
+  const query =
+    options.query ??
+    Object.entries(fields)
+      .map(([key, value]) => `${key}=${String(value)}`)
+      .join("&");
+  const signedUrl = options.signedUrl ?? `${THEOREM_BASE}?${query}`;
+  const signature = options.hash === "wrong" ? "wrong" : signTheorem(signedUrl);
+
+  const [pathname = THEOREM_BASE, rawQuery = ""] = signedUrl.split("?");
+  const parts = rawQuery ? rawQuery.split("&") : [];
+  const hashPart = `hash=${signature}`;
+
+  if (options.hash !== "none") {
+    switch (options.at ?? "last") {
+      case "first":
+        parts.unshift(hashPart);
+        break;
+      case "middle":
+        parts.splice(Math.floor(parts.length / 2), 0, hashPart);
+        break;
+      case "only":
+        parts.splice(0, parts.length, hashPart);
+        break;
+      default:
+        parts.push(hashPart);
+    }
+  }
+
+  const requestUrl =
+    options.requestUrl ??
+    (parts.length > 0 ? `${pathname}?${parts.join("&")}` : pathname);
+
   return call(
     surveyRouter.theoremPostback,
     {
       ...fields,
-      ...(options.sign === false ? {} : { hash: theoremHash(query) }),
+      ...(options.hash === "none" ? {} : { hash: signature }),
     } as never,
-    { context: ctx(payload) }
+    {
+      context: mockContext({
+        payload,
+        request: new Request(requestUrl, { headers: options.headers }),
+      }),
+    }
   );
 };
 
 describe("TheoremReach postback", () => {
+  it("records the provider reference that makes the award unique", async () => {
+    const payload = freshPayload();
+
+    await theorem(payload, { reward: 100, user_id: "user-1", tx_id: "t1" });
+
+    expect(payload.docs("activities")[0]?.providerRef).toBe("theorem:t1:award");
+  });
+
+  it("recognises a database unique violation through a wrapped error", () => {
+    expect(isUniqueViolation({ cause: { code: "23505" } })).toBe(true);
+    expect(isUniqueViolation({ code: "23505" })).toBe(true);
+    expect(isUniqueViolation(new Error("database down"))).toBe(false);
+  });
+
+  it("recognises Payload's validation error for a duplicate providerRef", () => {
+    expect(
+      isUniqueViolation({
+        name: "ValidationError",
+        status: 400,
+        data: {
+          errors: [{ path: "providerRef", message: "Value must be unique" }],
+        },
+      })
+    ).toBe(true);
+    expect(
+      isUniqueViolation({
+        name: "ValidationError",
+        status: 400,
+        data: { errors: [{ path: "email", message: "Value must be unique" }] },
+      })
+    ).toBe(false);
+  });
+
+  it("pays only one of two awards that would cross the cap together", async () => {
+    const payload = freshPayload({
+      globals: {
+        "survey-settings": { dailyPointsCap: 100, maxPointsPerAward: 100 },
+      },
+    });
+
+    await Promise.all([
+      theorem(payload, { reward: 60, user_id: "user-1", tx_id: "c1" }),
+      theorem(payload, { reward: 60, user_id: "user-1", tx_id: "c2" }),
+    ]);
+
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("matches Theorem's published signature example", () => {
+    expect(
+      signTheoremUrl(
+        "ZZ6VkORqV25iSWOVb5cwZ03zpns",
+        "https://www.abc.com/ex.aspx?abc=def&vid=123"
+      )
+    ).toBe("VNBMolYjJug6cDQqOX4oddfteDw");
+  });
+
+  it("pays a signed callback whatever the parameter order or encoding", async () => {
+    const payload = freshPayload();
+
+    const fields = {
+      user_id: "user-1",
+      reward: 100,
+      tx_id: "t1",
+      offer_name: "Opinions on news",
+      currency: 1.5,
+    };
+
+    await theorem(payload, fields, {
+      // Outside our schema's order, with `+`, `%20` and a decimal.
+      query:
+        "user_id=user-1&reward=100&tx_id=t1&offer_name=Opinions+on%20news&currency=1.50",
+    });
+
+    expect(payload.docs("activities")).toHaveLength(1);
+    expect(payload.docs("activities")[0]).toMatchObject({
+      point: 100,
+      action: "surveyTask",
+      user: "user-1",
+      metadata: { provider: "theorem", transactionId: "t1", kind: "award" },
+    });
+  });
+
+  for (const at of ["first", "middle", "last"] as const) {
+    it(`finds and removes the hash when it is ${at}`, async () => {
+      const payload = freshPayload();
+
+      const res = await theorem(
+        payload,
+        { reward: 100, user_id: "user-1", tx_id: `t-${at}` },
+        { at }
+      );
+
+      expect(res).toEqual({ success: true });
+      expect(payload.docs("activities")).toHaveLength(1);
+    });
+  }
+
+  it("accepts a hash that is the only parameter when it signs the bare URL", async () => {
+    const payload = freshPayload();
+
+    const res = await theorem(
+      payload,
+      { reward: 100, user_id: "user-1", tx_id: "t1" },
+      { signedUrl: THEOREM_BASE, at: "only" }
+    );
+
+    expect(res).toEqual({ success: true });
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("rejects a hash that is alone in a query it did not sign", async () => {
+    const payload = freshPayload();
+
+    const res = await theorem(
+      payload,
+      { reward: 100, user_id: "user-1", tx_id: "t1" },
+      { at: "only" }
+    );
+
+    expect(res).toEqual({ error: "Invalid hash" });
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
   it("rejects a request that carries no hash, and pays nothing", async () => {
     const payload = freshPayload();
 
     const res = await theorem(
       payload,
       { reward: 250_000, user_id: "user-1", tx_id: "made-up" },
-      { sign: false }
+      { hash: "none" }
     );
 
     expect(res).toEqual({ error: "Invalid hash" });
@@ -117,28 +287,175 @@ describe("TheoremReach postback", () => {
   it("rejects a wrong hash", async () => {
     const payload = freshPayload();
 
-    const res = await call(
-      surveyRouter.theoremPostback,
-      { reward: 100, user_id: "user-1", tx_id: "t1", hash: "nope" } as never,
-      { context: ctx(payload) }
+    const res = await theorem(
+      payload,
+      { reward: 100, user_id: "user-1", tx_id: "t1" },
+      { hash: "wrong" }
     );
 
     expect(res).toEqual({ error: "Invalid hash" });
     expect(payload.docs("activities")).toHaveLength(0);
   });
 
-  it("pays a correctly signed completion and records which transaction it was", async () => {
+  it("rejects a hash made for a different reward", async () => {
     const payload = freshPayload();
 
-    await theorem(payload, { reward: 100, user_id: "user-1", tx_id: "t1" });
+    const signedUrl = `${THEOREM_BASE}?user_id=user-1&reward=100&tx_id=t1`;
+    const hash = signTheorem(signedUrl);
+    const res = await theorem(
+      payload,
+      { reward: 999, user_id: "user-1", tx_id: "t1" },
+      {
+        signedUrl,
+        requestUrl: `${THEOREM_BASE}?user_id=user-1&reward=999&tx_id=t1&hash=${hash}`,
+      }
+    );
 
-    expect(payload.docs("activities")).toHaveLength(1);
-    expect(payload.docs("activities")[0]).toMatchObject({
-      point: 100,
-      action: "surveyTask",
-      user: "user-1",
-      metadata: { provider: "theorem", transactionId: "t1", kind: "award" },
+    expect(res).toEqual({ error: "Invalid hash" });
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("rejects a tampered parameter under a valid hash", async () => {
+    const payload = freshPayload();
+
+    const signedUrl = `${THEOREM_BASE}?user_id=user-1&reward=100&tx_id=t1`;
+    const hash = signTheorem(signedUrl);
+    const res = await theorem(
+      payload,
+      { reward: 100, user_id: "user-1", tx_id: "t1" },
+      {
+        signedUrl,
+        requestUrl: `${THEOREM_BASE}?user_id=user-2&reward=100&tx_id=t1&hash=${hash}`,
+      }
+    );
+
+    expect(res).toEqual({ error: "Invalid hash" });
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("uses Railway's public domain when the request host is internal", async () => {
+    const payload = freshPayload();
+    process.env.RAILWAY_PUBLIC_DOMAIN = "api.newsspend.com";
+
+    try {
+      const query = "user_id=user-1&reward=100&tx_id=t1";
+      const hash = signTheorem(`${THEOREM_BASE}?${query}`);
+      const res = await theorem(
+        payload,
+        { reward: 100, user_id: "user-1", tx_id: "t1" },
+        {
+          signedUrl: `${THEOREM_BASE}?${query}`,
+          requestUrl: `http://internal:8080${THEOREM_PATH}?${query}&hash=${hash}`,
+        }
+      );
+
+      expect(res).toEqual({ success: true });
+      expect(payload.docs("activities")).toHaveLength(1);
+    } finally {
+      delete process.env.RAILWAY_PUBLIC_DOMAIN;
+    }
+  });
+
+  it("signs the request's own origin when it is already public", async () => {
+    const payload = freshPayload();
+
+    // The default tests do exactly this: the Request carries the public URL
+    // and there is no forwarded host or Railway variable.
+    const res = await theorem(payload, {
+      reward: 100,
+      user_id: "user-1",
+      tx_id: "t1",
     });
+
+    expect(res).toEqual({ success: true });
+  });
+
+  it("falls back to the forwarded headers without the env var", async () => {
+    const payload = freshPayload();
+
+    const query = "user_id=user-1&reward=100&tx_id=t1";
+    const hash = signTheorem(`${THEOREM_BASE}?${query}`);
+    const res = await theorem(
+      payload,
+      { reward: 100, user_id: "user-1", tx_id: "t1" },
+      {
+        signedUrl: `${THEOREM_BASE}?${query}`,
+        requestUrl: `http://internal:8080${THEOREM_PATH}?${query}&hash=${hash}`,
+        headers: {
+          "x-forwarded-proto": "https",
+          "x-forwarded-host": "api.newsspend.com",
+        },
+      }
+    );
+
+    expect(res).toEqual({ success: true });
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("answers a debug callback and never credits it, signed or not", async () => {
+    const signed = freshPayload();
+    const signedRes = await theorem(signed, {
+      debug: "true",
+      reward: 100,
+      user_id: "user-1",
+    });
+    expect(signedRes).toEqual({ success: true });
+    expect(signed.docs("activities")).toHaveLength(0);
+
+    const unsigned = freshPayload();
+    const unsignedRes = await theorem(
+      unsigned,
+      { debug: "true" },
+      { hash: "none" }
+    );
+    expect(unsignedRes).toEqual({ success: true });
+    expect(unsigned.docs("activities")).toHaveLength(0);
+  });
+
+  it("accepts the transaction id as transaction_id", async () => {
+    const payload = freshPayload();
+
+    await theorem(payload, {
+      reward: 100,
+      user_id: "user-1",
+      transaction_id: "t2",
+    });
+
+    expect(payload.docs("activities")[0]).toMatchObject({
+      metadata: { provider: "theorem", transactionId: "t2", kind: "award" },
+    });
+  });
+
+  it("refuses a crediting callback with no transaction id and writes nothing", async () => {
+    const payload = freshPayload();
+
+    const res = await theorem(payload, { reward: 100, user_id: "user-1" });
+
+    expect(res).toEqual({ error: "Missing required parameters" });
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("refuses a crediting callback with no user and writes nothing", async () => {
+    const payload = freshPayload();
+
+    const res = await theorem(payload, { reward: 100, tx_id: "t1" });
+
+    expect(res).toEqual({ error: "Missing required parameters" });
+    expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("logs parameter names, never the hash, when a callback is refused", async () => {
+    const payload = freshPayload();
+    const errorLog = spyOn(console, "error").mockImplementation(
+      () => undefined
+    );
+
+    await theorem(payload, { reward: 100, user_id: "user-1" });
+    const logged = JSON.stringify(errorLog.mock.calls);
+    errorLog.mockRestore();
+
+    expect(logged).toContain("tx_id");
+    expect(logged).not.toContain(signTheorem(`${THEOREM_BASE}`));
   });
 
   it("pays a repeated transaction once, even when it arrives many times at once", async () => {
@@ -163,7 +480,7 @@ describe("TheoremReach postback", () => {
     expect(payload.docs("activities")).toHaveLength(1);
   });
 
-  it("refuses an award above the maximum", async () => {
+  it("refuses an award above the maximum and answers success so it is not retried", async () => {
     const payload = freshPayload();
 
     const res = await theorem(payload, {
@@ -172,8 +489,81 @@ describe("TheoremReach postback", () => {
       tx_id: "big",
     });
 
-    expect(res).toMatchObject({ error: expect.any(String) });
+    expect(res).toEqual({ success: true });
     expect(payload.docs("activities")).toHaveLength(0);
+  });
+
+  it("refuses an award that would cross the daily cap", async () => {
+    const payload = freshPayload({
+      collections: {
+        activities: [
+          {
+            id: "a1",
+            type: "point",
+            point: 4900,
+            action: "surveyTask",
+            user: "user-1",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+      globals: {
+        "survey-settings": { dailyPointsCap: 5000, maxPointsPerAward: 5000 },
+      },
+    });
+
+    const res = await theorem(payload, {
+      reward: 200,
+      user_id: "user-1",
+      tx_id: "cap-1",
+    });
+
+    expect(res).toEqual({ success: true });
+    expect(payload.docs("activities")).toHaveLength(1);
+  });
+
+  it("still allows a reversal after the cap is reached", async () => {
+    const payload = freshPayload({
+      collections: {
+        activities: [
+          {
+            id: "a1",
+            type: "point",
+            point: 100,
+            action: "surveyTask",
+            user: "user-1",
+            createdAt: new Date().toISOString(),
+            metadata: {
+              provider: "theorem",
+              transactionId: "t1",
+              kind: "award",
+            },
+          },
+          {
+            id: "a2",
+            type: "point",
+            point: 4900,
+            action: "surveyTask",
+            user: "user-1",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+      globals: {
+        "survey-settings": { dailyPointsCap: 5000, maxPointsPerAward: 5000 },
+      },
+    });
+
+    await theorem(payload, {
+      reward: 100,
+      user_id: "user-1",
+      tx_id: "t1",
+      reversal: "true",
+    });
+
+    const docs = payload.docs("activities");
+    expect(docs).toHaveLength(3);
+    expect(docs[2]).toMatchObject({ point: -100, action: "pointReversal" });
   });
 
   it("takes back what a transaction paid when it is reversed, once", async () => {
@@ -308,7 +698,7 @@ describe("RapidoReach postback", () => {
     });
   });
 
-  it("refuses an award above the maximum", async () => {
+  it("refuses an award above the maximum and answers success so it is not retried", async () => {
     const payload = freshPayload();
 
     const res = await rapido(payload, {
@@ -317,7 +707,7 @@ describe("RapidoReach postback", () => {
       amount: MAX_SURVEY_POINTS + 1,
     });
 
-    expect(res).toEqual({ success: 0 });
+    expect(res).toEqual({ success: 1 });
     expect(payload.docs("activities")).toHaveLength(0);
   });
 
@@ -420,14 +810,15 @@ describe("CPX postback", () => {
     expect(payload.docs("activities")).toHaveLength(2);
   });
 
-  it("refuses an award above the maximum", async () => {
+  it("refuses an award above the maximum and answers success so it is not retried", async () => {
     const payload = freshPayload();
 
-    const error = await expectError(
-      cpx(payload, { trans_id: "c2", amount_local: MAX_SURVEY_POINTS + 1 })
-    );
+    const res = await cpx(payload, {
+      trans_id: "c2",
+      amount_local: MAX_SURVEY_POINTS + 1,
+    });
 
-    expect(error.code).toBe("BAD_REQUEST");
+    expect(res).toMatchObject({ success: true });
     expect(payload.docs("activities")).toHaveLength(0);
   });
 

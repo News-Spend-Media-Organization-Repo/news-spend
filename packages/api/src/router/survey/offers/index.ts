@@ -7,7 +7,15 @@ import {
   CPXSurveyResponseSchema,
 } from "../schemas";
 import { getUserCountryCode, getUserIpAddress } from "../utils";
+import { writeOfferEvents } from "./events";
 import {
+  fallbackOffer,
+  hasUsableUrl,
+  rankOffers,
+  runProvider,
+} from "./ranking";
+import {
+  BitLabsSurveyResponseSchema,
   OfferInputSchema,
   RAPIDO_API_KEY,
   RAPIDO_APP_ID,
@@ -15,6 +23,13 @@ import {
   THEOREM_REACH_URL,
   type UnifiedOffer,
 } from "./schemas";
+import { readSurveySettings } from "./settings";
+
+/** A provider that does not answer must not hold the whole survey tab. */
+const PROVIDER_TIMEOUT_MS = 5000;
+
+const ANDROID_AGENT = /android/i;
+const IOS_AGENT = /iphone|ipad|ios/i;
 
 const mockOffers: UnifiedOffer[] = [
   {
@@ -263,6 +278,83 @@ async function fetchTheoremOffers(
   ];
 }
 
+/**
+ * BitLabs is called server-side, which needs their backend activation and the
+ * client_ip/client_useragent overrides enabled on the app. Without that the
+ * API answers 401/403 and this returns an empty list rather than failing the
+ * tab.
+ */
+export async function fetchBitLabsOffers(
+  userId: string,
+  userIp: string,
+  userAgent: string,
+  countryCode: string,
+  platform: "ios" | "android" | undefined,
+  limit: number
+): Promise<UnifiedOffer[]> {
+  const token = process.env.BITLABS_TOKEN;
+  if (!token) {
+    console.warn("BITLABS_TOKEN not configured");
+    return [];
+  }
+
+  try {
+    // BitLabs' enums. The app's Platform.OS is authoritative; the agent is
+    // only a fallback for builds that predate it.
+    const os =
+      platform === "android"
+        ? "ANDROID"
+        : platform === "ios"
+          ? "IOS"
+          : ANDROID_AGENT.test(userAgent)
+            ? "ANDROID"
+            : IOS_AGENT.test(userAgent)
+              ? "IOS"
+              : undefined;
+    const params = new URLSearchParams({
+      client_ip: userIp,
+      client_useragent: userAgent,
+      platform: "MOBILE",
+      sdk: "REACT",
+      ...(os ? { os } : {}),
+    });
+    const response = await fetch(
+      `https://api.bitlabs.ai/v2/client/surveys?${params}`,
+      {
+        headers: {
+          "X-Api-Token": token,
+          "X-User-Id": userId,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("BitLabs API error:", response.status);
+      return [];
+    }
+
+    const parsed = BitLabsSurveyResponseSchema.parse(await response.json());
+
+    return parsed.data.surveys.slice(0, limit).map((survey) => ({
+      id: `bitlabs-${survey.id}`,
+      provider: "bitlabs" as const,
+      title: survey.category?.name || "Survey",
+      description: survey.loi ? `LOI: ${survey.loi} mins` : undefined,
+      points: Math.floor(Number(survey.value)),
+      estimatedTime: survey.loi,
+      url: survey.click_url,
+      imageUrl: undefined,
+      country: survey.country || countryCode,
+      type: "survey" as const,
+      qualificationRate:
+        typeof survey.cr === "number" ? Math.round(survey.cr * 100) : undefined,
+    }));
+  } catch (error) {
+    console.error("Error fetching BitLabs offers:", error);
+    return [];
+  }
+}
+
 export const offersRouter = {
   getOffers: publicProcedure
     .input(OfferInputSchema)
@@ -276,28 +368,111 @@ export const offersRouter = {
 
       // @ts-expect-error
       const userIp = getUserIpAddress(request);
-      const countryCode = await getUserCountryCode(userIp);
+      const countryCode = (await getUserCountryCode(userIp)).toUpperCase();
       const userAgent = request?.headers.get("user-agent") || "";
+      const settings = await readSurveySettings(payload);
 
-      const [cpxOffers, rapidoOffers, theoremOffers] = await Promise.all([
-        fetchCPXOffers(
-          user.id,
-          user.email || "",
-          user.username || "",
-          countryCode,
-          userIp,
-          userAgent,
-          limit
-        ),
-        fetchRapidoOffers(user.id, countryCode, userIp, limit),
-        fetchTheoremOffers(user.id, userIp, countryCode, limit),
-      ]);
+      const servesCountry = (provider: keyof typeof settings.providers) => {
+        const setting = settings.providers[provider];
+        return (
+          setting.enabled &&
+          (setting.countries.length === 0 ||
+            setting.countries.includes(countryCode))
+        );
+      };
 
-      const allOffers = [...cpxOffers, ...rapidoOffers, ...theoremOffers];
+      const fetches: [UnifiedOffer["provider"], Promise<UnifiedOffer[]>][] = [];
 
-      allOffers.sort((a, b) => b.points - a.points);
+      if (servesCountry("cpx")) {
+        fetches.push([
+          "cpx",
+          runProvider(
+            "cpx",
+            fetchCPXOffers(
+              user.id,
+              user.email || "",
+              user.username || "",
+              countryCode,
+              userIp,
+              userAgent,
+              limit
+            ),
+            PROVIDER_TIMEOUT_MS
+          ),
+        ]);
+      }
+      if (servesCountry("rapido")) {
+        fetches.push([
+          "rapido",
+          runProvider(
+            "rapido",
+            fetchRapidoOffers(user.id, countryCode, userIp, limit),
+            PROVIDER_TIMEOUT_MS
+          ),
+        ]);
+      }
+      if (servesCountry("theorem")) {
+        fetches.push([
+          "theorem",
+          runProvider(
+            "theorem",
+            fetchTheoremOffers(user.id, userIp, countryCode, limit),
+            PROVIDER_TIMEOUT_MS
+          ),
+        ]);
+      }
+      if (servesCountry("bitlabs")) {
+        fetches.push([
+          "bitlabs",
+          runProvider(
+            "bitlabs",
+            fetchBitLabsOffers(
+              user.id,
+              userIp,
+              userAgent,
+              countryCode,
+              input.platform,
+              limit
+            ),
+            PROVIDER_TIMEOUT_MS
+          ),
+        ]);
+      }
 
-      return allOffers.slice(0, limit);
+      const results = await Promise.all(
+        fetches.map(async ([provider, pending]) => ({
+          provider,
+          offers: await pending,
+        }))
+      );
+
+      const usable = results.map(({ provider, offers }) => ({
+        provider,
+        offers: offers.filter(hasUsableUrl),
+      }));
+
+      await writeOfferEvents(
+        payload,
+        usable.map(({ provider, offers }) => ({
+          provider,
+          userId: user.id,
+          country: countryCode,
+          offerCount: offers.length,
+        }))
+      );
+
+      const ranked = rankOffers(
+        usable.flatMap(({ offers }) => offers),
+        settings,
+        limit
+      );
+
+      if (ranked.length > 0) {
+        return ranked;
+      }
+
+      const wall = fallbackOffer(settings, user.id);
+      return wall ? [wall] : [];
     }),
 };
 
