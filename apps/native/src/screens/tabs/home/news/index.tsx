@@ -197,8 +197,8 @@ const SingleNews = () => {
                 <View className="flex-row items-center gap-0.75">
                   <Icon name={UserIcon} size={15} />
                   <Text className="font-bold">
-                    {typeof data?.author === "object"
-                      ? data?.author.fullName
+                    {typeof data?.author === "object" && data.author
+                      ? data.author.fullName
                       : ""}
                   </Text>
                 </View>
