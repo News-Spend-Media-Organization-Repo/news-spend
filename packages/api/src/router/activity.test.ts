@@ -566,6 +566,17 @@ describe("activity.pendingOffers", () => {
     });
   });
 
+  it("returns the points the offer pays", async () => {
+    const ctx = pendingContext({
+      partnerContent: [content({ points: 250 })],
+      conversions: [conversion()],
+    });
+    const [offer] = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(offer?.points).toBe(250);
+  });
+
   it("excludes ad-surface clicks and legacy taps on items with no offer placement", async () => {
     const ctx = pendingContext({
       conversions: [

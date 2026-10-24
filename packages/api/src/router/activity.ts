@@ -130,6 +130,7 @@ type Doc = {
   title?: string;
   companyName?: string;
   confirmationDays?: number | null;
+  points?: number | null;
   placements?: readonly string[] | null;
 };
 
@@ -278,6 +279,7 @@ const pendingOffers = protectedNoGuestProcedure.handler(
         expectedWithinDays: effectiveConfirmationDays(
           partner?.confirmationDays
         ),
+        points: content.points ?? 0,
         clickedAt: doc.clickedAt,
       });
     }
