@@ -2,6 +2,7 @@ import {
   LegendList,
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
+import type { PendingOffer } from "@news-spend-media/api/lib/pendingOffers";
 import type { Activity } from "@news-spend-media/payload/types";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { addDays } from "date-fns/addDays";
@@ -29,6 +30,11 @@ import {
   type SelectOption,
 } from "./constants";
 
+type ActivityItem = Activity | PendingOffer;
+
+const isPendingOffer = (item: ActivityItem): item is PendingOffer =>
+  "contentId" in item;
+
 export default function Activities() {
   const [activityOption, setActivityOption] = useState<
     SelectOption | undefined
@@ -45,6 +51,8 @@ export default function Activities() {
   );
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const isPending = toggle === "pending";
+
   const activities = useInfiniteQuery(
     orpc.activity.byUserId.infiniteOptions({
       input: (pageParam: number | undefined) => ({
@@ -56,7 +64,7 @@ export default function Activities() {
         page: pageParam,
       }),
       initialPageParam: undefined,
-      enabled: !!authState.user,
+      enabled: !!authState.user && !isPending,
       getNextPageParam: (lastPage) => lastPage?.nextPage,
     })
   );
@@ -72,6 +80,7 @@ export default function Activities() {
       : (pendingOffers.data ?? []);
 
   const allPages = activities.data?.pages.flatMap((page) => page?.docs) ?? [];
+  const data: ActivityItem[] = isPending ? pendingList : allPages;
 
   const onSelectActivity = useCallback((item: Activity) => {
     setSelectedActivity(item);
@@ -122,9 +131,12 @@ export default function Activities() {
   }, [activities]);
 
   const renderItem = useCallback(
-    ({ item }: LegendListRenderItemProps<Activity>) => (
-      <ActivityRow item={item} onPress={onSelectActivity} />
-    ),
+    ({ item }: LegendListRenderItemProps<ActivityItem>) =>
+      isPendingOffer(item) ? (
+        <PendingOfferRow offer={item} />
+      ) : (
+        <ActivityRow item={item} onPress={onSelectActivity} />
+      ),
     [onSelectActivity]
   );
 
@@ -146,22 +158,26 @@ export default function Activities() {
           paddingHorizontal: 15,
           paddingBottom: 15,
         }}
-        data={allPages}
+        data={data}
         ItemSeparatorComponent={() => <Separator />}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) =>
+          isPendingOffer(item) ? item.contentId : item.id
+        }
         ListEmptyComponent={
-          activities.isPending ? (
+          (isPending ? pendingOffers.isPending : activities.isPending) ? (
             <View className="mt-3 items-center">
               <Spinner />
             </View>
           ) : (
             <Text className="mt-3 text-center text-secondary">
-              No activities for this period
+              {isPending
+                ? "No pending offers"
+                : "No activities for this period"}
             </Text>
           )
         }
         ListFooterComponent={
-          activities.isFetchingNextPage ? (
+          !isPending && activities.isFetchingNextPage ? (
             <View className="items-center py-3">
               <Spinner />
             </View>
@@ -169,65 +185,59 @@ export default function Activities() {
         }
         ListHeaderComponent={
           <View className="my-3 gap-4">
-            {pendingList.length > 0 && (
-              <View className="gap-2">
-                <Text className="font-semibold text-sm">Pending</Text>
-                {pendingList.map((offer) => (
-                  <PendingOfferRow key={offer.contentId} offer={offer} />
-                ))}
+            {!isPending && (
+              <View className="flex-row gap-2.5">
+                <Select
+                  className="flex-1"
+                  onValueChange={setActivityOption}
+                  value={activityOption}
+                >
+                  <Select.Trigger>
+                    <Select.Value numberOfLines={1} placeholder="Category" />
+                    <Select.TriggerIndicator />
+                  </Select.Trigger>
+                  <Select.Portal>
+                    <Select.Overlay className="bg-backdrop" />
+                    <Select.Content presentation="popover" width="full">
+                      <Select.ListLabel className="mb-2">
+                        Category
+                      </Select.ListLabel>
+                      {activityOptions.map((opt, i) => (
+                        <React.Fragment key={opt.value}>
+                          <Select.Item label={opt.label} value={opt.value} />
+                          {i < activityOptions.length - 1 && <Separator />}
+                        </React.Fragment>
+                      ))}
+                    </Select.Content>
+                  </Select.Portal>
+                </Select>
+
+                <Select
+                  className="flex-1"
+                  onValueChange={onFilter}
+                  value={dateRange}
+                >
+                  <Select.Trigger>
+                    <Select.Value numberOfLines={1} placeholder="Date range" />
+                    <Select.TriggerIndicator />
+                  </Select.Trigger>
+                  <Select.Portal>
+                    <Select.Overlay className="bg-backdrop" />
+                    <Select.Content presentation="popover" width="full">
+                      <Select.ListLabel className="mb-2">
+                        Date range
+                      </Select.ListLabel>
+                      {dateRangeOptions.map((opt, i) => (
+                        <React.Fragment key={opt.value}>
+                          <Select.Item label={opt.label} value={opt.value} />
+                          {i < dateRangeOptions.length - 1 && <Separator />}
+                        </React.Fragment>
+                      ))}
+                    </Select.Content>
+                  </Select.Portal>
+                </Select>
               </View>
             )}
-            <View className="flex-row gap-2.5">
-              <Select
-                className="flex-1"
-                onValueChange={setActivityOption}
-                value={activityOption}
-              >
-                <Select.Trigger>
-                  <Select.Value numberOfLines={1} placeholder="Category" />
-                  <Select.TriggerIndicator />
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Overlay className="bg-backdrop" />
-                  <Select.Content presentation="popover" width="full">
-                    <Select.ListLabel className="mb-2">
-                      Category
-                    </Select.ListLabel>
-                    {activityOptions.map((opt, i) => (
-                      <React.Fragment key={opt.value}>
-                        <Select.Item label={opt.label} value={opt.value} />
-                        {i < activityOptions.length - 1 && <Separator />}
-                      </React.Fragment>
-                    ))}
-                  </Select.Content>
-                </Select.Portal>
-              </Select>
-
-              <Select
-                className="flex-1"
-                onValueChange={onFilter}
-                value={dateRange}
-              >
-                <Select.Trigger>
-                  <Select.Value numberOfLines={1} placeholder="Date range" />
-                  <Select.TriggerIndicator />
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Overlay className="bg-backdrop" />
-                  <Select.Content presentation="popover" width="full">
-                    <Select.ListLabel className="mb-2">
-                      Date range
-                    </Select.ListLabel>
-                    {dateRangeOptions.map((opt, i) => (
-                      <React.Fragment key={opt.value}>
-                        <Select.Item label={opt.label} value={opt.value} />
-                        {i < dateRangeOptions.length - 1 && <Separator />}
-                      </React.Fragment>
-                    ))}
-                  </Select.Content>
-                </Select.Portal>
-              </Select>
-            </View>
 
             <ToggleButtonGroup
               className="border-none"
