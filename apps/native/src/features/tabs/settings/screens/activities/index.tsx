@@ -193,59 +193,59 @@ export default function Activities() {
         }
         ListHeaderComponent={
           <View className="my-3 gap-4">
-            {!isPending && (
-              <View className="flex-row gap-2.5">
-                <Select
-                  className="flex-1"
-                  onValueChange={setActivityOption}
-                  value={activityOption}
-                >
-                  <Select.Trigger>
-                    <Select.Value numberOfLines={1} placeholder="Category" />
-                    <Select.TriggerIndicator />
-                  </Select.Trigger>
-                  <Select.Portal>
-                    <Select.Overlay className="bg-backdrop" />
-                    <Select.Content presentation="popover" width="full">
-                      <Select.ListLabel className="mb-2">
-                        Category
-                      </Select.ListLabel>
-                      {activityOptions.map((opt, i) => (
-                        <React.Fragment key={opt.value}>
-                          <Select.Item label={opt.label} value={opt.value} />
-                          {i < activityOptions.length - 1 && <Separator />}
-                        </React.Fragment>
-                      ))}
-                    </Select.Content>
-                  </Select.Portal>
-                </Select>
+            <View className="flex-row gap-2.5">
+              <Select
+                className="flex-1"
+                isDisabled={isPending}
+                onValueChange={setActivityOption}
+                value={activityOption}
+              >
+                <Select.Trigger>
+                  <Select.Value numberOfLines={1} placeholder="Category" />
+                  <Select.TriggerIndicator />
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Overlay className="bg-backdrop" />
+                  <Select.Content presentation="popover" width="full">
+                    <Select.ListLabel className="mb-2">
+                      Category
+                    </Select.ListLabel>
+                    {activityOptions.map((opt, i) => (
+                      <React.Fragment key={opt.value}>
+                        <Select.Item label={opt.label} value={opt.value} />
+                        {i < activityOptions.length - 1 && <Separator />}
+                      </React.Fragment>
+                    ))}
+                  </Select.Content>
+                </Select.Portal>
+              </Select>
 
-                <Select
-                  className="flex-1"
-                  onValueChange={onFilter}
-                  value={dateRange}
-                >
-                  <Select.Trigger>
-                    <Select.Value numberOfLines={1} placeholder="Date range" />
-                    <Select.TriggerIndicator />
-                  </Select.Trigger>
-                  <Select.Portal>
-                    <Select.Overlay className="bg-backdrop" />
-                    <Select.Content presentation="popover" width="full">
-                      <Select.ListLabel className="mb-2">
-                        Date range
-                      </Select.ListLabel>
-                      {dateRangeOptions.map((opt, i) => (
-                        <React.Fragment key={opt.value}>
-                          <Select.Item label={opt.label} value={opt.value} />
-                          {i < dateRangeOptions.length - 1 && <Separator />}
-                        </React.Fragment>
-                      ))}
-                    </Select.Content>
-                  </Select.Portal>
-                </Select>
-              </View>
-            )}
+              <Select
+                className="flex-1"
+                isDisabled={isPending}
+                onValueChange={onFilter}
+                value={dateRange}
+              >
+                <Select.Trigger>
+                  <Select.Value numberOfLines={1} placeholder="Date range" />
+                  <Select.TriggerIndicator />
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Overlay className="bg-backdrop" />
+                  <Select.Content presentation="popover" width="full">
+                    <Select.ListLabel className="mb-2">
+                      Date range
+                    </Select.ListLabel>
+                    {dateRangeOptions.map((opt, i) => (
+                      <React.Fragment key={opt.value}>
+                        <Select.Item label={opt.label} value={opt.value} />
+                        {i < dateRangeOptions.length - 1 && <Separator />}
+                      </React.Fragment>
+                    ))}
+                  </Select.Content>
+                </Select.Portal>
+              </Select>
+            </View>
 
             <ToggleButtonGroup
               className="border-none"
