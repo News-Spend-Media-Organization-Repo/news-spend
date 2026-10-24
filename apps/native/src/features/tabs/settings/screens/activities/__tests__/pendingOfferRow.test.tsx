@@ -14,10 +14,10 @@ const POINTS_TEXT = /\d+ pts/;
 describe("PendingOfferRow", () => {
   it("renders a pending offer with the partner name", async () => {
     await render(<PendingOfferRow offer={{ ...base, state: "pending" }} />);
+    expect(screen.getByText("Install Acme")).toBeTruthy();
+    expect(screen.getByText("Pending")).toBeTruthy();
     expect(
-      screen.getByText(
-        "Pending: Install Acme, waiting for Acme to confirm. Usually within 3 days."
-      )
+      screen.getByText("Waiting for Acme to confirm. Usually within 3 days.")
     ).toBeTruthy();
   });
 
@@ -34,7 +34,7 @@ describe("PendingOfferRow", () => {
     );
     expect(
       screen.getByText(
-        "Pending: Install Acme, waiting for the partner to confirm. Usually within 1 day."
+        "Waiting for the partner to confirm. Usually within 1 day."
       )
     ).toBeTruthy();
   });
@@ -43,10 +43,9 @@ describe("PendingOfferRow", () => {
     await render(
       <PendingOfferRow offer={{ ...base, state: "not_confirmed" }} />
     );
+    expect(screen.getByText("Not confirmed")).toBeTruthy();
     expect(
-      screen.getByText(
-        "Not confirmed: Install Acme. Contact support if you completed it."
-      )
+      screen.getByText("Contact support if you completed it.")
     ).toBeTruthy();
     expect(screen.queryByText(POINTS_TEXT)).toBeNull();
   });
