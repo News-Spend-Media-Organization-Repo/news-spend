@@ -164,7 +164,7 @@ export default function Activities() {
           isPendingOffer(item) ? item.contentId : item.id
         }
         ListEmptyComponent={
-          (isPending ? pendingOffers.isPending : activities.isPending) ? (
+          (isPending ? pendingOffers.isLoading : activities.isPending) ? (
             <View className="mt-3 items-center">
               <Spinner />
             </View>
