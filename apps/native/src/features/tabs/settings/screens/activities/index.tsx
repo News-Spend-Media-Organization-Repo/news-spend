@@ -22,6 +22,7 @@ import { authState } from "#/state/auth";
 import { ActivityRow } from "./components/activity-row";
 import { ActivitySheet } from "./components/activity-sheet";
 import { PendingOfferRow } from "./components/pending-offer-row";
+import { PendingOfferSheet } from "./components/pending-offer-sheet";
 import {
   type ActivityType,
   activityOptions,
@@ -50,6 +51,8 @@ export default function Activities() {
     null
   );
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<PendingOffer | null>(null);
+  const [offerSheetOpen, setOfferSheetOpen] = useState(false);
 
   const isPending = toggle === "pending";
 
@@ -85,6 +88,11 @@ export default function Activities() {
   const onSelectActivity = useCallback((item: Activity) => {
     setSelectedActivity(item);
     setSheetOpen(true);
+  }, []);
+
+  const onSelectOffer = useCallback((offer: PendingOffer) => {
+    setSelectedOffer(offer);
+    setOfferSheetOpen(true);
   }, []);
 
   const onCustomFilter = useCallback((start: Date, end: Date) => {
@@ -133,11 +141,11 @@ export default function Activities() {
   const renderItem = useCallback(
     ({ item }: LegendListRenderItemProps<ActivityItem>) =>
       isPendingOffer(item) ? (
-        <PendingOfferRow offer={item} />
+        <PendingOfferRow offer={item} onPress={onSelectOffer} />
       ) : (
         <ActivityRow item={item} onPress={onSelectActivity} />
       ),
-    [onSelectActivity]
+    [onSelectActivity, onSelectOffer]
   );
 
   return (
@@ -248,9 +256,6 @@ export default function Activities() {
               <ToggleButton className="flex-1" id="posted">
                 <ToggleButton.Label>Posted</ToggleButton.Label>
               </ToggleButton>
-              <ToggleButton className="flex-1" id="visited">
-                <ToggleButton.Label>Visited</ToggleButton.Label>
-              </ToggleButton>
               <ToggleButton className="flex-1" id="pending">
                 <ToggleButton.Label>Pending</ToggleButton.Label>
               </ToggleButton>
@@ -261,6 +266,12 @@ export default function Activities() {
         onEndReachedThreshold={0.5}
         recycleItems
         renderItem={renderItem}
+      />
+
+      <PendingOfferSheet
+        isOpen={offerSheetOpen}
+        offer={selectedOffer}
+        onOpenChange={setOfferSheetOpen}
       />
 
       <ActivitySheet

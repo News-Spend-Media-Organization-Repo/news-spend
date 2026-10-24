@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { PendingOfferRow } from "../components/pending-offer-row";
 
 const base = {
@@ -6,48 +6,48 @@ const base = {
   title: "Install Acme",
   partnerName: "Acme" as string | null,
   expectedWithinDays: 3,
+  points: 250,
   clickedAt: "2026-10-18T10:00:00.000Z",
 };
 
-const POINTS_TEXT = /\d+ pts/;
-
 describe("PendingOfferRow", () => {
-  it("renders a pending offer with the partner name", async () => {
-    await render(<PendingOfferRow offer={{ ...base, state: "pending" }} />);
-    expect(
-      screen.getByText(
-        "Pending: Install Acme, waiting for Acme to confirm. Usually within 3 days."
-      )
-    ).toBeTruthy();
-  });
-
-  it("falls back to 'the partner' and uses singular day", async () => {
+  it("shows the title, a Pending tag and the expected points", async () => {
     await render(
       <PendingOfferRow
-        offer={{
-          ...base,
-          partnerName: null,
-          expectedWithinDays: 1,
-          state: "pending",
-        }}
+        offer={{ ...base, state: "pending" }}
+        onPress={jest.fn()}
       />
     );
-    expect(
-      screen.getByText(
-        "Pending: Install Acme, waiting for the partner to confirm. Usually within 1 day."
-      )
-    ).toBeTruthy();
+    expect(screen.getByText("Install Acme")).toBeTruthy();
+    expect(screen.getByText("Pending")).toBeTruthy();
+    expect(screen.getByText("+250 pts")).toBeTruthy();
   });
 
-  it("renders a not-confirmed offer with no points text", async () => {
+  it("tags a lapsed offer as Not confirmed", async () => {
     await render(
-      <PendingOfferRow offer={{ ...base, state: "not_confirmed" }} />
+      <PendingOfferRow
+        offer={{ ...base, state: "not_confirmed" }}
+        onPress={jest.fn()}
+      />
     );
-    expect(
-      screen.getByText(
-        "Not confirmed: Install Acme. Contact support if you completed it."
-      )
-    ).toBeTruthy();
-    expect(screen.queryByText(POINTS_TEXT)).toBeNull();
+    expect(screen.getByText("Not confirmed")).toBeTruthy();
+  });
+
+  it("hides the points when the server sent none", async () => {
+    await render(
+      <PendingOfferRow
+        offer={{ ...base, points: 0, state: "pending" }}
+        onPress={jest.fn()}
+      />
+    );
+    expect(screen.queryByText(/pts/)).toBeNull();
+  });
+
+  it("calls onPress with the offer", async () => {
+    const onPress = jest.fn();
+    const offer = { ...base, state: "pending" as const };
+    await render(<PendingOfferRow offer={offer} onPress={onPress} />);
+    await fireEvent.press(screen.getByText("Install Acme"));
+    expect(onPress).toHaveBeenCalledWith(offer);
   });
 });

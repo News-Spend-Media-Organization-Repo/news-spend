@@ -4,6 +4,8 @@ export type PendingOffer = {
   partnerName: string | null;
   state: "pending" | "not_confirmed";
   expectedWithinDays: number;
+  /** What the offer pays once the partner confirms it. */
+  points: number;
   clickedAt: string;
 };
 
