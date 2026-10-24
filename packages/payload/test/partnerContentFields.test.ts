@@ -59,10 +59,10 @@ describe("partner content fields", () => {
     expect([...values].sort()).toEqual([...KEPT].sort());
   });
 
-  test("adCopy is an optional text field", () => {
+  test("adCopy is a required text field", () => {
     const field = find(PartnerContent, "adCopy");
     expect(field?.type).toBe("text");
-    expect(field?.required).toBeFalsy();
+    expect(field?.required).toBe(true);
   });
 
   test("condition and points are relabelled", () => {

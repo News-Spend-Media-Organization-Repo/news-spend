@@ -4,7 +4,6 @@ type ChecklistDoc = {
   placements?: readonly string[] | null;
   points?: number | null;
   adCopy?: string | null;
-  status?: string | null;
 };
 
 export type ChecklistItem = {
@@ -22,7 +21,6 @@ export function partnerContentChecklist(doc: ChecklistDoc): ChecklistItem[] {
   const points = doc.points ?? 0;
   const hasOffer = placements.some(isOfferPlacement);
   const hasPoints = points > 0;
-  const needsAdCopy = doc.status === "active";
   const hasAdCopy = (doc.adCopy ?? "").trim() !== "";
 
   return [
@@ -44,12 +42,10 @@ export function partnerContentChecklist(doc: ChecklistDoc): ChecklistItem[] {
     },
     {
       key: "missing-ad-copy",
-      ok: !needsAdCopy || hasAdCopy,
-      message: needsAdCopy
-        ? hasAdCopy
-          ? "Ad copy is in place."
-          : "This item is active but has no ad copy; ad surfaces will have nothing to show."
-        : "Ad copy is only required once the item is active.",
+      ok: hasAdCopy,
+      message: hasAdCopy
+        ? "Ad copy is in place."
+        : "This item has no ad copy; ad surfaces will have nothing to show.",
     },
   ];
 }

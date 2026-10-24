@@ -71,26 +71,18 @@ describe("partnerContentChecklist", () => {
     ).toBe(true);
   });
 
-  it("requires ad copy only on active items", () => {
-    expect(check({ status: "active" }, "missing-ad-copy")?.ok).toBe(false);
-    expect(
-      check({ status: "active", adCopy: "   " }, "missing-ad-copy")?.ok
-    ).toBe(false);
-    expect(
-      check({ status: "active", adCopy: "Read now" }, "missing-ad-copy")?.ok
-    ).toBe(true);
-    expect(check({ status: "draft", adCopy: "" }, "missing-ad-copy")?.ok).toBe(
-      true
-    );
+  it("requires ad copy on every item", () => {
+    expect(check({}, "missing-ad-copy")?.ok).toBe(false);
+    expect(check({ adCopy: "   " }, "missing-ad-copy")?.ok).toBe(false);
+    expect(check({ adCopy: "Read now" }, "missing-ad-copy")?.ok).toBe(true);
   });
 
-  it("words the ad copy mark by whether it is required", () => {
-    expect(
-      check({ status: "draft", adCopy: "" }, "missing-ad-copy")?.message
-    ).toBe("Ad copy is only required once the item is active.");
-    expect(
-      check({ status: "active", adCopy: "Read now" }, "missing-ad-copy")
-        ?.message
-    ).toBe("Ad copy is in place.");
+  it("words the ad copy mark by whether it is present", () => {
+    expect(check({ adCopy: "" }, "missing-ad-copy")?.message).toBe(
+      "This item has no ad copy; ad surfaces will have nothing to show."
+    );
+    expect(check({ adCopy: "Read now" }, "missing-ad-copy")?.message).toBe(
+      "Ad copy is in place."
+    );
   });
 });

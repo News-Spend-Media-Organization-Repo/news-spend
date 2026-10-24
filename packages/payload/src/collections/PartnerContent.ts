@@ -309,6 +309,7 @@ export const PartnerContent: CollectionConfig = {
               name: "adCopy",
               label: "Ad copy (shown everywhere)",
               type: "text",
+              required: true,
               admin: {
                 placeholder: "Plain ad text with no reward wording",
                 description:

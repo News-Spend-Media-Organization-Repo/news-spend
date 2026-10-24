@@ -130,6 +130,7 @@ type Doc = {
   title?: string;
   companyName?: string;
   confirmationDays?: number | null;
+  placements?: readonly string[] | null;
 };
 
 const PENDING_OFFERS_LIMIT = 50;
@@ -221,9 +222,6 @@ const pendingOffers = protectedNoGuestProcedure.handler(
       if (offers.length >= PENDING_OFFERS_LIMIT) {
         break;
       }
-      if (!(doc.surface && isOfferPlacement(doc.surface))) {
-        continue;
-      }
       const contentId = relationId(doc.content);
       // Docs are newest first, so the first sighting is the latest click.
       if (!contentId || seen.has(contentId)) {
@@ -239,6 +237,18 @@ const pendingOffers = protectedNoGuestProcedure.handler(
           ? doc.content
           : contentById.get(contentId);
       if (!content?.title) {
+        continue;
+      }
+      /**
+       * A tap on an ad surface can never pay, so it is not a pending offer.
+       * Clicks from before `surface` existed carry none; they paid only when
+       * the item had an offer placement, the same test `canPayOnTap` uses.
+       */
+      if (
+        doc.surface
+          ? !isOfferPlacement(doc.surface)
+          : !(content.placements ?? []).some(isOfferPlacement)
+      ) {
         continue;
       }
       const partnerId = relationId(doc.partner);

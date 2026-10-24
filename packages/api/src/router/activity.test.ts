@@ -566,7 +566,7 @@ describe("activity.pendingOffers", () => {
     });
   });
 
-  it("excludes ad-surface and null-surface clicks", async () => {
+  it("excludes ad-surface clicks and legacy taps on items with no offer placement", async () => {
     const ctx = pendingContext({
       conversions: [
         conversion({ id: "a", surface: "news-feed" }),
@@ -578,6 +578,17 @@ describe("activity.pendingOffers", () => {
       context: ctx,
     });
     expect(result).toEqual([]);
+  });
+
+  it("includes a legacy tap with no surface when the item has an offer placement", async () => {
+    const ctx = pendingContext({
+      partnerContent: [content({ placements: ["points-mall-apps"] })],
+      conversions: [conversion({ surface: null })],
+    });
+    const result = await call(activityRouter.pendingOffers, undefined, {
+      context: ctx,
+    });
+    expect(result).toHaveLength(1);
   });
 
   it("excludes an offer that has a settled conversion", async () => {
