@@ -122,6 +122,10 @@ describe("sendNotificationOnCreate", () => {
     };
     expect(args.data.title).toBe("BREAKING: Market approved");
     expect(args.data.body).toBe("Council votes yes");
+    // The editor must not wait for the send.
+    expect((create.mock.calls[0] as unknown[])[0]).toMatchObject({
+      context: { deferSend: true },
+    });
     expect(update).toHaveBeenCalledTimes(1);
   });
 
@@ -264,6 +268,40 @@ describe("prefillNotificationCopy", () => {
     expect(run({ ...article, type: "video" }).notificationTitle).toBe(
       undefined
     );
+  });
+});
+
+describe("publishing straight away, with no draft saved first", () => {
+  it("fills the push fields in the same save, and that is what is sent", () => {
+    const data = { ...article, _status: "published" } as Record<
+      string,
+      unknown
+    >;
+
+    // First save of a brand-new article: no original document yet.
+    expect(() =>
+      requireKeyPointToPublish({ data, originalDoc: undefined } as never)
+    ).not.toThrow();
+    const saved = prefillNotificationCopy({
+      data,
+      originalDoc: undefined,
+    } as never) as Record<string, unknown>;
+
+    expect(saved.notificationTitle).toBe("Lagos council approves new market");
+    expect(saved.notificationBody).toBe("The market opens next month");
+    expect(newsNotificationCopy(saved as never)).toEqual({
+      title: "Lagos council approves new market",
+      body: "The market opens next month",
+    });
+  });
+
+  it("still sends the same copy if the fields were never prefilled", () => {
+    expect(
+      newsNotificationCopy({ ...article, _status: "published" } as never)
+    ).toEqual({
+      title: "Lagos council approves new market",
+      body: "The market opens next month",
+    });
   });
 });
 

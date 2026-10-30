@@ -18,6 +18,7 @@ export const entries2026: Entry[] = [
           "The points leaderboard and the Large point grants panel show each user's name, and the leaderboard adds Peak hour and Events to spot points earned unusually fast.",
           "Ad and Read Also blocks now preview in the article editor: an ad at its real size, and the linked article's title.",
           "A partner opens straight onto their own Performance tab, and can view their own partner content (read only).",
+          "Publishing an article no longer waits for its push notification: the save returns straight away and the push goes out within a few seconds.",
         ],
       },
       {

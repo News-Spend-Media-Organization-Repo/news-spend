@@ -54,6 +54,9 @@ const sendNotificationOnCreate: CollectionAfterChangeHook = async ({
             url: `article/${doc.slug}`,
           },
         },
+        // The push goes out in the background: the editor must not wait for
+        // it, and a slow or failed send must not fail the save.
+        context: { deferSend: true },
         req,
       });
     }
