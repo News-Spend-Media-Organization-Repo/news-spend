@@ -20,7 +20,13 @@ export const Partners: CollectionConfig = {
   admin: {
     group: "Partners",
     useAsTitle: "companyName",
-    defaultColumns: ["companyName", "status", "category", "contractSigned"],
+    defaultColumns: [
+      "companyName",
+      "status",
+      "integrationMethod",
+      "category",
+      "contractSigned",
+    ],
     components: {
       views: {
         edit: {

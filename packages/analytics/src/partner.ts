@@ -710,3 +710,28 @@ export async function partnerEventsByPartner(
     ...totalsOf(r),
   }));
 }
+
+export type PartnerIntegration = {
+  /** `manual`, `webhook` (legacy `postback` folded in) or `csv`. */
+  method: string;
+  partners: number;
+};
+
+/** Staff only. How many partners send conversion data each way. */
+export async function partnerIntegrationSummary(
+  db: AnalyticsDb,
+  scope: AnalyticsScope
+): Promise<PartnerIntegration[]> {
+  requireStaff(scope);
+  return await rowsOf<PartnerIntegration>(
+    db,
+    sql`
+      SELECT CASE WHEN p.integration_method = 'postback' THEN 'webhook'
+                  ELSE p.integration_method END AS method,
+             COUNT(*)::int AS partners
+      FROM partners p
+      GROUP BY 1
+      ORDER BY partners DESC, method
+    `
+  );
+}

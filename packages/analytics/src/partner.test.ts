@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   partnerDaily,
+  partnerIntegrationSummary,
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
@@ -297,5 +298,29 @@ describe("partnerPostbackHealth", () => {
     for (const q of queries) {
       expect(q.sql).not.toMatch(NAMES_A_READER);
     }
+  });
+});
+
+describe("partnerIntegrationSummary", () => {
+  it("counts partners per method, folding the legacy postback into webhook", async () => {
+    const { db, queries } = stubDb([
+      { method: "webhook", partners: 4 },
+      { method: "manual", partners: 3 },
+    ]);
+
+    const rows = await partnerIntegrationSummary(db, STAFF);
+
+    expect(rows).toEqual([
+      { method: "webhook", partners: 4 },
+      { method: "manual", partners: 3 },
+    ]);
+    expect(queries[0]?.sql).toContain("integration_method");
+    expect(queries[0]?.sql).toContain("postback");
+  });
+
+  it("is staff only", async () => {
+    await expect(
+      partnerIntegrationSummary(stubDb().db, PARTNER)
+    ).rejects.toBeInstanceOf(AnalyticsAccessError);
   });
 });

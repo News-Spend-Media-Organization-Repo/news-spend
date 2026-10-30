@@ -32,7 +32,6 @@ import {
   pointsLeaderboard,
   pointsSummary,
   READ_DEFINITION,
-  resolveRange,
   retentionCohorts,
   TOP_SORTS,
 } from "@news-spend-media/analytics";
@@ -73,9 +72,11 @@ import {
   SurfacesPanel,
   TopArticlesPanel,
 } from "./blocks";
+import { DateRangePicker } from "./DateRangePicker";
+import { formatWindow } from "./format";
 import { PageFrame } from "./PageFrame";
 import type { Days } from "./params";
-import { parseAnalyticsParams, SORT_LABELS } from "./params";
+import { parseAnalyticsParams, resolvePeriod, SORT_LABELS } from "./params";
 import {
   PartnerEventsByPartnerPanel,
   PartnerEventsDailyPanel,
@@ -131,14 +132,14 @@ function PageSwitch({
 
 function Toolbar({
   basePath,
-  days,
+  period,
   platform,
   showPlatform,
   sort,
   navigation,
 }: {
   basePath: string;
-  days: Days;
+  period: { days: Days; from?: string; to?: string };
   platform?: Platform;
   showPlatform: boolean;
   /** Offers the top-articles sort when given. */
@@ -146,12 +147,23 @@ function Toolbar({
   /** Sits with the period choices, such as the News | Points switch. */
   navigation?: ReactNode;
 }): ReactNode {
+  const { days, from, to } = period;
+  const custom = Boolean(from && to);
+
   const href = (next: {
     days?: Days;
     platform?: Platform | null;
     sort?: TopSort;
   }) => {
-    const query = new URLSearchParams({ days: String(next.days ?? days) });
+    const query = new URLSearchParams();
+    // Choosing a preset drops the custom window; changing a sort or platform
+    // keeps it.
+    if (next.days === undefined && from && to) {
+      query.set("from", from);
+      query.set("to", to);
+    } else {
+      query.set("days", String(next.days ?? days));
+    }
     const chosen = next.platform === undefined ? platform : next.platform;
     if (chosen) {
       query.set("platform", chosen);
@@ -170,8 +182,15 @@ function Toolbar({
         links={([7, 30, 90] as const).map((d) => ({
           label: `${d} days`,
           href: href({ days: d }),
-          current: d === days,
+          current: !custom && d === days,
         }))}
+      />
+      <DateRangePicker
+        basePath={basePath}
+        from={from}
+        platform={platform}
+        sort={sort}
+        to={to}
       />
       {showPlatform ? (
         <Segmented
@@ -291,8 +310,9 @@ export async function ArticleStatsView(
   }
 
   return await guarded(async () => {
-    const { days, platform } = parseAnalyticsParams(props.searchParams);
-    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const params = parseAnalyticsParams(props.searchParams);
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE);
+    const { platform } = params;
     const id = String(docID ?? props.doc?.id ?? "");
     const report = await newsArticleReport(dbOf(req), scope, id, {
       range,
@@ -309,14 +329,17 @@ export async function ArticleStatsView(
             toolbar={
               <Toolbar
                 basePath={`${ADMIN_PATH}/collections/news/${id}/stats`}
-                days={days}
+                period={params}
                 platform={platform}
                 showPlatform
               />
             }
           />
           <Notices notices={newsNotices(range)} />
-          <ArticleReportBody report={report} />
+          <ArticleReportBody
+            period={formatWindow(range.current.from, range.current.to)}
+            report={report}
+          />
         </div>
       </>
     );
@@ -331,15 +354,16 @@ export async function AnalyticsPageView(
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Analytics" view={props}>
         <Denied />
       </PageFrame>
     );
   }
 
   return await guarded(async () => {
-    const { days, platform, sort } = parseAnalyticsParams(props.searchParams);
-    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const params = parseAnalyticsParams(props.searchParams);
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE);
+    const { platform, sort } = params;
     const db = dbOf(req);
     const filter = { range, platform };
 
@@ -364,7 +388,7 @@ export async function AnalyticsPageView(
     ]);
 
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Analytics" view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -373,8 +397,8 @@ export async function AnalyticsPageView(
             toolbar={
               <Toolbar
                 basePath={`${ADMIN_PATH}/analytics`}
-                days={days}
                 navigation={<PageSwitch page="news" />}
+                period={params}
                 platform={platform}
                 showPlatform
                 sort={sort}
@@ -382,13 +406,22 @@ export async function AnalyticsPageView(
             }
           />
           <Notices notices={newsNotices(range, quality)} />
-          <NewsKpis daily={daily} summary={summary} />
+          <NewsKpis
+            daily={daily}
+            period={formatWindow(range.current.from, range.current.to)}
+            summary={summary}
+          />
           <div className="ana-grid ana-two">
             <FunnelPanel days={daily} />
             <SurfacesPanel surfaces={surfaces} />
           </div>
           <div className="ana-grid ana-two">
-            <TopArticlesPanel articles={top} days={days} sort={sort} />
+            <TopArticlesPanel
+              articles={top}
+              days={range.days}
+              period={formatWindow(range.current.from, range.current.to)}
+              sort={sort}
+            />
             <StepsPanel current={summary.current} />
           </div>
           <div className="ana-grid ana-even">
@@ -410,15 +443,15 @@ export async function PointsPageView(
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Dream Points" view={props}>
         <Denied />
       </PageFrame>
     );
   }
 
   return await guarded(async () => {
-    const { days } = parseAnalyticsParams(props.searchParams);
-    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const params = parseAnalyticsParams(props.searchParams);
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE);
     const db = dbOf(req);
     const filter = { range };
 
@@ -433,7 +466,7 @@ export async function PointsPageView(
       ]);
 
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Dream Points" view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -442,14 +475,18 @@ export async function PointsPageView(
             toolbar={
               <Toolbar
                 basePath={`${ADMIN_PATH}/analytics/points`}
-                days={days}
                 navigation={<PageSwitch page="points" />}
+                period={params}
                 showPlatform={false}
               />
             }
           />
           <Notices notices={POINTS_NOTICES} />
-          <PointsKpis daily={daily} summary={summary} />
+          <PointsKpis
+            daily={daily}
+            period={formatWindow(range.current.from, range.current.to)}
+            summary={summary}
+          />
           <div className="ana-grid ana-two">
             <PointsDailyPanel days={daily} />
             <PointsSourcesPanel sources={sources} />
@@ -473,15 +510,15 @@ export async function PartnerEventsPageView(
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Partner events" view={props}>
         <Denied />
       </PageFrame>
     );
   }
 
   return await guarded(async () => {
-    const { days } = parseAnalyticsParams(props.searchParams);
-    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const params = parseAnalyticsParams(props.searchParams);
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE);
     const db = dbOf(req);
     const filter = { range };
 
@@ -491,7 +528,7 @@ export async function PartnerEventsPageView(
     ]);
 
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Partner events" view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -500,8 +537,8 @@ export async function PartnerEventsPageView(
             toolbar={
               <Toolbar
                 basePath={`${ADMIN_PATH}/analytics/partners-events`}
-                days={days}
                 navigation={<PageSwitch page="partners" />}
+                period={params}
                 showPlatform={false}
               />
             }
@@ -523,20 +560,16 @@ export async function RetentionPageView(
   const scope = scopeOfRequest(req);
   if (scope?.kind !== "staff") {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Retention" view={props}>
         <Denied />
       </PageFrame>
     );
   }
 
   return await guarded(async () => {
-    const { days } = parseAnalyticsParams(props.searchParams);
+    const params = parseAnalyticsParams(props.searchParams);
     const now = new Date();
-    const range = resolveRange({
-      days,
-      now,
-      timeZone: ANALYTICS_TIME_ZONE,
-    });
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE, now);
     const filter = { range, now };
     const db = dbOf(req);
 
@@ -548,7 +581,7 @@ export async function RetentionPageView(
     ]);
 
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Retention" view={props}>
         <Styles />
         <div className="ana ana-page">
           <Header
@@ -557,8 +590,8 @@ export async function RetentionPageView(
             toolbar={
               <Toolbar
                 basePath={`${ADMIN_PATH}/analytics/retention`}
-                days={days}
                 navigation={<PageSwitch page="retention" />}
+                period={params}
                 showPlatform={false}
               />
             }
@@ -588,8 +621,8 @@ export async function PartnerPerformanceView(
   }
 
   return await guarded(async () => {
-    const { days } = parseAnalyticsParams(props.searchParams);
-    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const params = parseAnalyticsParams(props.searchParams);
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE);
     const db = dbOf(req);
     const id = String(docID ?? props.doc?.id ?? "");
     const filter = { range, partnerId: id };
@@ -625,7 +658,7 @@ export async function PartnerPerformanceView(
             toolbar={
               <Toolbar
                 basePath={`${ADMIN_PATH}/collections/partners/${id}/performance`}
-                days={days}
+                period={params}
                 showPlatform={false}
               />
             }
@@ -667,7 +700,7 @@ export async function PartnerPerformanceView(
           <PartnerEventsItemsPanel
             basePath={performancePath}
             contentId={contentId}
-            days={days}
+            days={range.days}
             rows={eventItems}
             surface={surface}
           />
@@ -689,8 +722,8 @@ export async function GiveawayStatsView(
   }
 
   return await guarded(async () => {
-    const { days } = parseAnalyticsParams(props.searchParams);
-    const range = resolveRange({ days, timeZone: ANALYTICS_TIME_ZONE });
+    const params = parseAnalyticsParams(props.searchParams);
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE);
     const id = String(docID ?? props.doc?.id ?? "");
     const report = await giveawayReport(dbOf(req), scope, id, { range });
 
@@ -704,7 +737,7 @@ export async function GiveawayStatsView(
             toolbar={
               <Toolbar
                 basePath={`${ADMIN_PATH}/collections/giveaways/${id}/stats`}
-                days={days}
+                period={params}
                 showPlatform={false}
               />
             }

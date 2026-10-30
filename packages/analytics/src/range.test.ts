@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
-import { eachDay, percentChange, resolveRange } from "./range";
+import {
+  eachDay,
+  isDateRange,
+  percentChange,
+  resolveRange,
+  resolveWindow,
+} from "./range";
 
 const NOW = new Date("2026-09-20T10:00:00Z");
 
@@ -46,6 +52,60 @@ describe("resolveRange", () => {
     expect(() =>
       resolveRange({ days: 7, now: NOW, timeZone: "Mars/Olympus" })
     ).toThrow(RangeError);
+  });
+});
+
+describe("resolveWindow", () => {
+  it("covers both chosen days and counts them inclusively", () => {
+    const r = resolveWindow({ from: "2026-10-01", to: "2026-10-20" });
+
+    expect(r.current).toEqual({ from: "2026-10-01", to: "2026-10-20" });
+    expect(r.days).toBe(20);
+    expect(eachDay(r.current)).toHaveLength(20);
+  });
+
+  it("puts the previous period immediately before, the same length", () => {
+    const r = resolveWindow({ from: "2026-10-01", to: "2026-10-20" });
+
+    expect(r.previous).toEqual({ from: "2026-09-11", to: "2026-09-30" });
+    expect(eachDay(r.previous)).toHaveLength(20);
+  });
+
+  it("accepts a single day", () => {
+    const r = resolveWindow({ from: "2026-10-20", to: "2026-10-20" });
+
+    expect(r.days).toBe(1);
+    expect(r.previous).toEqual({ from: "2026-10-19", to: "2026-10-19" });
+  });
+
+  it("refuses a backwards, impossible or overlong window", () => {
+    expect(() =>
+      resolveWindow({ from: "2026-10-20", to: "2026-10-01" })
+    ).toThrow(RangeError);
+    expect(() =>
+      resolveWindow({ from: "2026-02-30", to: "2026-03-02" })
+    ).toThrow(RangeError);
+    expect(() =>
+      resolveWindow({ from: "2026-10-20", to: "2026-10-20x" })
+    ).toThrow(RangeError);
+    expect(() =>
+      resolveWindow({ from: "2025-01-01", to: "2026-01-02" })
+    ).toThrow(RangeError);
+  });
+});
+
+describe("isDateRange", () => {
+  it("says which windows the dashboards accept", () => {
+    expect(isDateRange("2026-10-01", "2026-10-20")).toBe(true);
+    expect(isDateRange("2026-10-20", "2026-10-20")).toBe(true);
+    expect(isDateRange("2026-10-20", "2026-10-01")).toBe(false);
+    expect(isDateRange("2026-02-30", "2026-03-02")).toBe(false);
+    expect(isDateRange("", "")).toBe(false);
+  });
+
+  it("allows exactly the cap and refuses a day more", () => {
+    expect(isDateRange("2026-01-01", "2026-12-31")).toBe(true);
+    expect(isDateRange("2026-01-01", "2027-01-01")).toBe(false);
   });
 });
 

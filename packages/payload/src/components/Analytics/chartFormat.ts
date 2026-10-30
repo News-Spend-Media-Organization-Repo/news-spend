@@ -34,3 +34,20 @@ export function formatDay(date: string): string {
   ];
   return `${Number(day)} ${names[Number(month) - 1] ?? ""}`;
 }
+
+/** A chosen window as `1–20 Oct 2026`, both ends included. */
+export function formatWindow(from: string, to: string): string {
+  const [fromYear, fromMonth, fromDay] = from.split("-");
+  const [toYear, toMonth] = to.split("-");
+
+  if (from === to) {
+    return `${formatDay(from)} ${toYear}`;
+  }
+  if (fromYear !== toYear) {
+    return `${formatDay(from)} ${fromYear} – ${formatDay(to)} ${toYear}`;
+  }
+  if (fromMonth !== toMonth) {
+    return `${formatDay(from)} – ${formatDay(to)} ${toYear}`;
+  }
+  return `${Number(fromDay)}–${formatDay(to)} ${toYear}`;
+}

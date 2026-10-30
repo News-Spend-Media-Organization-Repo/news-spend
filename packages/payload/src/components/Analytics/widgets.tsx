@@ -21,6 +21,7 @@ import {
   newsSurfaces,
   newsTopArticles,
   newsTopCategories,
+  partnerIntegrationSummary,
   partnerRecentConversions,
   partnerSummary,
   pushReport,
@@ -39,6 +40,7 @@ import {
   FunnelPanel,
   GrowthPanel,
   NeedsAttentionPanel,
+  PartnerIntegrationPanel,
   PartnerKpis,
   PushPanel,
   RecentConversionsPanel,
@@ -352,6 +354,16 @@ export const PushWidget = (props: WidgetServerProps): Promise<ReactNode> =>
     <PushPanel
       report={await pushReport(db, scope, { range, limit: 10 })}
       timeZone={ANALYTICS_TIME_ZONE}
+    />
+  ));
+
+/** Staff only. Partners grouped by how they send conversion data. */
+export const PartnerIntegrationWidget = (
+  props: WidgetServerProps
+): Promise<ReactNode> =>
+  staffWidget(props, async ({ scope, db }) => (
+    <PartnerIntegrationPanel
+      rows={await partnerIntegrationSummary(db, scope)}
     />
   ));
 

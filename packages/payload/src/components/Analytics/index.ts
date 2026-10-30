@@ -20,6 +20,7 @@ export {
   FunnelWidget,
   GrowthWidget,
   KpiWidget,
+  PartnerIntegrationWidget,
   PartnerPerformanceWidget,
   PushWidget,
   SurfacesWidget,

@@ -105,6 +105,9 @@ import { sendUrgentModerationAlertTask } from "./tasks/sendUrgentModerationAlert
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
+const dashboardNavLink =
+  "@news-spend-media/payload/components/DashboardNavLink#DashboardNavLink";
+
 const baseConfig: Config = {
   cors: cmsTrustedOrigins(),
   csrf: cmsTrustedOrigins(),
@@ -166,6 +169,7 @@ const baseConfig: Config = {
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
       beforeNavLinks: [
+        dashboardNavLink,
         analyticsNavLink,
         surveyPerformanceNavLink,
         whatsNewNavLink,

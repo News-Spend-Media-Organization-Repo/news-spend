@@ -7,6 +7,30 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-10-30-dashboard-navigation",
+    date: "2026-10-30",
+    title: "A way back to the dashboard, and partners at a glance",
+    sections: [
+      {
+        heading: "New",
+        items: [
+          "Every admin screen now has a Dashboard link in the sidebar, and the header logo is clickable again.",
+          "A partner account has a Performance link in the sidebar that opens its own Performance tab.",
+          "The staff dashboard has a Partners by integration widget, counting partners by manual, webhook and CSV.",
+          "Analytics pages have a Custom date range: pick any start and end day, up to a year, and every card on the page follows it.",
+          "Publishing an article can send its own push title and body, with an on/off switch, so a caution like BREAKING stays out of the headline.",
+        ],
+      },
+      {
+        heading: "Changed",
+        items: [
+          "The partner list shows the integration method as a column, so it can be filtered without opening a record.",
+          "Top articles shows each article's publication date, and says whether the ranking covers the whole period or is the hot-now Rising view.",
+        ],
+      },
+    ],
+  },
+  {
     id: "2026-10-22-delete-guards",
     date: "2026-10-22",
     title:

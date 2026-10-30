@@ -15,6 +15,8 @@ import { trimUrlHook } from "../fields/urlField";
 import {
   applyFeaturedWindow,
   calculateNewsMetrics,
+  NEWS_NOTIFICATION_BODY_MAX_LENGTH,
+  NEWS_NOTIFICATION_TITLE_MAX_LENGTH,
   sendNotificationOnCreate,
 } from "../hooks";
 import { MAX_ACTIVITY_POINTS } from "../lib/activityPoints";
@@ -258,6 +260,42 @@ const News: CollectionConfig = {
         description: "💡 Summary of the article",
       },
       maxLength: 100,
+    },
+    {
+      type: "collapsible",
+      label: "Push notification",
+      admin: {
+        description:
+          "What users receive when this article is published. Kept apart from the article so push copy never has to change the headline.",
+      },
+      fields: [
+        {
+          name: "sendNotification",
+          type: "checkbox",
+          defaultValue: true,
+          label: "Send a push when this article is published",
+          admin: {
+            description:
+              "On by default. Switch off to publish without notifying users.",
+          },
+        },
+        {
+          name: "notificationTitle",
+          type: "text",
+          maxLength: NEWS_NOTIFICATION_TITLE_MAX_LENGTH,
+          admin: {
+            description: `Push title. Left blank, the article title is sent. Put "BREAKING:" (or any wording) here rather than in the headline. Write {{firstName}} to address each user by first name. Max ${NEWS_NOTIFICATION_TITLE_MAX_LENGTH} characters.`,
+          },
+        },
+        {
+          name: "notificationBody",
+          type: "textarea",
+          maxLength: NEWS_NOTIFICATION_BODY_MAX_LENGTH,
+          admin: {
+            description: `Optional push body. Left blank, the excerpt (or "New news published!") is sent. Write {{firstName}} to address each user by first name. Max ${NEWS_NOTIFICATION_BODY_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
+          },
+        },
+      ],
     },
     {
       name: "featured",

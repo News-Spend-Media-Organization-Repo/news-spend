@@ -215,6 +215,7 @@ export interface Config {
     'analytics-surfaces': AnalyticsSurfacesWidget;
     'analytics-categories': AnalyticsCategoriesWidget;
     'analytics-partner-performance': AnalyticsPartnerPerformanceWidget;
+    'analytics-partner-integration': AnalyticsPartnerIntegrationWidget;
     'analytics-audience-kpi': AnalyticsAudienceKpiWidget;
     'analytics-audience-growth': AnalyticsAudienceGrowthWidget;
     'analytics-devices': AnalyticsDevicesWidget;
@@ -1147,6 +1148,18 @@ export interface News {
    * 💡 Summary of the article
    */
   excerpt?: string | null;
+  /**
+   * On by default. Switch off to publish without notifying users.
+   */
+  sendNotification?: boolean | null;
+  /**
+   * Push title. Left blank, the article title is sent. Put "BREAKING:" (or any wording) here rather than in the headline. Write {{firstName}} to address each user by first name. Max 120 characters.
+   */
+  notificationTitle?: string | null;
+  /**
+   * Optional push body. Left blank, the excerpt (or "New news published!") is sent. Write {{firstName}} to address each user by first name. Max 150 characters so it is not cut off on a lock screen.
+   */
+  notificationBody?: string | null;
   /**
    * 💡 Pin to Top stories. Featured articles lead the carousel in rank order.
    */
@@ -3701,6 +3714,9 @@ export interface NewsSelect<T extends boolean = true> {
   readTimeMinutes?: T;
   views?: T;
   excerpt?: T;
+  sendNotification?: T;
+  notificationTitle?: T;
+  notificationBody?: T;
   featured?: T;
   featuredRank?: T;
   featuredUntil?: T;
@@ -4603,6 +4619,16 @@ export interface AnalyticsPartnerPerformanceWidget {
     days?: ('7' | '30' | '90') | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-partner-integration_widget".
+ */
+export interface AnalyticsPartnerIntegrationWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

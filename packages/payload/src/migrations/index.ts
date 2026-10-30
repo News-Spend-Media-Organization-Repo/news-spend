@@ -71,6 +71,7 @@ import * as migration_20261020_214706_partner_offers from './20261020_214706_par
 import * as migration_20261021_034146_partner_content_events from './20261021_034146_partner_content_events';
 import * as migration_20261022_150623_review_prompted_at from './20261022_150623_review_prompted_at';
 import * as migration_20261022_170313_admins_trash from './20261022_170313_admins_trash';
+import * as migration_20261030_092949_news_notification_copy from './20261030_092949_news_notification_copy';
 
 export const migrations = [
   {
@@ -431,11 +432,16 @@ export const migrations = [
   {
     up: migration_20261022_150623_review_prompted_at.up,
     down: migration_20261022_150623_review_prompted_at.down,
-    name: '20261022_150623_review_prompted_at'
+    name: '20261022_150623_review_prompted_at',
   },
   {
     up: migration_20261022_170313_admins_trash.up,
     down: migration_20261022_170313_admins_trash.down,
-    name: '20261022_170313_admins_trash'
+    name: '20261022_170313_admins_trash',
+  },
+  {
+    up: migration_20261030_092949_news_notification_copy.up,
+    down: migration_20261030_092949_news_notification_copy.down,
+    name: '20261030_092949_news_notification_copy'
   },
 ];
