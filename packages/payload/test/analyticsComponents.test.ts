@@ -706,23 +706,31 @@ describe("the Points page", () => {
     }
   });
 
-  it("links every account to its admin record without printing a name or an email", async () => {
+  it("links every account to its admin record and names it, never printing an email", async () => {
     const rowsFor = (sql: string) =>
       sql.includes("ROW_NUMBER() OVER (ORDER BY e.earned")
         ? [
             {
               rank: 1,
               user_id: POINTS_USER_A,
+              name: "Ada Obi",
+              username: "ada",
               earned: 1200,
               balance: 6200,
+              events: 40,
+              peak_hour: 900,
               joined_at: "2026-01-01T00:00:00.000Z",
               top_source: "read",
             },
             {
               rank: 2,
               user_id: POINTS_USER_B,
+              name: "",
+              username: "bayo",
               earned: 900,
               balance: 1400,
+              events: 9,
+              peak_hour: 200,
               joined_at: "2026-02-01T00:00:00.000Z",
               top_source: "surveyTask",
             },
@@ -734,9 +742,10 @@ describe("the Points page", () => {
     for (const id of [POINTS_USER_A, POINTS_USER_B]) {
       expect(markup).toContain(`href="/admin/collections/users/${id}"`);
     }
+    expect(markup).toContain("Ada Obi");
+    expect(markup).toContain("bayo");
     expect(markup).not.toContain("@");
     expect(markup.toLowerCase()).not.toContain("email");
-    expect(markup.toLowerCase()).not.toContain("username");
   });
 });
 
@@ -983,8 +992,12 @@ describe("points dates are Lagos days", () => {
           {
             rank: 1,
             userId: "u1",
+            name: "Ada",
+            username: "ada",
             earned: 10,
             balance: 10,
+            events: 2,
+            peakHour: 10,
             joinedAt: late,
             topSource: "read",
           },

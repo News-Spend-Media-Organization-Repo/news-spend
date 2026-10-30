@@ -12,9 +12,10 @@ import { requireStaff } from "./scope";
  * The Dream Points economy: the `activities` rows of type `point`.
  *
  * Privacy exception: unlike the rest of this package, the leaderboard and the
- * large-grants panel carry a user id. It is used only as the target of the
- * admin's own "Open account" link. A name, email or username is never selected
- * or shown.
+ * large-grants panel carry a user id, used as the target of the admin's own
+ * "Open account" link. The leaderboard also carries the display name and
+ * username so staff can spot an account farming points without opening every
+ * row. An email is never selected or shown.
  */
 
 /**
@@ -247,8 +248,14 @@ export async function pointsConcentration(
 export type LeaderboardRow = {
   rank: number;
   userId: string;
+  name: string | null;
+  username: string | null;
   earned: number;
   balance: number;
+  /** Earning events counted in `earned`. */
+  events: number;
+  /** The most points earned inside any one clock hour of the period. */
+  peakHour: number;
   joinedAt: string | null;
   topSource: string | null;
 };
@@ -257,7 +264,8 @@ export type LeaderboardRow = {
  * Who earned the most from activity in the period. The sign-up bonus and any
  * single grant above `LARGE_GRANT_POINTS` are left out of `earned`, so a
  * giveaway or a mispaid survey cannot decide the ranking. Balance is all-time
- * and is there to compare, never to sort by.
+ * and is there to compare, never to sort by. `events` and `peakHour` show how
+ * fast the points came: a script earns a large share in a single hour.
  */
 export async function pointsLeaderboard(
   db: AnalyticsDb,
@@ -271,8 +279,12 @@ export async function pointsLeaderboard(
   const rows = await rowsOf<{
     rank: number;
     user_id: string;
+    name: string | null;
+    username: string | null;
     earned: number;
     balance: number;
+    events: number;
+    peak_hour: number;
     joined_at: unknown;
     top_source: string | null;
   }>(
@@ -284,11 +296,32 @@ export async function pointsLeaderboard(
                  WHERE a.point > 0
                    AND a.action <> 'signUp'
                    AND a.point <= ${LARGE_GRANT_POINTS}
-               ), 0)::float8 AS earned
+               ), 0)::float8 AS earned,
+               COUNT(*) FILTER (
+                 WHERE a.point > 0
+                   AND a.action <> 'signUp'
+                   AND a.point <= ${LARGE_GRANT_POINTS}
+               )::int AS events
         FROM activities a
         WHERE ${ledgerWhere(current, timeZone)}
           AND a.user_id IS NOT NULL
         GROUP BY a.user_id
+      ),
+      hourly AS (
+        SELECT a.user_id, date_trunc('hour', a.created_at) AS hour,
+               SUM(a.point)::float8 AS points
+        FROM activities a
+        WHERE ${ledgerWhere(current, timeZone)}
+          AND a.user_id IS NOT NULL
+          AND a.point > 0
+          AND a.action <> 'signUp'
+          AND a.point <= ${LARGE_GRANT_POINTS}
+        GROUP BY a.user_id, 2
+      ),
+      peak AS (
+        SELECT user_id, MAX(points)::float8 AS peak_hour
+        FROM hourly
+        GROUP BY user_id
       ),
       balances AS (
         SELECT a.user_id, COALESCE(SUM(a.point), 0)::float8 AS balance
@@ -315,10 +348,13 @@ export async function pointsLeaderboard(
         ORDER BY user_id, points DESC, source
       )
       SELECT ROW_NUMBER() OVER (ORDER BY e.earned DESC, e.user_id)::int AS rank,
-             e.user_id, e.earned, COALESCE(b.balance, 0)::float8 AS balance,
+             e.user_id, u.name, u.username, e.earned,
+             COALESCE(b.balance, 0)::float8 AS balance, e.events,
+             COALESCE(p.peak_hour, 0)::float8 AS peak_hour,
              u.created_at AS joined_at, t.source AS top_source
       FROM earned e
       LEFT JOIN balances b ON b.user_id = e.user_id
+      LEFT JOIN peak p ON p.user_id = e.user_id
       LEFT JOIN users u ON u.id = e.user_id
       LEFT JOIN top_source t ON t.user_id = e.user_id
       WHERE e.earned > 0
@@ -330,8 +366,12 @@ export async function pointsLeaderboard(
   return rows.map((r) => ({
     rank: r.rank,
     userId: r.user_id,
+    name: r.name,
+    username: r.username,
     earned: r.earned,
     balance: r.balance,
+    events: r.events,
+    peakHour: r.peak_hour,
     joinedAt: isoOrNull(r.joined_at),
     topSource: r.top_source,
   }));

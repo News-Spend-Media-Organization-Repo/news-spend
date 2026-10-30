@@ -1008,14 +1008,17 @@ export function LeaderboardPanel({
 }): ReactNode {
   return (
     <Panel
-      hint="Earned from activity; the sign-up bonus and large grants are left out"
+      hint="Earned from activity; the sign-up bonus and large grants are left out. Peak hour is the most earned in a single hour: a script earns a large share of its total in one."
       tag="observed"
       title="Leaderboard"
     >
       <DataTable
         columns={[
           { key: "rank", label: "Rank" },
+          { key: "user", label: "User" },
           { key: "earned", label: "Earned", align: "right" },
+          { key: "peak", label: "Peak hour", align: "right" },
+          { key: "events", label: "Events", align: "right" },
           { key: "balance", label: "Balance", align: "right" },
           { key: "joined", label: "Joined" },
           { key: "source", label: "Top source" },
@@ -1026,7 +1029,10 @@ export function LeaderboardPanel({
           key: r.userId,
           cells: {
             rank: r.rank,
+            user: r.name || r.username || "–",
             earned: formatCount(r.earned),
+            peak: formatCount(r.peakHour),
+            events: formatCount(r.events),
             balance: formatCount(r.balance),
             joined: r.joinedAt
               ? formatDay(localDay(r.joinedAt, ANALYTICS_TIME_ZONE))
