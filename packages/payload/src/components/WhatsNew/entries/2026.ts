@@ -7,6 +7,38 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-10-30-roles-and-share-message",
+    date: "2026-10-30",
+    title: "Tighter roles, a 7-day claim window, and an editable share message",
+    sections: [
+      {
+        heading: "New",
+        items: [
+          "App Settings has a Share App message. Write {link} where the download link goes; the app uses it the next time someone opens Share App.",
+          "The points leaderboard and the Large point grants panel show each user's name, and the leaderboard adds Peak hour and Events to spot points earned unusually fast.",
+          "Ad and Read Also blocks now preview in the article editor: an ad at its real size, and the linked article's title.",
+          "A partner opens straight onto their own Performance tab, and can view their own partner content (read only).",
+        ],
+      },
+      {
+        heading: "Changed",
+        items: [
+          "Viewers are read-only everywhere. Editors keep content and moderation.",
+          "Points and prize records (activities, surveys, giveaways, prize catalogue, partner conversions) can only be changed by Super Admins and Content Managers.",
+          "Only Super Admins and Content Managers see the API tab and who created or last changed a record, and only they can edit partners.",
+          "Winners now have 7 days to claim a prize, down from 14, or until the next giveaway starts. Winners already picked keep their 14 days.",
+        ],
+      },
+      {
+        heading: "What to do",
+        items: [
+          "If someone needs to edit surveys or giveaways, make them a Content Manager.",
+          'Update the FAQ "How long do I have to claim a giveaway prize?" to say 7 days.',
+        ],
+      },
+    ],
+  },
+  {
     id: "2026-10-30-dashboard-navigation",
     date: "2026-10-30",
     title: "A way back to the dashboard, and partners at a glance",
