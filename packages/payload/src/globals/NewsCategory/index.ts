@@ -1,8 +1,10 @@
 import type { GlobalConfig } from "payload";
+import { isStaff } from "../../access/adminRoles";
 
 const NewsCategory: GlobalConfig = {
   slug: "news-category",
-  access: { read: () => true },
+  // Served to the app through the API server (local API); not over REST.
+  access: { read: isStaff },
   fields: [
     {
       name: "items",

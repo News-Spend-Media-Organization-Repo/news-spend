@@ -135,7 +135,8 @@ export const readStaffOrOwnPartnerMedia = async ({
       select: { logo: true },
       req,
     });
-    collectMediaIds({ media: logo }, ids);
+    const logoId = typeof logo === "object" && logo !== null ? logo.id : logo;
+    collectMediaIds({ media: logoId }, ids);
 
     const content = await req.payload.find({
       collection: "partner-content",

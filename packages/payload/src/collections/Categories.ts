@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { slugField } from "payload";
+import { isStaff } from "../access/adminRoles";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { guardReferencedDelete } from "../hooks/guardReferencedDelete";
 
@@ -10,7 +11,8 @@ const Categories: CollectionConfig = {
     hidden: true,
   },
   access: {
-    read: () => true,
+    // Served to the app through the API server (local API); not over REST.
+    read: isStaff,
   },
   hooks: {
     // Deleting a category nulls every article that used it, and the article

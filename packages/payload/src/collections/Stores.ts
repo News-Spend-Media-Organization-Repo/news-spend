@@ -1,11 +1,13 @@
 import { type CollectionConfig, slugField } from "payload";
+import { isStaff } from "../access/adminRoles";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
 
 export const Stores: CollectionConfig = {
   slug: "stores",
   access: {
-    read: () => true,
+    // Served to the app through the API server (local API); not over REST.
+    read: isStaff,
   },
   admin: {
     useAsTitle: "name",

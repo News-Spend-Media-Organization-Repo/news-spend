@@ -5,7 +5,7 @@ import type {
   CollectionConfig,
   PayloadRequest,
 } from "payload";
-
+import { isStaff } from "../access/adminRoles";
 import notifyOnCommentLike from "../hooks/reactions/notifyOnCommentLike";
 
 type ReactionDoc = {
@@ -113,6 +113,10 @@ const afterDelete: CollectionAfterDeleteHook = ({ doc, req }) =>
 
 const Reactions: CollectionConfig = {
   slug: "reactions",
+  // Payload's default is any signed-in admin; say so, and keep partners out.
+  access: {
+    read: isStaff,
+  },
   hooks: {
     afterChange: [afterChange, notifyOnCommentLike],
     afterDelete: [afterDelete],

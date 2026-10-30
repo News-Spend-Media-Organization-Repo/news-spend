@@ -1,7 +1,12 @@
 import type { CollectionConfig } from "payload";
+import { isStaff } from "../access/adminRoles";
 
 const Feedback: CollectionConfig = {
   slug: "feedback",
+  // Payload's default is any signed-in admin; say so, and keep partners out.
+  access: {
+    read: isStaff,
+  },
   fields: [
     {
       name: "name",

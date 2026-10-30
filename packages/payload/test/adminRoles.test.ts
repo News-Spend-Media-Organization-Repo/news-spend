@@ -196,7 +196,12 @@ describe("iWitness data", () => {
       findByID: () => Promise<{ logo?: unknown }>
     ) =>
       ({
-        req: { user, payload: { findByID } },
+        req: {
+          user,
+          // Their content uses no files here; those are covered in
+          // partnerContentAccess.test.ts.
+          payload: { findByID, find: async () => ({ docs: [] }) },
+        },
       }) as unknown as Parameters<Access>[0];
     const read = Media.access?.read;
 
@@ -207,15 +212,15 @@ describe("iWitness data", () => {
       expect(await read?.(withPartner(editor, noLookup))).toBe(true);
     });
 
-    test("a partner sees only their own logo", async () => {
+    test("a partner sees their own logo, and no one else's", async () => {
       expect(
         await read?.(withPartner(partner, async () => ({ logo: "logo-1" })))
-      ).toEqual({ id: { equals: "logo-1" } });
+      ).toEqual({ id: { in: ["logo-1"] } });
       expect(
         await read?.(
           withPartner(partner, async () => ({ logo: { id: "logo-2" } }))
         )
-      ).toEqual({ id: { equals: "logo-2" } });
+      ).toEqual({ id: { in: ["logo-2"] } });
     });
 
     test("a partner with no logo, no partner, or an unloadable record sees nothing", async () => {
