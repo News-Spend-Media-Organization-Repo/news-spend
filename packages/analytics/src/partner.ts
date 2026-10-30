@@ -726,8 +726,8 @@ export async function partnerIntegrationSummary(
   return await rowsOf<PartnerIntegration>(
     db,
     sql`
-      SELECT CASE WHEN p.integration_method = 'postback' THEN 'webhook'
-                  ELSE p.integration_method END AS method,
+      SELECT CASE WHEN p.integration_method::text = 'postback' THEN 'webhook'
+                  ELSE p.integration_method::text END AS method,
              COUNT(*)::int AS partners
       FROM partners p
       GROUP BY 1
