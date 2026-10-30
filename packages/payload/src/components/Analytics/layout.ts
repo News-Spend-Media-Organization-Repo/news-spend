@@ -117,6 +117,13 @@ export const analyticsWidgets: Widget[] = [
     minWidth: "medium",
   },
   {
+    slug: "analytics-partner-integration",
+    label: "Partners by integration",
+    Component: `${PATH}#PartnerIntegrationWidget`,
+    minWidth: "medium",
+    maxWidth: "medium",
+  },
+  {
     slug: "analytics-audience-kpi",
     label: "Audience figure",
     Component: `${PATH}#AudienceKpiWidget`,
@@ -239,6 +246,7 @@ export function analyticsDefaultLayout({
         width: "medium",
         data: { days: "30" },
       },
+      { widgetSlug: "analytics-partner-integration", width: "medium" },
       audienceKpi("registered"),
       audienceKpi("active7"),
       audienceKpi("pushRate"),

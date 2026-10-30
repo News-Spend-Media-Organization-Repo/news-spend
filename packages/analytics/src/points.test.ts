@@ -284,16 +284,24 @@ describe("pointsLeaderboard", () => {
     {
       rank: 1,
       user_id: "u-1",
+      name: "Ada",
+      username: "ada",
       earned: 900,
       balance: 1200,
+      events: 12,
+      peak_hour: 700,
       joined_at: "2026-01-01T08:00:00.000Z",
       top_source: "read",
     },
     {
       rank: 2,
       user_id: "u-2",
+      name: null,
+      username: null,
       earned: 400,
       balance: 400,
+      events: 3,
+      peak_hour: 150,
       joined_at: null,
       top_source: null,
     },
@@ -306,16 +314,24 @@ describe("pointsLeaderboard", () => {
       {
         rank: 1,
         userId: "u-1",
+        name: "Ada",
+        username: "ada",
         earned: 900,
         balance: 1200,
+        events: 12,
+        peakHour: 700,
         joinedAt: "2026-01-01T08:00:00.000Z",
         topSource: "read",
       },
       {
         rank: 2,
         userId: "u-2",
+        name: null,
+        username: null,
         earned: 400,
         balance: 400,
+        events: 3,
+        peakHour: 150,
         joinedAt: null,
         topSource: null,
       },
@@ -364,16 +380,29 @@ describe("pointsLeaderboard", () => {
     expect(sql).toContain("WHERE e.earned > 0");
   });
 
-  it("selects only the columns a leaderboard needs, never a name", async () => {
+  it("selects the display name and username, never an email", async () => {
     const { db, queries } = stubDb([]);
 
     await pointsLeaderboard(db, STAFF, { range: range() });
 
     const sql = queries[0]?.sql ?? "";
     expect(sql).toContain("u.created_at");
+    expect(sql).toContain("u.name");
+    expect(sql).toContain("u.username");
     expect(sql).not.toContain("email");
-    expect(sql).not.toContain("username");
-    expect(sql).not.toMatch(NAME_COLUMN);
+  });
+
+  it("measures pace over the same earned rows as the ranking", async () => {
+    const { db, queries } = stubDb([]);
+
+    await pointsLeaderboard(db, STAFF, { range: range() });
+
+    const sql = queries[0]?.sql ?? "";
+    expect(sql).toContain("date_trunc('hour', a.created_at)");
+    expect(sql).toContain("MAX(points)");
+    expect(sql.match(/a\.action <> 'signUp'/g)?.length).toBeGreaterThanOrEqual(
+      3
+    );
   });
 });
 
@@ -395,6 +424,8 @@ describe("pointsLargeGrants", () => {
       {
         id: "g-1",
         user_id: null,
+        name: null,
+        username: null,
         action: "surveyTask",
         source: "form",
         points: 6000,
@@ -408,6 +439,8 @@ describe("pointsLargeGrants", () => {
       {
         id: "g-1",
         userId: null,
+        name: null,
+        username: null,
         action: "surveyTask",
         source: "form",
         points: 6000,
@@ -433,9 +466,9 @@ describe("pointsLargeGrants", () => {
       expect(query?.params).toContain(LARGE_GRANT_POINTS);
       expect(query?.sql).toContain("a.point > ");
       expect(query?.sql).toContain("ORDER BY a.created_at DESC, a.id");
+      expect(query?.sql).toContain("u.name");
+      expect(query?.sql).toContain("u.username");
       expect(query?.sql).not.toContain("email");
-      expect(query?.sql).not.toContain("username");
-      expect(query?.sql).not.toMatch(NAME_COLUMN);
     }
   });
 });

@@ -31,7 +31,7 @@ export async function SurveyPerformanceView(
   const { req } = props.initPageResult;
   if (scopeOfRequest(req)?.kind !== "staff") {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="Survey performance" view={props}>
         <Denied />
       </PageFrame>
     );
@@ -64,7 +64,7 @@ export async function SurveyPerformanceView(
   );
 
   return (
-    <PageFrame view={props}>
+    <PageFrame title="Survey performance" view={props}>
       <Styles />
       <div className="ana ana-page">
         <h1>Survey performance</h1>

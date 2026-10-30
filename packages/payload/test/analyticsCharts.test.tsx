@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
-import { resolveRange } from "@news-spend-media/analytics";
+import { resolveRange, resolveWindow } from "@news-spend-media/analytics";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { hasData, trendRows } from "../src/components/Analytics/charts/rows";
@@ -216,7 +216,11 @@ describe("the news pages show sparklines for the daily series", () => {
   /** A request whose daily query returns activity on every day of the period. */
   const requestWithActivity = () => {
     const dialect = new PgDialect();
-    const range = resolveRange({ days: 30, timeZone: "Africa/Lagos" });
+    const range = resolveWindow({
+      from: "2026-09-01",
+      to: "2026-09-30",
+      timeZone: "Africa/Lagos",
+    });
     const days = datesBetween(range.current.from, range.current.to);
     const req = {
       user: staff,
@@ -247,12 +251,12 @@ describe("the news pages show sparklines for the daily series", () => {
     const out = html(
       await components.AnalyticsPageView({
         initPageResult: { req: requestWithActivity() },
-        searchParams: {},
+        searchParams: { from: "2026-09-01", to: "2026-09-30" },
       } as never)
     );
 
     for (const label of ["Views", "Qualified reads", "Impressions"]) {
-      expect(out).toContain(`${label}, last 30 days`);
+      expect(out).toContain(`${label}, 1–30 Sep 2026`);
     }
   });
 
@@ -274,7 +278,11 @@ describe("the Points page charts", () => {
   /** A request whose ledger has activity on every day of the period. */
   const requestWithLedger = () => {
     const dialect = new PgDialect();
-    const range = resolveRange({ days: 30, timeZone: "Africa/Lagos" });
+    const range = resolveWindow({
+      from: "2026-09-01",
+      to: "2026-09-30",
+      timeZone: "Africa/Lagos",
+    });
     const days = datesBetween(range.current.from, range.current.to);
     const req = {
       user: staff,
@@ -321,17 +329,17 @@ describe("the Points page charts", () => {
     const out = html(
       await components.PointsPageView({
         initPageResult: { req: requestWithLedger() },
-        searchParams: {},
+        searchParams: { from: "2026-09-01", to: "2026-09-30" },
       } as never)
     );
 
     expect(out).toContain("Issued and spent by day");
     expect(out).toContain("Issued by source");
     for (const label of ["Issued", "Spent"]) {
-      expect(out).toContain(`${label}, last 30 days`);
+      expect(out).toContain(`${label}, 1–30 Sep 2026`);
     }
     // Net has no line: the daily series carries no reversals to match it.
-    expect(out).not.toContain("Net, last 30 days");
+    expect(out).not.toContain("Net, 1–30 Sep 2026");
     expect(out).toContain("<svg");
     expect(out).toContain("read");
   });

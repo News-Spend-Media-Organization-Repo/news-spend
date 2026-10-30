@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-
+import { isStaff } from "../access/adminRoles";
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
 
 const PromotionMedia: CollectionConfig = {
@@ -9,7 +9,8 @@ const PromotionMedia: CollectionConfig = {
     plural: "Promotion Media",
   },
   access: {
-    read: () => true,
+    // Served to the app through the API server (local API); not over REST.
+    read: isStaff,
   },
   admin: {
     hidden: () => true,

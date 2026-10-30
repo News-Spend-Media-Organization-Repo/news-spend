@@ -1,3 +1,4 @@
+export { DashboardHome } from "./DashboardHome";
 export { AnalyticsNavLink, SurveyNavLink } from "./NavLink";
 export { SurveyPerformanceView } from "./SurveyPerformanceView";
 export {
@@ -20,6 +21,7 @@ export {
   FunnelWidget,
   GrowthWidget,
   KpiWidget,
+  PartnerIntegrationWidget,
   PartnerPerformanceWidget,
   PushWidget,
   SurfacesWidget,

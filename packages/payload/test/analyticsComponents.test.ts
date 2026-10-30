@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { PgDialect } from "@payloadcms/db-postgres/drizzle/pg-core";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   LargeGrantsPanel,
@@ -10,12 +11,16 @@ import {
   NeedsAttentionPanel,
   PointsKpis,
   StepsPanel,
+  TopArticlesPanel,
 } from "../src/components/Analytics/blocks";
 import {
   analyticsDefaultLayout,
   analyticsWidgets,
 } from "../src/components/Analytics/layout";
-import { parseAnalyticsParams } from "../src/components/Analytics/params";
+import {
+  parseAnalyticsParams,
+  resolvePeriod,
+} from "../src/components/Analytics/params";
 import {
   analyticsNavLink,
   analyticsPageView,
@@ -71,6 +76,8 @@ const html = (node: unknown) => renderToStaticMarkup(node as never);
 const NO_ACCESS = "No access";
 const ISO_DATE = /^\d{4}-\d\d-\d\d$/;
 const STYLE_BLOCK = /<style>[\s\S]*?<\/style>/g;
+const RANKED_BY_READERS = /By unique readers, .+ ranked over the whole period/;
+const RISING_NOW = /By rising, .+ what is hot right now/;
 
 describe("parseAnalyticsParams", () => {
   it("accepts the offered periods and platforms", () => {
@@ -108,6 +115,48 @@ describe("parseAnalyticsParams", () => {
 
   it("takes the first when a parameter is repeated", () => {
     expect(parseAnalyticsParams({ days: ["90", "7"] }).days).toBe(90);
+  });
+
+  it("takes a custom window when both dates are real and in order", () => {
+    expect(
+      parseAnalyticsParams({
+        days: "7",
+        from: "2026-10-01",
+        to: "2026-10-20",
+      })
+    ).toEqual({
+      days: 7,
+      from: "2026-10-01",
+      to: "2026-10-20",
+      platform: undefined,
+      sort: "readers",
+    });
+  });
+
+  it("ignores a half, backwards or impossible custom window", () => {
+    expect(parseAnalyticsParams({ from: "2026-10-01" }).from).toBeUndefined();
+    expect(
+      parseAnalyticsParams({ from: "2026-10-20", to: "2026-10-01" }).from
+    ).toBeUndefined();
+    expect(
+      parseAnalyticsParams({ from: "2026-02-30", to: "2026-03-01" }).from
+    ).toBeUndefined();
+  });
+
+  it("resolves the custom window, and presets as before", () => {
+    const custom = resolvePeriod(
+      { days: 30, from: "2026-10-01", to: "2026-10-20" },
+      "Africa/Lagos"
+    );
+    expect(custom.current).toEqual({ from: "2026-10-01", to: "2026-10-20" });
+    expect(custom.days).toBe(20);
+
+    const preset = resolvePeriod(
+      { days: 7 },
+      "Africa/Lagos",
+      new Date("2026-09-20T10:00:00Z")
+    );
+    expect(preset.current).toEqual({ from: "2026-09-14", to: "2026-09-20" });
   });
 });
 
@@ -187,6 +236,35 @@ describe("the Top articles widget settings", () => {
     expect(
       (field as { options: { value: string }[] }).options.map((o) => o.value)
     ).toEqual(["readers", "reads", "views", "impressions", "rising"]);
+  });
+
+  it("shows when an article was published, so an old evergreen is not read as new", () => {
+    const out = html(
+      createElement(TopArticlesPanel, {
+        articles: [
+          {
+            id: ARTICLE,
+            title: "An old but popular piece",
+            slug: "old",
+            category: null,
+            publishedAt: "2026-01-05T09:00:00.000Z",
+            impressions: 10,
+            views: 5,
+            reads: 2,
+            readers: 3,
+            directOpens: 1,
+            ctr: 50,
+            readRate: 40,
+            trend: null,
+          },
+        ],
+        days: 30,
+        sort: "readers",
+      })
+    );
+
+    expect(out).toContain("Published");
+    expect(out).toContain("5 Jan");
   });
 });
 
@@ -299,13 +377,37 @@ describe("a screen refuses a viewer it is not for, whatever the address", () => 
     const byDefault = await page({});
     const rising = await page({ sort: "rising", days: "7", platform: "ios" });
 
-    expect(byDefault).toContain("By unique readers, last 30 days");
-    expect(rising).toContain("By rising, last 7 days");
+    // The hint names the real window, preset or custom.
+    expect(byDefault).toMatch(RANKED_BY_READERS);
+    expect(rising).toMatch(RISING_NOW);
     // The sort links keep the period and platform that were chosen.
     expect(rising).toContain("sort=reads");
     expect(rising).toContain("days=7");
     expect(rising).toContain("platform=ios");
     expect(byDefault).toContain("Direct opens");
+  });
+
+  it("scopes every card to a custom window and keeps it when the sort changes", async () => {
+    const { req, queries } = requestFor(staff);
+
+    const out = html(
+      await components.AnalyticsPageView({
+        initPageResult: { req },
+        searchParams: { from: "2026-10-01", to: "2026-10-20" },
+      } as never)
+    );
+
+    expect(out).toContain("By unique readers, 1–20 Oct 2026");
+    // The custom picker shows the chosen window on its trigger.
+    expect(out).toContain("1–20 Oct 2026");
+    // Changing the ranking keeps the window instead of falling back to days.
+    expect(out).toContain("from=2026-10-01");
+    expect(out).toContain("to=2026-10-20");
+    expect(out).toContain("sort=rising");
+    // The previous period is the 20 days before the window.
+    expect(
+      queries.flatMap((q) => q.params).filter((p) => p === "2026-09-11")
+    ).not.toHaveLength(0);
   });
 
   it("shows staff an article's stats", async () => {
@@ -604,23 +706,31 @@ describe("the Points page", () => {
     }
   });
 
-  it("links every account to its admin record without printing a name or an email", async () => {
+  it("links every account to its admin record and names it, never printing an email", async () => {
     const rowsFor = (sql: string) =>
       sql.includes("ROW_NUMBER() OVER (ORDER BY e.earned")
         ? [
             {
               rank: 1,
               user_id: POINTS_USER_A,
+              name: "Ada Obi",
+              username: "ada",
               earned: 1200,
               balance: 6200,
+              events: 40,
+              peak_hour: 900,
               joined_at: "2026-01-01T00:00:00.000Z",
               top_source: "read",
             },
             {
               rank: 2,
               user_id: POINTS_USER_B,
+              name: "",
+              username: "bayo",
               earned: 900,
               balance: 1400,
+              events: 9,
+              peak_hour: 200,
               joined_at: "2026-02-01T00:00:00.000Z",
               top_source: "surveyTask",
             },
@@ -632,9 +742,10 @@ describe("the Points page", () => {
     for (const id of [POINTS_USER_A, POINTS_USER_B]) {
       expect(markup).toContain(`href="/admin/collections/users/${id}"`);
     }
+    expect(markup).toContain("Ada Obi");
+    expect(markup).toContain("bayo");
     expect(markup).not.toContain("@");
     expect(markup.toLowerCase()).not.toContain("email");
-    expect(markup.toLowerCase()).not.toContain("username");
   });
 });
 
@@ -777,13 +888,25 @@ describe("the large point grants alert", () => {
 });
 
 describe("the nav link", () => {
-  it("is for staff only", () => {
+  it("sends staff to the news dashboard and a partner to their own Performance tab", () => {
     expect(
-      components.AnalyticsNavLink({ user: staff } as never)
-    ).not.toBeNull();
-    expect(components.AnalyticsNavLink({ user: partnerA } as never)).toBeNull();
+      html(components.AnalyticsNavLink({ user: staff } as never))
+    ).toContain('href="/admin/analytics"');
+    const own = html(components.AnalyticsNavLink({ user: partnerA } as never));
+    expect(own).toContain(
+      `/admin/collections/partners/${PARTNER_A}/performance`
+    );
+    expect(own).toContain("Performance");
+  });
+
+  it("shows nothing to a signed-out viewer or a partner with no partner assigned", () => {
     expect(
       components.AnalyticsNavLink({ user: undefined } as never)
+    ).toBeNull();
+    expect(
+      components.AnalyticsNavLink({
+        user: { collection: "admins", role: "partner" },
+      } as never)
     ).toBeNull();
   });
 });
@@ -869,8 +992,12 @@ describe("points dates are Lagos days", () => {
           {
             rank: 1,
             userId: "u1",
+            name: "Ada",
+            username: "ada",
             earned: 10,
             balance: 10,
+            events: 2,
+            peakHour: 10,
             joinedAt: late,
             topSource: "read",
           },
@@ -889,6 +1016,8 @@ describe("points dates are Lagos days", () => {
           {
             id: "g1",
             userId: "u1",
+            name: "Ada Obi",
+            username: "ada",
             action: "surveyTask",
             source: "form",
             points: 9000,
@@ -899,6 +1028,7 @@ describe("points dates are Lagos days", () => {
     );
 
     expect(out).toContain("20 Oct");
+    expect(out).toContain("Ada Obi");
   });
 });
 
@@ -928,5 +1058,29 @@ describe("the points tiles", () => {
     expect(out).toContain("Issued, last 7 days");
     expect(out).toContain("Spent, last 7 days");
     expect(out).not.toContain("Net, last 7 days");
+  });
+});
+
+describe("the admin home page", () => {
+  const home = (user: unknown) =>
+    components.DashboardHome({
+      initPageResult: { req: requestFor(user).req },
+    } as never);
+
+  it("sends a partner to their own Performance tab", () => {
+    expect(() => home(partnerA)).toThrow("NEXT_REDIRECT");
+    try {
+      home(partnerA);
+    } catch (error) {
+      expect(String((error as { digest?: unknown }).digest)).toContain(
+        `/admin/collections/partners/${PARTNER_A}/performance`
+      );
+    }
+  });
+
+  it("leaves staff and a partner with no company on the ordinary page", () => {
+    for (const user of [staff, unassignedPartner]) {
+      expect(() => home(user)).not.toThrow();
+    }
   });
 });

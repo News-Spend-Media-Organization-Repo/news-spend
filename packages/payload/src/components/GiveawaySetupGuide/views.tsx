@@ -355,7 +355,7 @@ export async function GiveawaySetupGuideView(
             active at a time — if another holds the slot, the error names it;
             close that one out first. Once the End Date passes, the draw runs by
             itself within the hour: winners are picked, prizes allocated, and
-            each winner gets 14 days to claim. Airtime and Data pay out on
+            each winner gets 7 days to claim. Airtime and Data pay out on
             claim; everything else waits for you to arrange delivery.
           </P>
           <P>

@@ -1,0 +1,104 @@
+/* The custom-range trigger, shaped like a segment in the analytics toolbar. */
+.ana-datepicker__trigger {
+  align-items: center;
+  background: var(--theme-elevation-0);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 7px;
+  color: var(--theme-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  gap: 6px;
+  padding: 5px 11px;
+}
+
+.ana-datepicker__trigger:hover {
+  border-color: var(--theme-elevation-300);
+}
+
+.ana-datepicker__trigger[data-state="open"] {
+  background: #10264a;
+  border-color: #10264a;
+  color: #fff;
+}
+
+.ana-datepicker {
+  background: var(--theme-elevation-0);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  color: var(--theme-text);
+  padding: 12px;
+  z-index: 1000;
+}
+
+.ana-datepicker .rdp-root {
+  --rdp-accent-background-color: rgba(94, 127, 179, 0.18);
+  --rdp-accent-color: #10264a;
+  --rdp-day-height: 34px;
+  --rdp-day-width: 34px;
+  --rdp-day_button-border-radius: 8px;
+  --rdp-day_button-height: 32px;
+  --rdp-day_button-width: 32px;
+  --rdp-months-gap: 16px;
+  font-size: 13px;
+}
+
+.ana-datepicker .rdp-month_caption {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ana-datepicker__footer {
+  align-items: center;
+  border-top: 1px solid var(--theme-elevation-100);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 10px;
+}
+
+.ana-datepicker__summary {
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+}
+
+.ana-datepicker__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ana-datepicker__apply,
+.ana-datepicker__clear {
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.ana-datepicker__apply {
+  background: #10264a;
+  border: 1px solid #10264a;
+  color: #fff;
+}
+
+.ana-datepicker__apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ana-datepicker__clear {
+  background: transparent;
+  border: 1px solid var(--theme-elevation-150);
+  color: var(--theme-text);
+}
+
+@media (max-width: 700px) {
+  .ana-datepicker .rdp-months {
+    flex-direction: column;
+  }
+}

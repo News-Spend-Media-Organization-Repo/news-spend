@@ -24,10 +24,10 @@ export type ClaimWindow =
 /**
  * Whether a prize can still be claimed.
  *
- * Two independent closers, and the earlier one wins. The fourteen days are the
+ * Two independent closers, and the earlier one wins. The seven days are the
  * ordinary deadline. The other is the rule the app owner settled: once a
  * later giveaway exists, prizes from earlier ones are closed regardless of
- * how much of the fortnight is left. A giveaway that has been superseded is
+ * how much of the week is left. A giveaway that has been superseded is
  * finished, and leaving its prizes claimable would let unclaimed stock trail
  * across rounds indefinitely.
  *
@@ -95,7 +95,7 @@ export function claimRequirements(
  * The fulfilment state a prize enters the moment it is claimed.
  *
  * Verification deliberately gates delivery, not the claim itself. Claiming is
- * what stops the fourteen-day clock, so requiring identity first would mean a
+ * what stops the seven-day clock, so requiring identity first would mean a
  * winner who cannot finish verification in time loses a prize they legitimately
  * won. This way the claim is secured immediately and the dispatch waits.
  */

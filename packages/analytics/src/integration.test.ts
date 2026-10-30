@@ -156,7 +156,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       CREATE TABLE users (
         id uuid PRIMARY KEY, is_anonymous boolean, created_at timestamptz NOT NULL,
         last_active timestamptz, _verified boolean NOT NULL DEFAULT FALSE,
-        country varchar, verified_country varchar);
+        country varchar, verified_country varchar,
+        name varchar, username varchar);
       CREATE TYPE enum_activities_action AS ENUM('signUp','read','share','connectBrandAd','surveyTask','pointReversal','ticketPurchase','lottery','dailyLogin','referral','watchLive','musicListeningTime','partnerContentTask');
       CREATE TYPE enum_activities_type AS ENUM('point','badge','reward');
       CREATE TABLE activities (
@@ -1405,17 +1406,17 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     beforeAll(async () => {
       await conn.unsafe("DELETE FROM activities");
       await conn.unsafe(`
-        INSERT INTO users (id, created_at) VALUES
-          ('${Q1}', '2026-01-01T08:00:00Z'),
-          ('${Q2}', '2026-01-02T08:00:00Z'),
-          ('${Q3}', '2026-01-03T08:00:00Z'),
-          ('${Q4}', '2026-01-04T08:00:00Z'),
-          ('${Q5}', '2026-01-05T08:00:00Z'),
-          ('${Q6}', '2026-01-06T08:00:00Z'),
-          ('${Q7}', '2026-01-07T08:00:00Z'),
-          ('${Q8}', '2026-01-08T08:00:00Z'),
-          ('${Q9}', '2026-01-09T08:00:00Z'),
-          ('${Q10}', '2026-01-10T08:00:00Z');
+        INSERT INTO users (id, created_at, name, username) VALUES
+          ('${Q1}', '2026-01-01T08:00:00Z', NULL, NULL),
+          ('${Q2}', '2026-01-02T08:00:00Z', NULL, NULL),
+          ('${Q3}', '2026-01-03T08:00:00Z', 'Ada Obi', 'ada'),
+          ('${Q4}', '2026-01-04T08:00:00Z', NULL, NULL),
+          ('${Q5}', '2026-01-05T08:00:00Z', NULL, NULL),
+          ('${Q6}', '2026-01-06T08:00:00Z', NULL, NULL),
+          ('${Q7}', '2026-01-07T08:00:00Z', NULL, NULL),
+          ('${Q8}', '2026-01-08T08:00:00Z', 'Bayo Ade', 'bayo'),
+          ('${Q9}', '2026-01-09T08:00:00Z', NULL, NULL),
+          ('${Q10}', '2026-01-10T08:00:00Z', NULL, NULL);
         INSERT INTO activities (type, point, action, user_id, metadata, created_at) VALUES
           ('point', 500, 'signUp', '${Q1}', NULL, '2026-07-26T08:00:00Z'),
           ('point', 5001, 'surveyTask', '${Q2}', NULL, '2026-07-27T08:00:00Z'),
@@ -1448,6 +1449,13 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(rows[2]?.topSource).toBe("cpx");
       expect(rows[1]?.topSource).toBe("lottery");
       expect(rows[0]?.joinedAt).toBe("2026-01-03T08:00:00.000Z");
+      expect(rows[0]).toMatchObject({
+        name: "Ada Obi",
+        username: "ada",
+        events: 1,
+        peakHour: 5000,
+      });
+      expect(rows[1]).toMatchObject({ name: null, events: 2, peakHour: 4200 });
       expect(JSON.stringify(rows)).not.toContain("@");
     });
 
@@ -1507,7 +1515,13 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         points: 5001,
         at: "2026-07-27T08:00:00.000Z",
       });
-      expect(grants[0]).toMatchObject({ action: "lottery", source: "lottery" });
+      expect(grants[0]).toMatchObject({
+        action: "lottery",
+        source: "lottery",
+        name: "Bayo Ade",
+        username: "bayo",
+      });
+      expect(grants[1]).toMatchObject({ name: null, username: null });
     });
 
     it("counts large grants in the summary", async () => {

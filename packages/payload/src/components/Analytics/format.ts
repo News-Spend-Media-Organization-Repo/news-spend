@@ -1,6 +1,6 @@
 import { percentChange } from "@news-spend-media/analytics";
 
-export { formatCount, formatDay } from "./chartFormat";
+export { formatCount, formatDay, formatWindow } from "./chartFormat";
 
 export const formatPercent = (value: number | null): string =>
   value === null ? "–" : `${value}%`;

@@ -52,7 +52,7 @@ const cases: { label: string; run: () => void }[] = [
     label: "warning",
     run: () =>
       toast.warning("Verify your identity", {
-        description: "14 days left to claim this prize.",
+        description: "7 days left to claim this prize.",
       }),
   },
   {
@@ -106,7 +106,7 @@ const cases: { label: string; run: () => void }[] = [
     label: "closable (Toast.Close)",
     run: () =>
       toast.warning("Verify your identity", {
-        description: "14 days left to claim this prize.",
+        description: "7 days left to claim this prize.",
         closable: true,
         duration: Number.POSITIVE_INFINITY,
       }),

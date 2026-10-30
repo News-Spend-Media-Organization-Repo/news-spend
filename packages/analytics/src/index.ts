@@ -97,6 +97,7 @@ export type {
   PartnerEventsFilter,
   PartnerEventsRow,
   PartnerFilter,
+  PartnerIntegration,
   PostbackHealth,
   RecentConversion,
 } from "./partner";
@@ -109,6 +110,7 @@ export {
   partnerEventsDaily,
   partnerEventsOutliers,
   partnerEventsSummary,
+  partnerIntegrationSummary,
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
@@ -132,7 +134,14 @@ export {
   pointsSummary,
 } from "./points";
 export type { DateWindow, Range } from "./range";
-export { percentChange, RANGE_DAYS, resolveRange } from "./range";
+export {
+  isDateRange,
+  MAX_RANGE_DAYS,
+  percentChange,
+  RANGE_DAYS,
+  resolveRange,
+  resolveWindow,
+} from "./range";
 export type {
   ActivationWeek,
   ActiveDay,

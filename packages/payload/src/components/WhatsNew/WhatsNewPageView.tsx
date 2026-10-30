@@ -92,7 +92,7 @@ export function WhatsNewPageView(props: AdminViewServerProps): ReactNode {
 
   if (scopeFor(req.user)?.kind !== "staff") {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="What's new" view={props}>
         <Denied />
       </PageFrame>
     );
@@ -101,7 +101,7 @@ export function WhatsNewPageView(props: AdminViewServerProps): ReactNode {
   const newest = latestEntry();
 
   return (
-    <PageFrame view={props}>
+    <PageFrame title="What's new" view={props}>
       <Styles />
       <div className="ana ana-page">
         {newest ? (

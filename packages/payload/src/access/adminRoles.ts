@@ -11,6 +11,23 @@ type AccessArgs = { req: PayloadRequest };
 export const isSuperAdmin = ({ req: { user } }: AccessArgs): boolean =>
   user?.collection === "admins" && user.role === "super-admin";
 
+/**
+ * Roles trusted with the internals of the panel: who created or last changed a
+ * record, the raw API view of a document, and a partner's integration setup.
+ * Editors and viewers do day-to-day content work and do not need them.
+ */
+const INTERNALS_ROLES: readonly unknown[] = ["super-admin", "content-manager"];
+
+/** Whether this user may see, and manage, the panel's internals. */
+export const canSeeInternals = (
+  user: { collection?: string; role?: unknown } | null | undefined
+): boolean =>
+  user?.collection === "admins" && INTERNALS_ROLES.includes(user.role);
+
+/** `canSeeInternals` as a collection access rule. */
+export const hasInternalsRole = ({ req: { user } }: AccessArgs): boolean =>
+  canSeeInternals(user);
+
 /** A signed-in admin whose role is `partner`. */
 export const isPartnerUser = (
   user: { collection?: string; role?: unknown } | null | undefined
@@ -50,15 +67,47 @@ export const readOwnPartnerOrStaff =
     return partnerId ? { [field]: { equals: partnerId } } : false;
   };
 
+/** Upload fields in a partner's content that point at a media file. */
+const MEDIA_KEYS: ReadonlySet<string> = new Set([
+  "media",
+  "video",
+  "image",
+  "thumbnail",
+]);
+
+/** Collects the ids held by upload fields, at any depth of a depth-0 document. */
+const collectMediaIds = (value: unknown, ids: Set<string>): void => {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectMediaIds(item, ids);
+    }
+    return;
+  }
+  if (value && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      if (
+        MEDIA_KEYS.has(key) &&
+        (typeof item === "string" || typeof item === "number")
+      ) {
+        ids.add(String(item));
+      } else {
+        collectMediaIds(item, ids);
+      }
+    }
+  }
+};
+
 /**
  * Read access for uploaded files: staff see all of them, a partner sees only
- * their own logo, and everyone else, signed out included, sees nothing.
+ * their own logo and the files used by their own content, and everyone else,
+ * signed out included, sees nothing.
  *
  * The collection also holds files reporters upload through iWitness, so a
  * listing of it is not something to hand out. Files are served from the CDN,
- * not through this rule, so closing the listing does not break images.
+ * not through this rule, so closing the listing does not break images; the
+ * partner's own files are opened so the admin can preview them.
  */
-export const readStaffOrOwnPartnerLogo = async ({
+export const readStaffOrOwnPartnerMedia = async ({
   req,
 }: AccessArgs): Promise<boolean | Where> => {
   const { user } = req;
@@ -77,6 +126,8 @@ export const readStaffOrOwnPartnerLogo = async ({
   }
 
   try {
+    const ids = new Set<string>();
+
     const { logo } = await req.payload.findByID({
       collection: "partners",
       id: partnerId,
@@ -85,7 +136,19 @@ export const readStaffOrOwnPartnerLogo = async ({
       req,
     });
     const logoId = typeof logo === "object" && logo !== null ? logo.id : logo;
-    return logoId ? { id: { equals: logoId } } : false;
+    collectMediaIds({ media: logoId }, ids);
+
+    const content = await req.payload.find({
+      collection: "partner-content",
+      where: { partner: { equals: partnerId } },
+      depth: 0,
+      pagination: false,
+      select: { media: true, video: true, items: true },
+      req,
+    });
+    collectMediaIds(content.docs, ids);
+
+    return ids.size > 0 ? { id: { in: [...ids] } } : false;
   } catch {
     // A partner record that cannot be loaded grants nothing.
     return false;

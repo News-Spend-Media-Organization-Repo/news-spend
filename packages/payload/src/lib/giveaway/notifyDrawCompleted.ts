@@ -14,7 +14,7 @@ import type { BasePayload } from "payload";
  * with nothing to reveal. "The draw has been made" is the whole message, and
  * the app decides how to break the news.
  *
- * It also matters beyond suspense: a prize goes unclaimed after fourteen days
+ * It also matters beyond suspense: a prize goes unclaimed after seven days
  * or when the next giveaway starts, so somebody who never opens the app can
  * lose a prize they really won. This is the nudge that stops that being silent.
  *

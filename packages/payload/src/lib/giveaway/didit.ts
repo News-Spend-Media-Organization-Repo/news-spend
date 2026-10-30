@@ -2,7 +2,7 @@
  * Didit identity verification client.
  *
  * Verification gates DELIVERY, never the claim. Claiming is what stops the
- * fourteen-day clock, so a winner who cannot finish verification in time must
+ * seven-day clock, so a winner who cannot finish verification in time must
  * not lose a prize they legitimately won.
  *
  * NOT YET EXERCISED AGAINST THE LIVE API. The shapes here come from Didit's

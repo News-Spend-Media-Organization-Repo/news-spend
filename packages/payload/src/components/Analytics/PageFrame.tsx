@@ -1,4 +1,5 @@
 import { DefaultTemplate } from "@payloadcms/next/templates";
+import { SetStepNav } from "@payloadcms/ui";
 import type { AdminViewServerProps } from "payload";
 import type { ReactNode } from "react";
 
@@ -12,9 +13,11 @@ import type { ReactNode } from "react";
  */
 export function PageFrame({
   view,
+  title,
   children,
 }: {
   view: AdminViewServerProps;
+  title: string;
   children: ReactNode;
 }): ReactNode {
   const { initPageResult, params, searchParams } = view;
@@ -37,6 +40,9 @@ export function PageFrame({
         globals: initPageResult.visibleEntities?.globals,
       }}
     >
+      {/* Payload only links the header icon to the dashboard when the page
+          sets a breadcrumb, and a custom view sets none without this. */}
+      <SetStepNav nav={[{ label: title }]} />
       {children}
     </DefaultTemplate>
   );

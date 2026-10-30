@@ -22,6 +22,7 @@ import type {
   NewsEngagement,
   NewsMetrics,
   PartnerDay,
+  PartnerIntegration,
   PointsConcentration,
   PointsDay,
   PointsSource,
@@ -69,16 +70,20 @@ const SURFACE_LABELS: Record<string, string> = {
 export function NewsKpis({
   summary,
   daily,
+  period,
 }: {
   summary: Summary;
   /** The period's daily series, for the line under each figure. */
   daily?: NewsDay[];
+  /** The window as shown to readers; defaults to "last N days". */
+  period?: string;
 }): ReactNode {
   const { current, previous } = summary;
   const days = daily?.length ?? 0;
+  const window = period ?? `last ${days} days`;
   const trend = (name: string, pick: (day: NewsDay) => number) => ({
     trend: daily?.map(pick),
-    trendLabel: `${name}, last ${days} days`,
+    trendLabel: `${name}, ${window}`,
   });
   const versus = "vs previous period";
   return (
@@ -273,22 +278,29 @@ export function TopArticlesPanel({
   articles,
   days,
   sort,
+  period,
   title = "Top articles",
 }: {
   articles: TopArticle[];
   days: number;
   sort: TopSort;
+  /** The window as shown to readers; defaults to "last N days". */
+  period?: string;
   title?: string;
 }): ReactNode {
+  // The ranking covers the whole period, so an evergreen can stay on top for
+  // months; "rising" is the sort that shows what is hot now.
+  const window = period ?? `last ${days} days`;
+  const hint =
+    sort === "rising"
+      ? `By rising, ${window} — what is hot right now`
+      : `By ${SORT_LABELS[sort].toLowerCase()}, ${window} — ranked over the whole period`;
   return (
-    <Panel
-      hint={`By ${SORT_LABELS[sort].toLowerCase()}, last ${days} days`}
-      tag="reported"
-      title={title}
-    >
+    <Panel hint={hint} tag="reported" title={title}>
       <DataTable
         columns={[
           { key: "article", label: "Article" },
+          { key: "published", label: "Published" },
           { key: "readers", label: "Readers", align: "right" },
           { key: "views", label: "Views", align: "right" },
           { key: "reads", label: "Reads", align: "right" },
@@ -312,6 +324,7 @@ export function TopArticlesPanel({
             views: formatCount(a.views),
             reads: formatCount(a.reads),
             ctr: formatPercent(a.ctr),
+            published: formatDateTime(a.publishedAt, ANALYTICS_TIME_ZONE),
           },
         }))}
       />
@@ -336,12 +349,14 @@ export function CategoriesPanel({
 
 export function ArticleReportBody({
   report,
+  period,
 }: {
   report: ArticleReport;
+  period?: string;
 }): ReactNode {
   return (
     <>
-      <NewsKpis daily={report.daily} summary={report.summary} />
+      <NewsKpis daily={report.daily} period={period} summary={report.summary} />
       <div className="ana-grid ana-two">
         <FunnelPanel days={report.daily} />
         <StepsPanel current={report.summary.current} />
@@ -395,6 +410,35 @@ export function PartnerKpis({
         value={formatCount(current.pointsAwarded)}
       />
     </div>
+  );
+}
+
+const INTEGRATION_LABELS: Record<string, string> = {
+  manual: "Manual (email/spreadsheet)",
+  webhook: "Webhook / postback",
+  csv: "CSV upload",
+};
+
+export function PartnerIntegrationPanel({
+  rows,
+}: {
+  rows: PartnerIntegration[];
+}): ReactNode {
+  const total = rows.reduce((sum, row) => sum + row.partners, 0);
+  return (
+    <Panel
+      hint={`${formatCount(total)} partners, by how they send conversion data`}
+      title="Partners by integration"
+    >
+      <Bars
+        empty="No partners yet."
+        label="Partners by integration method"
+        rows={rows.map((row) => ({
+          label: INTEGRATION_LABELS[row.method] ?? row.method,
+          value: row.partners,
+        }))}
+      />
+    </Panel>
   );
 }
 
@@ -819,6 +863,7 @@ export function PushPanel({
 export function PointsKpis({
   summary,
   daily,
+  period,
 }: {
   summary: {
     current: PointsTotals;
@@ -827,12 +872,15 @@ export function PointsKpis({
   };
   /** The period's daily series, for the line under each figure. */
   daily?: PointsDay[];
+  /** The window as shown to readers; defaults to "last N days". */
+  period?: string;
 }): ReactNode {
   const { current, previous, outstanding } = summary;
   const days = daily?.length ?? 0;
+  const window = period ?? `last ${days} days`;
   const trend = (name: string, pick: (day: PointsDay) => number) => ({
     trend: daily?.map(pick),
-    trendLabel: `${name}, last ${days} days`,
+    trendLabel: `${name}, ${window}`,
   });
   const versus = "vs previous period";
   return (
@@ -960,14 +1008,17 @@ export function LeaderboardPanel({
 }): ReactNode {
   return (
     <Panel
-      hint="Earned from activity; the sign-up bonus and large grants are left out"
+      hint="Earned from activity; the sign-up bonus and large grants are left out. Peak hour is the most earned in a single hour: a script earns a large share of its total in one."
       tag="observed"
       title="Leaderboard"
     >
       <DataTable
         columns={[
           { key: "rank", label: "Rank" },
+          { key: "user", label: "User" },
           { key: "earned", label: "Earned", align: "right" },
+          { key: "peak", label: "Peak hour", align: "right" },
+          { key: "events", label: "Events", align: "right" },
           { key: "balance", label: "Balance", align: "right" },
           { key: "joined", label: "Joined" },
           { key: "source", label: "Top source" },
@@ -978,7 +1029,10 @@ export function LeaderboardPanel({
           key: r.userId,
           cells: {
             rank: r.rank,
+            user: r.name || r.username || "–",
             earned: formatCount(r.earned),
+            peak: formatCount(r.peakHour),
+            events: formatCount(r.events),
             balance: formatCount(r.balance),
             joined: r.joinedAt
               ? formatDay(localDay(r.joinedAt, ANALYTICS_TIME_ZONE))
@@ -1010,6 +1064,7 @@ export function LargeGrantsPanel({
       <DataTable
         columns={[
           { key: "date", label: "Date" },
+          { key: "user", label: "User" },
           { key: "source", label: "Source" },
           { key: "points", label: "Points", align: "right" },
           { key: "account", label: "Account" },
@@ -1019,6 +1074,7 @@ export function LargeGrantsPanel({
           key: g.id,
           cells: {
             date: g.at ? formatDay(localDay(g.at, ANALYTICS_TIME_ZONE)) : "–",
+            user: g.name || g.username || "–",
             source: g.source,
             points: formatCount(g.points),
             account: g.userId ? (

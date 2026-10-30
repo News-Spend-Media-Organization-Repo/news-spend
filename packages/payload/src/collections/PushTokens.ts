@@ -1,7 +1,16 @@
 import type { CollectionConfig } from "payload";
+import { isSuperAdmin } from "../access/adminRoles";
 
 const PushTokens: CollectionConfig = {
   slug: "push-tokens",
+  // One-time codes / device tokens, written by the server (local API). No
+  // editor or viewer has a reason to read or change them over REST.
+  access: {
+    create: isSuperAdmin,
+    read: isSuperAdmin,
+    update: isSuperAdmin,
+    delete: isSuperAdmin,
+  },
   admin: {
     useAsTitle: "token",
     group: "Push Notifications",

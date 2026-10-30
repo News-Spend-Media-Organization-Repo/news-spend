@@ -6,6 +6,7 @@ const Activities: CollectionConfig = {
   access: {
     // The app writes activities through the local API, which bypasses
     // these rules; over REST only staff may add or remove points.
+    read: isStaff,
     create: isStaff,
     delete: isStaff,
   },

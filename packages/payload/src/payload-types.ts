@@ -199,12 +199,14 @@ export interface Config {
     'news-category': NewsCategory;
     'moderation-settings': ModerationSetting;
     'survey-settings': SurveySetting;
+    'app-settings': AppSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'news-category': NewsCategorySelect<false> | NewsCategorySelect<true>;
     'moderation-settings': ModerationSettingsSelect<false> | ModerationSettingsSelect<true>;
     'survey-settings': SurveySettingsSelect<false> | SurveySettingsSelect<true>;
+    'app-settings': AppSettingsSelect<false> | AppSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -215,6 +217,7 @@ export interface Config {
     'analytics-surfaces': AnalyticsSurfacesWidget;
     'analytics-categories': AnalyticsCategoriesWidget;
     'analytics-partner-performance': AnalyticsPartnerPerformanceWidget;
+    'analytics-partner-integration': AnalyticsPartnerIntegrationWidget;
     'analytics-audience-kpi': AnalyticsAudienceKpiWidget;
     'analytics-audience-growth': AnalyticsAudienceGrowthWidget;
     'analytics-devices': AnalyticsDevicesWidget;
@@ -934,7 +937,7 @@ export interface PrizeCatalogue {
    */
   valueNaira?: number | null;
   /**
-   * The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
+   * The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 7-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
    */
   requiresVerification?: boolean | null;
   /**
@@ -1011,7 +1014,7 @@ export interface GiveawayWinner {
   claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited' | 'disqualified';
   claimedAt?: string | null;
   /**
-   * 14 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
+   * 7 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
    */
   claimDeadline?: string | null;
   /**
@@ -1147,6 +1150,18 @@ export interface News {
    * 💡 Summary of the article
    */
   excerpt?: string | null;
+  /**
+   * On by default. Switch off to publish without notifying users.
+   */
+  sendNotification?: boolean | null;
+  /**
+   * Push title. Left blank, the article title is sent. Put "BREAKING:" (or any wording) here rather than in the headline. Write {{firstName}} to address each user by first name. Max 120 characters.
+   */
+  notificationTitle?: string | null;
+  /**
+   * Optional push body. Left blank, the excerpt (or "New news published!") is sent. Write {{firstName}} to address each user by first name. Max 150 characters so it is not cut off on a lock screen.
+   */
+  notificationBody?: string | null;
   /**
    * 💡 Pin to Top stories. Featured articles lead the carousel in rank order.
    */
@@ -3701,6 +3716,9 @@ export interface NewsSelect<T extends boolean = true> {
   readTimeMinutes?: T;
   views?: T;
   excerpt?: T;
+  sendNotification?: T;
+  notificationTitle?: T;
+  notificationBody?: T;
   featured?: T;
   featuredRank?: T;
   featuredUntil?: T;
@@ -4451,6 +4469,27 @@ export interface SurveySetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-settings".
+ */
+export interface AppSetting {
+  id: string;
+  /**
+   * The invitation people send when they share the app by SMS, email, WhatsApp and the rest. Write {link} where the download link should go; if you leave it out, the link is added at the end. Leave the box empty to use the built-in message.
+   */
+  shareMessage?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -4534,6 +4573,18 @@ export interface SurveySettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-settings_select".
+ */
+export interface AppSettingsSelect<T extends boolean = true> {
+  shareMessage?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats_select".
  */
 export interface PayloadJobsStatsSelect<T extends boolean = true> {
@@ -4603,6 +4654,16 @@ export interface AnalyticsPartnerPerformanceWidget {
     days?: ('7' | '30' | '90') | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-partner-integration_widget".
+ */
+export interface AnalyticsPartnerIntegrationWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

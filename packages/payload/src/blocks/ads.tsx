@@ -7,6 +7,11 @@ export const AdsBlock: Block = {
     singular: "Ad",
     plural: "Ads",
   },
+  admin: {
+    components: {
+      Block: "@news-spend-media/payload/blocks/Ads/Component#AdsBlockComponent",
+    },
+  },
   fields: [
     {
       name: "type",

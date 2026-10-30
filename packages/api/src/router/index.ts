@@ -1,6 +1,7 @@
 import { accountRouter } from "./account";
 import { activityRouter } from "./activity";
 import { adsRouter } from "./ads";
+import { appSettingsRouter } from "./appSettings";
 import { blockRouter } from "./block";
 import { commentRouter } from "./comment";
 import { discoverAnalyticsRouter } from "./discoverAnalytics";
@@ -27,6 +28,7 @@ export const router = {
   activity: activityRouter,
   block: blockRouter,
   ads: adsRouter,
+  appSettings: appSettingsRouter,
   comments: commentRouter,
   faq: faqRouter,
   feedback: feedbackRouter,

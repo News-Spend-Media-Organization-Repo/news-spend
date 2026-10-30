@@ -77,19 +77,23 @@ import {
 import {
   analyticsNavLink,
   analyticsViews,
+  dashboardHomeView,
   surveyPerformanceNavLink,
 } from "./components/Analytics/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
+import AppSettings from "./globals/AppSettings";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import SurveySettings from "./globals/SurveySettings";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
+import { internalsVisibilityPlugin } from "./plugins/internals-visibility";
 import {
   guardInternalCollections,
   partnerGuardPlugin,
 } from "./plugins/partner-guard";
+import { guardInternalWrites, roleGuardPlugin } from "./plugins/role-guard";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
@@ -104,6 +108,9 @@ import { sendUrgentModerationAlertTask } from "./tasks/sendUrgentModerationAlert
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
+
+const dashboardNavLink =
+  "@news-spend-media/payload/components/DashboardNavLink#DashboardNavLink";
 
 const baseConfig: Config = {
   cors: cmsTrustedOrigins(),
@@ -166,15 +173,20 @@ const baseConfig: Config = {
         Icon: "@news-spend-media/payload/components/Icon#Icon",
       },
       beforeNavLinks: [
+        dashboardNavLink,
         analyticsNavLink,
         surveyPerformanceNavLink,
         whatsNewNavLink,
       ],
-      views: { ...analyticsViews, ...whatsNewViews },
+      views: {
+        ...analyticsViews,
+        ...whatsNewViews,
+        dashboard: dashboardHomeView,
+      },
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  globals: [NewsCategory, ModerationSettings, SurveySettings],
+  globals: [NewsCategory, ModerationSettings, SurveySettings, AppSettings],
   collections: [
     Account,
     Activities,
@@ -382,6 +394,9 @@ const baseConfig: Config = {
       excludedCollections: ["email-templates"],
     }),
     auditLogPlugin,
+    // After the audit-fields plugin, so the fields it adds are covered.
+    internalsVisibilityPlugin,
+    roleGuardPlugin,
     // Last, so it also covers collections the plugins above add.
     partnerGuardPlugin,
   ],
@@ -426,7 +441,7 @@ export const configurePayload = (
   }
 
   const config = buildConfig(deepMerge(baseConfig, overrides ?? {})).then(
-    guardInternalCollections
+    (built) => guardInternalWrites(guardInternalCollections(built))
   );
 
   if (!overrides) {

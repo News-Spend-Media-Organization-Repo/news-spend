@@ -4,6 +4,9 @@ import { sql } from "@payloadcms/db-postgres/drizzle";
 /** The periods the dashboards offer. Anything else is refused. */
 export const RANGE_DAYS = [7, 30, 90] as const;
 
+/** The longest custom window a dashboard accepts, so a stray date cannot scan years. */
+export const MAX_RANGE_DAYS = 365;
+
 /** Calendar dates, `YYYY-MM-DD`, both ends included, in the range's time zone. */
 export type DateWindow = { from: string; to: string };
 
@@ -28,6 +31,57 @@ function formatDate(ms: number): string {
 
 export function addDays(date: string, days: number): string {
   return formatDate(parseDate(date) + days * DAY_MS);
+}
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A real `YYYY-MM-DD` date, not just something shaped like one. */
+function isDate(value: string): boolean {
+  if (!DATE.test(value)) {
+    return false;
+  }
+  const ms = parseDate(value);
+  return Number.isFinite(ms) && formatDate(ms) === value;
+}
+
+/** Whether `from`–`to` is a window a dashboard will accept, both ends included. */
+export function isDateRange(from: string, to: string): boolean {
+  if (!(isDate(from) && isDate(to)) || from > to) {
+    return false;
+  }
+  return (parseDate(to) - parseDate(from)) / DAY_MS + 1 <= MAX_RANGE_DAYS;
+}
+
+/**
+ * The window between two chosen calendar days, both ends included.
+ *
+ * The previous period is the same number of days immediately before `from`, so
+ * a "vs previous period" figure compares like with like even for a custom range.
+ */
+export function resolveWindow(options: {
+  from: string;
+  to: string;
+  timeZone?: string;
+}): Range {
+  const { from, to, timeZone = "UTC" } = options;
+
+  if (!(isDate(from) && isDate(to))) {
+    throw new RangeError("from and to must be YYYY-MM-DD dates");
+  }
+  if (from > to) {
+    throw new RangeError("from must not be after to");
+  }
+  const days = (parseDate(to) - parseDate(from)) / DAY_MS + 1;
+  if (days > MAX_RANGE_DAYS) {
+    throw new RangeError(`range must be at most ${MAX_RANGE_DAYS} days`);
+  }
+
+  return {
+    timeZone,
+    days,
+    current: { from, to },
+    previous: { from: addDays(from, -days), to: addDays(from, -1) },
+  };
 }
 
 /** The calendar date it is right now in `timeZone`. */

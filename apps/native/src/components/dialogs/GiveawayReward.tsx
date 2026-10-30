@@ -41,7 +41,7 @@ type Phase = "sealed" | "ad" | "revealed";
  *
  * The claim itself still lives on `MyGiveaways` / `ClaimPrize`, which persist. A
  * prize claimable only from a dialog is a prize lost by dismissing it, and the
- * claim window closes after fourteen days or when the next giveaway starts.
+ * claim window closes after seven days or when the next giveaway starts.
  */
 export default memo(function GiveawayReward() {
   const [open, setOpen] = useState(false);

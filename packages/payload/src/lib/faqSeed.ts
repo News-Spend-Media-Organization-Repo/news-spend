@@ -94,7 +94,7 @@ export const FAQ_SEED: ReadonlyArray<{
       {
         question: "How long do I have to claim a giveaway prize?",
         answer:
-          "Winners must claim their prizes within 14 days after the draw or before a new giveaway begins, whichever occurs first. Unclaimed prizes expire after the applicable deadline and may no longer be available for redemption. Always check your notifications and claim your rewards promptly.",
+          "Winners must claim their prizes within 7 days after the draw or before a new giveaway begins, whichever occurs first. Unclaimed prizes expire after the applicable deadline and may no longer be available for redemption. Always check your notifications and claim your rewards promptly.",
       },
       {
         question: "Who is eligible to win physical giveaway prizes?",
