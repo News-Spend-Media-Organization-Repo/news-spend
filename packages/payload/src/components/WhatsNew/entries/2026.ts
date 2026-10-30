@@ -28,7 +28,7 @@ export const entries2026: Entry[] = [
           "Points and prize records (activities, surveys, giveaways, prize catalogue, partner conversions) can only be changed by Super Admins and Content Managers.",
           "Only Super Admins and Content Managers see the API tab and who created or last changed a record, and only they can edit partners.",
           "Winners now have 7 days to claim a prize, down from 14, or until the next giveaway starts. Winners already picked keep their 14 days.",
-          "Saving an article draft prefills the push title from the headline and the push body from the first key point; change either and it stays. A new article now needs at least one key point to publish.",
+          "Saving or publishing an article prefills the push title from the headline and the push body from the first key point; change either and it stays. A new article now needs at least one key point to publish.",
         ],
       },
       {

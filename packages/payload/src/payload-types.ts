@@ -1158,11 +1158,11 @@ export interface News {
    */
   sendNotification?: boolean | null;
   /**
-   * Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Write {{firstName}} to address each user by first name. Max 120 characters.
+   * Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max 120 characters.
    */
   notificationTitle?: string | null;
   /**
-   * Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Write {{firstName}} to address each user by first name. Max 150 characters so it is not cut off on a lock screen.
+   * Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Max 150 characters so it is not cut off on a lock screen.
    */
   notificationBody?: string | null;
   /**

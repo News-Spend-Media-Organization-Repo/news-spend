@@ -291,7 +291,7 @@ const News: CollectionConfig = {
           type: "text",
           maxLength: NEWS_NOTIFICATION_TITLE_MAX_LENGTH,
           admin: {
-            description: `Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Write {{firstName}} to address each user by first name. Max ${NEWS_NOTIFICATION_TITLE_MAX_LENGTH} characters.`,
+            description: `Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max ${NEWS_NOTIFICATION_TITLE_MAX_LENGTH} characters.`,
           },
         },
         {
@@ -299,7 +299,7 @@ const News: CollectionConfig = {
           type: "textarea",
           maxLength: NEWS_NOTIFICATION_BODY_MAX_LENGTH,
           admin: {
-            description: `Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Write {{firstName}} to address each user by first name. Max ${NEWS_NOTIFICATION_BODY_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
+            description: `Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Max ${NEWS_NOTIFICATION_BODY_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
           },
         },
       ],
