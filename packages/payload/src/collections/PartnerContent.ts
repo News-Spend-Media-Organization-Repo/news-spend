@@ -1,6 +1,10 @@
 import type { CollectionConfig } from "payload";
 import { z } from "zod";
-
+import {
+  isPartnerUser,
+  isStaff,
+  readOwnPartnerOrStaff,
+} from "../access/adminRoles";
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
 import { partnerContentGuideView } from "../components/PartnerContentGuide/tabs";
 import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
@@ -167,7 +171,14 @@ export const PartnerContent: CollectionConfig = {
       },
     },
   },
-  access: { read: () => true },
+  access: {
+    // The app reads active content without signing in. A partner signed in to
+    // the panel sees only their own items, never another partner's.
+    read: (args) =>
+      isPartnerUser(args.req.user)
+        ? readOwnPartnerOrStaff("partner")(args)
+        : true,
+  },
   hooks: {
     afterChange: [
       async ({ doc, operation, req }) => {
@@ -607,6 +618,8 @@ export const PartnerContent: CollectionConfig = {
               type: "number",
               defaultValue: 1,
               min: 0,
+              // How we tune delivery between partners; not the partner's to see.
+              access: { read: isStaff },
               admin: {
                 description:
                   "Share of voice within a placement, relative to the other active content there. Weight 3 against weight 1 is drawn roughly three times as often. 0 withholds it without unpublishing.",
@@ -681,6 +694,7 @@ export const PartnerContent: CollectionConfig = {
             {
               name: "notes",
               type: "textarea",
+              access: { read: isStaff },
               admin: {
                 position: "sidebar",
                 description:
@@ -701,6 +715,7 @@ export const PartnerContent: CollectionConfig = {
             {
               name: "displayNotes",
               type: "textarea",
+              access: { read: isStaff },
               admin: {
                 condition: (data) => isBannerType(data),
                 description:

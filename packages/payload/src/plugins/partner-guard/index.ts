@@ -38,9 +38,11 @@ export const PARTNER_ACCESS: Readonly<
   admins: ["read", "update"],
   // Their own company record, its conversions and its store analytics.
   partners: ["read"],
+  // Their own promotions (the rule on the collection limits it to their rows).
+  "partner-content": ["read"],
   "partner-conversions": ["read"],
   "shop-analytics": ["read"],
-  // Logos referenced by their own partner record.
+  // Their logo and the files their own content uses.
   media: ["read"],
   // Payload's own bookkeeping, which the panel needs for any signed-in user.
   // Preferences are scoped to the owner by Payload itself. Document locks are

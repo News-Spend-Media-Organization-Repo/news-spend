@@ -17,7 +17,7 @@ import {
 import type { CollectionConfig } from "payload";
 import slugify from "slugify";
 
-import { readStaffOrOwnPartnerLogo } from "../access/adminRoles";
+import { readStaffOrOwnPartnerMedia } from "../access/adminRoles";
 import { guardReferencedDelete } from "../hooks/guardReferencedDelete";
 
 const execAsync = promisify(child_process.exec);
@@ -40,7 +40,7 @@ export const Media: CollectionConfig = {
   // Also holds files reporters upload through iWitness. Files are served from
   // the CDN rather than through this rule, so only the REST listing is closed.
   access: {
-    read: readStaffOrOwnPartnerLogo,
+    read: readStaffOrOwnPartnerMedia,
   },
   hooks: {
     // A file still used by an article, logo or promo block must not disappear:
