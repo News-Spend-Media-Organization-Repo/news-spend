@@ -17,6 +17,8 @@ import {
   calculateNewsMetrics,
   NEWS_NOTIFICATION_BODY_MAX_LENGTH,
   NEWS_NOTIFICATION_TITLE_MAX_LENGTH,
+  prefillNotificationCopy,
+  requireKeyPointToPublish,
   sendNotificationOnCreate,
 } from "../hooks";
 import { MAX_ACTIVITY_POINTS } from "../lib/activityPoints";
@@ -56,6 +58,7 @@ const News: CollectionConfig = {
     //   },
     // ],
     beforeValidate: [
+      requireKeyPointToPublish,
       /**
        * Video news is disabled for now.
        *
@@ -84,6 +87,7 @@ const News: CollectionConfig = {
     beforeChange: [
       calculateNewsMetrics,
       applyFeaturedWindow,
+      prefillNotificationCopy,
       // totalComments, likesCount, and dislikesCount are all maintained by raw
       // SQL in the Comments/NewsReactions hooks. Strip them from incoming
       // Payload writes (admin edits, republishes, version restores) so a
@@ -172,6 +176,8 @@ const News: CollectionConfig = {
       ],
       admin: {
         condition: (data, _siblingData) => data.type === "article",
+        description:
+          "At least one is needed to publish a new article. The first one is also the default push notification text.",
       },
       validate: (_val) => {
         // if (!val || (val && (val?.length < 1 || val?.length > 3))) {
@@ -257,7 +263,8 @@ const News: CollectionConfig = {
       name: "excerpt",
       type: "text",
       admin: {
-        description: "💡 Summary of the article",
+        description:
+          "💡 Filled in automatically from the first 100 characters of the article. It is not a summary and is not used for the push notification; write key points instead.",
       },
       maxLength: 100,
     },
@@ -284,7 +291,7 @@ const News: CollectionConfig = {
           type: "text",
           maxLength: NEWS_NOTIFICATION_TITLE_MAX_LENGTH,
           admin: {
-            description: `Push title. Left blank, the article title is sent. Put "BREAKING:" (or any wording) here rather than in the headline. Write {{firstName}} to address each user by first name. Max ${NEWS_NOTIFICATION_TITLE_MAX_LENGTH} characters.`,
+            description: `Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max ${NEWS_NOTIFICATION_TITLE_MAX_LENGTH} characters.`,
           },
         },
         {
@@ -292,7 +299,7 @@ const News: CollectionConfig = {
           type: "textarea",
           maxLength: NEWS_NOTIFICATION_BODY_MAX_LENGTH,
           admin: {
-            description: `Optional push body. Left blank, the excerpt (or "New news published!") is sent. Write {{firstName}} to address each user by first name. Max ${NEWS_NOTIFICATION_BODY_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
+            description: `Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Max ${NEWS_NOTIFICATION_BODY_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
           },
         },
       ],

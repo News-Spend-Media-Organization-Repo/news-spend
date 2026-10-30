@@ -5,4 +5,6 @@ export {
   NEWS_NOTIFICATION_TITLE_MAX_LENGTH,
   newsNotificationCopy,
 } from "./notificationCopy";
+export { prefillNotificationCopy } from "./prefillNotificationCopy";
+export { requireKeyPointToPublish } from "./requireKeyPointToPublish";
 export { default as sendNotificationOnCreate } from "./sendNotificationOnCreate";

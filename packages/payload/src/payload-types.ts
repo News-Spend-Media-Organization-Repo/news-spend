@@ -1115,6 +1115,9 @@ export interface News {
   generateSlug?: boolean | null;
   slug: string;
   image: string | Media;
+  /**
+   * At least one is needed to publish a new article. The first one is also the default push notification text.
+   */
   keyPoints?:
     | {
         point?: string | null;
@@ -1147,7 +1150,7 @@ export interface News {
    */
   views?: number | null;
   /**
-   * 💡 Summary of the article
+   * 💡 Filled in automatically from the first 100 characters of the article. It is not a summary and is not used for the push notification; write key points instead.
    */
   excerpt?: string | null;
   /**
@@ -1155,11 +1158,11 @@ export interface News {
    */
   sendNotification?: boolean | null;
   /**
-   * Push title. Left blank, the article title is sent. Put "BREAKING:" (or any wording) here rather than in the headline. Write {{firstName}} to address each user by first name. Max 120 characters.
+   * Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max 120 characters.
    */
   notificationTitle?: string | null;
   /**
-   * Optional push body. Left blank, the excerpt (or "New news published!") is sent. Write {{firstName}} to address each user by first name. Max 150 characters so it is not cut off on a lock screen.
+   * Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Max 150 characters so it is not cut off on a lock screen.
    */
   notificationBody?: string | null;
   /**
@@ -1543,7 +1546,7 @@ export interface PartnerContent {
   /**
    * Shown on every surface, including the news feed. Never mention points or rewards here.
    */
-  adCopy?: string | null;
+  adCopy: string;
   /**
    * Reward text. Hidden off earn surfaces. Max 90 characters recommended
    */

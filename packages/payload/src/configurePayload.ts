@@ -85,6 +85,7 @@ import AppSettings from "./globals/AppSettings";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import SurveySettings from "./globals/SurveySettings";
+import { PUSH_QUEUE } from "./lib/pushQueue";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
@@ -277,6 +278,12 @@ const baseConfig: Config = {
               cron: "0 0,12 * * *",
               queue: "maintenance",
               limit: 10,
+            },
+            // Picks up any push the CMS's own nudges missed (see pushQueue).
+            {
+              cron: "* * * * *",
+              queue: PUSH_QUEUE,
+              limit: 5,
             },
           ],
         }),

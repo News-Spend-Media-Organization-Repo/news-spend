@@ -2,6 +2,7 @@ import type { CollectionConfig, PayloadRequest } from "payload";
 
 import { authenticated } from "../access/authenticated";
 import { adminOnly } from "../access/hasRole";
+import { queueNotificationSend } from "../lib/pushQueue";
 import { NOTIFICATION_TYPES } from "./NotificationInbox";
 
 /**
@@ -322,8 +323,17 @@ const Notifications: CollectionConfig = {
         }
 
         if (deliveryAction === "send-now") {
-          const { sendNotification } = await import("../lib/expo-push-service");
-          await sendNotification(doc.id, req);
+          // A caller that must not wait for the fan-out (publishing an
+          // article) asks for it to be queued; anything else, such as a
+          // campaign sent from the admin, still sends before it returns.
+          if (req.context?.deferSend) {
+            await queueNotificationSend(req, doc.id);
+          } else {
+            const { sendNotification } = await import(
+              "../lib/expo-push-service"
+            );
+            await sendNotification(doc.id, req);
+          }
         }
 
         return doc;
