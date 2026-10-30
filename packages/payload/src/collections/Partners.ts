@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 
 import { type CollectionConfig, slugField } from "payload";
-import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
+import {
+  hasInternalsRole,
+  isStaff,
+  readOwnPartnerOrStaff,
+} from "../access/adminRoles";
 import { partnerPerformanceView } from "../components/Analytics/tabs";
 import { partnerIntegrationGuideView } from "../components/PartnerIntegrationGuide/tabs";
 import { IMAGE_ONLY } from "../fields/uploadMimeFilters";
@@ -13,9 +17,11 @@ export const Partners: CollectionConfig = {
   // record, never another partner's or any edit to it.
   access: {
     read: readOwnPartnerOrStaff("id"),
-    create: isStaff,
-    update: isStaff,
-    delete: isStaff,
+    // A partner's integration setup decides how points are credited, so only
+    // the roles trusted with the panel's internals may change it.
+    create: hasInternalsRole,
+    update: hasInternalsRole,
+    delete: hasInternalsRole,
   },
   admin: {
     group: "Partners",
@@ -191,6 +197,9 @@ export const Partners: CollectionConfig = {
         {
           name: "confirmationDays",
           type: "number",
+          // Our own reconciliation setting; the partner is shown the postback
+          // URL and method, not how long we wait on them.
+          access: { read: isStaff },
           min: 1,
           max: 60,
           defaultValue: 7,
@@ -205,6 +214,9 @@ export const Partners: CollectionConfig = {
           type: "checkbox",
           defaultValue: false,
           index: true,
+          // An internal risk switch: staff only, so a partner cannot see that
+          // their offers are being credited without a confirmed conversion.
+          access: { read: isStaff },
           admin: {
             description:
               "ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.",

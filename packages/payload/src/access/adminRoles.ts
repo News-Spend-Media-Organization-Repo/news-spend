@@ -11,6 +11,23 @@ type AccessArgs = { req: PayloadRequest };
 export const isSuperAdmin = ({ req: { user } }: AccessArgs): boolean =>
   user?.collection === "admins" && user.role === "super-admin";
 
+/**
+ * Roles trusted with the internals of the panel: who created or last changed a
+ * record, the raw API view of a document, and a partner's integration setup.
+ * Editors and viewers do day-to-day content work and do not need them.
+ */
+const INTERNALS_ROLES: readonly unknown[] = ["super-admin", "content-manager"];
+
+/** Whether this user may see, and manage, the panel's internals. */
+export const canSeeInternals = (
+  user: { collection?: string; role?: unknown } | null | undefined
+): boolean =>
+  user?.collection === "admins" && INTERNALS_ROLES.includes(user.role);
+
+/** `canSeeInternals` as a collection access rule. */
+export const hasInternalsRole = ({ req: { user } }: AccessArgs): boolean =>
+  canSeeInternals(user);
+
 /** A signed-in admin whose role is `partner`. */
 export const isPartnerUser = (
   user: { collection?: string; role?: unknown } | null | undefined

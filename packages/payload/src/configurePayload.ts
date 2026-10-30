@@ -87,6 +87,7 @@ import SurveySettings from "./globals/SurveySettings";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
 import { migrations } from "./migrations";
 import { auditLogPlugin } from "./plugins/audit-log";
+import { internalsVisibilityPlugin } from "./plugins/internals-visibility";
 import {
   guardInternalCollections,
   partnerGuardPlugin,
@@ -391,6 +392,8 @@ const baseConfig: Config = {
       excludedCollections: ["email-templates"],
     }),
     auditLogPlugin,
+    // After the audit-fields plugin, so the fields it adds are covered.
+    internalsVisibilityPlugin,
     // Last, so it also covers collections the plugins above add.
     partnerGuardPlugin,
   ],
