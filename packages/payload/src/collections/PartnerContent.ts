@@ -1,10 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { z } from "zod";
-import {
-  isPartnerUser,
-  isStaff,
-  readOwnPartnerOrStaff,
-} from "../access/adminRoles";
+import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
 import { partnerContentGuideView } from "../components/PartnerContentGuide/tabs";
 import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
@@ -172,12 +168,11 @@ export const PartnerContent: CollectionConfig = {
     },
   },
   access: {
-    // The app reads active content without signing in. A partner signed in to
-    // the panel sees only their own items, never another partner's.
-    read: (args) =>
-      isPartnerUser(args.req.user)
-        ? readOwnPartnerOrStaff("partner")(args)
-        : true,
+    // Staff see all of it and a partner only their own items. Nobody else:
+    // the app is served through the API server, which reads with the local
+    // API, so this collection is not open to anonymous REST or GraphQL
+    // requests (it holds drafts, weights and internal notes).
+    read: readOwnPartnerOrStaff("partner"),
   },
   hooks: {
     afterChange: [

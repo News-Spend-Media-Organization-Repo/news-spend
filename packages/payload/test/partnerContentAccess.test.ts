@@ -37,10 +37,10 @@ describe("partner content, for a partner signed in to the panel", () => {
     expect(run(guarded.access?.read, unassigned)).toBe(false);
   });
 
-  test("the app and staff still read everything", async () => {
+  test("staff read everything; no one else reads anything", async () => {
     expect(await run(guarded.access?.read, editor)).toBe(true);
-    expect(await run(guarded.access?.read, appUser)).toBe(true);
-    expect(await run(guarded.access?.read, null)).toBe(true);
+    expect(await run(guarded.access?.read, appUser)).toBe(false);
+    expect(await run(guarded.access?.read, null)).toBe(false);
   });
 
   test("internal delivery settings are not readable by a partner", () => {
