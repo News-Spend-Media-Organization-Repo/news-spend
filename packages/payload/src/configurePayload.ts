@@ -77,6 +77,7 @@ import {
 import {
   analyticsNavLink,
   analyticsViews,
+  dashboardHomeView,
   surveyPerformanceNavLink,
 } from "./components/Analytics/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
@@ -174,7 +175,11 @@ const baseConfig: Config = {
         surveyPerformanceNavLink,
         whatsNewNavLink,
       ],
-      views: { ...analyticsViews, ...whatsNewViews },
+      views: {
+        ...analyticsViews,
+        ...whatsNewViews,
+        dashboard: dashboardHomeView,
+      },
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],

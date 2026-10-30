@@ -380,6 +380,8 @@ export async function pointsLeaderboard(
 export type LargeGrant = {
   id: string;
   userId: string | null;
+  name: string | null;
+  username: string | null;
   action: string;
   source: string;
   points: number;
@@ -398,6 +400,8 @@ export async function pointsLargeGrants(
   const rows = await rowsOf<{
     id: string;
     user_id: string | null;
+    name: string | null;
+    username: string | null;
     action: string;
     source: string;
     points: number;
@@ -405,9 +409,11 @@ export async function pointsLargeGrants(
   }>(
     db,
     sql`
-      SELECT a.id, a.user_id, a.action::text AS action, ${SOURCE} AS source,
+      SELECT a.id, a.user_id, u.name, u.username,
+             a.action::text AS action, ${SOURCE} AS source,
              a.point::float8 AS points, a.created_at AS at
       FROM activities a
+      LEFT JOIN users u ON u.id = a.user_id
       WHERE ${ledgerWhere(filter.range.current, filter.range.timeZone)}
         AND a.point > ${LARGE_GRANT_POINTS}
       ORDER BY a.created_at DESC, a.id
@@ -418,6 +424,8 @@ export async function pointsLargeGrants(
   return rows.map((r) => ({
     id: r.id,
     userId: r.user_id,
+    name: r.name,
+    username: r.username,
     action: r.action,
     source: r.source,
     points: r.points,

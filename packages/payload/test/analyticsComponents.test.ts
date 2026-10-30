@@ -1016,6 +1016,8 @@ describe("points dates are Lagos days", () => {
           {
             id: "g1",
             userId: "u1",
+            name: "Ada Obi",
+            username: "ada",
             action: "surveyTask",
             source: "form",
             points: 9000,
@@ -1026,6 +1028,7 @@ describe("points dates are Lagos days", () => {
     );
 
     expect(out).toContain("20 Oct");
+    expect(out).toContain("Ada Obi");
   });
 });
 
@@ -1055,5 +1058,29 @@ describe("the points tiles", () => {
     expect(out).toContain("Issued, last 7 days");
     expect(out).toContain("Spent, last 7 days");
     expect(out).not.toContain("Net, last 7 days");
+  });
+});
+
+describe("the admin home page", () => {
+  const home = (user: unknown) =>
+    components.DashboardHome({
+      initPageResult: { req: requestFor(user).req },
+    } as never);
+
+  it("sends a partner to their own Performance tab", () => {
+    expect(() => home(partnerA)).toThrow("NEXT_REDIRECT");
+    try {
+      home(partnerA);
+    } catch (error) {
+      expect(String((error as { digest?: unknown }).digest)).toContain(
+        `/admin/collections/partners/${PARTNER_A}/performance`
+      );
+    }
+  });
+
+  it("leaves staff and a partner with no company on the ordinary page", () => {
+    for (const user of [staff, unassignedPartner]) {
+      expect(() => home(user)).not.toThrow();
+    }
   });
 });

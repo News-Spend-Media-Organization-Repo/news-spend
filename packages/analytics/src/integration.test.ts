@@ -1414,7 +1414,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
           ('${Q5}', '2026-01-05T08:00:00Z', NULL, NULL),
           ('${Q6}', '2026-01-06T08:00:00Z', NULL, NULL),
           ('${Q7}', '2026-01-07T08:00:00Z', NULL, NULL),
-          ('${Q8}', '2026-01-08T08:00:00Z', NULL, NULL),
+          ('${Q8}', '2026-01-08T08:00:00Z', 'Bayo Ade', 'bayo'),
           ('${Q9}', '2026-01-09T08:00:00Z', NULL, NULL),
           ('${Q10}', '2026-01-10T08:00:00Z', NULL, NULL);
         INSERT INTO activities (type, point, action, user_id, metadata, created_at) VALUES
@@ -1515,7 +1515,13 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         points: 5001,
         at: "2026-07-27T08:00:00.000Z",
       });
-      expect(grants[0]).toMatchObject({ action: "lottery", source: "lottery" });
+      expect(grants[0]).toMatchObject({
+        action: "lottery",
+        source: "lottery",
+        name: "Bayo Ade",
+        username: "bayo",
+      });
+      expect(grants[1]).toMatchObject({ name: null, username: null });
     });
 
     it("counts large grants in the summary", async () => {

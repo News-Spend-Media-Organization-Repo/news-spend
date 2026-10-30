@@ -424,6 +424,8 @@ describe("pointsLargeGrants", () => {
       {
         id: "g-1",
         user_id: null,
+        name: null,
+        username: null,
         action: "surveyTask",
         source: "form",
         points: 6000,
@@ -437,6 +439,8 @@ describe("pointsLargeGrants", () => {
       {
         id: "g-1",
         userId: null,
+        name: null,
+        username: null,
         action: "surveyTask",
         source: "form",
         points: 6000,
@@ -462,9 +466,9 @@ describe("pointsLargeGrants", () => {
       expect(query?.params).toContain(LARGE_GRANT_POINTS);
       expect(query?.sql).toContain("a.point > ");
       expect(query?.sql).toContain("ORDER BY a.created_at DESC, a.id");
+      expect(query?.sql).toContain("u.name");
+      expect(query?.sql).toContain("u.username");
       expect(query?.sql).not.toContain("email");
-      expect(query?.sql).not.toContain("username");
-      expect(query?.sql).not.toMatch(NAME_COLUMN);
     }
   });
 });

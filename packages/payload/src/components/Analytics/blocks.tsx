@@ -1064,6 +1064,7 @@ export function LargeGrantsPanel({
       <DataTable
         columns={[
           { key: "date", label: "Date" },
+          { key: "user", label: "User" },
           { key: "source", label: "Source" },
           { key: "points", label: "Points", align: "right" },
           { key: "account", label: "Account" },
@@ -1073,6 +1074,7 @@ export function LargeGrantsPanel({
           key: g.id,
           cells: {
             date: g.at ? formatDay(localDay(g.at, ANALYTICS_TIME_ZONE)) : "–",
+            user: g.name || g.username || "–",
             source: g.source,
             points: formatCount(g.points),
             account: g.userId ? (

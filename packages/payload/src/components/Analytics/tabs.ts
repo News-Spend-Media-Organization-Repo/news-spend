@@ -89,5 +89,8 @@ export const analyticsViews = {
   surveyPerformance: surveyPerformanceView,
 };
 
+/** Replaces the admin home page; sends a partner to their Performance tab. */
+export const dashboardHomeView = { Component: `${PATH}#DashboardHome` };
+
 export const analyticsNavLink = `${PATH}#AnalyticsNavLink`;
 export const surveyPerformanceNavLink = `${PATH}#SurveyNavLink`;
