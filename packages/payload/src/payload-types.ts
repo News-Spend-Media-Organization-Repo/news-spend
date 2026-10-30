@@ -199,12 +199,14 @@ export interface Config {
     'news-category': NewsCategory;
     'moderation-settings': ModerationSetting;
     'survey-settings': SurveySetting;
+    'app-settings': AppSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'news-category': NewsCategorySelect<false> | NewsCategorySelect<true>;
     'moderation-settings': ModerationSettingsSelect<false> | ModerationSettingsSelect<true>;
     'survey-settings': SurveySettingsSelect<false> | SurveySettingsSelect<true>;
+    'app-settings': AppSettingsSelect<false> | AppSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -935,7 +937,7 @@ export interface PrizeCatalogue {
    */
   valueNaira?: number | null;
   /**
-   * The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
+   * The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 7-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
    */
   requiresVerification?: boolean | null;
   /**
@@ -1012,7 +1014,7 @@ export interface GiveawayWinner {
   claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited' | 'disqualified';
   claimedAt?: string | null;
   /**
-   * 14 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
+   * 7 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
    */
   claimDeadline?: string | null;
   /**
@@ -4467,6 +4469,27 @@ export interface SurveySetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-settings".
+ */
+export interface AppSetting {
+  id: string;
+  /**
+   * The invitation people send when they share the app by SMS, email, WhatsApp and the rest. Write {link} where the download link should go; if you leave it out, the link is added at the end. Leave the box empty to use the built-in message.
+   */
+  shareMessage?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -4542,6 +4565,18 @@ export interface SurveySettingsSelect<T extends boolean = true> {
       };
   dailyPointsCap?: T;
   maxPointsPerAward?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-settings_select".
+ */
+export interface AppSettingsSelect<T extends boolean = true> {
+  shareMessage?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

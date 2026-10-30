@@ -81,6 +81,7 @@ import {
   surveyPerformanceNavLink,
 } from "./components/Analytics/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
+import AppSettings from "./globals/AppSettings";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
 import SurveySettings from "./globals/SurveySettings";
@@ -185,7 +186,7 @@ const baseConfig: Config = {
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  globals: [NewsCategory, ModerationSettings, SurveySettings],
+  globals: [NewsCategory, ModerationSettings, SurveySettings, AppSettings],
   collections: [
     Account,
     Activities,

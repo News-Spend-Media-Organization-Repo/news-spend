@@ -20,19 +20,10 @@ import {
   WhatsappLogoIcon,
 } from "#/lib/icons";
 import { authState } from "#/state/auth";
-
-// TODO: make the share message configurable from the CMS
-const msg =
-  "News spend is giving out Scholarships, Free Data/Airtime, Electronic Gadgets, Gift Cards and Information to help users achieve their dreams. I thought you or someone you know may be interested. You can get it here:";
-// newsspend.com/download does not exist; link.newsspend.com is the Detour
-// domain, which sends installed users to the app and everyone else to the store.
-const url = "https://link.newsspend.com";
-// The link sits mid-sentence, so the whole text is sent as the message and the
-// separate `url` field is left out: share targets append that after the
-// message, which would strand the store-search hint ahead of the link.
-const fullMsg = `${msg} ${url} OR search NewsSpend on your device store.`;
+import { useShareMessage } from "./share-message";
 
 const ShareApp = () => {
+  const fullMsg = useShareMessage();
   const addActivityMutation = useAddActivity();
 
   const awardPoint = () => {
@@ -88,7 +79,9 @@ const ShareApp = () => {
         Icon: ChatDotsIcon,
         onPress: async () => {
           try {
-            const res = await Linking.openURL(`sms:?body=${fullMsg}`);
+            const res = await Linking.openURL(
+              `sms:?body=${encodeURIComponent(fullMsg)}`
+            );
 
             if (res) {
               awardPoint();
@@ -106,7 +99,9 @@ const ShareApp = () => {
         Icon: EnvelopeSimpleIcon,
         onPress: async () => {
           try {
-            const res = await Linking.openURL(`mailto:?body=${fullMsg}`);
+            const res = await Linking.openURL(
+              `mailto:?body=${encodeURIComponent(fullMsg)}`
+            );
             if (res) {
               awardPoint();
             } else {
@@ -165,7 +160,7 @@ const ShareApp = () => {
         },
       },
     ],
-    [onShare, awardPoint]
+    [onShare, awardPoint, fullMsg]
   );
 
   return (
