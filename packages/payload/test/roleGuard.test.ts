@@ -1,5 +1,11 @@
-import { describe, expect, test } from "bun:test";
-import type { Access, CollectionConfig, Config, GlobalConfig } from "payload";
+import { beforeAll, describe, expect, test } from "bun:test";
+import type {
+  Access,
+  CollectionConfig,
+  Config,
+  GlobalConfig,
+  SanitizedConfig,
+} from "payload";
 import { adminOnly, hasRole } from "../src/access/hasRole";
 import * as barrel from "../src/collections";
 import UserBlocks from "../src/collections/UserBlocks";
@@ -55,7 +61,7 @@ const find = (slug: string) =>
   guardedCollections.find((collection) => collection.slug === slug);
 
 describe("a viewer", () => {
-  test("is read-only on every collection except their own admin record", async () => {
+  test("is read-only on every collection, their own admin record included", async () => {
     const writable: string[] = [];
     for (const collection of guardedCollections) {
       for (const operation of OPERATIONS) {
@@ -64,10 +70,7 @@ describe("a viewer", () => {
         }
       }
     }
-    // The admin record's own rule limits this to themselves.
-    expect(writable.filter((entry) => !entry.startsWith("admins."))).toEqual(
-      []
-    );
+    expect(writable).toEqual([]);
   });
 
   test("cannot change a global", async () => {
@@ -159,5 +162,60 @@ describe("hasRole", () => {
     );
     expect(check(adminOnly, null)).toBe(false);
     expect(check(hasRole("editor"), ROLES.editor)).toBe(true);
+  });
+});
+
+describe("the built config", () => {
+  let built: SanitizedConfig;
+
+  beforeAll(async () => {
+    // buildConfig requires a secret; nothing here connects to a database.
+    process.env.PAYLOAD_SECRET ??= "test-secret";
+    built = await (await import("../src/payload.config")).default;
+  });
+
+  test("a viewer can write nothing but their own panel preferences", async () => {
+    const writable: string[] = [];
+    for (const collection of built.collections as CollectionConfig[]) {
+      for (const operation of OPERATIONS) {
+        if (await answer(collection.access?.[operation], ROLES.viewer)) {
+          writable.push(`${collection.slug}.${operation}`);
+        }
+      }
+    }
+    for (const global of built.globals as GlobalConfig[]) {
+      if (await answer(global.access?.update, ROLES.viewer)) {
+        writable.push(`${global.slug}.update`);
+      }
+    }
+
+    expect(
+      writable.filter((entry) => !entry.startsWith("payload-preferences."))
+    ).toEqual([]);
+  });
+
+  test("a viewer's preferences stay scoped to their own rows", async () => {
+    const preferences = (built.collections as CollectionConfig[]).find(
+      (collection) => collection.slug === "payload-preferences"
+    );
+    const viewer = { ...ROLES.viewer, id: "v1" };
+    const result = await preferences?.access?.update?.({
+      req: { user: viewer, payload: {} },
+    } as never);
+
+    expect(JSON.stringify(result)).toContain("v1");
+  });
+
+  test("an editor can still write content and a content manager the economy", async () => {
+    const get = (slug: string) =>
+      (built.collections as CollectionConfig[]).find((c) => c.slug === slug);
+
+    expect(await answer(get("news")?.access?.update, ROLES.editor)).toBe(true);
+    expect(await answer(get("giveaways")?.access?.update, ROLES.editor)).toBe(
+      false
+    );
+    expect(
+      await answer(get("giveaways")?.access?.update, ROLES.contentManager)
+    ).toBe(true);
   });
 });

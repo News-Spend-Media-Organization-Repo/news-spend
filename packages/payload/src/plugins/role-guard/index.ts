@@ -1,4 +1,10 @@
-import type { Access, CollectionConfig, GlobalConfig, Plugin } from "payload";
+import type {
+  Access,
+  CollectionConfig,
+  GlobalConfig,
+  Plugin,
+  SanitizedConfig,
+} from "payload";
 
 import { canSeeInternals } from "../../access/adminRoles";
 
@@ -11,9 +17,10 @@ import { canSeeInternals } from "../../access/adminRoles";
  * centrally means a collection added next year is covered until someone opens
  * it on purpose, as the partner guard does for partners.
  *
- * - A viewer is read-only everywhere. The one exception is their own admin
- *   record, so they can still change their password; that collection's own rule
- *   limits it to themselves.
+ * - A viewer is read-only on every collection and global, their own admin
+ *   record included (a forgotten password is reset by email, which does not go
+ *   through this rule). The one exception is Payload's per-user panel
+ *   preferences: column choices and the like, scoped by Payload to the owner.
  * - The points and prize economy is for the roles trusted with the panel's
  *   internals (super-admin and content-manager). Editors keep content and
  *   moderation.
@@ -34,8 +41,8 @@ export const ECONOMY_COLLECTIONS: ReadonlySet<string> = new Set([
   "partner-conversions",
 ]);
 
-/** Collections a viewer may still write: only their own record, by its own rule. */
-const VIEWER_WRITABLE: ReadonlySet<string> = new Set(["admins"]);
+/** Payload's own bookkeeping that a viewer still needs: their panel settings. */
+const VIEWER_WRITABLE: ReadonlySet<string> = new Set(["payload-preferences"]);
 
 type RoleUser = { collection?: string; role?: unknown } | null | undefined;
 
@@ -80,6 +87,29 @@ export const guardGlobalWrites = (global: GlobalConfig): GlobalConfig => ({
     update: onlyWhen((user) => !isViewer(user), global.access?.update),
   },
 });
+
+/**
+ * The same rule for the collections and globals Payload adds itself
+ * (`payload-*`), which appear while the config is sanitised, after every plugin
+ * has run. Patched in place so anything holding the sanitised config sees it.
+ * Payload writes document locks straight to the database, so closing them over
+ * REST does not affect opening a document.
+ */
+export const guardInternalWrites = (
+  config: SanitizedConfig
+): SanitizedConfig => {
+  for (const collection of config.collections) {
+    if (collection.slug.startsWith("payload-")) {
+      Object.assign(collection, guardCollectionWrites(collection));
+    }
+  }
+  for (const global of config.globals) {
+    if (global.slug.startsWith("payload-")) {
+      Object.assign(global, guardGlobalWrites(global));
+    }
+  }
+  return config;
+};
 
 /** Register after the plugins that add collections, so they are covered too. */
 export const roleGuardPlugin: Plugin = (config) => ({

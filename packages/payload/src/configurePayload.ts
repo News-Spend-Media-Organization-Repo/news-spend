@@ -92,7 +92,7 @@ import {
   guardInternalCollections,
   partnerGuardPlugin,
 } from "./plugins/partner-guard";
-import { roleGuardPlugin } from "./plugins/role-guard";
+import { guardInternalWrites, roleGuardPlugin } from "./plugins/role-guard";
 import { checkPushReceiptsTask } from "./tasks/checkPushReceipts";
 import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
@@ -440,7 +440,7 @@ export const configurePayload = (
   }
 
   const config = buildConfig(deepMerge(baseConfig, overrides ?? {})).then(
-    guardInternalCollections
+    (built) => guardInternalWrites(guardInternalCollections(built))
   );
 
   if (!overrides) {
