@@ -252,7 +252,7 @@ function PrizeCard({
  * Everything this user has won, and what is left to do about it.
  *
  * Split into two lists rather than one, because they behave differently.
- * "Needs You" is bounded by each prize's own claim window (fourteen days, or
+ * "Needs You" is bounded by each prize's own claim window (seven days, or
  * until the next giveaway starts), so it can never grow past a handful and is
  * fetched whole. "History" is everything that has already resolved, which
  * only ever grows, so it is the one that is paged.
@@ -421,7 +421,7 @@ const MyGiveaways = () => {
                         </View>
                       </View>
                       <Text className="text-subtle-text text-xs">
-                        Never more than a handful - the window closes 14 days
+                        Never more than a handful - the window closes 7 days
                         after you win, or when the next giveaway starts.
                       </Text>
                       {actionablePrizes.map((prize) => (

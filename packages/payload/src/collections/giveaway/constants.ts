@@ -495,13 +495,17 @@ export const PHONE_FULFILMENT_TYPES: readonly FulfilmentType[] = [
 export const ADDRESS_FULFILMENT_TYPES: readonly FulfilmentType[] = ["physical"];
 
 /**
- * How long a winner has to claim (21, settled with the app owner).
+ * How long a winner has to claim (21, settled with the app owner; shortened
+ * from 14 to 7 days on 30 Oct 2026, at the owner's request).
+ *
+ * Only winners selected from now on get the shorter window: a winner's
+ * `claimDeadline` is stored when they are selected and is not recomputed.
  *
  * The window also closes the moment the next giveaway starts, whichever comes
  * first, a prize from a giveaway that is over cannot be claimed once its
  * successor is running. See `claimWindowClosed`.
  */
-export const CLAIM_WINDOW_DAYS = 14;
+export const CLAIM_WINDOW_DAYS = 7;
 
 /**
  * Minimum age to take part in a giveaway.

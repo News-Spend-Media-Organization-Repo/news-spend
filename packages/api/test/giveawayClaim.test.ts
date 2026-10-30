@@ -179,13 +179,31 @@ describe("claimWindowFor (spec 21)", () => {
   const selectedAt = new Date(Date.now() - 2 * DAY).toISOString();
   const winner = { selectedAt, claimDeadline: claimDeadlineFor(selectedAt) };
 
-  it("is open inside the 14 days", () => {
+  it("is open inside the 7 days", () => {
     expect(claimWindowFor(winner, { laterGiveawayExists: false }).open).toBe(
       true
     );
   });
 
-  it("closes once 14 days have passed", () => {
+  it("gives a winner seven days from selection", () => {
+    const selected = new Date("2026-11-02T10:00:00.000Z");
+
+    expect(claimDeadlineFor(selected)).toBe("2026-11-09T10:00:00.000Z");
+  });
+
+  it("is open on day six and closed on day eight", () => {
+    const fresh = { selectedAt, claimDeadline: claimDeadlineFor(selectedAt) };
+    const at = (days: number) =>
+      claimWindowFor(fresh, {
+        laterGiveawayExists: false,
+        now: new Date(new Date(selectedAt).getTime() + days * DAY),
+      }).open;
+
+    expect(at(6)).toBe(true);
+    expect(at(8)).toBe(false);
+  });
+
+  it("closes once 7 days have passed", () => {
     const window = claimWindowFor(winner, {
       laterGiveawayExists: false,
       now: new Date(Date.now() + 13 * DAY),
@@ -621,7 +639,7 @@ describe("giveaway.claimPrize (spec 21)", () => {
       { context: ctx }
     );
 
-    // The claim itself lands immediately: that is what stops the 14-day
+    // The claim itself lands immediately: that is what stops the 7-day
     // clock. Only the dispatch waits on identity.
     expect(result.claimStatus).toBe("claimed");
     expect(result.awaitingVerification).toBe(true);

@@ -849,7 +849,7 @@ function winningFrom(winner: Row, latestStart: string | null) {
 }
 
 /**
- * A prize's own claim window bounds how long it can stay unresolved (14
+ * A prize's own claim window bounds how long it can stay unresolved (7
  * days, or until the next giveaway starts), so the count of prizes genuinely
  * waiting on this user is naturally small. It never needs a page.
  *

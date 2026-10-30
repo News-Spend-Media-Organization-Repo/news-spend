@@ -315,7 +315,7 @@ export const PrizeCatalogue: CollectionConfig = {
       index: true,
       admin: {
         description:
-          "The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 14-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.",
+          "The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 7-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.",
       },
       validate: (value: boolean | null | undefined) => {
         // Without a provider this checkbox does not gate anything: it parks

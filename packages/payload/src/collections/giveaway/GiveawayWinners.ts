@@ -150,7 +150,7 @@ export const GiveawayWinners: CollectionConfig = {
         readOnly: true,
         date: { pickerAppearance: "dayAndTime" },
         description:
-          "14 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.",
+          "7 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.",
       },
     },
     {
