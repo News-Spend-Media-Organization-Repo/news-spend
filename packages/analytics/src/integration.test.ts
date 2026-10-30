@@ -38,6 +38,7 @@ import {
   partnerEventsDaily,
   partnerEventsOutliers,
   partnerEventsSummary,
+  partnerIntegrationSummary,
   partnerPostbackHealth,
   partnerRecentConversions,
   partnerSummary,
@@ -125,7 +126,11 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         article_id uuid NOT NULL, event enum_news_analytics_event NOT NULL,
         user_id varchar, session_id varchar NOT NULL DEFAULT 's', device_id varchar NOT NULL, event_id varchar,
         platform enum_news_analytics_platform, metadata jsonb, timestamp timestamptz NOT NULL);
-      CREATE TABLE partners (id uuid PRIMARY KEY, company_name varchar);
+      -- Shaped like production, whose enum has no 'postback'.
+      CREATE TYPE enum_partners_integration_method AS ENUM('manual','webhook','csv');
+      CREATE TABLE partners (
+        id uuid PRIMARY KEY, company_name varchar,
+        integration_method enum_partners_integration_method);
       CREATE TABLE partner_content (id uuid PRIMARY KEY, title varchar);
       CREATE TABLE partner_conversions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -237,7 +242,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         ('${A1}', 'Fuel price review', 'fuel', '2026-09-12T08:00:00Z', '${CAT_ENERGY}'),
         ('${A2}', 'Squad named', 'squad', '2026-09-12T09:00:00Z', '${CAT_SPORT}'),
         ('${A3}', 'Late news', 'late', '2026-09-12T10:00:00Z', '${CAT_SPORT}');
-      INSERT INTO partners VALUES ('${P1}', 'Shopwise'), ('${P2}', 'FreshCart');
+      INSERT INTO partners (id, company_name, integration_method) VALUES
+        ('${P1}', 'Shopwise', 'webhook'), ('${P2}', 'FreshCart', 'manual');
       INSERT INTO partner_content VALUES ('c1000000-0000-4000-8000-000000000001', 'Weekend offer');
     `);
 
@@ -1384,6 +1390,32 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         largeGrants: 0,
       });
       expect(days.every((d) => d.issued === 0 && d.spent === 0)).toBe(true);
+    });
+  });
+
+  describe("partner integration mix", () => {
+    it("counts partners when the enum has no postback value, as in production", async () => {
+      // Comparing the enum column to the literal 'postback' used to raise
+      // `invalid input value for enum` and took the admin home page down.
+      const rows = await partnerIntegrationSummary(db, staff);
+
+      expect(rows.map((r) => [r.method, r.partners])).toEqual([
+        ["manual", 1],
+        ["webhook", 1],
+      ]);
+    });
+
+    it("folds a legacy postback partner into webhook where the enum has it", async () => {
+      await conn.unsafe(
+        `ALTER TYPE enum_partners_integration_method ADD VALUE 'postback'`
+      );
+      await conn.unsafe(
+        `UPDATE partners SET integration_method = 'postback' WHERE company_name = 'FreshCart'`
+      );
+
+      const rows = await partnerIntegrationSummary(db, staff);
+
+      expect(rows.map((r) => [r.method, r.partners])).toEqual([["webhook", 2]]);
     });
   });
 
