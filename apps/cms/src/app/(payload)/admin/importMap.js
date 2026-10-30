@@ -72,6 +72,8 @@ import { DiscoverWidget as DiscoverWidget_bba5810d9f91b27f4c3b488ca576e350 } fro
 import { PushWidget as PushWidget_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { ContactExportWidget as ContactExportWidget_97e475a5dc64c58cc30c23eea7083d96 } from '@news-spend-media/payload/components/ContactExport'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { AdsBlockComponent as AdsBlockComponent_3c8043ee96c88c6bbe57280c188e3978 } from '@news-spend-media/payload/blocks/Ads/Component'
+import { ReadAlsoBlockComponent as ReadAlsoBlockComponent_e043488b588017fe9133bf96008c43b2 } from '@news-spend-media/payload/blocks/ReadAlso/Component'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -99,6 +101,8 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@news-spend-media/payload/blocks/TwitterPost/Component#TwitterPostBlockComponent": TwitterPostBlockComponent_960102ca615da00396148986cea79d22,
   "@news-spend-media/payload/blocks/YouTube/Component#YouTubeBlockComponent": YouTubeBlockComponent_27b5acc71c8946877a9ff929001bbdf2,
+  "@news-spend-media/payload/blocks/Ads/Component#AdsBlockComponent": AdsBlockComponent_3c8043ee96c88c6bbe57280c188e3978,
+  "@news-spend-media/payload/blocks/ReadAlso/Component#ReadAlsoBlockComponent": ReadAlsoBlockComponent_e043488b588017fe9133bf96008c43b2,
   "@news-spend-media/payload/blocks/Instagram/Component#InstagramBlockComponent": InstagramBlockComponent_5bdd39b732130a185b0d3442efba495f,
   "@payloadcms/richtext-lexical/client#StrikethroughFeatureClient": StrikethroughFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#SubscriptFeatureClient": SubscriptFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,

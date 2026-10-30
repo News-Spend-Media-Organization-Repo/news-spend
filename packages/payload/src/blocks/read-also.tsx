@@ -7,6 +7,12 @@ export const ReadAlsoBlock: Block = {
     plural: "Read Also",
   },
   interfaceName: "ReadAlsoBlock",
+  admin: {
+    components: {
+      Block:
+        "@news-spend-media/payload/blocks/ReadAlso/Component#ReadAlsoBlockComponent",
+    },
+  },
   fields: [
     {
       name: "news",

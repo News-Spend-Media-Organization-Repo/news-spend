@@ -1,0 +1,1 @@
+export { ReadAlsoBlockComponent } from "./Component";
