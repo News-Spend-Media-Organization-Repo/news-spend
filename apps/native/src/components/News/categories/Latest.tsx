@@ -10,6 +10,7 @@ import { Separator } from "heroui-native/separator";
 import { Spinner } from "heroui-native/spinner";
 import type { JSX, RefObject } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { Dimensions, View } from "react-native";
 import { subscribeKey } from "valtio/utils";
 import type { AdCarouselRef } from "#/components/Ads/AdCarousel";
@@ -37,6 +38,10 @@ import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
 import RelatedNews from "../RelatedNews";
+import {
+  createTrendingVisibility,
+  type TrendingVisibility,
+} from "../trendingCarousel";
 import { buildLatestViewabilityPairs } from "./feedViewability";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
@@ -54,15 +59,18 @@ const MemoizedListHeader = memo(
     news,
     specialCoverage,
     books,
+    trendingVisibility,
   }: {
     news: RouterOutputs["news"]["home"]["docs"];
     specialCoverage: RouterOutputs["news"]["home"]["docs"];
     books: PartnerContent[];
+    trendingVisibility: RefObject<TrendingVisibility>;
   }) => (
     <HomeListHeader
       books={books}
       news={news}
       specialCoverage={specialCoverage}
+      trendingVisibility={trendingVisibility}
     />
   )
 );
@@ -188,7 +196,7 @@ const Latest = memo(
     const flattenedPartnerContent = partnerContent?.data;
 
     const trendingNews = useQuery(
-      orpc.news.trending.queryOptions({ input: { limit: 3 } })
+      orpc.news.trending.queryOptions({ input: { limit: 7 } })
     );
 
     // Articles already shown in the trending carousel shouldn't also appear
@@ -480,6 +488,21 @@ const Latest = memo(
     // #endregion
     useScrollToTop(ref);
 
+    // A ref, not state: updated on every scroll frame without re-rendering.
+    const trendingVisibility = useRef<TrendingVisibility>(
+      createTrendingVisibility()
+    );
+    const onScroll = useCallback(
+      (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const { contentOffset, layoutMeasurement } = event.nativeEvent;
+        const section = trendingVisibility.current;
+        section.visible =
+          contentOffset.y < section.bottom &&
+          contentOffset.y + layoutMeasurement.height > section.top;
+      },
+      []
+    );
+
     // Emits nav_tti for /Tab/Home/NewsHome once the feed has rendered.
     useMarkInteractive(!isPending);
 
@@ -516,15 +539,18 @@ const Latest = memo(
              * restore that hook to bring the section back.
              */
             specialCoverage={EMPTY_DOCS}
+            trendingVisibility={trendingVisibility}
           />
         }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         onRefresh={handleRefresh}
+        onScroll={onScroll}
         recycleItems
         ref={ref}
         refreshing={isRefetchingByUser}
         renderItem={renderItem}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         // suggestEstimatedItemSize
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}

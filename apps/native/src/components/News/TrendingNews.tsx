@@ -1,12 +1,20 @@
 import {
   LegendList,
+  type LegendListRef,
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { News } from "@news-spend-media/payload/types";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { Card } from "heroui-native/card";
-import { useCallback } from "react";
-import { Dimensions, Pressable, type ScrollViewProps } from "react-native";
+import type { RefObject } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import {
+  Dimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  type ScrollViewProps,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useImpressionViewability } from "#/hooks/news/useImpressionViewability";
 import { isAdReady, shouldShowNewsClickAd } from "#/state/adManager";
@@ -14,6 +22,14 @@ import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { getImageData } from "#/utils/getImageData";
 import { Text } from "../heroui/text";
 import { SizedImage } from "../SizedImage";
+import {
+  nextTrendingIndex,
+  TRENDING_AUTO_ADVANCE_MS,
+  type TrendingDirection,
+  type TrendingVisibility,
+} from "./trendingCarousel";
+
+export { nextTrendingIndex } from "./trendingCarousel";
 
 const SPACING = 5;
 const { width, height } = Dimensions.get("window");
@@ -23,7 +39,19 @@ const FULL_SIZE = ITEM_WIDTH + SPACING * 2;
 
 const CustomScrollView = (props: ScrollViewProps) => <ScrollView {...props} />;
 
-export default function TrendingNews({ news }: { news: News[] }) {
+export default function TrendingNews({
+  news,
+  visibilityRef,
+}: {
+  news: News[];
+  visibilityRef?: RefObject<TrendingVisibility>;
+}) {
+  const listRef = useRef<LegendListRef | null>(null);
+  const focused = useIsFocused();
+  const indexRef = useRef(0);
+  const directionRef = useRef<TrendingDirection>(1);
+  const draggingRef = useRef(false);
+  const count = news.length;
   const viewabilityConfigCallbackPairs =
     useImpressionViewability("HomeTrending");
   const renderItem = useCallback(
@@ -33,6 +61,45 @@ export default function TrendingNews({ news }: { news: News[] }) {
     []
   );
 
+  useEffect(() => {
+    if (!focused || count <= 1) {
+      return;
+    }
+    const timer = setInterval(() => {
+      // Never advance while hidden: the impression hook counts any card that
+      // becomes visible, even one the reader has not scrolled to.
+      if (draggingRef.current || visibilityRef?.current?.visible === false) {
+        return;
+      }
+      const next = nextTrendingIndex(
+        indexRef.current,
+        count,
+        directionRef.current
+      );
+      indexRef.current = next.index;
+      directionRef.current = next.direction;
+      listRef.current?.scrollToOffset({
+        offset: next.index * FULL_SIZE,
+        animated: true,
+      });
+    }, TRENDING_AUTO_ADVANCE_MS);
+    return () => clearInterval(timer);
+  }, [focused, count, visibilityRef]);
+
+  const onScrollBeginDrag = useCallback(() => {
+    draggingRef.current = true;
+  }, []);
+  const onScrollEndDrag = useCallback(() => {
+    draggingRef.current = false;
+  }, []);
+  const onMomentumScrollEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const index = Math.round(event.nativeEvent.contentOffset.x / FULL_SIZE);
+      indexRef.current = Math.max(0, Math.min(index, count - 1));
+    },
+    [count]
+  );
+
   return (
     <LegendList
       data={news}
@@ -40,8 +107,12 @@ export default function TrendingNews({ news }: { news: News[] }) {
       estimatedItemSize={355.625}
       horizontal
       keyExtractor={(item, index) => `${item.id}-${index}`}
+      onMomentumScrollEnd={onMomentumScrollEnd}
+      onScrollBeginDrag={onScrollBeginDrag}
+      onScrollEndDrag={onScrollEndDrag}
       pagingEnabled
       recycleItems
+      ref={listRef}
       renderItem={renderItem}
       renderScrollComponent={CustomScrollView}
       showsHorizontalScrollIndicator={false}
