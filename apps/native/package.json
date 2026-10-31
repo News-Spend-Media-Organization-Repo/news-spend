@@ -24,6 +24,7 @@
     "release:minor": "bun pm version minor -m \"chore: bump version to %s\" && git push && git push --tags",
     "release:major": "bun pm version major -m \"chore: bump version to %s\" && git push && git push --tags",
     "submit:prod:ios": "eas submit --platform ios --profile production",
+    "ota:publish": "bash scripts/publish-ota.sh",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch"
   },
