@@ -241,8 +241,17 @@ export const auth = betterAuth({
           );
 
           if (!existing.rows.length) {
-            await pool.query(
-              "INSERT INTO activities (action, description, point, user_id, type, id) VALUES ($1, $2, $3, $4, $5, $6)",
+            /**
+             * The providerRef unique index is the real guard: the SELECT above
+             * can miss a concurrent verify-email, and two inserts then grant
+             * the welcome points twice. One row can ever carry
+             * `signUp:<userId>`, so the loser writes nothing and sends nothing.
+             */
+            const inserted = await pool.query(
+              `INSERT INTO activities (action, description, point, user_id, type, id, provider_ref)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
+               ON CONFLICT (provider_ref) DO NOTHING
+               RETURNING id`,
               [
                 "signUp",
                 "Reward for signing up",
@@ -250,8 +259,12 @@ export const auth = betterAuth({
                 newSession.user.id,
                 "point",
                 randomUUID(),
+                `signUp:${newSession.user.id}`,
               ]
             );
+            if (inserted.rows.length === 0) {
+              return;
+            }
             // CMS template first (real user variables), code template
             // fallback when no published template exists. A send failure
             // must not double-send, so only a missing template falls back.

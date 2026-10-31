@@ -56,11 +56,17 @@ const ShareApp = () => {
         appId: "",
       });
 
-      if (res.success && Platform.OS !== "ios") {
-        const { isInstalled } = await Share.isPackageInstalled(pkg);
-        if (isInstalled) {
-          awardPoint();
+      if (res.success) {
+        // The package check is an Android-only guard against a share sheet
+        // that reported success without sending. Skipping the award on iOS
+        // too meant an iPhone could never earn from WhatsApp or Messenger.
+        if (Platform.OS === "android") {
+          const { isInstalled } = await Share.isPackageInstalled(pkg);
+          if (!isInstalled) {
+            return;
+          }
         }
+        awardPoint();
       }
     } catch (error: any) {
       console.log("Share error:", error.message);
@@ -79,15 +85,11 @@ const ShareApp = () => {
         Icon: ChatDotsIcon,
         onPress: async () => {
           try {
-            const res = await Linking.openURL(
-              `sms:?body=${encodeURIComponent(fullMsg)}`
-            );
-
-            if (res) {
-              awardPoint();
-            } else {
-              toast.error("Could not open SMS. Please try again");
-            }
+            // `Linking.openURL` resolves to nothing; it rejects on failure.
+            // Testing its result meant this always showed an error and never
+            // paid, even when the SMS app opened.
+            await Linking.openURL(`sms:?body=${encodeURIComponent(fullMsg)}`);
+            awardPoint();
           } catch (error) {
             console.error(error);
             toast.error("Could not open SMS. Please try again");
@@ -99,14 +101,11 @@ const ShareApp = () => {
         Icon: EnvelopeSimpleIcon,
         onPress: async () => {
           try {
-            const res = await Linking.openURL(
+            // Same as SMS: the promise carries no result, only failure.
+            await Linking.openURL(
               `mailto:?body=${encodeURIComponent(fullMsg)}`
             );
-            if (res) {
-              awardPoint();
-            } else {
-              toast.error("Could not open Email. Please try again");
-            }
+            awardPoint();
           } catch (error) {
             console.error(error);
             toast.error("Could not open Email. Please try again");

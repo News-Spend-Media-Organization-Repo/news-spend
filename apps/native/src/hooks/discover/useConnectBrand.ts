@@ -41,7 +41,12 @@ export function useConnectBrand(): UseConnectBrandReturn {
   const canEarnPoints = count < MAX_REWARDED_COUNT;
 
   const increment = () => {
-    setData((prev) => ({ count: (prev?.count ?? 0) + 1, date: today() }));
+    setData((prev) => ({
+      // A new day starts from zero. Using yesterday's count let a maxed day
+      // carry 9 into today, which made canEarnPoints false after one ad.
+      count: (prev?.date === today() ? (prev?.count ?? 0) : 0) + 1,
+      date: today(),
+    }));
   };
 
   const onOpen = (): boolean => {
@@ -49,10 +54,11 @@ export function useConnectBrand(): UseConnectBrandReturn {
       return false;
     }
 
-    if (
-      count % LUCKY_WALL_EVERY_N === LUCKY_WALL_EVERY_N - 1 &&
-      canEarnPoints
-    ) {
+    if (!canEarnPoints) {
+      // Still opens: the advertisement can be watched, it just cannot pay
+      // again today. Say so before the fifteen seconds rather than after.
+      toast.error("Daily limit reached. Points resume tomorrow.");
+    } else if (count % LUCKY_WALL_EVERY_N === LUCKY_WALL_EVERY_N - 1) {
       increment();
       navigation.navigate("LuckyAppWall");
       return false;

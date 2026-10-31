@@ -45,6 +45,7 @@ import {
   publicProcedure,
 } from "../index";
 import { createRateLimitMiddleware } from "../lib/ratelimit";
+import { isUniqueViolation } from "./survey/providerPoints";
 
 /**
  * Upper bound on a single purchase. Not a business rule: the quantity is
@@ -1665,15 +1666,30 @@ const claimPrize = protectedNoGuestProcedure
      * A points prize is settled here and now. The credit is written before the
      * claim is recorded, so a failure leaves the prize unclaimed and
      * retryable: the reverse order would mark it claimed with nothing paid.
+     *
+     * The provider ref is what makes two simultaneous claims pay once: the
+     * unique index refuses the second credit, and the claim is then refused
+     * rather than recording a second win.
      */
     if (requirements.instant && pointsAmount > 0) {
-      await payload.db.drizzle.insert(activities).values({
-        user: user.id,
-        type: "point",
-        action: "lottery",
-        point: pointsAmount,
-        description: `Giveaway prize: ${winner.prizeName}`,
-      });
+      try {
+        await payload.create({
+          collection: "activities",
+          data: {
+            user: user.id,
+            type: "point",
+            action: "lottery",
+            point: pointsAmount,
+            description: `Giveaway prize: ${winner.prizeName}`,
+            providerRef: `claim:${winner.id}`,
+          },
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw errors.CONFLICT({ message: "This prize was already paid." });
+        }
+        throw error;
+      }
     }
 
     const updated = await payload.update({

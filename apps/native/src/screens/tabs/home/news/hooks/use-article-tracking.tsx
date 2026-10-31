@@ -128,7 +128,10 @@ export function useArticleTracking(data: ReturnType<typeof useNews>["data"]) {
         },
         {
           onSuccess: (res) => {
-            if (res?.message === "ALREADY_READ") {
+            if (
+              res?.message === "ALREADY_READ" ||
+              res?.message === "CAP_REACHED"
+            ) {
               return;
             }
             toast.success("Points earned", {

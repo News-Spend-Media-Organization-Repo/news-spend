@@ -179,6 +179,9 @@ export const APP_SHARE_POINTS = 20;
 /** The connect-a-brand award. */
 export const CONNECT_BRAND_AD_POINTS = 10;
 
+/** Articles that pay per day, the same limit the app's reader tracker uses. */
+export const DAILY_READ_CAP = 5;
+
 const ALLOWED_ACTIONS = ["read", "share", "connectBrandAd"] as const;
 
 type AllowedAction = (typeof ALLOWED_ACTIONS)[number];
@@ -313,7 +316,9 @@ export async function addClientActivity(
   const award = await decideAward(ctx, input.action, input);
   const lockKey =
     input.action === "read"
-      ? `activity:read:${user.id}:${award.newsId}`
+      ? // Per user, not per article: the daily read cap is a user total, so
+        // two different articles arriving together must not both see 4.
+        `activity:read:${user.id}`
       : `activity:${input.action}:${user.id}`;
 
   return withKeyedLock(lockKey, async () => {
@@ -337,6 +342,30 @@ export async function addClientActivity(
         return {
           data: reward.docs[0],
           message: "ALREADY_READ",
+          pointsAwarded: 0,
+        };
+      }
+
+      /**
+       * The app stops asking after five reads, but that limit lived only in
+       * the client. Counted from the ledger so it is the same under a stale
+       * session, a reinstall, or a modified build.
+       */
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const readsToday = await payload.count({
+        collection: "activities",
+        where: {
+          and: [
+            { user: { equals: user.id } },
+            { action: { equals: "read" } },
+            { createdAt: { greater_than_equal: startOfDay.toISOString() } },
+          ],
+        },
+      });
+      if (readsToday.totalDocs >= DAILY_READ_CAP) {
+        return {
+          message: "CAP_REACHED",
           pointsAwarded: 0,
         };
       }

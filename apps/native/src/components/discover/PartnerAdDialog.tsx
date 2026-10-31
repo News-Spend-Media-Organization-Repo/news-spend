@@ -93,6 +93,13 @@ export function PartnerAdDialog({
 
   // ── Dialog open state ────────────────────────────────────────────────────────
   const [internalOpen, setInternalOpen] = useState(false);
+  /**
+   * The rotation asked for a Google ad, but none was loaded, so the partner ad
+   * is shown instead. Kept as state rather than derived so the dialog keeps
+   * showing it for the whole watch even if the Google ad finishes loading.
+   */
+  const [fallbackToPartner, setFallbackToPartner] = useState(false);
+  const showingPartner = adType === "custom" || fallbackToPartner;
 
   /**
    * Whether there is actually something to render.
@@ -103,7 +110,7 @@ export function PartnerAdDialog({
    * loaded), used to get a modal with nothing in it. The check lives here,
    * where both paths meet.
    */
-  const showable = adType === "custom" && Boolean(ad);
+  const showable = showingPartner && Boolean(ad);
   const isOpen = (externalOpen ?? internalOpen) && showable;
   const setIsOpen = externalSetOpen ?? setInternalOpen;
 
@@ -118,7 +125,7 @@ export function PartnerAdDialog({
    */
   const { countdown, reset: resetCountdown } = useAdCountdown({
     duration: countdownDuration,
-    enabled: isOpen && adType === "custom",
+    enabled: isOpen && showingPartner,
     onComplete: () => onCountdownComplete?.(ad),
   });
 
@@ -174,8 +181,16 @@ export function PartnerAdDialog({
     resetCountdown();
     refetchAd();
     cycleAdType();
+    setFallbackToPartner(false);
     onClose?.();
-  }, [setIsOpen, resetCountdown, refetchAd, cycleAdType, onClose]);
+  }, [
+    setIsOpen,
+    resetCountdown,
+    refetchAd,
+    cycleAdType,
+    onClose,
+    setFallbackToPartner,
+  ]);
 
   /**
    * Hand control straight back when opened from outside with nothing to show.
@@ -199,7 +214,7 @@ export function PartnerAdDialog({
   }, [externalOpen, showable, isLoading, handleDidClose]);
 
   const handleClose = useCallback(() => {
-    if (adType === "custom" && countdown > 0) {
+    if (showingPartner && countdown > 0) {
       Alert.alert(
         "Close Advertisement",
         "You will lose the chance to earn points",
@@ -212,7 +227,7 @@ export function PartnerAdDialog({
       return;
     }
     handleDidClose();
-  }, [adType, countdown, handleDidClose]);
+  }, [showingPartner, countdown, handleDidClose]);
 
   // Handles open/close transitions. The `open === true` branch is the single
   // entry point for user-initiated opens (whether from Dialog.Trigger, external
@@ -230,15 +245,32 @@ export function PartnerAdDialog({
         return;
       }
 
-      // Native ad path → show Google ad or fall back to LuckyAppWall.
+      // Native ad path → show Google if it is ready, otherwise fall back to a
+      // partner ad, and only then to the LuckyAppWall.
       if (adType === "native") {
         if (googleAd.isLoaded) {
           googleAd.show();
-        } else {
-          onUnavailable?.();
-          if (fallbackToAppWall) {
-            navigate("LuckyAppWall");
-          }
+          return;
+        }
+        // Still fetching is not "nothing to show": wait rather than navigate
+        // away from the screen the person just chose.
+        if (isLoading) {
+          return;
+        }
+        if (ad) {
+          /**
+           * The Google ad is not loaded, which on Android is the normal state
+           * straight after the previous one. Bouncing to the app wall here is
+           * what made only the first Connect Brands open of a session pay;
+           * the partner ad already fetched for the rotation can pay instead.
+           */
+          setFallbackToPartner(true);
+          setIsOpen(true);
+          return;
+        }
+        onUnavailable?.();
+        if (fallbackToAppWall) {
+          navigate("LuckyAppWall");
         }
         return;
       }
@@ -275,6 +307,7 @@ export function PartnerAdDialog({
       fallbackToAppWall,
       onUnavailable,
       setIsOpen,
+      setFallbackToPartner,
       handleClose,
     ]
   );
@@ -366,7 +399,7 @@ export function PartnerAdDialog({
 
   // ── Dialog content ────────────────────────────────────────────────────────────
   const dialogContent =
-    adType === "custom" && ad ? (
+    showingPartner && ad ? (
       <PartnerAdContent
         ad={ad}
         onAdClick={handleAdClick}
@@ -390,7 +423,7 @@ export function PartnerAdDialog({
         >
           {/* Close / countdown button */}
           <View className="z-10 mt-safe-offset-0 flex-row items-center self-end rounded-full bg-[#f5f5f5] px-2">
-            {adType === "custom" && countdown > 0 ? (
+            {showingPartner && countdown > 0 ? (
               <Text className="mr-1 text-sm">{`Reward in ${countdown} seconds`}</Text>
             ) : null}
             <PressableFeedback
