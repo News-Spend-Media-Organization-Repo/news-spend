@@ -10,7 +10,7 @@ if [ -z "${EXPO_PUBLIC_API_URL:-}" ]; then
 fi
 
 rm -rf dist
-npx expo export --platform all
+npx expo export --platform ios --platform android --source-maps
 
 # The URL is inlined at export time, so a bundle built without it would still
 # export cleanly. Look for it in the Hermes bytecode before anything is uploaded.

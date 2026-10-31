@@ -108,7 +108,14 @@ export function usePartnerClick() {
       ios: item.links?.iosAppStore,
       android: item.links?.androidPlayStore,
     });
-    let url = storeUrl ?? item.links?.website;
+    /**
+     * Blank fields are saved as "", and `"" ?? website` is "" — a dead tap
+     * with no event, no conversion and no browser. Take the first link that
+     * actually has content, the same rule PartnerAdDialog already uses.
+     */
+    const firstUsable = (...candidates: (string | null | undefined)[]) =>
+      candidates.map((candidate) => candidate?.trim()).find(Boolean);
+    let url = firstUsable(storeUrl, item.links?.website);
 
     if (!url) {
       return;
@@ -121,7 +128,7 @@ export function usePartnerClick() {
       return;
     }
 
-    const isStoreLink = Boolean(storeUrl);
+    const isStoreLink = Boolean(storeUrl?.trim());
 
     // Recorded for everyone, guests included, and independent of the CPA
     // mutation below: this feeds the partner's tap count, not attribution.

@@ -406,6 +406,52 @@ describe("activity.add concurrency and caps", () => {
     expect(results.filter((r) => r?.message === "CAP_REACHED")).toHaveLength(1);
   });
 
+  it("stops paying for a sixth article in a day, even a new one", async () => {
+    const today = new Date().toISOString();
+    const { ctx, payload } = contextWith({
+      activities: Array.from({ length: 5 }, (_, i) =>
+        activity({
+          id: `read-${i}`,
+          action: "read",
+          news: `other-${i}`,
+          createdAt: today,
+        })
+      ),
+    });
+
+    const result = await call(
+      activityRouter.add,
+      { action: "read", newsId: "news-1" },
+      { context: ctx }
+    );
+
+    expect(result).toMatchObject({ message: "CAP_REACHED", pointsAwarded: 0 });
+    expect(payload.docs("activities")).toHaveLength(5);
+  });
+
+  it("does not count yesterday's reads against today", async () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { ctx, payload } = contextWith({
+      activities: Array.from({ length: 5 }, (_, i) =>
+        activity({
+          id: `read-${i}`,
+          action: "read",
+          news: `other-${i}`,
+          createdAt: yesterday,
+        })
+      ),
+    });
+
+    const result = await call(
+      activityRouter.add,
+      { action: "read", newsId: "news-1" },
+      { context: ctx }
+    );
+
+    expect(result).toMatchObject({ pointsAwarded: 25 });
+    expect(payload.docs("activities")).toHaveLength(6);
+  });
+
   it("stops awarding shares once the daily cap is reached", async () => {
     const today = new Date().toISOString();
     const { ctx, payload } = contextWith({

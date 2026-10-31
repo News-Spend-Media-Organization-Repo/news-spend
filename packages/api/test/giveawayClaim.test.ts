@@ -74,6 +74,8 @@ function createContext({
     giveaways,
   };
   const points: number[] = [];
+  /** What the unique index on `provider_ref` would refuse a second time. */
+  const providerRefs = new Set<string>();
 
   const payload: any = {
     logger: { error: () => undefined, warn: () => undefined },
@@ -85,6 +87,21 @@ function createContext({
           },
         }),
       },
+    },
+    create: async ({ collection, data }: Row) => {
+      if (collection === "activities") {
+        if (data.providerRef && providerRefs.has(data.providerRef)) {
+          throw Object.assign(new Error("Value must be unique"), {
+            name: "ValidationError",
+            data: { errors: [{ path: "providerRef" }] },
+          });
+        }
+        if (data.providerRef) {
+          providerRefs.add(data.providerRef);
+        }
+        points.push(data.point);
+      }
+      return { id: `${collection}-${points.length}`, ...data };
     },
     findByID: async ({ collection, id }: Row) =>
       collections[collection]?.find((row) => row.id === id) ?? null,
@@ -478,6 +495,33 @@ describe("giveaway.claimPrize (spec 21)", () => {
     expect(collections["giveaway-winners"]?.[0]?.fulfilmentStatus).toBe(
       "fulfilled"
     );
+  });
+
+  it("never pays the same prize twice", async () => {
+    const { ctx, points, collections } = createContext({
+      winners: [
+        winnerRow({
+          prize: prize({ fulfilmentType: "points", pointsAmount: 500 }),
+          prizeName: "500 Points",
+        }),
+      ],
+    });
+
+    await call(giveawayRouter.claimPrize, { winnerId: "w1" }, { context: ctx });
+
+    // A retry after the credit was written but before the claim was recorded:
+    // the claim still reads unclaimed, and the credit must be refused.
+    const row = collections["giveaway-winners"]?.[0];
+    if (row) {
+      row.claimStatus = "unclaimed";
+    }
+
+    const error = await captureError(
+      call(giveawayRouter.claimPrize, { winnerId: "w1" }, { context: ctx })
+    );
+
+    expect(error.code).toBe("CONFLICT");
+    expect(points).toEqual([500]);
   });
 
   it("requires a phone number for airtime", async () => {

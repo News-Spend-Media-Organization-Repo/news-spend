@@ -39,9 +39,16 @@ cd "$(dirname "$0")/.."
 
 eas env:exec "$branch" "bash scripts/ota-export.sh"
 
+# The uploader exits 0 even when it finds nothing to upload, so read its output.
+upload_log="$(mktemp)"
 SENTRY_ORG="${SENTRY_ORG:-news-spend-media}" \
   SENTRY_PROJECT="${SENTRY_PROJECT:-news-spend-media}" \
-  npx sentry-expo-upload-sourcemaps dist
+  npx sentry-expo-upload-sourcemaps dist 2>&1 | tee "$upload_log"
+
+if grep -q "Uploaded 0 of" "$upload_log" || ! grep -q "Uploaded bundles and sourcemaps to Sentry successfully" "$upload_log"; then
+  echo "Sourcemaps were not uploaded; not publishing." >&2
+  exit 1
+fi
 
 eas update --branch "$branch" --environment "$branch" --platform all \
   --skip-bundler -m "$message" --non-interactive
