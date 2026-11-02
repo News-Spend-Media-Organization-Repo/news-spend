@@ -103,22 +103,28 @@ const PlayLottery = () => {
   const hoursLeft = target ? differenceInHours(target, now) % 24 : 0;
   const minutesLeft = target ? differenceInMinutes(target, now) % 60 : 0;
 
-  let timeLeft: string;
+  /**
+   * Name what is being counted to. The same amount meant "until it opens" on a
+   * scheduled giveaway and "until it closes" on an open one, under one
+   * unlabelled "Countdown" — so the only way to tell them apart was the button.
+   */
+  let countdown: string;
   if (isLoading) {
-    timeLeft = "Loading...";
+    countdown = "Loading...";
   } else if (!currentGiveaway) {
-    timeLeft = "No active giveaway";
+    countdown = "No active giveaway";
   } else if (hasEnded) {
-    timeLeft = "Ended";
-  } else if (daysLeft > 0) {
-    timeLeft = `${daysLeft}d ${hoursLeft}h`;
-  } else if (hoursLeft > 0) {
-    timeLeft = `${hoursLeft}h ${minutesLeft}m`;
+    countdown = "Ended";
   } else {
-    timeLeft = `${minutesLeft}m`;
+    const amount =
+      daysLeft > 0
+        ? `${daysLeft}d ${hoursLeft}h`
+        : hoursLeft > 0
+          ? `${hoursLeft}h ${minutesLeft}m`
+          : `${minutesLeft}m`;
+    countdown = `${isOpen ? "Ends" : "Starts"} in ${amount}`;
   }
 
-  const showLeftSuffix = !(isLoading || !currentGiveaway || hasEnded);
   const hasActiveLottery = !isLoading && isOpen;
   const enterButtonLabel = isLoading
     ? "Loading..."
@@ -185,10 +191,7 @@ const PlayLottery = () => {
         </View>
 
         <View className="items-center justify-center">
-          <Text className="font-semibold text-lg">
-            Countdown: {timeLeft}
-            {showLeftSuffix ? " left" : ""}
-          </Text>
+          <Text className="font-semibold text-lg">{countdown}</Text>
           <Text className="text-xl">
             Total Participants:{" "}
             <Text className="font-bold text-s-500">

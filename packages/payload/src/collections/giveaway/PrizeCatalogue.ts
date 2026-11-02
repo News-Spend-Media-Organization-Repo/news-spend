@@ -21,6 +21,26 @@ const networkLabel = (network: string): string =>
   RELOADLY_NETWORK_OPTIONS.find((n) => n.value === network)?.label ?? network;
 
 /**
+ * An airtime prize needs an amount somewhere, or fulfilment discovers it has
+ * nothing to send only after a winner has claimed. Either field is accepted
+ * because `fulfilPrizes` falls back from the Reloadly amount to the retail
+ * value.
+ */
+export function airtimeAmountError(
+  fulfilmentType: string | null | undefined,
+  reloadlyLocalAmount: number | null | undefined,
+  valueNaira: number | null | undefined
+): string | true {
+  if (fulfilmentType !== "airtime") {
+    return true;
+  }
+  if (Number(reloadlyLocalAmount) > 0 || Number(valueNaira) > 0) {
+    return true;
+  }
+  return "An airtime prize needs a Reloadly amount or a Value (₦), or fulfilment will fail when a winner claims it.";
+}
+
+/**
  * Master Prize Catalogue (spec 2).
  *
  * The single source of truth for all prize definitions. Every prize belongs to
@@ -342,6 +362,12 @@ export const PrizeCatalogue: CollectionConfig = {
             "@news-spend-media/payload/components/ReloadlyProductSelector#AirtimeProductField",
         },
       },
+      validate: (value: number | null | undefined, { siblingData }: any) =>
+        airtimeAmountError(
+          siblingData?.fulfilmentType,
+          value,
+          siblingData?.valueNaira
+        ),
     },
     {
       name: "reloadlyDataPlans",
