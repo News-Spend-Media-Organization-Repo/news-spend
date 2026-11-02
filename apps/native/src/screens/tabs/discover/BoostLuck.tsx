@@ -20,6 +20,9 @@ const BoostLuck = () => {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
   const { data } = useQuery(orpc.giveaway.progress.queryOptions());
+  const { data: currentGiveaway } = useQuery(
+    orpc.giveaway.current.queryOptions()
+  );
   const boostLuckMutation = useMutation(
     orpc.giveaway.recordEngagement.mutationOptions({
       onSuccess: () => {
@@ -164,6 +167,29 @@ const BoostLuck = () => {
     timeLeft = `${hoursLeft} hour${hoursLeft === 1 ? "" : "s"}`;
   }
 
+  /**
+   * A giveaway switched on ahead of its start date has no `progress` to report,
+   * which used to read as "no giveaway running" — the opposite of the truth.
+   * `current` says whether one is scheduled, so this screen can say when it
+   * opens instead.
+   */
+  const scheduledStart =
+    currentGiveaway?.state === "pending"
+      ? new Date(currentGiveaway.startDate)
+      : null;
+  const daysUntilStart = scheduledStart
+    ? differenceInDays(scheduledStart, now)
+    : 0;
+  const hoursUntilStart = scheduledStart
+    ? differenceInHours(scheduledStart, now)
+    : 0;
+  const startsIn =
+    daysUntilStart > 1
+      ? `${daysUntilStart} days`
+      : hoursUntilStart < 1
+        ? "less than an hour"
+        : `${hoursUntilStart} hour${hoursUntilStart === 1 ? "" : "s"}`;
+
   return (
     <Screen className="gap-4 pb-safe" statusBarStyle="light">
       <ScreenHeader
@@ -183,16 +209,26 @@ const BoostLuck = () => {
           <Text className="text-center text-xl">
             Win Dream Points, airtime, data bundles, and other prizes
           </Text>
-          {endDate ? (
+          {currentGiveaway?.state === "pending" ? (
             <Text className="text-center">
-              Countdown: <Text className="text-lg text-p-500">{timeLeft}</Text>{" "}
-              left
+              Starts in <Text className="text-lg text-p-500">{startsIn}</Text>
             </Text>
+          ) : currentGiveaway?.state === "closed" ? (
+            <Text className="text-center">
+              Giveaway ended — waiting for the draw
+            </Text>
+          ) : currentGiveaway?.state === "open" ? (
+            endDate ? (
+              <Text className="text-center">
+                Ends in <Text className="text-lg text-p-500">{timeLeft}</Text>
+              </Text>
+            ) : (
+              <Text className="text-center">Giveaway in progress</Text>
+            )
           ) : (
-            /* Its own sentence rather than dropped into the countdown above,
-               which read as "Countdown: no giveaway running left". `progress`
-               now returns null instead of throwing for this state, so it is a
-               state the screen reaches on purpose and has to say properly. */
+            /* `progress` returns null for every state but open, so the message
+               has to come from `current`; otherwise a scheduled or closed
+               giveaway reads as no giveaway at all. */
             <Text className="text-center">No giveaway running right now</Text>
           )}
         </View>
