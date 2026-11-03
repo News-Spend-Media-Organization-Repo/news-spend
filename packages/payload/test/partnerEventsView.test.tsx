@@ -88,8 +88,13 @@ describe("partner events panels", () => {
   it("shows impressions, taps and a dash for a missing tap-through", () => {
     const out = html(
       <PartnerEventsKpis
-        current={totals({ impressions: 1234, taps: 0, tapThrough: null })}
-        previous={totals()}
+        current={totals({
+          impressions: 1234,
+          taps: 0,
+          tapThrough: null,
+          starts: 50,
+        })}
+        previous={totals({ starts: 100 })}
       />
     );
 
@@ -98,6 +103,8 @@ describe("partner events panels", () => {
     expect(out).toContain("Taps");
     expect(out).toContain("Tap-through");
     expect(out).toContain(">—<");
+    // The started card compares against the previous period, like the others.
+    expect(out).toContain("-50%");
   });
 
   it("says the figures are reported by the app and what is not counted", () => {

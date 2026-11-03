@@ -85,6 +85,7 @@ export function PartnerEventsKpis({
         value={rate(current.tapThrough)}
       />
       <Kpi
+        change={describeChange(current.starts, previous.starts)}
         label="Videos started"
         note={versus}
         tag="reported"
