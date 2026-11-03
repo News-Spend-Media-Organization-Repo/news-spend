@@ -27,6 +27,7 @@ import {
   analyticsViews,
   articleStatsView,
   giveawayStatsView,
+  partnerContentPerformanceView,
   partnerPerformanceView,
   pointsPageView,
   retentionPageView,
@@ -289,6 +290,16 @@ describe("tabs", () => {
     expect(showsPerformance(appUser)).toBe(false);
   });
 
+  it("shows a content item's Performance tab to staff and to a partner, not to others", () => {
+    const shows = (user: unknown) =>
+      partnerContentPerformanceView.tab.condition(args(user));
+
+    expect(shows(staff)).toBe(true);
+    expect(shows(partnerA)).toBe(true);
+    expect(shows(unassignedPartner)).toBe(false);
+    expect(shows(appUser)).toBe(false);
+  });
+
   it("shows a giveaway's Stats tab to staff only", () => {
     const shows = (user: unknown) =>
       giveawayStatsView.tab.condition(args(user));
@@ -329,6 +340,18 @@ describe("a screen refuses a viewer it is not for, whatever the address", () => 
     );
 
     const out = html(await components.GiveawayStatsView(props));
+
+    expect(out).toContain(NO_ACCESS);
+    expect(queries).toHaveLength(0);
+  });
+
+  it("won't show a content item's performance to someone with no scope, and won't query", async () => {
+    const { props, queries } = docProps(
+      appUser,
+      "33333333-3333-4333-8333-333333333333"
+    );
+
+    const out = html(await components.PartnerContentPerformanceView(props));
 
     expect(out).toContain(NO_ACCESS);
     expect(queries).toHaveLength(0);

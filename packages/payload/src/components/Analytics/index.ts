@@ -5,6 +5,7 @@ export {
   AnalyticsPageView,
   ArticleStatsView,
   GiveawayStatsView,
+  PartnerContentPerformanceView,
   PartnerEventsPageView,
   PartnerPerformanceView,
   PointsPageView,

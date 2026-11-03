@@ -2,6 +2,7 @@ import { type CollectionConfig, ValidationError } from "payload";
 import { z } from "zod";
 import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
+import { partnerContentPerformanceView } from "../components/Analytics/tabs";
 import { partnerContentGuideView } from "../components/PartnerContentGuide/tabs";
 import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
@@ -148,15 +149,7 @@ const isBannerType = (data: any) => ["banner"].includes(data?.type);
  */
 const MAX_VIDEO_UPLOAD_BYTES = 15 * 1024 * 1024;
 
-// ─── YouTube thumbnail helper ─────────────────────────────────────────────────
-export const getYoutubeThumbnailUrl = (url: string): string | null => {
-  const match = url.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-  );
-  return match
-    ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`
-    : null;
-};
+// ─── Video ────────────────────────────────────────────────────────────────────
 
 export const PartnerContent: CollectionConfig = {
   slug: "partner-content",
@@ -170,6 +163,7 @@ export const PartnerContent: CollectionConfig = {
       views: {
         edit: {
           guide: partnerContentGuideView,
+          performance: partnerContentPerformanceView,
         },
       },
     },
@@ -497,7 +491,6 @@ export const PartnerContent: CollectionConfig = {
               type: "select",
               options: [
                 { label: "Uploaded File", value: "UPLOAD" },
-                { label: "YouTube", value: "YOUTUBE" },
                 { label: "External URL", value: "EXTERNAL" },
               ],
               admin: {
@@ -521,21 +514,14 @@ export const PartnerContent: CollectionConfig = {
               name: "videoUrl",
               type: "text",
               admin: {
-                description:
-                  "YouTube URL (https://youtube.com/watch?v=...) or direct .mp4 link",
+                description: "Direct .mp4 link",
                 condition: (data) =>
-                  data?.type === "video" &&
-                  ["YOUTUBE", "EXTERNAL"].includes(data?.videoType),
+                  data?.type === "video" && data?.videoType === "EXTERNAL",
               },
               // @ts-expect-error
               validate: (val: any, { data }) => {
                 if (!val) {
                   return true;
-                }
-                if (data?.videoType === "YOUTUBE") {
-                  return /youtube\.com\/watch\?v=|youtu\.be\//.test(val)
-                    ? true
-                    : "Must be a valid YouTube URL (e.g. https://youtube.com/watch?v=VIDEO_ID)";
                 }
                 if (data?.videoType === "EXTERNAL") {
                   return z.url().safeParse(val).success
