@@ -23,9 +23,13 @@ const FEED_SURFACE: AdPlacement = "homepage-ads-banner";
  * between lists, so the callback takes the item as `unknown` and reads only the
  * fields it needs.
  */
-type PartnerFeedToken = { index: number; isViewable: boolean; item?: unknown };
+type PartnerFeedToken = {
+  index: number | null;
+  isViewable: boolean;
+  item?: unknown;
+};
 
-function partnerContentId(item: unknown): string | undefined {
+function partnerAdRowId(item: unknown): string | undefined {
   if (!item || typeof item !== "object") {
     return;
   }
@@ -41,20 +45,47 @@ function partnerContentId(item: unknown): string | undefined {
   return isPartnerRow && typeof id === "string" ? id : undefined;
 }
 
+/** A direct partner content row, as the Discover lists hold them. */
+export function partnerContentRowId(item: unknown): string | undefined {
+  if (!item || typeof item !== "object") {
+    return;
+  }
+  const row = item as { id?: unknown; type?: unknown };
+  return typeof row.id === "string" && row.type !== "gAd" ? row.id : undefined;
+}
+
+type PartnerImpressionOptions = {
+  /** The placement the list was fetched with. */
+  surface?: AdPlacement;
+  /** How to read the content id out of one row; lists wrap them differently. */
+  contentIdFor?: (item: unknown) => string | undefined;
+};
+
 /**
- * Partner impression tracking for the home feed lists: in-house ad rows and
- * promo-media rows, never Google ads or articles. Paired with
- * IMPRESSION_VIEWABILITY_CONFIG, so `isViewable` means 50% for one second.
+ * Partner impression tracking for a top-level list: in-house ad rows, promo
+ * media, or partner content items. Paired with IMPRESSION_VIEWABILITY_CONFIG,
+ * so `isViewable` means 50% for one second.
  *
- * Like useImpressionViewability, only for a top-level list whose viewport is
- * the screen, not one nested inside a scrolling parent.
+ * Only for a list whose viewport is the screen. A carousel nested inside a
+ * scrolling parent has no viewability of its own, and its items would never
+ * be reported.
  */
-export function usePartnerImpressionViewability() {
+export function usePartnerImpressionViewability({
+  surface = FEED_SURFACE,
+  contentIdFor = partnerAdRowId,
+}: PartnerImpressionOptions = {}) {
   const { trackImpression } = usePartnerEvents();
   const trackRef = useRef(trackImpression);
   useEffect(() => {
     trackRef.current = trackImpression;
   }, [trackImpression]);
+
+  const surfaceRef = useRef(surface);
+  const contentIdForRef = useRef(contentIdFor);
+  useEffect(() => {
+    surfaceRef.current = surface;
+    contentIdForRef.current = contentIdFor;
+  }, [surface, contentIdFor]);
 
   // Stable, because the list re-reads it whenever the reference changes.
   return useRef([
@@ -69,9 +100,13 @@ export function usePartnerImpressionViewability() {
           if (!token.isViewable) {
             continue;
           }
-          const contentId = partnerContentId(token.item);
+          const contentId = contentIdForRef.current(token.item);
           if (contentId) {
-            trackRef.current(contentId, FEED_SURFACE, token.index);
+            trackRef.current(
+              contentId,
+              surfaceRef.current,
+              token.index ?? undefined
+            );
           }
         }
       },
