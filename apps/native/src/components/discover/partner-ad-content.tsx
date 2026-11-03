@@ -1,5 +1,4 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useIsFocused } from "@react-navigation/native";
 import { useEvent, useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -65,7 +64,6 @@ export function PartnerAdContent({
 }: PartnerAdContentProps) {
   const { width, height } = useWindowDimensions();
   const { isDataSaverActive } = useVideoSettings();
-  const isFocused = useIsFocused();
   const [appActive, setAppActive] = useState(
     AppState.currentState === "active"
   );
@@ -194,10 +192,9 @@ export function PartnerAdContent({
   }, [isUploadedVideoAd, videoUrl, player, isDataSaverActive]);
 
   /*
-   * Stop when the screen or the app loses focus, and pick the video back up
-   * when it returns. Without the resume, leaving for an advertiser's page
-   * left the player paused and the reward countdown frozen; without the
-   * focus half, the ad kept playing (audio included) behind the browser.
+   * Stop when the app backgrounds, and pick the video back up when it
+   * returns. A click-through closes the ad before handing off, so there is no
+   * ad left playing behind the browser to pause here.
    *
    * Only a video that was already playing resumes: a deliberate pause stays
    * paused, and a data-saver ad nobody started does not start on return.
@@ -215,7 +212,7 @@ export function PartnerAdContent({
     if (!isUploadedVideoAd) {
       return;
     }
-    if (isFocused && appActive) {
+    if (appActive) {
       if (resumeOnFocus.current) {
         resumeOnFocus.current = false;
         player.play();
@@ -224,7 +221,7 @@ export function PartnerAdContent({
       resumeOnFocus.current = isPlayingRef.current;
       player.pause();
     }
-  }, [appActive, isFocused, isUploadedVideoAd, player]);
+  }, [appActive, isUploadedVideoAd, player]);
 
   useEffect(() => {
     if (!isUploadedVideoAd) {
