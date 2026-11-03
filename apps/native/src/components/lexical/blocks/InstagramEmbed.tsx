@@ -92,9 +92,11 @@ export function InstagramEmbed({
           </View>
         )}
         <WebView
+          allowsInlineMediaPlayback
           domStorageEnabled
           injectedJavaScript={INJECTED_JS}
           javaScriptEnabled
+          mediaPlaybackRequiresUserAction={false}
           mixedContentMode="always"
           onMessage={(event) => {
             const height = Number.parseInt(event.nativeEvent.data, 10);
