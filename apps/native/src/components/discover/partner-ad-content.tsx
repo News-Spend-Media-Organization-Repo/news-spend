@@ -242,9 +242,9 @@ export function PartnerAdContent({
                 size="sm"
               >
                 {muted ? (
-                  <SpeakerHighIcon color="white" size={18} />
-                ) : (
                   <SpeakerSlashIcon color="white" size={18} />
+                ) : (
+                  <SpeakerHighIcon color="white" size={18} />
                 )}
               </Button>
             </View>
