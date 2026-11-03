@@ -68,6 +68,16 @@ export function usePartnerAd({
      * inventory is added, campaigns end, and rotation is the point.
      */
     staleTime: 60_000,
+    /**
+     * Do not rotate the creative under the viewer.
+     *
+     * The app coming back to the foreground used to refetch this query, and
+     * `getOne` picks at random: a video ad could be replaced by an image
+     * creative while it was on screen, which left the reward countdown gated
+     * on a player that no longer existed. Rotation happens on close, through
+     * `refetchAd`.
+     */
+    refetchOnWindowFocus: false,
   });
 
   const query = useQuery({

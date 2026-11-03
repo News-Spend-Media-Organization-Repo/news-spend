@@ -26,6 +26,7 @@ import { XIcon } from "#/lib/icons";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { navigate } from "#/navigation/navigationUtils";
+import { resolvePartnerLink } from "#/utils/adLink";
 import { getImageData } from "#/utils/getImageData";
 import { openStoreLink } from "#/utils/openStoreLink";
 
@@ -155,21 +156,23 @@ export function DialogWithAd({
   };
 
   const handlePress = async () => {
-    const urlToOpen =
-      Platform.select({
-        ios: ad.data?.links?.iosAppStore,
-        android: ad.data?.links?.androidPlayStore,
-      }) ?? ad.data?.links?.website;
+    const link = resolvePartnerLink(
+      ad.data?.links,
+      Platform.OS === "android" ? "android" : "ios"
+    );
 
-    if (!urlToOpen) {
+    if (!link) {
       toast.error("No link available for this ad.");
       return;
     }
+    // Close first: the dialog's portal floats above a pushed screen.
+    setOpen(false);
     // `openStoreLink` retries through the Play Store's own scheme when a phone
-    // refuses the https link; the in-app page is the last resort.
-    if (!(await openStoreLink(urlToOpen))) {
+    // refuses the https link; the in-app page is the last resort. A website
+    // goes straight to the in-app browser, never to Safari.
+    if (!(link.isStore && (await openStoreLink(link.url)))) {
       navigate("InAppBrowser", {
-        url: urlToOpen,
+        url: link.url,
         title: ad.data?.title ?? "",
         confirmOnLeave: false,
       });

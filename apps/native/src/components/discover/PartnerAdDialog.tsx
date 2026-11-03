@@ -24,6 +24,7 @@ import { authClient } from "#/lib/authClient";
 import { XIcon } from "#/lib/icons";
 import { navigate } from "#/navigation/navigationUtils";
 import type { AdPlacement } from "#/state/adManager";
+import { resolvePartnerLink } from "#/utils/adLink";
 import { resolveAdSurface } from "#/utils/adSurface";
 import { openStoreLink } from "#/utils/openStoreLink";
 
@@ -356,23 +357,13 @@ export function PartnerAdDialog({
 
     /*
      * The store link is preferred where there is one, falling back to the
-     * campaign's landing page.
-     *
-     * `??` alone was not enough: the CMS url fields save "" rather than null
-     * when an author leaves them blank, and "" is not nullish, so the
-     * fallback never ran and the tap opened nothing at all. The Ogwugo
-     * campaign is live in exactly that state — both store fields empty
-     * strings, a perfectly good website, and a dead call to action.
+     * campaign's landing page. Only a store link is handed to the OS: an
+     * `https://` website through `Linking.openURL` leaves the app for Safari
+     * or Chrome, which drops the viewer out of the ad flow entirely.
      */
-    const firstUsable = (...candidates: (string | null | undefined)[]) =>
-      candidates.map((c) => c?.trim()).find((c) => Boolean(c));
-
-    const link = firstUsable(
-      Platform.select({
-        ios: ad?.links?.iosAppStore,
-        android: ad?.links?.androidPlayStore,
-      }),
-      ad?.links?.website
+    const link = resolvePartnerLink(
+      ad?.links,
+      Platform.OS === "android" ? "android" : "ios"
     );
 
     if (link && ad) {
@@ -381,19 +372,29 @@ export function PartnerAdDialog({
     }
 
     /*
+     * The ad ends with the tap. Leaving the dialog open while the in-app
+     * browser is pushed put a full-window overlay above the page, and leaving
+     * it open for an external hand-off left it to rotate and stall the
+     * countdown on return. Closing first also stops the audio.
+     */
+    if (link) {
+      handleDidClose();
+    }
+
+    /*
      * Not a bare `Linking.openURL`: some Android phones refuse a
      * play.google.com link ("Permission Denial") and the tap then does
      * nothing, on a click that earns money. `openStoreLink` retries through
      * the store's own scheme, and the in-app page is the last resort.
      */
-    if (link && !(await openStoreLink(link))) {
+    if (link && !(link.isStore && (await openStoreLink(link.url)))) {
       navigate("InAppBrowser", {
-        url: link,
+        url: link.url,
         title: ad?.title ?? "",
         confirmOnLeave: false,
       });
     }
-  }, [onAdClick, ad, reportSurface, trackClick]);
+  }, [onAdClick, ad, reportSurface, trackClick, handleDidClose]);
 
   const handleTriggerPress = useCallback(() => {
     handleOpenChange(true);

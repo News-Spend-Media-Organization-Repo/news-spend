@@ -1,7 +1,8 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
+import { useIsFocused } from "@react-navigation/native";
 import { useEvent, useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
   Pressable,
@@ -64,6 +65,10 @@ export function PartnerAdContent({
 }: PartnerAdContentProps) {
   const { width, height } = useWindowDimensions();
   const { isDataSaverActive } = useVideoSettings();
+  const isFocused = useIsFocused();
+  const [appActive, setAppActive] = useState(
+    AppState.currentState === "active"
+  );
 
   const isYouTubeAd = ad.type === "video" && ad.videoType === "YOUTUBE";
   const isUploadedVideoAd =
@@ -95,12 +100,10 @@ export function PartnerAdContent({
     status: player.status,
   });
 
-  // The reward countdown only runs while an uploaded/external video is
-  // playing, so pausing stops both.
+  // Non-video creatives report "playing" so the reward countdown cannot wedge
+  // on a player that no longer exists.
   useEffect(() => {
-    if (isUploadedVideoAd) {
-      onPlaybackChange?.(isPlaying);
-    }
+    onPlaybackChange?.(isUploadedVideoAd ? isPlaying : true);
   }, [isUploadedVideoAd, isPlaying, onPlaybackChange]);
 
   // Depth is reported once per ad. The ref resets when the ad changes, so a
@@ -191,24 +194,55 @@ export function PartnerAdContent({
   }, [isUploadedVideoAd, videoUrl, player, isDataSaverActive]);
 
   /*
-   * Stop on background and on unmount. Without this a dismissed ad kept
-   * playing behind the dialog, and an ad left rolling while the app is
-   * backgrounded burns data and battery for something nobody is watching.
+   * Stop when the screen or the app loses focus, and pick the video back up
+   * when it returns. Without the resume, leaving for an advertiser's page
+   * left the player paused and the reward countdown frozen; without the
+   * focus half, the ad kept playing (audio included) behind the browser.
+   *
+   * Only a video that was already playing resumes: a deliberate pause stays
+   * paused, and a data-saver ad nobody started does not start on return.
    */
+  const resumeOnFocus = useRef(false);
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+  useEffect(() => {
+    resumeOnFocus.current = false;
+  }, [ad.id]);
+
   useEffect(() => {
     if (!isUploadedVideoAd) {
       return;
     }
-    const subscription = AppState.addEventListener("change", (next) => {
-      if (next !== "active") {
-        player.pause();
+    if (isFocused && appActive) {
+      if (resumeOnFocus.current) {
+        resumeOnFocus.current = false;
+        player.play();
       }
-    });
-    return () => {
-      subscription.remove();
+    } else {
+      resumeOnFocus.current = isPlayingRef.current;
       player.pause();
-    };
-  }, [isUploadedVideoAd, player]);
+    }
+  }, [appActive, isFocused, isUploadedVideoAd, player]);
+
+  useEffect(() => {
+    if (!isUploadedVideoAd) {
+      return;
+    }
+    const subscription = AppState.addEventListener("change", (next) =>
+      setAppActive(next === "active")
+    );
+    return () => subscription.remove();
+  }, [isUploadedVideoAd]);
+
+  // Unmount, or a rotation away from video, stops the sound.
+  useEffect(
+    () => () => {
+      player.pause();
+    },
+    [player]
+  );
 
   const togglePlaying = useCallback(() => {
     if (isPlaying) {
