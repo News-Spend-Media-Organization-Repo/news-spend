@@ -3,14 +3,17 @@ import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Spinner } from "heroui-native/spinner";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { getThumbnailWithCache } from "#/components/videoPlayer/thumbnailCache";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
-import { usePartnerEvents } from "#/hooks/usePartnerEvents";
+import {
+  AD_IMPRESSION_DWELL_MS,
+  usePartnerEvents,
+} from "#/hooks/usePartnerEvents";
 import {
   PauseIcon,
   PlayIcon,
@@ -21,18 +24,16 @@ import { appOpenAdSheetState } from "#/state/appOpenAdState";
 import { adVideoUrl, cachedAdVideoUri } from "#/utils/adVideoCache";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
+import { type VideoEvent, videoEventsAt } from "#/utils/videoAdProgress";
 
 // YouTube removed: ToS violation in ad context
-
-/** Same dwell as IMPRESSION_VIEWABILITY_CONFIG: one continuous second. */
-const IMPRESSION_DWELL_MS = 1000;
 
 type VideoPlayerStatus = "idle" | "loading" | "readyToPlay" | "error";
 
 export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
   const { width } = useWindowDimensions();
   const { handleClick } = usePartnerClick();
-  const { trackImpression } = usePartnerEvents();
+  const { trackImpression, trackVideo } = usePartnerEvents();
 
   const isVideoAd =
     ad.type === "video" &&
@@ -66,7 +67,29 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
     p.loop = false;
     // Android defaults to 20s ahead; a 15s ad should start, not fill a queue.
     p.bufferOptions = { preferredForwardBufferDuration: 2 };
+    p.timeUpdateEventInterval = 0.5;
   });
+
+  // Depth is reported once per ad; the ref resets when the sheet serves a new
+  // creative so a re-open starts a fresh pass.
+  const firedVideoEvents = useRef<Set<VideoEvent>>(new Set());
+  useEffect(() => {
+    firedVideoEvents.current = new Set();
+  }, [ad.id]);
+
+  const placement = appOpenAdSheetState.placement;
+  const emitVideoEvents = useCallback(
+    (events: VideoEvent[]) => {
+      for (const event of events) {
+        if (firedVideoEvents.current.has(event)) {
+          continue;
+        }
+        firedVideoEvents.current.add(event);
+        trackVideo(ad.id, event, placement);
+      }
+    },
+    [ad.id, placement, trackVideo]
+  );
 
   useEffect(() => {
     player.muted = muted;
@@ -115,7 +138,29 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
     setLoading(nextStatus === "loading");
   });
 
+  useEventListener(player, "playingChange", ({ isPlaying }) => {
+    if (isVideoAd && isPlaying) {
+      emitVideoEvents(["video_start"]);
+    }
+  });
+
+  useEventListener(player, "timeUpdate", ({ currentTime }) => {
+    if (isVideoAd) {
+      emitVideoEvents(
+        videoEventsAt(
+          currentTime,
+          player.duration,
+          firedVideoEvents.current,
+          0.5
+        )
+      );
+    }
+  });
+
   useEventListener(player, "playToEnd", () => {
+    if (isVideoAd) {
+      emitVideoEvents(["video_complete"]);
+    }
     player.pause();
     player.currentTime = 0;
     setPaused(true);
@@ -141,7 +186,7 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
     const placement = appOpenAdSheetState.placement;
     const timer = setTimeout(() => {
       trackImpression(adId, placement);
-    }, IMPRESSION_DWELL_MS);
+    }, AD_IMPRESSION_DWELL_MS);
     return () => clearTimeout(timer);
   }, [adId, trackImpression]);
 

@@ -16,14 +16,26 @@ import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
 import { useGoogleAd } from "#/hooks/discover/useGoogleAd";
 import { usePartnerAd } from "#/hooks/discover/usePartnerAd";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import {
+  AD_IMPRESSION_DWELL_MS,
+  usePartnerEvents,
+} from "#/hooks/usePartnerEvents";
 import { authClient } from "#/lib/authClient";
 import { XIcon } from "#/lib/icons";
 import { navigate } from "#/navigation/navigationUtils";
+import type { AdPlacement } from "#/state/adManager";
+import { resolveAdSurface } from "#/utils/adSurface";
 import { openStoreLink } from "#/utils/openStoreLink";
 
 import { PartnerAdContent } from "./partner-ad-content";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+/** The placements `usePartnerAd` asks for; reported surfaces must be one. */
+const REQUESTED_SURFACES: AdPlacement[] = [
+  "connect-brands-tab",
+  "connect-brand-video",
+];
 
 export type PartnerAdDialogProps = {
   open?: boolean;
@@ -52,6 +64,8 @@ export type PartnerAdDialogProps = {
   preferAdType?: "custom" | "native";
   /** Serving this so a Boost can be earned; see `usePartnerAd`. */
   forBoost?: boolean;
+  /** Placement this dialog was opened from; reported with every event. */
+  surface: AdPlacement;
   /**
    * There was genuinely nothing to show, as opposed to nothing yet.
    *
@@ -81,6 +95,7 @@ export function PartnerAdDialog({
   fallbackToAppWall = true,
   preferAdType,
   forBoost,
+  surface,
   onUnavailable,
 }: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
@@ -90,6 +105,8 @@ export function PartnerAdDialog({
     forBoost,
     forceType: preferAdType,
   });
+  const { trackImpression, trackClick, trackVideo } = usePartnerEvents();
+  const reportSurface = resolveAdSurface(ad ?? {}, surface, REQUESTED_SURFACES);
 
   // ── Dialog open state ────────────────────────────────────────────────────────
   const [internalOpen, setInternalOpen] = useState(false);
@@ -116,6 +133,20 @@ export function PartnerAdDialog({
   const showable = showingPartner && Boolean(ad);
   const isOpen = (externalOpen ?? internalOpen) && showable;
   const setIsOpen = externalSetOpen ?? setInternalOpen;
+
+  // Served, not watched: same one-second dwell the app-open ad uses. The
+  // cleanup cancels it when the dialog closes first.
+  const adId = ad?.id;
+  useEffect(() => {
+    if (!(isOpen && adId)) {
+      return;
+    }
+    const timer = setTimeout(
+      () => trackImpression(adId, reportSurface),
+      AD_IMPRESSION_DWELL_MS
+    );
+    return () => clearTimeout(timer);
+  }, [isOpen, adId, reportSurface, trackImpression]);
 
   /**
    * The completed ad is handed to the caller, not just the fact of completion.
@@ -344,6 +375,11 @@ export function PartnerAdDialog({
       ad?.links?.website
     );
 
+    if (link && ad) {
+      // Analytics only: this is not the CPA path and writes no conversion.
+      trackClick(ad.id, reportSurface);
+    }
+
     /*
      * Not a bare `Linking.openURL`: some Android phones refuse a
      * play.google.com link ("Permission Denial") and the tap then does
@@ -357,7 +393,7 @@ export function PartnerAdDialog({
         confirmOnLeave: false,
       });
     }
-  }, [onAdClick, ad]);
+  }, [onAdClick, ad, reportSurface, trackClick]);
 
   const handleTriggerPress = useCallback(() => {
     handleOpenChange(true);
@@ -409,6 +445,11 @@ export function PartnerAdDialog({
         ad={ad}
         onAdClick={handleAdClick}
         onPlaybackChange={setPartnerVideoPlaying}
+        onVideoEvent={(event) => {
+          if (ad) {
+            trackVideo(ad.id, event, reportSurface);
+          }
+        }}
         onYtStateChange={onYtStateChange}
         showAdLabel={showAdLabel}
         ytPlaying={ytPlaying}

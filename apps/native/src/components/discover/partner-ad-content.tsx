@@ -1,7 +1,7 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useEvent } from "expo";
+import { useEvent, useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   AppState,
   Pressable,
@@ -24,6 +24,7 @@ import {
 import { getCtaLabel } from "#/utils";
 import { adVideoUrl, cachedAdVideoUri } from "#/utils/adVideoCache";
 import { getImageData } from "#/utils/getImageData";
+import { type VideoEvent, videoEventsAt } from "#/utils/videoAdProgress";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,8 @@ type PartnerAdContentProps = {
   onYtStateChange: (state: string) => void;
   /** Reports whether an uploaded/external video is actually playing. */
   onPlaybackChange?: (playing: boolean) => void;
+  /** Fires each playback-depth event once per ad. */
+  onVideoEvent?: (event: VideoEvent) => void;
 };
 
 // ─── YouTube ID helper ────────────────────────────────────────────────────────
@@ -57,6 +60,7 @@ export function PartnerAdContent({
   ytPlaying,
   onYtStateChange,
   onPlaybackChange,
+  onVideoEvent,
 }: PartnerAdContentProps) {
   const { width, height } = useWindowDimensions();
   const { isDataSaverActive } = useVideoSettings();
@@ -79,6 +83,9 @@ export function PartnerAdContent({
     p.muted = true;
     // Android defaults to 20s ahead; a short ad should start, not fill a queue.
     p.bufferOptions = { preferredForwardBufferDuration: 2 };
+    // Depth sampling: 0.5s is fine-grained enough to catch the last sample of
+    // a 5s ad before the loop wraps, without a flood of events.
+    p.timeUpdateEventInterval = 0.5;
   });
   const { isPlaying } = useEvent(player, "playingChange", {
     isPlaying: player.playing,
@@ -95,6 +102,52 @@ export function PartnerAdContent({
       onPlaybackChange?.(isPlaying);
     }
   }, [isUploadedVideoAd, isPlaying, onPlaybackChange]);
+
+  // Depth is reported once per ad. The ref resets when the ad changes, so a
+  // rotated creative starts a fresh pass.
+  const firedVideoEvents = useRef<Set<VideoEvent>>(new Set());
+  const onVideoEventRef = useRef(onVideoEvent);
+  useEffect(() => {
+    onVideoEventRef.current = onVideoEvent;
+  }, [onVideoEvent]);
+  useEffect(() => {
+    firedVideoEvents.current = new Set();
+  }, [ad.id]);
+
+  const emitVideoEvents = useCallback((events: VideoEvent[]) => {
+    for (const event of events) {
+      if (firedVideoEvents.current.has(event)) {
+        continue;
+      }
+      firedVideoEvents.current.add(event);
+      onVideoEventRef.current?.(event);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isUploadedVideoAd && isPlaying) {
+      emitVideoEvents(["video_start"]);
+    }
+  }, [isUploadedVideoAd, isPlaying, emitVideoEvents]);
+
+  useEventListener(player, "timeUpdate", ({ currentTime }) => {
+    if (isUploadedVideoAd) {
+      emitVideoEvents(
+        videoEventsAt(
+          currentTime,
+          player.duration,
+          firedVideoEvents.current,
+          0.5
+        )
+      );
+    }
+  });
+
+  useEventListener(player, "playToEnd", () => {
+    if (isUploadedVideoAd) {
+      emitVideoEvents(["video_complete"]);
+    }
+  });
 
   // Resolved once per ad: swapping to the downloaded file mid-play would
   // restart a video the viewer is already watching.

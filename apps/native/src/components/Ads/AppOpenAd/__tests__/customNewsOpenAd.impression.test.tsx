@@ -3,7 +3,11 @@ import { act, render } from "@testing-library/react-native";
 const mockTrackImpression = jest.fn();
 
 jest.mock("#/hooks/usePartnerEvents", () => ({
-  usePartnerEvents: () => ({ trackImpression: mockTrackImpression }),
+  AD_IMPRESSION_DWELL_MS: 1000,
+  usePartnerEvents: () => ({
+    trackImpression: mockTrackImpression,
+    trackVideo: jest.fn(),
+  }),
 }));
 jest.mock("#/hooks/usePartnerClick", () => ({
   usePartnerClick: () => ({ handleClick: jest.fn() }),

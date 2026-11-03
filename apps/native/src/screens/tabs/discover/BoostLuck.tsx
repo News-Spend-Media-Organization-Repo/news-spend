@@ -317,6 +317,7 @@ const BoostLuck = () => {
               forBoost
               onCountdownComplete={onCountdownComplete}
               onUnavailable={onAdsUnavailable}
+              surface="connect-brand-video"
             >
               <Button className="w-full flex-row items-center justify-center gap-2 rounded-lg bg-p-400 px-4 py-3">
                 <CoinsIcon color="white" size={20} />
