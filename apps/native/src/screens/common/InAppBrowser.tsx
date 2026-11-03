@@ -255,6 +255,12 @@ export default function InAppBrowser({
     navigation.goBack();
   }, [canGoBack, navigation]);
 
+  // Leaves the screen from any depth in the site's history. The stack pop is
+  // intercepted by usePreventRemove, so this still runs the leave confirmation.
+  const onClosePress = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
   const onReload = useCallback(() => {
     setMenuOpen(false);
     webViewRef.current?.reload();
@@ -299,6 +305,8 @@ export default function InAppBrowser({
         <View className="bg-p-500 pt-safe-offset-1">
           <View className="relative w-full flex-row items-center px-3 py-2">
             <PressableFeedback
+              accessibilityLabel={canGoBack ? "Go back" : "Close browser"}
+              accessibilityRole="button"
               className="min-w-10 items-center justify-center px-2"
               hitSlop={20}
               onPress={onLeftPress}
@@ -324,17 +332,33 @@ export default function InAppBrowser({
               ) : null}
             </View>
 
-            <PressableFeedback
-              className="min-w-10 items-center justify-center px-2"
-              hitSlop={20}
-              onPress={() => setMenuOpen(true)}
-            >
-              <Icon
-                color="white"
-                name={DotsThreeOutlineVerticalIcon}
-                size={20}
-              />
-            </PressableFeedback>
+            <View className="flex-row items-center">
+              {canGoBack ? (
+                <PressableFeedback
+                  accessibilityLabel="Close browser"
+                  accessibilityRole="button"
+                  className="min-w-10 items-center justify-center px-2"
+                  hitSlop={20}
+                  onPress={onClosePress}
+                >
+                  <Icon color="white" name={XIcon} size={22} />
+                </PressableFeedback>
+              ) : null}
+
+              <PressableFeedback
+                accessibilityLabel="Browser menu"
+                accessibilityRole="button"
+                className="min-w-10 items-center justify-center px-2"
+                hitSlop={20}
+                onPress={() => setMenuOpen(true)}
+              >
+                <Icon
+                  color="white"
+                  name={DotsThreeOutlineVerticalIcon}
+                  size={20}
+                />
+              </PressableFeedback>
+            </View>
           </View>
 
           <View className="h-0.5 w-full bg-transparent">
@@ -371,6 +395,8 @@ export default function InAppBrowser({
 
       {hideHeader ? (
         <Pressable
+          accessibilityLabel={canGoBack ? "Go back" : "Close browser"}
+          accessibilityRole="button"
           className="absolute rounded-full bg-black/50 p-2 active:opacity-70"
           hitSlop={16}
           onPress={onLeftPress}
@@ -381,6 +407,19 @@ export default function InAppBrowser({
             name={canGoBack ? ArrowLeftIcon : XIcon}
             size={20}
           />
+        </Pressable>
+      ) : null}
+
+      {hideHeader && canGoBack ? (
+        <Pressable
+          accessibilityLabel="Close browser"
+          accessibilityRole="button"
+          className="absolute rounded-full bg-black/50 p-2 active:opacity-70"
+          hitSlop={16}
+          onPress={onClosePress}
+          style={{ top: insets.top + 8, left: 56 }}
+        >
+          <Icon color="white" name={XIcon} size={20} />
         </Pressable>
       ) : null}
 
