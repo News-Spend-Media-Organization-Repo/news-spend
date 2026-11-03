@@ -23,13 +23,14 @@ export const entries2026: Entry[] = [
         items: [
           "Video ad uploads are capped at 15MB. A larger file is refused before it saves.",
           "Depth is counted once per person per session: a looping or replayed ad does not count twice.",
-          "YouTube ads report impressions and taps only; playback depth needs a video we host or link directly.",
+          "YouTube is no longer accepted for video ads. An existing YouTube ad shows its banner until it is replaced.",
         ],
       },
       {
         heading: "What to do",
         items: [
           "If a video is over 15MB, compress it or host it elsewhere and use the External video option.",
+          "Replace any YouTube video ad with an uploaded file or a direct MP4 link.",
         ],
       },
     ],

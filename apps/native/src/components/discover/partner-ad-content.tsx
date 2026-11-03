@@ -9,7 +9,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import YoutubePlayer from "react-native-youtube-iframe";
 import { Button } from "#/components/heroui/button";
 import { Image } from "#/components/heroui/image";
 import { Text } from "#/components/heroui/text";
@@ -34,22 +33,11 @@ type PartnerAdContentProps = {
   ad: Ad;
   showAdLabel?: boolean;
   onAdClick: () => void;
-  ytPlaying: boolean;
-  onYtStateChange: (state: string) => void;
   /** Reports whether an uploaded/external video is actually playing. */
   onPlaybackChange?: (playing: boolean) => void;
   /** Fires each playback-depth event once per ad. */
   onVideoEvent?: (event: VideoEvent) => void;
 };
-
-// ─── YouTube ID helper ────────────────────────────────────────────────────────
-
-function extractYouTubeId(url: string): string {
-  const match = url.match(
-    /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-  );
-  return match && match[2]?.length === 11 ? match[2] : "";
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -57,8 +45,6 @@ export function PartnerAdContent({
   ad,
   showAdLabel = true,
   onAdClick,
-  ytPlaying,
-  onYtStateChange,
   onPlaybackChange,
   onVideoEvent,
 }: PartnerAdContentProps) {
@@ -68,12 +54,11 @@ export function PartnerAdContent({
     AppState.currentState === "active"
   );
 
-  const isYouTubeAd = ad.type === "video" && ad.videoType === "YOUTUBE";
   const isUploadedVideoAd =
     ad.type === "video" &&
     (ad.videoType === "UPLOAD" || ad.videoType === "EXTERNAL");
-  // Only fall back to image if it's genuinely not a video of any kind
-  const isImageAd = !(isUploadedVideoAd || isYouTubeAd);
+  // Anything else — including a legacy YouTube ad — shows its banner and link.
+  const isImageAd = !isUploadedVideoAd;
 
   // ── Video player (only mounted for uploaded/external video ads) ──────────────
   /*
@@ -249,12 +234,6 @@ export function PartnerAdContent({
     }
   }, [isPlaying, player]);
 
-  // ── YouTube ──────────────────────────────────────────────────────────────────
-  const videoId = useMemo(
-    () => (isYouTubeAd && ad.videoUrl ? extractYouTubeId(ad.videoUrl) : null),
-    [isYouTubeAd, ad.videoUrl]
-  );
-
   // ── Image ────────────────────────────────────────────────────────────────────
   const { url: imageUrl, blurhash } = useMemo(
     () => getImageData(isImageAd ? ad.media : null),
@@ -344,14 +323,6 @@ export function PartnerAdContent({
               </Button>
             </View>
           </View>
-        ) : isYouTubeAd ? (
-          <YoutubePlayer
-            aria-label="YouTube video advertisement"
-            height={(width / 16) * 9}
-            onChangeState={onYtStateChange}
-            play={ytPlaying}
-            videoId={videoId ?? ""}
-          />
         ) : (
           <Pressable
             accessibilityLabel="Open advertisement"

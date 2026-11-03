@@ -201,14 +201,6 @@ export function PartnerAdDialog({
     serverSideVerification,
   });
 
-  // ── YouTube state (kept here so it resets with dialog) ───────────────────────
-  const [ytPlaying, setYtPlaying] = useState(false);
-  const onYtStateChange = useCallback((state: string) => {
-    if (state === "ended") {
-      setYtPlaying(false);
-    }
-  }, []);
-
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   /** Always call this after the dialog has been confirmed to close. */
@@ -451,9 +443,7 @@ export function PartnerAdDialog({
             trackVideo(ad.id, event, reportSurface);
           }
         }}
-        onYtStateChange={onYtStateChange}
         showAdLabel={showAdLabel}
-        ytPlaying={ytPlaying}
       />
     ) : null;
 
