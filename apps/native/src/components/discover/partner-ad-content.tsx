@@ -35,6 +35,8 @@ type PartnerAdContentProps = {
   onAdClick: () => void;
   ytPlaying: boolean;
   onYtStateChange: (state: string) => void;
+  /** Reports whether an uploaded/external video is actually playing. */
+  onPlaybackChange?: (playing: boolean) => void;
 };
 
 // ─── YouTube ID helper ────────────────────────────────────────────────────────
@@ -54,6 +56,7 @@ export function PartnerAdContent({
   onAdClick,
   ytPlaying,
   onYtStateChange,
+  onPlaybackChange,
 }: PartnerAdContentProps) {
   const { width, height } = useWindowDimensions();
   const { isDataSaverActive } = useVideoSettings();
@@ -84,6 +87,14 @@ export function PartnerAdContent({
   const { status } = useEvent(player, "statusChange", {
     status: player.status,
   });
+
+  // The reward countdown only runs while an uploaded/external video is
+  // playing, so pausing stops both.
+  useEffect(() => {
+    if (isUploadedVideoAd) {
+      onPlaybackChange?.(isPlaying);
+    }
+  }, [isUploadedVideoAd, isPlaying, onPlaybackChange]);
 
   // Resolved once per ad: swapping to the downloaded file mid-play would
   // restart a video the viewer is already watching.

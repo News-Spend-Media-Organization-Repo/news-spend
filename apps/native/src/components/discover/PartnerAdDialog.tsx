@@ -100,6 +100,9 @@ export function PartnerAdDialog({
    */
   const [fallbackToPartner, setFallbackToPartner] = useState(false);
   const showingPartner = adType === "custom" || fallbackToPartner;
+  // True until the partner video reports otherwise, so non-video ads and the
+  // Google path keep counting.
+  const [partnerVideoPlaying, setPartnerVideoPlaying] = useState(true);
 
   /**
    * Whether there is actually something to render.
@@ -125,7 +128,8 @@ export function PartnerAdDialog({
    */
   const { countdown, reset: resetCountdown } = useAdCountdown({
     duration: countdownDuration,
-    enabled: isOpen && showingPartner,
+    // Pausing the creative pauses the reward clock with it.
+    enabled: isOpen && showingPartner && partnerVideoPlaying,
     onComplete: () => onCountdownComplete?.(ad),
   });
 
@@ -179,6 +183,7 @@ export function PartnerAdDialog({
   const handleDidClose = useCallback(() => {
     setIsOpen(false);
     resetCountdown();
+    setPartnerVideoPlaying(true);
     refetchAd();
     cycleAdType();
     setFallbackToPartner(false);
@@ -403,6 +408,7 @@ export function PartnerAdDialog({
       <PartnerAdContent
         ad={ad}
         onAdClick={handleAdClick}
+        onPlaybackChange={setPartnerVideoPlaying}
         onYtStateChange={onYtStateChange}
         showAdLabel={showAdLabel}
         ytPlaying={ytPlaying}
