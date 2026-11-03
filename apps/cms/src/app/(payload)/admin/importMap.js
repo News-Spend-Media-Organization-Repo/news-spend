@@ -45,6 +45,7 @@ import { EmailHtmlPreview as EmailHtmlPreview_99c221ac1b2d8b8f4c30e0aa8c6f1658 }
 import { EmailGuide as EmailGuide_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news-spend-media/payload/components/EmailEditor'
 import { VideoPreviewField as VideoPreviewField_a86bb0b13348b042ba24277762780641 } from '@news-spend-media/payload/components/VideoPreviewField'
 import { PartnerContentGuideView as PartnerContentGuideView_1a76f92f9b52c89c44ff1664ec73ba05 } from '@news-spend-media/payload/components/PartnerContentGuide'
+import { PartnerContentPerformanceView as PartnerContentPerformanceView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { PartnerPerformanceView as PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
 import { PartnerIntegrationGuideView as PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5 } from '@news-spend-media/payload/components/PartnerIntegrationGuide'
 import { ContactExportPanel as ContactExportPanel_97e475a5dc64c58cc30c23eea7083d96 } from '@news-spend-media/payload/components/ContactExport'
@@ -129,6 +130,7 @@ export const importMap = {
   "@news-spend-media/payload/components/EmailEditor#EmailGuide": EmailGuide_99c221ac1b2d8b8f4c30e0aa8c6f1658,
   "@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField": VideoPreviewField_a86bb0b13348b042ba24277762780641,
   "@news-spend-media/payload/components/PartnerContentGuide#PartnerContentGuideView": PartnerContentGuideView_1a76f92f9b52c89c44ff1664ec73ba05,
+  "@news-spend-media/payload/components/Analytics#PartnerContentPerformanceView": PartnerContentPerformanceView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/Analytics#PartnerPerformanceView": PartnerPerformanceView_bba5810d9f91b27f4c3b488ca576e350,
   "@news-spend-media/payload/components/PartnerIntegrationGuide#PartnerIntegrationGuideView": PartnerIntegrationGuideView_061edd6e1669733245e65065b2c9d6c5,
   "@news-spend-media/payload/components/ContactExport#ContactExportPanel": ContactExportPanel_97e475a5dc64c58cc30c23eea7083d96,

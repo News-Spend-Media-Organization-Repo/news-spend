@@ -2,6 +2,7 @@ import { type CollectionConfig, ValidationError } from "payload";
 import { z } from "zod";
 import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
+import { partnerContentPerformanceView } from "../components/Analytics/tabs";
 import { partnerContentGuideView } from "../components/PartnerContentGuide/tabs";
 import { IMAGE_ONLY, VIDEO_ONLY } from "../fields/uploadMimeFilters";
 import { urlField } from "../fields/urlField";
@@ -162,6 +163,7 @@ export const PartnerContent: CollectionConfig = {
       views: {
         edit: {
           guide: partnerContentGuideView,
+          performance: partnerContentPerformanceView,
         },
       },
     },

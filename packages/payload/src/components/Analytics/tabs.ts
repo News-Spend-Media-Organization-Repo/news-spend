@@ -30,6 +30,20 @@ export const partnerPerformanceView = {
 };
 
 /**
+ * The Performance tab on a partner content item. Staff see any item; a partner
+ * their own, because the analytics queries apply the partner scope.
+ */
+export const partnerContentPerformanceView = {
+  Component: `${PATH}#PartnerContentPerformanceView`,
+  path: "/performance" as const,
+  tab: {
+    label: "Performance",
+    href: "/performance",
+    condition: ({ req }) => scopeOfRequest(req) !== null,
+  } satisfies DocumentTabConfig,
+};
+
+/**
  * The Stats tab on a giveaway. Shown to staff only; the view checks again,
  * because a tab that is not shown is still reachable by its address.
  */

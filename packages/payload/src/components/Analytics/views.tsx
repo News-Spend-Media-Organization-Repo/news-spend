@@ -552,6 +552,68 @@ export async function PartnerEventsPageView(
   });
 }
 
+/** The Performance tab on one partner content item. */
+export async function PartnerContentPerformanceView(
+  props: DocumentViewServerProps
+): Promise<ReactNode> {
+  const { req } = props.initPageResult;
+  const scope = scopeOfRequest(req);
+  if (!scope) {
+    return <Denied />;
+  }
+
+  return await guarded(async () => {
+    const params = parseAnalyticsParams(props.searchParams);
+    const range = resolvePeriod(params, ANALYTICS_TIME_ZONE);
+    const db = dbOf(req);
+    const id = String(props.doc?.id ?? props.initPageResult.docID ?? "");
+    const filter = { range, contentId: id };
+
+    const [summary, daily, items] = await Promise.all([
+      partnerEventsSummary(db, scope, filter),
+      partnerEventsDaily(db, scope, filter),
+      partnerEventsByItem(db, scope, filter),
+    ]);
+    const surface = parseSurfaceParam(
+      props.searchParams?.surface,
+      items.map((r) => r.surface)
+    );
+    const basePath = `${ADMIN_PATH}/collections/partner-content/${id}/performance`;
+
+    return (
+      <>
+        <Styles />
+        <div className="ana ana-page">
+          <Header
+            hint={`Impressions, taps and video depth for this item. ${ZONE_NOTE}`}
+            title="Performance"
+            toolbar={
+              <Toolbar
+                basePath={basePath}
+                period={params}
+                showPlatform={false}
+              />
+            }
+          />
+          <PartnerEventsKpis
+            current={summary.current}
+            daily={daily}
+            previous={summary.previous}
+          />
+          <PartnerEventsDailyPanel days={daily} />
+          <PartnerEventsItemsPanel
+            basePath={basePath}
+            days={range.days}
+            rows={items}
+            surface={surface}
+          />
+          <PartnerEventsNotes />
+        </div>
+      </>
+    );
+  });
+}
+
 /** The retention and activation page, at /admin/analytics/retention. */
 export async function RetentionPageView(
   props: AdminViewServerProps
