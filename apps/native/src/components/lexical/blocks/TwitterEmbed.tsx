@@ -90,6 +90,8 @@ export function TwitterEmbed({
   return (
     <View style={[styles.container, { height: (webViewHeight ?? 200) + 25 }]}>
       <WebView
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
         onMessage={(event) => {
           const height = Number.parseInt(event.nativeEvent.data, 10);
           setWebViewHeight(height);
