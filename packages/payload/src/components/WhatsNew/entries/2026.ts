@@ -7,6 +7,34 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-11-03-video-ad-measurement",
+    date: "2026-11-03",
+    title: "Video ads now report how far people watch, and uploads cap at 15MB",
+    sections: [
+      {
+        heading: "New",
+        items: [
+          "A partner's Performance tab shows Videos started, Videos finished and the finish rate, next to impressions and taps.",
+          "The by-item table adds 25%, 50%, 75%, Finished and Finish rate columns for video ads, so you can see where viewers drop off.",
+        ],
+      },
+      {
+        heading: "Changed",
+        items: [
+          "Video ad uploads are capped at 15MB. A larger file is refused before it saves.",
+          "Depth is counted once per person per session: a looping or replayed ad does not count twice.",
+          "YouTube ads report impressions and taps only; playback depth needs a video we host or link directly.",
+        ],
+      },
+      {
+        heading: "What to do",
+        items: [
+          "If a video is over 15MB, compress it or host it elsewhere and use the External video option.",
+        ],
+      },
+    ],
+  },
+  {
     id: "2026-10-30-roles-and-share-message",
     date: "2026-10-30",
     title: "Tighter roles, a 7-day claim window, and an editable share message",
