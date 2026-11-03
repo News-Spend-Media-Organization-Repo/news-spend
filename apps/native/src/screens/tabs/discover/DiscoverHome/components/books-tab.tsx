@@ -10,6 +10,10 @@ import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSnapshot } from "valtio";
 import { Text } from "#/components/heroui/text";
 import { Image } from "#/components/ui";
+import {
+  partnerContentRowId,
+  usePartnerImpressionViewability,
+} from "#/hooks/news/usePartnerImpressionViewability";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
 import { trackDiscover } from "#/lib/discoverAnalyticsClient";
@@ -27,6 +31,10 @@ const ITEM_HEIGHT = 280;
 function BooksTabComponent() {
   const { handleClick, isLoading } = usePartnerClick();
   const tabBarHeight = useTabBarHeight();
+  const partnerImpressionPairs = usePartnerImpressionViewability({
+    surface: "points-mall-books",
+    contentIdFor: partnerContentRowId,
+  });
 
   // Per user: the list hides what this person has completed. See all-tab.
   const userId = useSnapshot(authState).user?.id ?? null;
@@ -73,7 +81,7 @@ function BooksTabComponent() {
     }, [refetch])
   );
   const flatData = useMemo(
-    () => data?.pages.flatMap((page) => page.docs) ?? [],
+    () => (data?.pages.flatMap((page) => page.docs) ?? []) as PartnerContent[],
     [data]
   );
 
@@ -191,6 +199,7 @@ function BooksTabComponent() {
         style={{
           paddingHorizontal: 12,
         }}
+        viewabilityConfigCallbackPairs={partnerImpressionPairs}
         {...(Platform.OS === "android"
           ? {
               onRefresh,

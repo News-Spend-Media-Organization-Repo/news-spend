@@ -1,9 +1,12 @@
+import { APP_SCREENS } from "@news-spend-media/utils/appRoutes";
 import {
   createPathConfigForStaticNavigation,
+  getActionFromState,
   getStateFromPath,
 } from "@react-navigation/core";
 
 import { sharedScreens } from "../shared-screens";
+import { TAB_PATHS } from "../tab-paths";
 
 // Built from the real `sharedScreens` map, so a path declared there that stops
 // resolving (a typo, a collision with another route) fails here rather than on
@@ -36,6 +39,16 @@ describe("deep link paths", () => {
     const route = getStateFromPath("article/some-slug", config)?.routes[0];
 
     expect(route?.params).toMatchObject({ slug: "some-slug" });
+  });
+
+  it("passes a web page url through to the browser screen", () => {
+    const route = getStateFromPath(
+      "browser?url=https%3A%2F%2Fexample.com%2Fpage",
+      config
+    )?.routes[0];
+
+    expect(route?.name).toBe("InAppBrowser");
+    expect(route?.params).toMatchObject({ url: "https://example.com/page" });
   });
 
   it("falls through to NotFound for an unknown path", () => {
@@ -111,4 +124,66 @@ describe("initial route under deep links", () => {
   it("does not stack Tab on itself", () => {
     expect(names("tab")).toEqual(["Tab"]);
   });
+});
+
+/**
+ * The CMS destination picker offers `APP_SCREENS` from the shared utils
+ * package. This is the other half of that contract: a screen added, renamed or
+ * removed in the navigator must be reflected there, or the picker drifts.
+ *
+ * Excluded: `*` (the NotFound catch-all), `toast-lab` (a dev-only bench) and
+ * parameterised paths (comment threads, prizes — not picker destinations).
+ */
+describe("notification destinations", () => {
+  const linkedPaths = (screens: Record<string, unknown>) =>
+    Object.values(screens)
+      .map(
+        (screen) => (screen as { linking?: { path?: string } }).linking?.path
+      )
+      .filter((path): path is string => typeof path === "string");
+
+  it("matches the screens the notification picker offers", () => {
+    const appPaths = [
+      ...linkedPaths(sharedScreens),
+      ...Object.values(TAB_PATHS),
+    ]
+      .filter(
+        (path) => !path.includes(":") && path !== "*" && path !== "toast-lab"
+      )
+      .sort();
+
+    expect(appPaths).toEqual(APP_SCREENS.map(({ value }) => value).sort());
+  });
+});
+
+it("resolves a notification web page through the scheme prefix", () => {
+  const {
+    extractPathFromURL,
+  } = require("../../../../../node_modules/@react-navigation/native/src/extractPathFromURL");
+  const path = extractPathFromURL(
+    ["news-spend://"],
+    "news-spend://browser?url=https%3A%2F%2Fexample.com%2Fpage&confirmOnLeave=false"
+  );
+
+  const configWithTab = {
+    initialRouteName: "Tab",
+    screens: {
+      Tab: { path: "tab" },
+      ...(config as unknown as { screens: Record<string, unknown> }).screens,
+    },
+  } as never;
+  const state = getStateFromPath(path ?? "", configWithTab);
+  const route = state?.routes.at(-1);
+
+  expect(path).toBe(
+    "/browser?url=https%3A%2F%2Fexample.com%2Fpage&confirmOnLeave=false"
+  );
+  expect(route?.name).toBe("InAppBrowser");
+  expect(route?.params).toMatchObject({
+    url: "https://example.com/page",
+    confirmOnLeave: false,
+  });
+
+  const action = getActionFromState(state, configWithTab);
+  expect(JSON.stringify(action)).toContain("https://example.com/page");
 });

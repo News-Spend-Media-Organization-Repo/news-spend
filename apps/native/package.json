@@ -38,6 +38,7 @@
     "@news-spend-media/api": "workspace:*",
     "@news-spend-media/auth": "workspace:*",
     "@news-spend-media/payload": "workspace:*",
+    "@news-spend-media/utils": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
     "@orpc/openapi": "catalog:",
