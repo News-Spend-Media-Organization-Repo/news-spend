@@ -172,6 +172,7 @@ export default function GameLauncher({
       </View>
 
       <DateOfBirthDialog
+        description={`Games are for ages ${GAMES_MIN_AGE} and over, so we need your date of birth before you can play.`}
         onOpenChange={setAskBirthDate}
         onSaved={() => {
           // Re-read the account, then the gate decides: play or too young.
