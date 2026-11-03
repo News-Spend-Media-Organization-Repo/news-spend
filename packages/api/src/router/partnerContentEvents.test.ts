@@ -378,6 +378,28 @@ describe("partnerContentEvents.track", () => {
       expect(result.dropped).toBe(1);
       expect(drizzle.queries.find(isInsert)).toBeUndefined();
     });
+
+    it("inserts a repeated depth event once, by dedupe key", async () => {
+      const { payload, drizzle } = setup([videoItem(1)], { returned: 1 });
+      const result = await track(
+        payload,
+        [
+          ev({ event: "video_50", surface: "connect-brand-video" }),
+          ev({ event: "video_50", surface: "connect-brand-video" }),
+        ],
+        { user: { ...authedUser, id: "user-video-conflict" } }
+      );
+
+      expect(result.inserted).toBe(1);
+      expect(result.duplicates).toBe(1);
+      const insert = drizzle.queries.find(isInsert);
+      // Both rows carry the same key, which is what makes Postgres keep one.
+      expect(
+        insert?.sql.match(
+          new RegExp(`video_50:dev-1:sess-1:${id(1)}:connect-brand-video`, "g")
+        )
+      ).toHaveLength(2);
+    });
   });
 
   describe("per-device daily cap", () => {
