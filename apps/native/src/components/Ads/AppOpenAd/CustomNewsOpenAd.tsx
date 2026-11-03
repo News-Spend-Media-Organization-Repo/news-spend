@@ -3,7 +3,7 @@ import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Spinner } from "heroui-native/spinner";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
@@ -18,6 +18,7 @@ import {
   SpeakerSlashIcon,
 } from "#/lib/icons";
 import { appOpenAdSheetState } from "#/state/appOpenAdState";
+import { adVideoUrl, cachedAdVideoUri } from "#/utils/adVideoCache";
 import { getImageData } from "#/utils/getImageData";
 import { getCtaLabel } from "#/utils/index";
 
@@ -54,13 +55,17 @@ export default function CustomNewsOpenAd({ ad }: { ad: PartnerContent }) {
       : null
   );
 
-  const videoSourceUri = isVideoAd
-    ? (ad.videoUrl ?? (typeof ad.video === "string" ? ad.video : ad.video?.url))
-    : null;
+  const videoSourceUri = useMemo(
+    // Resolved once per ad so a late download does not restart playback.
+    () => (isVideoAd ? (cachedAdVideoUri(ad.id) ?? adVideoUrl(ad)) : null),
+    [isVideoAd, ad]
+  );
 
   const player = useVideoPlayer(null, (p) => {
     p.muted = true;
     p.loop = false;
+    // Android defaults to 20s ahead; a 15s ad should start, not fill a queue.
+    p.bufferOptions = { preferredForwardBufferDuration: 2 };
   });
 
   useEffect(() => {

@@ -22,6 +22,7 @@ import {
   SpeakerSlashIcon,
 } from "#/lib/icons";
 import { getCtaLabel } from "#/utils";
+import { adVideoUrl, cachedAdVideoUri } from "#/utils/adVideoCache";
 import { getImageData } from "#/utils/getImageData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -73,27 +74,36 @@ export function PartnerAdContent({
   const player = useVideoPlayer(null, (p) => {
     p.loop = true;
     p.muted = true;
+    // Android defaults to 20s ahead; a short ad should start, not fill a queue.
+    p.bufferOptions = { preferredForwardBufferDuration: 2 };
   });
   const { isPlaying } = useEvent(player, "playingChange", {
     isPlaying: player.playing,
   });
   const { muted } = useEvent(player, "mutedChange", { muted: player.muted });
+  const { status } = useEvent(player, "statusChange", {
+    status: player.status,
+  });
 
-  const videoUrl = useMemo(() => {
+  // Resolved once per ad: swapping to the downloaded file mid-play would
+  // restart a video the viewer is already watching.
+  const videoUrl = useMemo(
+    () =>
+      isUploadedVideoAd ? (cachedAdVideoUri(ad.id) ?? adVideoUrl(ad)) : null,
+    [isUploadedVideoAd, ad]
+  );
+
+  // The generated thumbnail covers uploads; external creatives fall back to
+  // the banner image so the player is never a black rectangle.
+  const posterUrl = useMemo(() => {
     if (!isUploadedVideoAd) {
       return null;
     }
-    if (ad.videoUrl) {
-      return ad.videoUrl;
-    }
-    if (typeof ad.video === "string") {
-      return ad.video;
-    }
-    if (ad.video && typeof ad.video === "object" && "url" in ad.video) {
-      return ad.video.url;
-    }
-    return null;
-  }, [isUploadedVideoAd, ad.videoUrl, ad.video]);
+    const uploaded = typeof ad.video === "object" ? ad.video : null;
+    return (
+      uploaded?.sizes?.videoThumbnail?.url ?? getImageData(ad.media).url ?? null
+    );
+  }, [isUploadedVideoAd, ad.video, ad.media]);
 
   useEffect(() => {
     if (!(isUploadedVideoAd && videoUrl)) {
@@ -194,6 +204,16 @@ export function PartnerAdContent({
                 player={player}
                 style={{ minHeight: "100%", width: "100%" }}
               />
+              {status !== "readyToPlay" && posterUrl ? (
+                <Image
+                  aria-label="Video advertisement poster"
+                  cachePolicy="memory-disk"
+                  className="absolute inset-0"
+                  contentFit="cover"
+                  pointerEvents="none"
+                  source={{ uri: posterUrl }}
+                />
+              ) : null}
             </Pressable>
             {/* box-none: taps on the bare overlay fall through to the video's
                 press target, taps on the controls stay with the controls. */}

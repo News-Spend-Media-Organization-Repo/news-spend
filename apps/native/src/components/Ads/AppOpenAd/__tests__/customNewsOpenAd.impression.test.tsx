@@ -44,6 +44,10 @@ jest.mock("#/lib/icons", () => ({
   SpeakerSlashIcon: () => null,
 }));
 jest.mock("#/utils/index", () => ({ getCtaLabel: () => "Go" }));
+jest.mock("#/utils/adVideoCache", () => ({
+  adVideoUrl: () => null,
+  cachedAdVideoUri: () => null,
+}));
 jest.mock("heroui-native/spinner", () => ({ Spinner: () => null }));
 jest.mock("#/components/videoPlayer/thumbnailCache", () => ({
   getThumbnailWithCache: jest.fn(() => Promise.resolve(null)),

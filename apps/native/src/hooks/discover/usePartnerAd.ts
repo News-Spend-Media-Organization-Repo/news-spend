@@ -1,8 +1,9 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useQuery } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { orpc } from "#/lib/orpc";
+import { preloadAdVideo } from "#/utils/adVideoCache";
 
 export type AdType = "custom" | "native";
 
@@ -73,6 +74,14 @@ export function usePartnerAd({
     ...queryOptions,
     queryKey: [...queryOptions.queryKey, id],
   });
+
+  // Only the custom half of the rotation is ours to fetch early; a Google
+  // impression should not cost the viewer a video download.
+  useEffect(() => {
+    if (adType === "custom" && query.data) {
+      preloadAdVideo(query.data);
+    }
+  }, [adType, query.data]);
 
   const refetchAd = () => {
     query.refetch();
