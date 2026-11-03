@@ -73,6 +73,7 @@ import * as migration_20261022_150623_review_prompted_at from './20261022_150623
 import * as migration_20261022_170313_admins_trash from './20261022_170313_admins_trash';
 import * as migration_20261030_092949_news_notification_copy from './20261030_092949_news_notification_copy';
 import * as migration_20261030_124357_app_settings from './20261030_124357_app_settings';
+import * as migration_20261103_140000_video_ad_events from './20261103_140000_video_ad_events';
 
 export const migrations = [
   {
@@ -449,5 +450,10 @@ export const migrations = [
     up: migration_20261030_124357_app_settings.up,
     down: migration_20261030_124357_app_settings.down,
     name: '20261030_124357_app_settings'
+  },
+  {
+    up: migration_20261103_140000_video_ad_events.up,
+    down: migration_20261103_140000_video_ad_events.down,
+    name: '20261103_140000_video_ad_events'
   },
 ];
