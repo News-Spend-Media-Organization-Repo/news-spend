@@ -3,6 +3,7 @@ import { AppState, type AppStateStatus, Platform } from "react-native";
 import { getDeviceId } from "#/hooks/news/useNewsAnalytics";
 import type { AdPlacement } from "#/state/adManager";
 import { storage } from "#/utils/storage";
+import type { VideoEvent } from "#/utils/videoAdProgress";
 import { classifyFailure, createId } from "./analyticsTransport";
 import { client } from "./orpc";
 
@@ -31,7 +32,7 @@ const MAX_POSITION = 10_000;
 
 export type PartnerEvent = {
   contentId: string;
-  event: "impression" | "click";
+  event: "impression" | "click" | VideoEvent;
   surface: AdPlacement;
   position?: number;
   sessionId: string;
@@ -69,7 +70,9 @@ function inRange(value: unknown, min: number, max: number): value is string {
 function isSendable(e: PartnerEvent): boolean {
   return (
     inRange(e.contentId, 0, MAX_CONTENT_ID_LENGTH) &&
-    (e.event === "impression" || e.event === "click") &&
+    (e.event === "impression" ||
+      e.event === "click" ||
+      e.event.startsWith("video_")) &&
     inRange(e.surface, 1, MAX_ID_LENGTH) &&
     inRange(e.sessionId, 1, MAX_ID_LENGTH) &&
     inRange(e.deviceId, 1, MAX_ID_LENGTH) &&

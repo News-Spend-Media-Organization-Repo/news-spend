@@ -1,5 +1,9 @@
 import { partnerEventsClient } from "#/lib/partnerEventsClient";
 import type { AdPlacement } from "#/state/adManager";
+import type { VideoEvent } from "#/utils/videoAdProgress";
+
+/** One continuous second, the same dwell the viewability config uses. */
+export const AD_IMPRESSION_DWELL_MS = 1000;
 
 /**
  * Impressions already counted, keyed by session. The key carries the session
@@ -45,7 +49,16 @@ function trackClick(
   });
 }
 
-const api = { trackImpression, trackClick };
+/** Playback depth. The server dedupes each event once per session. */
+function trackVideo(
+  contentId: string,
+  event: VideoEvent,
+  surface: AdPlacement
+): void {
+  partnerEventsClient.enqueue({ contentId, event, surface });
+}
+
+const api = { trackImpression, trackClick, trackVideo };
 
 export function usePartnerEvents() {
   return api;
