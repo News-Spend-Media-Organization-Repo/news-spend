@@ -15,6 +15,7 @@ import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 
 import { withArticleUnderComments } from "./article-under-comments";
 import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
+import { navigationRef } from "./navigationUtils";
 
 const prefixes = [
   DETOUR_LINKING_PREFIX,
@@ -54,6 +55,29 @@ function toAppPath(url: string, source: LegacyLinkSource): string {
   }
   return normalized;
 }
+
+/** The app path a tapped notification points at, or undefined when it has none. */
+function notificationTarget(response: Notifications.NotificationResponse) {
+  const screenUrl = response.notification.request.content.data?.url;
+
+  if (typeof screenUrl !== "string" || !screenUrl.length) {
+    return;
+  }
+
+  return ensureScheme(
+    withNewsId(
+      toAppPath(screenUrl, "notification"),
+      response.notification.request.content.data?.newsId
+    )
+  );
+}
+
+/**
+ * The response the initial URL was built from. `subscribe` replays the last
+ * response for taps that landed after that read; this keeps the replay from
+ * routing the same notification twice.
+ */
+let initialNotificationResponseId: string | undefined;
 
 // `screens` is omitted from `config`: the static `Navigation` component builds
 // it from the navigator tree and only reads the extra options from here.
@@ -96,58 +120,93 @@ export const linking: Omit<LinkingOptions<RootParamList>, "config"> & {
 
     // check if app was opened from a notification
     const response = Notifications.getLastNotificationResponse();
-    if (response?.notification.request.content.body) {
-      const screenUrl = response?.notification.request.content.data?.url;
-      const newsId = response?.notification.request.content.data?.newsId;
-
+    const content = response?.notification.request.content;
+    if (response && content?.body) {
       trackNotificationOpen({
-        ...response.notification.request.content,
+        title: content.title ?? undefined,
+        body: content.body,
+        data: content.data,
       });
 
-      if (screenUrl) {
-        return ensureScheme(
-          withNewsId(toAppPath(screenUrl, "notification"), newsId)
-        );
+      const url = notificationTarget(response);
+      if (url) {
+        initialNotificationResponseId =
+          response.notification.request.identifier;
+        return url;
       }
     }
   },
   subscribe(listener) {
+    // Until `getInitialState` resolves, the container renders a fallback and
+    // React Navigation's listener drops anything it cannot navigate yet. Hold
+    // the URL instead of losing the tap or link.
+    const readyUnsubscribes: (() => void)[] = [];
+    const deliver = (url: string) => {
+      if (navigationRef.isReady()) {
+        listener(url);
+        return;
+      }
+      readyUnsubscribes.push(
+        navigationRef.addListener("ready", () => listener(url))
+      );
+    };
+
     // Detour also delivers incoming URLs, so it needs the same legacy-prefix
     // strip. otherwise it hands React Navigation the raw link first and the
     // rewrite below never gets a say.
     const detourSub = Detour.addEventListener("url", ({ url }) => {
-      listener(toAppPath(url, "detour"));
+      deliver(toAppPath(url, "detour"));
     });
 
     const onReceiveURL = ({ url }: { url: string }) => {
       // Widget taps land here. Old tab-prefixed links are normalized to the
       // root-level detail paths.
-      listener(toAppPath(ensureScheme(url), "incoming-url"));
+      deliver(toAppPath(ensureScheme(url), "incoming-url"));
     };
 
     // listen for incoming links from deep linking
     const eventListenerSub = Linking.addEventListener("url", onReceiveURL);
 
+    const routeNotification = (
+      response: Notifications.NotificationResponse
+    ) => {
+      const url = notificationTarget(response);
+      if (!url) {
+        return;
+      }
+      const { content } = response.notification.request;
+      trackNotificationOpen({
+        title: content.title ?? undefined,
+        body: content.body ?? undefined,
+        data: content.data,
+      });
+      deliver(url);
+    };
+
     // listen to expo push notifications
     const notificationListenerSub =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        let screenUrl = response.notification.request.content.data?.url;
-        const newsId = response.notification.request.content.data?.newsId;
-        const _common = response.notification.request.content.data?.common;
+      Notifications.addNotificationResponseReceivedListener(routeNotification);
 
-        if (screenUrl) {
-          screenUrl = toAppPath(screenUrl as string, "notification");
-          listener(ensureScheme(withNewsId(screenUrl, newsId)));
-          trackNotificationOpen({
-            ...response.notification.request.content,
-          });
-        }
-      });
+    // On Android the tap is recorded by a broadcast the OS delivers after
+    // starting the app, so it can land after `getInitialURL` already read the
+    // last response — that response was then delivered only to a listener
+    // that was not registered or not navigable yet, and the tap was lost.
+    // Replay it here once the listener exists.
+    const pending = Notifications.getLastNotificationResponse();
+    if (
+      pending &&
+      pending.notification.request.identifier !== initialNotificationResponseId
+    ) {
+      routeNotification(pending);
+    }
 
     return () => {
       detourSub.remove();
       eventListenerSub.remove();
       notificationListenerSub.remove();
+      for (const unsubscribe of readyUnsubscribes) {
+        unsubscribe();
+      }
     };
   },
 };

@@ -43,6 +43,7 @@ import { ArticleStatsView as ArticleStatsView_bba5810d9f91b27f4c3b488ca576e350 }
 import { EmailVisualEditor as EmailVisualEditor_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news-spend-media/payload/components/EmailEditor'
 import { EmailHtmlPreview as EmailHtmlPreview_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news-spend-media/payload/components/EmailEditor'
 import { EmailGuide as EmailGuide_99c221ac1b2d8b8f4c30e0aa8c6f1658 } from '@news-spend-media/payload/components/EmailEditor'
+import { NotificationDestinationField as NotificationDestinationField_27e49b2c2115230254fc65ad803f64a8 } from '@news-spend-media/payload/components/NotificationDestination'
 import { VideoPreviewField as VideoPreviewField_a86bb0b13348b042ba24277762780641 } from '@news-spend-media/payload/components/VideoPreviewField'
 import { PartnerContentGuideView as PartnerContentGuideView_1a76f92f9b52c89c44ff1664ec73ba05 } from '@news-spend-media/payload/components/PartnerContentGuide'
 import { PartnerContentPerformanceView as PartnerContentPerformanceView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
@@ -128,6 +129,7 @@ export const importMap = {
   "@news-spend-media/payload/components/EmailEditor#EmailVisualEditor": EmailVisualEditor_99c221ac1b2d8b8f4c30e0aa8c6f1658,
   "@news-spend-media/payload/components/EmailEditor#EmailHtmlPreview": EmailHtmlPreview_99c221ac1b2d8b8f4c30e0aa8c6f1658,
   "@news-spend-media/payload/components/EmailEditor#EmailGuide": EmailGuide_99c221ac1b2d8b8f4c30e0aa8c6f1658,
+  "@news-spend-media/payload/components/NotificationDestination#NotificationDestinationField": NotificationDestinationField_27e49b2c2115230254fc65ad803f64a8,
   "@news-spend-media/payload/components/VideoPreviewField#VideoPreviewField": VideoPreviewField_a86bb0b13348b042ba24277762780641,
   "@news-spend-media/payload/components/PartnerContentGuide#PartnerContentGuideView": PartnerContentGuideView_1a76f92f9b52c89c44ff1664ec73ba05,
   "@news-spend-media/payload/components/Analytics#PartnerContentPerformanceView": PartnerContentPerformanceView_bba5810d9f91b27f4c3b488ca576e350,

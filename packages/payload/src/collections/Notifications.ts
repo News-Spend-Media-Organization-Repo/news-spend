@@ -1,7 +1,9 @@
 import type { CollectionConfig, PayloadRequest } from "payload";
+import { ValidationError } from "payload";
 
 import { authenticated } from "../access/authenticated";
 import { adminOnly } from "../access/hasRole";
+import { resolveNotificationUrl } from "../lib/notification-link";
 import { queueNotificationSend } from "../lib/pushQueue";
 import { NOTIFICATION_TYPES } from "./NotificationInbox";
 
@@ -91,8 +93,13 @@ const Notifications: CollectionConfig = {
     {
       name: "data",
       type: "json",
+      label: "Opens",
       admin: {
-        description: "Additional data to send with the notification",
+        description: "Where a tap on the notification sends the reader.",
+        components: {
+          Field:
+            "@news-spend-media/payload/components/NotificationDestination#NotificationDestinationField",
+        },
       },
     },
     {
@@ -274,6 +281,51 @@ const Notifications: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeValidate: [
+      /**
+       * A campaign with no routable `data.url` is delivered, tapped, and lands
+       * on whatever screen the app happened to be on — in practice the home
+       * feed. Nothing errors and no delivery is marked failed, so an operator
+       * only finds out from complaints. Refuse to publish one instead, and
+       * rewrite share links / legacy paths to the app's canonical shape.
+       */
+      ({ data }) => {
+        if (data?._status !== "published" || data?.sentAt) {
+          return data;
+        }
+
+        const payloadData =
+          data.data &&
+          typeof data.data === "object" &&
+          !Array.isArray(data.data)
+            ? (data.data as Record<string, unknown>)
+            : {};
+
+        const target = resolveNotificationUrl(payloadData);
+
+        if (target === null) {
+          return data;
+        }
+
+        if ("error" in target) {
+          throw new ValidationError({
+            collection: "notifications",
+            errors: [
+              {
+                path: "data",
+                message:
+                  target.error === "missing"
+                    ? "Choose where the notification opens — a news article or a screen. Without it a tap opens the app on the home screen."
+                    : "This notification's destination is not a screen the app can open. Pick an article or a screen instead.",
+              },
+            ],
+          });
+        }
+
+        data.data = { ...payloadData, url: target.url };
+        return data;
+      },
+    ],
     afterDelete: [
       async ({ doc, req }) => {
         await req.payload.delete({

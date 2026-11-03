@@ -5,6 +5,7 @@ import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
 import SettingsStack from "./settings-stack";
 import ShopStack from "./shop-stack";
+import { TAB_PATHS } from "./tab-paths";
 
 // Dark navy backing the native bar (matches splash + p-500).
 const TAB_BAR_BACKGROUND = "#00233D";
@@ -18,7 +19,7 @@ export default createBottomTabNavigator({
   screens: {
     Home: {
       linking: {
-        path: "news",
+        path: TAB_PATHS.Home,
         initialRouteName: "NewsHome",
       },
       screen: NewsStack,
@@ -35,7 +36,7 @@ export default createBottomTabNavigator({
     },
     Discover: {
       linking: {
-        path: "discover",
+        path: TAB_PATHS.Discover,
         initialRouteName: "DiscoverHome",
       },
       screen: DiscoverStack,
@@ -54,7 +55,7 @@ export default createBottomTabNavigator({
     },
     Shop: {
       linking: {
-        path: "shop",
+        path: TAB_PATHS.Shop,
         initialRouteName: "ShopHome",
       },
       screen: ShopStack,
@@ -71,7 +72,7 @@ export default createBottomTabNavigator({
     },
     Me: {
       linking: {
-        path: "settings",
+        path: TAB_PATHS.Me,
         initialRouteName: "SettingsHome",
       },
       screen: SettingsStack,

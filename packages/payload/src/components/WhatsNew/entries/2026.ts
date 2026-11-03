@@ -7,6 +7,34 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-11-03-notification-destinations",
+    date: "2026-11-03",
+    title: "Push notifications now say where they open",
+    sections: [
+      {
+        heading: "New",
+        items: [
+          "The Notifications form has an Opens picker instead of a JSON box: choose a news article (search by headline), a screen in the app, or a web page.",
+          "Only published articles are offered, and the article you pick is remembered when you reopen the notification.",
+        ],
+      },
+      {
+        heading: "Changed",
+        items: [
+          "A campaign can no longer be published without a destination. A push with nowhere to go opened the app on the home screen and nothing said so.",
+          "A pasted link.newsspend.com article link, or the old news/article/... form, is converted to the app path automatically.",
+          "The bare in-app browser is no longer a destination on its own; use A web page and give it an https:// address.",
+        ],
+      },
+      {
+        heading: "What to do",
+        items: [
+          "When composing a campaign, pick where a tap should land. If the article is still a draft, publish it first so it appears in the picker.",
+        ],
+      },
+    ],
+  },
+  {
     id: "2026-11-03-video-ad-measurement",
     date: "2026-11-03",
     title: "Video ads now report how far people watch, and uploads cap at 15MB",
