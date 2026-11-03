@@ -344,7 +344,9 @@ export default function InAppBrowser({
       )}
 
       <WebView
-        allowsBackForwardNavigationGestures={false}
+        // The stack pop gesture is off for this screen (see shared-screens),
+        // so WKWebView's own swipe-back can drive page history instead.
+        allowsBackForwardNavigationGestures
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         onError={() => {
