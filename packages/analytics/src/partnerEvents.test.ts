@@ -9,6 +9,7 @@ import {
 } from "./partner";
 import { AnalyticsAccessError } from "./scope";
 import {
+  ARTICLE,
   PARTNER,
   PARTNER_A,
   PARTNER_B,
@@ -171,5 +172,56 @@ describe("partner events: the partner limit is applied where events are read", (
         expect(bound).toHaveLength(scans.length);
       }
     }
+  });
+});
+
+describe("partner events: video depth", () => {
+  const pair = (over: Record<string, unknown> = {}) => ({
+    content_id: ARTICLE,
+    partner_id: PARTNER_A,
+    surface: "connect-brand-video",
+    impressions: 10,
+    taps: 1,
+    sessions_seen: 10,
+    sessions_tapped: 1,
+    starts: 4,
+    q25: 4,
+    q50: 3,
+    q75: 2,
+    completes: 1,
+    ...over,
+  });
+
+  it("counts depth and rates completion against starts", async () => {
+    const { db } = stubDb([pair()]);
+
+    const { current } = await partnerEventsSummary(db, STAFF, {
+      range: range(),
+    });
+
+    expect(current.starts).toBe(4);
+    expect(current.completes).toBe(1);
+    expect(current.completionRate).toBe(25);
+  });
+
+  it("has no completion rate without starts", async () => {
+    const { db } = stubDb([
+      pair({ starts: 0, completes: 0, q25: 0, q50: 0, q75: 0 }),
+    ]);
+
+    const { current } = await partnerEventsSummary(db, STAFF, {
+      range: range(),
+    });
+
+    expect(current.completionRate).toBeNull();
+  });
+
+  it("carries depth into the per-item rows", async () => {
+    const { db } = stubDb([{ ...pair(), title: "QA Video Ad" }]);
+
+    const rows = await partnerEventsByItem(db, STAFF, { range: range() });
+
+    expect(rows[0]?.q50).toBe(3);
+    expect(rows[0]?.completionRate).toBe(25);
   });
 });
