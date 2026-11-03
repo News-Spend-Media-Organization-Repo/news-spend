@@ -1,6 +1,7 @@
 import { APP_SCREENS } from "@news-spend-media/utils/appRoutes";
 import {
   createPathConfigForStaticNavigation,
+  getActionFromState,
   getStateFromPath,
 } from "@react-navigation/core";
 
@@ -153,4 +154,36 @@ describe("notification destinations", () => {
 
     expect(appPaths).toEqual(APP_SCREENS.map(({ value }) => value).sort());
   });
+});
+
+it("resolves a notification web page through the scheme prefix", () => {
+  const {
+    extractPathFromURL,
+  } = require("../../../../../node_modules/@react-navigation/native/src/extractPathFromURL");
+  const path = extractPathFromURL(
+    ["news-spend://"],
+    "news-spend://browser?url=https%3A%2F%2Fexample.com%2Fpage&confirmOnLeave=false"
+  );
+
+  const configWithTab = {
+    initialRouteName: "Tab",
+    screens: {
+      Tab: { path: "tab" },
+      ...(config as unknown as { screens: Record<string, unknown> }).screens,
+    },
+  } as never;
+  const state = getStateFromPath(path ?? "", configWithTab);
+  const route = state?.routes.at(-1);
+
+  expect(path).toBe(
+    "/browser?url=https%3A%2F%2Fexample.com%2Fpage&confirmOnLeave=false"
+  );
+  expect(route?.name).toBe("InAppBrowser");
+  expect(route?.params).toMatchObject({
+    url: "https://example.com/page",
+    confirmOnLeave: false,
+  });
+
+  const action = getActionFromState(state, configWithTab);
+  expect(JSON.stringify(action)).toContain("https://example.com/page");
 });

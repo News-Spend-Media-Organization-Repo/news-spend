@@ -415,6 +415,11 @@ export const sharedScreens = {
     screen: InAppBrowser,
     linking: {
       path: "browser",
+      // Query params arrive as strings; a campaign passes `confirmOnLeave=false`
+      // so leaving a notification's page does not ask about losing points.
+      parse: {
+        confirmOnLeave: (value) => value === "true",
+      },
     },
     options: {
       headerShown: false,

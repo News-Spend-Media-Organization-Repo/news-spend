@@ -6,7 +6,7 @@ jest.mock(
 );
 
 jest.mock("expo-linking", () => ({
-  createURL: (path: string) => `news-spend://${path}`,
+  createURL: (path: string) => encodeURI(`news-spend://${path}`),
   getInitialURL: jest.fn(async () => null),
   addEventListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
@@ -124,6 +124,38 @@ describe("notification deep links", () => {
     const unsubscribe = subscribe(listener);
 
     expect(listener).not.toHaveBeenCalled();
+
+    unsubscribe();
+  });
+
+  it("passes an encoded web page address through only once", () => {
+    const unsubscribe = subscribe(listener);
+
+    notifications().__state.lastResponse = {
+      actionIdentifier: "expo.modules.notifications.actions.DEFAULT",
+      notification: {
+        date: 1,
+        request: {
+          identifier: "web",
+          trigger: { type: "push", payload: {} },
+          content: {
+            title: "Headline",
+            body: "Body",
+            data: {
+              url: "browser?url=https%3A%2F%2Fogwugo.com&confirmOnLeave=false",
+            },
+          },
+        },
+      },
+    };
+
+    for (const callback of notifications().__listeners) {
+      callback(notifications().__state.lastResponse);
+    }
+
+    expect(listener).toHaveBeenCalledWith(
+      "news-spend://browser?url=https%3A%2F%2Fogwugo.com&confirmOnLeave=false"
+    );
 
     unsubscribe();
   });

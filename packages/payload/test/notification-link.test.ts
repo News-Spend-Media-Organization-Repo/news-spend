@@ -189,7 +189,7 @@ describe("destination writers", () => {
         " https://example.com/a b "
       )
     ).toEqual({
-      url: "browser?url=https%3A%2F%2Fexample.com%2Fa%20b",
+      url: "browser?url=https%3A%2F%2Fexample.com%2Fa%20b&confirmOnLeave=false",
       source: "campaign",
       newsId: undefined,
     });

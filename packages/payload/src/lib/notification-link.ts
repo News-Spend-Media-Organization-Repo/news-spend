@@ -178,5 +178,8 @@ export function withWebDestination(
 ): Record<string, unknown> {
   const next = { ...data };
   next.newsId = undefined;
-  return { ...next, url: `browser?url=${encodeURIComponent(url.trim())}` };
+  return {
+    ...next,
+    url: `browser?url=${encodeURIComponent(url.trim())}&confirmOnLeave=false`,
+  };
 }

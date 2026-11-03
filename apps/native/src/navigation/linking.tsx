@@ -17,6 +17,8 @@ import { withArticleUnderComments } from "./article-under-comments";
 import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
 import { navigationRef } from "./navigationUtils";
 
+const LEADING_SLASHES = /^\/+/;
+
 const prefixes = [
   DETOUR_LINKING_PREFIX,
   Linking.createURL(""),
@@ -25,13 +27,20 @@ const prefixes = [
 ];
 
 function ensureScheme(url: string) {
-  // Check if the URL already starts with any of the valid schemes
   if (prefixes.some((scheme) => url?.startsWith(scheme))) {
     return url; // URL already has a valid scheme
   }
 
-  // If no scheme, add the default (first) scheme
-  return Linking.createURL(url);
+  /*
+   * Not `Linking.createURL(url)`: it runs `encodeURI` over the path, which
+   * re-encodes the `%` of an already-encoded query. A web destination arrives
+   * as `browser?url=https%3A%2F%2F…`; after createURL the router decodes once
+   * and hands the WebView the literal string `https%3A%2F%2F…`, which loads
+   * nothing and has no domain for the header. Join the scheme by hand.
+   */
+  const base = Linking.createURL("");
+  const separator = base.endsWith("/") ? "" : "/";
+  return `${base}${separator}${url.replace(LEADING_SLASHES, "")}`;
 }
 
 function withNewsId(url: string, newsId: unknown) {
