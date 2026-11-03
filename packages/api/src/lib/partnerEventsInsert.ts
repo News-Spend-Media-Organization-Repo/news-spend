@@ -6,7 +6,14 @@
 export type PartnerEventRow = {
   contentId: string;
   partnerId: string;
-  event: "impression" | "click";
+  event:
+    | "impression"
+    | "click"
+    | "video_start"
+    | "video_25"
+    | "video_50"
+    | "video_75"
+    | "video_complete";
   surface: string;
   position: number | null;
   userId: string | null;

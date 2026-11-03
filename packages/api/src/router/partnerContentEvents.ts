@@ -25,7 +25,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const eventSchema = z.object({
   contentId: z.string().max(64),
-  event: z.enum(["impression", "click"]),
+  event: z.enum([
+    "impression",
+    "click",
+    "video_start",
+    "video_25",
+    "video_50",
+    "video_75",
+    "video_complete",
+  ]),
   /** The placement the item was requested with; rejected if it is not one. */
   surface: z.enum(enum_partner_content_placements.enumValues),
   position: z.number().min(0).max(10_000).optional(),
@@ -49,9 +57,9 @@ const eventSchema = z.object({
  * - **Who.** The user is the signed-in caller's, from the session. A `userId`
  *   in the body is ignored.
  * - **When.** The device's timestamp, clamped; arrival is stored as `received_at`.
- * - **Once.** An impression is stored once per device, session, item and
- *   surface (`dedupe_key`); an event with an `eventId` once per device. Taps
- *   carry no dedupe key, each tap counts.
+ * - **Once.** Every non-click event is stored once per device, session, event,
+ *   item and surface (`dedupe_key`); an event with an `eventId` once per
+ *   device. Taps carry no dedupe key, each tap counts.
  * - **How many.** At most 25 distinct items per call, and 2,000 events per
  *   device per day; the excess is dropped and counted.
  */
@@ -112,6 +120,11 @@ const track = publicProcedure
           ? e.surface === PROMO_MEDIA_SURFACE
           : item.placements?.includes(e.surface);
       if (!surfaceAllowed) {
+        return [];
+      }
+      // Depth only exists on a video; the client should never send it for
+      // anything else, so a row that does is a bug, not data.
+      if (e.event.startsWith("video_") && item.type !== "video") {
         return [];
       }
       return [{ e, partnerId: String(partnerId) }];
@@ -182,9 +195,11 @@ const track = publicProcedure
       receivedAt,
       eventId: e.eventId ?? null,
       dedupeKey:
-        e.event === "impression"
-          ? `imp:${e.deviceId}:${e.sessionId}:${e.contentId}:${e.surface}`
-          : null,
+        e.event === "click"
+          ? null
+          : e.event === "impression"
+            ? `imp:${e.deviceId}:${e.sessionId}:${e.contentId}:${e.surface}`
+            : `${e.event}:${e.deviceId}:${e.sessionId}:${e.contentId}:${e.surface}`,
     }));
 
     try {

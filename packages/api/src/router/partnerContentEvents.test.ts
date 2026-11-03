@@ -30,6 +30,13 @@ const item = (n: number, over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const videoItem = (n: number, over: Record<string, unknown> = {}) =>
+  item(n, {
+    type: "video",
+    placements: ["connect-brand-video"],
+    ...over,
+  });
+
 const ev = (over: Record<string, unknown> = {}) => ({
   contentId: id(1),
   event: "impression" as const,
@@ -296,6 +303,80 @@ describe("partnerContentEvents.track", () => {
       );
       // Exactly one dedupe key among two rows.
       expect(insert?.sql.match(/imp:d9/g)).toHaveLength(1);
+    });
+
+    it("names the event in every video depth key", async () => {
+      const { payload, drizzle } = setup([videoItem(1)]);
+      await track(
+        payload,
+        [
+          ev({
+            event: "video_start",
+            deviceId: "d9",
+            sessionId: "s9",
+            surface: "connect-brand-video",
+          }),
+          ev({
+            event: "video_25",
+            deviceId: "d9",
+            sessionId: "s9",
+            surface: "connect-brand-video",
+          }),
+          ev({
+            event: "video_complete",
+            deviceId: "d9",
+            sessionId: "s9",
+            surface: "connect-brand-video",
+          }),
+        ],
+        { user: { ...authedUser, id: "user-video-dedupe" } }
+      );
+      const insert = drizzle.queries.find(isInsert);
+      expect(insert?.sql).toContain(
+        `video_start:d9:s9:${id(1)}:connect-brand-video`
+      );
+      expect(insert?.sql).toContain(
+        `video_25:d9:s9:${id(1)}:connect-brand-video`
+      );
+      expect(insert?.sql).toContain(
+        `video_complete:d9:s9:${id(1)}:connect-brand-video`
+      );
+    });
+  });
+
+  describe("video depth", () => {
+    it("accepts every depth event for an active video on its surface", async () => {
+      const { payload } = setup([videoItem(1)]);
+      const result = await track(
+        payload,
+        [
+          "video_start",
+          "video_25",
+          "video_50",
+          "video_75",
+          "video_complete",
+        ].map((event) => ev({ event, surface: "connect-brand-video" })),
+        { user: { ...authedUser, id: "user-video-accept" } }
+      );
+      expect(result).toEqual({
+        inserted: 5,
+        duplicates: 0,
+        failed: 0,
+        dropped: 0,
+      });
+    });
+
+    it("drops a depth event for an item that is not a video", async () => {
+      const { payload, drizzle } = setup([
+        item(1, { placements: ["connect-brand-video"] }),
+      ]);
+      const result = await track(
+        payload,
+        [ev({ event: "video_25", surface: "connect-brand-video" })],
+        { user: { ...authedUser, id: "user-video-reject" } }
+      );
+      expect(result.dropped).toBe(1);
+      expect(drizzle.queries.find(isInsert)).toBeUndefined();
     });
   });
 
