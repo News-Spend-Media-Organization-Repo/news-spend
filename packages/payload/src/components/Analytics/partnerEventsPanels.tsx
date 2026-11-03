@@ -84,6 +84,23 @@ export function PartnerEventsKpis({
         tag="reported"
         value={rate(current.tapThrough)}
       />
+      <Kpi
+        change={describeChange(current.starts, previous.starts)}
+        label="Videos started"
+        note={versus}
+        tag="reported"
+        value={formatCount(current.starts)}
+      />
+      <Kpi
+        label="Videos finished"
+        note={
+          current.completionRate === null
+            ? "completions per start"
+            : `${rate(current.completionRate)} of starts`
+        }
+        tag="reported"
+        value={formatCount(current.completes)}
+      />
     </div>
   );
 }
@@ -117,7 +134,7 @@ export function PartnerEventsItemsPanel({
 
   return (
     <Panel
-      hint="Each item on each surface. Tap-through is sessions that tapped, of sessions that saw it."
+      hint="Each item on each surface. Tap-through is sessions that tapped, of sessions that saw it. Video columns count the first pass only; a looping ad completes once."
       tag="reported"
       title="By item and surface"
     >
@@ -151,6 +168,11 @@ export function PartnerEventsItemsPanel({
           { key: "surface", label: "Surface" },
           { key: "impressions", label: "Impressions", align: "right" },
           { key: "taps", label: "Taps", align: "right" },
+          { key: "q25", label: "25%", align: "right" },
+          { key: "q50", label: "50%", align: "right" },
+          { key: "q75", label: "75%", align: "right" },
+          { key: "completes", label: "Finished", align: "right" },
+          { key: "finishRate", label: "Finish rate", align: "right" },
           { key: "rate", label: "Tap-through", align: "right" },
         ]}
         empty="No impressions or taps in this period."
@@ -165,6 +187,11 @@ export function PartnerEventsItemsPanel({
             surface: r.surface,
             impressions: formatCount(r.impressions),
             taps: formatCount(r.taps),
+            q25: formatCount(r.q25),
+            q50: formatCount(r.q50),
+            q75: formatCount(r.q75),
+            completes: formatCount(r.completes),
+            finishRate: rate(r.completionRate),
             rate: rate(r.tapThrough),
           },
         }))}
@@ -235,6 +262,10 @@ export function PartnerEventsNotes(): ReactNode {
     <>
       <p className="ana-muted">{REPORTED_NOTE}</p>
       <p className="ana-muted">{CLICKS_DIFFER_NOTE}</p>
+      <p className="ana-muted">
+        Video depth comes from the app&apos;s player. A start is playback
+        beginning; finish rate is completions per start.
+      </p>
     </>
   );
 }

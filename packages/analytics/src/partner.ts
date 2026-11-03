@@ -400,6 +400,13 @@ export type EventTotals = {
   sessionsSeen: number;
   sessionsTapped: number;
   tapThrough: number | null;
+  starts: number;
+  q25: number;
+  q50: number;
+  q75: number;
+  completes: number;
+  /** Completions per start. Null when nothing started. */
+  completionRate: number | null;
 };
 
 export const OUTLIER_TAP_THROUGH = 50;
@@ -413,6 +420,11 @@ type PairRow = {
   taps: number;
   sessions_seen: number;
   sessions_tapped: number;
+  starts: number;
+  q25: number;
+  q50: number;
+  q75: number;
+  completes: number;
 };
 
 function totalsOf(row: {
@@ -420,15 +432,28 @@ function totalsOf(row: {
   taps?: number | string | null;
   sessions_seen?: number | string | null;
   sessions_tapped?: number | string | null;
+  starts?: number | string | null;
+  q25?: number | string | null;
+  q50?: number | string | null;
+  q75?: number | string | null;
+  completes?: number | string | null;
 }): EventTotals {
   const sessionsSeen = Number(row.sessions_seen ?? 0);
   const sessionsTapped = Number(row.sessions_tapped ?? 0);
+  const starts = Number(row.starts ?? 0);
+  const completes = Number(row.completes ?? 0);
   return {
     impressions: Number(row.impressions ?? 0),
     taps: Number(row.taps ?? 0),
     sessionsSeen,
     sessionsTapped,
     tapThrough: percent(sessionsTapped, sessionsSeen),
+    starts,
+    q25: Number(row.q25 ?? 0),
+    q50: Number(row.q50 ?? 0),
+    q75: Number(row.q75 ?? 0),
+    completes,
+    completionRate: percent(completes, starts),
   };
 }
 
@@ -484,10 +509,16 @@ function pairsQuery(
     raw AS (
       SELECT content_id, partner_id, surface,
              COUNT(*) FILTER (WHERE event = 'impression')::int AS impressions,
-             COUNT(*) FILTER (WHERE event = 'click')::int AS taps
+             COUNT(*) FILTER (WHERE event = 'click')::int AS taps,
+             COUNT(*) FILTER (WHERE event = 'video_start')::int AS starts,
+             COUNT(*) FILTER (WHERE event = 'video_25')::int AS q25,
+             COUNT(*) FILTER (WHERE event = 'video_50')::int AS q50,
+             COUNT(*) FILTER (WHERE event = 'video_75')::int AS q75,
+             COUNT(*) FILTER (WHERE event = 'video_complete')::int AS completes
       FROM ev GROUP BY content_id, partner_id, surface
     )
     SELECT r.content_id, r.partner_id, r.surface, r.impressions, r.taps,
+           r.starts, r.q25, r.q50, r.q75, r.completes,
            COALESCE(sn.n, 0)::int AS sessions_seen,
            COALESCE(tn.n, 0)::int AS sessions_tapped
     FROM raw r
@@ -508,12 +539,27 @@ async function eventTotalsFor(
     db,
     pairsQuery(window, timeZone, partnerId, contentId)
   );
-  const sum = { impressions: 0, taps: 0, sessions_seen: 0, sessions_tapped: 0 };
+  const sum = {
+    impressions: 0,
+    taps: 0,
+    sessions_seen: 0,
+    sessions_tapped: 0,
+    starts: 0,
+    q25: 0,
+    q50: 0,
+    q75: 0,
+    completes: 0,
+  };
   for (const row of rows) {
     sum.impressions += Number(row.impressions);
     sum.taps += Number(row.taps);
     sum.sessions_seen += Number(row.sessions_seen);
     sum.sessions_tapped += Number(row.sessions_tapped);
+    sum.starts += Number(row.starts);
+    sum.q25 += Number(row.q25);
+    sum.q50 += Number(row.q50);
+    sum.q75 += Number(row.q75);
+    sum.completes += Number(row.completes);
   }
   return totalsOf(sum);
 }

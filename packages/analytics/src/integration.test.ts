@@ -144,7 +144,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         partner_id uuid NOT NULL, click_id varchar NOT NULL,
         outcome enum_partner_postbacks_outcome NOT NULL, reason varchar,
         received_at timestamptz NOT NULL);
-      CREATE TYPE enum_partner_content_events_event AS ENUM('impression','click');
+      CREATE TYPE enum_partner_content_events_event AS ENUM('impression','click','video_start','video_25','video_50','video_75','video_complete');
       CREATE TYPE enum_partner_content_events_platform AS ENUM('android','ios','web');
       CREATE TABLE partner_content_events (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1861,6 +1861,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     const C9 = "c1000000-0000-4000-8000-000000000009";
     const C10 = "c1000000-0000-4000-8000-000000000010";
     const C11 = "c1000000-0000-4000-8000-000000000011";
+    const C12 = "c1000000-0000-4000-8000-000000000012";
     const NONE = "c1000000-0000-4000-8000-0000000000ff";
 
     // One statement per batch of events: `n` sessions s<from>..s<to>, each
@@ -1868,7 +1869,14 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
     const events = (
       content: string,
       partner: string,
-      event: "impression" | "click",
+      event:
+        | "impression"
+        | "click"
+        | "video_start"
+        | "video_25"
+        | "video_50"
+        | "video_75"
+        | "video_complete",
       surface: string,
       at: string,
       sessions: [number, number],
@@ -1884,7 +1892,8 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         INSERT INTO partner_content VALUES
           ('${C2}', 'Flash sale'), ('${C3}', 'Click only'), ('${C4}', 'Hot item'),
           ('${C5}', 'Exactly half'), ('${C6}', 'Small sample'), ('${C7}', 'Other partner'),
-          ('${C8}', 'Just over'), ('${C9}', 'Just half'), ('${C10}', 'Split periods'), ('${C11}', 'Barely over');
+          ('${C8}', 'Just over'), ('${C9}', 'Just half'), ('${C10}', 'Split periods'), ('${C11}', 'Barely over'),
+          ('${C12}', 'QA Video Ad');
 
         -- C1 on the carousel: 10 impressions over 8 sessions, 3 taps from 2 of them.
         ${events(C1, P1, "impression", "carousel", at, [1, 8])}
@@ -1924,6 +1933,14 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         -- C7 belongs to the other partner: 50 sessions, 40 tapped.
         ${events(C7, P2, "impression", "carousel", at, [1, 50])}
         ${events(C7, P2, "click", "carousel", at, [1, 40])}
+        -- C12 is a video: 10 saw it, 8 started, and 6/4/2/1 reached the
+        -- quartiles and the end.
+        ${events(C12, P1, "impression", "connect-brand-video", at, [1, 10])}
+        ${events(C12, P1, "video_start", "connect-brand-video", at, [1, 8])}
+        ${events(C12, P1, "video_25", "connect-brand-video", at, [1, 6])}
+        ${events(C12, P1, "video_50", "connect-brand-video", at, [1, 4])}
+        ${events(C12, P1, "video_75", "connect-brand-video", at, [1, 2])}
+        ${events(C12, P1, "video_complete", "connect-brand-video", at, [1, 1])}
       `);
     });
 
@@ -1940,6 +1957,12 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         sessionsSeen: 10,
         sessionsTapped: 3,
         tapThrough: 30,
+        starts: 0,
+        q25: 0,
+        q50: 0,
+        q75: 0,
+        completes: 0,
+        completionRate: null,
       });
     });
 
@@ -1958,6 +1981,12 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         sessionsSeen: 8,
         sessionsTapped: 2,
         tapThrough: 25,
+        starts: 0,
+        q25: 0,
+        q50: 0,
+        q75: 0,
+        completes: 0,
+        completionRate: null,
       });
     });
 
@@ -2020,6 +2049,12 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         sessionsSeen: 4,
         sessionsTapped: 1,
         tapThrough: 25,
+        starts: 0,
+        q25: 0,
+        q50: 0,
+        q75: 0,
+        completes: 0,
+        completionRate: null,
       });
       expect(current.impressions).toBe(12);
     });
@@ -2084,6 +2119,35 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       });
     });
 
+    it("counts video depth and rates completion against starts", async () => {
+      const { current } = await partnerEventsSummary(db, partner1, {
+        range,
+        contentId: C12,
+      });
+
+      expect(current).toMatchObject({
+        impressions: 10,
+        starts: 8,
+        q25: 6,
+        q50: 4,
+        q75: 2,
+        completes: 1,
+        completionRate: 12.5,
+      });
+
+      const rows = await partnerEventsByItem(db, partner1, {
+        range,
+        contentId: C12,
+      });
+
+      expect(rows[0]).toMatchObject({
+        surface: "connect-brand-video",
+        starts: 8,
+        completes: 1,
+        completionRate: 12.5,
+      });
+    });
+
     it("gives a partner nothing, and no error, for another partner's content id", async () => {
       const opts = { range, contentId: C7 };
 
@@ -2096,6 +2160,12 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         sessionsSeen: 0,
         sessionsTapped: 0,
         tapThrough: null,
+        starts: 0,
+        q25: 0,
+        q50: 0,
+        q75: 0,
+        completes: 0,
+        completionRate: null,
       });
     });
 
@@ -2127,9 +2197,9 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       const days = await partnerEventsDaily(db, partner1, { range });
 
       expect(items.some((r) => r.contentId === C7)).toBe(false);
-      // C1 12 (10 carousel + 2 feed), C2 2, C4 60, C5 60, C6 10, C8 100, C9 100, C11 4000.
-      expect(total.current.impressions).toBe(4344);
-      expect(days.reduce((n, d) => n + d.impressions, 0)).toBe(4344);
+      // C1 12 (10 carousel + 2 feed), C2 2, C4 60, C5 60, C6 10, C8 100, C9 100, C11 4000, C12 10.
+      expect(total.current.impressions).toBe(4354);
+      expect(days.reduce((n, d) => n + d.impressions, 0)).toBe(4354);
     });
 
     it("gives staff every partner, or one by request", async () => {
@@ -2142,7 +2212,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
       expect(
         all.map((r) => [r.partnerId, r.companyName, r.impressions])
       ).toEqual([
-        [P1, "Shopwise", 4344],
+        [P1, "Shopwise", 4354],
         [P2, "FreshCart", 50],
       ]);
       expect(one.current).toMatchObject({

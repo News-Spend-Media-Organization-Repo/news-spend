@@ -29,6 +29,7 @@ function DiscoverHeader() {
         asChild
         onCountdownComplete={onCountdownComplete}
         onOpen={openBrands}
+        surface="connect-brands-tab"
       >
         <Button className="flex-1">
           <SketchLogoIcon color="white" size={20} weight="bold" />

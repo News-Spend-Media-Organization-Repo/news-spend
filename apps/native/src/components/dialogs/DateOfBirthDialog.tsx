@@ -3,13 +3,12 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns/format";
 import { Dialog } from "heroui-native/dialog";
-import { CakeIcon } from "#/lib/icons";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, View } from "react-native";
-
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
 import { toast } from "#/components/heroui/toast";
+import { CakeIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 import { queryClient } from "#/lib/tanstackQuery";
 import { Text } from "../ui";
@@ -39,10 +38,13 @@ export default function DateOfBirthDialog({
   open,
   onOpenChange,
   onSaved,
+  description = "Giveaway prizes are for over-18s, so we need your date of birth before you can buy a ticket.",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void;
+  /** Why the birth date is needed. The games gate has its own age. */
+  description?: string;
 }) {
   const [date, setDate] = useState(defaultPickerDate);
   const [pickerVisible, setPickerVisible] = useState(Platform.OS === "ios");
@@ -81,10 +83,7 @@ export default function DateOfBirthDialog({
             <Text className="text-center font-semibold text-lg">
               One thing first
             </Text>
-            <Text className="text-center text-subtle-text">
-              Giveaway prizes are for over-18s, so we need your date of birth
-              before you can buy a ticket.
-            </Text>
+            <Text className="text-center text-subtle-text">{description}</Text>
           </View>
 
           <View className="mt-4 gap-2">

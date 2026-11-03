@@ -418,6 +418,10 @@ export const sharedScreens = {
     },
     options: {
       headerShown: false,
+      // The WebView owns the edge swipe (back through page history). Left on,
+      // the stack pop and the WebView's goBack both fire, so one swipe closes
+      // the browser and navigates back.
+      gestureEnabled: false,
     },
   }),
   // Where a game is opened from, in the app or by its universal link
@@ -439,6 +443,8 @@ export const sharedScreens = {
     },
     options: {
       headerShown: false,
+      // Same screen as InAppBrowser: the stack gesture would double-fire.
+      gestureEnabled: false,
     },
   }),
   // Bench for the HeroUI toast wrapper. Dev builds only: `news-spend://toast-lab`.

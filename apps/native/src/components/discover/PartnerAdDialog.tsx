@@ -16,14 +16,27 @@ import { useAdCountdown } from "#/hooks/discover/useAdCountdown";
 import { useGoogleAd } from "#/hooks/discover/useGoogleAd";
 import { usePartnerAd } from "#/hooks/discover/usePartnerAd";
 import { useGlobalBackHandler } from "#/hooks/useBackHandler";
+import {
+  AD_IMPRESSION_DWELL_MS,
+  usePartnerEvents,
+} from "#/hooks/usePartnerEvents";
 import { authClient } from "#/lib/authClient";
 import { XIcon } from "#/lib/icons";
 import { navigate } from "#/navigation/navigationUtils";
+import type { AdPlacement } from "#/state/adManager";
+import { resolvePartnerLink } from "#/utils/adLink";
+import { resolveAdSurface } from "#/utils/adSurface";
 import { openStoreLink } from "#/utils/openStoreLink";
 
 import { PartnerAdContent } from "./partner-ad-content";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+/** The placements `usePartnerAd` asks for; reported surfaces must be one. */
+const REQUESTED_SURFACES: AdPlacement[] = [
+  "connect-brands-tab",
+  "connect-brand-video",
+];
 
 export type PartnerAdDialogProps = {
   open?: boolean;
@@ -52,6 +65,8 @@ export type PartnerAdDialogProps = {
   preferAdType?: "custom" | "native";
   /** Serving this so a Boost can be earned; see `usePartnerAd`. */
   forBoost?: boolean;
+  /** Placement this dialog was opened from; reported with every event. */
+  surface: AdPlacement;
   /**
    * There was genuinely nothing to show, as opposed to nothing yet.
    *
@@ -81,6 +96,7 @@ export function PartnerAdDialog({
   fallbackToAppWall = true,
   preferAdType,
   forBoost,
+  surface,
   onUnavailable,
 }: PartnerAdDialogProps) {
   const { width } = useWindowDimensions();
@@ -90,6 +106,8 @@ export function PartnerAdDialog({
     forBoost,
     forceType: preferAdType,
   });
+  const { trackImpression, trackClick, trackVideo } = usePartnerEvents();
+  const reportSurface = resolveAdSurface(ad ?? {}, surface, REQUESTED_SURFACES);
 
   // ── Dialog open state ────────────────────────────────────────────────────────
   const [internalOpen, setInternalOpen] = useState(false);
@@ -100,6 +118,9 @@ export function PartnerAdDialog({
    */
   const [fallbackToPartner, setFallbackToPartner] = useState(false);
   const showingPartner = adType === "custom" || fallbackToPartner;
+  // True until the partner video reports otherwise, so non-video ads and the
+  // Google path keep counting.
+  const [partnerVideoPlaying, setPartnerVideoPlaying] = useState(true);
 
   /**
    * Whether there is actually something to render.
@@ -114,6 +135,20 @@ export function PartnerAdDialog({
   const isOpen = (externalOpen ?? internalOpen) && showable;
   const setIsOpen = externalSetOpen ?? setInternalOpen;
 
+  // Served, not watched: same one-second dwell the app-open ad uses. The
+  // cleanup cancels it when the dialog closes first.
+  const adId = ad?.id;
+  useEffect(() => {
+    if (!(isOpen && adId)) {
+      return;
+    }
+    const timer = setTimeout(
+      () => trackImpression(adId, reportSurface),
+      AD_IMPRESSION_DWELL_MS
+    );
+    return () => clearTimeout(timer);
+  }, [isOpen, adId, reportSurface, trackImpression]);
+
   /**
    * The completed ad is handed to the caller, not just the fact of completion.
    *
@@ -125,7 +160,8 @@ export function PartnerAdDialog({
    */
   const { countdown, reset: resetCountdown } = useAdCountdown({
     duration: countdownDuration,
-    enabled: isOpen && showingPartner,
+    // Pausing the creative pauses the reward clock with it.
+    enabled: isOpen && showingPartner && partnerVideoPlaying,
     onComplete: () => onCountdownComplete?.(ad),
   });
 
@@ -179,6 +215,7 @@ export function PartnerAdDialog({
   const handleDidClose = useCallback(() => {
     setIsOpen(false);
     resetCountdown();
+    setPartnerVideoPlaying(true);
     refetchAd();
     cycleAdType();
     setFallbackToPartner(false);
@@ -320,24 +357,29 @@ export function PartnerAdDialog({
 
     /*
      * The store link is preferred where there is one, falling back to the
-     * campaign's landing page.
-     *
-     * `??` alone was not enough: the CMS url fields save "" rather than null
-     * when an author leaves them blank, and "" is not nullish, so the
-     * fallback never ran and the tap opened nothing at all. The Ogwugo
-     * campaign is live in exactly that state — both store fields empty
-     * strings, a perfectly good website, and a dead call to action.
+     * campaign's landing page. Only a store link is handed to the OS: an
+     * `https://` website through `Linking.openURL` leaves the app for Safari
+     * or Chrome, which drops the viewer out of the ad flow entirely.
      */
-    const firstUsable = (...candidates: (string | null | undefined)[]) =>
-      candidates.map((c) => c?.trim()).find((c) => Boolean(c));
-
-    const link = firstUsable(
-      Platform.select({
-        ios: ad?.links?.iosAppStore,
-        android: ad?.links?.androidPlayStore,
-      }),
-      ad?.links?.website
+    const link = resolvePartnerLink(
+      ad?.links,
+      Platform.OS === "android" ? "android" : "ios"
     );
+
+    if (link && ad) {
+      // Analytics only: this is not the CPA path and writes no conversion.
+      trackClick(ad.id, reportSurface);
+    }
+
+    /*
+     * The ad ends with the tap. Leaving the dialog open while the in-app
+     * browser is pushed put a full-window overlay above the page, and leaving
+     * it open for an external hand-off left it to rotate and stall the
+     * countdown on return. Closing first also stops the audio.
+     */
+    if (link) {
+      handleDidClose();
+    }
 
     /*
      * Not a bare `Linking.openURL`: some Android phones refuse a
@@ -345,14 +387,14 @@ export function PartnerAdDialog({
      * nothing, on a click that earns money. `openStoreLink` retries through
      * the store's own scheme, and the in-app page is the last resort.
      */
-    if (link && !(await openStoreLink(link))) {
+    if (link && !(link.isStore && (await openStoreLink(link.url)))) {
       navigate("InAppBrowser", {
-        url: link,
+        url: link.url,
         title: ad?.title ?? "",
         confirmOnLeave: false,
       });
     }
-  }, [onAdClick, ad]);
+  }, [onAdClick, ad, reportSurface, trackClick, handleDidClose]);
 
   const handleTriggerPress = useCallback(() => {
     handleOpenChange(true);
@@ -403,6 +445,12 @@ export function PartnerAdDialog({
       <PartnerAdContent
         ad={ad}
         onAdClick={handleAdClick}
+        onPlaybackChange={setPartnerVideoPlaying}
+        onVideoEvent={(event) => {
+          if (ad) {
+            trackVideo(ad.id, event, reportSurface);
+          }
+        }}
         onYtStateChange={onYtStateChange}
         showAdLabel={showAdLabel}
         ytPlaying={ytPlaying}

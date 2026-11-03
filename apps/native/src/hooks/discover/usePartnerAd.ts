@@ -1,8 +1,9 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
 import { useQuery } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { orpc } from "#/lib/orpc";
+import { preloadAdVideo } from "#/utils/adVideoCache";
 
 export type AdType = "custom" | "native";
 
@@ -67,12 +68,30 @@ export function usePartnerAd({
      * inventory is added, campaigns end, and rotation is the point.
      */
     staleTime: 60_000,
+    /**
+     * Do not rotate the creative under the viewer.
+     *
+     * The app coming back to the foreground used to refetch this query, and
+     * `getOne` picks at random: a video ad could be replaced by an image
+     * creative while it was on screen, which left the reward countdown gated
+     * on a player that no longer existed. Rotation happens on close, through
+     * `refetchAd`.
+     */
+    refetchOnWindowFocus: false,
   });
 
   const query = useQuery({
     ...queryOptions,
     queryKey: [...queryOptions.queryKey, id],
   });
+
+  // Only the custom half of the rotation is ours to fetch early; a Google
+  // impression should not cost the viewer a video download.
+  useEffect(() => {
+    if (adType === "custom" && query.data) {
+      preloadAdVideo(query.data);
+    }
+  }, [adType, query.data]);
 
   const refetchAd = () => {
     query.refetch();

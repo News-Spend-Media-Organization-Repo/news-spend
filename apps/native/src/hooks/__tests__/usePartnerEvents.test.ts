@@ -73,6 +73,22 @@ describe("usePartnerEvents", () => {
     );
   });
 
+  it("enqueues each video event with its own name", async () => {
+    const { trackVideo } = await setup();
+    trackVideo("c1", "video_start", "connect-brand-video");
+    trackVideo("c1", "video_complete", "connect-brand-video");
+    expect(mockEnqueue).toHaveBeenNthCalledWith(1, {
+      contentId: "c1",
+      event: "video_start",
+      surface: "connect-brand-video",
+    });
+    expect(mockEnqueue).toHaveBeenNthCalledWith(2, {
+      contentId: "c1",
+      event: "video_complete",
+      surface: "connect-brand-video",
+    });
+  });
+
   it("returns stable functions", async () => {
     const hook = await renderHook(() => usePartnerEvents());
     const first = hook.result.current;

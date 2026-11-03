@@ -3,7 +3,11 @@ import { act, render } from "@testing-library/react-native";
 const mockTrackImpression = jest.fn();
 
 jest.mock("#/hooks/usePartnerEvents", () => ({
-  usePartnerEvents: () => ({ trackImpression: mockTrackImpression }),
+  AD_IMPRESSION_DWELL_MS: 1000,
+  usePartnerEvents: () => ({
+    trackImpression: mockTrackImpression,
+    trackVideo: jest.fn(),
+  }),
 }));
 jest.mock("#/hooks/usePartnerClick", () => ({
   usePartnerClick: () => ({ handleClick: jest.fn() }),
@@ -44,6 +48,10 @@ jest.mock("#/lib/icons", () => ({
   SpeakerSlashIcon: () => null,
 }));
 jest.mock("#/utils/index", () => ({ getCtaLabel: () => "Go" }));
+jest.mock("#/utils/adVideoCache", () => ({
+  adVideoUrl: () => null,
+  cachedAdVideoUri: () => null,
+}));
 jest.mock("heroui-native/spinner", () => ({ Spinner: () => null }));
 jest.mock("#/components/videoPlayer/thumbnailCache", () => ({
   getThumbnailWithCache: jest.fn(() => Promise.resolve(null)),

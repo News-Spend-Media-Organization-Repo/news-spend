@@ -35,6 +35,12 @@ const totals = (over: Partial<Record<string, number | null>> = {}) => ({
   sessionsSeen: 100,
   sessionsTapped: 8,
   tapThrough: 8,
+  starts: 100,
+  q25: 90,
+  q50: 50,
+  q75: 20,
+  completes: 10,
+  completionRate: 10,
   ...over,
 });
 
@@ -51,6 +57,11 @@ function requestFor(user: unknown) {
     taps: 9,
     sessions_seen: 100,
     sessions_tapped: 80,
+    starts: 100,
+    q25: 90,
+    q50: 50,
+    q75: 20,
+    completes: 10,
   };
   const req = {
     user,
@@ -77,8 +88,13 @@ describe("partner events panels", () => {
   it("shows impressions, taps and a dash for a missing tap-through", () => {
     const out = html(
       <PartnerEventsKpis
-        current={totals({ impressions: 1234, taps: 0, tapThrough: null })}
-        previous={totals()}
+        current={totals({
+          impressions: 1234,
+          taps: 0,
+          tapThrough: null,
+          starts: 50,
+        })}
+        previous={totals({ starts: 100 })}
       />
     );
 
@@ -87,6 +103,8 @@ describe("partner events panels", () => {
     expect(out).toContain("Taps");
     expect(out).toContain("Tap-through");
     expect(out).toContain(">—<");
+    // The started card compares against the previous period, like the others.
+    expect(out).toContain("-50%");
   });
 
   it("says the figures are reported by the app and what is not counted", () => {
@@ -129,6 +147,37 @@ describe("partner events panels", () => {
     expect(out).toContain("Loan offer");
     expect(out).toContain(`content=${ITEM_2}`);
     expect(out).toContain("days=30");
+  });
+
+  it("shows video depth and a dash for a missing finish rate", () => {
+    const out = html(
+      <PartnerEventsItemsPanel basePath="/p" days={30} rows={rows} />
+    );
+    expect(out).toContain("Finish rate");
+    expect(out).toContain("90");
+
+    const noStarts = html(
+      <PartnerEventsItemsPanel
+        basePath="/p"
+        days={30}
+        rows={[
+          {
+            contentId: ITEM_2,
+            title: "Video ad",
+            surface: "HomeFeed",
+            ...totals({
+              starts: 0,
+              q25: 0,
+              q50: 0,
+              q75: 0,
+              completes: 0,
+              completionRate: null,
+            }),
+          },
+        ]}
+      />
+    );
+    expect(noStarts).toContain("—");
   });
 
   it("filters to the chosen surface", () => {

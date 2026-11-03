@@ -51,6 +51,11 @@ export const PartnerContentEvents: CollectionConfig = {
       options: [
         { label: "Impression", value: "impression" },
         { label: "Click", value: "click" },
+        { label: "Video start", value: "video_start" },
+        { label: "Video 25%", value: "video_25" },
+        { label: "Video 50%", value: "video_50" },
+        { label: "Video 75%", value: "video_75" },
+        { label: "Video complete", value: "video_complete" },
       ],
     },
     {
@@ -127,7 +132,7 @@ export const PartnerContentEvents: CollectionConfig = {
       admin: {
         readOnly: true,
         description:
-          "Set on impressions only: one per device, session, item and surface. Empty on clicks.",
+          "One per device, session, event, item and surface. Empty on clicks.",
       },
     },
   ],

@@ -1,7 +1,7 @@
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useEvent } from "expo";
+import { useEvent, useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
   Pressable,
@@ -22,7 +22,9 @@ import {
   SpeakerSlashIcon,
 } from "#/lib/icons";
 import { getCtaLabel } from "#/utils";
+import { adVideoUrl, cachedAdVideoUri } from "#/utils/adVideoCache";
 import { getImageData } from "#/utils/getImageData";
+import { type VideoEvent, videoEventsAt } from "#/utils/videoAdProgress";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,10 @@ type PartnerAdContentProps = {
   onAdClick: () => void;
   ytPlaying: boolean;
   onYtStateChange: (state: string) => void;
+  /** Reports whether an uploaded/external video is actually playing. */
+  onPlaybackChange?: (playing: boolean) => void;
+  /** Fires each playback-depth event once per ad. */
+  onVideoEvent?: (event: VideoEvent) => void;
 };
 
 // ─── YouTube ID helper ────────────────────────────────────────────────────────
@@ -53,9 +59,14 @@ export function PartnerAdContent({
   onAdClick,
   ytPlaying,
   onYtStateChange,
+  onPlaybackChange,
+  onVideoEvent,
 }: PartnerAdContentProps) {
   const { width, height } = useWindowDimensions();
   const { isDataSaverActive } = useVideoSettings();
+  const [appActive, setAppActive] = useState(
+    AppState.currentState === "active"
+  );
 
   const isYouTubeAd = ad.type === "video" && ad.videoType === "YOUTUBE";
   const isUploadedVideoAd =
@@ -73,27 +84,91 @@ export function PartnerAdContent({
   const player = useVideoPlayer(null, (p) => {
     p.loop = true;
     p.muted = true;
+    // Android defaults to 20s ahead; a short ad should start, not fill a queue.
+    p.bufferOptions = { preferredForwardBufferDuration: 2 };
+    // Depth sampling: 0.5s is fine-grained enough to catch the last sample of
+    // a 5s ad before the loop wraps, without a flood of events.
+    p.timeUpdateEventInterval = 0.5;
   });
   const { isPlaying } = useEvent(player, "playingChange", {
     isPlaying: player.playing,
   });
   const { muted } = useEvent(player, "mutedChange", { muted: player.muted });
+  const { status } = useEvent(player, "statusChange", {
+    status: player.status,
+  });
 
-  const videoUrl = useMemo(() => {
+  // Non-video creatives report "playing" so the reward countdown cannot wedge
+  // on a player that no longer exists.
+  useEffect(() => {
+    onPlaybackChange?.(isUploadedVideoAd ? isPlaying : true);
+  }, [isUploadedVideoAd, isPlaying, onPlaybackChange]);
+
+  // Depth is reported once per ad. The ref resets when the ad changes, so a
+  // rotated creative starts a fresh pass.
+  const firedVideoEvents = useRef<Set<VideoEvent>>(new Set());
+  const onVideoEventRef = useRef(onVideoEvent);
+  useEffect(() => {
+    onVideoEventRef.current = onVideoEvent;
+  }, [onVideoEvent]);
+  useEffect(() => {
+    firedVideoEvents.current = new Set();
+  }, [ad.id]);
+
+  const emitVideoEvents = useCallback((events: VideoEvent[]) => {
+    for (const event of events) {
+      if (firedVideoEvents.current.has(event)) {
+        continue;
+      }
+      firedVideoEvents.current.add(event);
+      onVideoEventRef.current?.(event);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isUploadedVideoAd && isPlaying) {
+      emitVideoEvents(["video_start"]);
+    }
+  }, [isUploadedVideoAd, isPlaying, emitVideoEvents]);
+
+  useEventListener(player, "timeUpdate", ({ currentTime }) => {
+    if (isUploadedVideoAd) {
+      emitVideoEvents(
+        videoEventsAt(
+          currentTime,
+          player.duration,
+          firedVideoEvents.current,
+          0.5
+        )
+      );
+    }
+  });
+
+  useEventListener(player, "playToEnd", () => {
+    if (isUploadedVideoAd) {
+      emitVideoEvents(["video_complete"]);
+    }
+  });
+
+  // Resolved once per ad: swapping to the downloaded file mid-play would
+  // restart a video the viewer is already watching.
+  const videoUrl = useMemo(
+    () =>
+      isUploadedVideoAd ? (cachedAdVideoUri(ad.id) ?? adVideoUrl(ad)) : null,
+    [isUploadedVideoAd, ad]
+  );
+
+  // The generated thumbnail covers uploads; external creatives fall back to
+  // the banner image so the player is never a black rectangle.
+  const posterUrl = useMemo(() => {
     if (!isUploadedVideoAd) {
       return null;
     }
-    if (ad.videoUrl) {
-      return ad.videoUrl;
-    }
-    if (typeof ad.video === "string") {
-      return ad.video;
-    }
-    if (ad.video && typeof ad.video === "object" && "url" in ad.video) {
-      return ad.video.url;
-    }
-    return null;
-  }, [isUploadedVideoAd, ad.videoUrl, ad.video]);
+    const uploaded = typeof ad.video === "object" ? ad.video : null;
+    return (
+      uploaded?.sizes?.videoThumbnail?.url ?? getImageData(ad.media).url ?? null
+    );
+  }, [isUploadedVideoAd, ad.video, ad.media]);
 
   useEffect(() => {
     if (!(isUploadedVideoAd && videoUrl)) {
@@ -117,24 +192,54 @@ export function PartnerAdContent({
   }, [isUploadedVideoAd, videoUrl, player, isDataSaverActive]);
 
   /*
-   * Stop on background and on unmount. Without this a dismissed ad kept
-   * playing behind the dialog, and an ad left rolling while the app is
-   * backgrounded burns data and battery for something nobody is watching.
+   * Stop when the app backgrounds, and pick the video back up when it
+   * returns. A click-through closes the ad before handing off, so there is no
+   * ad left playing behind the browser to pause here.
+   *
+   * Only a video that was already playing resumes: a deliberate pause stays
+   * paused, and a data-saver ad nobody started does not start on return.
    */
+  const resumeOnFocus = useRef(false);
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+  useEffect(() => {
+    resumeOnFocus.current = false;
+  }, [ad.id]);
+
   useEffect(() => {
     if (!isUploadedVideoAd) {
       return;
     }
-    const subscription = AppState.addEventListener("change", (next) => {
-      if (next !== "active") {
-        player.pause();
+    if (appActive) {
+      if (resumeOnFocus.current) {
+        resumeOnFocus.current = false;
+        player.play();
       }
-    });
-    return () => {
-      subscription.remove();
+    } else {
+      resumeOnFocus.current = isPlayingRef.current;
       player.pause();
-    };
-  }, [isUploadedVideoAd, player]);
+    }
+  }, [appActive, isUploadedVideoAd, player]);
+
+  useEffect(() => {
+    if (!isUploadedVideoAd) {
+      return;
+    }
+    const subscription = AppState.addEventListener("change", (next) =>
+      setAppActive(next === "active")
+    );
+    return () => subscription.remove();
+  }, [isUploadedVideoAd]);
+
+  // Unmount, or a rotation away from video, stops the sound.
+  useEffect(
+    () => () => {
+      player.pause();
+    },
+    [player]
+  );
 
   const togglePlaying = useCallback(() => {
     if (isPlaying) {
@@ -194,6 +299,16 @@ export function PartnerAdContent({
                 player={player}
                 style={{ minHeight: "100%", width: "100%" }}
               />
+              {status !== "readyToPlay" && posterUrl ? (
+                <Image
+                  aria-label="Video advertisement poster"
+                  cachePolicy="memory-disk"
+                  className="absolute inset-0"
+                  contentFit="cover"
+                  pointerEvents="none"
+                  source={{ uri: posterUrl }}
+                />
+              ) : null}
             </Pressable>
             {/* box-none: taps on the bare overlay fall through to the video's
                 press target, taps on the controls stay with the controls. */}
@@ -222,9 +337,9 @@ export function PartnerAdContent({
                 size="sm"
               >
                 {muted ? (
-                  <SpeakerHighIcon color="white" size={18} />
-                ) : (
                   <SpeakerSlashIcon color="white" size={18} />
+                ) : (
+                  <SpeakerHighIcon color="white" size={18} />
                 )}
               </Button>
             </View>

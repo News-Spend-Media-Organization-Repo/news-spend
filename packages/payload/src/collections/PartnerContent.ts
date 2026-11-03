@@ -1,4 +1,4 @@
-import type { CollectionConfig } from "payload";
+import { type CollectionConfig, ValidationError } from "payload";
 import { z } from "zod";
 import { isStaff, readOwnPartnerOrStaff } from "../access/adminRoles";
 import { PromoImageBlock, PromoVideoSourceBlock } from "../blocks/PromoBlocks";
@@ -141,6 +141,13 @@ const AD_SIZE_GUIDANCE: Record<string, string> = {
 
 const isBannerType = (data: any) => ["banner"].includes(data?.type);
 
+/**
+ * A bigger creative can never start instantly, and the app downloads these to
+ * the device ahead of time. External URLs are the advertiser's own, so only
+ * uploads are capped.
+ */
+const MAX_VIDEO_UPLOAD_BYTES = 15 * 1024 * 1024;
+
 // ─── YouTube thumbnail helper ─────────────────────────────────────────────────
 export const getYoutubeThumbnailUrl = (url: string): string | null => {
   const match = url.match(
@@ -175,6 +182,40 @@ export const PartnerContent: CollectionConfig = {
     read: readOwnPartnerOrStaff("partner"),
   },
   hooks: {
+    beforeValidate: [
+      async ({ data, req }) => {
+        if (data?.type !== "video" || data.videoType !== "UPLOAD") {
+          return data;
+        }
+        if (!data.video) {
+          return data;
+        }
+        const video = data.video;
+        const media =
+          typeof video === "object"
+            ? video
+            : await req.payload.findByID({
+                collection: "media",
+                id: video,
+                depth: 0,
+              });
+        const filesize = (media as { filesize?: number | null }).filesize;
+        if (filesize && filesize > MAX_VIDEO_UPLOAD_BYTES) {
+          throw new ValidationError({
+            collection: "partner-content",
+            errors: [
+              {
+                path: "video",
+                message:
+                  `Video is ${(filesize / 1024 / 1024).toFixed(1)}MB. ` +
+                  "Keep it under 15MB: 720p, H.264, ≤2.5 Mbps, +faststart.",
+              },
+            ],
+          });
+        }
+        return data;
+      },
+    ],
     afterChange: [
       async ({ doc, operation, req }) => {
         if (doc.type !== "promo-media") {
@@ -470,7 +511,8 @@ export const PartnerContent: CollectionConfig = {
               relationTo: "media",
               filterOptions: VIDEO_ONLY,
               admin: {
-                description: "Upload MP4 (recommended 1280x720, max 50MB)",
+                description:
+                  "Upload MP4 (720p, H.264, ≤2.5 Mbps, +faststart, max 15MB)",
                 condition: (data) =>
                   data?.type === "video" && data?.videoType === "UPLOAD",
               },

@@ -340,6 +340,7 @@ export default memo(function GiveawayReward() {
         // whether an ad exists, and a Google ad cannot answer that in time.
         preferAdType="custom"
         setOpen={setAdOpen}
+        surface="connect-brand-video"
       />
     </>
   );

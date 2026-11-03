@@ -3,6 +3,7 @@ import type { PartnerContent } from "@news-spend-media/payload/types";
 import { proxy } from "valtio";
 
 import { client } from "#/lib/orpc";
+import { preloadAdVideo } from "#/utils/adVideoCache";
 import { storage } from "#/utils/storage";
 
 export type AdPlacement =
@@ -46,6 +47,11 @@ export async function preloadAd(placement: AdPlacement): Promise<void> {
     });
     slot.data = result ?? null;
     slot.status = result ? "ready" : "error";
+    // Download the creative as soon as the slot is filled; the sheet may not
+    // open for several more article taps.
+    if (result) {
+      preloadAdVideo(result);
+    }
   } catch {
     slot.status = "error";
   }
