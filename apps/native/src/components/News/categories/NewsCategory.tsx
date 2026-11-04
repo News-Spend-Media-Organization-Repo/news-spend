@@ -22,6 +22,9 @@ import { buildCategoryViewabilityProps } from "./feedViewability";
 const estimateItemSize = (_index: number, item: FeedAdItem) =>
   item?.type === "gAd" ? 150 : 116;
 
+/** Stable empty list, so an offline feed keeps one data identity. */
+const EMPTY_NEWS: never[] = [];
+
 const MemoizedSeparator = memo(() => <Separator className="m-3" />);
 
 type NewType = React.RefObject<LegendListRef>;
@@ -42,6 +45,7 @@ const NewsCategory = ({
   const {
     data,
     dataUpdatedAt,
+    fetchStatus,
     isPending,
     refetch,
     refetchFresh,
@@ -161,7 +165,9 @@ const NewsCategory = ({
     usePartnerImpressionViewability()
   );
 
-  if (isPending) {
+  // A paused request (offline) never resolves, so it does not earn a
+  // placeholder — the empty list at least lets the reader pull to refresh.
+  if (isPending && fetchStatus === "fetching") {
     return <NewsItemPlaceholder show />;
   }
 
@@ -172,7 +178,7 @@ const NewsCategory = ({
         paddingTop: 15,
         paddingHorizontal: 10,
       }}
-      data={flattenedNews}
+      data={flattenedNews ?? EMPTY_NEWS}
       getEstimatedItemSize={estimateItemSize}
       getItemType={(item) => item?.type ?? item?._type}
       ItemSeparatorComponent={MemoizedSeparator}

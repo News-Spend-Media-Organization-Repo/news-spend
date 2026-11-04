@@ -34,6 +34,7 @@ import { queryClient } from "#/lib/tanstackQuery";
 import { routeState, useTabBarHeight } from "#/state/route-state";
 import { markTabAdsStale, registerAdSlots } from "#/utils/ad-cache";
 import { preloadAdsAhead } from "#/utils/ad-preload";
+import { PERSISTED_QUERY_MAX_AGE_MS } from "#/utils/clientPersister";
 import HomeListHeader from "../HomeListHeader";
 import HomeListSkeleton from "../HomeListSkeleton";
 import NewsItem from "../NewsItem";
@@ -42,6 +43,7 @@ import {
   createTrendingVisibility,
   type TrendingVisibility,
 } from "../trendingCarousel";
+import { dropTrendingAndAdjacentAds } from "./feedOrder";
 import { buildLatestViewabilityPairs } from "./feedViewability";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
@@ -147,6 +149,7 @@ const Latest = memo(
       data: news,
       dataUpdatedAt,
       fetchNextPage,
+      fetchStatus,
       hasNextPage,
       isFetching,
       isPending,
@@ -158,7 +161,9 @@ const Latest = memo(
         getNextPageParam: (lastPage) => lastPage?.nextPage,
         initialPageParam: undefined,
         staleTime: NEWS_FEED_STALE_TIME_MS,
-        gcTime: 10 * 60 * 1000, // 10 min, keeps cached data in memory
+        // Kept as long as the persisted cache, so a feed that was on disk at
+        // kill is still there for the splash-gated rehydrate to hand back.
+        gcTime: PERSISTED_QUERY_MAX_AGE_MS,
         // Poll while the home feed is on screen. Without this the only
         // refresh triggers were app foreground and returning to the tab, so a
         // reader watching the screen never saw a newly published story land.
@@ -208,18 +213,10 @@ const Latest = memo(
 
     const flattenedNews = useMemo(() => {
       const docs = news?.pages.flatMap((page) => page.docs);
-      if (!docs || trendingIds.size === 0) {
+      if (!docs) {
         return docs;
       }
-      return docs.filter(
-        (item) =>
-          !(
-            item &&
-            "type" in item &&
-            (item.type === "article" || item.type === "video") &&
-            trendingIds.has(item.id)
-          )
-      );
+      return dropTrendingAndAdjacentAds(docs, trendingIds);
     }, [news, trendingIds]);
     flattenedNewsRef.current = flattenedNews;
 
@@ -508,7 +505,9 @@ const Latest = memo(
 
     // Only the main feed gates first paint. The header-only queries (video
     // news, partner books, trending) stream into their sections when ready.
-    if (isPending) {
+    // A paused request (offline) never resolves, so it does not earn a
+    // skeleton — the empty list at least lets the reader pull to refresh.
+    if (isPending && fetchStatus === "fetching") {
       return <HomeListSkeleton />;
     }
 
@@ -518,7 +517,7 @@ const Latest = memo(
           paddingBottom: tabBarHeight + 20,
           paddingTop: 15,
         }}
-        data={flattenedNews}
+        data={flattenedNews ?? EMPTY_DOCS}
         getEstimatedItemSize={getEstimatedItemSize}
         getItemType={getItemType}
         ItemSeparatorComponent={MemoizedSeparator}
