@@ -9,6 +9,12 @@ import {
   ReloadlyError,
   reloadlyConfigFromEnv,
 } from "./reloadly";
+import {
+  type GiftCardOrder,
+  type GiftCardProduct,
+  type ReloadlyGiftCardClient,
+  reloadlyGiftCardClientFromEnv,
+} from "./reloadlyGiftCards";
 
 /** How many payouts one pass will attempt. */
 const FULFILMENT_BATCH_SIZE = 50;
@@ -113,11 +119,14 @@ export function attemptRecorder(
  */
 export async function fulfilPendingPrizes(
   payload: BasePayload,
-  {
-    client,
-    limit = FULFILMENT_BATCH_SIZE,
-  }: { client?: ReloadlyClient; limit?: number } = {}
+  options: {
+    client?: ReloadlyClient;
+    giftCardClient?: ReloadlyGiftCardClient;
+    limit?: number;
+  } = {}
 ): Promise<FulfilmentSummary> {
+  const { client, giftCardClient, limit = FULFILMENT_BATCH_SIZE } = options;
+
   const summary: FulfilmentSummary = {
     attempted: 0,
     sent: 0,
@@ -129,6 +138,8 @@ export async function fulfilPendingPrizes(
   if (!resolved) {
     return summary;
   }
+
+  const resolvedGiftCards = giftCardClient ?? reloadlyGiftCardClientFromEnv();
 
   const pending = await payload.find({
     collection: "giveaway-winners",
@@ -149,8 +160,13 @@ export async function fulfilPendingPrizes(
     const prizeDoc = typeof prize === "object" && prize !== null ? prize : null;
     const type = prizeDoc?.fulfilmentType;
 
-    // Anything the provider does not deliver is somebody else's job.
-    if (!(type === "airtime" || type === "data")) {
+    const isGiftCard =
+      type === "gift_card" && Number(prizeDoc?.reloadlyGiftCardProductId) > 0;
+
+    // Anything the provider does not deliver is somebody else's job. A gift
+    // card counts only once a Reloadly product is configured; a legacy card
+    // with no product stays a manual prize and is skipped silently.
+    if (!(type === "airtime" || type === "data" || isGiftCard)) {
       continue;
     }
 
@@ -162,7 +178,10 @@ export async function fulfilPendingPrizes(
 
     summary.attempted += 1;
 
-    const outcome = await fulfilOne(payload, resolved, winner);
+    const outcome =
+      isGiftCard && resolvedGiftCards
+        ? await fulfilGiftCard(payload, resolvedGiftCards, winner)
+        : await fulfilOne(payload, resolved, winner);
 
     if (outcome === "sent") {
       summary.sent += 1;
@@ -380,6 +399,196 @@ async function fulfilOne(
       record,
       localAmount,
       identifier ?? undefined
+    );
+  }
+}
+
+/**
+ * Whether the prize's configured face value is still one the product sells.
+ *
+ * Checked before ordering so a product Reloadly has since repriced (or a value
+ * captured against the wrong catalogue) holds as a configuration problem
+ * instead of sending the provider a price it will reject.
+ */
+function validGiftCardDenomination(
+  product: GiftCardProduct,
+  unitPrice: number
+): boolean {
+  if (product.denominationType === "FIXED") {
+    return (product.fixedRecipientDenominations ?? []).includes(unitPrice);
+  }
+
+  const min = product.minRecipientDenomination;
+  const max = product.maxRecipientDenomination;
+  return (min == null || unitPrice >= min) && (max == null || unitPrice <= max);
+}
+
+/**
+ * Buy one gift card for a winner and store its code.
+ *
+ * The identifier is per winner, not per attempt, so a retry after a failed
+ * code fetch is refused as a duplicate instead of buying a second card. The
+ * transaction id is written before any status check or code fetch, which is
+ * what lets the retry resume at `getTransaction` rather than ordering again.
+ */
+async function fulfilGiftCard(
+  payload: BasePayload,
+  client: ReloadlyGiftCardClient,
+  winner: Record<string, any>
+): Promise<Outcome> {
+  const prize = winner.prize as Record<string, any>;
+  const winnerId = String(winner.id);
+  const identifier = `gift-card:${winnerId}`;
+  const productId = Number(prize.reloadlyGiftCardProductId);
+  const unitPrice = Number(prize.reloadlyGiftCardUnitPrice);
+  const productName = String(prize.reloadlyGiftCardProductName ?? "");
+
+  const ctx: AttemptContext = {
+    winnerId,
+    environment: client.isSandbox ? "sandbox" : "live",
+  };
+  const record = attemptRecorder(payload, ctx);
+
+  let chargedAmount = 0;
+
+  try {
+    let transaction: GiftCardOrder;
+
+    if (winner.giftCardTransactionId) {
+      transaction = await client.getTransaction(winner.giftCardTransactionId);
+    } else {
+      let product: GiftCardProduct;
+      try {
+        product = await client.getProduct(productId);
+      } catch (error) {
+        if (error instanceof ReloadlyError && error.status === 404) {
+          await hold(
+            payload,
+            winnerId,
+            "Gift card is configured in a different Reloadly environment."
+          );
+          await record({
+            outcome: "skipped",
+            providerReference: identifier,
+            error: "product not in current environment",
+          });
+          return "skipped";
+        }
+        throw error;
+      }
+
+      if (!validGiftCardDenomination(product, unitPrice)) {
+        const message = "Gift card no longer offers that face value.";
+        await hold(payload, winnerId, message);
+        await record({
+          outcome: "skipped",
+          providerReference: identifier,
+          error: message,
+        });
+        return "skipped";
+      }
+
+      try {
+        transaction = await client.order({
+          productId,
+          unitPrice,
+          customIdentifier: identifier,
+        });
+      } catch (error) {
+        if (error instanceof ReloadlyError && error.isAlreadySent) {
+          const existing = await client.findTransaction(identifier);
+          if (!existing) {
+            await hold(
+              payload,
+              winnerId,
+              "Gift card was reported as already purchased but could not be found."
+            );
+            await record({
+              outcome: "skipped",
+              providerReference: identifier,
+              error: "duplicate identifier unresolvable",
+            });
+            return "skipped";
+          }
+          transaction = existing;
+        } else {
+          throw error;
+        }
+      }
+
+      // Written before any status check or code fetch, so an interrupted run
+      // resumes here rather than buying a second card.
+      await payload.update({
+        collection: "giveaway-winners",
+        id: winnerId,
+        data: { giftCardTransactionId: String(transaction.transactionId) },
+      });
+    }
+
+    chargedAmount = transaction.amount ?? 0;
+
+    if (
+      transaction.status === "FAILED" ||
+      transaction.status === "REVERSED" ||
+      transaction.status === "CANCELLED"
+    ) {
+      await hold(
+        payload,
+        winnerId,
+        `Gift card order ${transaction.status.toLowerCase()}.`
+      );
+      await record({
+        outcome: "permanent_failure",
+        providerReference: identifier,
+        providerTransactionId: String(transaction.transactionId),
+        operatorName: productName,
+        localAmount: chargedAmount,
+        error: `order ${transaction.status}`,
+      });
+      return "failed";
+    }
+
+    if (transaction.status !== "SUCCESSFUL") {
+      throw new ReloadlyError(
+        `Gift card order is ${transaction.status}; retrying.`,
+        200,
+        { status: transaction.status },
+        true
+      );
+    }
+
+    const issued = await client.getCode(transaction.transactionId);
+
+    await payload.update({
+      collection: "giveaway-winners",
+      id: winnerId,
+      data: {
+        giftCardCode: issued.cardNumber,
+        giftCardPin: issued.pinCode ?? null,
+        giftCardRedemptionUrl: issued.redemptionUrl ?? null,
+        giftCardInstructions: prize.reloadlyGiftCardInstructions ?? null,
+        fulfilmentStatus: "fulfilled",
+        fulfilledAt: new Date().toISOString(),
+      },
+    });
+
+    await record({
+      outcome: "sent",
+      providerReference: identifier,
+      providerTransactionId: String(transaction.transactionId),
+      operatorName: productName,
+      localAmount: chargedAmount,
+    });
+
+    return "sent";
+  } catch (error) {
+    return await handleFailure(
+      payload,
+      ctx,
+      error,
+      record,
+      chargedAmount,
+      identifier
     );
   }
 }

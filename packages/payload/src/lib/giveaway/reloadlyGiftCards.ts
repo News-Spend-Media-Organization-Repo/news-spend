@@ -46,6 +46,8 @@ export type GiftCardOrder = {
   transactionId: number;
   status: string;
   currencyCode: string;
+  /** The account-currency charge (face value plus fees), per Reloadly's order/report schema. */
+  amount?: number | null;
   product: {
     productId: number;
     productName: string;
