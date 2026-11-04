@@ -435,6 +435,35 @@ describe("partnerContentRouter.random", () => {
     }
   });
 
+  it("picks a page, not a row offset, when there is more than one page", async () => {
+    const originalRandom = Math.random;
+    // 0.99 lands on the last page. A row offset used as a page number would
+    // have queried past the end and returned nothing.
+    Math.random = () => 0.99;
+    try {
+      const payload = createFakePayload({
+        collections: {
+          "partner-content": Array.from({ length: 30 }, (_, i) =>
+            content({ id: `c${i}`, status: "active" })
+          ),
+        },
+      });
+      const ctx = mockContext({ payload });
+
+      const result = await call(
+        partnerContentRouter.random,
+        { limit: 12 },
+        { context: ctx }
+      );
+
+      expect(result.length).toBeGreaterThan(0);
+      const findCall = payload.calls.find((c) => c.op === "find");
+      expect(findCall?.args.page).toBe(3);
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
   it("returns empty array when no active docs exist", async () => {
     const payload = createFakePayload({
       collections: {
