@@ -7,6 +7,7 @@ import {
   reloadlyConfigFromEnv,
 } from "../../lib/giveaway/reloadly";
 import { describeNearestDenominations } from "../../lib/giveaway/reloadlyDenominations";
+import { reloadlyGiftCardClientFromEnv } from "../../lib/giveaway/reloadlyGiftCards";
 import {
   ADMIN_GROUP,
   FULFILMENT_TYPE_OPTIONS,
@@ -70,6 +71,53 @@ export function giftCardConfigurationError(data: {
   }
 
   return true;
+}
+
+/** Cap on how many fixed denominations an error names before summarising. */
+const MAX_NAMED_DENOMINATIONS = 5;
+
+/**
+ * Whether a face value is one the product still sells, as a validation error
+ * string or `true`.
+ *
+ * Pure on purpose: save-time validation runs it against Reloadly's current
+ * catalogue, but fulfilment re-checks before any money leaves, so a value that
+ * drifted after save is caught again there. A product with no denomination
+ * data is not refusable here and answers `true`.
+ */
+export function giftCardDenominationError(
+  product: {
+    denominationType: "FIXED" | "RANGE";
+    fixedRecipientDenominations?: number[] | null;
+    minRecipientDenomination?: number | null;
+    maxRecipientDenomination?: number | null;
+  },
+  unitPrice: number
+): true | string {
+  if (product.denominationType === "FIXED") {
+    const fixed = product.fixedRecipientDenominations ?? [];
+    if (fixed.length === 0 || fixed.includes(unitPrice)) {
+      return true;
+    }
+
+    const named = fixed.slice(0, MAX_NAMED_DENOMINATIONS);
+    const remaining = fixed.length - named.length;
+    const list =
+      named.join(", ") + (remaining > 0 ? `, … and ${remaining} more` : "");
+    return `Face value ${unitPrice} is not one of this product's allowed values: ${list}.`;
+  }
+
+  const min = product.minRecipientDenomination;
+  const max = product.maxRecipientDenomination;
+  if (min == null || max == null) {
+    return true;
+  }
+
+  if (unitPrice >= min && unitPrice <= max) {
+    return true;
+  }
+
+  return `Face value ${unitPrice} is outside this product's valid range (${min} - ${max}).`;
 }
 
 type GiftCardSiblingData = {
@@ -509,16 +557,41 @@ export const PrizeCatalogue: CollectionConfig = {
             "@news-spend-media/payload/components/ReloadlyProductSelector#GiftCardDenominationField",
         },
       },
-      validate: (
+      validate: async (
         value: number | null | undefined,
         { siblingData }: { siblingData?: unknown }
       ) => {
         const data = giftCardSiblingData(siblingData);
-        return giftCardConfigurationError({
+
+        const structural = giftCardConfigurationError({
           fulfilmentType: data.fulfilmentType,
           reloadlyGiftCardProductId: data.reloadlyGiftCardProductId,
           reloadlyGiftCardUnitPrice: value,
         });
+        if (structural !== true) {
+          return structural;
+        }
+
+        const productId = data.reloadlyGiftCardProductId;
+        const price = Number(value);
+        if (!(productId && price > 0)) {
+          return true;
+        }
+
+        // A save must not depend on Reloadly being reachable: the sweep
+        // re-checks the denomination before buying, so an outage here is a
+        // missed warning, not a risk. Only a reachable catalogue can refuse.
+        const client = reloadlyGiftCardClientFromEnv();
+        if (!client) {
+          return true;
+        }
+
+        try {
+          const product = await client.getProduct(Number(productId));
+          return giftCardDenominationError(product, price);
+        } catch {
+          return true;
+        }
       },
     },
     {

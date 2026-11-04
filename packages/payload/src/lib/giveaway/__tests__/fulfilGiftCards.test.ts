@@ -367,6 +367,30 @@ describe("gift card fulfilment", () => {
     expect(summary).toEqual({ attempted: 1, sent: 0, failed: 0, skipped: 1 });
   });
 
+  it("holds before ordering when the prize environment differs from the client's", async () => {
+    const { payload, updates } = fakePayload([
+      winnerWithPrize({
+        prize: giftCardPrize({ reloadlyGiftCardEnvironment: "live" }),
+      }),
+    ]);
+    const client = fakeGiftCardClient();
+
+    const summary = await fulfilPendingPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(client.orderCalls).toHaveLength(0);
+    expect(client.getProductCalls).toHaveLength(0);
+    const holdUpdate = updates.find(
+      (u) => u.data.fulfilmentStatus === "on_hold"
+    );
+    expect(holdUpdate).toBeDefined();
+    expect(holdUpdate?.data.reviewNote).toContain("live");
+    expect(holdUpdate?.data.reviewNote).toContain("sandbox");
+    expect(summary).toEqual({ attempted: 1, sent: 0, failed: 0, skipped: 1 });
+  });
+
   it("skips a configured gift card when no gift card client is available", async () => {
     vi.stubEnv("RELOADLY_CLIENT_ID", "");
     vi.stubEnv("RELOADLY_CLIENT_SECRET", "");

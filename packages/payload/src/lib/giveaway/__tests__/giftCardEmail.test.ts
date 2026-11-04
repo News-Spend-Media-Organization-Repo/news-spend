@@ -34,6 +34,17 @@ describe("giftCardEmail", () => {
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
   });
+
+  it("strips newlines from the prize name in the subject", () => {
+    const { subject } = giftCardEmail({
+      ...input,
+      prizeName: "Amazon\r\nNigeria",
+    });
+
+    expect(subject).toBe("Your Amazon Nigeria gift card is ready");
+    expect(subject).not.toContain("\n");
+    expect(subject).not.toContain("\r");
+  });
 });
 
 describe("sendGiftCardEmail", () => {

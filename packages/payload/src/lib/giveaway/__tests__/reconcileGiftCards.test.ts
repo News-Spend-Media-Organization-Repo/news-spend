@@ -1,23 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { reconcileInProgressPrizes } from "../reconcilePrizes";
-import type { GiftCardProduct } from "../reloadlyGiftCards";
 
 const STALE = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-
-const product: GiftCardProduct = {
-  productId: 7,
-  productName: "Amazon Nigeria",
-  denominationType: "FIXED",
-  recipientCurrencyCode: "NGN",
-  senderCurrencyCode: "NGN",
-  fixedRecipientDenominations: [5000, 10_000],
-  fixedSenderDenominations: [5000, 10_000],
-  minRecipientDenomination: null,
-  maxRecipientDenomination: null,
-  minSenderDenomination: null,
-  maxSenderDenomination: null,
-  redeemInstructions: { concise: "Redeem on amazon.com" },
-};
 
 const successfulOrder = {
   transactionId: 42,
@@ -102,7 +86,10 @@ function fakeGiftCardClient(
   };
 }
 
-function fakePayload(winners: unknown[]) {
+function fakePayload(
+  winners: unknown[],
+  options: { sendEmailError?: Error } = {}
+) {
   const updates: Array<{
     collection: string;
     id: string;
@@ -110,6 +97,7 @@ function fakePayload(winners: unknown[]) {
   }> = [];
   const creates: Array<{ collection: string; data: Record<string, unknown> }> =
     [];
+  const emails: unknown[] = [];
 
   // Mutable winner state so later passes see writes from earlier ones.
   const state = new Map(
@@ -155,7 +143,12 @@ function fakePayload(winners: unknown[]) {
       return { id: "created" };
     },
     count: async () => ({ totalDocs: 0 }),
-    sendEmail: async () => undefined,
+    sendEmail: async (args: unknown) => {
+      emails.push(args);
+      if (options.sendEmailError) {
+        throw options.sendEmailError;
+      }
+    },
     findGlobal: async () => null,
     logger: {
       error: () => undefined,
@@ -165,7 +158,7 @@ function fakePayload(winners: unknown[]) {
     db: { drizzle: { execute: async () => ({ rows: [] }) } },
   };
 
-  return { payload, updates, creates };
+  return { payload, updates, creates, emails };
 }
 
 const topupClient = { isSandbox: true } as never;
@@ -267,5 +260,84 @@ describe("gift card reconciliation", () => {
       true
     );
     expect(summary).toEqual({ checked: 1, fulfilled: 0, requeued: 1, held: 0 });
+  });
+
+  it("emails a recovered card when enabled", async () => {
+    const { payload, updates, emails } = fakePayload([
+      winnerWithPrize({ giftCardTransactionId: "42" }),
+    ]);
+    const client = fakeGiftCardClient();
+
+    const summary = await reconcileInProgressPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(emails).toHaveLength(1);
+    expect(emails[0]).toMatchObject({ to: "u1@example.com" });
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(true);
+    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0, held: 0 });
+  });
+
+  it("does not email a recovered card when disabled", async () => {
+    const { payload, updates, emails } = fakePayload([
+      winnerWithPrize({
+        giftCardTransactionId: "42",
+        prize: giftCardPrize({ emailGiftCardCode: false }),
+      }),
+    ]);
+    const client = fakeGiftCardClient();
+
+    await reconcileInProgressPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(emails).toHaveLength(0);
+    expect(updates.some((u) => u.data.fulfilmentStatus === "fulfilled")).toBe(
+      true
+    );
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(false);
+  });
+
+  it("does not email a recovered card when the winner has no email", async () => {
+    const { payload, updates, emails } = fakePayload([
+      winnerWithPrize({
+        giftCardTransactionId: "42",
+        user: { id: "u1", email: "" },
+      }),
+    ]);
+    const client = fakeGiftCardClient();
+
+    await reconcileInProgressPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(emails).toHaveLength(0);
+    expect(updates.some((u) => u.data.fulfilmentStatus === "fulfilled")).toBe(
+      true
+    );
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(false);
+  });
+
+  it("still fulfils when the email send fails", async () => {
+    const { payload, updates, emails } = fakePayload(
+      [winnerWithPrize({ giftCardTransactionId: "42" })],
+      { sendEmailError: new Error("smtp unreachable") }
+    );
+    const client = fakeGiftCardClient();
+
+    const summary = await reconcileInProgressPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(emails).toHaveLength(1);
+    expect(updates.some((u) => u.data.fulfilmentStatus === "fulfilled")).toBe(
+      true
+    );
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(false);
+    expect(summary).toEqual({ checked: 1, fulfilled: 1, requeued: 0, held: 0 });
   });
 });

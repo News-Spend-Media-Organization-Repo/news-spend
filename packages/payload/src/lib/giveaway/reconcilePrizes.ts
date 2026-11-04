@@ -6,6 +6,7 @@ import {
   defaultReloadlyClient,
   hold,
 } from "./fulfilPrizes";
+import { sendGiftCardEmail } from "./giftCardEmail";
 import {
   applyProviderVerdict,
   latestProviderTransactionId,
@@ -329,6 +330,37 @@ async function reconcileGiftCard(
     operatorName: productName,
     localAmount: transaction.amount ?? 0,
   });
+
+  // The same winner's copy the dispatch sends, so a recovered card is not a
+  // silent delivery. A missing email or a failed send leaves the prize
+  // fulfilled with no timestamp, exactly as in the dispatch path.
+  const email =
+    typeof winner.user?.email === "string" ? winner.user.email.trim() : "";
+  if (prize?.emailGiftCardCode !== false && email !== "") {
+    const sent = await sendGiftCardEmail(payload, {
+      to: email,
+      winnerName: winner.claimRecipientName ?? null,
+      prizeName: String(winner.prizeName ?? "A giveaway prize"),
+      code: issued.cardNumber,
+      pin: issued.pinCode ?? null,
+      redemptionUrl: issued.redemptionUrl ?? null,
+      instructions: prize?.reloadlyGiftCardInstructions ?? null,
+    });
+    if (sent) {
+      await payload
+        .update({
+          collection: "giveaway-winners",
+          id: winnerId,
+          data: { giftCardEmailSentAt: new Date().toISOString() },
+        })
+        .catch((error) => {
+          payload.logger.error(
+            { err: error, winnerId },
+            "[giveaway] could not record the gift card email timestamp"
+          );
+        });
+    }
+  }
 
   return "fulfilled";
 }

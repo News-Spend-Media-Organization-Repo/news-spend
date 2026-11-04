@@ -30,6 +30,10 @@ export function giftCardEmail(input: GiftCardEmailInput): {
   const { winnerName, prizeName, code, pin, redemptionUrl, instructions } =
     input;
 
+  // Subject headers cannot contain CR/LF; a run becomes one space so a crafted
+  // prize name cannot inject a header. The HTML body is escaped separately.
+  const subjectName = prizeName.replace(/[\r\n]+/g, " ");
+
   // Omitted, not blank: an absent name, PIN or URL must never print "null".
   const rows = [
     winnerName ? row("For", escapeHtml(winnerName)) : "",
@@ -49,7 +53,7 @@ ${instructions ? `<p style="color: #666;">${escapeHtml(instructions)}</p>` : ""}
   <p style="color: #666;">This code is personal to you and cannot be replaced. Keep it safe.</p>
 </div>`;
 
-  return { subject: `Your ${prizeName} gift card is ready`, html };
+  return { subject: `Your ${subjectName} gift card is ready`, html };
 }
 
 /**

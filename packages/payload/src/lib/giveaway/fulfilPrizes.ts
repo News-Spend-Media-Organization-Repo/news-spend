@@ -465,6 +465,29 @@ async function fulfilGiftCard(
     if (winner.giftCardTransactionId) {
       transaction = await client.getTransaction(winner.giftCardTransactionId);
     } else {
+      // A prize configured against the other environment is a configuration
+      // problem, caught before `getProduct` so it holds with a clear reason
+      // rather than a misleading 404.
+      const configuredEnv = prize.reloadlyGiftCardEnvironment;
+      const currentEnv = client.isSandbox ? "sandbox" : "live";
+      if (
+        typeof configuredEnv === "string" &&
+        configuredEnv.trim() !== "" &&
+        configuredEnv !== currentEnv
+      ) {
+        await hold(
+          payload,
+          winnerId,
+          `Gift card was configured in ${configuredEnv} but this client is ${currentEnv}.`
+        );
+        await record({
+          outcome: "skipped",
+          providerReference: identifier,
+          error: "configured environment mismatch",
+        });
+        return "skipped";
+      }
+
       let product: GiftCardProduct;
       try {
         product = await client.getProduct(productId);
