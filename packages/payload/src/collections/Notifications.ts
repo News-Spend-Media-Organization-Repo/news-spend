@@ -412,6 +412,15 @@ const Notifications: CollectionConfig = {
     ],
     afterRead: [
       async ({ req, doc }) => {
+        /**
+         * Payload also runs this hook for version snapshots, whose body has no
+         * `id`. Querying with it threw a UUID error that Payload swallowed,
+         * turning the Versions tab into a 404.
+         */
+        if (!doc?.id) {
+          return doc;
+        }
+
         const [delivered, failed, opened] = await Promise.all([
           req.payload.count({
             collection: "notification-deliveries",
