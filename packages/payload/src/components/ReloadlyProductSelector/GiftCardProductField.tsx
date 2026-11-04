@@ -76,7 +76,6 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
   const [environment, setEnvironmentState] = useState<
     "sandbox" | "live" | null
   >(null);
-  const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,17 +129,10 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
     setSenderPrice(undefined);
   };
 
-  const term = filter.trim().toLowerCase();
-  const matching = term
-    ? products.filter((product) =>
-        product.productName.toLowerCase().includes(term)
-      )
-    : products;
-
-  // Keep the saved product visible even when the filter excludes its name, so
-  // an existing prize never renders as an empty select.
+  // Keep the saved product visible even if it has left the current catalogue,
+  // so an existing prize never renders as an empty select.
   const saved = value ? products.find((p) => p.productId === value) : undefined;
-  const options = matching.map((p) => ({
+  const options = products.map((p) => ({
     label: p.productName,
     value: String(p.productId),
   }));
@@ -153,21 +145,6 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
 
   return (
     <div className="field-type">
-      <input
-        aria-label="Search gift card products"
-        onChange={(event) => setFilter(event.target.value)}
-        placeholder="Search gift cards…"
-        style={{
-          border: "1px solid var(--theme-elevation-150)",
-          borderRadius: 4,
-          marginBottom: 8,
-          padding: "8px 12px",
-          width: "100%",
-        }}
-        type="search"
-        value={filter}
-      />
-
       {loading && <Note>Loading gift cards…</Note>}
       {error && <Note tone="error">{error}</Note>}
 
@@ -196,9 +173,7 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
 
       {!(loading || error) && options.length === 0 && (
         <Note>
-          {term
-            ? "No gift cards match that search."
-            : "No gift cards are available in the current Reloadly catalogue."}
+          No gift cards are available in the current Reloadly catalogue.
         </Note>
       )}
 
