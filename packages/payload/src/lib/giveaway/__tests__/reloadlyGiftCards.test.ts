@@ -61,15 +61,31 @@ describe("ReloadlyGiftCardClient", () => {
   it("mints a token for the gift card host, not the top-ups host", async () => {
     const { calls, client: gc } = client([
       { access_token: "tok", expires_in: 3600 },
-      [],
+      { content: [product] },
     ]);
-    await gc.listProducts({ productName: "Amazon" });
+    const products = await gc.listProducts({ productName: "Amazon" });
 
     expect(calls[0]?.url).toBe("https://auth.reloadly.com/oauth/token");
     expect(JSON.parse(String(calls[0]?.init.body)).audience).toBe(
       "https://giftcards-sandbox.reloadly.com"
     );
     expect(calls[1]?.url).toContain("giftcards-sandbox.reloadly.com");
+    expect(products).toEqual([product]);
+  });
+
+  it("normalises the singular redemption-instruction field", async () => {
+    const { client: gc } = client([
+      { access_token: "tok", expires_in: 3600 },
+      {
+        ...product,
+        redeemInstructions: undefined,
+        redeemInstruction: { concise: "Use at checkout" },
+      },
+    ]);
+
+    const fetched = await gc.getProduct(7);
+
+    expect(fetched.redeemInstructions).toEqual({ concise: "Use at checkout" });
   });
 
   it("orders one card in the recipient currency with a per-winner identifier", async () => {
@@ -114,14 +130,24 @@ describe("ReloadlyGiftCardClient", () => {
   it("finds the existing transaction for a duplicate identifier", async () => {
     const { calls, client: gc } = client([
       { access_token: "tok", expires_in: 3600 },
-      [
-        {
-          transactionId: 42,
-          status: "SUCCESSFUL",
-          currencyCode: "NGN",
-          product,
-        },
-      ],
+      {
+        content: [
+          {
+            transactionId: 41,
+            status: "SUCCESSFUL",
+            currencyCode: "NGN",
+            customIdentifier: "gift-card:w2",
+            product,
+          },
+          {
+            transactionId: 42,
+            status: "SUCCESSFUL",
+            currencyCode: "NGN",
+            customIdentifier: "gift-card:w1",
+            product,
+          },
+        ],
+      },
     ]);
     const tx = await gc.findTransaction("gift-card:w1");
 

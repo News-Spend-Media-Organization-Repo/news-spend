@@ -63,6 +63,29 @@ export type GiftCardCode = {
 
 export type GiftCardTransaction = GiftCardOrder;
 
+/** Reloadly mixes bare arrays (reports) with `{ content }` envelopes (products). */
+type Paged<T> = T[] | { content?: T[] };
+
+function items<T>(body: Paged<T>): T[] {
+  return Array.isArray(body) ? body : (body.content ?? []);
+}
+
+/** The API spells the field singular; the client exposes one name. */
+type ApiProduct = Omit<GiftCardProduct, "redeemInstructions"> & {
+  redeemInstructions?: GiftCardProduct["redeemInstructions"];
+  redeemInstruction?: GiftCardProduct["redeemInstructions"];
+};
+
+function normaliseProduct(raw: ApiProduct): GiftCardProduct {
+  const { redeemInstruction, ...product } = raw;
+  return {
+    ...product,
+    redeemInstructions: product.redeemInstructions ?? redeemInstruction ?? null,
+  };
+}
+
+type ReportTransaction = GiftCardTransaction & { customIdentifier?: string };
+
 export class ReloadlyGiftCardClient {
   private readonly config: ReloadlyConfig;
   private readonly fetchImpl: typeof fetch;
@@ -154,7 +177,7 @@ export class ReloadlyGiftCardClient {
     return body as T;
   }
 
-  listProducts(
+  async listProducts(
     args: { productName?: string; page?: number; size?: number } = {}
   ): Promise<GiftCardProduct[]> {
     const params = new URLSearchParams({
@@ -167,11 +190,16 @@ export class ReloadlyGiftCardClient {
       params.set("productName", args.productName);
     }
 
-    return this.request<GiftCardProduct[]>(`/products?${params.toString()}`);
+    const body = await this.request<Paged<ApiProduct>>(
+      `/products?${params.toString()}`
+    );
+
+    return items(body).map(normaliseProduct);
   }
 
-  getProduct(productId: number): Promise<GiftCardProduct> {
-    return this.request<GiftCardProduct>(`/products/${productId}`);
+  async getProduct(productId: number): Promise<GiftCardProduct> {
+    const body = await this.request<ApiProduct>(`/products/${productId}`);
+    return normaliseProduct(body);
   }
 
   /**
@@ -215,13 +243,18 @@ export class ReloadlyGiftCardClient {
     customIdentifier: string
   ): Promise<GiftCardTransaction | null> {
     try {
-      const docs = await this.request<GiftCardTransaction[]>(
+      const body = await this.request<Paged<ReportTransaction>>(
         `/reports/transactions?customIdentifier=${encodeURIComponent(
           customIdentifier
         )}&size=1`
       );
 
-      return docs[0] ?? null;
+      // Filter here too: an ignored query parameter must not hand back
+      // somebody else's transaction.
+      return (
+        items(body).find((tx) => tx.customIdentifier === customIdentifier) ??
+        null
+      );
     } catch (error) {
       if (error instanceof ReloadlyError && error.status === 404) {
         return null;
