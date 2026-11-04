@@ -50,6 +50,58 @@ function Detail({
   );
 }
 
+/** The redeemed gift card's code, PIN and redeem/copy actions. */
+function GiftCardPanel({
+  giftCard,
+}: {
+  giftCard: {
+    code: string;
+    pin: string | null;
+    redemptionUrl: string | null;
+    instructions: string | null;
+  };
+}) {
+  const onCopyCode = async () => {
+    await Clipboard.setStringAsync(giftCard.code);
+    Alert.alert("Copied", "Gift card code copied to your clipboard.");
+  };
+
+  const onRedeem = () => {
+    const url = giftCard.redemptionUrl;
+    if (url) {
+      Linking.openURL(url).catch(() => {
+        // No browser or handler available; nothing further to show.
+      });
+    }
+  };
+
+  return (
+    <Card className="gap-2 rounded-md p-4">
+      <Text className="pb-1 font-semibold text-subtle-text text-xs tracking-wide">
+        YOUR GIFT CARD
+      </Text>
+      <Detail label="Code" value={giftCard.code} />
+      <Detail label="PIN" value={giftCard.pin} />
+      {giftCard.instructions ? (
+        <Text className="text-sm text-subtle-text">
+          {giftCard.instructions}
+        </Text>
+      ) : null}
+      <Text className="text-subtle-text text-xs">
+        This code is personal and cannot be replaced.
+      </Text>
+      <Button onPress={onCopyCode}>
+        <Button.Label>Copy code</Button.Label>
+      </Button>
+      {giftCard.redemptionUrl ? (
+        <Button onPress={onRedeem} variant="secondary">
+          <Button.Label>Redeem</Button.Label>
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
 /**
  * What happened to one prize, after the fact.
  *
@@ -104,23 +156,6 @@ function PrizeDetails({
   const PrizeIcon = PRIZE_ICON[data.fulfilmentType] ?? GiftIcon;
   const dispatched =
     data.fulfilmentType === "airtime" || data.fulfilmentType === "data";
-
-  const onCopyCode = async () => {
-    if (!data.giftCard) {
-      return;
-    }
-    await Clipboard.setStringAsync(data.giftCard.code);
-    Alert.alert("Copied", "Gift card code copied to your clipboard.");
-  };
-
-  const onRedeem = () => {
-    const url = data.giftCard?.redemptionUrl;
-    if (url) {
-      Linking.openURL(url).catch(() => {
-        // No browser or handler available; nothing further to show.
-      });
-    }
-  };
 
   return (
     <Screen className="gap-4 pb-safe">
@@ -189,31 +224,7 @@ function PrizeDetails({
           </Card>
         ) : null}
 
-        {data.giftCard ? (
-          <Card className="gap-2 rounded-md p-4">
-            <Text className="pb-1 font-semibold text-subtle-text text-xs tracking-wide">
-              YOUR GIFT CARD
-            </Text>
-            <Detail label="Code" value={data.giftCard.code} />
-            <Detail label="PIN" value={data.giftCard.pin} />
-            {data.giftCard.instructions ? (
-              <Text className="text-sm text-subtle-text">
-                {data.giftCard.instructions}
-              </Text>
-            ) : null}
-            <Text className="text-subtle-text text-xs">
-              This code is personal and cannot be replaced.
-            </Text>
-            <Button onPress={onCopyCode}>
-              <Button.Label>Copy code</Button.Label>
-            </Button>
-            {data.giftCard.redemptionUrl ? (
-              <Button onPress={onRedeem} variant="secondary">
-                <Button.Label>Redeem</Button.Label>
-              </Button>
-            ) : null}
-          </Card>
-        ) : null}
+        {data.giftCard ? <GiftCardPanel giftCard={data.giftCard} /> : null}
 
         {data.underReview ? (
           <Card className="gap-1 rounded-md bg-s-300 p-4">

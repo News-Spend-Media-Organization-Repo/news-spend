@@ -72,6 +72,15 @@ export function giftCardConfigurationError(data: {
   return true;
 }
 
+type GiftCardSiblingData = {
+  fulfilmentType?: string | null;
+  reloadlyGiftCardProductId?: number | null;
+  reloadlyGiftCardUnitPrice?: number | null;
+};
+
+const giftCardSiblingData = (value: unknown): GiftCardSiblingData =>
+  value && typeof value === "object" ? (value as GiftCardSiblingData) : {};
+
 /**
  * Master Prize Catalogue (spec 2).
  *
@@ -477,12 +486,17 @@ export const PrizeCatalogue: CollectionConfig = {
             "@news-spend-media/payload/components/ReloadlyProductSelector#GiftCardProductField",
         },
       },
-      validate: (value: number | null | undefined, { siblingData }: any) =>
-        giftCardConfigurationError({
-          fulfilmentType: siblingData?.fulfilmentType,
+      validate: (
+        value: number | null | undefined,
+        { siblingData }: { siblingData?: unknown }
+      ) => {
+        const data = giftCardSiblingData(siblingData);
+        return giftCardConfigurationError({
+          fulfilmentType: data.fulfilmentType,
           reloadlyGiftCardProductId: value,
-          reloadlyGiftCardUnitPrice: siblingData?.reloadlyGiftCardUnitPrice,
-        }),
+          reloadlyGiftCardUnitPrice: data.reloadlyGiftCardUnitPrice,
+        });
+      },
     },
     {
       name: "reloadlyGiftCardUnitPrice",
@@ -495,12 +509,17 @@ export const PrizeCatalogue: CollectionConfig = {
             "@news-spend-media/payload/components/ReloadlyProductSelector#GiftCardDenominationField",
         },
       },
-      validate: (value: number | null | undefined, { siblingData }: any) =>
-        giftCardConfigurationError({
-          fulfilmentType: siblingData?.fulfilmentType,
-          reloadlyGiftCardProductId: siblingData?.reloadlyGiftCardProductId,
+      validate: (
+        value: number | null | undefined,
+        { siblingData }: { siblingData?: unknown }
+      ) => {
+        const data = giftCardSiblingData(siblingData);
+        return giftCardConfigurationError({
+          fulfilmentType: data.fulfilmentType,
+          reloadlyGiftCardProductId: data.reloadlyGiftCardProductId,
           reloadlyGiftCardUnitPrice: value,
-        }),
+        });
+      },
     },
     {
       name: "reloadlyGiftCardSenderPrice",
