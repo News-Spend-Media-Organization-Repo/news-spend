@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ReloadlyError } from "../reloadly";
-import { ReloadlyGiftCardClient } from "../reloadlyGiftCards";
+import {
+  ReloadlyGiftCardClient,
+  redeemableGiftCard,
+} from "../reloadlyGiftCards";
 
 type FakeResponse = unknown | { status: number; body: unknown };
 
@@ -111,20 +114,36 @@ describe("ReloadlyGiftCardClient", () => {
     expect(order.transactionId).toBe(42);
   });
 
-  it("fetches the code with the v2 Accept header", async () => {
+  it("fetches the code with the v2 Accept header and unwraps the array", async () => {
     const { calls, client: gc } = client([
       { access_token: "tok", expires_in: 3600 },
-      {
-        cardNumber: "CARD-1",
-        pinCode: "1234",
-        redemptionUrl: "https://redeem",
-      },
+      [
+        {
+          cardNumber: "CARD-1",
+          pinCode: "1234",
+          redemptionUrl: "https://redeem",
+        },
+      ],
     ]);
     const code = await gc.getCode(42);
 
     const headers = calls[1]?.init.headers as Record<string, string>;
     expect(headers.Accept).toBe("application/com.reloadly.giftcards-v2+json");
     expect(code.cardNumber).toBe("CARD-1");
+  });
+
+  it("keeps a PIN-only code the sandbox can return", async () => {
+    const { client: gc } = client([
+      { access_token: "tok", expires_in: 3600 },
+      [{ cardNumber: null, pinCode: "74752test", redemptionUrl: null }],
+    ]);
+
+    const code = await gc.getCode(42);
+
+    expect(redeemableGiftCard(code)).toEqual({
+      code: "74752test",
+      pin: null,
+    });
   });
 
   it("finds the existing transaction for a duplicate identifier", async () => {
