@@ -3,6 +3,7 @@ import type {
   Persister,
 } from "@tanstack/react-query-persist-client";
 import * as Application from "expo-application";
+import * as Updates from "expo-updates";
 
 import { QUERY_CACHE_VERSION } from "./queryCacheVersion";
 import { storage } from "./storage";
@@ -10,18 +11,17 @@ import { storage } from "./storage";
 /**
  * How long a persisted query cache may be rehydrated on launch.
  *
- * This was previously unset, so the library default (24 hours) applied and a
- * returning reader could be handed a day-old feed. The gap was invisible to
- * signed-in users, who cross an auth boundary — sign in, sign out, any 401 —
- * often enough that their cache is cleared for them, but not to a guest, who
- * has no session, can therefore never 401, and so never has the cache cleared
- * at all. Their cache simply aged in place. That is the mechanism behind
- * "news content as a guest lags like 1hr behind".
+ * Ten minutes meant any cold start more than ten minutes after the last cache
+ * write painted the home skeleton and waited on the network, even with a
+ * perfectly good feed sitting on disk. A week lets a returning reader paint
+ * the last feed immediately; anything older than `staleTime` still refetches
+ * on mount, so the stale frame is a head start, not the final answer.
  *
- * Ten minutes bounds how old anything from disk can be, while still letting a
- * quick app restart skip the network entirely.
+ * Not unbounded on purpose: `getCacheBuster` discards the cache on app updates
+ * and OTA shape changes, and a finite window self-heals if that is ever
+ * missed.
  */
-export const PERSISTED_QUERY_MAX_AGE_MS = 10 * 60 * 1000;
+export const PERSISTED_QUERY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Discards the persisted cache when the app changes.
@@ -30,15 +30,18 @@ export const PERSISTED_QUERY_MAX_AGE_MS = 10 * 60 * 1000;
  * data has changed" — the previous format is rehydrated forever. Keying on the
  * native version means every release starts from a clean cache, and a user
  * picking up an update is not reading a schema that no longer matches.
- * An OTA update keeps the native version, so QUERY_CACHE_VERSION is appended
- * and bumped by hand when an OTA changes the cached response shape.
+ *
+ * A JS-only OTA keeps the native version, but gets a fresh `Updates.updateId`,
+ * so every OTA busts the cache on its own instead of relying on someone
+ * remembering to bump QUERY_CACHE_VERSION. That string remains the fallback
+ * for embedded and dev bundles, where `updateId` is null.
  */
 export function getCacheBuster(): string {
   const appVersion =
     Application.nativeApplicationVersion ??
     Application.nativeBuildVersion ??
     "dev";
-  return `${appVersion}:${QUERY_CACHE_VERSION}`;
+  return `${appVersion}:${Updates.updateId ?? QUERY_CACHE_VERSION}`;
 }
 
 export function createMMKVPersister(key = "reactQuery") {
