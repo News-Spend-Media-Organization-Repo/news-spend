@@ -56,6 +56,7 @@ function winnerWithPrize(overrides: Record<string, unknown> = {}) {
     claimStatus: "claimed",
     fulfilmentStatus: "pending",
     user: { id: "u1", email: "u1@example.com" },
+    prizeName: "Amazon Nigeria",
     prize: giftCardPrize(),
     ...overrides,
   };
@@ -396,5 +397,62 @@ describe("gift card fulfilment", () => {
     expect(topupCalls).toEqual([]);
     expect(updates).toHaveLength(0);
     expect(creates).toHaveLength(0);
+  });
+
+  it("emails the code to the winner when enabled", async () => {
+    const { payload, updates, emails } = fakePayload([winnerWithPrize()]);
+    const client = fakeGiftCardClient();
+
+    const summary = await fulfilPendingPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(summary).toEqual({ attempted: 1, sent: 1, failed: 0, skipped: 0 });
+    expect(emails).toHaveLength(1);
+    expect(emails[0]).toMatchObject({
+      to: "u1@example.com",
+      subject: "Your Amazon Nigeria gift card is ready",
+    });
+    expect((emails[0] as { html: string }).html).toContain("CARD-1");
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(true);
+  });
+
+  it("skips the email when the prize disables it, but still fulfils", async () => {
+    const { payload, updates, emails } = fakePayload([
+      winnerWithPrize({ prize: giftCardPrize({ emailGiftCardCode: false }) }),
+    ]);
+    const client = fakeGiftCardClient();
+
+    const summary = await fulfilPendingPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(summary).toEqual({ attempted: 1, sent: 1, failed: 0, skipped: 0 });
+    expect(emails).toHaveLength(0);
+    expect(updates.some((u) => u.data.fulfilmentStatus === "fulfilled")).toBe(
+      true
+    );
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(false);
+  });
+
+  it("skips the email when the winner has no email, but still fulfils", async () => {
+    const { payload, updates, emails } = fakePayload([
+      winnerWithPrize({ user: { id: "u1", email: "" } }),
+    ]);
+    const client = fakeGiftCardClient();
+
+    const summary = await fulfilPendingPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(summary).toEqual({ attempted: 1, sent: 1, failed: 0, skipped: 0 });
+    expect(emails).toHaveLength(0);
+    expect(updates.some((u) => u.data.fulfilmentStatus === "fulfilled")).toBe(
+      true
+    );
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(false);
   });
 });

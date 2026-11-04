@@ -2,6 +2,7 @@ import { sql } from "@payloadcms/db-postgres/drizzle";
 import type { BasePayload } from "payload";
 
 import { DEFAULT_GIVEAWAY_COUNTRY } from "../../collections/giveaway/constants";
+import { sendGiftCardEmail } from "./giftCardEmail";
 import { notifyFulfilmentHold } from "./notifyFulfilmentHold";
 import { notifyFulfilmentProblem } from "./notifyFulfilmentProblem";
 import {
@@ -586,6 +587,38 @@ async function fulfilGiftCard(
       operatorName: productName,
       localAmount: chargedAmount,
     });
+
+    // The winner's copy. `emailGiftCardCode` is on by default, so only an
+    // explicit `false` (or a winner with no email address) skips it.
+    const email =
+      typeof winner.user?.email === "string" ? winner.user.email.trim() : "";
+    if (prize.emailGiftCardCode !== false && email !== "") {
+      const sent = await sendGiftCardEmail(payload, {
+        to: email,
+        winnerName: winner.claimRecipientName ?? null,
+        prizeName: String(winner.prizeName ?? "A giveaway prize"),
+        code: issued.cardNumber,
+        pin: issued.pinCode ?? null,
+        redemptionUrl: issued.redemptionUrl ?? null,
+        instructions: prize.reloadlyGiftCardInstructions ?? null,
+      });
+      // A failed send leaves the prize fulfilled and the timestamp empty; the
+      // write must not undo a prize that is already stored and recorded.
+      if (sent) {
+        await payload
+          .update({
+            collection: "giveaway-winners",
+            id: winnerId,
+            data: { giftCardEmailSentAt: new Date().toISOString() },
+          })
+          .catch((error) => {
+            payload.logger.error(
+              { err: error, winnerId },
+              "[giveaway] could not record the gift card email timestamp"
+            );
+          });
+      }
+    }
 
     return "sent";
   } catch (error) {
