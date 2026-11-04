@@ -129,7 +129,10 @@ function fakeGiftCardClient(
   };
 }
 
-function fakePayload(winners: unknown[]) {
+function fakePayload(
+  winners: unknown[],
+  options: { sendEmailError?: Error } = {}
+) {
   const updates: Array<{
     collection: string;
     id: string;
@@ -185,6 +188,9 @@ function fakePayload(winners: unknown[]) {
     count: async () => ({ totalDocs: 0 }),
     sendEmail: async (args: unknown) => {
       emails.push(args);
+      if (options.sendEmailError) {
+        throw options.sendEmailError;
+      }
     },
     logger: {
       error: () => undefined,
@@ -452,6 +458,28 @@ describe("gift card fulfilment", () => {
     expect(emails).toHaveLength(0);
     expect(updates.some((u) => u.data.fulfilmentStatus === "fulfilled")).toBe(
       true
+    );
+    expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(false);
+  });
+
+  it("still fulfils and never requeues when the email send fails", async () => {
+    const { payload, updates, emails } = fakePayload([winnerWithPrize()], {
+      sendEmailError: new Error("smtp unreachable"),
+    });
+    const client = fakeGiftCardClient();
+
+    const summary = await fulfilPendingPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    expect(summary).toEqual({ attempted: 1, sent: 1, failed: 0, skipped: 0 });
+    expect(emails).toHaveLength(1);
+    expect(updates.some((u) => u.data.fulfilmentStatus === "fulfilled")).toBe(
+      true
+    );
+    expect(updates.some((u) => u.data.fulfilmentStatus === "pending")).toBe(
+      false
     );
     expect(updates.some((u) => u.data.giftCardEmailSentAt)).toBe(false);
   });

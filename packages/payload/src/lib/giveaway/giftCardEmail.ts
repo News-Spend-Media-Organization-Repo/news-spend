@@ -64,9 +64,9 @@ export async function sendGiftCardEmail(
   args: GiftCardEmailInput & { to: string }
 ): Promise<boolean> {
   const { to, ...input } = args;
-  const { subject, html } = giftCardEmail(input);
 
   try {
+    const { subject, html } = giftCardEmail(input);
     await payload.sendEmail({ to, subject, html });
     return true;
   } catch (error) {
