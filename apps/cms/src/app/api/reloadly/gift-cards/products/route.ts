@@ -11,12 +11,10 @@ import { requireAdmin } from "../../../_lib/requireAdmin";
 /**
  * GET /api/reloadly/gift-cards/products
  *
- * Fetch Reloadly gift card products for the Prize Catalogue admin. With no
- * parameters it returns the whole Nigerian catalogue, which is small enough
- * (25 products live) to render as one searchable dropdown. `productId` fetches
- * exactly one product, and `productName` remains a server-side search. The
- * environment is returned alongside so the editor can see at a glance whether
- * a card is sandbox or live.
+ * Search or fetch Reloadly gift card products for the Prize Catalogue admin.
+ * Accepts either `productName` (search, up to 20 results) or `productId`
+ * (exactly one product), and returns the environment alongside the products so
+ * the editor can see at a glance whether a card is sandbox or live.
  *
  * Admin-only, for the same reason as the operator products route: this is an
  * authenticated proxy onto the Reloadly gift card account.
@@ -73,9 +71,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ environment, products: [product] });
     }
 
-    const products = await client.listProducts(
-      productName ? { productName, size: 20 } : { size: 200 }
-    );
+    if (!productName) {
+      return NextResponse.json({ environment, products: [] });
+    }
+
+    const products = await client.listProducts({ productName, size: 20 });
     return NextResponse.json({ environment, products });
   } catch (err) {
     // Pass Reloadly's own error code through, exactly like the operator route.
