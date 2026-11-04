@@ -268,7 +268,11 @@ const BoostLuck = () => {
         </Card>
 
         <View className="gap-4">
-          <Text className="text-center">Our sponsors wish you good luck.</Text>
+          <Text className="text-center">
+            {boostsComplete
+              ? "Your boosts are in for this giveaway. Featured Offers are another way to improve your entries."
+              : "Our sponsors wish you good luck."}
+          </Text>
 
           {/*
             The button stays in both states. Once the top tier's boosts are
@@ -289,7 +293,7 @@ const BoostLuck = () => {
             >
               <CoinsIcon color="white" size={20} />
               <Button.Label className="font-semibold text-white">
-                Boost Your Luck
+                Find Featured Offers
               </Button.Label>
             </Button>
           ) : (
