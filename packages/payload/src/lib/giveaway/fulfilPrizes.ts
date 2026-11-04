@@ -170,6 +170,13 @@ export async function fulfilPendingPrizes(
       continue;
     }
 
+    // A configured gift card with no gift-card client must never fall through
+    // to the airtime path, which would pay the wrong thing. Unreachable today
+    // (both clients share one credential pair); skip rather than guess.
+    if (isGiftCard && !resolvedGiftCards) {
+      continue;
+    }
+
     // Claimed before anything is sent. A runner that loses the race must not
     // count it, log it, or remember it: another process is paying it right now.
     if (!(await claimForFulfilment(payload, winner.id))) {

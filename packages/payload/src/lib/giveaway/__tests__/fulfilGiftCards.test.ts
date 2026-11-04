@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fulfilPendingPrizes } from "../fulfilPrizes";
 import { ReloadlyError } from "../reloadly";
 import type { GiftCardProduct } from "../reloadlyGiftCards";
@@ -358,5 +358,43 @@ describe("gift card fulfilment", () => {
     );
     expect(updates.some((u) => u.data.giftCardCode)).toBe(false);
     expect(summary).toEqual({ attempted: 1, sent: 0, failed: 0, skipped: 1 });
+  });
+
+  it("skips a configured gift card when no gift card client is available", async () => {
+    vi.stubEnv("RELOADLY_CLIENT_ID", "");
+    vi.stubEnv("RELOADLY_CLIENT_SECRET", "");
+
+    // A gift-card winner must never fall through to the airtime path, which
+    // would topup a phone. Give it a phone and an airtime amount so that, if
+    // it did, the fake top-up client would record a call.
+    const topupCalls: string[] = [];
+    const airtimeClient = {
+      isSandbox: true,
+      detectOperator: async () => {
+        topupCalls.push("detectOperator");
+        return { operatorId: 1, name: "MTN Nigeria" };
+      },
+      topup: async () => {
+        topupCalls.push("topup");
+        return { transactionId: 1, status: "SUCCESSFUL", operatorName: "MTN" };
+      },
+    };
+
+    const winner = winnerWithPrize({
+      claimPhone: "08031234567",
+      prize: giftCardPrize({ reloadlyLocalAmount: 5000 }),
+    });
+
+    const { payload, updates, creates } = fakePayload([winner]);
+
+    const summary = await fulfilPendingPrizes(payload as never, {
+      client: airtimeClient as never,
+      giftCardClient: undefined,
+    });
+
+    expect(summary).toEqual({ attempted: 0, sent: 0, failed: 0, skipped: 0 });
+    expect(topupCalls).toEqual([]);
+    expect(updates).toHaveLength(0);
+    expect(creates).toHaveLength(0);
   });
 });
