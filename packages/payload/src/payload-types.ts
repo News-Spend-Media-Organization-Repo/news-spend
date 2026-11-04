@@ -13,55 +13,55 @@
  * via the `definition` "supportedTimezones".
  */
 export type SupportedTimezones =
-  | "Pacific/Midway"
-  | "Pacific/Niue"
-  | "Pacific/Honolulu"
-  | "Pacific/Rarotonga"
-  | "America/Anchorage"
-  | "Pacific/Gambier"
-  | "America/Los_Angeles"
-  | "America/Tijuana"
-  | "America/Denver"
-  | "America/Phoenix"
-  | "America/Chicago"
-  | "America/Guatemala"
-  | "America/New_York"
-  | "America/Bogota"
-  | "America/Caracas"
-  | "America/Santiago"
-  | "America/Buenos_Aires"
-  | "America/Sao_Paulo"
-  | "Atlantic/South_Georgia"
-  | "Atlantic/Azores"
-  | "Atlantic/Cape_Verde"
-  | "Europe/London"
-  | "Europe/Berlin"
-  | "Africa/Lagos"
-  | "Europe/Athens"
-  | "Africa/Cairo"
-  | "Europe/Moscow"
-  | "Asia/Riyadh"
-  | "Asia/Dubai"
-  | "Asia/Baku"
-  | "Asia/Karachi"
-  | "Asia/Tashkent"
-  | "Asia/Calcutta"
-  | "Asia/Dhaka"
-  | "Asia/Almaty"
-  | "Asia/Jakarta"
-  | "Asia/Bangkok"
-  | "Asia/Shanghai"
-  | "Asia/Singapore"
-  | "Asia/Tokyo"
-  | "Asia/Seoul"
-  | "Australia/Brisbane"
-  | "Australia/Sydney"
-  | "Pacific/Guam"
-  | "Pacific/Noumea"
-  | "Pacific/Auckland"
-  | "Pacific/Fiji";
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
 
-export type Config = {
+export interface Config {
   auth: {
     admins: AdminAuthOperations;
   };
@@ -73,184 +73,163 @@ export type Config = {
   collections: {
     accounts: Account;
     activities: Activity;
-    "survey-offer-events": SurveyOfferEvent;
+    'survey-offer-events': SurveyOfferEvent;
     admins: Admin;
     categories: Category;
     comments: Comment;
     contentReports: ContentReport;
     feedback: Feedback;
-    "giveaway-account-flags": GiveawayAccountFlag;
-    "giveaway-audit-log": GiveawayAuditLog;
-    "giveaway-draw-attempts": GiveawayDrawAttempt;
-    "giveaway-engagements": GiveawayEngagement;
-    "giveaway-fulfilment-attempts": GiveawayFulfilmentAttempt;
-    "giveaway-pool-snapshots": GiveawayPoolSnapshot;
-    "giveaway-prizes": GiveawayPrize;
-    "giveaway-report-deliveries": GiveawayReportDelivery;
+    'giveaway-account-flags': GiveawayAccountFlag;
+    'giveaway-audit-log': GiveawayAuditLog;
+    'giveaway-draw-attempts': GiveawayDrawAttempt;
+    'giveaway-engagements': GiveawayEngagement;
+    'giveaway-fulfilment-attempts': GiveawayFulfilmentAttempt;
+    'giveaway-pool-snapshots': GiveawayPoolSnapshot;
+    'giveaway-prizes': GiveawayPrize;
+    'giveaway-report-deliveries': GiveawayReportDelivery;
     giveaways: Giveaway;
-    "giveaway-streaks": GiveawayStreak;
-    "giveaway-tickets": GiveawayTicket;
-    "giveaway-winners": GiveawayWinner;
-    "guest-events": GuestEvent;
-    "identity-checks": IdentityCheck;
-    "prize-catalogue": PrizeCatalogue;
+    'giveaway-streaks': GiveawayStreak;
+    'giveaway-tickets': GiveawayTicket;
+    'giveaway-winners': GiveawayWinner;
+    'guest-events': GuestEvent;
+    'identity-checks': IdentityCheck;
+    'prize-catalogue': PrizeCatalogue;
     media: Media;
     news: News;
-    "discover-events": DiscoverEvent;
-    "email-templates": EmailTemplate;
-    "faq-categories": FaqCategory;
+    'discover-events': DiscoverEvent;
+    'email-templates': EmailTemplate;
+    'faq-categories': FaqCategory;
     faqs: Faq;
-    "news-analytics": NewsAnalytic;
-    "notification-deliveries": NotificationDelivery;
-    "notification-inbox": NotificationInbox;
+    'news-analytics': NewsAnalytic;
+    'notification-deliveries': NotificationDelivery;
+    'notification-inbox': NotificationInbox;
     notifications: Notification;
-    "partner-content": PartnerContent;
-    "partner-content-events": PartnerContentEvent;
-    "partner-conversions": PartnerConversion;
-    "partner-postbacks": PartnerPostback;
+    'partner-content': PartnerContent;
+    'partner-content-events': PartnerContentEvent;
+    'partner-conversions': PartnerConversion;
+    'partner-postbacks': PartnerPostback;
     partners: Partner;
-    "promotion-media": PromotionMedia;
-    "push-tokens": PushToken;
+    'promotion-media': PromotionMedia;
+    'push-tokens': PushToken;
     reactions: Reaction;
     sessions: Session;
-    "shop-analytics": ShopAnalytic;
+    'shop-analytics': ShopAnalytic;
     survey: Survey;
     userBlocks: UserBlock;
     users: User;
     verifications: Verification;
-    "witness-reports": WitnessReport;
-    "audit-logs": AuditLog;
-    "payload-kv": PayloadKv;
-    "payload-jobs": PayloadJob;
-    "payload-locked-documents": PayloadLockedDocument;
-    "payload-preferences": PayloadPreference;
-    "payload-migrations": PayloadMigration;
+    'witness-reports': WitnessReport;
+    'audit-logs': AuditLog;
+    'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
+    'payload-locked-documents': PayloadLockedDocument;
+    'payload-preferences': PayloadPreference;
+    'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
     giveaways: {
-      prizes: "giveaway-prizes";
-      winners: "giveaway-winners";
+      prizes: 'giveaway-prizes';
+      winners: 'giveaway-winners';
     };
-    "faq-categories": {
-      questions: "faqs";
+    'faq-categories': {
+      questions: 'faqs';
     };
   };
   collectionsSelect: {
     accounts: AccountsSelect<false> | AccountsSelect<true>;
     activities: ActivitiesSelect<false> | ActivitiesSelect<true>;
-    "survey-offer-events":
-      | SurveyOfferEventsSelect<false>
-      | SurveyOfferEventsSelect<true>;
+    'survey-offer-events': SurveyOfferEventsSelect<false> | SurveyOfferEventsSelect<true>;
     admins: AdminsSelect<false> | AdminsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
     contentReports: ContentReportsSelect<false> | ContentReportsSelect<true>;
     feedback: FeedbackSelect<false> | FeedbackSelect<true>;
-    "giveaway-account-flags":
-      | GiveawayAccountFlagsSelect<false>
-      | GiveawayAccountFlagsSelect<true>;
-    "giveaway-audit-log":
-      | GiveawayAuditLogSelect<false>
-      | GiveawayAuditLogSelect<true>;
-    "giveaway-draw-attempts":
-      | GiveawayDrawAttemptsSelect<false>
-      | GiveawayDrawAttemptsSelect<true>;
-    "giveaway-engagements":
-      | GiveawayEngagementsSelect<false>
-      | GiveawayEngagementsSelect<true>;
-    "giveaway-fulfilment-attempts":
-      | GiveawayFulfilmentAttemptsSelect<false>
-      | GiveawayFulfilmentAttemptsSelect<true>;
-    "giveaway-pool-snapshots":
-      | GiveawayPoolSnapshotsSelect<false>
-      | GiveawayPoolSnapshotsSelect<true>;
-    "giveaway-prizes": GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
-    "giveaway-report-deliveries":
-      | GiveawayReportDeliveriesSelect<false>
-      | GiveawayReportDeliveriesSelect<true>;
+    'giveaway-account-flags': GiveawayAccountFlagsSelect<false> | GiveawayAccountFlagsSelect<true>;
+    'giveaway-audit-log': GiveawayAuditLogSelect<false> | GiveawayAuditLogSelect<true>;
+    'giveaway-draw-attempts': GiveawayDrawAttemptsSelect<false> | GiveawayDrawAttemptsSelect<true>;
+    'giveaway-engagements': GiveawayEngagementsSelect<false> | GiveawayEngagementsSelect<true>;
+    'giveaway-fulfilment-attempts': GiveawayFulfilmentAttemptsSelect<false> | GiveawayFulfilmentAttemptsSelect<true>;
+    'giveaway-pool-snapshots': GiveawayPoolSnapshotsSelect<false> | GiveawayPoolSnapshotsSelect<true>;
+    'giveaway-prizes': GiveawayPrizesSelect<false> | GiveawayPrizesSelect<true>;
+    'giveaway-report-deliveries': GiveawayReportDeliveriesSelect<false> | GiveawayReportDeliveriesSelect<true>;
     giveaways: GiveawaysSelect<false> | GiveawaysSelect<true>;
-    "giveaway-streaks":
-      | GiveawayStreaksSelect<false>
-      | GiveawayStreaksSelect<true>;
-    "giveaway-tickets":
-      | GiveawayTicketsSelect<false>
-      | GiveawayTicketsSelect<true>;
-    "giveaway-winners":
-      | GiveawayWinnersSelect<false>
-      | GiveawayWinnersSelect<true>;
-    "guest-events": GuestEventsSelect<false> | GuestEventsSelect<true>;
-    "identity-checks": IdentityChecksSelect<false> | IdentityChecksSelect<true>;
-    "prize-catalogue": PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
+    'giveaway-streaks': GiveawayStreaksSelect<false> | GiveawayStreaksSelect<true>;
+    'giveaway-tickets': GiveawayTicketsSelect<false> | GiveawayTicketsSelect<true>;
+    'giveaway-winners': GiveawayWinnersSelect<false> | GiveawayWinnersSelect<true>;
+    'guest-events': GuestEventsSelect<false> | GuestEventsSelect<true>;
+    'identity-checks': IdentityChecksSelect<false> | IdentityChecksSelect<true>;
+    'prize-catalogue': PrizeCatalogueSelect<false> | PrizeCatalogueSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     news: NewsSelect<false> | NewsSelect<true>;
-    "discover-events": DiscoverEventsSelect<false> | DiscoverEventsSelect<true>;
-    "email-templates": EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
-    "faq-categories": FaqCategoriesSelect<false> | FaqCategoriesSelect<true>;
+    'discover-events': DiscoverEventsSelect<false> | DiscoverEventsSelect<true>;
+    'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
+    'faq-categories': FaqCategoriesSelect<false> | FaqCategoriesSelect<true>;
     faqs: FaqsSelect<false> | FaqsSelect<true>;
-    "news-analytics": NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
-    "notification-deliveries":
-      | NotificationDeliveriesSelect<false>
-      | NotificationDeliveriesSelect<true>;
-    "notification-inbox":
-      | NotificationInboxSelect<false>
-      | NotificationInboxSelect<true>;
+    'news-analytics': NewsAnalyticsSelect<false> | NewsAnalyticsSelect<true>;
+    'notification-deliveries': NotificationDeliveriesSelect<false> | NotificationDeliveriesSelect<true>;
+    'notification-inbox': NotificationInboxSelect<false> | NotificationInboxSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
-    "partner-content": PartnerContentSelect<false> | PartnerContentSelect<true>;
-    "partner-content-events":
-      | PartnerContentEventsSelect<false>
-      | PartnerContentEventsSelect<true>;
-    "partner-conversions":
-      | PartnerConversionsSelect<false>
-      | PartnerConversionsSelect<true>;
-    "partner-postbacks":
-      | PartnerPostbacksSelect<false>
-      | PartnerPostbacksSelect<true>;
+    'partner-content': PartnerContentSelect<false> | PartnerContentSelect<true>;
+    'partner-content-events': PartnerContentEventsSelect<false> | PartnerContentEventsSelect<true>;
+    'partner-conversions': PartnerConversionsSelect<false> | PartnerConversionsSelect<true>;
+    'partner-postbacks': PartnerPostbacksSelect<false> | PartnerPostbacksSelect<true>;
     partners: PartnersSelect<false> | PartnersSelect<true>;
-    "promotion-media": PromotionMediaSelect<false> | PromotionMediaSelect<true>;
-    "push-tokens": PushTokensSelect<false> | PushTokensSelect<true>;
+    'promotion-media': PromotionMediaSelect<false> | PromotionMediaSelect<true>;
+    'push-tokens': PushTokensSelect<false> | PushTokensSelect<true>;
     reactions: ReactionsSelect<false> | ReactionsSelect<true>;
     sessions: SessionsSelect<false> | SessionsSelect<true>;
-    "shop-analytics": ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
+    'shop-analytics': ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
     userBlocks: UserBlocksSelect<false> | UserBlocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
-    "witness-reports": WitnessReportsSelect<false> | WitnessReportsSelect<true>;
-    "audit-logs": AuditLogsSelect<false> | AuditLogsSelect<true>;
-    "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>;
-    "payload-jobs": PayloadJobsSelect<false> | PayloadJobsSelect<true>;
-    "payload-locked-documents":
-      | PayloadLockedDocumentsSelect<false>
-      | PayloadLockedDocumentsSelect<true>;
-    "payload-preferences":
-      | PayloadPreferencesSelect<false>
-      | PayloadPreferencesSelect<true>;
-    "payload-migrations":
-      | PayloadMigrationsSelect<false>
-      | PayloadMigrationsSelect<true>;
+    'witness-reports': WitnessReportsSelect<false> | WitnessReportsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
+    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
+    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: string;
   };
   fallbackLocale: null;
   globals: {
-    "news-category": NewsCategory;
-    "moderation-settings": ModerationSetting;
-    "survey-settings": SurveySetting;
-    "app-settings": AppSetting;
-    "payload-jobs-stats": PayloadJobsStat;
+    'news-category': NewsCategory;
+    'moderation-settings': ModerationSetting;
+    'survey-settings': SurveySetting;
+    'app-settings': AppSetting;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
-    "news-category": NewsCategorySelect<false> | NewsCategorySelect<true>;
-    "moderation-settings":
-      | ModerationSettingsSelect<false>
-      | ModerationSettingsSelect<true>;
-    "survey-settings": SurveySettingsSelect<false> | SurveySettingsSelect<true>;
-    "app-settings": AppSettingsSelect<false> | AppSettingsSelect<true>;
-    "payload-jobs-stats":
-      | PayloadJobsStatsSelect<false>
-      | PayloadJobsStatsSelect<true>;
+    'news-category': NewsCategorySelect<false> | NewsCategorySelect<true>;
+    'moderation-settings': ModerationSettingsSelect<false> | ModerationSettingsSelect<true>;
+    'survey-settings': SurveySettingsSelect<false> | SurveySettingsSelect<true>;
+    'app-settings': AppSettingsSelect<false> | AppSettingsSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
+  locale: null;
+  widgets: {
+    'analytics-kpi': AnalyticsKpiWidget;
+    'analytics-funnel': AnalyticsFunnelWidget;
+    'analytics-top-articles': AnalyticsTopArticlesWidget;
+    'analytics-surfaces': AnalyticsSurfacesWidget;
+    'analytics-categories': AnalyticsCategoriesWidget;
+    'analytics-partner-performance': AnalyticsPartnerPerformanceWidget;
+    'analytics-partner-integration': AnalyticsPartnerIntegrationWidget;
+    'analytics-audience-kpi': AnalyticsAudienceKpiWidget;
+    'analytics-audience-growth': AnalyticsAudienceGrowthWidget;
+    'analytics-devices': AnalyticsDevicesWidget;
+    'analytics-countries': AnalyticsCountriesWidget;
+    'analytics-feedback': AnalyticsFeedbackWidget;
+    'analytics-attention': AnalyticsAttentionWidget;
+    'analytics-discover': AnalyticsDiscoverWidget;
+    'analytics-push': AnalyticsPushWidget;
+    'contact-export': ContactExportWidget;
+    collections: CollectionsWidget;
+  };
+  user: Admin;
   jobs: {
     tasks: {
       sendScheduledNotification: TaskSendScheduledNotification;
@@ -273,29 +252,8 @@ export type Config = {
     };
     workflows: unknown;
   };
-  locale: null;
-  user: Admin;
-  widgets: {
-    "analytics-kpi": AnalyticsKpiWidget;
-    "analytics-funnel": AnalyticsFunnelWidget;
-    "analytics-top-articles": AnalyticsTopArticlesWidget;
-    "analytics-surfaces": AnalyticsSurfacesWidget;
-    "analytics-categories": AnalyticsCategoriesWidget;
-    "analytics-partner-performance": AnalyticsPartnerPerformanceWidget;
-    "analytics-partner-integration": AnalyticsPartnerIntegrationWidget;
-    "analytics-audience-kpi": AnalyticsAudienceKpiWidget;
-    "analytics-audience-growth": AnalyticsAudienceGrowthWidget;
-    "analytics-devices": AnalyticsDevicesWidget;
-    "analytics-countries": AnalyticsCountriesWidget;
-    "analytics-feedback": AnalyticsFeedbackWidget;
-    "analytics-attention": AnalyticsAttentionWidget;
-    "analytics-discover": AnalyticsDiscoverWidget;
-    "analytics-push": AnalyticsPushWidget;
-    "contact-export": ContactExportWidget;
-    collections: CollectionsWidget;
-  };
-};
-export type AdminAuthOperations = {
+}
+export interface AdminAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -312,119 +270,118 @@ export type AdminAuthOperations = {
     email: string;
     password: string;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "InstagramEmbedBlock".
  */
-export type InstagramEmbedBlock = {
-  blockName?: string | null;
-  blockType: "instagramEmbed";
+export interface InstagramEmbedBlock {
+  /**
+   * 💡 Enter Instagram post URL (e.g., https://www.instagram.com/p/ABC123/ or https://www.instagram.com/reel/DEF456/)
+   */
+  postUrl: string;
   /**
    * Optional caption for the post
    */
   caption?: string | null;
   id?: string | null;
-  /**
-   * 💡 Enter Instagram post URL (e.g., https://www.instagram.com/p/ABC123/ or https://www.instagram.com/reel/DEF456/)
-   */
-  postUrl: string;
-};
+  blockName?: string | null;
+  blockType: 'instagramEmbed';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "YouTubeEmbedBlock".
  */
-export type YouTubeEmbedBlock = {
-  blockName?: string | null;
-  blockType: "youtubeEmbed";
+export interface YouTubeEmbedBlock {
+  /**
+   * 💡 Enter YouTube URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/dQw4w9WgXcQ)
+   */
+  videoUrl: string;
   /**
    * Optional caption for the video
    */
   caption?: string | null;
   id?: string | null;
-  /**
-   * 💡 Enter YouTube URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/dQw4w9WgXcQ)
-   */
-  videoUrl: string;
-};
+  blockName?: string | null;
+  blockType: 'youtubeEmbed';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TwitterPostBlock".
  */
-export type TwitterPostBlock = {
-  blockName?: string | null;
-  blockType: "twitterEmbed";
-  id?: string | null;
+export interface TwitterPostBlock {
   /**
    * 💡 Enter tweet ID (e.g., 1628832338187636740) or full URL (e.g., https://twitter.com/user/status/1628832338187636740)
    */
   tweetId: string;
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'twitterEmbed';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts".
  */
-export type Account = {
-  accessToken?: string | null;
-  accessTokenExpiresAt?: string | null;
-  accountId: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  expiresAt?: string | null;
+export interface Account {
   id: string;
+  userId: string;
+  accountId: string;
+  providerId: string;
+  password?: string | null;
   /**
    * OIDC ID token. Mapped to the id_token column, which BetterAuth also uses. Managed by BetterAuth; added in better-auth 1.7.
    */
   idToken?: string | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  password?: string | null;
-  providerId: string;
+  accessToken?: string | null;
   refreshToken?: string | null;
+  accessTokenExpiresAt?: string | null;
   refreshTokenExpiresAt?: string | null;
   scope?: string | null;
+  expiresAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "admins".
  */
-export type Admin = {
-  collection: "admins";
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  deletedAt?: string | null;
-  email: string;
-  fullName: string;
-  hash?: string | null;
+export interface Admin {
   id: string;
-  image?: (string | null) | Media;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  lockUntil?: string | null;
-  loginAttempts?: number | null;
+  role: 'super-admin' | 'content-manager' | 'editor' | 'viewer' | 'partner';
+  partner?: (string | null) | Partner;
   /**
    * Which moderation email this admin receives. Leave unset to follow the roles configured in Moderation Settings. Partners never receive moderation email. Note that moderation alerts can never be switched off entirely: if every recipient opts out, Super Admins are notified regardless of this setting.
    */
-  moderationAlerts?: ("all" | "urgent" | "digest" | "none") | null;
-  partner?: (string | null) | Partner;
-  password?: string | null;
-  resetPasswordExpiration?: string | null;
-  resetPasswordRequestedAt?: string | null;
+  moderationAlerts?: ('all' | 'urgent' | 'digest' | 'none') | null;
+  fullName: string;
+  image?: (string | null) | Media;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  email: string;
   resetPasswordToken?: string | null;
-  role: "super-admin" | "content-manager" | "editor" | "viewer" | "partner";
+  resetPasswordExpiration?: string | null;
   salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
   sessions?:
     | {
         id: string;
@@ -432,89 +389,79 @@ export type Admin = {
         expiresAt: string;
       }[]
     | null;
-  updatedAt: string;
-};
+  password?: string | null;
+  collection: 'admins';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partners".
  */
-export type Partner = {
+export interface Partner {
+  id: string;
+  companyName: string;
   /**
-   * ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
-  awardOnClick?: boolean | null;
+  generateSlug?: boolean | null;
+  slug: string;
+  description?: string | null;
+  websiteUrl: string;
+  status?: ('prospective' | 'active' | 'inactive') | null;
+  contractSigned?: boolean | null;
+  inShopTab?: boolean | null;
   /**
    * 💡 Cashback is in percentage. For example, if the cashback is 5%, enter 5.
    */
   cashBack?: number | null;
-  category?:
-    | (
-        | "books"
-        | "ecommerce"
-        | "education"
-        | "food"
-        | "digital"
-        | "business"
-        | "other"
-      )
-    | null;
-  companyName: string;
   /**
-   * Days a conversion may stay unconfirmed before it is treated as stale
+   * Auto-calculated popularity score based on views and clicks for the shop tab.
    */
-  confirmationDays?: number | null;
+  popularityScore?: number | null;
+  category?: ('books' | 'ecommerce' | 'education' | 'food' | 'digital' | 'business' | 'other') | null;
+  logo?: (string | null) | Media;
   contactInfo?: {
     contactPerson?: string | null;
     email?: string | null;
     phone?: string | null;
   };
-  contractSigned?: boolean | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  id: string;
-  inShopTab?: boolean | null;
   /**
    * How will this partner send conversion data?
    */
-  integrationMethod: "manual" | "webhook" | "csv";
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  logo?: (string | null) | Media;
+  integrationMethod: 'manual' | 'webhook' | 'csv';
   /**
-   * Auto-calculated popularity score based on views and clicks for the shop tab.
+   * Share this URL with technical partners
    */
-  popularityScore?: number | null;
-  slug: string;
-  status?: ("prospective" | "active" | "inactive") | null;
-  updatedAt: string;
+  webhookUrl?: string | null;
   /**
    * Secret key for webhook verification
    */
   webhookSecret?: string | null;
   /**
-   * Share this URL with technical partners
+   * Days a conversion may stay unconfirmed before it is treated as stale
    */
-  webhookUrl?: string | null;
-  websiteUrl: string;
-};
+  confirmationDays?: number | null;
+  /**
+   * ONLY for a partner that cannot post back yet. Points are credited and the Featured Offer counted the moment the link is opened, with nothing to confirm the user did anything. Turn it off the day their postback works. While it is on, this partner's offers are effectively free to complete.
+   */
+  awardOnClick?: boolean | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
-export type Media = {
-  _objectKey?: string | null;
+export interface Media {
+  id: string;
   alt?: string | null;
-  blurhash?: string | null;
   caption?: {
     root: {
       type: string;
@@ -523,29 +470,34 @@ export type Media = {
         version: number;
         [k: string]: unknown;
       }[];
-      direction: ("ltr" | "rtl") | null;
-      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
       indent: number;
       version: number;
     };
     [k: string]: unknown;
   } | null;
-  createdAt: string;
+  _objectKey?: string | null;
+  blurhash?: string | null;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
   filename?: string | null;
+  mimeType?: string | null;
   filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
-  height?: number | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  mimeType?: string | null;
   sizes?: {
     thumbnail?: {
       url?: string | null;
@@ -580,41 +532,37 @@ export type Media = {
       filename?: string | null;
     };
   };
-  thumbnailURL?: string | null;
-  updatedAt: string;
-  url?: string | null;
-  width?: number | null;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "activities".
  */
-export type Activity = {
-  action:
-    | "signUp"
-    | "watchLive"
-    | "read"
-    | "dailyLogin"
-    | "share"
-    | "connectBrandAd"
-    | "referral"
-    | "ticketPurchase"
-    | "lottery"
-    | "surveyTask"
-    | "musicListeningTime"
-    | "partnerContentTask"
-    | "pointReversal";
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
+export interface Activity {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  type?: ('point' | 'badge' | 'reward') | null;
+  point: number;
+  /**
+   * provider:transaction:kind, for provider awards only. The unique index is what stops two servers paying one transaction.
+   */
+  providerRef?: string | null;
+  reward?: string | null;
+  action:
+    | 'signUp'
+    | 'watchLive'
+    | 'read'
+    | 'dailyLogin'
+    | 'share'
+    | 'connectBrandAd'
+    | 'referral'
+    | 'ticketPurchase'
+    | 'lottery'
+    | 'surveyTask'
+    | 'musicListeningTime'
+    | 'partnerContentTask'
+    | 'pointReversal';
+  description?: string | null;
+  user: string | User;
+  news?: (string | null) | News;
   metadata?:
     | {
         [k: string]: unknown;
@@ -624,66 +572,48 @@ export type Activity = {
     | number
     | boolean
     | null;
-  news?: (string | null) | News;
-  point: number;
-  /**
-   * provider:transaction:kind, for provider awards only. The unique index is what stops two servers paying one transaction.
-   */
-  providerRef?: string | null;
-  reward?: string | null;
-  type?: ("point" | "badge" | "reward") | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
-export type User = {
-  _verified: boolean;
+export interface User {
+  id: string;
+  userId?: string | null;
+  email?: string | null;
+  name: string;
+  image?: string | null;
+  username: string;
+  wish?: string | null;
   /**
-   * ISO country code the user selected. A display signal only; it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.
+   * No longer collected at sign-up (App Store guideline 5.1.1(v)). Retained for existing users and admin edits.
    */
-  country?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Custom user attributes for advanced segmentation
-   */
-  customAttributes?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  dailyRead: DailyRead;
+  phone?: string | null;
   /**
    * Required to take part in giveaways, as prizes of real value are age-restricted. Deliberately not self-editable in the app: a user who fails the age check could otherwise simply correct their birthday. Change it here if someone mistyped it.
    */
   dateOfBirth?: string | null;
-  email?: string | null;
-  id: string;
-  image?: string | null;
+  /**
+   * ISO country code the user selected. A display signal only; it decides currency and copy, never eligibility, because it is typed into a form and can be changed at will.
+   */
+  country?: string | null;
+  /**
+   * Country from the identity document, once verified. This is the version anyone has actually checked, so it outranks the self-reported one wherever the answer has consequences.
+   */
+  verifiedCountry?: string | null;
+  _verified: boolean;
   isAnonymous?: boolean | null;
-  /**
-   * Last time the user was active in the app
-   */
-  lastActive?: string | null;
-  /**
-   * Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.
-   */
-  lastGiveawayResultSeen?: (string | null) | Giveaway;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  name: string;
+  dailyRead: DailyRead;
   notificationPreferences?: {
     types?: {
       BREAKING_NEWS?: boolean;
@@ -696,137 +626,81 @@ export type User = {
     [k: string]: unknown;
   };
   /**
-   * No longer collected at sign-up (App Store guideline 5.1.1(v)). Retained for existing users and admin edits.
+   * Last time the user was active in the app
    */
-  phone?: string | null;
+  lastActive?: string | null;
+  /**
+   * Custom user attributes for advanced segmentation
+   */
+  customAttributes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Set when the user acknowledges a giveaway result. Suppresses that result's reveal from then on.
+   */
+  lastGiveawayResultSeen?: (string | null) | Giveaway;
   /**
    * Last time the automatic store-review prompt was recorded for this user. Never set by rating.
    */
   reviewPromptedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId?: string | null;
-  username: string;
-  /**
-   * Country from the identity document, once verified. This is the version anyone has actually checked, so it outranks the self-reported one wherever the answer has consequences.
-   */
-  verifiedCountry?: string | null;
-  wish?: string | null;
-};
-export type DailyRead = {
+  createdAt: string;
+}
+export interface DailyRead {
   count?: number;
   updatedAt?: string;
   [k: string]: unknown;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaways".
  */
-export type Giveaway = {
-  /**
-   * The share of stocked prize units this draw may award. 100 means the Maximum Units figures are the only ceiling; 85 would hold 15% of the stock back for later giveaways.
-   */
-  budgetUtilizationPct: number;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * The most recent execution attempt.
-   */
-  currentAttempt?: (string | null) | GiveawayDrawAttempt;
+export interface Giveaway {
+  id: string;
+  name: string;
   /**
    * Shown on the giveaway screen, and sent as the push notification body when this giveaway is set to Active. Write {{firstName}} to address each user by first name, e.g. "{{firstName}}, join 1500 winners". Max 150 characters so it is not cut off on a lock screen.
    */
   description?: string | null;
-  drawCompletedAt?: string | null;
-  drawError?: string | null;
   /**
-   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (19).
+   * On by default. Switch off to activate the giveaway without notifying users. Uses the notification title and body below as the message; when the body is left blank the description above is sent instead, and nothing is sent if both are empty.
    */
-  drawExecutionId?: string | null;
-  /**
-   * Cryptographic seed used for this draw. Enables replay for audit.
-   */
-  drawSeed?: string | null;
-  drawStartedAt?: string | null;
-  /**
-   * When the countdown ends and the draw becomes eligible to run.
-   */
-  endDate: string;
-  id: string;
-  /**
-   * The last material step the draw completed. A resumption continues from the next one (19).
-   */
-  lastCheckpoint?:
-    | (
-        | "config_validated"
-        | "pool_generated"
-        | "pool_locked"
-        | "tier1_winners_selected"
-        | "tier1_prizes_allocated"
-        | "tier2_winners_selected"
-        | "tier2_prizes_allocated"
-        | "tier3_winners_selected"
-        | "tier3_prizes_allocated"
-        | "final_validation"
-        | "result_confirmed"
-        | "audit_completed"
-        | "winner_report_generated"
-      )
-    | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Total retail value this draw may award: a ceiling, not a target. Coming in under it is the normal case. Leave empty for no monetary cap. Prizes with no Value (₦) count as ₦0 against it, so the cap only ever binds priced prizes.
-   */
-  maxBudgetCapNaira?: number | null;
-  /**
-   * The smallest number of tickets a user may buy at once (spec 1). This is a purchase floor, not a tier requirement.
-   */
-  minTicketsRequired: number;
-  name: string;
-  /**
-   * Optional push body. Write {{firstName}} to address each user by first name. Left blank, the description above is sent instead so existing giveaways keep working; nothing is sent if both are empty. Max 150 characters so it is not cut off on a lock screen.
-   */
-  notificationBody?: string | null;
+  sendAnnouncement?: boolean | null;
   /**
    * Push title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each user sees their own first name in its place.
    */
   notificationTitle?: string | null;
   /**
-   * The prizes selected for this giveaway. A prize's tier comes from the Master Prize Catalogue, so to give a tier prizes, add a catalogue prize that belongs to that tier.
+   * Optional push body. Write {{firstName}} to address each user by first name. Left blank, the description above is sent instead so existing giveaways keep working; nothing is sent if both are empty. Max 150 characters so it is not cut off on a lock screen.
    */
-  prizes?: {
-    docs?: (string | GiveawayPrize)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  resumptionAuthorizedAt?: string | null;
-  resumptionAuthorizedBy?: string | null;
-  /**
-   * On by default. Switch off to activate the giveaway without notifying users. Uses the notification title and body below as the message; when the body is left blank the description above is sent instead, and nothing is sent if both are empty.
-   */
-  sendAnnouncement?: boolean | null;
+  notificationBody?: string | null;
   startDate: string;
-  status:
-    | "draft"
-    | "active"
-    | "ready"
-    | "pool_building"
-    | "pool_locked"
-    | "draw_in_progress"
-    | "interrupted"
-    | "resumption_authorized"
-    | "completed"
-    | "failed"
-    | "cancelled";
+  /**
+   * When the countdown ends and the draw becomes eligible to run.
+   */
+  endDate: string;
   /**
    * Points charged per ticket.
    */
   ticketPrice: number;
+  /**
+   * The smallest number of tickets a user may buy at once (spec 1). This is a purchase floor, not a tier requirement.
+   */
+  minTicketsRequired: number;
   /**
    * The most winners this tier may have, as a share of participants, rounded down. Not a promise of winners. 0 disables the tier. Maximum 100.
    */
@@ -840,11 +714,74 @@ export type Giveaway = {
    */
   tier3WinnerPercentage: number;
   /**
+   * The share of stocked prize units this draw may award. 100 means the Maximum Units figures are the only ceiling; 85 would hold 15% of the stock back for later giveaways.
+   */
+  budgetUtilizationPct: number;
+  /**
+   * Total retail value this draw may award: a ceiling, not a target. Coming in under it is the normal case. Leave empty for no monetary cap. Prizes with no Value (₦) count as ₦0 against it, so the cap only ever binds priced prizes.
+   */
+  maxBudgetCapNaira?: number | null;
+  status:
+    | 'draft'
+    | 'active'
+    | 'ready'
+    | 'pool_building'
+    | 'pool_locked'
+    | 'draw_in_progress'
+    | 'interrupted'
+    | 'resumption_authorized'
+    | 'completed'
+    | 'failed'
+    | 'cancelled';
+  /**
    * Unique users holding at least one valid ticket, captured once when the draw begins. Constant for the whole draw.
    */
   totalValidParticipants?: number | null;
-  updatedAt: string;
-  winnerReportSentAt?: string | null;
+  /**
+   * Cryptographic seed used for this draw. Enables replay for audit.
+   */
+  drawSeed?: string | null;
+  /**
+   * Identifies this draw across every attempt at it. A resumption reuses it rather than starting a new one (19).
+   */
+  drawExecutionId?: string | null;
+  /**
+   * The last material step the draw completed. A resumption continues from the next one (19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * The most recent execution attempt.
+   */
+  currentAttempt?: (string | null) | GiveawayDrawAttempt;
+  resumptionAuthorizedBy?: string | null;
+  resumptionAuthorizedAt?: string | null;
+  drawStartedAt?: string | null;
+  drawCompletedAt?: string | null;
+  drawError?: string | null;
+  /**
+   * The prizes selected for this giveaway. A prize's tier comes from the Master Prize Catalogue, so to give a tier prizes, add a catalogue prize that belongs to that tier.
+   */
+  prizes?: {
+    docs?: (string | GiveawayPrize)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   /**
    * Who won, once the draw has run. Open a winner to see their claim and fulfilment status.
    */
@@ -853,64 +790,36 @@ export type Giveaway = {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
-};
+  winnerReportSentAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * Every execution of a draw, including authorized resumptions. All attempts at one draw share an Execution ID.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-draw-attempts".
  */
-export type GiveawayDrawAttempt = {
-  /**
-   * 1 for the original run, incrementing for each resumption.
-   */
-  attemptNumber: number;
-  /**
-   * Who authorized this resumption. Empty for an initial run, which needs no authorization.
-   */
-  authorizedBy?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  endedAt?: string | null;
-  /**
-   * Why the attempt stopped, if it did not complete.
-   */
-  error?: string | null;
+export interface GiveawayDrawAttempt {
+  id: string;
+  giveaway: string | Giveaway;
   /**
    * Shared by every attempt at the same draw. Unchanged across resumptions.
    */
   executionId: string;
-  giveaway: string | Giveaway;
-  id: string;
-  kind: "initial" | "resumption";
   /**
-   * The last material step this attempt completed (19).
+   * 1 for the original run, incrementing for each resumption.
    */
-  lastCheckpoint?:
-    | (
-        | "config_validated"
-        | "pool_generated"
-        | "pool_locked"
-        | "tier1_winners_selected"
-        | "tier1_prizes_allocated"
-        | "tier2_winners_selected"
-        | "tier2_prizes_allocated"
-        | "tier3_winners_selected"
-        | "tier3_prizes_allocated"
-        | "final_validation"
-        | "result_confirmed"
-        | "audit_completed"
-        | "winner_report_generated"
-      )
-    | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  outcome: "running" | "completed" | "interrupted" | "failed";
+  attemptNumber: number;
+  kind: 'initial' | 'resumption';
   /**
    * The attempt this one continues.
    */
@@ -919,36 +828,66 @@ export type GiveawayDrawAttempt = {
    * The draw seed. A resumption reuses the original, because a fresh seed would change the winners of the tiers that had not yet run.
    */
   seed: string;
+  outcome: 'running' | 'completed' | 'interrupted' | 'failed';
+  /**
+   * The last material step this attempt completed (19).
+   */
+  lastCheckpoint?:
+    | (
+        | 'config_validated'
+        | 'pool_generated'
+        | 'pool_locked'
+        | 'tier1_winners_selected'
+        | 'tier1_prizes_allocated'
+        | 'tier2_winners_selected'
+        | 'tier2_prizes_allocated'
+        | 'tier3_winners_selected'
+        | 'tier3_prizes_allocated'
+        | 'final_validation'
+        | 'result_confirmed'
+        | 'audit_completed'
+        | 'winner_report_generated'
+      )
+    | null;
+  /**
+   * Who authorized this resumption. Empty for an initial run, which needs no authorization.
+   */
+  authorizedBy?: string | null;
+  /**
+   * Why the attempt stopped, if it did not complete.
+   */
+  error?: string | null;
   startedAt: string;
+  endedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * The prizes selected for a giveaway, and how many units of each may be awarded.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-prizes".
  */
-export type GiveawayPrize = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  giveaway: string | Giveaway;
+export interface GiveawayPrize {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Maximum units of this prize that may be awarded. Positive whole numbers only.
-   */
-  maxUnits: number;
+  giveaway: string | Giveaway;
   prize: string | PrizeCatalogue;
   /**
    * Inherited from the Master Prize Catalogue.
    */
-  tier: "tier1" | "tier2" | "tier3";
+  tier: 'tier1' | 'tier2' | 'tier3';
+  /**
+   * Maximum units of this prize that may be awarded. Positive whole numbers only.
+   */
+  maxUnits: number;
   /**
    * Incremented by the draw engine as prizes are allocated.
    */
@@ -957,49 +896,54 @@ export type GiveawayPrize = {
    * Maximum Units − Units Awarded.
    */
   unitsRemaining?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * Single source of truth for prizes. A prize belongs to exactly one tier.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "prize-catalogue".
  */
-export type PrizeCatalogue = {
-  /**
-   * Inactive prizes cannot be added to new giveaways. Existing giveaways are unaffected.
-   */
-  active?: boolean | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
-  /**
-   * Drives the whole claim flow: what the app asks the winner for, and whether fulfilment is automatic or arranged by hand.
-   */
-  fulfilmentType:
-    | "points"
-    | "airtime"
-    | "data"
-    | "gift_card"
-    | "physical"
-    | "experience";
+export interface PrizeCatalogue {
   id: string;
-  image?: (string | null) | Media;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
    * Must be unique across the entire catalogue, including other tiers.
    */
   name: string;
   /**
+   * The one and only tier this prize belongs to. Cannot be changed once the prize is used in a giveaway.
+   */
+  tier: 'tier1' | 'tier2' | 'tier3';
+  description?: string | null;
+  /**
+   * Drives the whole claim flow: what the app asks the winner for, and whether fulfilment is automatic or arranged by hand.
+   */
+  fulfilmentType: 'points' | 'airtime' | 'data' | 'gift_card' | 'physical' | 'experience';
+  /**
    * Credited to the winner the moment they claim. Required for a points prize.
    */
   pointsAmount?: number | null;
+  /**
+   * Retail value of one unit, for reporting and for spending against a giveaway's monetary budget cap. Optional: a prize with no value here counts as ₦0 against the cap.
+   */
+  valueNaira?: number | null;
+  /**
+   * The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 7-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
+   */
+  requiresVerification?: boolean | null;
+  /**
+   * Pick from available airtime amounts. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number at fulfilment.
+   */
+  reloadlyLocalAmount?: number | null;
   /**
    * One row per network, and all four are required: MTN, Airtel, Glo and 9mobile. Select the network, then pick from that network's live plans. At fulfilment the winner's actual network is detected from their phone number and matched against these rows, so a network left out means that winner's prize is held for manual review.
    */
@@ -1008,7 +952,7 @@ export type PrizeCatalogue = {
         /**
          * Select the network this plan is for
          */
-        network: "mtn" | "airtel" | "glo" | "t2";
+        network: 'mtn' | 'airtel' | 'glo' | 't2';
         /**
          * Auto-populated based on network
          */
@@ -1021,83 +965,44 @@ export type PrizeCatalogue = {
       }[]
     | null;
   /**
-   * Pick from available airtime amounts. Falls back to Value (₦) if left empty. Airtime is not network-specific the way data is, so the network is detected from the winner's own phone number at fulfilment.
+   * Search for the card to issue. Choosing one opts this prize into automatic fulfilment.
    */
-  reloadlyLocalAmount?: number | null;
+  reloadlyGiftCardProductId?: number | null;
+  reloadlyGiftCardUnitPrice?: number | null;
   /**
-   * The winner can still claim immediately: this only gates delivery, so nobody loses a prize to the 7-day clock while verifying. Use it for high-value items, not for airtime or points. Cannot be enabled until an identity provider is configured.
+   * The exact account-currency charge for FIXED cards. Left at 0 for RANGE cards; the purchase records the actual amount later.
    */
-  requiresVerification?: boolean | null;
+  reloadlyGiftCardSenderPrice?: number | null;
+  reloadlyGiftCardProductName?: string | null;
+  reloadlyGiftCardCurrency?: string | null;
+  reloadlyGiftCardInstructions?: string | null;
+  reloadlyGiftCardEnvironment?: ('sandbox' | 'live') | null;
+  emailGiftCardCode?: boolean | null;
+  image?: (string | null) | Media;
   /**
-   * The one and only tier this prize belongs to. Cannot be changed once the prize is used in a giveaway.
+   * Inactive prizes cannot be added to new giveaways. Existing giveaways are unaffected.
    */
-  tier: "tier1" | "tier2" | "tier3";
+  active?: boolean | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * Retail value of one unit, for reporting and for spending against a giveaway's monetary budget cap. Optional: a prize with no value here counts as ₦0 against the cap.
-   */
-  valueNaira?: number | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-winners".
  */
-export type GiveawayWinner = {
-  /**
-   * Successful Boost Your Luck interactions during the giveaway.
-   */
-  boostCount: number;
-  /**
-   * Delivery address, captured at claim time.
-   */
-  claimAddress?: string | null;
-  /**
-   * 7 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
-   */
-  claimDeadline?: string | null;
-  claimedAt?: string | null;
-  /**
-   * Number the winner nominated for airtime or data, captured at claim time.
-   */
-  claimPhone?: string | null;
-  /**
-   * Who the courier should hand a physical prize to.
-   */
-  claimRecipientName?: string | null;
-  claimStatus:
-    | "unclaimed"
-    | "claimed"
-    | "expired"
-    | "forfeited"
-    | "disqualified";
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Why this winner was disqualified, recorded before any replacement is drawn.
-   */
-  disqualificationReason?: string | null;
-  disqualifiedAt?: string | null;
-  featuredOfferCount: number;
-  fulfilledAt?: string | null;
-  /**
-   * On Hold is set automatically when the winner's account is flagged as suspicious (22.7, 22.8): the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.
-   */
-  fulfilmentStatus:
-    | "pending"
-    | "awaiting_verification"
-    | "on_hold"
-    | "in_progress"
-    | "fulfilled"
-    | "cancelled";
-  giveaway: string | Giveaway;
+export interface GiveawayWinner {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  giveaway: string | Giveaway;
+  user: string | User;
+  tier: 'tier1' | 'tier2' | 'tier3';
   /**
    * Reference to the Master Prize Catalogue entry.
    */
@@ -1107,47 +1012,80 @@ export type GiveawayWinner = {
    */
   prizeName: string;
   /**
-   * Set when this record replaces a disqualified winner (12). The original is kept rather than deleted, so the audit trail stays intact.
+   * The specific ticket entry drawn for this winner.
    */
-  replaces?: (string | null) | GiveawayWinner;
-  /**
-   * Why this prize was held for review, recorded at selection time.
-   */
-  reviewNote?: string | null;
-  selectedAt: string;
-  tier: "tier1" | "tier2" | "tier3";
-  updatedAt: string;
-  user: string | User;
+  winningTicket: string | GiveawayTicket;
   /**
    * Total valid tickets this user held when the draw began.
    */
   validTicketCount: number;
   /**
-   * The specific ticket entry drawn for this winner.
+   * Successful Boost Your Luck interactions during the giveaway.
    */
-  winningTicket: string | GiveawayTicket;
-};
+  boostCount: number;
+  featuredOfferCount: number;
+  selectedAt: string;
+  claimStatus: 'unclaimed' | 'claimed' | 'expired' | 'forfeited' | 'disqualified';
+  claimedAt?: string | null;
+  /**
+   * 7 days from selection. The window also closes the moment the next giveaway starts, whichever comes first.
+   */
+  claimDeadline?: string | null;
+  /**
+   * Number the winner nominated for airtime or data, captured at claim time.
+   */
+  claimPhone?: string | null;
+  /**
+   * Who the courier should hand a physical prize to.
+   */
+  claimRecipientName?: string | null;
+  /**
+   * Delivery address, captured at claim time.
+   */
+  claimAddress?: string | null;
+  /**
+   * On Hold is set automatically when the winner's account is flagged as suspicious (22.7, 22.8): the win itself always stands, and a review never reruns the draw. Awaiting Verification means the winner still has an identity step to complete before this can be dispatched.
+   */
+  fulfilmentStatus: 'pending' | 'awaiting_verification' | 'on_hold' | 'in_progress' | 'fulfilled' | 'cancelled';
+  /**
+   * Why this prize was held for review, recorded at selection time.
+   */
+  reviewNote?: string | null;
+  fulfilledAt?: string | null;
+  /**
+   * Set when this record replaces a disqualified winner (12). The original is kept rather than deleted, so the audit trail stays intact.
+   */
+  replaces?: (string | null) | GiveawayWinner;
+  disqualifiedAt?: string | null;
+  /**
+   * Why this winner was disqualified, recorded before any replacement is drawn.
+   */
+  disqualificationReason?: string | null;
+  giftCardCode?: string | null;
+  giftCardPin?: string | null;
+  giftCardRedemptionUrl?: string | null;
+  giftCardInstructions?: string | null;
+  giftCardTransactionId?: string | null;
+  giftCardEmailSentAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-tickets".
  */
-export type GiveawayTicket = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  giveaway: string | Giveaway;
+export interface GiveawayTicket {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Payment provider reference for reconciliation.
-   */
-  paymentReference?: string | null;
-  purchasedAt: string;
+  giveaway: string | Giveaway;
+  user: string | User;
   /**
    * Number of tickets in this purchase. Each is one draw entry.
    */
@@ -1155,29 +1093,57 @@ export type GiveawayTicket = {
   /**
    * Only valid tickets are counted for eligibility or entered into the draw.
    */
-  status:
-    | "valid"
-    | "cancelled"
-    | "refunded"
-    | "reversed"
-    | "unpaid"
-    | "fraudulent";
-  statusChangedAt?: string | null;
+  status: 'valid' | 'cancelled' | 'refunded' | 'reversed' | 'unpaid' | 'fraudulent';
   /**
    * Ticket price at time of purchase, for audit.
    */
   unitPrice: number;
+  /**
+   * Payment provider reference for reconciliation.
+   */
+  paymentReference?: string | null;
+  purchasedAt: string;
+  statusChangedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news".
  */
-export type News = {
-  _status?: ("draft" | "published") | null;
-  author: string | Admin;
-  category: string | Category;
+export interface News {
+  id: string;
+  /**
+   * 💡 Video news is switched off for now, so new pieces are articles.
+   */
+  type?: 'article' | null;
+  /**
+   * 💡 Title of the news article
+   */
+  title: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  image: string | Media;
+  /**
+   * At least one is needed to publish a new article. The first one is also the default push notification text.
+   */
+  keyPoints?:
+    | {
+        point?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   content?: {
     root: {
       type: string;
@@ -1186,23 +1152,39 @@ export type News = {
         version: number;
         [k: string]: unknown;
       }[];
-      direction: ("ltr" | "rtl") | null;
-      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
       indent: number;
       version: number;
     };
     [k: string]: unknown;
   } | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  dislikesCount?: number | null;
+  /**
+   * 💡 https://www.youtube.com/embed/video-id
+   */
+  url?: string | null;
+  wordCount?: number | null;
+  readTimeMinutes?: number | null;
+  /**
+   * 💡 Number of views
+   */
+  views?: number | null;
   /**
    * 💡 Filled in automatically from the first 100 characters of the article. It is not a summary and is not used for the push notification; write key points instead.
    */
   excerpt?: string | null;
+  /**
+   * On by default. Switch off to publish without notifying users.
+   */
+  sendNotification?: boolean | null;
+  /**
+   * Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max 120 characters.
+   */
+  notificationTitle?: string | null;
+  /**
+   * Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Max 150 characters so it is not cut off on a lock screen.
+   */
+  notificationBody?: string | null;
   /**
    * 💡 Pin to Top stories. Featured articles lead the carousel in rank order.
    */
@@ -1215,281 +1197,275 @@ export type News = {
    * 💡 The story leaves the carousel at this time, so it is never left up by accident. Filled in as 24 hours from now when you feature a story; change it if you need longer. Older featured stories with no end time stay until unfeatured.
    */
   featuredUntil?: string | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  hasBeenPublished?: boolean | null;
-  id: string;
-  image: string | Media;
-  /**
-   * At least one is needed to publish a new article. The first one is also the default push notification text.
-   */
-  keyPoints?:
-    | {
-        point?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  likesCount?: number | null;
-  /**
-   * Push body. Filled from the first key point until the article is first published; change it and it stays. Left blank, "New news published!" is sent. Max 150 characters so it is not cut off on a lock screen.
-   */
-  notificationBody?: string | null;
-  /**
-   * Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max 120 characters.
-   */
-  notificationTitle?: string | null;
+  publishedAt: string;
+  updatedAt: string;
   /**
    * 💡 Amount of points to be awarded for this news
    */
   points?: number | null;
-  publishedAt: string;
-  readTimeMinutes?: number | null;
-  /**
-   * On by default. Switch off to publish without notifying users.
-   */
-  sendNotification?: boolean | null;
-  slug: string;
-  /**
-   * 💡 Title of the news article
-   */
-  title: string;
-  totalCommentLikes?: number | null;
+  author: string | Admin;
+  category: string | Category;
+  hasBeenPublished?: boolean | null;
   totalComments?: number | null;
-  /**
-   * 💡 Video news is switched off for now, so new pieces are articles.
-   */
-  type?: "article" | null;
-  updatedAt: string;
-  /**
-   * 💡 https://www.youtube.com/embed/video-id
-   */
-  url?: string | null;
-  /**
-   * 💡 Number of views
-   */
-  views?: number | null;
-  wordCount?: number | null;
-};
+  totalCommentLikes?: number | null;
+  likesCount?: number | null;
+  dislikesCount?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories".
  */
-export type Category = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
+export interface Category {
+  id: string;
+  title: string;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
-  id: string;
+  slug: string;
+  description?: string | null;
   image?: (string | null) | Media;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  slug: string;
-  title: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * Provider offer counts per request. Used to measure survey fill; not a payments record.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey-offer-events".
  */
-export type SurveyOfferEvent = {
-  country?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface SurveyOfferEvent {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  provider: 'cpx' | 'rapido' | 'theorem' | 'bitlabs';
+  user?: (string | null) | User;
+  country?: string | null;
+  offerCount: number;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  offerCount: number;
-  provider: "cpx" | "rapido" | "theorem" | "bitlabs";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user?: (string | null) | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments".
  */
-export type Comment = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
-   */
-  dislikes?: (string | User)[] | null;
-  dislikesCount?: number | null;
+export interface Comment {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  text: string;
+  /**
+   * Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed. The threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.
+   */
+  moderationStatus?: ('visible' | 'hidden' | 'removed') | null;
+  user: string | User;
+  news: string | News;
+  parent?: (string | null) | Comment;
+  replyingTo?: (string | null) | Comment;
   /**
    * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
    */
   likes?: (string | User)[] | null;
-  likesCount?: number | null;
   /**
-   * Auto-set to Hidden once the comment reaches the report threshold. Set back to Visible to restore it, or Removed to take it down permanently. When restoring, also mark the related Content Reports as Dismissed. The threshold only ignores dismissed reports, so otherwise the next report re-hides it immediately.
+   * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all reactions are in the `reactions` collection.
    */
-  moderationStatus?: ("visible" | "hidden" | "removed") | null;
-  news: string | News;
-  parent?: (string | null) | Comment;
+  dislikes?: (string | User)[] | null;
+  likesCount?: number | null;
+  dislikesCount?: number | null;
   replies?: (string | Comment)[] | null;
-  replyingTo?: (string | null) | Comment;
-  text: string;
   totalReplies?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contentReports".
  */
-export type ContentReport = {
-  additionalDetails?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface ContentReport {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  moderatorNotes?: string | null;
-  reason:
-    | "spam"
-    | "harassment"
-    | "hate-speech"
-    | "misinformation"
-    | "personal-info"
-    | "inappropriate"
-    | "off-topic"
-    | "trolling"
-    | "illegal"
-    | "other";
-  reportedBy: string | User;
   /**
-   * The game reported, by its slug (for example prism-match-3d). Games are not documents here, so they cannot be a reportedItem. Set instead of reportedItem for a game report.
+   * How this record was created. Blocks and filter rejections are recorded for visibility and are not actionable reports. Records created before this field existed have no value and are inferred from their details text.
    */
-  reportedGame?: string | null;
+  type?: ('report' | 'block' | 'filterRejection') | null;
+  reason:
+    | 'spam'
+    | 'harassment'
+    | 'hate-speech'
+    | 'misinformation'
+    | 'personal-info'
+    | 'inappropriate'
+    | 'off-topic'
+    | 'trolling'
+    | 'illegal'
+    | 'other';
+  additionalDetails?: string | null;
   /**
    * The reported content. Optional: not set for user-level actions (e.g. blocking).
    */
   reportedItem?:
     | ({
-        relationTo: "comments";
+        relationTo: 'comments';
         value: string | Comment;
       } | null)
     | ({
-        relationTo: "news";
+        relationTo: 'news';
         value: string | News;
       } | null);
-  resolution?:
-    | ("noAction" | "warning" | "removed" | "suspended" | "banned")
-    | null;
-  resolvedAt?: string | null;
-  resolvedBy?: (string | null) | Admin;
-  status?: ("pending" | "reviewing" | "resolved" | "dismissed") | null;
   /**
-   * How this record was created. Blocks and filter rejections are recorded for visibility and are not actionable reports. Records created before this field existed have no value and are inferred from their details text.
+   * The game reported, by its slug (for example prism-match-3d). Games are not documents here, so they cannot be a reportedItem. Set instead of reportedItem for a game report.
    */
-  type?: ("report" | "block" | "filterRejection") | null;
+  reportedGame?: string | null;
+  reportedBy: string | User;
+  status?: ('pending' | 'reviewing' | 'resolved' | 'dismissed') | null;
+  moderatorNotes?: string | null;
+  resolution?: ('noAction' | 'warning' | 'removed' | 'suspended' | 'banned') | null;
+  resolvedBy?: (string | null) | Admin;
+  resolvedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "feedback".
  */
-export type Feedback = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  email: string;
+export interface Feedback {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  name: string;
+  email: string;
+  type: 'general' | 'bug' | 'feature' | 'advertisement' | 'other';
+  message: string;
+  rating: number;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  message: string;
-  name: string;
-  rating: number;
-  type: "general" | "bug" | "feature" | "advertisement" | "other";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * Accounts excluded from draws or held for review. An account with no row here is treated as trusted.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-account-flags".
  */
-export type GiveawayAccountFlag = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface GiveawayAccountFlag {
+  id: string;
+  user: string | User;
+  /**
+   * Disqualified accounts are removed from the pool. Suspicious accounts still take part, but any prize they win is held for review.
+   */
+  trustStatus: 'ok' | 'suspicious' | 'disqualified';
   /**
    * Identifier shared by accounts judged to belong to the same person. Every account in a group is excluded from the pool (22.6).
    */
   duplicateAccountGroup?: string | null;
-  flaggedAt: string;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
    * Why this account was flagged. Included in the audit log.
    */
   reason?: string | null;
+  flaggedAt: string;
   /**
    * Administrator who last reviewed this account.
    */
   reviewedBy?: (string | null) | Admin;
-  /**
-   * Disqualified accounts are removed from the pool. Suspicious accounts still take part, but any prize they win is held for review.
-   */
-  trustStatus: "ok" | "suspicious" | "disqualified";
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * Append-only. Records cannot be edited or deleted.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-audit-log".
  */
-export type GiveawayAuditLog = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface GiveawayAuditLog {
+  id: string;
+  giveaway: string | Giveaway;
+  eventType:
+    | 'ticket_purchase'
+    | 'ticket_status_change'
+    | 'boost_completion'
+    | 'featured_offer_completion'
+    | 'participants_snapshot'
+    | 'candidate_pool_built'
+    | 'candidate_pool_locked'
+    | 'checkpoint_reached'
+    | 'draw_interrupted'
+    | 'resumption_authorized'
+    | 'giveaway_cancelled'
+    | 'winner_disqualified'
+    | 'replacement_selected'
+    | 'winner_held_ticket_invalid'
+    | 'account_excluded'
+    | 'fairness_exclusion'
+    | 'loyalty_waiver_applied'
+    | 'winner_held_for_review'
+    | 'winner_selected'
+    | 'prize_allocated'
+    | 'prize_exhausted'
+    | 'budget_limit_reached'
+    | 'tier_completed'
+    | 'draw_started'
+    | 'draw_resumed'
+    | 'draw_completed'
+    | 'draw_error'
+    | 'winner_report_sent'
+    | 'claim_status_change';
+  /**
+   * The user this event concerns, where applicable.
+   */
+  user?: (string | null) | User;
+  tier?: string | null;
+  message: string;
   /**
    * Structured event payload: counts, IDs, seeds, errors.
    */
@@ -1502,85 +1478,56 @@ export type GiveawayAuditLog = {
     | number
     | boolean
     | null;
-  eventType:
-    | "ticket_purchase"
-    | "ticket_status_change"
-    | "boost_completion"
-    | "featured_offer_completion"
-    | "participants_snapshot"
-    | "candidate_pool_built"
-    | "candidate_pool_locked"
-    | "checkpoint_reached"
-    | "draw_interrupted"
-    | "resumption_authorized"
-    | "giveaway_cancelled"
-    | "winner_disqualified"
-    | "replacement_selected"
-    | "winner_held_ticket_invalid"
-    | "account_excluded"
-    | "fairness_exclusion"
-    | "loyalty_waiver_applied"
-    | "winner_held_for_review"
-    | "winner_selected"
-    | "prize_allocated"
-    | "prize_exhausted"
-    | "budget_limit_reached"
-    | "tier_completed"
-    | "draw_started"
-    | "draw_resumed"
-    | "draw_completed"
-    | "draw_error"
-    | "winner_report_sent"
-    | "claim_status_change";
-  giveaway: string | Giveaway;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  occurredAt: string;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  message: string;
-  occurredAt: string;
-  tier?: string | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * The user this event concerns, where applicable.
-   */
-  user?: (string | null) | User;
-};
+  createdAt: string;
+}
 /**
  * Boost Your Luck and Featured Offer completions. Contributes to Tier 1 and Tier 2 eligibility only; never creates additional draw entries.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-engagements".
  */
-export type GiveawayEngagement = {
-  completedAt: string;
+export interface GiveawayEngagement {
+  id: string;
   /**
-   * Only 'completed' contributes towards tier eligibility. Incomplete, abandoned and failed engagements are ignored.
+   * Scopes the engagement to one giveaway, so aggregates are naturally per-giveaway and reset with it.
    */
-  completionStatus: "completed" | "incomplete" | "abandoned" | "failed";
+  giveaway: string | Giveaway;
+  user: string | User;
+  /**
+   * Boost = a Connect Brand advertisement watched to completion. Featured Offer = an item on the Lucky App Wall.
+   */
+  type: 'boost' | 'featured_offer';
+  /**
+   * Partner = a Connect Brand item, attributed to the content below. Google = a rewarded ad credited only by Google's server-side verification callback, which carries no item and is capped per giveaway instead.
+   */
+  source: 'partner' | 'google';
   /**
    * The partner item the user engaged with. Empty for a Google-sourced Boost, which has no partner-content record to point at.
    */
   content?: (string | null) | PartnerContent;
   /**
+   * Google's transaction_id from the verification callback. Unique so a replayed callback URL cannot mint a second Boost from one impression. Empty for partner engagements, which dedupe on the item instead.
+   */
+  verificationId?: string | null;
+  /**
    * Set once a CPA partner confirms the action. Not required for eligibility today: no partner platform is integrated yet.
    */
   conversion?: (string | null) | PartnerConversion;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
-   * Scopes the engagement to one giveaway, so aggregates are naturally per-giveaway and reset with it.
+   * Only 'completed' contributes towards tier eligibility. Incomplete, abandoned and failed engagements are ignored.
    */
-  giveaway: string | Giveaway;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  completionStatus: 'completed' | 'incomplete' | 'abandoned' | 'failed';
+  completedAt: string;
   /**
    * Activity-specific detail retained for audit.
    */
@@ -1593,69 +1540,64 @@ export type GiveawayEngagement = {
     | number
     | boolean
     | null;
-  /**
-   * Partner = a Connect Brand item, attributed to the content below. Google = a rewarded ad credited only by Google's server-side verification callback, which carries no item and is capped per giveaway instead.
-   */
-  source: "partner" | "google";
-  /**
-   * Boost = a Connect Brand advertisement watched to completion. Featured Offer = an item on the Lucky App Wall.
-   */
-  type: "boost" | "featured_offer";
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-  /**
-   * Google's transaction_id from the verification callback. Unique so a replayed callback URL cannot mint a second Boost from one impression. Empty for partner engagements, which dedupe on the item instead.
-   */
-  verificationId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * Manage promotions for books, banners, videos, shop items, etc.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-content".
  */
-export type PartnerContent = {
+export interface PartnerContent {
+  id: string;
+  /**
+   * Main heading, 30 characters recommended
+   */
+  title: string;
   /**
    * Shown on every surface, including the news feed. Never mention points or rewards here.
    */
   adCopy: string;
   /**
+   * Reward text. Hidden off earn surfaces. Max 90 characters recommended
+   */
+  condition: string;
+  description?: string | null;
+  /**
+   * Content category. Banner Ad Size options in the Display Settings tab.
+   */
+  type: 'book' | 'app' | 'game' | 'survey' | 'video' | 'banner' | 'promo-media' | 'product' | 'custom' | '';
+  /**
    * Select the Google Ads standard size for this placement. Then upload your image at exactly those dimensions in the Content tab.
    */
   adSize?:
     | (
-        | "BANNER"
-        | "LARGE_BANNER"
-        | "FULL_BANNER"
-        | "LEADERBOARD"
-        | "INLINE_RECTANGLE"
-        | "MEDIUM_RECTANGLE"
-        | "LARGE_RECTANGLE"
-        | "HALF_PAGE"
-        | "WIDE_SKYSCRAPER"
-        | "BILLBOARD"
-        | "ANCHORED_ADAPTIVE"
+        | 'BANNER'
+        | 'LARGE_BANNER'
+        | 'FULL_BANNER'
+        | 'LEADERBOARD'
+        | 'INLINE_RECTANGLE'
+        | 'MEDIUM_RECTANGLE'
+        | 'LARGE_RECTANGLE'
+        | 'HALF_PAGE'
+        | 'WIDE_SKYSCRAPER'
+        | 'BILLBOARD'
+        | 'ANCHORED_ADAPTIVE'
       )
     | null;
   /**
-   * Reward text. Hidden off earn surfaces. Max 90 characters recommended
+   * Main image or thumbnail. For Banner / Video / Custom types, dimensions should match the Ad Size selected in Display Settings.
    */
-  condition: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Button text (e.g., Buy now, Learn more)
-   */
-  cta?: string | null;
-  description?: string | null;
-  /**
-   * Notes for the design team (safe zones, background color, text placement, etc.)
-   */
-  displayNotes?: string | null;
-  id: string;
+  media?: (string | null) | Media;
   /**
    * Promotion images and video, one video and at least three images
    */
@@ -1665,10 +1607,26 @@ export type PartnerContent = {
         id?: string | null;
       }[]
     | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  /**
+   * Video source type
+   */
+  videoType?: ('UPLOAD' | 'EXTERNAL') | null;
+  /**
+   * Upload MP4 (720p, H.264, ≤2.5 Mbps, +faststart, max 15MB)
+   */
+  video?: (string | null) | Media;
+  /**
+   * Direct .mp4 link
+   */
+  videoUrl?: string | null;
+  /**
+   * Button text (e.g., Buy now, Learn more)
+   */
+  cta?: string | null;
+  /**
+   * Associate with an existing partner
+   */
+  partner: string | Partner;
   links?: {
     /**
      * General landing page URL
@@ -1684,39 +1642,32 @@ export type PartnerContent = {
     androidPlayStore?: string | null;
   };
   /**
-   * Main image or thumbnail. For Banner / Video / Custom types, dimensions should match the Ad Size selected in Display Settings.
+   * Points awarded for completing this action. Hidden off earn surfaces.
    */
-  media?: (string | null) | Media;
+  points: number;
   /**
-   * Internal notes (e.g. send push notification for new release)
+   * Share of voice within a placement, relative to the other active content there. Weight 3 against weight 1 is drawn roughly three times as often. 0 withholds it without unpublishing.
    */
-  notes?: string | null;
-  /**
-   * Associate with an existing partner
-   */
-  partner: string | Partner;
+  weight?: number | null;
   /**
    * Where this content should appear in the app
    */
   placements?:
     | (
-        | "homepage-trending-books"
-        | "homepage-ads-banner"
-        | "points-mall-books"
-        | "points-mall-apps"
-        | "connect-brand-video"
-        | "connect-brands-tab"
-        | "lucky-app-wall"
-        | "news-click-ads"
-        | "banner-news-post"
-        | "news-post"
-        | "video-section"
+        | 'homepage-trending-books'
+        | 'homepage-ads-banner'
+        | 'points-mall-books'
+        | 'points-mall-apps'
+        | 'connect-brand-video'
+        | 'connect-brands-tab'
+        | 'lucky-app-wall'
+        | 'news-click-ads'
+        | 'banner-news-post'
+        | 'news-post'
+        | 'video-section'
       )[]
     | null;
-  /**
-   * Points awarded for completing this action. Hidden off earn surfaces.
-   */
-  points: number;
+  status: 'draft' | 'active' | 'paused' | 'archived';
   schedule?: {
     /**
      * When to start displaying this content
@@ -1727,105 +1678,84 @@ export type PartnerContent = {
      */
     endDate?: string | null;
   };
-  status: "draft" | "active" | "paused" | "archived";
   /**
-   * Main heading, 30 characters recommended
+   * Internal notes (e.g. send push notification for new release)
    */
-  title: string;
+  notes?: string | null;
   /**
-   * Content category. Banner Ad Size options in the Display Settings tab.
+   * Notes for the design team (safe zones, background color, text placement, etc.)
    */
-  type:
-    | "book"
-    | "app"
-    | "game"
-    | "survey"
-    | "video"
-    | "banner"
-    | "promo-media"
-    | "product"
-    | "custom"
-    | "";
+  displayNotes?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * Upload MP4 (720p, H.264, ≤2.5 Mbps, +faststart, max 15MB)
-   */
-  video?: (string | null) | Media;
-  /**
-   * Video source type
-   */
-  videoType?: ("UPLOAD" | "EXTERNAL") | null;
-  /**
-   * Direct .mp4 link
-   */
-  videoUrl?: string | null;
-  /**
-   * Share of voice within a placement, relative to the other active content there. Weight 3 against weight 1 is drawn roughly three times as often. 0 withholds it without unpublishing.
-   */
-  weight?: number | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoVideoSource".
  */
-export type PromoVideoSource = {
-  blockName?: string | null;
-  blockType: "promo-video-source";
-  id?: string | null;
+export interface PromoVideoSource {
+  /**
+   * Specify the video source
+   */
+  videoSource: 'upload' | 'normal' | 'youtube';
+  /**
+   * Upload an MP4 video file
+   */
+  video?: (string | null) | Media;
+  url?: string | null;
   /**
    * Upload a custom thumbnail, or leave empty to auto-generate from video on save
    */
   thumbnail?: (string | null) | Media;
   thumbnailSource?: string | null;
-  url?: string | null;
-  /**
-   * Upload an MP4 video file
-   */
-  video?: (string | null) | Media;
-  /**
-   * Specify the video source
-   */
-  videoSource: "upload" | "normal" | "youtube";
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'promo-video-source';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoImage".
  */
-export type PromoImage = {
-  blockName?: string | null;
-  blockType: "promo-image";
-  id?: string | null;
+export interface PromoImage {
   image: string | Media;
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'promo-image';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-conversions".
  */
-export type PartnerConversion = {
-  /**
-   * When points were awarded to user
-   */
-  awardedAt?: string | null;
-  clickedAt: string;
+export interface PartnerConversion {
+  id: string;
+  user: string | User;
+  partner: string | Partner;
+  content: string | PartnerContent;
   /**
    * Unique tracking ID for this click/conversion
    */
   clickId: string;
-  content: string | PartnerContent;
   /**
-   * When partner confirmed conversion
+   * Where the tap came from; set by the app
    */
-  convertedAt?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  surface?: string | null;
+  status: 'clicked' | 'converted' | 'awarded' | 'failed';
+  /**
+   * Points awarded to user upon conversion
+   */
+  pointsAwarded?: number | null;
+  /**
+   * Order/transaction ID from partner
+   */
+  partnerOrderId?: string | null;
   /**
    * Additional data from partner (IP, device info, etc.)
    */
@@ -1838,87 +1768,83 @@ export type PartnerConversion = {
     | number
     | boolean
     | null;
-  partner: string | Partner;
+  clickedAt: string;
   /**
-   * Order/transaction ID from partner
+   * When partner confirmed conversion
    */
-  partnerOrderId?: string | null;
+  convertedAt?: string | null;
   /**
-   * Points awarded to user upon conversion
+   * When points were awarded to user
    */
-  pointsAwarded?: number | null;
-  status: "clicked" | "converted" | "awarded" | "failed";
-  /**
-   * Where the tap came from; set by the app
-   */
-  surface?: string | null;
+  awardedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * Provider payouts for airtime and data prizes. Append-only: the record of what was actually sent.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-fulfilment-attempts".
  */
-export type GiveawayFulfilmentAttempt = {
-  attemptedAt: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface GiveawayFulfilmentAttempt {
+  id: string;
+  winner: string | GiveawayWinner;
+  provider: 'reloadly';
   /**
    * Which environment this ran against. A sandbox payout delivered nothing, however successful it looks.
    */
-  environment: "sandbox" | "live";
-  error?: string | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Amount in the recipient's own currency, as promised.
-   */
-  localAmount?: number | null;
-  /**
-   * Network the top-up was sent to, as the provider knows it.
-   */
-  operatorId?: number | null;
-  operatorName?: string | null;
-  outcome:
-    | "sent"
-    | "already_sent"
-    | "retryable_failure"
-    | "permanent_failure"
-    | "skipped";
-  provider: "reloadly";
+  environment: 'sandbox' | 'live';
+  outcome: 'sent' | 'already_sent' | 'retryable_failure' | 'permanent_failure' | 'skipped';
   /**
    * The idempotency key sent to the provider: the winner id and the number of failures the provider confirmed for that winner, colon-separated. Repeating one attempt's key is what stops a double payment; a failure the provider confirmed spent its key, so the next attempt gets a fresh one.
    */
   providerReference?: string | null;
   providerTransactionId?: string | null;
+  /**
+   * Network the top-up was sent to, as the provider knows it.
+   */
+  operatorId?: number | null;
+  operatorName?: string | null;
+  /**
+   * Amount in the recipient's own currency, as promised.
+   */
+  localAmount?: number | null;
   recipientPhone?: string | null;
+  error?: string | null;
+  attemptedAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  winner: string | GiveawayWinner;
-};
+  createdAt: string;
+}
 /**
  * The candidate pool as locked at draw time. Replacement winners are drawn from here.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-pool-snapshots".
  */
-export type GiveawayPoolSnapshot = {
+export interface GiveawayPoolSnapshot {
+  id: string;
+  giveaway: string | Giveaway;
+  tier: 'tier1' | 'tier2' | 'tier3';
   /**
    * Distinct users eligible for this tier when it was locked.
    */
   candidateCount: number;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
    * One entry per valid ticket purchase: { ticketId, userKey, quantity }. Preserves the ticket weighting the draw used.
    */
@@ -1931,161 +1857,149 @@ export type GiveawayPoolSnapshot = {
     | number
     | boolean
     | null;
-  giveaway: string | Giveaway;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  lockedAt: string;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  lockedAt: string;
-  tier: "tier1" | "tier2" | "tier3";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * Every attempt to email a Winner Report. The original is sent automatically when a draw completes; resends are recorded alongside it.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-report-deliveries".
  */
-export type GiveawayReportDelivery = {
+export interface GiveawayReportDelivery {
+  id: string;
+  giveaway: string | Giveaway;
+  /**
+   * There is at most one original per draw. Everything else is a resend.
+   */
+  kind: 'original' | 'resend';
+  status: 'pending' | 'sent' | 'failed';
+  recipient: string;
+  subject: string;
   attachmentFileName?: string | null;
+  /**
+   * Winners listed in the attachment when it was sent.
+   */
+  winnerCount?: number | null;
   /**
    * Delivery attempts made for this row, including automatic retries.
    */
   attempts: number;
-  createdAt: string;
-  createdAtIso: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * The last failure, if this delivery did not succeed.
-   */
-  error?: string | null;
-  giveaway: string | Giveaway;
-  id: string;
-  /**
-   * There is at most one original per draw. Everything else is a resend.
-   */
-  kind: "original" | "resend";
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
    * The mail provider's id, for tracing a delivery.
    */
   providerMessageId?: string | null;
-  recipient: string;
+  /**
+   * The last failure, if this delivery did not succeed.
+   */
+  error?: string | null;
   /**
    * Who asked for a resend. Empty for the original.
    */
   requestedBy?: string | null;
   sentAt?: string | null;
-  status: "pending" | "sent" | "failed";
-  subject: string;
+  createdAtIso: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * Winners listed in the attachment when it was sent.
-   */
-  winnerCount?: number | null;
-};
+  createdAt: string;
+}
 /**
  * Consecutive-giveaway qualification counters. Persist across giveaways by design.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-streaks".
  */
-export type GiveawayStreak = {
+export interface GiveawayStreak {
+  id: string;
+  user: string | User;
+  tier: 'tier1' | 'tier2' | 'tier3';
   /**
    * Consecutive giveaways in which the user met this tier's consecutive bar. Reset to 0 on any miss.
    */
   consecutiveCount: number;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  id: string;
   /**
    * Guards against double-counting if a draw is re-run for the same giveaway.
    */
   lastEvaluatedGiveaway?: (string | null) | Giveaway;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  lastQualifiedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  lastQualifiedAt?: string | null;
-  tier: "tier1" | "tier2" | "tier3";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * Guest accounts created and guests that later signed up or signed in. Append-only.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "guest-events".
  */
-export type GuestEvent = {
+export interface GuestEvent {
+  id: string;
+  kind: 'created' | 'converted';
   /**
    * The guest user Better Auth deletes
    */
   anonymousUserId: string;
   /**
-   * When this row was written
+   * The registered user the guest became; empty for created
    */
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  userId?: string | null;
   /**
    * When the guest account was created
    */
   guestCreatedAt: string;
-  id: string;
-  kind: "created" | "converted";
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
    * When the event happened
    */
   occurredAt: string;
   /**
-   * The registered user the guest became; empty for created
+   * When this row was written
    */
-  userId?: string | null;
-};
+  createdAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+}
 /**
  * Identity decisions from the verification provider. No documents are stored here: the provider holds those.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "identity-checks".
  */
-export type IdentityCheck = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * When a final decision landed, as opposed to a progress update.
-   */
-  decidedAt?: string | null;
+export interface IdentityCheck {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  lastWebhookAt?: string | null;
   /**
-   * Anything a person needs to know: a declined reason, or why a decision was overridden.
+   * The person this decision is about.
    */
-  note?: string | null;
-  provider: "didit";
+  user: string | User;
+  provider: 'didit';
   /**
    * Unique so a replayed webhook updates the existing row instead of creating a second decision for the same session.
    */
@@ -2093,197 +2007,171 @@ export type IdentityCheck = {
   /**
    * Only Approved releases a prize. In Review means the provider wants a human to look, and nothing is dispatched meanwhile.
    */
-  status:
-    | "Not Started"
-    | "In Progress"
-    | "In Review"
-    | "Approved"
-    | "Declined"
-    | "Abandoned"
-    | "Expired";
-  updatedAt: string;
+  status: 'Not Started' | 'In Progress' | 'In Review' | 'Approved' | 'Declined' | 'Abandoned' | 'Expired';
   /**
-   * The person this decision is about.
+   * When a final decision landed, as opposed to a progress update.
    */
-  user: string | User;
-};
+  decidedAt?: string | null;
+  lastWebhookAt?: string | null;
+  /**
+   * Anything a person needs to know: a declined reason, or why a decision was overridden.
+   */
+  note?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "discover-events".
  */
-export type DiscoverEvent = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * The device and event id together, which is what makes a retried batch count once. A single column, not a compound index: Payload names compound indexes after their fields, and news-analytics already has one named the same.
-   */
-  dedupeKey?: string | null;
-  deviceId: string;
-  event:
-    | "view"
-    | "section"
-    | "open"
-    | "game_launch"
-    | "game_blocked"
-    | "game_report";
-  /**
-   * Minted by the app for this event and reused on every retry.
-   */
-  eventId?: string | null;
+export interface DiscoverEvent {
   id: string;
+  event: 'view' | 'section' | 'open' | 'game_launch' | 'game_blocked' | 'game_report';
+  /**
+   * all, apps, games, books or surveys.
+   */
+  section?: string | null;
+  /**
+   * For an opened item: game, app, book, survey, giveaway or brands.
+   */
+  itemType?: string | null;
   /**
    * The item's id; for a game, its slug.
    */
   itemId?: string | null;
   /**
-   * For an opened item: game, app, book, survey, giveaway or brands.
-   */
-  itemType?: string | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  platform?: ("android" | "ios" | "web") | null;
-  receivedAt?: string | null;
-  /**
-   * all, apps, games, books or surveys.
-   */
-  section?: string | null;
-  sessionId: string;
-  /**
    * Where it came from: a list, a universal link, or the All tab.
    */
   source?: string | null;
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
+  /**
+   * Minted by the app for this event and reused on every retry.
+   */
+  eventId?: string | null;
+  /**
+   * The device and event id together, which is what makes a retried batch count once. A single column, not a compound index: Payload names compound indexes after their fields, and news-analytics already has one named the same.
+   */
+  dedupeKey?: string | null;
   /**
    * When it happened, as the device reported, held to within 14 days before and 5 minutes after arrival.
    */
   timestamp: string;
+  receivedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "email-templates".
  */
-export type EmailTemplate = {
-  _status?: ("draft" | "published") | null;
-  createdAt: string;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  /**
-   * Edited in the studio below. Save HTML in the studio toolbar to store.
-   */
-  html: string;
+export interface EmailTemplate {
   id: string;
   /**
    * Display name, e.g. Welcome.
    */
   name: string;
   /**
-   * Inbox preview line. Falls back to subject.
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
-  previewText?: string | null;
+  generateSlug?: boolean | null;
   slug: string;
   /**
    * Supports {{variables}}, e.g. Welcome, {{username}}!
    */
   subject: string;
+  /**
+   * Inbox preview line. Falls back to subject.
+   */
+  previewText?: string | null;
+  /**
+   * Edited in the studio below. Save HTML in the studio toolbar to store.
+   */
+  html: string;
   updatedAt: string;
-};
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "faq-categories".
  */
-export type FaqCategory = {
-  _order?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  icon:
-    | "rocket"
-    | "star"
-    | "gift"
-    | "target"
-    | "megaphone"
-    | "shield"
-    | "wrench"
-    | "headset"
-    | "help-circle"
-    | "book";
+export interface FaqCategory {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  _order?: string | null;
   name: string;
+  icon: 'rocket' | 'star' | 'gift' | 'target' | 'megaphone' | 'shield' | 'wrench' | 'headset' | 'help-circle' | 'book';
   questions?: {
     docs?: (string | Faq)[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "faqs".
  */
-export type Faq = {
+export interface Faq {
+  id: string;
   _faqs_questions_order?: string | null;
-  _status?: ("draft" | "published") | null;
+  question: string;
   answer: string;
   /**
    * After moving a question to another category, drag it into place on that category's page.
    */
   category: string | FaqCategory;
-  createdAt: string;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  id: string;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  question: string;
   updatedAt: string;
-};
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics".
  */
-export type NewsAnalytic = {
-  article: string | News;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  deviceId: string;
-  event:
-    | "impression"
-    | "view"
-    | "read"
-    | "like"
-    | "dislike"
-    | "share"
-    | "comment";
-  /**
-   * Minted by the app for this event and reused on every retry. Empty for events from builds that predate it.
-   */
-  eventId?: string | null;
+export interface NewsAnalytic {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  article: string | News;
+  event: 'impression' | 'view' | 'read' | 'like' | 'dislike' | 'share' | 'comment';
+  userId?: string | null;
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
   /**
    * Event-specific data: position, screen, timeSpent, scrollDepth, shareMethod
    */
@@ -2296,39 +2184,58 @@ export type NewsAnalytic = {
     | number
     | boolean
     | null;
-  platform?: ("android" | "ios" | "web") | null;
   /**
-   * When the server received it. Empty for events stored before this was recorded.
+   * Minted by the app for this event and reused on every retry. Empty for events from builds that predate it.
    */
-  receivedAt?: string | null;
-  sessionId: string;
+  eventId?: string | null;
   /**
    * When the reader did it, as the device reported, held to within 14 days before and 5 minutes after arrival.
    */
   timestamp: string;
+  /**
+   * When the server received it. Empty for events stored before this was recorded.
+   */
+  receivedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * Per-device delivery receipts for push notification campaigns. Operational use only, used for Expo receipt polling and dead token cleanup.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-deliveries".
  */
-export type NotificationDelivery = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface NotificationDelivery {
+  id: string;
   /**
-   * When this notification was confirmed delivered
+   * The campaign this delivery belongs to
    */
-  deliveredAt?: string | null;
+  notification: string | Notification;
+  /**
+   * User this notification was sent to
+   */
+  user?: (string | null) | User;
+  /**
+   * The Expo push token used for this delivery
+   */
+  pushToken: string;
   /**
    * The push-token record for matching open events
    */
   deviceToken?: (string | null) | PushToken;
+  /**
+   * When the user opened this notification
+   */
+  openedAt?: string | null;
+  status: 'pending' | 'delivered' | 'opened' | 'failed';
   /**
    * Error message if delivery failed
    */
@@ -2337,51 +2244,41 @@ export type NotificationDelivery = {
    * Expo delivery ticket ID, used for receipt polling
    */
   expoTicketId?: string | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  /**
+   * When this notification was confirmed delivered
+   */
+  deliveredAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  /**
-   * The campaign this delivery belongs to
-   */
-  notification: string | Notification;
-  /**
-   * When the user opened this notification
-   */
-  openedAt?: string | null;
-  /**
-   * The Expo push token used for this delivery
-   */
-  pushToken: string;
-  status: "pending" | "delivered" | "opened" | "failed";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * User this notification was sent to
-   */
-  user?: (string | null) | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notifications".
  */
-export type Notification = {
-  _status?: ("draft" | "published") | null;
+export interface Notification {
+  id: string;
   /**
-   * Number to display on app icon badge (iOS only)
+   * Notification title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each recipient sees their own first name in its place.
    */
-  badge?: number | null;
+  title: string;
   /**
-   * Notification message body
+   * Notification message body. Write {{firstName}} to address each user by first name; it is replaced at send time, or the leading greeting is dropped for a reader with no name.
    */
   body: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
-   * Additional data to send with the notification
+   * Notification category
+   */
+  type?: ('breaking_news' | 'news' | 'comment' | 'promo' | 'misc') | null;
+  /**
+   * Where a tap on the notification sends the reader.
    */
   data?:
     | {
@@ -2395,49 +2292,44 @@ export type Notification = {
   /**
    * Choose when to deliver this notification
    */
-  deliveryAction?: ("send-now" | "schedule") | null;
-  /**
-   * Device types to target
-   */
-  deviceTypes?: ("all" | "ios" | "android")[] | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Notification priority
-   */
-  priority?: ("default" | "high" | "normal") | null;
+  deliveryAction?: ('send-now' | 'schedule') | null;
   /**
    * When to send this notification. Pick the time and the timezone you mean it in; everyone receives it at that same moment, shown in their own local time.
    */
   scheduledFor?: string | null;
   scheduledFor_tz?: SupportedTimezones;
   /**
+   * Target audience type
+   */
+  targetType?: ('all' | 'segment' | 'specific') | null;
+  /**
    * User segment to target
    */
-  segment?: ("active-users" | "inactive-users" | "new-users") | null;
-  /**
-   * When this notification was sent
-   */
-  sentAt?: string | null;
-  /**
-   * Play sound when notification is received
-   */
-  sound?: boolean | null;
+  segment?: ('active-users' | 'inactive-users' | 'new-users') | null;
   /**
    * Specific users to target
    */
   specificUsers?: (string | User)[] | null;
   /**
-   * Target audience type
+   * Device types to target
    */
-  targetType?: ("all" | "segment" | "specific") | null;
+  deviceTypes?: ('all' | 'ios' | 'android')[] | null;
   /**
-   * Notification title
+   * Notification priority
    */
-  title: string;
+  priority?: ('default' | 'high' | 'normal') | null;
+  /**
+   * Play sound when notification is received
+   */
+  sound?: boolean | null;
+  /**
+   * Number to display on app icon badge (iOS only)
+   */
+  badge?: number | null;
+  /**
+   * When this notification was sent
+   */
+  sentAt?: string | null;
   /**
    * Total number of recipients who received this notification
    */
@@ -2450,79 +2342,93 @@ export type Notification = {
    * Total number of recipients who opened this notification
    */
   totalOpened?: number | null;
-  /**
-   * Notification category
-   */
-  type?: ("breaking_news" | "news" | "comment" | "promo" | "misc") | null;
+  createdAt: string;
   updatedAt: string;
-};
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  _status?: ('draft' | 'published') | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-tokens".
  */
-export type PushToken = {
+export interface PushToken {
+  id: string;
   /**
-   * Version of the app when token was registered
+   * The unique token for the push notification service.
    */
-  appVersion?: string | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  token: string;
+  /**
+   * The user associated with the push token.
+   */
+  user: string | User;
+  deviceType?: ('ios' | 'android' | 'web') | null;
+  /**
+   * Name of the device (e.g., iPhone 13, Pixel 6)
+   */
+  deviceName?: string | null;
   /**
    * Model of the device
    */
   deviceModel?: string | null;
   /**
-   * Name of the device (e.g., iPhone 13, Pixel 6)
+   * Version of the operating system
    */
-  deviceName?: string | null;
-  deviceType?: ("ios" | "android" | "web") | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  osVersion?: string | null;
+  /**
+   * Version of the app when token was registered
+   */
+  appVersion?: string | null;
+  status: 'active' | 'inactive';
   /**
    * Last time a notification was successfully sent to this token
    */
   lastUsed?: string | null;
-  /**
-   * Version of the operating system
-   */
-  osVersion?: string | null;
-  status: "active" | "inactive";
-  /**
-   * The unique token for the push notification service.
-   */
-  token: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  /**
-   * The user associated with the push token.
-   */
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * Per-user notification inbox. One record per user per campaign. Read by the mobile app to display notification history.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-inbox".
  */
-export type NotificationInbox = {
+export interface NotificationInbox {
+  id: string;
+  /**
+   * The user this inbox item belongs to
+   */
+  user: string | User;
+  /**
+   * The source campaign
+   */
+  notification: string | Notification;
+  /**
+   * Denormalized from campaign. Avoids joins on inbox fetch.
+   */
+  title: string;
   /**
    * Denormalized from campaign
    */
   body: string;
   /**
-   * Number of times the user tapped this notification
+   * Denormalized image URL from campaign
    */
-  clickCount?: number | null;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  imageUrl?: string | null;
   /**
    * Deeplink payload (e.g. { screen, id, url })
    */
@@ -2535,131 +2441,113 @@ export type NotificationInbox = {
     | number
     | boolean
     | null;
-  id: string;
-  /**
-   * Denormalized image URL from campaign
-   */
-  imageUrl?: string | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * The source campaign
-   */
-  notification: string | Notification;
-  /**
-   * Denormalized from campaign. Avoids joins on inbox fetch.
-   */
-  title: string;
   /**
    * Notification category
    */
-  type?: ("breaking_news" | "news" | "comment" | "promo" | "misc") | null;
-  updatedAt: string;
+  type?: ('breaking_news' | 'news' | 'comment' | 'promo' | 'misc') | null;
   /**
-   * The user this inbox item belongs to
+   * Number of times the user tapped this notification
    */
-  user: string | User;
-};
+  clickCount?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-content-events".
  */
-export type PartnerContentEvent = {
-  content: string | PartnerContent;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * One per device, session, event, item and surface. Empty on clicks.
-   */
-  dedupeKey?: string | null;
-  deviceId: string;
-  event:
-    | "impression"
-    | "click"
-    | "video_start"
-    | "video_25"
-    | "video_50"
-    | "video_75"
-    | "video_complete";
-  /**
-   * Minted by the app for this event and reused on every retry.
-   */
-  eventId?: string | null;
+export interface PartnerContentEvent {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  content: string | PartnerContent;
   /**
    * Set by the server from the content item, never the app.
    */
   partner: string | Partner;
-  platform?: ("android" | "ios" | "web") | null;
-  /**
-   * Position of the item in the list, if known.
-   */
-  position?: number | null;
-  /**
-   * When the server received it.
-   */
-  receivedAt?: string | null;
-  sessionId: string;
+  event: 'impression' | 'click' | 'video_start' | 'video_25' | 'video_50' | 'video_75' | 'video_complete';
   /**
    * The partner-content placement the item was requested with.
    */
   surface: string;
   /**
-   * When the reader did it, as the device reported, held to within 14 days before and 5 minutes after arrival.
+   * Position of the item in the list, if known.
    */
-  timestamp: string;
-  updatedAt: string;
+  position?: number | null;
   /**
    * From the session only. Empty for guests.
    */
   userId?: string | null;
-};
+  sessionId: string;
+  deviceId: string;
+  platform?: ('android' | 'ios' | 'web') | null;
+  /**
+   * When the reader did it, as the device reported, held to within 14 days before and 5 minutes after arrival.
+   */
+  timestamp: string;
+  /**
+   * When the server received it.
+   */
+  receivedAt?: string | null;
+  /**
+   * Minted by the app for this event and reused on every retry.
+   */
+  eventId?: string | null;
+  /**
+   * One per device, session, event, item and surface. Empty on clicks.
+   */
+  dedupeKey?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-postbacks".
  */
-export type PartnerPostback = {
-  clickId: string;
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface PartnerPostback {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  outcome: "accepted" | "failed_reported" | "duplicate" | "rejected";
   partner: string | Partner;
+  clickId: string;
+  outcome: 'accepted' | 'failed_reported' | 'duplicate' | 'rejected';
   /**
    * Why it was rejected, from our own verification. Empty for the other outcomes.
    */
   reason?: string | null;
   receivedAt: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "promotion-media".
  */
-export type PromotionMedia = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description: string;
+export interface PromotionMedia {
   id: string;
+  title: string;
+  description: string;
+  points: number;
   /**
    * 💡Promotion images and video url, one video url and at least three images
    */
@@ -2669,192 +2557,206 @@ export type PromotionMedia = {
         id?: string | null;
       }[]
     | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  points: number;
-  title: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "reactions".
  */
-export type Reaction = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface Reaction {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+  user: string | User;
   /**
    * Legacy field. Kept during the polymorphic-target migration. Will be removed after the data migration confirms all rows have `target` set.
    */
   news?: (string | null) | News;
   target:
     | {
-        relationTo: "news";
+        relationTo: 'news';
         value: string | News;
       }
     | {
-        relationTo: "comments";
+        relationTo: 'comments';
         value: string | Comment;
       };
-  type: "like" | "dislike" | "none";
+  type: 'like' | 'dislike' | 'none';
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  user: string | User;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sessions".
  */
-export type Session = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  expiresAt?: string | null;
+export interface Session {
   id: string;
+  userId?: string | null;
+  expiresAt?: string | null;
   ipAddress?: string | null;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  token?: string | null;
+  userAgent?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  token?: string | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userAgent?: string | null;
-  userId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shop-analytics".
  */
-export type ShopAnalytic = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  device?: ("mobile" | "tablet" | "desktop" | "unknown") | null;
+export interface ShopAnalytic {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  store: string | Partner;
+  type: 'view' | 'click';
+  userId?: string | null;
+  device?: ('mobile' | 'tablet' | 'desktop' | 'unknown') | null;
+  platform?: ('android' | 'ios' | 'web') | null;
+  timestamp: string;
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  platform?: ("android" | "ios" | "web") | null;
-  store: string | Partner;
-  timestamp: string;
-  type: "view" | "click";
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  userId?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey".
  */
-export type Survey = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  googleFormId: string;
+export interface Survey {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   name?: string | null;
+  googleFormId: string;
+  surveyLink: string;
+  users?: (string | User)[] | null;
   /**
    * Points paid for completing this survey, up to 5000.
    */
   points?: number | null;
-  surveyLink: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-  users?: (string | User)[] | null;
-};
+  createdAt: string;
+}
 /**
  * Users blocked by other users. Created from the app; blocking also files a Content Report so moderators are notified.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userBlocks".
  */
-export type UserBlock = {
-  /**
-   * The user whose content is hidden as a result.
-   */
-  blocked: string | User;
+export interface UserBlock {
+  id: string;
   /**
    * The user who initiated the block.
    */
   blocker: string | User;
-  createdAt: string;
+  /**
+   * The user whose content is hidden as a result.
+   */
+  blocked: string | User;
   createdBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  id: string;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "verifications".
  */
-export type Verification = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  expiresAt?: string | null;
+export interface Verification {
   id: string;
   identifier?: string | null;
+  value?: string | null;
+  expiresAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt: string;
-  value?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "witness-reports".
  */
-export type WitnessReport = {
-  createdAt: string;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  description?: string | null;
-  files: (string | Media)[];
+export interface WitnessReport {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
+  name: string;
+  title: string;
+  description?: string | null;
+  reportType?: ('shortMessage' | 'video' | 'picture') | null;
+  files: (string | Media)[];
+  createdBy?: {
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
-  name: string;
-  reportType?: ("shortMessage" | "video" | "picture") | null;
-  title: string;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "audit-logs".
  */
-export type AuditLog = {
+export interface AuditLog {
+  id: string;
   collection: string;
-  createdAt: string;
+  documentId: string;
+  operation: 'create' | 'read' | 'update' | 'delete' | 'login' | 'logout';
+  performedBy?:
+    | ({
+        relationTo: 'admins';
+        value: string | Admin;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: string | User;
+      } | null);
   /**
    * Changed fields only: { field: { from, to } }. Present on updates when originalDoc is available.
    */
@@ -2867,19 +2769,6 @@ export type AuditLog = {
     | number
     | boolean
     | null;
-  documentId: string;
-  id: string;
-  ip?: string | null;
-  operation: "create" | "read" | "update" | "delete" | "login" | "logout";
-  performedBy?:
-    | ({
-        relationTo: "admins";
-        value: string | Admin;
-      } | null)
-    | ({
-        relationTo: "users";
-        value: string | User;
-      } | null);
   /**
    * Full sanitized document. Present on create, and on update when originalDoc is unavailable (e.g. bulk ops).
    */
@@ -2892,13 +2781,17 @@ export type AuditLog = {
     | number
     | boolean
     | null;
+  ip?: string | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
-export type PayloadKv = {
+export interface PayloadKv {
+  id: string;
+  key: string;
   data:
     | {
         [k: string]: unknown;
@@ -2908,20 +2801,17 @@ export type PayloadKv = {
     | number
     | boolean
     | null;
-  id: string;
-  key: string;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs".
  */
-export type PayloadJob = {
-  completedAt?: string | null;
-  createdAt: string;
+export interface PayloadJob {
+  id: string;
   /**
-   * If hasError is true, this is the error that caused it
+   * Input data provided to the job
    */
-  error?:
+  input?:
     | {
         [k: string]: unknown;
       }
@@ -2930,15 +2820,25 @@ export type PayloadJob = {
     | number
     | boolean
     | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
   /**
    * If hasError is true this job will not be retried
    */
   hasError?: boolean | null;
-  id: string;
   /**
-   * Input data provided to the job
+   * If hasError is true, this is the error that caused it
    */
-  input?:
+  error?:
     | {
         [k: string]: unknown;
       }
@@ -2955,20 +2855,20 @@ export type PayloadJob = {
         executedAt: string;
         completedAt: string;
         taskSlug:
-          | "inline"
-          | "sendScheduledNotification"
-          | "sendCommentLikeNotification"
-          | "sendModerationDigest"
-          | "sendUrgentModerationAlert"
-          | "checkPushReceipts"
-          | "processGiveaway"
-          | "cleanupAnonymousUsers"
-          | "pruneNewsAnalytics"
-          | "prunePartnerContentEvents"
-          | "generateVideoThumbnail"
-          | "deleteVideoThumbTemp"
-          | "cleanupAuditLogs"
-          | "schedulePublish";
+          | 'inline'
+          | 'sendScheduledNotification'
+          | 'sendCommentLikeNotification'
+          | 'sendModerationDigest'
+          | 'sendUrgentModerationAlert'
+          | 'checkPushReceipts'
+          | 'processGiveaway'
+          | 'cleanupAnonymousUsers'
+          | 'pruneNewsAnalytics'
+          | 'prunePartnerContentEvents'
+          | 'generateVideoThumbnail'
+          | 'deleteVideoThumbTemp'
+          | 'cleanupAuditLogs'
+          | 'schedulePublish';
         taskID: string;
         input?:
           | {
@@ -2988,7 +2888,7 @@ export type PayloadJob = {
           | number
           | boolean
           | null;
-        state: "failed" | "succeeded";
+        state: 'failed' | 'succeeded';
         error?:
           | {
               [k: string]: unknown;
@@ -3001,6 +2901,27 @@ export type PayloadJob = {
         id?: string | null;
       }[]
     | null;
+  taskSlug?:
+    | (
+        | 'inline'
+        | 'sendScheduledNotification'
+        | 'sendCommentLikeNotification'
+        | 'sendModerationDigest'
+        | 'sendUrgentModerationAlert'
+        | 'checkPushReceipts'
+        | 'processGiveaway'
+        | 'cleanupAnonymousUsers'
+        | 'pruneNewsAnalytics'
+        | 'prunePartnerContentEvents'
+        | 'generateVideoThumbnail'
+        | 'deleteVideoThumbTemp'
+        | 'cleanupAuditLogs'
+        | 'schedulePublish'
+      )
+    | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
   meta?:
     | {
         [k: string]: unknown;
@@ -3010,263 +2931,231 @@ export type PayloadJob = {
     | number
     | boolean
     | null;
-  processing?: boolean | null;
-  queue?: string | null;
-  taskSlug?:
-    | (
-        | "inline"
-        | "sendScheduledNotification"
-        | "sendCommentLikeNotification"
-        | "sendModerationDigest"
-        | "sendUrgentModerationAlert"
-        | "checkPushReceipts"
-        | "processGiveaway"
-        | "cleanupAnonymousUsers"
-        | "pruneNewsAnalytics"
-        | "prunePartnerContentEvents"
-        | "generateVideoThumbnail"
-        | "deleteVideoThumbTemp"
-        | "cleanupAuditLogs"
-        | "schedulePublish"
-      )
-    | null;
-  taskStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  totalTried?: number | null;
   updatedAt: string;
-  waitUntil?: string | null;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
-export type PayloadLockedDocument = {
-  createdAt: string;
+export interface PayloadLockedDocument {
+  id: string;
   document?:
     | ({
-        relationTo: "accounts";
+        relationTo: 'accounts';
         value: string | Account;
       } | null)
     | ({
-        relationTo: "activities";
+        relationTo: 'activities';
         value: string | Activity;
       } | null)
     | ({
-        relationTo: "survey-offer-events";
+        relationTo: 'survey-offer-events';
         value: string | SurveyOfferEvent;
       } | null)
     | ({
-        relationTo: "admins";
+        relationTo: 'admins';
         value: string | Admin;
       } | null)
     | ({
-        relationTo: "categories";
+        relationTo: 'categories';
         value: string | Category;
       } | null)
     | ({
-        relationTo: "comments";
+        relationTo: 'comments';
         value: string | Comment;
       } | null)
     | ({
-        relationTo: "contentReports";
+        relationTo: 'contentReports';
         value: string | ContentReport;
       } | null)
     | ({
-        relationTo: "feedback";
+        relationTo: 'feedback';
         value: string | Feedback;
       } | null)
     | ({
-        relationTo: "giveaway-account-flags";
+        relationTo: 'giveaway-account-flags';
         value: string | GiveawayAccountFlag;
       } | null)
     | ({
-        relationTo: "giveaway-audit-log";
+        relationTo: 'giveaway-audit-log';
         value: string | GiveawayAuditLog;
       } | null)
     | ({
-        relationTo: "giveaway-draw-attempts";
+        relationTo: 'giveaway-draw-attempts';
         value: string | GiveawayDrawAttempt;
       } | null)
     | ({
-        relationTo: "giveaway-engagements";
+        relationTo: 'giveaway-engagements';
         value: string | GiveawayEngagement;
       } | null)
     | ({
-        relationTo: "giveaway-fulfilment-attempts";
+        relationTo: 'giveaway-fulfilment-attempts';
         value: string | GiveawayFulfilmentAttempt;
       } | null)
     | ({
-        relationTo: "giveaway-pool-snapshots";
+        relationTo: 'giveaway-pool-snapshots';
         value: string | GiveawayPoolSnapshot;
       } | null)
     | ({
-        relationTo: "giveaway-prizes";
+        relationTo: 'giveaway-prizes';
         value: string | GiveawayPrize;
       } | null)
     | ({
-        relationTo: "giveaway-report-deliveries";
+        relationTo: 'giveaway-report-deliveries';
         value: string | GiveawayReportDelivery;
       } | null)
     | ({
-        relationTo: "giveaways";
+        relationTo: 'giveaways';
         value: string | Giveaway;
       } | null)
     | ({
-        relationTo: "giveaway-streaks";
+        relationTo: 'giveaway-streaks';
         value: string | GiveawayStreak;
       } | null)
     | ({
-        relationTo: "giveaway-tickets";
+        relationTo: 'giveaway-tickets';
         value: string | GiveawayTicket;
       } | null)
     | ({
-        relationTo: "giveaway-winners";
+        relationTo: 'giveaway-winners';
         value: string | GiveawayWinner;
       } | null)
     | ({
-        relationTo: "guest-events";
+        relationTo: 'guest-events';
         value: string | GuestEvent;
       } | null)
     | ({
-        relationTo: "identity-checks";
+        relationTo: 'identity-checks';
         value: string | IdentityCheck;
       } | null)
     | ({
-        relationTo: "prize-catalogue";
+        relationTo: 'prize-catalogue';
         value: string | PrizeCatalogue;
       } | null)
     | ({
-        relationTo: "media";
+        relationTo: 'media';
         value: string | Media;
       } | null)
     | ({
-        relationTo: "news";
+        relationTo: 'news';
         value: string | News;
       } | null)
     | ({
-        relationTo: "discover-events";
+        relationTo: 'discover-events';
         value: string | DiscoverEvent;
       } | null)
     | ({
-        relationTo: "email-templates";
+        relationTo: 'email-templates';
         value: string | EmailTemplate;
       } | null)
     | ({
-        relationTo: "faq-categories";
+        relationTo: 'faq-categories';
         value: string | FaqCategory;
       } | null)
     | ({
-        relationTo: "faqs";
+        relationTo: 'faqs';
         value: string | Faq;
       } | null)
     | ({
-        relationTo: "news-analytics";
+        relationTo: 'news-analytics';
         value: string | NewsAnalytic;
       } | null)
     | ({
-        relationTo: "notification-deliveries";
+        relationTo: 'notification-deliveries';
         value: string | NotificationDelivery;
       } | null)
     | ({
-        relationTo: "notification-inbox";
+        relationTo: 'notification-inbox';
         value: string | NotificationInbox;
       } | null)
     | ({
-        relationTo: "notifications";
+        relationTo: 'notifications';
         value: string | Notification;
       } | null)
     | ({
-        relationTo: "partner-content";
+        relationTo: 'partner-content';
         value: string | PartnerContent;
       } | null)
     | ({
-        relationTo: "partner-content-events";
+        relationTo: 'partner-content-events';
         value: string | PartnerContentEvent;
       } | null)
     | ({
-        relationTo: "partner-conversions";
+        relationTo: 'partner-conversions';
         value: string | PartnerConversion;
       } | null)
     | ({
-        relationTo: "partner-postbacks";
+        relationTo: 'partner-postbacks';
         value: string | PartnerPostback;
       } | null)
     | ({
-        relationTo: "partners";
+        relationTo: 'partners';
         value: string | Partner;
       } | null)
     | ({
-        relationTo: "promotion-media";
+        relationTo: 'promotion-media';
         value: string | PromotionMedia;
       } | null)
     | ({
-        relationTo: "push-tokens";
+        relationTo: 'push-tokens';
         value: string | PushToken;
       } | null)
     | ({
-        relationTo: "reactions";
+        relationTo: 'reactions';
         value: string | Reaction;
       } | null)
     | ({
-        relationTo: "sessions";
+        relationTo: 'sessions';
         value: string | Session;
       } | null)
     | ({
-        relationTo: "shop-analytics";
+        relationTo: 'shop-analytics';
         value: string | ShopAnalytic;
       } | null)
     | ({
-        relationTo: "survey";
+        relationTo: 'survey';
         value: string | Survey;
       } | null)
     | ({
-        relationTo: "userBlocks";
+        relationTo: 'userBlocks';
         value: string | UserBlock;
       } | null)
     | ({
-        relationTo: "users";
+        relationTo: 'users';
         value: string | User;
       } | null)
     | ({
-        relationTo: "verifications";
+        relationTo: 'verifications';
         value: string | Verification;
       } | null)
     | ({
-        relationTo: "witness-reports";
+        relationTo: 'witness-reports';
         value: string | WitnessReport;
       } | null)
     | ({
-        relationTo: "audit-logs";
+        relationTo: 'audit-logs';
         value: string | AuditLog;
       } | null);
   globalSlug?: string | null;
-  id: string;
-  updatedAt: string;
   user: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   };
-};
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences".
  */
-export type PayloadPreference = {
-  createdAt: string;
+export interface PayloadPreference {
   id: string;
-  key?: string | null;
-  updatedAt: string;
   user: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   };
+  key?: string | null;
   value?:
     | {
         [k: string]: unknown;
@@ -3276,94 +3165,97 @@ export type PayloadPreference = {
     | number
     | boolean
     | null;
-};
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations".
  */
-export type PayloadMigration = {
-  batch?: number | null;
-  createdAt: string;
+export interface PayloadMigration {
   id: string;
   name?: string | null;
+  batch?: number | null;
   updatedAt: string;
-};
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts_select".
  */
-export type AccountsSelect<T extends boolean = true> = {
-  accessToken?: T;
-  accessTokenExpiresAt?: T;
+export interface AccountsSelect<T extends boolean = true> {
+  userId?: T;
   accountId?: T;
-  createdAt?: T;
-  createdBy?: T;
-  expiresAt?: T;
-  idToken?: T;
-  lastModifiedBy?: T;
-  password?: T;
   providerId?: T;
+  password?: T;
+  idToken?: T;
+  accessToken?: T;
   refreshToken?: T;
+  accessTokenExpiresAt?: T;
   refreshTokenExpiresAt?: T;
   scope?: T;
+  expiresAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  userId?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "activities_select".
  */
-export type ActivitiesSelect<T extends boolean = true> = {
-  action?: T;
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  lastModifiedBy?: T;
-  metadata?: T;
-  news?: T;
+export interface ActivitiesSelect<T extends boolean = true> {
+  type?: T;
   point?: T;
   providerRef?: T;
   reward?: T;
-  type?: T;
-  updatedAt?: T;
+  action?: T;
+  description?: T;
   user?: T;
-};
+  news?: T;
+  metadata?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey-offer-events_select".
  */
-export type SurveyOfferEventsSelect<T extends boolean = true> = {
+export interface SurveyOfferEventsSelect<T extends boolean = true> {
+  provider?: T;
+  user?: T;
   country?: T;
-  createdAt?: T;
+  offerCount?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  offerCount?: T;
-  provider?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "admins_select".
  */
-export type AdminsSelect<T extends boolean = true> = {
-  createdAt?: T;
+export interface AdminsSelect<T extends boolean = true> {
+  role?: T;
+  partner?: T;
+  moderationAlerts?: T;
+  fullName?: T;
+  image?: T;
   createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
   deletedAt?: T;
   email?: T;
-  fullName?: T;
-  hash?: T;
-  image?: T;
-  lastModifiedBy?: T;
-  lockUntil?: T;
-  loginAttempts?: T;
-  moderationAlerts?: T;
-  partner?: T;
-  resetPasswordExpiration?: T;
-  resetPasswordRequestedAt?: T;
   resetPasswordToken?: T;
-  role?: T;
+  resetPasswordExpiration?: T;
   salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
   sessions?:
     | T
     | {
@@ -3371,380 +3263,384 @@ export type AdminsSelect<T extends boolean = true> = {
         createdAt?: T;
         expiresAt?: T;
       };
-  updatedAt?: T;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories_select".
  */
-export type CategoriesSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  generateSlug?: T;
-  image?: T;
-  lastModifiedBy?: T;
-  slug?: T;
+export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  image?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments_select".
  */
-export type CommentsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  dislikes?: T;
-  dislikesCount?: T;
-  lastModifiedBy?: T;
-  likes?: T;
-  likesCount?: T;
+export interface CommentsSelect<T extends boolean = true> {
+  text?: T;
   moderationStatus?: T;
+  user?: T;
   news?: T;
   parent?: T;
-  replies?: T;
   replyingTo?: T;
-  text?: T;
+  likes?: T;
+  dislikes?: T;
+  likesCount?: T;
+  dislikesCount?: T;
+  replies?: T;
   totalReplies?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contentReports_select".
  */
-export type ContentReportsSelect<T extends boolean = true> = {
+export interface ContentReportsSelect<T extends boolean = true> {
+  type?: T;
+  reason?: T;
   additionalDetails?: T;
-  createdAt?: T;
+  reportedItem?: T;
+  reportedGame?: T;
+  reportedBy?: T;
+  status?: T;
+  moderatorNotes?: T;
+  resolution?: T;
+  resolvedBy?: T;
+  resolvedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  moderatorNotes?: T;
-  reason?: T;
-  reportedBy?: T;
-  reportedGame?: T;
-  reportedItem?: T;
-  resolution?: T;
-  resolvedAt?: T;
-  resolvedBy?: T;
-  status?: T;
-  type?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "feedback_select".
  */
-export type FeedbackSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  email?: T;
-  lastModifiedBy?: T;
-  message?: T;
+export interface FeedbackSelect<T extends boolean = true> {
   name?: T;
-  rating?: T;
+  email?: T;
   type?: T;
+  message?: T;
+  rating?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-account-flags_select".
  */
-export type GiveawayAccountFlagsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  duplicateAccountGroup?: T;
-  flaggedAt?: T;
-  lastModifiedBy?: T;
-  reason?: T;
-  reviewedBy?: T;
-  trustStatus?: T;
-  updatedAt?: T;
+export interface GiveawayAccountFlagsSelect<T extends boolean = true> {
   user?: T;
-};
+  trustStatus?: T;
+  duplicateAccountGroup?: T;
+  reason?: T;
+  flaggedAt?: T;
+  reviewedBy?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-audit-log_select".
  */
-export type GiveawayAuditLogSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  detail?: T;
-  eventType?: T;
+export interface GiveawayAuditLogSelect<T extends boolean = true> {
   giveaway?: T;
-  lastModifiedBy?: T;
-  message?: T;
-  occurredAt?: T;
-  tier?: T;
-  updatedAt?: T;
+  eventType?: T;
   user?: T;
-};
+  tier?: T;
+  message?: T;
+  detail?: T;
+  occurredAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-draw-attempts_select".
  */
-export type GiveawayDrawAttemptsSelect<T extends boolean = true> = {
-  attemptNumber?: T;
-  authorizedBy?: T;
-  createdAt?: T;
-  createdBy?: T;
-  endedAt?: T;
-  error?: T;
-  executionId?: T;
+export interface GiveawayDrawAttemptsSelect<T extends boolean = true> {
   giveaway?: T;
+  executionId?: T;
+  attemptNumber?: T;
   kind?: T;
-  lastCheckpoint?: T;
-  lastModifiedBy?: T;
-  outcome?: T;
   resumes?: T;
   seed?: T;
+  outcome?: T;
+  lastCheckpoint?: T;
+  authorizedBy?: T;
+  error?: T;
   startedAt?: T;
+  endedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-engagements_select".
  */
-export type GiveawayEngagementsSelect<T extends boolean = true> = {
-  completedAt?: T;
-  completionStatus?: T;
-  content?: T;
-  conversion?: T;
-  createdAt?: T;
-  createdBy?: T;
+export interface GiveawayEngagementsSelect<T extends boolean = true> {
   giveaway?: T;
-  lastModifiedBy?: T;
-  metadata?: T;
-  source?: T;
-  type?: T;
-  updatedAt?: T;
   user?: T;
+  type?: T;
+  source?: T;
+  content?: T;
   verificationId?: T;
-};
+  conversion?: T;
+  completionStatus?: T;
+  completedAt?: T;
+  metadata?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-fulfilment-attempts_select".
  */
-export type GiveawayFulfilmentAttemptsSelect<T extends boolean = true> = {
-  attemptedAt?: T;
-  createdAt?: T;
-  createdBy?: T;
-  environment?: T;
-  error?: T;
-  lastModifiedBy?: T;
-  localAmount?: T;
-  operatorId?: T;
-  operatorName?: T;
-  outcome?: T;
+export interface GiveawayFulfilmentAttemptsSelect<T extends boolean = true> {
+  winner?: T;
   provider?: T;
+  environment?: T;
+  outcome?: T;
   providerReference?: T;
   providerTransactionId?: T;
+  operatorId?: T;
+  operatorName?: T;
+  localAmount?: T;
   recipientPhone?: T;
+  error?: T;
+  attemptedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  winner?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-pool-snapshots_select".
  */
-export type GiveawayPoolSnapshotsSelect<T extends boolean = true> = {
-  candidateCount?: T;
-  createdAt?: T;
-  createdBy?: T;
-  entries?: T;
+export interface GiveawayPoolSnapshotsSelect<T extends boolean = true> {
   giveaway?: T;
-  lastModifiedBy?: T;
-  lockedAt?: T;
   tier?: T;
+  candidateCount?: T;
+  entries?: T;
+  lockedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-prizes_select".
  */
-export type GiveawayPrizesSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
+export interface GiveawayPrizesSelect<T extends boolean = true> {
   giveaway?: T;
-  lastModifiedBy?: T;
-  maxUnits?: T;
   prize?: T;
   tier?: T;
+  maxUnits?: T;
   unitsAwarded?: T;
   unitsRemaining?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-report-deliveries_select".
  */
-export type GiveawayReportDeliveriesSelect<T extends boolean = true> = {
-  attachmentFileName?: T;
-  attempts?: T;
-  createdAt?: T;
-  createdAtIso?: T;
-  createdBy?: T;
-  error?: T;
+export interface GiveawayReportDeliveriesSelect<T extends boolean = true> {
   giveaway?: T;
   kind?: T;
-  lastModifiedBy?: T;
-  providerMessageId?: T;
+  status?: T;
   recipient?: T;
+  subject?: T;
+  attachmentFileName?: T;
+  winnerCount?: T;
+  attempts?: T;
+  providerMessageId?: T;
+  error?: T;
   requestedBy?: T;
   sentAt?: T;
-  status?: T;
-  subject?: T;
+  createdAtIso?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  winnerCount?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaways_select".
  */
-export type GiveawaysSelect<T extends boolean = true> = {
-  budgetUtilizationPct?: T;
-  createdAt?: T;
-  createdBy?: T;
-  currentAttempt?: T;
-  description?: T;
-  drawCompletedAt?: T;
-  drawError?: T;
-  drawExecutionId?: T;
-  drawSeed?: T;
-  drawStartedAt?: T;
-  endDate?: T;
-  lastCheckpoint?: T;
-  lastModifiedBy?: T;
-  maxBudgetCapNaira?: T;
-  minTicketsRequired?: T;
+export interface GiveawaysSelect<T extends boolean = true> {
   name?: T;
-  notificationBody?: T;
-  notificationTitle?: T;
-  prizes?: T;
-  resumptionAuthorizedAt?: T;
-  resumptionAuthorizedBy?: T;
+  description?: T;
   sendAnnouncement?: T;
+  notificationTitle?: T;
+  notificationBody?: T;
   startDate?: T;
-  status?: T;
+  endDate?: T;
   ticketPrice?: T;
+  minTicketsRequired?: T;
   tier1WinnerPercentage?: T;
   tier2WinnerPercentage?: T;
   tier3WinnerPercentage?: T;
+  budgetUtilizationPct?: T;
+  maxBudgetCapNaira?: T;
+  status?: T;
   totalValidParticipants?: T;
-  updatedAt?: T;
-  winnerReportSentAt?: T;
+  drawSeed?: T;
+  drawExecutionId?: T;
+  lastCheckpoint?: T;
+  currentAttempt?: T;
+  resumptionAuthorizedBy?: T;
+  resumptionAuthorizedAt?: T;
+  drawStartedAt?: T;
+  drawCompletedAt?: T;
+  drawError?: T;
+  prizes?: T;
   winners?: T;
-};
+  winnerReportSentAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-streaks_select".
  */
-export type GiveawayStreaksSelect<T extends boolean = true> = {
-  consecutiveCount?: T;
-  createdAt?: T;
-  createdBy?: T;
-  lastEvaluatedGiveaway?: T;
-  lastModifiedBy?: T;
-  lastQualifiedAt?: T;
-  tier?: T;
-  updatedAt?: T;
+export interface GiveawayStreaksSelect<T extends boolean = true> {
   user?: T;
-};
+  tier?: T;
+  consecutiveCount?: T;
+  lastEvaluatedGiveaway?: T;
+  lastQualifiedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-tickets_select".
  */
-export type GiveawayTicketsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
+export interface GiveawayTicketsSelect<T extends boolean = true> {
   giveaway?: T;
-  lastModifiedBy?: T;
-  paymentReference?: T;
-  purchasedAt?: T;
+  user?: T;
   quantity?: T;
   status?: T;
-  statusChangedAt?: T;
   unitPrice?: T;
+  paymentReference?: T;
+  purchasedAt?: T;
+  statusChangedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "giveaway-winners_select".
  */
-export type GiveawayWinnersSelect<T extends boolean = true> = {
-  boostCount?: T;
-  claimAddress?: T;
-  claimDeadline?: T;
-  claimedAt?: T;
-  claimPhone?: T;
-  claimRecipientName?: T;
-  claimStatus?: T;
-  createdAt?: T;
-  createdBy?: T;
-  disqualificationReason?: T;
-  disqualifiedAt?: T;
-  featuredOfferCount?: T;
-  fulfilledAt?: T;
-  fulfilmentStatus?: T;
+export interface GiveawayWinnersSelect<T extends boolean = true> {
   giveaway?: T;
-  lastModifiedBy?: T;
+  user?: T;
+  tier?: T;
   prize?: T;
   prizeName?: T;
-  replaces?: T;
-  reviewNote?: T;
-  selectedAt?: T;
-  tier?: T;
-  updatedAt?: T;
-  user?: T;
-  validTicketCount?: T;
   winningTicket?: T;
-};
+  validTicketCount?: T;
+  boostCount?: T;
+  featuredOfferCount?: T;
+  selectedAt?: T;
+  claimStatus?: T;
+  claimedAt?: T;
+  claimDeadline?: T;
+  claimPhone?: T;
+  claimRecipientName?: T;
+  claimAddress?: T;
+  fulfilmentStatus?: T;
+  reviewNote?: T;
+  fulfilledAt?: T;
+  replaces?: T;
+  disqualifiedAt?: T;
+  disqualificationReason?: T;
+  giftCardCode?: T;
+  giftCardPin?: T;
+  giftCardRedemptionUrl?: T;
+  giftCardInstructions?: T;
+  giftCardTransactionId?: T;
+  giftCardEmailSentAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "guest-events_select".
  */
-export type GuestEventsSelect<T extends boolean = true> = {
+export interface GuestEventsSelect<T extends boolean = true> {
+  kind?: T;
   anonymousUserId?: T;
+  userId?: T;
+  guestCreatedAt?: T;
+  occurredAt?: T;
   createdAt?: T;
   createdBy?: T;
-  guestCreatedAt?: T;
-  kind?: T;
   lastModifiedBy?: T;
-  occurredAt?: T;
-  userId?: T;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "identity-checks_select".
  */
-export type IdentityChecksSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  decidedAt?: T;
-  lastModifiedBy?: T;
-  lastWebhookAt?: T;
-  note?: T;
+export interface IdentityChecksSelect<T extends boolean = true> {
+  user?: T;
   provider?: T;
   sessionId?: T;
   status?: T;
+  decidedAt?: T;
+  lastWebhookAt?: T;
+  note?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "prize-catalogue_select".
  */
-export type PrizeCatalogueSelect<T extends boolean = true> = {
-  active?: T;
-  createdAt?: T;
-  createdBy?: T;
+export interface PrizeCatalogueSelect<T extends boolean = true> {
+  name?: T;
+  tier?: T;
   description?: T;
   fulfilmentType?: T;
-  image?: T;
-  lastModifiedBy?: T;
-  name?: T;
   pointsAmount?: T;
+  valueNaira?: T;
+  requiresVerification?: T;
+  reloadlyLocalAmount?: T;
   reloadlyDataPlans?:
     | T
     | {
@@ -3753,30 +3649,43 @@ export type PrizeCatalogueSelect<T extends boolean = true> = {
         reloadlyLocalAmount?: T;
         id?: T;
       };
-  reloadlyLocalAmount?: T;
-  requiresVerification?: T;
-  tier?: T;
+  reloadlyGiftCardProductId?: T;
+  reloadlyGiftCardUnitPrice?: T;
+  reloadlyGiftCardSenderPrice?: T;
+  reloadlyGiftCardProductName?: T;
+  reloadlyGiftCardCurrency?: T;
+  reloadlyGiftCardInstructions?: T;
+  reloadlyGiftCardEnvironment?: T;
+  emailGiftCardCode?: T;
+  image?: T;
+  active?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  valueNaira?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
-export type MediaSelect<T extends boolean = true> = {
-  _objectKey?: T;
+export interface MediaSelect<T extends boolean = true> {
   alt?: T;
-  blurhash?: T;
   caption?: T;
-  createdAt?: T;
+  _objectKey?: T;
+  blurhash?: T;
   createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
   filename?: T;
+  mimeType?: T;
   filesize?: T;
+  width?: T;
+  height?: T;
   focalX?: T;
   focalY?: T;
-  height?: T;
-  lastModifiedBy?: T;
-  mimeType?: T;
   sizes?:
     | T
     | {
@@ -3821,29 +3730,16 @@ export type MediaSelect<T extends boolean = true> = {
               filename?: T;
             };
       };
-  thumbnailURL?: T;
-  updatedAt?: T;
-  url?: T;
-  width?: T;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news_select".
  */
-export type NewsSelect<T extends boolean = true> = {
-  _status?: T;
-  author?: T;
-  category?: T;
-  content?: T;
-  createdAt?: T;
-  createdBy?: T;
-  dislikesCount?: T;
-  excerpt?: T;
-  featured?: T;
-  featuredRank?: T;
-  featuredUntil?: T;
+export interface NewsSelect<T extends boolean = true> {
+  type?: T;
+  title?: T;
   generateSlug?: T;
-  hasBeenPublished?: T;
+  slug?: T;
   image?: T;
   keyPoints?:
     | T
@@ -3851,202 +3747,214 @@ export type NewsSelect<T extends boolean = true> = {
         point?: T;
         id?: T;
       };
-  lastModifiedBy?: T;
-  likesCount?: T;
-  notificationBody?: T;
-  notificationTitle?: T;
-  points?: T;
-  publishedAt?: T;
-  readTimeMinutes?: T;
-  sendNotification?: T;
-  slug?: T;
-  title?: T;
-  totalCommentLikes?: T;
-  totalComments?: T;
-  type?: T;
-  updatedAt?: T;
+  content?: T;
   url?: T;
-  views?: T;
   wordCount?: T;
-};
+  readTimeMinutes?: T;
+  views?: T;
+  excerpt?: T;
+  sendNotification?: T;
+  notificationTitle?: T;
+  notificationBody?: T;
+  featured?: T;
+  featuredRank?: T;
+  featuredUntil?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  points?: T;
+  author?: T;
+  category?: T;
+  hasBeenPublished?: T;
+  totalComments?: T;
+  totalCommentLikes?: T;
+  likesCount?: T;
+  dislikesCount?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  createdAt?: T;
+  _status?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "discover-events_select".
  */
-export type DiscoverEventsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  dedupeKey?: T;
-  deviceId?: T;
+export interface DiscoverEventsSelect<T extends boolean = true> {
   event?: T;
-  eventId?: T;
-  itemId?: T;
-  itemType?: T;
-  lastModifiedBy?: T;
-  platform?: T;
-  receivedAt?: T;
   section?: T;
-  sessionId?: T;
+  itemType?: T;
+  itemId?: T;
   source?: T;
-  timestamp?: T;
-  updatedAt?: T;
   userId?: T;
-};
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  eventId?: T;
+  dedupeKey?: T;
+  timestamp?: T;
+  receivedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "email-templates_select".
  */
-export type EmailTemplatesSelect<T extends boolean = true> = {
-  _status?: T;
-  createdAt?: T;
-  generateSlug?: T;
-  html?: T;
+export interface EmailTemplatesSelect<T extends boolean = true> {
   name?: T;
-  previewText?: T;
+  generateSlug?: T;
   slug?: T;
   subject?: T;
+  previewText?: T;
+  html?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  _status?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "faq-categories_select".
  */
-export type FaqCategoriesSelect<T extends boolean = true> = {
+export interface FaqCategoriesSelect<T extends boolean = true> {
   _order?: T;
-  createdAt?: T;
-  createdBy?: T;
-  icon?: T;
-  lastModifiedBy?: T;
   name?: T;
+  icon?: T;
   questions?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "faqs_select".
  */
-export type FaqsSelect<T extends boolean = true> = {
+export interface FaqsSelect<T extends boolean = true> {
   _faqs_questions_order?: T;
-  _status?: T;
+  question?: T;
   answer?: T;
   category?: T;
-  createdAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  question?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  _status?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-analytics_select".
  */
-export type NewsAnalyticsSelect<T extends boolean = true> = {
+export interface NewsAnalyticsSelect<T extends boolean = true> {
   article?: T;
-  createdAt?: T;
-  createdBy?: T;
-  deviceId?: T;
   event?: T;
-  eventId?: T;
-  lastModifiedBy?: T;
-  metadata?: T;
-  platform?: T;
-  receivedAt?: T;
-  sessionId?: T;
-  timestamp?: T;
-  updatedAt?: T;
   userId?: T;
-};
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  metadata?: T;
+  eventId?: T;
+  timestamp?: T;
+  receivedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-deliveries_select".
  */
-export type NotificationDeliveriesSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  deliveredAt?: T;
+export interface NotificationDeliveriesSelect<T extends boolean = true> {
+  notification?: T;
+  user?: T;
+  pushToken?: T;
   deviceToken?: T;
+  openedAt?: T;
+  status?: T;
   errorMessage?: T;
   expoTicketId?: T;
+  deliveredAt?: T;
+  createdBy?: T;
   lastModifiedBy?: T;
-  notification?: T;
-  openedAt?: T;
-  pushToken?: T;
-  status?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notification-inbox_select".
  */
-export type NotificationInboxSelect<T extends boolean = true> = {
-  body?: T;
-  clickCount?: T;
-  createdAt?: T;
-  createdBy?: T;
-  data?: T;
-  imageUrl?: T;
-  lastModifiedBy?: T;
+export interface NotificationInboxSelect<T extends boolean = true> {
+  user?: T;
   notification?: T;
   title?: T;
+  body?: T;
+  imageUrl?: T;
+  data?: T;
   type?: T;
+  clickCount?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notifications_select".
  */
-export type NotificationsSelect<T extends boolean = true> = {
-  _status?: T;
-  badge?: T;
+export interface NotificationsSelect<T extends boolean = true> {
+  title?: T;
   body?: T;
-  createdAt?: T;
-  createdBy?: T;
+  type?: T;
   data?: T;
   deliveryAction?: T;
-  deviceTypes?: T;
-  lastModifiedBy?: T;
-  priority?: T;
   scheduledFor?: T;
   scheduledFor_tz?: T;
-  segment?: T;
-  sentAt?: T;
-  sound?: T;
-  specificUsers?: T;
   targetType?: T;
-  title?: T;
+  segment?: T;
+  specificUsers?: T;
+  deviceTypes?: T;
+  priority?: T;
+  sound?: T;
+  badge?: T;
+  sentAt?: T;
   totalDelivered?: T;
   totalFailed?: T;
   totalOpened?: T;
-  type?: T;
+  createdAt?: T;
   updatedAt?: T;
-};
+  createdBy?: T;
+  lastModifiedBy?: T;
+  _status?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-content_select".
  */
-export type PartnerContentSelect<T extends boolean = true> = {
+export interface PartnerContentSelect<T extends boolean = true> {
+  title?: T;
   adCopy?: T;
-  adSize?: T;
   condition?: T;
-  createdAt?: T;
-  createdBy?: T;
-  cta?: T;
   description?: T;
-  displayNotes?: T;
+  type?: T;
+  adSize?: T;
+  media?: T;
   items?:
     | T
     | {
         layout?:
           | T
           | {
-              "promo-video-source"?: T | PromoVideoSourceSelect<T>;
-              "promo-image"?: T | PromoImageSelect<T>;
+              'promo-video-source'?: T | PromoVideoSourceSelect<T>;
+              'promo-image'?: T | PromoImageSelect<T>;
             };
         id?: T;
       };
-  lastModifiedBy?: T;
+  videoType?: T;
+  video?: T;
+  videoUrl?: T;
+  cta?: T;
+  partner?: T;
   links?:
     | T
     | {
@@ -4054,118 +3962,122 @@ export type PartnerContentSelect<T extends boolean = true> = {
         iosAppStore?: T;
         androidPlayStore?: T;
       };
-  media?: T;
-  notes?: T;
-  partner?: T;
-  placements?: T;
   points?: T;
+  weight?: T;
+  placements?: T;
+  status?: T;
   schedule?:
     | T
     | {
         startDate?: T;
         endDate?: T;
       };
-  status?: T;
-  title?: T;
-  type?: T;
+  notes?: T;
+  displayNotes?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  video?: T;
-  videoType?: T;
-  videoUrl?: T;
-  weight?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoVideoSource_select".
  */
-export type PromoVideoSourceSelect<T extends boolean = true> = {
-  blockName?: T;
-  id?: T;
+export interface PromoVideoSourceSelect<T extends boolean = true> {
+  videoSource?: T;
+  video?: T;
+  url?: T;
   thumbnail?: T;
   thumbnailSource?: T;
-  url?: T;
-  video?: T;
-  videoSource?: T;
-};
+  id?: T;
+  blockName?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PromoImage_select".
  */
-export type PromoImageSelect<T extends boolean = true> = {
-  blockName?: T;
-  id?: T;
+export interface PromoImageSelect<T extends boolean = true> {
   image?: T;
-};
+  id?: T;
+  blockName?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-content-events_select".
  */
-export type PartnerContentEventsSelect<T extends boolean = true> = {
+export interface PartnerContentEventsSelect<T extends boolean = true> {
   content?: T;
-  createdAt?: T;
-  createdBy?: T;
-  dedupeKey?: T;
-  deviceId?: T;
-  event?: T;
-  eventId?: T;
-  lastModifiedBy?: T;
   partner?: T;
-  platform?: T;
-  position?: T;
-  receivedAt?: T;
-  sessionId?: T;
+  event?: T;
   surface?: T;
-  timestamp?: T;
-  updatedAt?: T;
+  position?: T;
   userId?: T;
-};
+  sessionId?: T;
+  deviceId?: T;
+  platform?: T;
+  timestamp?: T;
+  receivedAt?: T;
+  eventId?: T;
+  dedupeKey?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-conversions_select".
  */
-export type PartnerConversionsSelect<T extends boolean = true> = {
-  awardedAt?: T;
-  clickedAt?: T;
-  clickId?: T;
+export interface PartnerConversionsSelect<T extends boolean = true> {
+  user?: T;
+  partner?: T;
   content?: T;
+  clickId?: T;
+  surface?: T;
+  status?: T;
+  pointsAwarded?: T;
+  partnerOrderId?: T;
+  metadata?: T;
+  clickedAt?: T;
   convertedAt?: T;
-  createdAt?: T;
+  awardedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
-  metadata?: T;
-  partner?: T;
-  partnerOrderId?: T;
-  pointsAwarded?: T;
-  status?: T;
-  surface?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partner-postbacks_select".
  */
-export type PartnerPostbacksSelect<T extends boolean = true> = {
-  clickId?: T;
-  createdAt?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
-  outcome?: T;
+export interface PartnerPostbacksSelect<T extends boolean = true> {
   partner?: T;
+  clickId?: T;
+  outcome?: T;
   reason?: T;
   receivedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "partners_select".
  */
-export type PartnersSelect<T extends boolean = true> = {
-  awardOnClick?: T;
-  cashBack?: T;
-  category?: T;
+export interface PartnersSelect<T extends boolean = true> {
   companyName?: T;
-  confirmationDays?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  websiteUrl?: T;
+  status?: T;
+  contractSigned?: T;
+  inShopTab?: T;
+  cashBack?: T;
+  popularityScore?: T;
+  category?: T;
+  logo?: T;
   contactInfo?:
     | T
     | {
@@ -4173,227 +4085,221 @@ export type PartnersSelect<T extends boolean = true> = {
         email?: T;
         phone?: T;
       };
-  contractSigned?: T;
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  generateSlug?: T;
-  inShopTab?: T;
   integrationMethod?: T;
-  lastModifiedBy?: T;
-  logo?: T;
-  popularityScore?: T;
-  slug?: T;
-  status?: T;
-  updatedAt?: T;
-  webhookSecret?: T;
   webhookUrl?: T;
-  websiteUrl?: T;
-};
+  webhookSecret?: T;
+  confirmationDays?: T;
+  awardOnClick?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "promotion-media_select".
  */
-export type PromotionMediaSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
+export interface PromotionMediaSelect<T extends boolean = true> {
+  title?: T;
   description?: T;
+  points?: T;
   items?:
     | T
     | {
         layout?:
           | T
           | {
-              "promo-video-source"?: T | PromoVideoSourceSelect<T>;
-              "promo-image"?: T | PromoImageSelect<T>;
+              'promo-video-source'?: T | PromoVideoSourceSelect<T>;
+              'promo-image'?: T | PromoImageSelect<T>;
             };
         id?: T;
       };
+  createdBy?: T;
   lastModifiedBy?: T;
-  points?: T;
-  title?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-tokens_select".
  */
-export type PushTokensSelect<T extends boolean = true> = {
-  appVersion?: T;
-  createdAt?: T;
-  createdBy?: T;
-  deviceModel?: T;
-  deviceName?: T;
-  deviceType?: T;
-  lastModifiedBy?: T;
-  lastUsed?: T;
-  osVersion?: T;
-  status?: T;
+export interface PushTokensSelect<T extends boolean = true> {
   token?: T;
-  updatedAt?: T;
   user?: T;
-};
+  deviceType?: T;
+  deviceName?: T;
+  deviceModel?: T;
+  osVersion?: T;
+  appVersion?: T;
+  status?: T;
+  lastUsed?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "reactions_select".
  */
-export type ReactionsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
+export interface ReactionsSelect<T extends boolean = true> {
+  user?: T;
   news?: T;
   target?: T;
   type?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-  user?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sessions_select".
  */
-export type SessionsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
+export interface SessionsSelect<T extends boolean = true> {
+  userId?: T;
   expiresAt?: T;
   ipAddress?: T;
-  lastModifiedBy?: T;
   token?: T;
-  updatedAt?: T;
   userAgent?: T;
-  userId?: T;
-};
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shop-analytics_select".
  */
-export type ShopAnalyticsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  device?: T;
-  lastModifiedBy?: T;
-  platform?: T;
+export interface ShopAnalyticsSelect<T extends boolean = true> {
   store?: T;
-  timestamp?: T;
   type?: T;
-  updatedAt?: T;
   userId?: T;
-};
+  device?: T;
+  platform?: T;
+  timestamp?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey_select".
  */
-export type SurveySelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  googleFormId?: T;
-  lastModifiedBy?: T;
+export interface SurveySelect<T extends boolean = true> {
   name?: T;
-  points?: T;
+  googleFormId?: T;
   surveyLink?: T;
-  updatedAt?: T;
   users?: T;
-};
+  points?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userBlocks_select".
  */
-export type UserBlocksSelect<T extends boolean = true> = {
-  blocked?: T;
+export interface UserBlocksSelect<T extends boolean = true> {
   blocker?: T;
-  createdAt?: T;
+  blocked?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
-export type UsersSelect<T extends boolean = true> = {
-  _verified?: T;
-  country?: T;
-  createdAt?: T;
-  createdBy?: T;
-  customAttributes?: T;
-  dailyRead?: T;
-  dateOfBirth?: T;
-  email?: T;
-  image?: T;
-  isAnonymous?: T;
-  lastActive?: T;
-  lastGiveawayResultSeen?: T;
-  lastModifiedBy?: T;
-  name?: T;
-  notificationPreferences?: T;
-  phone?: T;
-  reviewPromptedAt?: T;
-  updatedAt?: T;
+export interface UsersSelect<T extends boolean = true> {
   userId?: T;
+  email?: T;
+  name?: T;
+  image?: T;
   username?: T;
-  verifiedCountry?: T;
   wish?: T;
-};
+  phone?: T;
+  dateOfBirth?: T;
+  country?: T;
+  verifiedCountry?: T;
+  _verified?: T;
+  isAnonymous?: T;
+  dailyRead?: T;
+  notificationPreferences?: T;
+  lastActive?: T;
+  customAttributes?: T;
+  lastGiveawayResultSeen?: T;
+  reviewPromptedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "verifications_select".
  */
-export type VerificationsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  expiresAt?: T;
+export interface VerificationsSelect<T extends boolean = true> {
   identifier?: T;
+  value?: T;
+  expiresAt?: T;
+  createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
-  value?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "witness-reports_select".
  */
-export type WitnessReportsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  description?: T;
-  files?: T;
-  lastModifiedBy?: T;
+export interface WitnessReportsSelect<T extends boolean = true> {
   name?: T;
-  reportType?: T;
   title?: T;
+  description?: T;
+  reportType?: T;
+  files?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "audit-logs_select".
  */
-export type AuditLogsSelect<T extends boolean = true> = {
+export interface AuditLogsSelect<T extends boolean = true> {
   collection?: T;
-  createdAt?: T;
-  diff?: T;
   documentId?: T;
-  ip?: T;
   operation?: T;
   performedBy?: T;
+  diff?: T;
   snapshot?: T;
+  ip?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
-export type PayloadKvSelect<T extends boolean = true> = {
-  data?: T;
+export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
-};
+  data?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs_select".
  */
-export type PayloadJobsSelect<T extends boolean = true> = {
-  completedAt?: T;
-  createdAt?: T;
-  error?: T;
-  hasError?: T;
+export interface PayloadJobsSelect<T extends boolean = true> {
   input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
   log?:
     | T
     | {
@@ -4407,57 +4313,51 @@ export type PayloadJobsSelect<T extends boolean = true> = {
         error?: T;
         id?: T;
       };
-  meta?: T;
-  processing?: T;
-  queue?: T;
   taskSlug?: T;
-  taskStatus?: T;
-  totalTried?: T;
-  updatedAt?: T;
+  queue?: T;
   waitUntil?: T;
-};
+  processing?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
-export type PayloadLockedDocumentsSelect<T extends boolean = true> = {
-  createdAt?: T;
+export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
   document?: T;
   globalSlug?: T;
-  updatedAt?: T;
   user?: T;
-};
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences_select".
  */
-export type PayloadPreferencesSelect<T extends boolean = true> = {
-  createdAt?: T;
-  key?: T;
-  updatedAt?: T;
+export interface PayloadPreferencesSelect<T extends boolean = true> {
   user?: T;
+  key?: T;
   value?: T;
-};
+  updatedAt?: T;
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations_select".
  */
-export type PayloadMigrationsSelect<T extends boolean = true> = {
-  batch?: T;
-  createdAt?: T;
+export interface PayloadMigrationsSelect<T extends boolean = true> {
   name?: T;
+  batch?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-category".
  */
-export type NewsCategory = {
-  createdAt?: string | null;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface NewsCategory {
   id: string;
   items?:
     | {
@@ -4465,42 +4365,37 @@ export type NewsCategory = {
         id?: string | null;
       }[]
     | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   lastModifiedBy?: {
-    relationTo: "admins";
+    relationTo: 'admins';
     value: string | Admin;
   } | null;
   updatedAt?: string | null;
-};
+  createdAt?: string | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "moderation-settings".
  */
-export type ModerationSetting = {
+export interface ModerationSetting {
+  id: string;
+  /**
+   * Roles that receive moderation email by default. Leave empty to use the built-in default (Super Admin and Content Manager). Partners never receive moderation email and cannot be added here.
+   */
+  alertRoles?: ('super-admin' | 'content-manager' | 'editor' | 'viewer')[] | null;
   /**
    * Extra addresses that are not admin accounts, such as shared inboxes, on-call rotations, or outsourced moderators. Merged with anything in the MODERATION_ALERT_EMAILS env var.
    */
   additionalRecipients?:
     | {
         email: string;
-        tier?: ("all" | "urgent" | "digest") | null;
+        tier?: ('all' | 'urgent' | 'digest') | null;
         id?: string | null;
       }[]
     | null;
-  /**
-   * Roles that receive moderation email by default. Leave empty to use the built-in default (Super Admin and Content Manager). Partners never receive moderation email and cannot be added here.
-   */
-  alertRoles?:
-    | ("super-admin" | "content-manager" | "editor" | "viewer")[]
-    | null;
-  /**
-   * Distinct reporters required before a comment is hidden pending review. Counts distinct people, so one user cannot bury a comment alone. Leave empty for the default (3).
-   */
-  autoHideThreshold?: number | null;
-  createdAt?: string | null;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
    * Turn the digest email off entirely. New reports still trigger urgent alerts and are still listed in the admin panel.
    */
@@ -4508,91 +4403,72 @@ export type ModerationSetting = {
   /**
    * Daily sends every night at 23:00 Africa/Lagos; weekly sends on the day below at the same time.
    */
-  digestFrequency?: ("daily" | "weekly") | null;
+  digestFrequency?: ('daily' | 'weekly') | null;
   /**
    * Which day the weekly digest goes out, at 23:00 Africa/Lagos.
    */
-  digestWeekday?:
-    | (
-        | "monday"
-        | "tuesday"
-        | "wednesday"
-        | "thursday"
-        | "friday"
-        | "saturday"
-        | "sunday"
-      )
-    | null;
+  digestWeekday?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+  /**
+   * Distinct reporters required before a comment is hidden pending review. Counts distinct people, so one user cannot bury a comment alone. Leave empty for the default (3).
+   */
+  autoHideThreshold?: number | null;
   /**
    * Reasons that hide content immediately on a single report, bypassing the threshold above. Powerful: one report takes content down, so keep this to categories where waiting is indefensible. Leave empty for the default (Illegal Activity, Hate Speech, Explicit or Inappropriate Content).
    */
   hideOnFirstReportReasons?:
     | (
-        | "spam"
-        | "harassment"
-        | "hate-speech"
-        | "misinformation"
-        | "personal-info"
-        | "inappropriate"
-        | "off-topic"
-        | "trolling"
-        | "illegal"
-        | "other"
+        | 'spam'
+        | 'harassment'
+        | 'hate-speech'
+        | 'misinformation'
+        | 'personal-info'
+        | 'inappropriate'
+        | 'off-topic'
+        | 'trolling'
+        | 'illegal'
+        | 'other'
       )[]
     | null;
-  id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  updatedAt?: string | null;
   /**
    * Reasons that trigger an immediate alert instead of waiting for the nightly digest. Leave empty for the default (Illegal Activity, Hate Speech, Harassment, Explicit or Inappropriate Content).
    */
   urgentReasons?:
     | (
-        | "spam"
-        | "harassment"
-        | "hate-speech"
-        | "misinformation"
-        | "personal-info"
-        | "inappropriate"
-        | "off-topic"
-        | "trolling"
-        | "illegal"
-        | "other"
+        | 'spam'
+        | 'harassment'
+        | 'hate-speech'
+        | 'misinformation'
+        | 'personal-info'
+        | 'inappropriate'
+        | 'off-topic'
+        | 'trolling'
+        | 'illegal'
+        | 'other'
       )[]
     | null;
-};
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey-settings".
  */
-export type SurveySetting = {
-  createdAt?: string | null;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Most points one user may earn from surveys in a day. Reversals do not count.
-   */
-  dailyPointsCap?: number | null;
+export interface SurveySetting {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
-  /**
-   * Most points one completed survey may pay. Raise it when a real payout shows the default is too low.
-   */
-  maxPointsPerAward?: number | null;
   /**
    * One row per provider. A provider with no row uses its built-in default: CPX and Rapido on, Theorem and BitLabs off.
    */
   providers?:
     | {
-        provider: "cpx" | "rapido" | "theorem" | "bitlabs";
+        provider: 'cpx' | 'rapido' | 'theorem' | 'bitlabs';
         enabled?: boolean | null;
         /**
          * Lower numbers show first.
@@ -4609,35 +4485,51 @@ export type SurveySetting = {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Most points one user may earn from surveys in a day. Reversals do not count.
+   */
+  dailyPointsCap?: number | null;
+  /**
+   * Most points one completed survey may pay. Raise it when a real payout shows the default is too low.
+   */
+  maxPointsPerAward?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt?: string | null;
-};
+  createdAt?: string | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "app-settings".
  */
-export type AppSetting = {
-  createdAt?: string | null;
-  createdBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
+export interface AppSetting {
   id: string;
-  lastModifiedBy?: {
-    relationTo: "admins";
-    value: string | Admin;
-  } | null;
   /**
    * The invitation people send when they share the app by SMS, email, WhatsApp and the rest. Write {link} where the download link should go; if you leave it out, the link is added at the end. Leave the box empty to use the built-in message.
    */
   shareMessage?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
   updatedAt?: string | null;
-};
+  createdAt?: string | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
-export type PayloadJobsStat = {
-  createdAt?: string | null;
+export interface PayloadJobsStat {
   id: string;
   stats?:
     | {
@@ -4649,29 +4541,31 @@ export type PayloadJobsStat = {
     | boolean
     | null;
   updatedAt?: string | null;
-};
+  createdAt?: string | null;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news-category_select".
  */
-export type NewsCategorySelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  globalType?: T;
+export interface NewsCategorySelect<T extends boolean = true> {
   items?:
     | T
     | {
         category?: T;
         id?: T;
       };
+  createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  globalType?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "moderation-settings_select".
  */
-export type ModerationSettingsSelect<T extends boolean = true> = {
+export interface ModerationSettingsSelect<T extends boolean = true> {
+  alertRoles?: T;
   additionalRecipients?:
     | T
     | {
@@ -4679,30 +4573,23 @@ export type ModerationSettingsSelect<T extends boolean = true> = {
         tier?: T;
         id?: T;
       };
-  alertRoles?: T;
-  autoHideThreshold?: T;
-  createdAt?: T;
-  createdBy?: T;
   digestEnabled?: T;
   digestFrequency?: T;
   digestWeekday?: T;
-  globalType?: T;
+  autoHideThreshold?: T;
   hideOnFirstReportReasons?: T;
+  urgentReasons?: T;
+  createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
-  urgentReasons?: T;
-};
+  createdAt?: T;
+  globalType?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "survey-settings_select".
  */
-export type SurveySettingsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  dailyPointsCap?: T;
-  globalType?: T;
-  lastModifiedBy?: T;
-  maxPointsPerAward?: T;
+export interface SurveySettingsSelect<T extends boolean = true> {
   providers?:
     | T
     | {
@@ -4713,282 +4600,268 @@ export type SurveySettingsSelect<T extends boolean = true> = {
         wallUrl?: T;
         id?: T;
       };
+  dailyPointsCap?: T;
+  maxPointsPerAward?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  globalType?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "app-settings_select".
  */
-export type AppSettingsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  createdBy?: T;
-  globalType?: T;
-  lastModifiedBy?: T;
+export interface AppSettingsSelect<T extends boolean = true> {
   shareMessage?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  globalType?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats_select".
  */
-export type PayloadJobsStatsSelect<T extends boolean = true> = {
-  createdAt?: T;
-  globalType?: T;
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
   stats?: T;
   updatedAt?: T;
-};
+  createdAt?: T;
+  globalType?: T;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-kpi_widget".
  */
-export type AnalyticsKpiWidget = {
+export interface AnalyticsKpiWidget {
   data?: {
-    metric?:
-      | (
-          | "views"
-          | "reads"
-          | "impressions"
-          | "readers"
-          | "shares"
-          | "ctr"
-          | "readRate"
-        )
-      | null;
-    days?: ("7" | "30" | "90") | null;
+    metric?: ('views' | 'reads' | 'impressions' | 'readers' | 'shares' | 'ctr' | 'readRate') | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "x-small" | "small" | "medium";
-};
+  width: 'x-small' | 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-funnel_widget".
  */
-export type AnalyticsFunnelWidget = {
+export interface AnalyticsFunnelWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "medium" | "large" | "x-large" | "full";
-};
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-top-articles_widget".
  */
-export type AnalyticsTopArticlesWidget = {
+export interface AnalyticsTopArticlesWidget {
   data?: {
-    sort?: ("readers" | "reads" | "views" | "impressions" | "rising") | null;
-    days?: ("7" | "30" | "90") | null;
+    sort?: ('readers' | 'reads' | 'views' | 'impressions' | 'rising') | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "medium" | "large" | "x-large" | "full";
-};
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-surfaces_widget".
  */
-export type AnalyticsSurfacesWidget = {
+export interface AnalyticsSurfacesWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "small" | "medium";
-};
+  width: 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-categories_widget".
  */
-export type AnalyticsCategoriesWidget = {
+export interface AnalyticsCategoriesWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "small" | "medium";
-};
+  width: 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-partner-performance_widget".
  */
-export type AnalyticsPartnerPerformanceWidget = {
+export interface AnalyticsPartnerPerformanceWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "medium" | "large" | "x-large" | "full";
-};
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-partner-integration_widget".
  */
-export type AnalyticsPartnerIntegrationWidget = {
+export interface AnalyticsPartnerIntegrationWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "medium";
-};
+  width: 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-audience-kpi_widget".
  */
-export type AnalyticsAudienceKpiWidget = {
+export interface AnalyticsAudienceKpiWidget {
   data?: {
-    metric?:
-      | (
-          | "registered"
-          | "newUsers"
-          | "active7"
-          | "active30"
-          | "emailVerifiedRate"
-          | "pushRate"
-          | "guests"
-        )
-      | null;
-    days?: ("7" | "30" | "90") | null;
+    metric?: ('registered' | 'newUsers' | 'active7' | 'active30' | 'emailVerifiedRate' | 'pushRate' | 'guests') | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "x-small" | "small" | "medium";
-};
+  width: 'x-small' | 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-audience-growth_widget".
  */
-export type AnalyticsAudienceGrowthWidget = {
+export interface AnalyticsAudienceGrowthWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "medium" | "large" | "x-large" | "full";
-};
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-devices_widget".
  */
-export type AnalyticsDevicesWidget = {
+export interface AnalyticsDevicesWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "small" | "medium";
-};
+  width: 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-countries_widget".
  */
-export type AnalyticsCountriesWidget = {
+export interface AnalyticsCountriesWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "small" | "medium";
-};
+  width: 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-feedback_widget".
  */
-export type AnalyticsFeedbackWidget = {
+export interface AnalyticsFeedbackWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "small" | "medium";
-};
+  width: 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-attention_widget".
  */
-export type AnalyticsAttentionWidget = {
+export interface AnalyticsAttentionWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "medium" | "large" | "x-large" | "full";
-};
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-discover_widget".
  */
-export type AnalyticsDiscoverWidget = {
+export interface AnalyticsDiscoverWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "medium" | "large" | "x-large" | "full";
-};
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics-push_widget".
  */
-export type AnalyticsPushWidget = {
+export interface AnalyticsPushWidget {
   data?: {
-    days?: ("7" | "30" | "90") | null;
+    days?: ('7' | '30' | '90') | null;
   };
-  width: "medium" | "large" | "x-large" | "full";
-};
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contact-export_widget".
  */
-export type ContactExportWidget = {
+export interface ContactExportWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "small" | "medium";
-};
+  width: 'small' | 'medium';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
-export type CollectionsWidget = {
+export interface CollectionsWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: "full";
-};
+  width: 'full';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendScheduledNotification".
  */
-export type TaskSendScheduledNotification = {
+export interface TaskSendScheduledNotification {
   input: {
     notificationId: string;
   };
   output: {
     sent: boolean;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendCommentLikeNotification".
  */
-export type TaskSendCommentLikeNotification = {
+export interface TaskSendCommentLikeNotification {
   input: {
     authorId: string;
   };
   output: {
     sent: boolean;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendModerationDigest".
  */
-export type TaskSendModerationDigest = {
+export interface TaskSendModerationDigest {
   input?: unknown;
   output?: unknown;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendUrgentModerationAlert".
  */
-export type TaskSendUrgentModerationAlert = {
+export interface TaskSendUrgentModerationAlert {
   input: {
     reportId: string;
   };
   output?: unknown;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCheckPushReceipts".
  */
-export type TaskCheckPushReceipts = {
+export interface TaskCheckPushReceipts {
   input: {
     notificationId: string;
   };
   output: {
     processed: number;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskProcessGiveaway".
  */
-export type TaskProcessGiveaway = {
+export interface TaskProcessGiveaway {
   input?: unknown;
   output: {
     drawn?: number | null;
@@ -4998,44 +4871,44 @@ export type TaskProcessGiveaway = {
     reportsRetried?: number | null;
     reportsSent?: number | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCleanupAnonymousUsers".
  */
-export type TaskCleanupAnonymousUsers = {
+export interface TaskCleanupAnonymousUsers {
   input?: unknown;
   output: {
     deletedCount?: number | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskPruneNewsAnalytics".
  */
-export type TaskPruneNewsAnalytics = {
+export interface TaskPruneNewsAnalytics {
   input?: unknown;
   output: {
     deletedCount?: number | null;
     hasMore?: boolean | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskPrunePartnerContentEvents".
  */
-export type TaskPrunePartnerContentEvents = {
+export interface TaskPrunePartnerContentEvents {
   input?: unknown;
   output: {
     deletedCount?: number | null;
     hasMore?: boolean | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskGenerateVideoThumbnail".
  */
-export type TaskGenerateVideoThumbnail = {
+export interface TaskGenerateVideoThumbnail {
   input: {
     docId: string;
     itemIndex: number;
@@ -5049,80 +4922,81 @@ export type TaskGenerateVideoThumbnail = {
     thumbnailId?: string | null;
     reason?: string | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskDeleteVideoThumbTemp".
  */
-export type TaskDeleteVideoThumbTemp = {
+export interface TaskDeleteVideoThumbTemp {
   input: {
     mediaId: string;
   };
   output: {
     deleted?: boolean | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCleanupAuditLogs".
  */
-export type TaskCleanupAuditLogs = {
+export interface TaskCleanupAuditLogs {
   input?: unknown;
   output: {
     deletedCount?: number | null;
   };
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSchedulePublish".
  */
-export type TaskSchedulePublish = {
+export interface TaskSchedulePublish {
   input: {
-    type?: ("publish" | "unpublish") | null;
+    type?: ('publish' | 'unpublish') | null;
     locale?: string | null;
     doc?: {
-      relationTo: "news";
+      relationTo: 'news';
       value: string | News;
     } | null;
     global?: string | null;
     user?: {
-      relationTo: "admins";
+      relationTo: 'admins';
       value: string | Admin;
     } | null;
   };
   output?: unknown;
-};
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "AdsBlock".
  */
-export type AdsBlock = {
-  blockName?: string | null;
-  blockType: "ads";
+export interface AdsBlock {
+  type: 'BANNER' | 'FULL_BANNER' | 'LARGE_BANNER' | 'MEDIUM_RECTANGLE';
   id?: string | null;
-  type: "BANNER" | "FULL_BANNER" | "LARGE_BANNER" | "MEDIUM_RECTANGLE";
-};
+  blockName?: string | null;
+  blockType: 'ads';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ReadAlsoBlock".
  */
-export type ReadAlsoBlock = {
-  blockName?: string | null;
-  blockType: "readAlso";
-  id?: string | null;
+export interface ReadAlsoBlock {
   /**
    * 💡This will be inserted in between the news content
    */
   news: string | News;
-};
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'readAlso';
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "auth".
  */
-export type Auth = {
+export interface Auth {
   [k: string]: unknown;
-};
+}
 
-declare module "payload" {
+
+declare module 'payload' {
   export interface GeneratedTypes extends Config {}
 }
