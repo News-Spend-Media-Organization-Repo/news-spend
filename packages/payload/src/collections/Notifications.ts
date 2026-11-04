@@ -242,6 +242,17 @@ const Notifications: CollectionConfig = {
       },
     },
     {
+      name: "correctNotification",
+      type: "ui",
+      label: "Correct a sent notification",
+      admin: {
+        components: {
+          Field:
+            "@news-spend-media/payload/components/CorrectNotification#CorrectNotification",
+        },
+      },
+    },
+    {
       name: "totalDelivered",
       type: "number",
       virtual: true,
@@ -469,6 +480,65 @@ const Notifications: CollectionConfig = {
         });
 
         return Response.json(errorLogs);
+      },
+    },
+    {
+      /**
+       * Correct a campaign that has already gone out. A delivered push cannot be
+       * recalled, so this re-sends the saved copy to the devices the campaign
+       * originally reached, using the same notification id as the OS-level
+       * collapse id/tag. Where the notification is still visible it is replaced
+       * in place; inbox copies are updated rather than duplicated.
+       */
+      path: "/:id/correct",
+      method: "post",
+      handler: async (req) => {
+        const user = req.user;
+
+        // Same bar as updating a notification: adminOnly is super-admin.
+        if (user?.collection !== "admins" || user?.role !== "super-admin") {
+          return Response.json(
+            { message: "Only a Super Admin can correct a notification." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id;
+        if (typeof id !== "string") {
+          return Response.json(
+            { message: "Notification not found." },
+            { status: 404 }
+          );
+        }
+
+        try {
+          const { correctNotification } = await import(
+            "../lib/expo-push-service"
+          );
+          const result = await correctNotification(id, req);
+
+          return Response.json({
+            message:
+              result.recipients > 0
+                ? `Correction sent to ${result.recipients} device${result.recipients === 1 ? "" : "s"}.`
+                : "No devices to re-send to.",
+          });
+        } catch (error) {
+          req.payload.logger.error({
+            msg: "Notifications: correction failed",
+            err: error,
+            notificationId: id,
+          });
+          return Response.json(
+            {
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Could not correct the notification.",
+            },
+            { status: 400 }
+          );
+        }
       },
     },
   ],
