@@ -1,11 +1,22 @@
 import type { BasePayload } from "payload";
 
-import { defaultReloadlyClient, hold } from "./fulfilPrizes";
+import {
+  type AttemptContext,
+  attemptRecorder,
+  defaultReloadlyClient,
+  hold,
+} from "./fulfilPrizes";
+import { sendGiftCardEmail } from "./giftCardEmail";
 import {
   applyProviderVerdict,
   latestProviderTransactionId,
 } from "./providerVerdict";
 import { type ReloadlyClient, ReloadlyError } from "./reloadly";
+import {
+  type GiftCardTransaction,
+  type ReloadlyGiftCardClient,
+  reloadlyGiftCardClientFromEnv,
+} from "./reloadlyGiftCards";
 
 /**
  * How long a dispatch may be in flight before the provider is asked about it.
@@ -43,7 +54,15 @@ export type ReconciliationSummary = {
  */
 export async function reconcileInProgressPrizes(
   payload: BasePayload,
-  { client, limit }: { client?: ReloadlyClient; limit?: number } = {}
+  {
+    client,
+    giftCardClient,
+    limit,
+  }: {
+    client?: ReloadlyClient;
+    giftCardClient?: ReloadlyGiftCardClient;
+    limit?: number;
+  } = {}
 ): Promise<ReconciliationSummary> {
   const summary: ReconciliationSummary = {
     checked: 0,
@@ -57,12 +76,14 @@ export async function reconcileInProgressPrizes(
     return summary;
   }
 
+  const resolvedGiftCards = giftCardClient ?? reloadlyGiftCardClientFromEnv();
+
   const pending = await payload.find({
     collection: "giveaway-winners",
     where: { fulfilmentStatus: { equals: "in_progress" } },
     limit,
     pagination: false,
-    depth: 0,
+    depth: 1,
   });
 
   // Compared in code rather than in the query: it is one comparison, and it
@@ -75,6 +96,33 @@ export async function reconcileInProgressPrizes(
     }
 
     summary.checked += 1;
+
+    const prize = winner.prize;
+    const type =
+      typeof prize === "object" && prize !== null
+        ? prize.fulfilmentType
+        : undefined;
+
+    // Gift cards settle through their own client; falling through to the
+    // top-up path would ask the airtime API about a card transaction.
+    if (type === "gift_card") {
+      if (resolvedGiftCards) {
+        try {
+          const outcome = await reconcileGiftCard(
+            payload,
+            resolvedGiftCards,
+            winner
+          );
+          summary[outcome] += 1;
+        } catch (error) {
+          payload.logger.error(
+            { err: error, winnerId: winner.id },
+            "[giveaway] could not reconcile an in-progress gift card prize"
+          );
+        }
+      }
+      continue;
+    }
 
     // Looked up in the catch too, so the reason a 404 is held names the
     // transaction the provider did not recognise.
@@ -167,4 +215,152 @@ export async function reconcileInProgressPrizes(
   }
 
   return summary;
+}
+
+type GiftCardOutcome = "fulfilled" | "requeued" | "held";
+
+/**
+ * Settle one gift card prize the provider has finished with (spec 15).
+ *
+ * The dispatch writes `giftCardTransactionId` before any status check or code
+ * fetch, so an interrupted run resumes at `getTransaction` here rather than
+ * ordering a second card. A prize with no recorded id is looked up by its own
+ * identifier, and one with neither was never ordered: it goes back to the
+ * queue, where the sweep re-orders with the same key and cannot buy twice.
+ *
+ * The three terminal answers mirror the dispatch: a failed order holds, a
+ * still-settling order re-queues, and a successful order settles with the code.
+ * A 404 means our record and the provider's disagree about the money, so a
+ * person decides.
+ */
+async function reconcileGiftCard(
+  payload: BasePayload,
+  client: ReloadlyGiftCardClient,
+  winner: Record<string, any>
+): Promise<GiftCardOutcome> {
+  const prize = winner.prize as Record<string, any> | null | undefined;
+  const winnerId = String(winner.id);
+  const identifier = `gift-card:${winnerId}`;
+  const productName = String(prize?.reloadlyGiftCardProductName ?? "");
+
+  const ctx: AttemptContext = {
+    winnerId,
+    environment: client.isSandbox ? "sandbox" : "live",
+  };
+  const record = attemptRecorder(payload, ctx);
+
+  let transactionId: string | number | undefined = winner.giftCardTransactionId
+    ? String(winner.giftCardTransactionId)
+    : undefined;
+
+  if (!transactionId) {
+    const found = await client.findTransaction(identifier);
+    if (found) {
+      transactionId = found.transactionId;
+    }
+  }
+
+  if (!transactionId) {
+    // The run died before ordering. The sweep re-orders with the same key, so
+    // it cannot buy twice.
+    await payload.update({
+      collection: "giveaway-winners",
+      id: winnerId,
+      data: { fulfilmentStatus: "pending" },
+    });
+    return "requeued";
+  }
+
+  let transaction: GiftCardTransaction;
+  try {
+    transaction = await client.getTransaction(transactionId);
+  } catch (error) {
+    if (error instanceof ReloadlyError && error.status === 404) {
+      await hold(
+        payload,
+        winnerId,
+        `Reloadly does not recognise gift card transaction ${transactionId}.`
+      );
+      return "held";
+    }
+    throw error;
+  }
+
+  if (
+    transaction.status === "FAILED" ||
+    transaction.status === "REVERSED" ||
+    transaction.status === "CANCELLED"
+  ) {
+    await hold(
+      payload,
+      winnerId,
+      `Gift card order ${transaction.status.toLowerCase()}.`
+    );
+    return "held";
+  }
+
+  if (transaction.status !== "SUCCESSFUL") {
+    await payload.update({
+      collection: "giveaway-winners",
+      id: winnerId,
+      data: { fulfilmentStatus: "pending" },
+    });
+    return "requeued";
+  }
+
+  const issued = await client.getCode(transaction.transactionId);
+
+  await payload.update({
+    collection: "giveaway-winners",
+    id: winnerId,
+    data: {
+      giftCardCode: issued.cardNumber,
+      giftCardPin: issued.pinCode ?? null,
+      giftCardRedemptionUrl: issued.redemptionUrl ?? null,
+      giftCardInstructions: prize?.reloadlyGiftCardInstructions ?? null,
+      fulfilmentStatus: "fulfilled",
+      fulfilledAt: new Date().toISOString(),
+    },
+  });
+
+  await record({
+    outcome: "already_sent",
+    providerReference: identifier,
+    providerTransactionId: String(transaction.transactionId),
+    operatorName: productName,
+    localAmount: transaction.amount ?? 0,
+  });
+
+  // The same winner's copy the dispatch sends, so a recovered card is not a
+  // silent delivery. A missing email or a failed send leaves the prize
+  // fulfilled with no timestamp, exactly as in the dispatch path.
+  const email =
+    typeof winner.user?.email === "string" ? winner.user.email.trim() : "";
+  if (prize?.emailGiftCardCode !== false && email !== "") {
+    const sent = await sendGiftCardEmail(payload, {
+      to: email,
+      winnerName: winner.claimRecipientName ?? null,
+      prizeName: String(winner.prizeName ?? "A giveaway prize"),
+      code: issued.cardNumber,
+      pin: issued.pinCode ?? null,
+      redemptionUrl: issued.redemptionUrl ?? null,
+      instructions: prize?.reloadlyGiftCardInstructions ?? null,
+    });
+    if (sent) {
+      await payload
+        .update({
+          collection: "giveaway-winners",
+          id: winnerId,
+          data: { giftCardEmailSentAt: new Date().toISOString() },
+        })
+        .catch((error) => {
+          payload.logger.error(
+            { err: error, winnerId },
+            "[giveaway] could not record the gift card email timestamp"
+          );
+        });
+    }
+  }
+
+  return "fulfilled";
 }

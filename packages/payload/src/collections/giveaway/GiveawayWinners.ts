@@ -236,6 +236,50 @@ export const GiveawayWinners: CollectionConfig = {
           "Why this winner was disqualified, recorded before any replacement is drawn.",
       },
     },
+    {
+      type: "collapsible",
+      label: "Gift card",
+      admin: {
+        description:
+          "The issued card's code, PIN and redemption details, written at fulfilment time for a gift_card prize. Read-only: fulfilment owns these values, not the editor.",
+      },
+      fields: [
+        {
+          name: "giftCardCode",
+          type: "text",
+          admin: { readOnly: true },
+        },
+        {
+          name: "giftCardPin",
+          type: "text",
+          admin: { readOnly: true },
+        },
+        {
+          name: "giftCardRedemptionUrl",
+          type: "text",
+          admin: { readOnly: true },
+        },
+        {
+          name: "giftCardInstructions",
+          type: "textarea",
+          admin: { readOnly: true },
+        },
+        {
+          name: "giftCardTransactionId",
+          type: "text",
+          index: true,
+          admin: { readOnly: true },
+        },
+        {
+          name: "giftCardEmailSentAt",
+          type: "date",
+          admin: {
+            readOnly: true,
+            date: { pickerAppearance: "dayAndTime" },
+          },
+        },
+      ],
+    },
   ],
   hooks: {
     beforeChange: [

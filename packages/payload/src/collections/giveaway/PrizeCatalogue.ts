@@ -7,6 +7,7 @@ import {
   reloadlyConfigFromEnv,
 } from "../../lib/giveaway/reloadly";
 import { describeNearestDenominations } from "../../lib/giveaway/reloadlyDenominations";
+import { reloadlyGiftCardClientFromEnv } from "../../lib/giveaway/reloadlyGiftCards";
 import {
   ADMIN_GROUP,
   FULFILMENT_TYPE_OPTIONS,
@@ -39,6 +40,94 @@ export function airtimeAmountError(
   }
   return "An airtime prize needs a Reloadly amount or a Value (₦), or fulfilment will fail when a winner claims it.";
 }
+
+/**
+ * A gift card prize opts into automatic fulfilment by naming a Reloadly
+ * product. The two halves of that choice — which card, and its face value —
+ * must appear together, because either alone leaves fulfilment with nothing
+ * to buy or nothing to buy with. A gift card with neither saves normally: it
+ * is a legacy/manual prize.
+ */
+export function giftCardConfigurationError(data: {
+  fulfilmentType?: string | null;
+  reloadlyGiftCardProductId?: number | null;
+  reloadlyGiftCardUnitPrice?: number | null;
+}): true | string {
+  if (data.fulfilmentType !== "gift_card") {
+    return true;
+  }
+
+  const hasProduct =
+    data.reloadlyGiftCardProductId !== null &&
+    data.reloadlyGiftCardProductId !== undefined;
+  const hasPrice = Number(data.reloadlyGiftCardUnitPrice) > 0;
+
+  if (hasProduct && !hasPrice) {
+    return "A gift card needs a face value once a product is chosen.";
+  }
+
+  if (!hasProduct && hasPrice) {
+    return "A gift card face value needs a product to buy it from.";
+  }
+
+  return true;
+}
+
+/** Cap on how many fixed denominations an error names before summarising. */
+const MAX_NAMED_DENOMINATIONS = 5;
+
+/**
+ * Whether a face value is one the product still sells, as a validation error
+ * string or `true`.
+ *
+ * Pure on purpose: save-time validation runs it against Reloadly's current
+ * catalogue, but fulfilment re-checks before any money leaves, so a value that
+ * drifted after save is caught again there. A product with no denomination
+ * data is not refusable here and answers `true`.
+ */
+export function giftCardDenominationError(
+  product: {
+    denominationType: "FIXED" | "RANGE";
+    fixedRecipientDenominations?: number[] | null;
+    minRecipientDenomination?: number | null;
+    maxRecipientDenomination?: number | null;
+  },
+  unitPrice: number
+): true | string {
+  if (product.denominationType === "FIXED") {
+    const fixed = product.fixedRecipientDenominations ?? [];
+    if (fixed.length === 0 || fixed.includes(unitPrice)) {
+      return true;
+    }
+
+    const named = fixed.slice(0, MAX_NAMED_DENOMINATIONS);
+    const remaining = fixed.length - named.length;
+    const list =
+      named.join(", ") + (remaining > 0 ? `, … and ${remaining} more` : "");
+    return `Face value ${unitPrice} is not one of this product's allowed values: ${list}.`;
+  }
+
+  const min = product.minRecipientDenomination;
+  const max = product.maxRecipientDenomination;
+  if (min == null || max == null) {
+    return true;
+  }
+
+  if (unitPrice >= min && unitPrice <= max) {
+    return true;
+  }
+
+  return `Face value ${unitPrice} is outside this product's valid range (${min} - ${max}).`;
+}
+
+type GiftCardSiblingData = {
+  fulfilmentType?: string | null;
+  reloadlyGiftCardProductId?: number | null;
+  reloadlyGiftCardUnitPrice?: number | null;
+};
+
+const giftCardSiblingData = (value: unknown): GiftCardSiblingData =>
+  value && typeof value === "object" ? (value as GiftCardSiblingData) : {};
 
 /**
  * Master Prize Catalogue (spec 2).
@@ -431,6 +520,139 @@ export const PrizeCatalogue: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      name: "reloadlyGiftCardProductId",
+      label: "Reloadly gift card product",
+      type: "number",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        description:
+          "Search for the card to issue. Choosing one opts this prize into automatic fulfilment.",
+        components: {
+          Field:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#GiftCardProductField",
+        },
+      },
+      validate: (
+        value: number | null | undefined,
+        { siblingData }: { siblingData?: unknown }
+      ) => {
+        const data = giftCardSiblingData(siblingData);
+        return giftCardConfigurationError({
+          fulfilmentType: data.fulfilmentType,
+          reloadlyGiftCardProductId: value,
+          reloadlyGiftCardUnitPrice: data.reloadlyGiftCardUnitPrice,
+        });
+      },
+    },
+    {
+      name: "reloadlyGiftCardUnitPrice",
+      label: "Face value (recipient currency)",
+      type: "number",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        components: {
+          Field:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#GiftCardDenominationField",
+        },
+      },
+      validate: async (
+        value: number | null | undefined,
+        { siblingData }: { siblingData?: unknown }
+      ) => {
+        const data = giftCardSiblingData(siblingData);
+
+        const structural = giftCardConfigurationError({
+          fulfilmentType: data.fulfilmentType,
+          reloadlyGiftCardProductId: data.reloadlyGiftCardProductId,
+          reloadlyGiftCardUnitPrice: value,
+        });
+        if (structural !== true) {
+          return structural;
+        }
+
+        const productId = data.reloadlyGiftCardProductId;
+        const price = Number(value);
+        if (!(productId && price > 0)) {
+          return true;
+        }
+
+        // A save must not depend on Reloadly being reachable: the sweep
+        // re-checks the denomination before buying, so an outage here is a
+        // missed warning, not a risk. Only a reachable catalogue can refuse.
+        const client = reloadlyGiftCardClientFromEnv();
+        if (!client) {
+          return true;
+        }
+
+        try {
+          const product = await client.getProduct(Number(productId));
+          return giftCardDenominationError(product, price);
+        } catch {
+          return true;
+        }
+      },
+    },
+    {
+      name: "reloadlyGiftCardSenderPrice",
+      label: "Sender price (account currency)",
+      type: "number",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+        description:
+          "The exact account-currency charge for FIXED cards. Left at 0 for RANGE cards; the purchase records the actual amount later.",
+      },
+    },
+    {
+      name: "reloadlyGiftCardProductName",
+      label: "Product name",
+      type: "text",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "reloadlyGiftCardCurrency",
+      label: "Currency",
+      type: "text",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "reloadlyGiftCardInstructions",
+      label: "Instructions",
+      type: "textarea",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "reloadlyGiftCardEnvironment",
+      label: "Environment",
+      type: "select",
+      options: [
+        { label: "Sandbox", value: "sandbox" },
+        { label: "Live", value: "live" },
+      ],
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "emailGiftCardCode",
+      label: "Email the code to the winner",
+      type: "checkbox",
+      defaultValue: true,
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+      },
     },
     {
       name: "image",
