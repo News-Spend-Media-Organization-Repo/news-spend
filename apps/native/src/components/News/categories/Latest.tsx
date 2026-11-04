@@ -43,6 +43,7 @@ import {
   createTrendingVisibility,
   type TrendingVisibility,
 } from "../trendingCarousel";
+import { dropTrendingAndAdjacentAds } from "./feedOrder";
 import { buildLatestViewabilityPairs } from "./feedViewability";
 
 type ItemType = RouterOutputs["news"]["home"]["docs"][number];
@@ -212,18 +213,10 @@ const Latest = memo(
 
     const flattenedNews = useMemo(() => {
       const docs = news?.pages.flatMap((page) => page.docs);
-      if (!docs || trendingIds.size === 0) {
+      if (!docs) {
         return docs;
       }
-      return docs.filter(
-        (item) =>
-          !(
-            item &&
-            "type" in item &&
-            (item.type === "article" || item.type === "video") &&
-            trendingIds.has(item.id)
-          )
-      );
+      return dropTrendingAndAdjacentAds(docs, trendingIds);
     }, [news, trendingIds]);
     flattenedNewsRef.current = flattenedNews;
 

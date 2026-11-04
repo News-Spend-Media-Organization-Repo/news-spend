@@ -307,14 +307,17 @@ export const randomPartnerContent = publicProcedure
       return [];
     }
 
-    const maxOffset = Math.max(0, totalDocs - limit);
-    const randomOffset = Math.floor(Math.random() * maxOffset);
+    // `page` counts windows of `limit`, not rows. A row offset here sent the
+    // query past the end of the collection as soon as there was more than one
+    // page of matches, so the surface rendered as if it had no content.
+    const totalPages = Math.ceil(totalDocs / limit);
+    const page = Math.floor(Math.random() * totalPages) + 1;
 
     const result = await payload.find({
       collection: "partner-content",
       where,
       limit,
-      page: randomOffset + 1,
+      page,
       depth: 2,
     });
 
