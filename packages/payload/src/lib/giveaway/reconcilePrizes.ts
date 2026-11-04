@@ -15,6 +15,7 @@ import { type ReloadlyClient, ReloadlyError } from "./reloadly";
 import {
   type GiftCardTransaction,
   type ReloadlyGiftCardClient,
+  redeemableGiftCard,
   reloadlyGiftCardClientFromEnv,
 } from "./reloadlyGiftCards";
 
@@ -309,13 +310,14 @@ async function reconcileGiftCard(
   }
 
   const issued = await client.getCode(transaction.transactionId);
+  const { code: giftCardCode, pin: giftCardPin } = redeemableGiftCard(issued);
 
   await payload.update({
     collection: "giveaway-winners",
     id: winnerId,
     data: {
-      giftCardCode: issued.cardNumber,
-      giftCardPin: issued.pinCode ?? null,
+      giftCardCode,
+      giftCardPin,
       giftCardRedemptionUrl: issued.redemptionUrl ?? null,
       giftCardInstructions: prize?.reloadlyGiftCardInstructions ?? null,
       fulfilmentStatus: "fulfilled",
@@ -341,8 +343,8 @@ async function reconcileGiftCard(
       to: email,
       winnerName: winner.claimRecipientName ?? null,
       prizeName: String(winner.prizeName ?? "A giveaway prize"),
-      code: issued.cardNumber,
-      pin: issued.pinCode ?? null,
+      code: giftCardCode,
+      pin: giftCardPin,
       redemptionUrl: issued.redemptionUrl ?? null,
       instructions: prize?.reloadlyGiftCardInstructions ?? null,
     });
