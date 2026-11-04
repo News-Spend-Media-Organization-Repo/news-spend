@@ -58,10 +58,31 @@ export type GiftCardOrder = {
 };
 
 export type GiftCardCode = {
-  cardNumber: string;
+  /** The redeemable card number; null for products that issue only a PIN. */
+  cardNumber: string | null;
   pinCode?: string | null;
   redemptionUrl?: string | null;
 };
+
+/**
+ * Which value the winner actually redeems.
+ *
+ * Most products put it in `cardNumber`; some (the Free Fire sandbox product is
+ * one) return a null card number and the redeemable value in `pinCode`. The
+ * winner must always get one value in the code field, and a PIN is only
+ * repeated separately when it is not the code itself.
+ */
+export function redeemableGiftCard(code: GiftCardCode): {
+  code: string;
+  pin: string | null;
+} {
+  const cardNumber = code.cardNumber?.trim() ?? "";
+  const pinCode = code.pinCode?.trim() ?? "";
+  return {
+    code: cardNumber || pinCode,
+    pin: cardNumber && pinCode ? pinCode : null,
+  };
+}
 
 export type GiftCardTransaction = GiftCardOrder;
 
@@ -228,11 +249,25 @@ export class ReloadlyGiftCardClient {
     });
   }
 
-  getCode(transactionId: string | number): Promise<GiftCardCode> {
-    return this.request<GiftCardCode>(
+  async getCode(transactionId: string | number): Promise<GiftCardCode> {
+    // The sandbox answers with an array even though the v2 examples show an
+    // object; accept both rather than trusting one and losing the code.
+    const body = await this.request<Paged<GiftCardCode>>(
       `/orders/transactions/${transactionId}/cards`,
       { accept: ACCEPT_V2 }
     );
+    const code = items(body)[0];
+
+    if (!code || redeemableGiftCard(code).code === "") {
+      throw new ReloadlyError(
+        "Reloadly returned no redeemable gift card code",
+        502,
+        body,
+        true
+      );
+    }
+
+    return code;
   }
 
   /**

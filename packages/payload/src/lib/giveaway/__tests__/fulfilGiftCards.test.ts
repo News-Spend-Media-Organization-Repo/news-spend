@@ -248,6 +248,27 @@ describe("gift card fulfilment", () => {
     expect(summary).toEqual({ attempted: 1, sent: 1, failed: 0, skipped: 0 });
   });
 
+  it("uses a PIN as the code when the product has no card number", async () => {
+    const { payload, updates } = fakePayload([winnerWithPrize()]);
+    const client = fakeGiftCardClient({
+      code: { cardNumber: null, pinCode: "PIN-1", redemptionUrl: null },
+    });
+
+    const summary = await fulfilPendingPrizes(payload as never, {
+      client: topupClient,
+      giftCardClient: client as never,
+    });
+
+    const winnerUpdate = updates.find(
+      (u) => u.data.fulfilmentStatus === "fulfilled"
+    );
+    expect(winnerUpdate?.data).toMatchObject({
+      giftCardCode: "PIN-1",
+      giftCardPin: null,
+    });
+    expect(summary.sent).toBe(1);
+  });
+
   it("requeues a failed code fetch and resumes without ordering again", async () => {
     const { payload, updates } = fakePayload([winnerWithPrize()]);
     const codeError = new ReloadlyError("upstream unavailable", 503, {}, true);
