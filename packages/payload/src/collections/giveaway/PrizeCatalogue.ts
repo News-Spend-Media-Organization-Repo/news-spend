@@ -41,6 +41,38 @@ export function airtimeAmountError(
 }
 
 /**
+ * A gift card prize opts into automatic fulfilment by naming a Reloadly
+ * product. The two halves of that choice — which card, and its face value —
+ * must appear together, because either alone leaves fulfilment with nothing
+ * to buy or nothing to buy with. A gift card with neither saves normally: it
+ * is a legacy/manual prize.
+ */
+export function giftCardConfigurationError(data: {
+  fulfilmentType?: string | null;
+  reloadlyGiftCardProductId?: number | null;
+  reloadlyGiftCardUnitPrice?: number | null;
+}): true | string {
+  if (data.fulfilmentType !== "gift_card") {
+    return true;
+  }
+
+  const hasProduct =
+    data.reloadlyGiftCardProductId !== null &&
+    data.reloadlyGiftCardProductId !== undefined;
+  const hasPrice = Number(data.reloadlyGiftCardUnitPrice) > 0;
+
+  if (hasProduct && !hasPrice) {
+    return "A gift card needs a face value once a product is chosen.";
+  }
+
+  if (!hasProduct && hasPrice) {
+    return "A gift card face value needs a product to buy it from.";
+  }
+
+  return true;
+}
+
+/**
  * Master Prize Catalogue (spec 2).
  *
  * The single source of truth for all prize definitions. Every prize belongs to
@@ -431,6 +463,104 @@ export const PrizeCatalogue: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      name: "reloadlyGiftCardProductId",
+      label: "Reloadly gift card product",
+      type: "number",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        description:
+          "Search for the card to issue. Choosing one opts this prize into automatic fulfilment.",
+        components: {
+          Field:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#GiftCardProductField",
+        },
+      },
+      validate: (value: number | null | undefined, { siblingData }: any) =>
+        giftCardConfigurationError({
+          fulfilmentType: siblingData?.fulfilmentType,
+          reloadlyGiftCardProductId: value,
+          reloadlyGiftCardUnitPrice: siblingData?.reloadlyGiftCardUnitPrice,
+        }),
+    },
+    {
+      name: "reloadlyGiftCardUnitPrice",
+      label: "Face value (recipient currency)",
+      type: "number",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        components: {
+          Field:
+            "@news-spend-media/payload/components/ReloadlyProductSelector#GiftCardDenominationField",
+        },
+      },
+      validate: (value: number | null | undefined, { siblingData }: any) =>
+        giftCardConfigurationError({
+          fulfilmentType: siblingData?.fulfilmentType,
+          reloadlyGiftCardProductId: siblingData?.reloadlyGiftCardProductId,
+          reloadlyGiftCardUnitPrice: value,
+        }),
+    },
+    {
+      name: "reloadlyGiftCardSenderPrice",
+      label: "Sender price (account currency)",
+      type: "number",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+        description:
+          "The exact account-currency charge for FIXED cards. Left at 0 for RANGE cards; the purchase records the actual amount later.",
+      },
+    },
+    {
+      name: "reloadlyGiftCardProductName",
+      label: "Product name",
+      type: "text",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "reloadlyGiftCardCurrency",
+      label: "Currency",
+      type: "text",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "reloadlyGiftCardInstructions",
+      label: "Instructions",
+      type: "textarea",
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "reloadlyGiftCardEnvironment",
+      label: "Environment",
+      type: "select",
+      options: [
+        { label: "Sandbox", value: "sandbox" },
+        { label: "Live", value: "live" },
+      ],
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+        readOnly: true,
+      },
+    },
+    {
+      name: "emailGiftCardCode",
+      label: "Email the code to the winner",
+      type: "checkbox",
+      defaultValue: true,
+      admin: {
+        condition: (data) => data?.fulfilmentType === "gift_card",
+      },
     },
     {
       name: "image",
