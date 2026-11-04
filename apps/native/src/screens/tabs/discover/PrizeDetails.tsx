@@ -1,8 +1,9 @@
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns/format";
+import * as Clipboard from "expo-clipboard";
 import { Card } from "heroui-native/card";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, View } from "react-native";
 import { ScreenHeader } from "#/components";
 import { Button } from "#/components/heroui/button";
 import { Icon } from "#/components/heroui/icon";
@@ -23,6 +24,7 @@ const PRIZE_ICON: Record<string, typeof GiftIcon> = {
   airtime: DeviceMobileIcon,
   data: DeviceMobileIcon,
   physical: PackageIcon,
+  gift_card: GiftIcon,
 };
 
 const when = (value: string | null | undefined) =>
@@ -45,6 +47,58 @@ function Detail({
       <Text className="text-sm text-subtle-text">{label}</Text>
       <Text className="flex-1 text-right text-sm">{value}</Text>
     </View>
+  );
+}
+
+/** The redeemed gift card's code, PIN and redeem/copy actions. */
+function GiftCardPanel({
+  giftCard,
+}: {
+  giftCard: {
+    code: string;
+    pin: string | null;
+    redemptionUrl: string | null;
+    instructions: string | null;
+  };
+}) {
+  const onCopyCode = async () => {
+    await Clipboard.setStringAsync(giftCard.code);
+    Alert.alert("Copied", "Gift card code copied to your clipboard.");
+  };
+
+  const onRedeem = () => {
+    const url = giftCard.redemptionUrl;
+    if (url) {
+      Linking.openURL(url).catch(() => {
+        // No browser or handler available; nothing further to show.
+      });
+    }
+  };
+
+  return (
+    <Card className="gap-2 rounded-md p-4">
+      <Text className="pb-1 font-semibold text-subtle-text text-xs tracking-wide">
+        YOUR GIFT CARD
+      </Text>
+      <Detail label="Code" value={giftCard.code} />
+      <Detail label="PIN" value={giftCard.pin} />
+      {giftCard.instructions ? (
+        <Text className="text-sm text-subtle-text">
+          {giftCard.instructions}
+        </Text>
+      ) : null}
+      <Text className="text-subtle-text text-xs">
+        This code is personal and cannot be replaced.
+      </Text>
+      <Button onPress={onCopyCode}>
+        <Button.Label>Copy code</Button.Label>
+      </Button>
+      {giftCard.redemptionUrl ? (
+        <Button onPress={onRedeem} variant="secondary">
+          <Button.Label>Redeem</Button.Label>
+        </Button>
+      ) : null}
+    </Card>
   );
 }
 
@@ -169,6 +223,8 @@ function PrizeDetails({
             <Detail label="Address" value={data.shippingAddress} />
           </Card>
         ) : null}
+
+        {data.giftCard ? <GiftCardPanel giftCard={data.giftCard} /> : null}
 
         {data.underReview ? (
           <Card className="gap-1 rounded-md bg-s-300 p-4">
