@@ -5,11 +5,12 @@ import { useMMKVDevTools } from "@rozenite/mmkv-plugin";
 import { useReactNavigationDevTools } from "@rozenite/react-navigation-plugin";
 import { useTanStackQueryDevTools } from "@rozenite/tanstack-query-plugin";
 import * as Sentry from "@sentry/react-native";
+import { useIsRestoring } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { AppMetrics, Observe, ObserveRoot } from "expo-observe";
 import { ObserveNavigationProvider } from "expo-observe/integrations/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
-import { useCallback, useEffect, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import { Platform, StatusBar as RNStatusBar, View } from "react-native";
 import { initialWindowMetrics } from "react-native-safe-area-context";
 import { Uniwind } from "uniwind";
@@ -87,6 +88,36 @@ const myCustomTheme: Theme = {
     card: "#00223D",
   },
 };
+
+/**
+ * Holds the splash until the persisted cache has rehydrated.
+ *
+ * PersistQueryClientProvider renders its children while restoring, and every
+ * query reports `isPending` for that window — so the home feed painted its
+ * skeleton for a frame or two even when last session's headlines were already
+ * on disk. Returning null instead leaves the native splash up (its hide is
+ * tied to the content's first onLayout), so the app opens on the real feed.
+ */
+function RestoredContent({
+  children,
+  onReady,
+}: {
+  children: ReactNode;
+  onReady: () => void;
+}) {
+  const isRestoring = useIsRestoring();
+
+  if (isRestoring) {
+    return null;
+  }
+
+  return (
+    <View onLayout={onReady} style={{ flex: 1 }}>
+      {children}
+    </View>
+  );
+}
+
 export function App() {
   useTanStackQueryDevTools(queryClient);
   useReactNavigationDevTools({ ref: navigationRef });
@@ -145,15 +176,15 @@ export function App() {
   }
 
   return (
-    <View onLayout={handleContentLayout} style={{ flex: 1 }}>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister,
-          buster: getCacheBuster(),
-          maxAge: PERSISTED_QUERY_MAX_AGE_MS,
-        }}
-      >
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        buster: getCacheBuster(),
+        maxAge: PERSISTED_QUERY_MAX_AGE_MS,
+      }}
+    >
+      <RestoredContent onReady={handleContentLayout}>
         <Provider>
           <ObserveNavigationProvider navigationRef={navigationRef}>
             <Navigation
@@ -186,8 +217,8 @@ export function App() {
 
           {!SCREENSHOT_MODE && <AppOpenAd />}
         </Provider>
-      </PersistQueryClientProvider>
-    </View>
+      </RestoredContent>
+    </PersistQueryClientProvider>
   );
 }
 
