@@ -4,6 +4,10 @@ import { ValidationError } from "payload";
 import { authenticated } from "../access/authenticated";
 import { adminOnly } from "../access/hasRole";
 import { resolveNotificationUrl } from "../lib/notification-link";
+import {
+  normalisePlaceholders,
+  validatePlaceholders,
+} from "../lib/personalise";
 import { queueNotificationSend } from "../lib/pushQueue";
 import { NOTIFICATION_TYPES } from "./NotificationInbox";
 
@@ -69,16 +73,20 @@ const Notifications: CollectionConfig = {
       name: "title",
       type: "text",
       required: true,
+      validate: validatePlaceholders,
       admin: {
-        description: "Notification title",
+        description:
+          "Notification title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each recipient sees their own first name in its place.",
       },
     },
     {
       name: "body",
       type: "textarea",
       required: true,
+      validate: validatePlaceholders,
       admin: {
-        description: "Notification message body",
+        description:
+          "Notification message body. Write {{firstName}} to address each user by first name; it is replaced at send time, or the leading greeting is dropped for a reader with no name.",
       },
     },
     {
@@ -290,7 +298,18 @@ const Notifications: CollectionConfig = {
        * rewrite share links / legacy paths to the app's canonical shape.
        */
       ({ data }) => {
-        if (data?._status !== "published" || data?.sentAt) {
+        if (!data) {
+          return data;
+        }
+
+        for (const field of ["title", "body"] as const) {
+          const value = data[field];
+          if (typeof value === "string") {
+            data[field] = normalisePlaceholders(value);
+          }
+        }
+
+        if (data._status !== "published" || data.sentAt) {
           return data;
         }
 
