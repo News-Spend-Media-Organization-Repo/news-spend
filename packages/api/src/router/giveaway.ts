@@ -81,6 +81,11 @@ function relationId(value: unknown): string | null {
   return String(value);
 }
 
+/** An absent or blank value reads as null, so the app can omit the row. */
+function textOrNull(value: unknown): string | null {
+  return value ? String(value) : null;
+}
+
 /**
  * Which app surfaces produce which kind of engagement (spec 7, 8).
  *
@@ -1379,6 +1384,11 @@ const prizeDetails = protectedProcedure
 
     const attempt = attempts?.docs[0] as Row | undefined;
 
+    const giftCardCode = (winner as Row).giftCardCode as
+      | string
+      | null
+      | undefined;
+
     return {
       ...base,
       giveawayName: String(giveawayDoc?.name ?? "Giveaway"),
@@ -1403,6 +1413,20 @@ const prizeDetails = protectedProcedure
             error: (attempt.error as string | null) ?? null,
           }
         : null,
+      /**
+       * A gift card is the only prize whose value is a secret the winner
+       * carries away. Revealed only once fulfilled, and only here: the list
+       * procedures go through `winningFrom`, which deliberately omits it.
+       */
+      giftCard:
+        base.fulfilmentStatus === "fulfilled" && giftCardCode
+          ? {
+              code: giftCardCode,
+              pin: textOrNull((winner as Row).giftCardPin),
+              redemptionUrl: textOrNull((winner as Row).giftCardRedemptionUrl),
+              instructions: textOrNull((winner as Row).giftCardInstructions),
+            }
+          : null,
     };
   });
 
