@@ -51,6 +51,10 @@ export default function TrendingNews({
   const indexRef = useRef(0);
   const directionRef = useRef<TrendingDirection>(1);
   const draggingRef = useRef(false);
+  // Restarts the auto-advance countdown; set by the effect below.
+  const restartAutoAdvanceRef = useRef<() => void>(() => {
+    // Replaced once the interval effect mounts.
+  });
   const count = news.length;
   const viewabilityConfigCallbackPairs =
     useImpressionViewability("HomeTrending");
@@ -65,25 +69,48 @@ export default function TrendingNews({
     if (!focused || count <= 1) {
       return;
     }
-    const timer = setInterval(() => {
-      // Never advance while hidden: the impression hook counts any card that
-      // becomes visible, even one the reader has not scrolled to.
-      if (draggingRef.current || visibilityRef?.current?.visible === false) {
-        return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleNext = () => {
+      // Cancel the pending tick first: a manual swipe calls this to restart
+      // the countdown, and leaving the old timeout alive would double it.
+      if (timer) {
+        clearTimeout(timer);
       }
-      const next = nextTrendingIndex(
-        indexRef.current,
-        count,
-        directionRef.current
-      );
-      indexRef.current = next.index;
-      directionRef.current = next.direction;
-      listRef.current?.scrollToOffset({
-        offset: next.index * FULL_SIZE,
-        animated: true,
-      });
-    }, TRENDING_AUTO_ADVANCE_MS);
-    return () => clearInterval(timer);
+      timer = setTimeout(() => {
+        // Never advance while hidden: the impression hook counts any card that
+        // becomes visible, even one the reader has not scrolled to. Nor while
+        // the reader is dragging.
+        if (draggingRef.current || visibilityRef?.current?.visible === false) {
+          scheduleNext();
+          return;
+        }
+        const next = nextTrendingIndex(
+          indexRef.current,
+          count,
+          directionRef.current
+        );
+        indexRef.current = next.index;
+        directionRef.current = next.direction;
+        listRef.current?.scrollToOffset({
+          offset: next.index * FULL_SIZE,
+          animated: true,
+        });
+        scheduleNext();
+      }, TRENDING_AUTO_ADVANCE_MS);
+    };
+
+    scheduleNext();
+    restartAutoAdvanceRef.current = scheduleNext;
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      restartAutoAdvanceRef.current = () => {
+        // Unmounted: nothing left to restart.
+      };
+    };
   }, [focused, count, visibilityRef]);
 
   const onScrollBeginDrag = useCallback(() => {
@@ -91,6 +118,9 @@ export default function TrendingNews({
   }, []);
   const onScrollEndDrag = useCallback(() => {
     draggingRef.current = false;
+    // A manual swipe restarts the countdown, so the carousel waits a full
+    // cycle before moving itself instead of finishing a nearly-due one.
+    restartAutoAdvanceRef.current();
   }, []);
   const onMomentumScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
