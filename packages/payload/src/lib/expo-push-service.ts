@@ -192,16 +192,24 @@ async function resolveSegmentTokens(
   return result.docs;
 }
 
-function extractUserId(token: PushToken): string | undefined {
-  if (typeof token.user === "object" && token.user !== null) {
-    return (token.user as { id: string }).id;
+function idOf(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value;
   }
-  return token.user as string | undefined;
+  if (value && typeof value === "object") {
+    const id = (value as { id?: unknown }).id;
+    return typeof id === "string" ? id : undefined;
+  }
+  return;
+}
+
+function extractUserId(token: PushToken): string | undefined {
+  return idOf(token.user);
 }
 
 async function handleFailedTicket(
   ticket: ExpoPushTicket,
-  token: PushToken,
+  token: string,
   req: PayloadRequest
 ): Promise<void> {
   const payload = await getPayload();
@@ -209,7 +217,7 @@ async function handleFailedTicket(
   if (errorCode === "DeviceNotRegistered") {
     await payload.delete({
       collection: "push-tokens",
-      where: { token: { equals: token.token } },
+      where: { token: { equals: token } },
       req,
     });
   }
@@ -226,19 +234,54 @@ function userNameOf(token: PushToken): string | null {
     : null;
 }
 
+function personalised(value: string, name: string | null): string {
+  return hasPlaceholder(value) ? personalise(value, name) : value;
+}
+
 /** Fill `{{firstName}}` in a push title for one recipient; plain titles pass through. */
 export function titleFor(notification: Notification, token: PushToken): string {
-  if (!hasPlaceholder(notification.title)) {
-    return notification.title;
-  }
-  return personalise(notification.title, userNameOf(token));
+  return personalised(notification.title, userNameOf(token));
 }
 
 function bodyFor(notification: Notification, token: PushToken): string {
-  if (!hasPlaceholder(notification.body)) {
-    return notification.body;
-  }
-  return personalise(notification.body, userNameOf(token));
+  return personalised(notification.body, userNameOf(token));
+}
+
+/**
+ * One Expo message. `collapseId` (iOS) and `tag` (Android) carry the campaign
+ * id, so re-sending a campaign replaces the notification still in the tray
+ * instead of stacking a duplicate. A different campaign has a different id and
+ * still stacks as before.
+ */
+export function buildPushMessage(opts: {
+  notification: Notification;
+  notificationId: string;
+  token: string;
+  deviceToken: string;
+  name: string | null;
+}): ExpoPushMessage {
+  const { notification, notificationId, token, deviceToken, name } = opts;
+
+  return {
+    to: token,
+    title: personalised(notification.title, name),
+    body: personalised(notification.body, name),
+    channelId: resolveChannelId(notification),
+    data: {
+      ...(notification.data &&
+      typeof notification.data === "object" &&
+      !Array.isArray(notification.data)
+        ? (notification.data as Record<string, unknown>)
+        : {}),
+      notificationId,
+      deviceToken,
+    },
+    sound: notification.sound ? "default" : null,
+    badge: notification.badge ?? undefined,
+    priority: notification.priority as ExpoPushMessage["priority"],
+    collapseId: notificationId,
+    tag: notificationId,
+  };
 }
 
 async function createInboxEntry(opts: {
@@ -301,7 +344,7 @@ async function recordDeliveryAndInbox(opts: {
   });
 
   if (!isOk) {
-    await handleFailedTicket(ticket, token, req);
+    await handleFailedTicket(ticket, token.token, req);
     return;
   }
 
@@ -375,6 +418,148 @@ async function processTickets(opts: {
   }
 }
 
+/**
+ * Re-send a campaign that has already gone out, to the devices it originally
+ * reached.
+ *
+ * A push cannot be recalled, so the only correction is another push. Sending
+ * it with the same `collapseId`/`tag` replaces the notification where it is
+ * still visible instead of stacking a second one, and the inbox rows are
+ * updated in place so the in-app history does not gain a duplicate.
+ */
+export async function correctNotification(
+  notificationId: string,
+  req: PayloadRequest
+): Promise<{ recipients: number }> {
+  const payload = await getPayload();
+
+  const notification = await payload.findByID({
+    collection: "notifications",
+    id: notificationId,
+    req,
+  });
+
+  if (!notification?.sentAt) {
+    throw new Error("Only a notification that has been sent can be corrected.");
+  }
+
+  const { docs } = await payload.find({
+    collection: "notification-deliveries",
+    where: {
+      and: [
+        { notification: { equals: notificationId } },
+        { status: { not_equals: "failed" } },
+      ],
+    },
+    pagination: false,
+    depth: 0,
+    req,
+  });
+
+  const deliveries = docs.filter((delivery) => delivery.pushToken);
+  if (!deliveries.length) {
+    return { recipients: 0 };
+  }
+
+  const userIds = [
+    ...new Set(
+      deliveries
+        .map((delivery) => idOf(delivery.user))
+        .filter((id): id is string => Boolean(id))
+    ),
+  ];
+
+  const nameById = new Map<string, string | null>();
+  if (userIds.length) {
+    const { docs: users } = await payload.find({
+      collection: "users",
+      where: { id: { in: userIds } },
+      pagination: false,
+      depth: 0,
+      req,
+    });
+    for (const user of users) {
+      nameById.set(user.id, user.name ?? null);
+    }
+  }
+
+  for (const userId of userIds) {
+    const name = nameById.get(userId) ?? null;
+    await payload.update({
+      collection: "notification-inbox",
+      where: {
+        and: [
+          { notification: { equals: notificationId } },
+          { user: { equals: userId } },
+        ],
+      },
+      data: {
+        title: personalised(notification.title, name),
+        body: personalised(notification.body, name),
+      },
+      req,
+    });
+  }
+
+  const messages = deliveries.map((delivery) =>
+    buildPushMessage({
+      notification,
+      notificationId,
+      token: delivery.pushToken,
+      deviceToken: idOf(delivery.deviceToken) ?? "",
+      name: nameById.get(idOf(delivery.user) ?? "") ?? null,
+    })
+  );
+
+  const expo = new Expo();
+  const tickets = await sendChunks(expo, messages, req, notificationId);
+
+  let sent = 0;
+  for (let i = 0; i < deliveries.length; i++) {
+    const delivery = deliveries[i];
+    const ticket = tickets[i];
+    if (!(delivery && ticket)) {
+      continue;
+    }
+
+    if (ticket.status === "ok") {
+      sent += 1;
+      await payload.update({
+        collection: "notification-deliveries",
+        id: delivery.id,
+        data: {
+          status: "pending",
+          expoTicketId: ticket.id,
+          errorMessage: null,
+          deliveredAt: null,
+        },
+        req,
+      });
+    } else {
+      await payload.update({
+        collection: "notification-deliveries",
+        id: delivery.id,
+        data: {
+          status: "failed",
+          errorMessage: ticket.message ?? "Unknown error",
+        },
+        req,
+      });
+      await handleFailedTicket(ticket, delivery.pushToken, req);
+    }
+  }
+
+  if (sent > 0) {
+    await req.payload.jobs.queue({
+      task: "checkPushReceipts",
+      input: { notificationId },
+      waitUntil: new Date(Date.now() + 30 * 60 * 1000),
+    });
+  }
+
+  return { recipients: sent };
+}
+
 export async function sendNotification(
   notificationId: string,
   req: PayloadRequest
@@ -397,26 +582,15 @@ export async function sendNotification(
     const expo = new Expo();
     const deviceTokens = await resolveTokens(notification, req);
 
-    const channelId = resolveChannelId(notification);
-
-    const messages: ExpoPushMessage[] = deviceTokens.map((token) => ({
-      to: token.token,
-      title: titleFor(notification, token),
-      body: bodyFor(notification, token),
-      channelId,
-      data: {
-        ...(notification.data &&
-        typeof notification.data === "object" &&
-        !Array.isArray(notification.data)
-          ? (notification.data as Record<string, unknown>)
-          : {}),
+    const messages: ExpoPushMessage[] = deviceTokens.map((token) =>
+      buildPushMessage({
+        notification,
         notificationId,
+        token: token.token,
         deviceToken: token.id,
-      },
-      sound: notification.sound ? "default" : null,
-      badge: notification.badge ?? undefined,
-      priority: notification.priority as ExpoPushMessage["priority"],
-    }));
+        name: userNameOf(token),
+      })
+    );
 
     const tickets = await sendChunks(expo, messages, req, notificationId);
 

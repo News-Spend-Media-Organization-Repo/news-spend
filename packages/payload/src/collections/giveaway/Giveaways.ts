@@ -4,6 +4,10 @@ import { isStaff } from "../../access/adminRoles";
 import { giveawayStatsView } from "../../components/Analytics/tabs";
 import { giveawaySetupGuideView } from "../../components/GiveawaySetupGuide/tabs";
 import {
+  normalisePlaceholders,
+  validatePlaceholders,
+} from "../../lib/personalise";
+import {
   ADMIN_GROUP,
   DRAW_CHECKPOINT_OPTIONS,
   GIVEAWAY_ANNOUNCEMENT_TITLE,
@@ -437,6 +441,19 @@ export const Giveaways: CollectionConfig = {
   hooks: {
     beforeValidate: [
       async ({ req, data, originalDoc, operation }) => {
+        if (data) {
+          for (const field of [
+            "description",
+            "notificationTitle",
+            "notificationBody",
+          ] as const) {
+            const value = data[field];
+            if (typeof value === "string") {
+              data[field] = normalisePlaceholders(value);
+            }
+          }
+        }
+
         const nextStatus = data?.status as GiveawayStatus | undefined;
         const prevStatus = originalDoc?.status as GiveawayStatus | undefined;
 
@@ -557,6 +574,7 @@ export const Giveaways: CollectionConfig = {
       name: "description",
       type: "textarea",
       maxLength: GIVEAWAY_DESCRIPTION_MAX_LENGTH,
+      validate: validatePlaceholders,
       admin: {
         description: `Shown on the giveaway screen, and sent as the push notification body when this giveaway is set to Active. Write {{firstName}} to address each user by first name, e.g. "{{firstName}}, join 1500 winners". Max ${GIVEAWAY_DESCRIPTION_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
       },
@@ -584,6 +602,7 @@ export const Giveaways: CollectionConfig = {
           name: "notificationTitle",
           type: "text",
           defaultValue: GIVEAWAY_ANNOUNCEMENT_TITLE,
+          validate: validatePlaceholders,
           admin: {
             description:
               "Push title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each user sees their own first name in its place.",
@@ -593,6 +612,7 @@ export const Giveaways: CollectionConfig = {
           name: "notificationBody",
           type: "textarea",
           maxLength: GIVEAWAY_DESCRIPTION_MAX_LENGTH,
+          validate: validatePlaceholders,
           admin: {
             description: `Optional push body. Write {{firstName}} to address each user by first name. Left blank, the description above is sent instead so existing giveaways keep working; nothing is sent if both are empty. Max ${GIVEAWAY_DESCRIPTION_MAX_LENGTH} characters so it is not cut off on a lock screen.`,
           },

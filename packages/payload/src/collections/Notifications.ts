@@ -4,6 +4,10 @@ import { ValidationError } from "payload";
 import { authenticated } from "../access/authenticated";
 import { adminOnly } from "../access/hasRole";
 import { resolveNotificationUrl } from "../lib/notification-link";
+import {
+  normalisePlaceholders,
+  validatePlaceholders,
+} from "../lib/personalise";
 import { queueNotificationSend } from "../lib/pushQueue";
 import { NOTIFICATION_TYPES } from "./NotificationInbox";
 
@@ -69,16 +73,20 @@ const Notifications: CollectionConfig = {
       name: "title",
       type: "text",
       required: true,
+      validate: validatePlaceholders,
       admin: {
-        description: "Notification title",
+        description:
+          "Notification title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each recipient sees their own first name in its place.",
       },
     },
     {
       name: "body",
       type: "textarea",
       required: true,
+      validate: validatePlaceholders,
       admin: {
-        description: "Notification message body",
+        description:
+          "Notification message body. Write {{firstName}} to address each user by first name; it is replaced at send time, or the leading greeting is dropped for a reader with no name.",
       },
     },
     {
@@ -234,6 +242,17 @@ const Notifications: CollectionConfig = {
       },
     },
     {
+      name: "correctNotification",
+      type: "ui",
+      label: "Correct a sent notification",
+      admin: {
+        components: {
+          Field:
+            "@news-spend-media/payload/components/CorrectNotification#CorrectNotification",
+        },
+      },
+    },
+    {
       name: "totalDelivered",
       type: "number",
       virtual: true,
@@ -290,7 +309,18 @@ const Notifications: CollectionConfig = {
        * rewrite share links / legacy paths to the app's canonical shape.
        */
       ({ data }) => {
-        if (data?._status !== "published" || data?.sentAt) {
+        if (!data) {
+          return data;
+        }
+
+        for (const field of ["title", "body"] as const) {
+          const value = data[field];
+          if (typeof value === "string") {
+            data[field] = normalisePlaceholders(value);
+          }
+        }
+
+        if (data._status !== "published" || data.sentAt) {
           return data;
         }
 
@@ -393,6 +423,15 @@ const Notifications: CollectionConfig = {
     ],
     afterRead: [
       async ({ req, doc }) => {
+        /**
+         * Payload also runs this hook for version snapshots, whose body has no
+         * `id`. Querying with it threw a UUID error that Payload swallowed,
+         * turning the Versions tab into a 404.
+         */
+        if (!doc?.id) {
+          return doc;
+        }
+
         const [delivered, failed, opened] = await Promise.all([
           req.payload.count({
             collection: "notification-deliveries",
@@ -441,6 +480,65 @@ const Notifications: CollectionConfig = {
         });
 
         return Response.json(errorLogs);
+      },
+    },
+    {
+      /**
+       * Correct a campaign that has already gone out. A delivered push cannot be
+       * recalled, so this re-sends the saved copy to the devices the campaign
+       * originally reached, using the same notification id as the OS-level
+       * collapse id/tag. Where the notification is still visible it is replaced
+       * in place; inbox copies are updated rather than duplicated.
+       */
+      path: "/:id/correct",
+      method: "post",
+      handler: async (req) => {
+        const user = req.user;
+
+        // Same bar as updating a notification: adminOnly is super-admin.
+        if (user?.collection !== "admins" || user?.role !== "super-admin") {
+          return Response.json(
+            { message: "Only a Super Admin can correct a notification." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id;
+        if (typeof id !== "string") {
+          return Response.json(
+            { message: "Notification not found." },
+            { status: 404 }
+          );
+        }
+
+        try {
+          const { correctNotification } = await import(
+            "../lib/expo-push-service"
+          );
+          const result = await correctNotification(id, req);
+
+          return Response.json({
+            message:
+              result.recipients > 0
+                ? `Correction sent to ${result.recipients} device${result.recipients === 1 ? "" : "s"}.`
+                : "No devices to re-send to.",
+          });
+        } catch (error) {
+          req.payload.logger.error({
+            msg: "Notifications: correction failed",
+            err: error,
+            notificationId: id,
+          });
+          return Response.json(
+            {
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Could not correct the notification.",
+            },
+            { status: 400 }
+          );
+        }
       },
     },
   ],

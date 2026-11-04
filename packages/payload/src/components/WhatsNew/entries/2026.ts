@@ -7,6 +7,32 @@ import type { Entry } from "../types";
  */
 export const entries2026: Entry[] = [
   {
+    id: "2026-11-04-first-name-placeholder-guard",
+    date: "2026-11-04",
+    title: "Push copy now catches a broken first-name placeholder",
+    sections: [
+      {
+        heading: "New",
+        items: [
+          "The notification Title and Body fields, and the giveaway description and notification copy, explain that {{firstName}} is replaced with each recipient's first name.",
+        ],
+      },
+      {
+        heading: "Changed",
+        items: [
+          "A single-brace {firstName} is converted to {{firstName}} when you save, so it can no longer reach a lock screen as literal text.",
+          "Any other brace token, such as {{nam}} or {{first_name}}, is refused on save with a message naming it.",
+        ],
+      },
+      {
+        heading: "What to do",
+        items: [
+          "Write the placeholder exactly as {{firstName}}. If a save is refused, fix the token the message names.",
+        ],
+      },
+    ],
+  },
+  {
     id: "2026-11-03-notification-destinations",
     date: "2026-11-03",
     title: "Push notifications now say where they open",
