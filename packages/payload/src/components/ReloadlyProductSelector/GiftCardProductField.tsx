@@ -3,12 +3,10 @@
 import {
   NumberField,
   SelectInput,
-  TextInput,
   useField,
   useFormFields,
 } from "@payloadcms/ui";
 import type { NumberFieldClientProps } from "payload";
-import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 
 import type { GiftCardProduct } from "../../lib/giveaway/reloadlyGiftCards";
@@ -41,16 +39,14 @@ const siblingPath = (path: string, name: string) =>
 /**
  * Product picker for a gift card prize.
  *
- * The admin types a product name; a debounced search fills a select, and
- * picking one writes the product id back to this field plus the snapshot
- * fields (name, currency, instructions, environment) and clears the face value
- * so a stale denomination can never be paired with the wrong card.
+ * The Nigerian catalogue is small (25 products live, 19 in sandbox), so the
+ * whole list is fetched once and rendered in one searchable dropdown. That
+ * also means an existing prize can show its saved product on load instead of
+ * waiting for a search.
  */
 export const GiftCardProductField = (props: NumberFieldClientProps) => {
   const { field, path, readOnly } = props;
-  const { value, setValue, showError, errorMessage } = useField<
-    number | undefined
-  >({ path });
+  const { value, setValue, showError } = useField<number | undefined>({ path });
 
   const { setValue: setProductName } = useField<string | null>({
     path: siblingPath(path, "reloadlyGiftCardProductName"),
@@ -76,68 +72,53 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
     return typeof state?.value === "string" ? state.value : undefined;
   });
 
-  const [query, setQuery] = useState("");
   const [products, setProducts] = useState<GiftCardProduct[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [environment, setEnvironmentState] = useState<
     "sandbox" | "live" | null
   >(null);
+  const [filter, setFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setProducts([]);
-      setEnvironmentState(null);
-      setError(null);
-      return;
-    }
-
     let current = true;
-    const timer = setTimeout(() => {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      fetch(
-        `/api/reloadly/gift-cards/products?productName=${encodeURIComponent(
-          trimmed
-        )}`
-      )
-        .then(async (res) => {
-          const body = await res.json();
-          if (!res.ok) {
-            throw new Error(body?.error || `Request failed (${res.status})`);
-          }
-          return body as ProductSearchResponse;
-        })
-        .then((data) => {
-          if (!current) {
-            return;
-          }
-          setProducts(data.products);
-          setEnvironmentState(data.environment);
-        })
-        .catch((err: unknown) => {
-          if (!current) {
-            return;
-          }
-          setProducts([]);
-          setError(
-            err instanceof Error ? err.message : "Could not load products"
-          );
-        })
-        .finally(() => {
-          if (current) {
-            setLoading(false);
-          }
-        });
-    }, 300);
+    fetch("/api/reloadly/gift-cards/products")
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body?.error || `Request failed (${res.status})`);
+        }
+        return body as ProductSearchResponse;
+      })
+      .then((data) => {
+        if (!current) {
+          return;
+        }
+        setProducts(data.products);
+        setEnvironmentState(data.environment);
+      })
+      .catch((err: unknown) => {
+        if (!current) {
+          return;
+        }
+        setProducts([]);
+        setError(
+          err instanceof Error ? err.message : "Could not load the products"
+        );
+      })
+      .finally(() => {
+        if (current) {
+          setLoading(false);
+        }
+      });
 
     return () => {
       current = false;
-      clearTimeout(timer);
     };
-  }, [query]);
+  }, []);
 
   const selectProduct = (product: GiftCardProduct) => {
     setValue(product.productId);
@@ -149,25 +130,51 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
     setSenderPrice(undefined);
   };
 
+  const term = filter.trim().toLowerCase();
+  const matching = term
+    ? products.filter((product) =>
+        product.productName.toLowerCase().includes(term)
+      )
+    : products;
+
+  // Keep the saved product visible even when the filter excludes its name, so
+  // an existing prize never renders as an empty select.
+  const saved = value ? products.find((p) => p.productId === value) : undefined;
+  const options = matching.map((p) => ({
+    label: p.productName,
+    value: String(p.productId),
+  }));
+  if (saved && !options.some((o) => o.value === String(saved.productId))) {
+    options.unshift({
+      label: saved.productName,
+      value: String(saved.productId),
+    });
+  }
+
   return (
     <div className="field-type">
-      <TextInput
-        label={field.label}
-        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-          setQuery(e.target.value)
-        }
-        path={path}
-        readOnly={readOnly}
-        value={query}
+      <input
+        aria-label="Search gift card products"
+        onChange={(event) => setFilter(event.target.value)}
+        placeholder="Search gift cards…"
+        style={{
+          border: "1px solid var(--theme-elevation-150)",
+          borderRadius: 4,
+          marginBottom: 8,
+          padding: "8px 12px",
+          width: "100%",
+        }}
+        type="search"
+        value={filter}
       />
 
-      {loading && <Note>Searching…</Note>}
+      {loading && <Note>Loading gift cards…</Note>}
       {error && <Note tone="error">{error}</Note>}
 
-      {!(loading || error) && products.length > 0 && (
+      {!(loading || error) && options.length > 0 && (
         <SelectInput
           description="Choose the card to issue. Picking one opts this prize into automatic fulfilment."
-          label=""
+          label={field.label}
           name={field.name}
           onChange={(option: unknown) => {
             const selected = Array.isArray(option) ? option[0] : option;
@@ -177,10 +184,7 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
               selectProduct(product);
             }
           }}
-          options={products.map((p) => ({
-            label: p.productName,
-            value: String(p.productId),
-          }))}
+          options={options}
           path={path}
           readOnly={readOnly}
           showError={showError}
@@ -190,17 +194,19 @@ export const GiftCardProductField = (props: NumberFieldClientProps) => {
         />
       )}
 
+      {!(loading || error) && options.length === 0 && (
+        <Note>
+          {term
+            ? "No gift cards match that search."
+            : "No gift cards are available in the current Reloadly catalogue."}
+        </Note>
+      )}
+
       <Note>
         {currency ? `Card currency: ${currency}. ` : ""}
         The account charge (sender price) is shown when Reloadly gives an exact
         figure.
       </Note>
-
-      {showError && errorMessage && (
-        <div className="field-error" style={{ marginTop: 8 }}>
-          {errorMessage}
-        </div>
-      )}
     </div>
   );
 };
