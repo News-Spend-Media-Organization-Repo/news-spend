@@ -1,4 +1,4 @@
-import { isInferableError } from "@orpc/client";
+import { isDefinedError } from "@orpc/client";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns/format";
@@ -63,7 +63,7 @@ export default function DateOfBirthDialog({
       },
       onError: (error) => {
         toast.error(
-          isInferableError(error)
+          isDefinedError(error)
             ? error.message
             : "Could not save your date of birth."
         );

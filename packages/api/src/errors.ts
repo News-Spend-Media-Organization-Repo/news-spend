@@ -5,7 +5,7 @@
  * middleware declares these codes via `.errors()`. Throwing with the
  * `errors.CODE()` factory (available in handler and middleware context)
  * marks the error as defined/inferable, so clients can narrow it with
- * `isDefinedError` / `isInferableError` and react to specific codes.
+ * `isDefinedError` / `isDefinedError` and react to specific codes.
  */
 export const commonErrors = {
   BAD_REQUEST: { message: "Bad request" },

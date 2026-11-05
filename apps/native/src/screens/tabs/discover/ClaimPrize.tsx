@@ -1,4 +1,4 @@
-import { isInferableError } from "@orpc/client";
+import { isDefinedError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native/card";
@@ -110,7 +110,7 @@ const ClaimPrize = () => {
         // The window may have closed while this screen was open (a new
         // giveaway starting is enough to do it), so the list has to be
         // refetched rather than left showing a claim button that cannot work.
-        if (isInferableError(error) && error.code === "CONFLICT") {
+        if (isDefinedError(error) && error.code === "CONFLICT") {
           queryClient.invalidateQueries({
             queryKey: orpc.giveaway.actionable.key(),
           });
@@ -122,7 +122,7 @@ const ClaimPrize = () => {
           });
         }
         toast.error(
-          isInferableError(error)
+          isDefinedError(error)
             ? error.message
             : "Could not claim this prize."
         );
@@ -157,7 +157,7 @@ const ClaimPrize = () => {
       },
       onError: (error) => {
         toast.error(
-          isInferableError(error)
+          isDefinedError(error)
             ? error.message
             : "Could not update these details."
         );
