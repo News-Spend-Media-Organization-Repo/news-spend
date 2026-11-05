@@ -18,6 +18,7 @@ import {
 import Latest from "#/components/News/categories/Latest";
 import NewsCategoryComponent from "#/components/News/categories/NewsCategory";
 import { useLoyalReviewPrompt } from "#/lib/reviewPrompt/useLoyalReviewPrompt";
+import { onHomeTabRepeatPress } from "#/state/home-tab-repeat-press";
 import { setTabName } from "#/state/route-state";
 
 type NewsHomeParams =
@@ -86,6 +87,19 @@ export default function NewsHome({ route }: StaticScreenProps<NewsHomeParams>) {
   }, [index, routes]);
 
   useScrollToTop(activeListRef);
+
+  // Pressing Home while already on it scrolls the current feed to the top.
+  // The native tab bar can't do this itself; see home-tab-repeat-press.
+  useEffect(
+    () =>
+      onHomeTabRepeatPress(() => {
+        if (!navigation.isFocused()) {
+          return;
+        }
+        activeListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }),
+    [navigation]
+  );
 
   const createSetRef = useCallback(
     (routeKey: string) => (ref: LegendListRef | null) => {

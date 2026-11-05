@@ -251,9 +251,15 @@ function BrowseCategories({
   );
 }
 
+// LegendList passes `leadingItem` to the separator; Separator takes no such
+// prop, so wrap it rather than hand the component straight through.
+const ListSeparator = () => <Separator />;
+
 export default function SearchScreen() {
   const goBack = useSafeBack();
-  const navigation = useNavigation();
+  // The home stack's navigation (v8: useNavigation takes this screen's name),
+  // so navigate("NewsHome", …) is typed and stays inside the stack.
+  const navigation = useNavigation("Search");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [category, setCategory] = useState<string | undefined>();
@@ -384,7 +390,7 @@ export default function SearchScreen() {
               <LegendList
                 contentContainerStyle={{ paddingBottom: 24 }}
                 data={docs}
-                ItemSeparatorComponent={Separator}
+                ItemSeparatorComponent={ListSeparator}
                 keyExtractor={(item) => item.id}
                 ListEmptyComponent={
                   <View className="items-center gap-1 px-6 pt-12">
