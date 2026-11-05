@@ -65,20 +65,59 @@ function toAppPath(url: string, source: LegacyLinkSource): string {
   return normalized;
 }
 
-/** The app path a tapped notification points at, or undefined when it has none. */
-function notificationTarget(response: Notifications.NotificationResponse) {
-  const screenUrl = response.notification.request.content.data?.url;
+/**
+ * The in-app path (leading slash, no scheme) a notification's data points at,
+ * or undefined when it has none.
+ *
+ * For navigating from inside the app (the inbox) with React Navigation's
+ * `linkTo`. Going through `Linking.openURL` instead hands the URL to the OS,
+ * which can route it to another installed build that claims the same scheme
+ * and backgrounds this one.
+ */
+export function notificationDataPath(
+  data: Record<string, unknown> | undefined
+): string | undefined {
+  const screenUrl = data?.url;
 
   if (typeof screenUrl !== "string" || !screenUrl.length) {
     return;
   }
 
-  return ensureScheme(
-    withNewsId(
-      toAppPath(screenUrl, "notification"),
-      response.notification.request.content.data?.newsId
-    )
-  );
+  const { url } = normalizeLegacyTabPrefix(screenUrl);
+  const scheme = prefixes.find((prefix) => url.startsWith(prefix));
+  const path = scheme ? url.slice(scheme.length) : url;
+
+  return `/${withNewsId(path, data?.newsId).replace(LEADING_SLASHES, "")}`;
+}
+
+/**
+ * The app URL a notification's data points at, or undefined when it has none.
+ * What a tapped push resolves to; the inbox uses `notificationDataPath`.
+ */
+export function notificationDataTarget(
+  data: Record<string, unknown> | undefined
+): string | undefined {
+  const path = notificationDataPath(data);
+  return path ? ensureScheme(path) : undefined;
+}
+
+/** The app path a tapped notification points at, or undefined when it has none. */
+function notificationTarget(response: Notifications.NotificationResponse) {
+  const data = response.notification.request.content.data as
+    | Record<string, unknown>
+    | undefined;
+
+  // Tracking stays here: the pure helper is shared with in-app rows, which are
+  // not notification taps.
+  const screenUrl = data?.url;
+  if (typeof screenUrl === "string") {
+    const { tab } = normalizeLegacyTabPrefix(screenUrl);
+    if (tab) {
+      trackLegacyTabLink({ tab, source: "notification" });
+    }
+  }
+
+  return notificationDataTarget(data);
 }
 
 /**

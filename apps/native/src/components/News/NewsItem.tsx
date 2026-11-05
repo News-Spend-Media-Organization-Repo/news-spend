@@ -16,14 +16,19 @@ import { SizedImage } from "../SizedImage";
 function NewsItem({
   news,
   latest,
+  onOpen,
 }: {
   news: RouterOutputs["news"]["home"]["docs"][number];
   latest?: boolean;
+  /** Called when the row is tapped, before the article or ad opens. */
+  onOpen?: () => void;
 }) {
   const { url, fallbackUrl, blurhash } = getImageData(news.image, "thumbnail");
   const navigation = useNavigation();
 
   const onPress = () => {
+    onOpen?.();
+
     if (
       shouldShowNewsClickAd() &&
       (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)
@@ -96,19 +101,23 @@ function NewsItem({
           )}
         >
           {latest && (
-            <Text className="font-bold text-p-500">
+            <Text className="font-bold text-p-500 text-xs">
               {typeof news?.category === "object" ? news.category?.title : null}
             </Text>
           )}
           <View className="flex-1">
-            <Text ellipsizeMode="tail" numberOfLines={2}>
+            <Text
+              className="font-semibold text-base leading-snug"
+              ellipsizeMode="tail"
+              numberOfLines={3}
+            >
               {news?.title}
             </Text>
           </View>
           <View className="flex-row justify-between">
             <View className="flex-row items-center gap-1">
               <Icon color="#737373" name={ClockIcon} size={14} />
-              <Text className="text-[#737373]">
+              <Text className="text-[#737373] text-xs">
                 {formatDistanceToNow(new Date(news.createdAt), {
                   addSuffix: true,
                 })}

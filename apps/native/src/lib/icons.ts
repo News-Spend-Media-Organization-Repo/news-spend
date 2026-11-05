@@ -41,6 +41,7 @@ export { ChatDotsIcon } from "phosphor-react-native/src/icons/ChatDots";
 export { CheckCircleIcon } from "phosphor-react-native/src/icons/CheckCircle";
 export { ClipboardIcon } from "phosphor-react-native/src/icons/Clipboard";
 export { ClockIcon } from "phosphor-react-native/src/icons/Clock";
+export { ClockCounterClockwiseIcon } from "phosphor-react-native/src/icons/ClockCounterClockwise";
 export { CoinsIcon } from "phosphor-react-native/src/icons/Coins";
 export { ConfettiIcon } from "phosphor-react-native/src/icons/Confetti";
 export { CopyIcon } from "phosphor-react-native/src/icons/Copy";

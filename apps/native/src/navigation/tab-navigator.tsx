@@ -1,10 +1,11 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Platform } from "react-native";
-
+import { emitHomeTabRepeatPress } from "#/state/home-tab-repeat-press";
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
 import SettingsStack from "./settings-stack";
 import ShopStack from "./shop-stack";
+
 import { TAB_PATHS } from "./tab-paths";
 
 // Dark navy backing the native bar (matches splash + p-500).
@@ -23,6 +24,16 @@ export default createBottomTabNavigator({
         initialRouteName: "NewsHome",
       },
       screen: NewsStack,
+      listeners: {
+        // `behavior` is only set on a repeated press of the active tab. The
+        // parameter names just the fields read: the exact tab event type
+        // doesn't check through this nested static config (v8 alpha).
+        tabPress: (e: { data?: { behavior?: { scrollToTop?: boolean } } }) => {
+          if (e.data?.behavior?.scrollToTop) {
+            emitHomeTabRepeatPress();
+          }
+        },
+      },
       options: {
         tabBarIcon: ({ focused }) =>
           Platform.select({

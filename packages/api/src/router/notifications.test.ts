@@ -1,236 +1,19 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { call } from "@orpc/server";
 
-import { createFakePayload, mockContext } from "../test-utils";
+import { createFakePayload, expectError, mockContext } from "../test-utils";
 import { notificationsRouter } from "./notifications";
 
-// Mock sendNotification from the payload package so we never hit the real
-// notification infrastructure.  Each test can inspect mockSendNotification.calls.
-const mockSendNotification = mock(async () => ({ success: true }));
-mock.module("@news-spend-media/payload/lib/send-notification", () => ({
-  sendNotification: mockSendNotification,
-}));
-
-afterEach(() => {
-  mockSendNotification.mockClear();
-});
-
-// ─── testNotification ─────────────────────────────────────────────────────────
-
-describe("notificationsRouter.testNotification", () => {
-  it("returns success:false when the user has no push tokens", async () => {
-    const payload = createFakePayload({
-      collections: { "push-tokens": [] },
-    });
-    const ctx = mockContext({ payload });
-
-    const result = await call(
-      notificationsRouter.testNotification,
-      { userId: "user-1" },
-      { context: ctx }
-    );
-
-    expect(result).toEqual({
-      success: false,
-      message: "No push tokens found for user",
-    });
-    expect(mockSendNotification).not.toHaveBeenCalled();
-  });
-
-  it("sends a notification with default title and body when omitted", async () => {
-    const payload = createFakePayload({
-      collections: {
-        "push-tokens": [{ id: "tok-1", userId: "user-1", token: "expo-abc" }],
-      },
-    });
-    const ctx = mockContext({ payload });
-
-    const result = await call(
-      notificationsRouter.testNotification,
-      { userId: "user-1" },
-      { context: ctx }
-    );
-
-    expect(result).toEqual({ success: true });
-    expect(mockSendNotification).toHaveBeenCalledWith({
-      pushTokens: [expect.objectContaining({ id: "tok-1" })],
-      title: "Test Notification",
-      body: "This is a test notification",
-      data: {},
-    });
-  });
-
-  it("passes through custom title, body, and data", async () => {
-    const payload = createFakePayload({
-      collections: {
-        "push-tokens": [{ id: "tok-1", userId: "user-1", token: "expo-abc" }],
-      },
-    });
-    const ctx = mockContext({ payload });
-    const customData = { screen: "profile" };
-
-    const result = await call(
-      notificationsRouter.testNotification,
-      {
-        userId: "user-1",
-        title: "Custom Title",
-        body: "Custom body",
-        data: customData,
-      },
-      { context: ctx }
-    );
-
-    expect(result).toEqual({ success: true });
-    expect(mockSendNotification).toHaveBeenCalledWith({
-      pushTokens: [expect.objectContaining({ id: "tok-1" })],
-      title: "Custom Title",
-      body: "Custom body",
-      data: customData,
-    });
-  });
-
-  it("queries push-tokens by userId", async () => {
-    const payload = createFakePayload({
-      collections: {
-        "push-tokens": [
-          { id: "tok-1", userId: "user-1", token: "expo-abc" },
-          { id: "tok-2", userId: "user-2", token: "expo-def" },
-        ],
-      },
-    });
-    const ctx = mockContext({ payload });
-
-    await call(
-      notificationsRouter.testNotification,
-      { userId: "user-1" },
-      { context: ctx }
-    );
-
-    const findCall = payload.calls.find(
-      (c) => c.op === "find" && c.collection === "push-tokens"
-    );
-    expect(findCall).toBeDefined();
-    expect(findCall?.args.where).toEqual({
-      userId: { equals: "user-1" },
-    });
-    // Only user-1's token should be passed to sendNotification
-    expect(mockSendNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pushTokens: [expect.objectContaining({ id: "tok-1" })],
-      })
-    );
-  });
-});
-
-// ─── newsCreate ───────────────────────────────────────────────────────────────
-
-describe("notificationsRouter.newsCreate", () => {
-  it("queries users with BREAKING_NEWS preference and their push tokens", async () => {
-    const payload = createFakePayload({
-      collections: {
-        users: [
-          {
-            id: "u1",
-            notificationPreferences: { types: { BREAKING_NEWS: true } },
-          },
-          {
-            id: "u2",
-            notificationPreferences: { types: { BREAKING_NEWS: false } },
-          },
-          {
-            id: "u3",
-            notificationPreferences: { types: { BREAKING_NEWS: true } },
-          },
-        ],
-        "push-tokens": [
-          { id: "tok-1", user: "u1", token: "expo-1" },
-          { id: "tok-2", user: "u3", token: "expo-2" },
-          { id: "tok-3", user: "u2", token: "expo-3" },
-        ],
-      },
-    });
-    const ctx = mockContext({ payload });
-
-    const result = await call(
-      notificationsRouter.newsCreate,
-      { title: "Breaking!", body: "Something happened" },
-      { context: ctx }
-    );
-
-    expect(result).toEqual({ success: true });
-
-    // Verify the users query targets BREAKING_NEWS subscribers
-    const userFind = payload.calls.find(
-      (c) => c.op === "find" && c.collection === "users"
-    );
-    expect(userFind).toBeDefined();
-    expect(userFind?.args.where).toEqual({
-      "notificationPreferences.types.BREAKING_NEWS": { equals: true },
-    });
-
-    // Only the two subscribed users' tokens are sent; u2 opted out, so
-    // tok-3 must not appear.
-    const tokenFind = payload.calls.find(
-      (c) => c.op === "find" && c.collection === "push-tokens"
-    );
-    expect(tokenFind?.args.where).toEqual({ user: { in: ["u1", "u3"] } });
-    expect(mockSendNotification).toHaveBeenCalledWith({
-      pushTokens: [
-        { id: "tok-1", user: "u1", token: "expo-1" },
-        { id: "tok-2", user: "u3", token: "expo-2" },
-      ],
-      title: "Breaking!",
-      body: "Something happened",
-      data: {},
-    });
-  });
-
-  it("sends with empty tokens when no matching users exist", async () => {
-    const payload = createFakePayload({
-      collections: {
-        users: [
-          {
-            id: "u1",
-            notificationPreferences: { types: { BREAKING_NEWS: false } },
-          },
-        ],
-        "push-tokens": [{ id: "tok-1", user: "u1", token: "expo-1" }],
-      },
-    });
-    const ctx = mockContext({ payload });
-
-    const result = await call(
-      notificationsRouter.newsCreate,
-      { title: "News", body: "Body" },
-      { context: ctx }
-    );
-
-    expect(result).toEqual({ success: true });
-    // sendNotification is still called, even though the push-tokens query uses an empty `in` list
-    expect(mockSendNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pushTokens: [],
-        title: "News",
-        body: "Body",
-      })
-    );
-  });
-
-  it("passes through optional data", async () => {
-    const payload = createFakePayload({
-      collections: { users: [], "push-tokens": [] },
-    });
-    const ctx = mockContext({ payload });
-
-    await call(
-      notificationsRouter.newsCreate,
-      { title: "T", body: "B", data: { articleId: "a1" } },
-      { context: ctx }
-    );
-
-    expect(mockSendNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { articleId: "a1" } })
-    );
+// testNotification and newsCreate were public procedures that let any caller
+// push to any user, or to every BREAKING_NEWS subscriber. Nothing called them;
+// they are removed. Keep them out. `inbox` only reads the caller's own rows and
+// is protected (its tests below assert the unauthenticated rejection).
+describe("notificationsRouter surface", () => {
+  it("exposes no unauthenticated send procedures", () => {
+    expect(Object.keys(notificationsRouter).sort()).toEqual([
+      "inbox",
+      "trackOpen",
+    ]);
   });
 });
 
@@ -398,5 +181,207 @@ describe("notificationsRouter.trackOpen", () => {
         { context: ctx }
       )
     ).toEqual({ success: true });
+  });
+});
+
+// ─── inbox ────────────────────────────────────────────────────────────────────
+
+const authedUser = { id: "user-1", isAnonymous: false };
+
+function inboxItem(
+  id: string,
+  type: string,
+  createdAt: string,
+  user = "user-1"
+) {
+  return {
+    id,
+    user,
+    type,
+    title: `Title ${id}`,
+    body: `Body ${id}`,
+    createdAt,
+  };
+}
+
+const seedInbox = () =>
+  createFakePayload({
+    collections: {
+      "notification-inbox": [
+        inboxItem("n1", "news", "2024-01-01T00:00:00.000Z"),
+        inboxItem("n2", "breaking_news", "2024-01-03T00:00:00.000Z"),
+        inboxItem("n3", "news", "2024-01-04T00:00:00.000Z", "user-2"),
+        inboxItem("n4", "comment", "2024-01-02T00:00:00.000Z"),
+        inboxItem("n5", "misc", "2024-01-05T00:00:00.000Z"),
+      ],
+    },
+  });
+
+const inboxContext = (payload: ReturnType<typeof createFakePayload>) =>
+  mockContext({ user: authedUser as never, payload });
+
+describe("notificationsRouter.inbox.list", () => {
+  it("returns only the caller's rows, newest first", async () => {
+    const payload = seedInbox();
+
+    const result = await call(
+      notificationsRouter.inbox.list,
+      {},
+      { context: inboxContext(payload) }
+    );
+
+    expect(result.docs.map((doc) => doc.id)).toEqual(["n5", "n2", "n4", "n1"]);
+  });
+
+  it("filters news to news and breaking_news", async () => {
+    const payload = seedInbox();
+
+    const result = await call(
+      notificationsRouter.inbox.list,
+      { filter: "news" },
+      { context: inboxContext(payload) }
+    );
+
+    expect(result.docs.map((doc) => doc.id).sort()).toEqual(["n1", "n2"]);
+  });
+
+  it("filters replies to comments", async () => {
+    const payload = seedInbox();
+
+    const result = await call(
+      notificationsRouter.inbox.list,
+      { filter: "replies" },
+      { context: inboxContext(payload) }
+    );
+
+    expect(result.docs.map((doc) => doc.id)).toEqual(["n4"]);
+  });
+
+  it("all applies no type filter", async () => {
+    const payload = seedInbox();
+
+    const result = await call(
+      notificationsRouter.inbox.list,
+      { filter: "all" },
+      { context: inboxContext(payload) }
+    );
+
+    expect(result.docs).toHaveLength(4);
+  });
+
+  it("rejects an unauthenticated caller", async () => {
+    const error = await expectError(
+      call(notificationsRouter.inbox.list, {}, { context: mockContext() })
+    );
+
+    expect(error.code).toBe("UNAUTHORIZED");
+  });
+});
+
+describe("notificationsRouter.inbox.unreadCount", () => {
+  it("counts every row for the caller when since is omitted", async () => {
+    const payload = seedInbox();
+
+    const result = await call(
+      notificationsRouter.inbox.unreadCount,
+      {},
+      { context: inboxContext(payload) }
+    );
+
+    expect(result).toBe(4);
+  });
+
+  it("counts only rows newer than since", async () => {
+    const payload = seedInbox();
+
+    const result = await call(
+      notificationsRouter.inbox.unreadCount,
+      { since: "2024-01-02T12:00:00.000Z" },
+      { context: inboxContext(payload) }
+    );
+
+    expect(result).toBe(2);
+  });
+
+  it("caps the count at 99", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "notification-inbox": Array.from({ length: 105 }, (_, index) =>
+          inboxItem(
+            `n${index}`,
+            "misc",
+            `2024-01-01T00:00:${String(index % 60).padStart(2, "0")}.000Z`
+          )
+        ),
+      },
+    });
+
+    const result = await call(
+      notificationsRouter.inbox.unreadCount,
+      {},
+      { context: inboxContext(payload) }
+    );
+
+    expect(result).toBe(99);
+  });
+});
+
+describe("notificationsRouter.inbox.markOpened", () => {
+  it("increments clickCount on the caller's row", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "notification-inbox": [
+          { id: "n1", user: "user-1", clickCount: 2 },
+          { id: "n2", user: "user-2", clickCount: 5 },
+        ],
+      },
+    });
+
+    const result = await call(
+      notificationsRouter.inbox.markOpened,
+      { id: "n1" },
+      { context: inboxContext(payload) }
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(payload.docs("notification-inbox")[0]?.clickCount).toBe(3);
+  });
+
+  it("does not touch another user's row", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "notification-inbox": [
+          { id: "n1", user: "user-1", clickCount: 2 },
+          { id: "n2", user: "user-2", clickCount: 5 },
+        ],
+      },
+    });
+
+    const error = await expectError(
+      call(
+        notificationsRouter.inbox.markOpened,
+        { id: "n2" },
+        { context: inboxContext(payload) }
+      )
+    );
+
+    expect(error.code).toBe("NOT_FOUND");
+    expect(payload.docs("notification-inbox")[1]?.clickCount).toBe(5);
+  });
+
+  it("throws NOT_FOUND for an unknown row", async () => {
+    const payload = createFakePayload({
+      collections: { "notification-inbox": [] },
+    });
+
+    const error = await expectError(
+      call(
+        notificationsRouter.inbox.markOpened,
+        { id: "missing" },
+        { context: inboxContext(payload) }
+      )
+    );
+
+    expect(error.code).toBe("NOT_FOUND");
   });
 });

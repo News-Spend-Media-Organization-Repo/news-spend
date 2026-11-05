@@ -96,6 +96,21 @@ export const tweetRateLimitMiddleware = createRateLimitMiddleware({
 });
 
 /**
+ * A dedicated bucket for news search.
+ *
+ * Search is read-only and cheap relative to writes, and a reader typing in
+ * the search field can fire a query every 350ms once they hit two
+ * characters, so it gets a wider ceiling than the shared default — but still
+ * its own, so a burst of searches cannot spend the allowance needed for
+ * reactions or comments.
+ */
+export const newsSearchRateLimitMiddleware = createRateLimitMiddleware({
+  name: "news-search",
+  maxRequests: 30,
+  window: 60_000,
+});
+
+/**
  * A dedicated bucket for reader analytics.
  *
  * The app flushes every ten seconds and once more on backgrounding, which is
