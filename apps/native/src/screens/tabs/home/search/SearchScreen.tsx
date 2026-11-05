@@ -121,40 +121,45 @@ function CategoryChips({
   ];
 
   return (
-    <ScrollView
-      contentContainerClassName="gap-2 px-4 py-3"
-      horizontal
-      keyboardShouldPersistTaps="handled"
-      showsHorizontalScrollIndicator={false}
-    >
-      {chips.map(({ id, title }) => {
-        const active = selected === id;
+    // A fixed-height row. Left to size itself, this horizontal ScrollView took
+    // the column's free height and stretched every chip into a tall pill
+    // (flexGrow 0 on the ScrollView alone did not stop it on device).
+    <View style={{ height: 56 }}>
+      <ScrollView
+        contentContainerClassName="items-center gap-2 px-4"
+        horizontal
+        keyboardShouldPersistTaps="handled"
+        showsHorizontalScrollIndicator={false}
+      >
+        {chips.map(({ id, title }) => {
+          const active = selected === id;
 
-        return (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            className={
-              active
-                ? "rounded-full bg-p-500 px-4 py-1.5"
-                : "rounded-full border border-gray-300 bg-white px-4 py-1.5"
-            }
-            key={id ?? "all"}
-            onPress={() => onSelect(id)}
-          >
-            <Text
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               className={
                 active
-                  ? "font-semibold text-sm text-white"
-                  : "font-semibold text-gray-600 text-sm"
+                  ? "rounded-full bg-p-500 px-4 py-1.5"
+                  : "rounded-full border border-gray-300 bg-white px-4 py-1.5"
               }
+              key={id ?? "all"}
+              onPress={() => onSelect(id)}
             >
-              {title}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+              <Text
+                className={
+                  active
+                    ? "font-semibold text-sm text-white"
+                    : "font-semibold text-gray-600 text-sm"
+                }
+              >
+                {title}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 

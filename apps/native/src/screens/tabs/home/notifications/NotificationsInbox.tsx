@@ -2,18 +2,18 @@ import {
   LegendList,
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useLinkTo } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { isSameDay } from "date-fns/isSameDay";
 import { cn } from "heroui-native/utils";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { useSnapshot } from "valtio";
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import { CaretLeftIcon } from "#/lib/icons";
 import { client, orpc } from "#/lib/orpc";
-import { notificationDataTarget } from "#/navigation/linking";
+import { notificationDataPath } from "#/navigation/linking";
 import { useSafeBack } from "#/navigation/useSafeBack";
 import { authState } from "#/state/auth";
 import { useInboxSeen } from "#/state/inbox-seen";
@@ -144,16 +144,22 @@ export default function NotificationsInbox() {
     [lastSeenAt]
   );
 
-  const openItem = useCallback((item: InboxItem) => {
-    client.notifications.inbox
-      .markOpened({ id: item.id })
-      .catch(() => undefined);
+  const linkTo = useLinkTo();
+  const openItem = useCallback(
+    (item: InboxItem) => {
+      client.notifications.inbox
+        .markOpened({ id: item.id })
+        .catch(() => undefined);
 
-    const target = notificationDataTarget(item.data ?? undefined);
-    if (target) {
-      Linking.openURL(target).catch(() => undefined);
-    }
-  }, []);
+      // In-app navigation, not Linking.openURL: handing the URL to the OS can
+      // open another installed build that claims the same scheme.
+      const path = notificationDataPath(item.data ?? undefined);
+      if (path) {
+        linkTo(path);
+      }
+    },
+    [linkTo]
+  );
 
   const rows = useMemo<Row[]>(() => {
     const items = (data?.pages.flatMap((page) => page.docs) ??

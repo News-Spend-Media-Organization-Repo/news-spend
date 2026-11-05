@@ -1,4 +1,8 @@
-import { linking, notificationDataTarget } from "../linking";
+import {
+  linking,
+  notificationDataPath,
+  notificationDataTarget,
+} from "../linking";
 
 jest.mock(
   "expo-notifications",
@@ -209,5 +213,30 @@ describe("notificationDataTarget", () => {
     expect(notificationDataTarget({ url: "article/some-slug" })).toBe(
       "news-spend://article/some-slug"
     );
+  });
+});
+
+describe("notificationDataPath", () => {
+  it("returns an in-app path with the news id and no scheme", () => {
+    expect(
+      notificationDataPath({ url: "article/some-slug", newsId: "news-1" })
+    ).toBe("/article/some-slug?newsId=news-1");
+  });
+
+  it("strips a legacy tab prefix and leading slashes", () => {
+    expect(notificationDataPath({ url: "/news/article/some-slug" })).toBe(
+      "/article/some-slug"
+    );
+  });
+
+  it("drops an app scheme the url already carries", () => {
+    expect(
+      notificationDataPath({ url: "news-spend://article/some-slug" })
+    ).toBe("/article/some-slug");
+  });
+
+  it("returns undefined without a url", () => {
+    expect(notificationDataPath(undefined)).toBeUndefined();
+    expect(notificationDataPath({ url: "" })).toBeUndefined();
   });
 });

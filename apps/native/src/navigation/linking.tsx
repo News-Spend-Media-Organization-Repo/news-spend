@@ -66,12 +66,15 @@ function toAppPath(url: string, source: LegacyLinkSource): string {
 }
 
 /**
- * The app URL a notification's data points at, or undefined when it has none.
+ * The in-app path (leading slash, no scheme) a notification's data points at,
+ * or undefined when it has none.
  *
- * Pure so the inbox can reuse it for a tapped row without going through a
- * notification response.
+ * For navigating from inside the app (the inbox) with React Navigation's
+ * `linkTo`. Going through `Linking.openURL` instead hands the URL to the OS,
+ * which can route it to another installed build that claims the same scheme
+ * and backgrounds this one.
  */
-export function notificationDataTarget(
+export function notificationDataPath(
   data: Record<string, unknown> | undefined
 ): string | undefined {
   const screenUrl = data?.url;
@@ -81,8 +84,21 @@ export function notificationDataTarget(
   }
 
   const { url } = normalizeLegacyTabPrefix(screenUrl);
+  const scheme = prefixes.find((prefix) => url.startsWith(prefix));
+  const path = scheme ? url.slice(scheme.length) : url;
 
-  return ensureScheme(withNewsId(url, data?.newsId));
+  return `/${withNewsId(path, data?.newsId).replace(LEADING_SLASHES, "")}`;
+}
+
+/**
+ * The app URL a notification's data points at, or undefined when it has none.
+ * What a tapped push resolves to; the inbox uses `notificationDataPath`.
+ */
+export function notificationDataTarget(
+  data: Record<string, unknown> | undefined
+): string | undefined {
+  const path = notificationDataPath(data);
+  return path ? ensureScheme(path) : undefined;
 }
 
 /** The app path a tapped notification points at, or undefined when it has none. */
