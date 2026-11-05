@@ -6,6 +6,9 @@
     "paths": {
       "#/*": ["./src/*"],
       "#/images/*": ["./assets/images/*"],
+      "phosphor-react-native/src/lib": [
+        "../../node_modules/phosphor-react-native/src/lib"
+      ],
       "~/*": ["./*"],
       "@/*": ["./*"]
     },
