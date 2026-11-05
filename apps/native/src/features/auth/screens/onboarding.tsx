@@ -44,7 +44,7 @@ type OnboardingPage = {
 const PAGES: OnboardingPage[] = [
   {
     key: "one",
-    source: require("#/images/onboarding-1.png"),
+    source: require("#/images/onboarding-1.webp"),
     aspectRatio: 2000 / 1333,
     imageLabel: "People enjoying meaningful online connections",
     title: "Your Time Online Should Move Your Life Forward",
@@ -53,7 +53,7 @@ const PAGES: OnboardingPage[] = [
   },
   {
     key: "two",
-    source: require("#/images/onboarding-2.png"),
+    source: require("#/images/onboarding-2.webp"),
     aspectRatio: 1,
     imageLabel: "People turning everyday engagement into rewards",
     title: (
@@ -67,7 +67,7 @@ const PAGES: OnboardingPage[] = [
   },
   {
     key: "three",
-    source: require("#/images/onboarding-3.png"),
+    source: require("#/images/onboarding-3.webp"),
     aspectRatio: 1,
     imageLabel: "A person planning a successful future",
     title: (

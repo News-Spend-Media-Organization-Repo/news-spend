@@ -16,6 +16,18 @@ const config = getSentryExpoConfig(__dirname);
 config.resolver.unstable_enablePackageExports = true;
 config.maxWorkers = Math.max(1, Math.floor(os.cpus().length * 0.5));
 
+/**
+ * `@sentry/browser` re-exports session replay from its root, so every
+ * launch asset carries ~100 KB of replay code we never run (src/lib/sentry.ts
+ * registers no replayIntegration). Stub the packages instead.
+ */
+const SENTRY_REPLAY_RE = /^@sentry\/replay(-canvas)?$/;
+const resolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) =>
+  SENTRY_REPLAY_RE.test(moduleName)
+    ? { type: "empty" }
+    : (resolveRequest ?? context.resolveRequest)(context, moduleName, platform);
+
 // config.cacheStores = [
 //   new FileStore({
 //     root: path.join(__dirname, "node_modules", ".cache", "metro"),

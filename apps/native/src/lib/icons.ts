@@ -20,7 +20,6 @@
  * the package root costs nothing at runtime, unlike a value import would.
  */
 export type { Icon, IconProps } from "phosphor-react-native";
-export { IconContext } from "phosphor-react-native";
 export { ArrowBendUpLeftIcon } from "phosphor-react-native/src/icons/ArrowBendUpLeft";
 export { ArrowClockwiseIcon } from "phosphor-react-native/src/icons/ArrowClockwise";
 export { ArrowCounterClockwiseIcon } from "phosphor-react-native/src/icons/ArrowCounterClockwise";
@@ -116,3 +115,7 @@ export { WrenchIcon } from "phosphor-react-native/src/icons/Wrench";
 export { X, XIcon } from "phosphor-react-native/src/icons/X";
 export { XCircleIcon } from "phosphor-react-native/src/icons/XCircle";
 export { XLogoIcon } from "phosphor-react-native/src/icons/XLogo";
+
+// Deep path: the package root re-exports all 1500+ icons, and Metro bundles
+// everything a value import touches.
+export { IconContext } from "phosphor-react-native/src/lib";
