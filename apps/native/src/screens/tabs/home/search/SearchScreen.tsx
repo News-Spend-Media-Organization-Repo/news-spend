@@ -5,9 +5,10 @@ import {
 import type { NewsCategory } from "@news-spend-media/payload/types";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { SearchField } from "heroui-native/search-field";
 import { Separator } from "heroui-native/separator";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Keyboard, Pressable, ScrollView, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
 
 import { Icon } from "#/components/heroui/icon";
@@ -17,7 +18,6 @@ import NewsItemPlaceholder from "#/components/News/NewsItemPlaceholder";
 import {
   CaretRightIcon,
   ClockCounterClockwiseIcon,
-  MagnifyingGlassIcon,
   XCircleIcon,
 } from "#/lib/icons";
 import { orpc, type RouterOutputs } from "#/lib/orpc";
@@ -61,35 +61,27 @@ function SearchHeader({
 }) {
   return (
     <View className="flex-row items-center gap-2 bg-p-500 px-3 pt-safe pb-2">
-      <View className="h-[42px] flex-1 flex-row items-center gap-2 rounded-full bg-white px-3">
-        <Icon color="#737373" name={MagnifyingGlassIcon} size={18} />
-        <TextInput
-          accessibilityLabel="Search news"
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoFocus
-          // Font size only, no line height: on iOS a TextInput's line height
-          // pushes the text below the icon's centre line.
-          className="h-full flex-1 py-0 text-[16px] text-gray-900"
-          onChangeText={onChangeQuery}
-          onSubmitEditing={onSubmit}
-          placeholder="Search news"
-          placeholderTextColor="#9CA3AF"
-          returnKeyType="search"
-          textAlignVertical="center"
-          value={query}
-        />
-        {query.length > 0 ? (
-          <Pressable
+      {/* heroui-native SearchField: icon placement, padding and the clear
+          button's visibility come from the component. Restyled as the white
+          pill on the navy header. */}
+      <SearchField className="flex-1" onChange={onChangeQuery} value={query}>
+        <SearchField.Group>
+          <SearchField.SearchIcon iconProps={{ color: "#737373", size: 18 }} />
+          <SearchField.Input
+            accessibilityLabel="Search news"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+            className="h-[42px] rounded-full border-0 bg-white text-[16px] text-gray-900"
+            onSubmitEditing={onSubmit}
+            placeholder="Search news"
+          />
+          <SearchField.ClearButton
             accessibilityLabel="Clear search"
-            accessibilityRole="button"
-            hitSlop={10}
-            onPress={() => onChangeQuery("")}
-          >
-            <Icon color="#737373" name={XCircleIcon} size={18} />
-          </Pressable>
-        ) : null}
-      </View>
+            iconProps={{ color: "#737373" }}
+          />
+        </SearchField.Group>
+      </SearchField>
       <Pressable
         accessibilityLabel="Cancel search"
         accessibilityRole="button"
