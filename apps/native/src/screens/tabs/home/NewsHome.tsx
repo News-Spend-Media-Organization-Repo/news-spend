@@ -1,6 +1,10 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
 import type { NewsCategory } from "@news-spend-media/payload/types";
-import { useScrollToTop } from "@react-navigation/native";
+import {
+  type StaticScreenProps,
+  useNavigation,
+  useScrollToTop,
+} from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
@@ -14,9 +18,17 @@ import {
 import Latest from "#/components/News/categories/Latest";
 import NewsCategoryComponent from "#/components/News/categories/NewsCategory";
 import { useLoyalReviewPrompt } from "#/lib/reviewPrompt/useLoyalReviewPrompt";
+import { onHomeTabRepeatPress } from "#/state/home-tab-repeat-press";
 import { setTabName } from "#/state/route-state";
 
-export default function NewsHome() {
+type NewsHomeParams =
+  | {
+      /** Open on this category's tab (its id), e.g. from Search's category grid. */
+      category?: string;
+    }
+  | undefined;
+
+export default function NewsHome({ route }: StaticScreenProps<NewsHomeParams>) {
   // Asks an engaged reader for a review when they come back to Home.
   useLoyalReviewPrompt();
 
@@ -46,6 +58,23 @@ export default function NewsHome() {
     [categories]
   );
 
+  // A category handed in through params (Search's "Browse categories") selects
+  // its tab once, then the param is cleared so a later visit to Home doesn't
+  // jump back to it.
+  const navigation = useNavigation();
+  const requestedCategory = route.params?.category;
+  useEffect(() => {
+    if (!requestedCategory) {
+      return;
+    }
+    const target = routes.findIndex((r) => r.key === requestedCategory);
+    if (target >= 0) {
+      setIndex(target);
+      setTabName(routes[target].key);
+    }
+    navigation.setParams({ category: undefined });
+  }, [requestedCategory, routes, navigation]);
+
   // Create refs object for all lists
   const listRefs = useRef<Record<string, LegendListRef>>({});
 
@@ -58,6 +87,19 @@ export default function NewsHome() {
   }, [index, routes]);
 
   useScrollToTop(activeListRef);
+
+  // Pressing Home while already on it scrolls the current feed to the top.
+  // The native tab bar can't do this itself; see home-tab-repeat-press.
+  useEffect(
+    () =>
+      onHomeTabRepeatPress(() => {
+        if (!navigation.isFocused()) {
+          return;
+        }
+        activeListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }),
+    [navigation]
+  );
 
   const createSetRef = useCallback(
     (routeKey: string) => (ref: LegendListRef | null) => {

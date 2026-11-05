@@ -1,9 +1,11 @@
+import type { News } from "@news-spend-media/payload/types";
 import { openapi } from "@orpc/openapi";
-import type { Where } from "payload";
+import type { PaginatedDocs, Where } from "payload";
 import z from "zod";
 
 import { protectedProcedure, publicProcedure } from "../..";
 import { withCache } from "../../lib/cache";
+import { newsSearchRateLimitMiddleware } from "../../lib/ratelimit";
 import { createAdManager, DEFAULT_AD_CONFIG } from "./ad-manager";
 import { newsAnalyticsRouter } from "./analytics";
 import { getCommentCountForNews } from "./comment-counts";
@@ -41,6 +43,15 @@ const AllInputSchema = z.object({
   includeAds: z.boolean().optional().default(true),
   /** Pull-to-refresh: bypass the composed-feed cache for this one call. */
   forceRefresh: z.boolean().nullish().default(false),
+});
+
+const SEARCH_WORD_SPLIT = /\s+/;
+
+const SearchInputSchema = z.object({
+  q: z.string().trim().min(2).max(100),
+  category: z.string().optional(),
+  limit: z.number().int().min(1).max(30).default(20),
+  page: z.number().int().min(1).default(1),
 });
 
 export type AllNewsInput = z.input<typeof AllInputSchema>;
@@ -122,6 +133,47 @@ const all = publicProcedure
       { forceRefresh: input.forceRefresh ?? false, ttl: 90 },
       buildFeed
     );
+  });
+
+/**
+ * Search published articles by title.
+ *
+ * Every word the reader typed has to appear somewhere in the title, in any
+ * order — Payload's Postgres `like` is case-insensitive and matches anywhere,
+ * so "fuel price" finds "Price of fuel rises". Six words is the ceiling; a
+ * longer query stops narrowing and starts asking Postgres to scan for
+ * conditions nobody reads past.
+ */
+const search = publicProcedure
+  .use(newsSearchRateLimitMiddleware)
+  .input(SearchInputSchema)
+  .handler(async ({ input, context }) => {
+    const { payload } = context;
+    const words = input.q.split(SEARCH_WORD_SPLIT).filter(Boolean).slice(0, 6);
+
+    const where: Where = {
+      _status: { equals: "published" },
+      type: { equals: "article" },
+      and: words.map((word) => ({ title: { like: word } })),
+    };
+    if (input.category) {
+      where.category = { equals: input.category };
+    }
+
+    // `.use(rateLimit...)` loosens the inferred context, so a bare
+    // `payload.find` widens to `any`; the annotation keeps the returned
+    // shape (and everything downstream of it) typed.
+    const data: PaginatedDocs<News> = await payload.find({
+      collection: "news",
+      where,
+      sort: "-createdAt",
+      depth: 1,
+      limit: input.limit,
+      page: input.page,
+      select: { content: false, keyPoints: false },
+    });
+
+    return data;
   });
 
 /**
@@ -675,6 +727,7 @@ const categories = publicProcedure
 
 export const newsRouter = {
   all,
+  search,
   trending,
   recordView,
   one,
