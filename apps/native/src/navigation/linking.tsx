@@ -65,20 +65,43 @@ function toAppPath(url: string, source: LegacyLinkSource): string {
   return normalized;
 }
 
-/** The app path a tapped notification points at, or undefined when it has none. */
-function notificationTarget(response: Notifications.NotificationResponse) {
-  const screenUrl = response.notification.request.content.data?.url;
+/**
+ * The app URL a notification's data points at, or undefined when it has none.
+ *
+ * Pure so the inbox can reuse it for a tapped row without going through a
+ * notification response.
+ */
+export function notificationDataTarget(
+  data: Record<string, unknown> | undefined
+): string | undefined {
+  const screenUrl = data?.url;
 
   if (typeof screenUrl !== "string" || !screenUrl.length) {
     return;
   }
 
-  return ensureScheme(
-    withNewsId(
-      toAppPath(screenUrl, "notification"),
-      response.notification.request.content.data?.newsId
-    )
-  );
+  const { url } = normalizeLegacyTabPrefix(screenUrl);
+
+  return ensureScheme(withNewsId(url, data?.newsId));
+}
+
+/** The app path a tapped notification points at, or undefined when it has none. */
+function notificationTarget(response: Notifications.NotificationResponse) {
+  const data = response.notification.request.content.data as
+    | Record<string, unknown>
+    | undefined;
+
+  // Tracking stays here: the pure helper is shared with in-app rows, which are
+  // not notification taps.
+  const screenUrl = data?.url;
+  if (typeof screenUrl === "string") {
+    const { tab } = normalizeLegacyTabPrefix(screenUrl);
+    if (tab) {
+      trackLegacyTabLink({ tab, source: "notification" });
+    }
+  }
+
+  return notificationDataTarget(data);
 }
 
 /**
