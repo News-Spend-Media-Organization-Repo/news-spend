@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isInferableError } from "@orpc/client";
+import { isDefinedError } from "@orpc/client";
 import { call, os } from "@orpc/server";
 import z from "zod";
 
@@ -49,7 +49,7 @@ describe("createRateLimitMiddleware", () => {
       await call(procedure, {}, { context: ctx });
       expect.unreachable("expected the third call to be rate limited");
     } catch (error) {
-      expect(isInferableError(error)).toBe(true);
+      expect(isDefinedError(error)).toBe(true);
       expect(error).toMatchObject({ code: "TOO_MANY_REQUESTS" });
     }
   });

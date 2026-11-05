@@ -1,4 +1,4 @@
-import { isInferableError } from "@orpc/client";
+import { isDefinedError } from "@orpc/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { orpc, type RouterOutputs } from "#/lib/orpc";
@@ -20,7 +20,7 @@ export default function useNews(slug: string) {
         type: "article",
       },
       retry: (failureCount, error) => {
-        if (isInferableError(error) && error?.code === "NOT_FOUND") {
+        if (isDefinedError(error) && error?.code === "NOT_FOUND") {
           return false;
         }
         return failureCount < 3;

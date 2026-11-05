@@ -1,5 +1,5 @@
 import { Galeria } from "@nandorojo/galeria";
-import { isInferableError } from "@orpc/client";
+import { isDefinedError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Sentry from "@sentry/react-native";
 import { format } from "date-fns/format";
@@ -83,7 +83,7 @@ const SingleNews = () => {
   // failed load, so it gets its own screen rather than the global NotFound,
   // which is reserved for links that match no route.
   const isUnavailable =
-    isError && isInferableError(error) && error.code === "NOT_FOUND";
+    isError && isDefinedError(error) && error.code === "NOT_FOUND";
 
   useEffect(() => {
     if (isUnavailable) {

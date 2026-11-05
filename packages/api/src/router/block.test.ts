@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isInferableError } from "@orpc/client";
+import { isDefinedError } from "@orpc/client";
 import { call } from "@orpc/server";
 import { mockContext } from "../test-utils";
 import { blockRouter } from "./block";
@@ -18,7 +18,7 @@ describe("blockRouter.blockUser", () => {
       await call(blockRouter.blockUser, { userId: "user-1" }, { context: ctx });
       expect.unreachable("expected blockUser to throw");
     } catch (error) {
-      expect(isInferableError(error)).toBe(true);
+      expect(isDefinedError(error)).toBe(true);
       expect(error).toMatchObject({
         code: "BAD_REQUEST",
         message: "You cannot block yourself",
