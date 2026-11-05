@@ -7,19 +7,13 @@ import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Separator } from "heroui-native/separator";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Keyboard,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from "react-native";
+import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
 
 import { Icon } from "#/components/heroui/icon";
 import { Text } from "#/components/heroui/text";
 import NewsItem from "#/components/News/NewsItem";
+import NewsItemPlaceholder from "#/components/News/NewsItemPlaceholder";
 import {
   CaretRightIcon,
   ClockCounterClockwiseIcon,
@@ -74,12 +68,15 @@ function SearchHeader({
           autoCapitalize="none"
           autoCorrect={false}
           autoFocus
-          className="h-full flex-1 text-base text-gray-900"
+          // Font size only, no line height: on iOS a TextInput's line height
+          // pushes the text below the icon's centre line.
+          className="h-full flex-1 py-0 text-[16px] text-gray-900"
           onChangeText={onChangeQuery}
           onSubmitEditing={onSubmit}
           placeholder="Search news"
           placeholderTextColor="#9CA3AF"
           returnKeyType="search"
+          textAlignVertical="center"
           value={query}
         />
         {query.length > 0 ? (
@@ -255,6 +252,25 @@ function BrowseCategories({
 // prop, so wrap it rather than hand the component straight through.
 const ListSeparator = () => <Separator />;
 
+const SKELETON_ROWS = ["a", "b", "c", "d", "e"] as const;
+
+/** Five placeholder rows shaped like the result rows (NewsItem, latest). */
+function SearchResultsSkeleton() {
+  return (
+    <View
+      accessibilityLabel="Loading results"
+      accessibilityRole="progressbar"
+      className="pt-1"
+    >
+      {SKELETON_ROWS.map((key) => (
+        <View className="px-4 py-2" key={key}>
+          <NewsItemPlaceholder instantExit latest show />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function SearchScreen() {
   const goBack = useSafeBack();
   // The home stack's navigation (v8: useNavigation takes this screen's name),
@@ -282,6 +298,11 @@ export default function SearchScreen() {
 
   const activeQuery = normalizeSearchQuery(debouncedQuery);
   const searchEnabled = isSearchableQuery(activeQuery);
+  // What's in the field now, before the debounce catches up. The results view
+  // opens as soon as this is searchable, and shows the skeleton until results
+  // for exactly this text arrive, so stale results never sit under new text.
+  const typedQuery = normalizeSearchQuery(query);
+  const showResults = isSearchableQuery(typedQuery);
 
   const saveRecent = useCallback(
     (value: string) => {
@@ -317,6 +338,7 @@ export default function SearchScreen() {
     [data]
   );
   const totalDocs = data?.pages[0]?.totalDocs ?? 0;
+  const loading = typedQuery !== activeQuery || isPending;
 
   const onSubmit = () => {
     if (isSearchableQuery(query)) {
@@ -359,7 +381,7 @@ export default function SearchScreen() {
         query={query}
       />
 
-      {searchEnabled ? (
+      {showResults ? (
         <View className="flex-1">
           <CategoryChips
             categories={categoryOptions}
@@ -367,7 +389,9 @@ export default function SearchScreen() {
             selected={category}
           />
 
-          {error ? (
+          {loading ? (
+            <SearchResultsSkeleton />
+          ) : error ? (
             <View className="flex-1 items-center justify-center gap-3 px-6">
               <Text className="text-center font-semibold text-base">
                 Search isn&apos;t working right now
@@ -380,10 +404,6 @@ export default function SearchScreen() {
                 <Text className="font-semibold text-white">Retry</Text>
               </Pressable>
             </View>
-          ) : isPending ? (
-            <View className="flex-1 items-center justify-center">
-              <ActivityIndicator />
-            </View>
           ) : (
             <>
               <Text className="px-4 pb-1 text-gray-500 text-sm">{`${totalDocs} results for “${activeQuery}”`}</Text>
@@ -391,6 +411,8 @@ export default function SearchScreen() {
                 contentContainerStyle={{ paddingBottom: 24 }}
                 data={docs}
                 ItemSeparatorComponent={ListSeparator}
+                keyboardDismissMode="on-drag"
+                keyboardShouldPersistTaps="handled"
                 keyExtractor={(item) => item.id}
                 ListEmptyComponent={
                   <View className="items-center gap-1 px-6 pt-12">
