@@ -191,7 +191,10 @@ const TrendingNewsItem = ({ item }: { item: News }) => {
         }}
       >
         <Card.Footer className="absolute inset-x-0 bottom-0 z-10 flex-1 bg-p-500">
-          <Text className="px-5 py-3 font-bold text-s-50" numberOfLines={2}>
+          <Text
+            className="px-5 py-3 font-bold text-lg text-s-50 leading-snug"
+            numberOfLines={2}
+          >
             {item.title}
           </Text>
         </Card.Footer>
