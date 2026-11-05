@@ -16,14 +16,19 @@ import { SizedImage } from "../SizedImage";
 function NewsItem({
   news,
   latest,
+  onOpen,
 }: {
   news: RouterOutputs["news"]["home"]["docs"][number];
   latest?: boolean;
+  /** Called when the row is tapped, before the article or ad opens. */
+  onOpen?: () => void;
 }) {
   const { url, fallbackUrl, blurhash } = getImageData(news.image, "thumbnail");
   const navigation = useNavigation();
 
   const onPress = () => {
+    onOpen?.();
+
     if (
       shouldShowNewsClickAd() &&
       (isAdReady("news-click-ads") || appOpenAdSheetState.nativeAdReady)

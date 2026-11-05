@@ -15,12 +15,9 @@ import { BellIcon, MagnifyingGlassIcon } from "#/lib/icons";
 import { orpc } from "#/lib/orpc";
 import NewsHome from "#/screens/tabs/home/NewsHome";
 import NotificationsInbox from "#/screens/tabs/home/notifications/NotificationsInbox";
+import SearchScreen from "#/screens/tabs/home/search/SearchScreen";
 import { authState } from "#/state/auth";
 import { useInboxSeen } from "#/state/inbox-seen";
-
-const noop = () => {
-  // TODO(phase2/3): open the search and notifications screens.
-};
 
 const Header = ({ navigation }: NativeStackHeaderProps) => {
   const userId = useSnapshot(authState).user?.id ?? null;
@@ -58,7 +55,7 @@ const Header = ({ navigation }: NativeStackHeaderProps) => {
           accessibilityRole="button"
           className="size-[38px] items-center justify-center rounded-full bg-white/10"
           hitSlop={8}
-          onPress={noop}
+          onPress={() => navigation.navigate("Search")}
         >
           <Icon color="#fff" name={MagnifyingGlassIcon} size={20} />
         </Pressable>
@@ -100,6 +97,16 @@ export default createNativeStackNavigator({
         headerShown: true,
         animation: "slide_from_right",
         header: Header,
+      },
+    },
+    Search: {
+      screen: SearchScreen,
+      linking: {
+        path: "search",
+      },
+      options: {
+        headerShown: false,
+        animation: "fade",
       },
     },
     NotificationsInbox: {
