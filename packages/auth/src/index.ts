@@ -401,6 +401,27 @@ export const auth = betterAuth({
             });
           }
 
+          // Guests are created without one; only real accounts need the check.
+          // Compared case-insensitively: better-auth lowercases on its own
+          // paths, but an admin or a script can write any casing, and the
+          // partial index in 20261106_090000_users_email_unique_lower matches
+          // on lower(email) too.
+          if (user.email) {
+            const emailExist = await pool.query(
+              "SELECT id FROM users WHERE lower(email) = lower($1)",
+              [user.email]
+            );
+
+            if (emailExist.rows.length) {
+              customErr.push({
+                code: "custom",
+                message: "Email already exist",
+                path: ["email"],
+                input: user.email,
+              });
+            }
+          }
+
           if (customErr.length) {
             throw customErr;
           }
