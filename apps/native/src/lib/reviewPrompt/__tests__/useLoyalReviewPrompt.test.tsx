@@ -7,6 +7,7 @@ let mockFocus: (() => void) | undefined;
 let mockUser: { isAnonymous?: boolean } | null = { isAnonymous: false };
 
 jest.mock("@react-navigation/native", () => ({
+  useIsFocused: jest.fn(() => true),
   useFocusEffect: (effect: () => void) => {
     mockFocus = effect;
   },

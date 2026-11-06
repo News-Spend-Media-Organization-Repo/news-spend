@@ -18,7 +18,8 @@ jest.mock("#/lib/orpc", () => ({
     },
   },
 }));
-jest.mock("@react-navigation/native", () => ({ useNavigation: () => ({}) }));
+jest.mock("@react-navigation/native", () => ({
+  useIsFocused: jest.fn(() => true), useNavigation: () => ({}) }));
 jest.mock("valtio", () => ({
   useSnapshot: (state: unknown) => state,
   proxy: (o: unknown) => o,

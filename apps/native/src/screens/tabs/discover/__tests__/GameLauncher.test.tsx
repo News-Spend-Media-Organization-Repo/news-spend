@@ -14,6 +14,7 @@ let mockMe: {
 } = { isPending: true, refetch: jest.fn() };
 
 jest.mock("@react-navigation/native", () => ({
+  useIsFocused: jest.fn(() => true),
   useNavigation: () => ({
     dispatch: mockDispatch,
     navigate: mockNavigate,

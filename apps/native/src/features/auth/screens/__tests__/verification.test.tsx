@@ -6,6 +6,7 @@ const mockVerify = jest.fn();
 const mockSend = jest.fn();
 
 jest.mock("@react-navigation/native", () => ({
+  useIsFocused: jest.fn(() => true),
   useNavigation: jest.fn(() => ({ goBack: jest.fn(), navigate: jest.fn() })),
   useRoute: jest.fn(() => ({
     params: { email: "reader@example.com", otpSent: true },

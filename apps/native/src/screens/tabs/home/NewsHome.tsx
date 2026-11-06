@@ -2,9 +2,11 @@ import type { LegendListRef } from "@legendapp/list/react-native";
 import type { NewsCategory } from "@news-spend-media/payload/types";
 import {
   type StaticScreenProps,
+  useIsFocused,
   useNavigation,
   useScrollToTop,
 } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { useMMKVObject } from "react-native-mmkv";
@@ -31,6 +33,15 @@ type NewsHomeParams =
 export default function NewsHome({ route }: StaticScreenProps<NewsHomeParams>) {
   // Asks an engaged reader for a review when they come back to Home.
   useLoyalReviewPrompt();
+
+  /**
+   * The stack header above this screen is always navy, so the bar is always
+   * light. Declared here rather than in the navigator options: on iOS a mounted
+   * `expo-status-bar` from any other tab outranks `statusBarStyle`, and tabs
+   * stay mounted. Gated on focus so it stops fighting them when Home is not on
+   * screen.
+   */
+  const isFocused = useIsFocused();
 
   const [index, setIndex] = useState(0);
   const layout = useWindowDimensions();
@@ -171,32 +182,35 @@ export default function NewsHome({ route }: StaticScreenProps<NewsHomeParams>) {
   );
 
   return (
-    <TabView
-      commonOptions={{
-        labelStyle: {
-          color: "#fff",
-          fontSize: 14,
-          fontFamily: "Inter-SemiBold",
-          textTransform: "capitalize",
-        },
-        sceneStyle: {
-          backgroundColor: "white",
-        },
-      }}
-      initialLayout={{ width: layout.width, height: 0 }}
-      lazy
-      navigationState={{ index, routes }}
-      onIndexChange={onIndexChange}
-      pagerStyle={{ zIndex: -3 }}
-      renderLazyPlaceholder={() => (
-        <View className="flex-1 items-center justify-center bg-white">
-          <ActivityIndicator />
-        </View>
-      )}
-      renderScene={renderScene}
-      renderTabBar={renderTabBar}
-      style={{ zIndex: -3 }}
-      swipeEnabled
-    />
+    <>
+      {isFocused && <StatusBar style="light" />}
+      <TabView
+        commonOptions={{
+          labelStyle: {
+            color: "#fff",
+            fontSize: 14,
+            fontFamily: "Inter-SemiBold",
+            textTransform: "capitalize",
+          },
+          sceneStyle: {
+            backgroundColor: "white",
+          },
+        }}
+        initialLayout={{ width: layout.width, height: 0 }}
+        lazy
+        navigationState={{ index, routes }}
+        onIndexChange={onIndexChange}
+        pagerStyle={{ zIndex: -3 }}
+        renderLazyPlaceholder={() => (
+          <View className="flex-1 items-center justify-center bg-white">
+            <ActivityIndicator />
+          </View>
+        )}
+        renderScene={renderScene}
+        renderTabBar={renderTabBar}
+        style={{ zIndex: -3 }}
+        swipeEnabled
+      />
+    </>
   );
 }

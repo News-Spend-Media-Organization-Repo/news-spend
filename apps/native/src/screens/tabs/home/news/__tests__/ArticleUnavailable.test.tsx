@@ -1,5 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
+// Screen mounts its StatusBar only while focused; these render it outside a
+// navigator, so the hook has no state to read.
+jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
+
 import { ArticleUnavailable } from "../ArticleUnavailable";
 
 describe("ArticleUnavailable", () => {

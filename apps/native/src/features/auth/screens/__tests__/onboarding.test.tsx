@@ -7,6 +7,7 @@ const mockReplace = jest.fn();
 const mockNavigate = jest.fn();
 
 jest.mock("@react-navigation/native", () => ({
+  useIsFocused: jest.fn(() => true),
   useNavigation: jest.fn(() => ({
     navigate: mockNavigate,
     replace: mockReplace,

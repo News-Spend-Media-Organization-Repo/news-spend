@@ -1,4 +1,4 @@
-import { useScrollToTop } from "@react-navigation/native";
+import { useIsFocused, useScrollToTop } from "@react-navigation/native";
 import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar, type StatusBarStyle } from "expo-status-bar";
 import { cn } from "heroui-native/utils";
@@ -328,6 +328,16 @@ export function Screen(props: ScreenProps) {
   const { theme } = useUniwind();
   const $containerInsets = useSafeAreaInsetsStyle(safeAreaEdges);
 
+  /**
+   * expo-status-bar keeps a stack of mounted `StatusBar` components and the
+   * last one mounted wins. Tabs stay mounted after their first visit, so a
+   * screen that mounted while unfocused held the bar style even after the user
+   * left it — which is how dark icons ended up on the navy header.
+   *
+   * Mount the component only while this screen is the one on top.
+   */
+  const isFocused = useIsFocused();
+
   const barStyle = statusBarStyle ?? (theme === "dark" ? "light" : "dark");
 
   // KeyboardAvoidingView is only needed for non-scrolling (fixed) screens.
@@ -350,7 +360,7 @@ export function Screen(props: ScreenProps) {
         backgroundColor ? { backgroundColor } : undefined,
       ]}
     >
-      <StatusBar style={barStyle} />
+      {isFocused && <StatusBar style={barStyle} />}
       <NavigationBar style={navigationBarButtonStyle ?? barStyle} />
 
       {shouldUseKeyboardAvoidingView ? (

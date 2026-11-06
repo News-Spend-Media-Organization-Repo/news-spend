@@ -11,6 +11,7 @@ const mockNavigate = jest.fn();
 const mockToastError = jest.fn();
 
 jest.mock("@react-navigation/native", () => ({
+  useIsFocused: jest.fn(() => true),
   useNavigation: () => ({
     navigate: (...args: unknown[]) => mockNavigate(...args),
   }),
