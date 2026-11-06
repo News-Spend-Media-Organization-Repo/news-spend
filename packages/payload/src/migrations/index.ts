@@ -75,6 +75,7 @@ import * as migration_20261030_092949_news_notification_copy from './20261030_09
 import * as migration_20261030_124357_app_settings from './20261030_124357_app_settings';
 import * as migration_20261103_140000_video_ad_events from './20261103_140000_video_ad_events';
 import * as migration_20261104_211122_reloadly_gift_cards from './20261104_211122_reloadly_gift_cards';
+import * as migration_20261106_090000_users_email_unique_lower from './20261106_090000_users_email_unique_lower';
 
 export const migrations = [
   {
@@ -461,5 +462,10 @@ export const migrations = [
     up: migration_20261104_211122_reloadly_gift_cards.up,
     down: migration_20261104_211122_reloadly_gift_cards.down,
     name: '20261104_211122_reloadly_gift_cards'
+  },
+  {
+    up: migration_20261106_090000_users_email_unique_lower.up,
+    down: migration_20261106_090000_users_email_unique_lower.down,
+    name: '20261106_090000_users_email_unique_lower'
   },
 ];
