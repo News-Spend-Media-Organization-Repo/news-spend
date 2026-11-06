@@ -32,6 +32,8 @@ export default createNativeStackNavigator({
         headerShown: true,
         animation: "slide_from_right",
         header: ShopHeader,
+        // Navy header, so the bar stays light (see home-stack).
+        statusBarStyle: "light",
       },
     },
   },

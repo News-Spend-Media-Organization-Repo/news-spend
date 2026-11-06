@@ -101,23 +101,19 @@ function NewsItem({
           )}
         >
           {latest && (
-            <Text className="font-bold text-p-500 text-xs">
+            <Text className="font-bold text-p-500">
               {typeof news?.category === "object" ? news.category?.title : null}
             </Text>
           )}
           <View className="flex-1">
-            <Text
-              className="font-semibold text-base leading-snug"
-              ellipsizeMode="tail"
-              numberOfLines={3}
-            >
+            <Text ellipsizeMode="tail" numberOfLines={2}>
               {news?.title}
             </Text>
           </View>
           <View className="flex-row justify-between">
             <View className="flex-row items-center gap-1">
               <Icon color="#737373" name={ClockIcon} size={14} />
-              <Text className="text-[#737373] text-xs">
+              <Text className="text-[#737373]">
                 {formatDistanceToNow(new Date(news.createdAt), {
                   addSuffix: true,
                 })}

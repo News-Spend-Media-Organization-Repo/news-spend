@@ -97,6 +97,10 @@ export default createNativeStackNavigator({
         headerShown: true,
         animation: "slide_from_right",
         header: Header,
+        // The header is always navy, so the bar is always light. Leaving it to
+        // `auto` made it follow whichever `Screen` last mounted — dark icons on
+        // a dark bar after a light screen.
+        statusBarStyle: "light",
       },
     },
     Search: {
