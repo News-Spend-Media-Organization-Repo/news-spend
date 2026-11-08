@@ -12,6 +12,36 @@ import {
 } from "./middlewares/auth.middleware";
 import { recordLastActive } from "./middlewares/lastActive.middleware";
 
+/**
+ * oRPC keeps the schema issues on the error's data, not in its message, so an
+ * input-validation report only said "Input validation failed" (API-B: 58 users
+ * and no way to tell which field). Path and message are enough to name the
+ * offending field; the received value is left out so no request data is sent.
+ */
+function describeValidationIssues(
+  error: ORPCError<string, unknown>
+): unknown[] | undefined {
+  const data = error.data;
+  const issues =
+    typeof data === "object" && data !== null && "issues" in data
+      ? data.issues
+      : undefined;
+  if (!Array.isArray(issues)) {
+    return;
+  }
+  return issues.map(
+    (issue: { message?: string; path?: readonly unknown[] }) => ({
+      // Standard-schema paths are `{ key }` wrappers; unwrap for readability.
+      path: issue.path?.map((part) =>
+        typeof part === "object" && part !== null && "key" in part
+          ? (part as { key: unknown }).key
+          : part
+      ),
+      message: issue.message,
+    })
+  );
+}
+
 export const sentryMiddleware = os.middleware(async ({ next }) => {
   try {
     return await next();
@@ -27,7 +57,14 @@ export const sentryMiddleware = os.middleware(async ({ next }) => {
       error.defined &&
       error.code !== "INTERNAL_SERVER_ERROR";
     if (!isExpected) {
-      Sentry.captureException(error);
+      const validationIssues =
+        error instanceof ORPCError
+          ? describeValidationIssues(error)
+          : undefined;
+      Sentry.captureException(
+        error,
+        validationIssues ? { extra: { validationIssues } } : undefined
+      );
     }
     throw error;
   }

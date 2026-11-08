@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { call, os } from "@orpc/server";
+import { z } from "zod";
 
-const captureException = mock(() => undefined);
+const captureException = mock(
+  (_error: unknown, _context?: unknown) => undefined
+);
 mock.module("@sentry/node", () => ({
   captureException,
   default: { captureException },
@@ -52,5 +55,30 @@ describe("sentryMiddleware", () => {
 
     expect(error).toMatchObject({ message: "cannot connect to Postgres" });
     expect(captureException).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the field behind an input validation failure", async () => {
+    // Same composition as the real procedures: middleware first, schema after,
+    // which is what puts validation inside the middleware's try/catch.
+    const proc = os
+      .use(sentryMiddleware)
+      .input(
+        z.object({
+          placement: z.array(z.enum(["homepage-ads-banner", "discover-tab"])),
+        })
+      )
+      .handler(async () => "ok");
+
+    await expectError(
+      call(proc, { placement: ["removed-placement"] } as never, { context: {} })
+    );
+
+    expect(captureException).toHaveBeenCalledTimes(1);
+    const context = captureException.mock.calls[0]?.[1] as {
+      extra?: { validationIssues?: unknown };
+    };
+    expect(context.extra?.validationIssues).toMatchObject([
+      { path: ["placement", 0] },
+    ]);
   });
 });
