@@ -399,6 +399,64 @@ describe("partnerContentRouter.getOne", () => {
     expect(findCall?.args.where?.type?.in).toEqual(["app"]);
     expect(findCall?.args.where?.adSize?.equals).toBe("BANNER");
   });
+
+  it("serves no ad to a retired-only placement request", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [content({ placements: ["discover-tab"] })],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      partnerContentRouter.getOne,
+      { placement: ["discover-tab"] },
+      { context: ctx }
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it("drops retired placements and keeps the current ones", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [
+          content({ id: "stale", placements: ["discover-tab"] }),
+          content({ id: "current", placements: ["news-click-ads"] }),
+        ],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      partnerContentRouter.getOne,
+      { placement: ["discover-tab", "news-click-ads"] },
+      { context: ctx }
+    );
+
+    const findCall = payload.calls.find((c) => c.op === "find");
+    expect(findCall?.args.where?.placements?.in).toEqual(["news-click-ads"]);
+    expect(result?.id).toBe("current");
+  });
+
+  it("treats an empty placement list as any placement", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "partner-content": [content({ placements: ["news-click-ads"] })],
+      },
+    });
+    const ctx = mockContext({ payload });
+
+    const result = await call(
+      partnerContentRouter.getOne,
+      { placement: [] },
+      { context: ctx }
+    );
+
+    const findCall = payload.calls.find((c) => c.op === "find");
+    expect(findCall?.args.where?.placements).toBeUndefined();
+    expect(result?.id).toBe("pc1");
+  });
 });
 
 describe("partnerContentRouter.random", () => {

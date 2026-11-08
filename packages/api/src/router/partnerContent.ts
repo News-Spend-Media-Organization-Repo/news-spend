@@ -20,6 +20,22 @@ import { publicProcedure } from "../index";
 import { shapeForPlacements } from "../lib/shapeForPlacements";
 
 const PlacementEnum = z.enum(enum_partner_content_placements.enumValues);
+
+/**
+ * Placements retired on 2026-10-20 (payload asserts the same list is gone).
+ *
+ * Builds from before the removal still ask for them, and the app-version floor
+ * cannot stop them: they predate `x-app-version`, and an absent version is let
+ * through on purpose. Rejecting the request hands the slot a 400 it can only
+ * show as "no ad" anyway (NEWS-SPEND-API-B/S).
+ */
+const RetiredPlacementEnum = z.enum([
+  "discover-tab",
+  "shop-tab",
+  "product-display",
+  "push-notification",
+  "email-campaign",
+]);
 const TypeEnum = z.enum(enum_partner_content_type.enumValues);
 const AdSizeEnum = z.enum(enum_partner_content_ad_size.enumValues);
 const StatusEnum = z.enum(enum_partner_content_status.enumValues);
@@ -35,7 +51,7 @@ const FilteredInput = z.object({
 });
 
 const GetOneInput = z.object({
-  placement: z.array(PlacementEnum).optional(),
+  placement: z.array(z.union([PlacementEnum, RetiredPlacementEnum])).optional(),
   type: z.array(TypeEnum).optional(),
   adSize: AdSizeEnum.optional(),
   video: z.boolean().optional().default(false),
@@ -188,8 +204,27 @@ export const getOnePartnerContent = publicProcedure
     const where: Where = {
       status: { equals: "active" },
     };
-    if (input.placement && input.placement.length > 0) {
-      where.placements = { in: input.placement };
+
+    /**
+     * An old build asking only for a retired placement gets no ad.
+     *
+     * The version floor cannot catch these clients: it shipped on 2026-08-19
+     * and an absent header is allowed through on purpose, while `discover-tab`
+     * and friends were retired on 2026-10-20. They were answering with a 400
+     * nobody could act on (API-B/S: 58 users), so the retired values are
+     * accepted here and dropped instead. A request with nothing current left
+     * returns no ad, which is what the failing slot showed anyway.
+     */
+    const requested = input.placement ?? [];
+    const placements = requested.flatMap((value) => {
+      const current = PlacementEnum.safeParse(value);
+      return current.success ? [current.data] : [];
+    });
+    if (requested.length > 0 && placements.length === 0) {
+      return null;
+    }
+    if (placements.length > 0) {
+      where.placements = { in: placements };
     }
     if (input.type && input.type.length > 0) {
       where.type = { in: input.type };
@@ -260,7 +295,7 @@ export const getOnePartnerContent = publicProcedure
     if (result.docs.length > 0) {
       const randomIndex = Math.floor(Math.random() * result.docs.length);
       const picked = result.docs[randomIndex];
-      finalResult = picked ? shapeForPlacements(picked, input.placement) : null;
+      finalResult = picked ? shapeForPlacements(picked, placements) : null;
     }
     return finalResult;
   });
