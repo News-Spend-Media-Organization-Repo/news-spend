@@ -11,50 +11,13 @@ import { getCachedAd, isCachedAdStale } from "#/utils/ad-cache";
 import { ensureNativeAdLoaded } from "#/utils/ad-loader";
 import { SCREENSHOT_MODE } from "#/utils/screenshotMode";
 import { Text } from "../heroui/text";
+import {
+  AD_SLOT_HEIGHT,
+  AdPlaceholder,
+  ASSET_INSET,
+  MEDIA_SIZE,
+} from "./adSlot";
 import NewsItemFallbackAd from "./NewsItemFallbackAd";
-
-/**
- * Google will not serve video to a media view smaller than 120 in either
- * dimension (dp on Android, points on iOS), and the SDK warns that smaller
- * slots "will be demonetized". At 100 this placement was shutting out every
- * video creative, and the native ad validator flagged it on each ad. The size
- * is a policy floor, not a styling choice, so it applies to every ad rather
- * than only those that turn out to carry video.
- *
- * Two points over the floor, not on it. Measured on an iPhone 17 Pro the media
- * view was exactly 120 and the validator still said it was too small, while an
- * iPhone X with the same layout passed. Native frames are floats, so a value
- * that is nominally 120 can land a hair under, and a check that compares
- * strictly then fails on some devices and not others. A margin removes the
- * question.
- */
-const MEDIA_SIZE = 122;
-
-/**
- * Keeps every asset strictly inside the ad view instead of flush against its
- * edges, with one point of margin on every side.
- *
- * It is applied to a WRAPPER inside the NativeAdView, never as `padding` on
- * the NativeAdView itself. The library insets its native GADNativeAdView by
- * that padding while Yoga still lays the children out as if it had not, so
- * every asset lands one point to the right and below where it should: a
- * 416pt container holds a 414pt native view whose content runs to x=415.
- * Measured on device frames, the call-to-action and body ended at 415 in a
- * 414-wide view, which is exactly AdMob's "advertiser assets outside native
- * ad view". Padding on a plain wrapper is ordinary layout and moves nothing
- * out of bounds.
- */
-const ASSET_INSET = 1;
-
-/**
- * Space kept clear beneath the thumbnail for the SDK's AdChoices icon, which
- * ad-loader pins to the bottom-left corner of the ad view. Google's guidance
- * is to leave room in the chosen corner instead of letting the icon land on
- * the creative, where it can be hard to see. Reserving it as a minimum height
- * means a tall text column still gets its own height for free.
- */
-const ADCHOICES_GUTTER = 20;
-const MIN_AD_HEIGHT = MEDIA_SIZE + ADCHOICES_GUTTER + ASSET_INSET * 2;
 
 export type NewsItemGoogleAdProp = {
   index: number;
@@ -126,20 +89,14 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
   // Google has nothing for this slot. Give it to a partner ad rather than
   // leaving a hole; if there is no partner ad either, it takes up no space. A
   // placeholder box reading "Advertisement" with nothing in it is worse than
-  // no box.
+  // no box, but the fallback holds this height while its own request is in
+  // flight (see NewsItemFallbackAd), so the slot never collapses mid-load.
   if (!nativeAd && failedSlotId === slotId) {
     return <NewsItemFallbackAd slotId={slotId} />;
   }
 
   if (!nativeAd) {
-    return (
-      <View
-        className="items-center justify-center bg-background px-2.5 opacity-60"
-        style={{ minHeight: MIN_AD_HEIGHT }}
-      >
-        <Text className="font-bold text-p-500">Advertisement</Text>
-      </View>
-    );
+    return <AdPlaceholder />;
   }
 
   return (
@@ -152,7 +109,7 @@ const NewsItemGoogleAds = memo(({ item, tab }: NewsItemGoogleAdProp) => {
         // fractional text metrics) can read as a hair short of the children.
         // An integer floor at or above the content removes the question,
         // and unlike a pinned height it follows the content up and down.
-        minHeight: Math.max(MIN_AD_HEIGHT, contentHeight + ASSET_INSET * 2),
+        minHeight: Math.max(AD_SLOT_HEIGHT, contentHeight + ASSET_INSET * 2),
         width: "100%",
       }}
     >

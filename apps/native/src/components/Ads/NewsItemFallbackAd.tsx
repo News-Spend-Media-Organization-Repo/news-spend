@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { memo, useId } from "react";
+import { View } from "react-native";
 import { orpc } from "#/lib/orpc";
+import { AD_SLOT_HEIGHT, AdPlaceholder } from "./adSlot";
 import NewsItemAds from "./NewsItemAd";
 
 /**
@@ -31,21 +33,35 @@ const NewsItemFallbackAd = memo(function NewsItemFallbackAd({
     input: { placement: ["homepage-ads-banner"] },
     staleTime: FALLBACK_STALE_TIME_MS,
   });
-  const { data } = useQuery({
+  const { data, isPending } = useQuery({
     ...queryOptions,
     queryKey: [...queryOptions.queryKey, slotId, instanceId],
     refetchOnWindowFocus: false,
   });
 
+  /**
+   * Hold the slot's reserved height while the partner pick is in flight.
+   *
+   * Returning nothing here is what readers saw: the "Advertisement" box
+   * disappeared, the row collapsed to zero, then the partner ad pushed it back
+   * open — two layout shifts for one failed Google request. The placeholder is
+   * only dropped once the query has settled without a pick, where an empty slot
+   * is the correct, final answer.
+   */
   if (!data) {
-    return null;
+    return isPending ? <AdPlaceholder /> : null;
   }
 
   return (
-    <NewsItemAds
-      fromFallback
-      item={{ _type: "ad", id: `fallback-${slotId}`, payload: data }}
-    />
+    <View
+      style={{ justifyContent: "center", minHeight: AD_SLOT_HEIGHT }}
+      testID="partner-ad-slot"
+    >
+      <NewsItemAds
+        fromFallback
+        item={{ _type: "ad", id: `fallback-${slotId}`, payload: data }}
+      />
+    </View>
   );
 });
 
