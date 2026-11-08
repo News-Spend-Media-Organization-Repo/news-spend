@@ -10,7 +10,7 @@ import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferenceHandlerPlugin } from "@orpc/openapi/plugins";
 // import { PinoHandlerPlugin } from "@orpc/pino";
 import { RateLimitHandlerPlugin } from "@orpc/ratelimit";
-import { onError } from "@orpc/server";
+import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod";
@@ -113,8 +113,26 @@ function validationDetails(
   };
 }
 
+/**
+ * A build the version floor refuses is expected traffic, not a fault.
+ *
+ * Every launch of an out-of-date app answers several calls with this, and each
+ * one was writing a full error record — code, stack, request input — at ERROR
+ * level. That is a handful of log lines per refusal per query, which is what
+ * pushed the production stream past Railway's 500 lines/second limit and made
+ * it start dropping logs for everyone. One line at info still counts the
+ * refusals without drowning the stream.
+ */
+function isUnsupportedAppVersion(error: unknown): boolean {
+  return error instanceof ORPCError && error.code === "UPGRADE_REQUIRED";
+}
+
 function logHandlerError(scope: "API" | "RPC") {
   return (error: unknown) => {
+    if (isUnsupportedAppVersion(error)) {
+      logger.info(`${scope} refused an unsupported app version`);
+      return;
+    }
     const details = validationDetails(error);
     if (details) {
       logger.error(
