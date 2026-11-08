@@ -41,10 +41,17 @@ const RETRY_BACKOFF_MS = [1000];
 /**
  * Google's "Too many recently failed requests for ad unit ... wait a few
  * seconds" is a throttle that follows a run of no-fills, not a fault in the
- * request. Retrying inside the window is refused again, so wait it out.
+ * request. Answering it with a retry 3s later earned the same refusal and then
+ * a 6s timeout: the slot held its placeholder for ~9s and reported an
+ * actionable Sentry event for what was Google's normal cooldown (EA was ~650
+ * events/month at 1-in-10 sampling). The retry is now dropped and the slot
+ * collapses to the partner ad at once, which is the same outcome the reader
+ * eventually got.
+ *
+ * shortcut: one refused probe per slot per feed load is still sent while the
+ * unit is hot; add a shared cooldown if AdMob volume shows that matters.
  */
 const RATE_LIMITED_RE = /too many recently failed/i;
-const RATE_LIMIT_BACKOFF_MS = 3000;
 
 /**
  * What share of actionable load failures to report to Sentry.
@@ -197,7 +204,6 @@ async function loadWithRetries(
    * have servable fill.
    */
   let best: NativeAd | null = null;
-  let rateLimited = false;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -235,18 +241,13 @@ async function loadWithRetries(
     } catch (error) {
       const message = (error as Error)?.message ?? "";
       failures.push(`attempt ${attempt}: ${message}`);
-      rateLimited = RATE_LIMITED_RE.test(message);
+      if (RATE_LIMITED_RE.test(message)) {
+        break;
+      }
     }
 
     if (attempt < MAX_RETRIES) {
-      // Google asks to be left alone for a few seconds after a run of failed
-      // requests; asking again a second later is answered the same way.
-      await delay(
-        rateLimited
-          ? RATE_LIMIT_BACKOFF_MS
-          : (RETRY_BACKOFF_MS[attempt - 1] ?? 1000)
-      );
-      rateLimited = false;
+      await delay(RETRY_BACKOFF_MS[attempt - 1] ?? 1000);
     }
   }
 
