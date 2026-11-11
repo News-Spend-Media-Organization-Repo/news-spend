@@ -1,8 +1,8 @@
 diff --git a/lib/module/components/input/input.styles.js b/lib/module/components/input/input.styles.js
-index 29b8afffabf5b6845f3f38775e99b1a1ac2e63b8..eaf19db4ef86175012a6c11291c34289e374ed27 100644
+index 29b8afffabf5b6845f3f38775e99b1a1ac2e63b8..048f19160df0a849649a5db23b76dc1f6c159d13 100644
 --- a/lib/module/components/input/input.styles.js
 +++ b/lib/module/components/input/input.styles.js
-@@ -32,7 +32,7 @@ const background = tv({
+@@ -32,10 +32,10 @@ const background = tv({
   * explicitly aligned to the trailing side in RTL layouts.
   */
  const input = tv({
@@ -10,7 +10,11 @@ index 29b8afffabf5b6845f3f38775e99b1a1ac2e63b8..eaf19db4ef86175012a6c11291c34289
 +  base: 'input__input ios:outline ios:outline-transparent ios:focus:outline-accent android:border-[1.5px] android:border-field-border android:focus:border-accent rtl:text-right',
    variants: {
      variant: {
-       primary: 'input__input--variant-primary ios:shadow-field android:[elevation:1]',
+-      primary: 'input__input--variant-primary ios:shadow-field android:[elevation:1]',
++      primary: 'input__input--variant-primary ios:shadow-field',
+       secondary: 'input__input--variant-secondary'
+     },
+     isInvalid: {
 diff --git a/lib/typescript/src/components/input/input.styles.d.ts b/lib/typescript/src/components/input/input.styles.d.ts
 index d5fc36ff1fb83c68a08e3a5e8c76b63dec9d7bee..e78f0307179f76cae7750ba534db45ab55a4ff04 100644
 --- a/lib/typescript/src/components/input/input.styles.d.ts
@@ -34,10 +38,10 @@ index d5fc36ff1fb83c68a08e3a5e8c76b63dec9d7bee..e78f0307179f76cae7750ba534db45ab
          isInvalid: {
              true: string;
 diff --git a/src/components/input/input.styles.ts b/src/components/input/input.styles.ts
-index e674d6085922fd64be8a655d8c6077d8333135dc..f638a3c192ea2bf27813124982f7e1a638253dd0 100644
+index e674d6085922fd64be8a655d8c6077d8333135dc..605bf4de0f2a2c5fc2bfe9c70f77dbf1006c8c7e 100644
 --- a/src/components/input/input.styles.ts
 +++ b/src/components/input/input.styles.ts
-@@ -30,7 +30,7 @@ const background = tv({
+@@ -30,11 +30,11 @@ const background = tv({
   * explicitly aligned to the trailing side in RTL layouts.
   */
  const input = tv({
@@ -46,3 +50,8 @@ index e674d6085922fd64be8a655d8c6077d8333135dc..f638a3c192ea2bf27813124982f7e1a6
    variants: {
      variant: {
        primary:
+-        'input__input--variant-primary ios:shadow-field android:[elevation:1]',
++        'input__input--variant-primary ios:shadow-field',
+       secondary: 'input__input--variant-secondary',
+     },
+     isInvalid: {
