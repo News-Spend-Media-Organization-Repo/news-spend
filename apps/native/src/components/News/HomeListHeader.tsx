@@ -33,14 +33,14 @@ export default function HomeListHeader({
   return (
     <View className="mb-3 gap-4">
       <View className="gap-4" onLayout={onTrendingLayout}>
-        <Text className="px-4 font-bold text-xl">Trending News</Text>
+        <Text className="px-4 font-bold text-lg">Trending News</Text>
         <TrendingNews news={news} visibilityRef={trendingVisibility} />
       </View>
 
       <TrendingBooks books={books} />
 
       <SpecialCoverage specialCoverage={specialCoverage} />
-      <Text className="px-4 font-bold text-xl">Latest News</Text>
+      <Text className="px-4 font-bold text-lg">Latest News</Text>
     </View>
   );
 }

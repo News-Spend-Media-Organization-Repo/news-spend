@@ -68,7 +68,7 @@ export default function SpecialCoverage({
 
   return (
     <View className="gap-1">
-      <Text className="px-4 font-bold text-xl">Special Coverage</Text>
+      <Text className="px-4 font-bold text-lg">Special Coverage</Text>
 
       <LegendList
         contentContainerStyle={{

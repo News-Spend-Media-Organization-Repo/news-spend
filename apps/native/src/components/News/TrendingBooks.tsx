@@ -60,7 +60,7 @@ export default function TrendingBooks({
 
   return (
     <View className="gap-1.5">
-      <Text className="px-4 font-bold text-xl">Trending Books</Text>
+      <Text className="px-4 font-bold text-lg">Trending Books</Text>
 
       <LegendList
         contentContainerStyle={{
