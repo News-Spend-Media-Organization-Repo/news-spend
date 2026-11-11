@@ -548,11 +548,26 @@ export const Giveaways: CollectionConfig = {
           doc.status === "active" &&
           (operation === "create" || previousDoc?.status !== "active");
 
-        if (becameActive) {
+        // One push per giveaway, the first time it goes live. Drafting it again
+        // and re-activating must stay quiet, exactly as re-publishing an
+        // article does (`hasBeenPublished`).
+        if (becameActive && doc.hasBeenAnnounced !== true) {
           const { announceGiveaway } = await import(
             "../../lib/giveaway/announceGiveaway"
           );
-          await announceGiveaway(doc, req);
+          const result = await announceGiveaway(doc, req);
+
+          // A failed queueing keeps the flag off so a later save can retry;
+          // switching the push off for this activation still counts as done,
+          // or a later edit would send the announcement late.
+          if (result.reason !== "error") {
+            await req.payload.update({
+              collection: "giveaways",
+              id: doc.id,
+              data: { hasBeenAnnounced: true },
+              req,
+            });
+          }
         }
 
         return doc;
@@ -587,6 +602,18 @@ export const Giveaways: CollectionConfig = {
       admin: {
         description:
           "On by default. Switch off to activate the giveaway without notifying users. Uses the notification title and body below as the message; when the body is left blank the description above is sent instead, and nothing is sent if both are empty.",
+      },
+    },
+    {
+      name: "hasBeenAnnounced",
+      type: "checkbox",
+      defaultValue: false,
+      admin: {
+        readOnly: true,
+        position: "sidebar",
+        hidden: process.env.NODE_ENV !== "development",
+        description:
+          "Set once the activation notification has been handled. Prevents a second push when this giveaway is drafted and activated again.",
       },
     },
     {

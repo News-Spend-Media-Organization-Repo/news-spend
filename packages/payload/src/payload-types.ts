@@ -681,6 +681,10 @@ export interface Giveaway {
    */
   sendAnnouncement?: boolean | null;
   /**
+   * Set once the activation notification has been handled. Prevents a second push when this giveaway is drafted and activated again.
+   */
+  hasBeenAnnounced?: boolean | null;
+  /**
    * Push title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each user sees their own first name in its place.
    */
   notificationTitle?: string | null;
@@ -3496,6 +3500,7 @@ export interface GiveawaysSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   sendAnnouncement?: T;
+  hasBeenAnnounced?: T;
   notificationTitle?: T;
   notificationBody?: T;
   startDate?: T;
