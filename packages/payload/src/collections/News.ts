@@ -287,6 +287,16 @@ const News: CollectionConfig = {
           },
         },
         {
+          name: "notificationKicker",
+          label: "Push prefix",
+          type: "text",
+          maxLength: 30,
+          admin: {
+            description:
+              "Optional word or two shown in front of the push title, e.g. JUST IN. Sent as 'JUST IN: <title>'. Leave blank for no prefix.",
+          },
+        },
+        {
           name: "notificationTitle",
           type: "text",
           maxLength: NEWS_NOTIFICATION_TITLE_MAX_LENGTH,

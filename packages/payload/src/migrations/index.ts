@@ -77,7 +77,7 @@ import * as migration_20261103_140000_video_ad_events from './20261103_140000_vi
 import * as migration_20261104_211122_reloadly_gift_cards from './20261104_211122_reloadly_gift_cards';
 import * as migration_20261106_090000_users_email_unique_lower from './20261106_090000_users_email_unique_lower';
 import * as migration_20261111_200000_giveaway_has_been_announced from './20261111_200000_giveaway_has_been_announced';
-
+import * as migration_20261116_120000_news_notification_kicker from './20261116_120000_news_notification_kicker';
 export const migrations = [
   {
     up: migration_20260203_111507_init.up,
@@ -473,5 +473,10 @@ export const migrations = [
     up: migration_20261111_200000_giveaway_has_been_announced.up,
     down: migration_20261111_200000_giveaway_has_been_announced.down,
     name: '20261111_200000_giveaway_has_been_announced'
+  },
+  {
+    up: migration_20261116_120000_news_notification_kicker.up,
+    down: migration_20261116_120000_news_notification_kicker.down,
+    name: '20261116_120000_news_notification_kicker'
   },
 ];

@@ -57,6 +57,50 @@ describe("newsNotificationCopy", () => {
     });
   });
 
+  it("puts the push prefix in front of the title", () => {
+    expect(
+      newsNotificationCopy({ ...article, notificationKicker: "JUST IN" })
+    ).toEqual({
+      title: "JUST IN: Lagos council approves new market",
+      body: "The market opens next month",
+    });
+  });
+
+  it("does not double the colon when the prefix already has one", () => {
+    expect(
+      newsNotificationCopy({ ...article, notificationKicker: "JUST IN: " })
+        ?.title
+    ).toBe("JUST IN: Lagos council approves new market");
+  });
+
+  it("leaves the title alone when the prefix is blank", () => {
+    expect(
+      newsNotificationCopy({ ...article, notificationKicker: "  " })?.title
+    ).toBe("Lagos council approves new market");
+  });
+
+  it("prefixes an edited title too", () => {
+    expect(
+      newsNotificationCopy({
+        ...article,
+        notificationKicker: "BREAKING",
+        notificationTitle: "Market approved",
+      })?.title
+    ).toBe("BREAKING: Market approved");
+  });
+
+  it("keeps the prefix and cuts a long headline at the push limit", () => {
+    const title = newsNotificationCopy({
+      ...article,
+      title: "Long headline ".repeat(20),
+      notificationKicker: "JUST IN",
+    })?.title;
+
+    expect(title?.startsWith("JUST IN: Long headline")).toBe(true);
+    expect(title?.length).toBeLessThanOrEqual(120);
+    expect(title?.endsWith("…")).toBe(true);
+  });
+
   it("ignores blank overrides and sends the article", () => {
     expect(
       newsNotificationCopy({

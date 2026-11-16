@@ -1182,6 +1182,10 @@ export interface News {
    */
   sendNotification?: boolean | null;
   /**
+   * Optional word or two shown in front of the push title, e.g. JUST IN. Sent as 'JUST IN: <title>'. Leave blank for no prefix.
+   */
+  notificationKicker?: string | null;
+  /**
    * Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max 120 characters.
    */
   notificationTitle?: string | null;
@@ -3759,6 +3763,7 @@ export interface NewsSelect<T extends boolean = true> {
   views?: T;
   excerpt?: T;
   sendNotification?: T;
+  notificationKicker?: T;
   notificationTitle?: T;
   notificationBody?: T;
   featured?: T;

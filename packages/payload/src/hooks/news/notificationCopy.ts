@@ -9,6 +9,7 @@ export type NewsNotificationSource = {
   type?: string | null;
   keyPoints?: KeyPoints;
   sendNotification?: boolean | null;
+  notificationKicker?: string | null;
   notificationTitle?: string | null;
   notificationBody?: string | null;
 };
@@ -75,8 +76,24 @@ export function newsNotificationCopy(doc: NewsNotificationSource): {
       ? suggestedNotificationCopy(doc).body || "New news published!"
       : "New video news published!");
 
+  const title = doc.notificationTitle?.trim() || doc.title;
+
   return {
-    title: doc.notificationTitle?.trim() || doc.title,
+    // The prefix is typed without punctuation, so "JUST IN:" and "JUST IN"
+    // send the same title. A prefix plus a long headline can pass the limit,
+    // and then the headline is cut rather than the push failing to send.
+    title: truncateForPush(
+      withKicker(title, doc.notificationKicker),
+      NEWS_NOTIFICATION_TITLE_MAX_LENGTH
+    ),
     body,
   };
+}
+
+const TRAILING_COLONS = /:+\s*$/;
+
+/** "JUST IN" + "Headline" → "JUST IN: Headline"; no kicker leaves the title. */
+function withKicker(title: string, kicker: string | null | undefined): string {
+  const label = kicker?.trim().replace(TRAILING_COLONS, "");
+  return label ? `${label}: ${title}` : title;
 }
