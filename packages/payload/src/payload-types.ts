@@ -71,6 +71,13 @@ export interface Config {
     twitterEmbed: TwitterPostBlock;
   };
   collections: {
+    'opportunity-interests': OpportunityInterest;
+    'opportunity-sources': OpportunitySource;
+    opportunities: Opportunity;
+    'opportunity-profiles': OpportunityProfile;
+    'opportunity-events': OpportunityEvent;
+    'saved-opportunities': SavedOpportunity;
+    'opportunity-reports': OpportunityReport;
     accounts: Account;
     activities: Activity;
     'survey-offer-events': SurveyOfferEvent;
@@ -136,6 +143,13 @@ export interface Config {
     };
   };
   collectionsSelect: {
+    'opportunity-interests': OpportunityInterestsSelect<false> | OpportunityInterestsSelect<true>;
+    'opportunity-sources': OpportunitySourcesSelect<false> | OpportunitySourcesSelect<true>;
+    opportunities: OpportunitiesSelect<false> | OpportunitiesSelect<true>;
+    'opportunity-profiles': OpportunityProfilesSelect<false> | OpportunityProfilesSelect<true>;
+    'opportunity-events': OpportunityEventsSelect<false> | OpportunityEventsSelect<true>;
+    'saved-opportunities': SavedOpportunitiesSelect<false> | SavedOpportunitiesSelect<true>;
+    'opportunity-reports': OpportunityReportsSelect<false> | OpportunityReportsSelect<true>;
     accounts: AccountsSelect<false> | AccountsSelect<true>;
     activities: ActivitiesSelect<false> | ActivitiesSelect<true>;
     'survey-offer-events': SurveyOfferEventsSelect<false> | SurveyOfferEventsSelect<true>;
@@ -200,6 +214,7 @@ export interface Config {
     'moderation-settings': ModerationSetting;
     'survey-settings': SurveySetting;
     'app-settings': AppSetting;
+    'opportunity-settings': OpportunitySetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -207,6 +222,7 @@ export interface Config {
     'moderation-settings': ModerationSettingsSelect<false> | ModerationSettingsSelect<true>;
     'survey-settings': SurveySettingsSelect<false> | SurveySettingsSelect<true>;
     'app-settings': AppSettingsSelect<false> | AppSettingsSelect<true>;
+    'opportunity-settings': OpportunitySettingsSelect<false> | OpportunitySettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -238,6 +254,7 @@ export interface Config {
       sendUrgentModerationAlert: TaskSendUrgentModerationAlert;
       checkPushReceipts: TaskCheckPushReceipts;
       processGiveaway: TaskProcessGiveaway;
+      processOpportunities: TaskProcessOpportunities;
       cleanupAnonymousUsers: TaskCleanupAnonymousUsers;
       pruneNewsAnalytics: TaskPruneNewsAnalytics;
       prunePartnerContentEvents: TaskPrunePartnerContentEvents;
@@ -320,24 +337,22 @@ export interface TwitterPostBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "accounts".
+ * via the `definition` "opportunity-interests".
  */
-export interface Account {
+export interface OpportunityInterest {
   id: string;
-  userId: string;
-  accountId: string;
-  providerId: string;
-  password?: string | null;
-  /**
-   * OIDC ID token. Mapped to the id_token column, which BetterAuth also uses. Managed by BetterAuth; added in better-auth 1.7.
-   */
-  idToken?: string | null;
-  accessToken?: string | null;
-  refreshToken?: string | null;
-  accessTokenExpiresAt?: string | null;
-  refreshTokenExpiresAt?: string | null;
-  scope?: string | null;
-  expiresAt?: string | null;
+  key: string;
+  label: string;
+  preferences:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  active: boolean;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -535,35 +550,61 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "activities".
+ * via the `definition` "opportunity-sources".
  */
-export interface Activity {
+export interface OpportunitySource {
   id: string;
-  type?: ('point' | 'badge' | 'reward') | null;
-  point: number;
+  title: string;
+  feedUrl: string;
+  status: 'pending' | 'approved' | 'rejected' | 'paused';
+  trust: 'official' | 'verified' | 'unverified';
+  category: string;
   /**
-   * provider:transaction:kind, for provider awards only. The unique index is what stops two servers paying one transaction.
+   * Optional staff override. Ingestion never changes this value.
    */
-  providerRef?: string | null;
-  reward?: string | null;
-  action:
-    | 'signUp'
-    | 'watchLive'
-    | 'read'
-    | 'dailyLogin'
-    | 'share'
-    | 'connectBrandAd'
-    | 'referral'
-    | 'ticketPurchase'
-    | 'lottery'
-    | 'surveyTask'
-    | 'musicListeningTime'
-    | 'partnerContentTask'
-    | 'pointReversal';
-  description?: string | null;
-  user: string | User;
-  news?: (string | null) | News;
-  metadata?:
+  qualityOverride?: number | null;
+  /**
+   * Record the ownership assessment before assigning an official or verified label.
+   */
+  ownershipReview: 'unreviewed' | 'official-domain' | 'publisher-confirmed' | 'rejected';
+  reviewNotes?: string | null;
+  /**
+   * Feed quality signal, not proof of ownership. Official/verified source labels require staff review.
+   */
+  qualityScore?: number | null;
+  lastValidatedAt?: string | null;
+  lastFetchedAt?: string | null;
+  lastError?: string | null;
+  itemsImported?: number | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunities".
+ */
+export interface Opportunity {
+  id: string;
+  title: string;
+  canonicalUrl: string;
+  summary: string;
+  category: string;
+  /**
+   * Search index for the primary and additional categories.
+   */
+  categoryKeys?: string | null;
+  /**
+   * Additional automatically detected categories; the primary category remains above.
+   */
+  categories?:
     | {
         [k: string]: unknown;
       }
@@ -572,6 +613,62 @@ export interface Activity {
     | number
     | boolean
     | null;
+  duplicateKey?: string | null;
+  kind: 'opportunity' | 'news';
+  status: 'draft' | 'published' | 'expired';
+  source: string | OpportunitySource;
+  provider: string;
+  location?: string | null;
+  preferences?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  details?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  deadline?: string | null;
+  publishedAt: string;
+  popularity?: number | null;
+  featured?: boolean | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-profiles".
+ */
+export interface OpportunityProfile {
+  id: string;
+  user: string | User;
+  preferences:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lastNotifiedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -1108,6 +1205,160 @@ export interface GiveawayTicket {
   paymentReference?: string | null;
   purchasedAt: string;
   statusChangedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-events".
+ */
+export interface OpportunityEvent {
+  id: string;
+  user: string | User;
+  opportunity: string | Opportunity;
+  category: string;
+  action: 'open' | 'read' | 'save' | 'share' | 'more' | 'less' | 'dismiss';
+  eventKey: string;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-opportunities".
+ */
+export interface SavedOpportunity {
+  id: string;
+  user: string | User;
+  opportunity: string | Opportunity;
+  saveKey: string;
+  status: 'Interested' | 'Planning to Apply' | 'In Progress' | 'Submitted' | 'Closed';
+  reminderAt?: string | null;
+  reminderSentAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-reports".
+ */
+export interface OpportunityReport {
+  id: string;
+  user: string | User;
+  opportunity: string | Opportunity;
+  reason:
+    | 'Expired opportunity'
+    | 'Incorrect information'
+    | 'Suspicious or misleading content'
+    | 'Broken link'
+    | 'Duplicate content'
+    | 'Other';
+  details?: string | null;
+  status: 'pending' | 'reviewed' | 'resolved';
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounts".
+ */
+export interface Account {
+  id: string;
+  userId: string;
+  accountId: string;
+  providerId: string;
+  password?: string | null;
+  /**
+   * OIDC ID token. Mapped to the id_token column, which BetterAuth also uses. Managed by BetterAuth; added in better-auth 1.7.
+   */
+  idToken?: string | null;
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  accessTokenExpiresAt?: string | null;
+  refreshTokenExpiresAt?: string | null;
+  scope?: string | null;
+  expiresAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "activities".
+ */
+export interface Activity {
+  id: string;
+  type?: ('point' | 'badge' | 'reward') | null;
+  point: number;
+  /**
+   * provider:transaction:kind, for provider awards only. The unique index is what stops two servers paying one transaction.
+   */
+  providerRef?: string | null;
+  reward?: string | null;
+  action:
+    | 'signUp'
+    | 'watchLive'
+    | 'read'
+    | 'dailyLogin'
+    | 'share'
+    | 'connectBrandAd'
+    | 'referral'
+    | 'ticketPurchase'
+    | 'lottery'
+    | 'surveyTask'
+    | 'musicListeningTime'
+    | 'partnerContentTask'
+    | 'pointReversal';
+  description?: string | null;
+  user: string | User;
+  news?: (string | null) | News;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   createdBy?: {
     relationTo: 'admins';
     value: string | Admin;
@@ -2273,6 +2524,7 @@ export interface NotificationDelivery {
  */
 export interface Notification {
   id: string;
+  opportunityDeliveryKey?: string | null;
   /**
    * Notification title. Write {{firstName}} to address each user by first name, e.g. '{{firstName}}, a giveaway is live'. Each recipient sees their own first name in its place.
    */
@@ -2870,6 +3122,7 @@ export interface PayloadJob {
           | 'sendUrgentModerationAlert'
           | 'checkPushReceipts'
           | 'processGiveaway'
+          | 'processOpportunities'
           | 'cleanupAnonymousUsers'
           | 'pruneNewsAnalytics'
           | 'prunePartnerContentEvents'
@@ -2918,6 +3171,7 @@ export interface PayloadJob {
         | 'sendUrgentModerationAlert'
         | 'checkPushReceipts'
         | 'processGiveaway'
+        | 'processOpportunities'
         | 'cleanupAnonymousUsers'
         | 'pruneNewsAnalytics'
         | 'prunePartnerContentEvents'
@@ -2949,6 +3203,34 @@ export interface PayloadJob {
 export interface PayloadLockedDocument {
   id: string;
   document?:
+    | ({
+        relationTo: 'opportunity-interests';
+        value: string | OpportunityInterest;
+      } | null)
+    | ({
+        relationTo: 'opportunity-sources';
+        value: string | OpportunitySource;
+      } | null)
+    | ({
+        relationTo: 'opportunities';
+        value: string | Opportunity;
+      } | null)
+    | ({
+        relationTo: 'opportunity-profiles';
+        value: string | OpportunityProfile;
+      } | null)
+    | ({
+        relationTo: 'opportunity-events';
+        value: string | OpportunityEvent;
+      } | null)
+    | ({
+        relationTo: 'saved-opportunities';
+        value: string | SavedOpportunity;
+      } | null)
+    | ({
+        relationTo: 'opportunity-reports';
+        value: string | OpportunityReport;
+      } | null)
     | ({
         relationTo: 'accounts';
         value: string | Account;
@@ -3186,6 +3468,130 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-interests_select".
+ */
+export interface OpportunityInterestsSelect<T extends boolean = true> {
+  key?: T;
+  label?: T;
+  preferences?: T;
+  active?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-sources_select".
+ */
+export interface OpportunitySourcesSelect<T extends boolean = true> {
+  title?: T;
+  feedUrl?: T;
+  status?: T;
+  trust?: T;
+  category?: T;
+  qualityOverride?: T;
+  ownershipReview?: T;
+  reviewNotes?: T;
+  qualityScore?: T;
+  lastValidatedAt?: T;
+  lastFetchedAt?: T;
+  lastError?: T;
+  itemsImported?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunities_select".
+ */
+export interface OpportunitiesSelect<T extends boolean = true> {
+  title?: T;
+  canonicalUrl?: T;
+  summary?: T;
+  category?: T;
+  categoryKeys?: T;
+  categories?: T;
+  duplicateKey?: T;
+  kind?: T;
+  status?: T;
+  source?: T;
+  provider?: T;
+  location?: T;
+  preferences?: T;
+  details?: T;
+  deadline?: T;
+  publishedAt?: T;
+  popularity?: T;
+  featured?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-profiles_select".
+ */
+export interface OpportunityProfilesSelect<T extends boolean = true> {
+  user?: T;
+  preferences?: T;
+  lastNotifiedAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-events_select".
+ */
+export interface OpportunityEventsSelect<T extends boolean = true> {
+  user?: T;
+  opportunity?: T;
+  category?: T;
+  action?: T;
+  eventKey?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-opportunities_select".
+ */
+export interface SavedOpportunitiesSelect<T extends boolean = true> {
+  user?: T;
+  opportunity?: T;
+  saveKey?: T;
+  status?: T;
+  reminderAt?: T;
+  reminderSentAt?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-reports_select".
+ */
+export interface OpportunityReportsSelect<T extends boolean = true> {
+  user?: T;
+  opportunity?: T;
+  reason?: T;
+  details?: T;
+  status?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3913,6 +4319,7 @@ export interface NotificationInboxSelect<T extends boolean = true> {
  * via the `definition` "notifications_select".
  */
 export interface NotificationsSelect<T extends boolean = true> {
+  opportunityDeliveryKey?: T;
   title?: T;
   body?: T;
   type?: T;
@@ -4537,6 +4944,46 @@ export interface AppSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-settings".
+ */
+export interface OpportunitySetting {
+  id: string;
+  /**
+   * Target percentage over time; the remainder is discovery, not a fixed card sequence.
+   */
+  personalizedShare: number;
+  featuredBoost: number;
+  /**
+   * Bounded ranking pool; use indexed category filters for larger catalogs.
+   */
+  candidateLimit: number;
+  sourceDiscoveryEnabled?: boolean | null;
+  /**
+   * Minimum feed-quality score for discovered sources. New domains still require staff ownership/trust review.
+   */
+  minimumSourceQuality: number;
+  dailyDigestEnabled?: boolean | null;
+  digestIntervalHours: number;
+  liveEnabled?: boolean | null;
+  liveTitle: string;
+  liveDescription?: string | null;
+  /**
+   * An authorized public HTTPS HLS or video URL. No stream is fabricated when empty.
+   */
+  liveStreamUrl?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -4624,6 +5071,28 @@ export interface SurveySettingsSelect<T extends boolean = true> {
  */
 export interface AppSettingsSelect<T extends boolean = true> {
   shareMessage?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "opportunity-settings_select".
+ */
+export interface OpportunitySettingsSelect<T extends boolean = true> {
+  personalizedShare?: T;
+  featuredBoost?: T;
+  candidateLimit?: T;
+  sourceDiscoveryEnabled?: T;
+  minimumSourceQuality?: T;
+  dailyDigestEnabled?: T;
+  digestIntervalHours?: T;
+  liveEnabled?: T;
+  liveTitle?: T;
+  liveDescription?: T;
+  liveStreamUrl?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -4881,6 +5350,14 @@ export interface TaskProcessGiveaway {
     reportsRetried?: number | null;
     reportsSent?: number | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskProcessOpportunities".
+ */
+export interface TaskProcessOpportunities {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
