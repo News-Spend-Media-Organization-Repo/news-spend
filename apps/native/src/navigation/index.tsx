@@ -2,12 +2,16 @@ import { createStaticNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSnapshot } from "valtio";
 
+import { MoreSheet } from "#/features/tabs/more/MoreSheet";
 import { authState } from "#/state/auth";
 import { useNeedsOnboarding } from "#/state/onboarding";
 
 import { commonAuthScreens, onboardingScreens } from "./common";
+import SettingsStack from "./settings-stack";
 import { sharedScreens } from "./shared-screens";
+import ShopStack from "./shop-stack";
 import TabLayout from "./tab-navigator";
+import { TAB_PATHS } from "./tab-paths";
 
 function useIsSignedIn() {
   const { status } = useSnapshot(authState);
@@ -43,6 +47,29 @@ const RootStackNavigator = createNativeStackNavigator({
       if: useIsSignedIn,
       screens: {
         Tab: TabLayout,
+        // Five tabs is the native ceiling, so Shop and Me are pushed from the
+        // More sheet rather than sharing the bar with it.
+        Shop: {
+          screen: ShopStack,
+          linking: { path: TAB_PATHS.Shop, initialRouteName: "ShopHome" },
+        },
+        Me: {
+          screen: SettingsStack,
+          linking: { path: TAB_PATHS.Me, initialRouteName: "SettingsHome" },
+        },
+        // Opened by the More tab's press. A native sheet sized to its rows,
+        // so it reads the same on iOS and Android and the hardware back
+        // button closes it like any other route.
+        MoreSheet: {
+          screen: MoreSheet,
+          linking: { path: "more" },
+          options: {
+            presentation: "formSheet",
+            sheetAllowedDetents: "fitToContents",
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+          },
+        },
         ...sharedScreens,
         ...commonAuthScreens,
       },

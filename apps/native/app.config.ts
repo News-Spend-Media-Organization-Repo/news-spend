@@ -94,6 +94,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        // Every screen sets a per-screen statusBarStyle; iOS only honours it
+        // (and RNScreens stops asserting) when the view controller owns the
+        // status bar. Without this the bar stays black on the navy headers.
+        UIViewControllerBasedStatusBarAppearance: true,
       },
     },
     extra: {

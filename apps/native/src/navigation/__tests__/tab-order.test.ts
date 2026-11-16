@@ -22,7 +22,6 @@ it("keeps the actual tab screen definitions in the requested order", () => {
     "Live",
     "ForYou",
     "Discover",
-    "Shop",
-    "Me",
+    "More",
   ]);
 });
