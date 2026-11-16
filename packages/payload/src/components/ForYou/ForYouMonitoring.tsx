@@ -48,7 +48,7 @@ export async function ForYouMonitoringView(
   const { req } = props.initPageResult;
   if (scopeOfRequest(req)?.kind !== "staff") {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="For You" view={props}>
         <Denied />
       </PageFrame>
     );
@@ -123,7 +123,7 @@ export async function ForYouMonitoringView(
       sources.filter((source) => source.status === status).length;
 
     return (
-      <PageFrame view={props}>
+      <PageFrame title="For You" view={props}>
         <Styles />
         <MonitoringStyles />
         <main className="ana ana-page">
@@ -348,7 +348,7 @@ export async function ForYouMonitoringView(
     );
   } catch {
     return (
-      <PageFrame view={props}>
+      <PageFrame title="For You" view={props}>
         <Styles />
         <div className="ana ana-page">
           <Panel

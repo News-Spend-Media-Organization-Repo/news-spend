@@ -73,10 +73,13 @@ export async function seedOpportunityDemo(
   now = Date.now()
 ) {
   if (
+    process.env.FOR_YOU_DEMO_SEED !== "true" ||
     process.env.APP_ENV === "production" ||
     process.env.NODE_ENV === "production"
   ) {
-    throw new Error("Demonstration content cannot be seeded in production");
+    throw new Error(
+      "Demonstration content is opt-in: set FOR_YOU_DEMO_SEED=true, and never in production"
+    );
   }
   const user = await payload.findByID({ collection: "users", id: testUserId });
   if (!user) {

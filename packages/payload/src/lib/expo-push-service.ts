@@ -6,7 +6,7 @@ import {
   type ExpoPushTicket,
 } from "expo-server-sdk";
 import type { PayloadRequest, Where } from "payload";
-import { readProfile } from "../opportunities/model";
+import { forYouRecipients, readProfile } from "../opportunities/model";
 import type { Notification } from "../payload-types";
 import { getPayload } from "./getPayload";
 import { hasPlaceholder, personalise } from "./personalise";
@@ -132,26 +132,21 @@ async function resolveTokens(
       forYouKind === "discovery" ||
       forYouKind === "opportunities"
     ) {
+      const candidates = specificUserIds;
       const profiles = await payload.find({
         collection: "opportunity-profiles",
-        where: { user: { in: specificUserIds } },
-        limit: specificUserIds.length,
+        where: { user: { in: candidates } },
+        limit: candidates.length,
         depth: 0,
         req,
       });
-      specificUserIds = profiles.docs
-        .filter((stored) => {
-          const profile = readProfile(stored.preferences);
-          return (
-            !profile.notifications.paused &&
-            profile.notifications[forYouKind] &&
-            (forYouKind === "deadlines" ||
-              (profile.consent && profile.personalized))
-          );
-        })
-        .map((stored) =>
-          typeof stored.user === "string" ? stored.user : stored.user.id
-        );
+      const byUser = new Map(
+        profiles.docs.map((stored) => [
+          typeof stored.user === "string" ? stored.user : stored.user.id,
+          readProfile(stored.preferences),
+        ])
+      );
+      specificUserIds = forYouRecipients(specificUserIds, byUser, forYouKind);
       if (
         forYouKind === "deadlines" &&
         typeof metadata?.opportunityId === "string"

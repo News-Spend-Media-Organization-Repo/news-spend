@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { canonicalize, learnedInterests, rankOpportunities } from "../src/opportunities/engine";
 import { classifyContent, isPublicIPv4 } from "../src/opportunities/ingestion";
-import { DEFAULT_PROFILE, readProfile } from "../src/opportunities/model";
+import { DEFAULT_PROFILE, forYouRecipients, readProfile } from "../src/opportunities/model";
 import type { OpportunityContent, OpportunityProfile } from "../src/opportunities/model";
 import { opportunityCollections } from "../src/collections/Opportunities";
 
@@ -11,6 +11,42 @@ const item = (id: string, changes: Partial<OpportunityContent> = {}): Opportunit
   id, title: `Opportunity ${id}`, summary: "A useful opportunity", category: "jobs", kind: "opportunity",
   canonicalUrl: `https://example.org/${id}`, provider: "Official provider", location: "Canada",
   preferences: [], details: {}, deadline: null, publishedAt: "2026-11-14T12:00:00Z", trust: "official", popularity: 0, ...changes,
+});
+
+describe("For You notification recipients", () => {
+  const profileWith = (changes: Partial<OpportunityProfile["notifications"]>, rest: Partial<OpportunityProfile> = {}) => ({
+    ...DEFAULT_PROFILE,
+    consent: true,
+    personalized: true,
+    notifications: { ...DEFAULT_PROFILE.notifications, ...changes },
+    ...rest,
+  });
+
+  it("sends a deadline reminder to a reader with no profile row", () => {
+    expect(forYouRecipients(["reader"], new Map(), "deadlines")).toEqual(["reader"]);
+  });
+
+  it("does not send a digest to a reader with no profile row", () => {
+    expect(forYouRecipients(["reader"], new Map(), "discovery")).toEqual([]);
+    expect(forYouRecipients(["reader"], new Map(), "opportunities")).toEqual([]);
+  });
+
+  it("honours a stored opt-out and a pause", () => {
+    const profiles = new Map([
+      ["opted-out", profileWith({ deadlines: false })],
+      ["paused", profileWith({ deadlines: true, paused: true })],
+      ["opted-in", profileWith({ deadlines: true })],
+    ]);
+    expect(forYouRecipients(["opted-out", "paused", "opted-in"], profiles, "deadlines")).toEqual(["opted-in"]);
+  });
+
+  it("requires consent and personalization for discovery", () => {
+    const profiles = new Map([
+      ["no-consent", profileWith({ discovery: true }, { consent: false })],
+      ["consented", profileWith({ discovery: true })],
+    ]);
+    expect(forYouRecipients(["no-consent", "consented"], profiles, "discovery")).toEqual(["consented"]);
+  });
 });
 
 describe("For You ranking", () => {

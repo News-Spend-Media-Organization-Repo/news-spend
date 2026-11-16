@@ -179,6 +179,34 @@ export type RankedOpportunity = OpportunityContent & {
   discovery: boolean;
 };
 
+export type NotificationKind = "deadlines" | "discovery" | "opportunities";
+
+/**
+ * Who actually receives a For You notification at delivery time.
+ *
+ * A reader with no stored profile has never opened preferences, so there is
+ * nothing to opt them out of: the deadline reminder they set is its own
+ * opt-in. Digests and discovery stay opt-in through a stored profile, because
+ * nothing else records their consent.
+ */
+export function forYouRecipients(
+  candidates: string[],
+  profiles: Map<string, OpportunityProfile>,
+  kind: NotificationKind
+): string[] {
+  return candidates.filter((id) => {
+    const profile = profiles.get(id);
+    if (!profile) {
+      return kind === "deadlines";
+    }
+    return (
+      !profile.notifications.paused &&
+      profile.notifications[kind] &&
+      (kind === "deadlines" || (profile.consent && profile.personalized))
+    );
+  });
+}
+
 export function readProfile(value: unknown): OpportunityProfile {
   if (!value || typeof value !== "object") {
     return structuredClone(DEFAULT_PROFILE);
