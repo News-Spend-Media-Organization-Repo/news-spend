@@ -31,6 +31,8 @@ describe("deep link paths", () => {
     ["article/some-slug/comment/c1/c2", "CommentReply"],
     ["detail/some-slug", "ShopDetails"],
     ["profile", "Profile"],
+    ["for-you/opportunity/a73de845-2eee-42c3-afd6-252ea79f11a4", "Opportunity"],
+    ["for-you/preferences", "ForYouPreferences"],
   ])("%s resolves to %s", (path, name) => {
     expect(routeNames(path)).toEqual([name]);
   });

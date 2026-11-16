@@ -160,14 +160,16 @@ async function createNodeLogger(): Promise<pino.Logger> {
     formatters: {
       level: (label: string) => ({ level: label }),
     },
-    timestamp: pinoModule.stdTimeFunctions.isoTime,
+    // Pino attaches helpers to its default factory. Webpack's CJS namespace
+    // interop does not consistently expose these as synthetic named exports.
+    timestamp: pinoModule.default.stdTimeFunctions.isoTime,
     base: {
       env: typeof process === "undefined" ? "unknown" : process.env.NODE_ENV,
     },
   };
 
-  const { build } = await import("pino-pretty");
-  const destination = build({
+  const prettyModule = await import("pino-pretty");
+  const destination = prettyModule.default({
     colorize: isDevelopment,
     translateTime: "SYS:standard",
     ignore: "pid,hostname",

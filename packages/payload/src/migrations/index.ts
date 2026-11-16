@@ -79,6 +79,7 @@ import * as migration_20261106_090000_users_email_unique_lower from './20261106_
 import * as migration_20261111_200000_giveaway_has_been_announced from './20261111_200000_giveaway_has_been_announced';
 import * as migration_20261116_120000_news_notification_kicker from './20261116_120000_news_notification_kicker';
 import * as migration_20261117_081031_giveaway_manual_winner_event from './20261117_081031_giveaway_manual_winner_event';
+import * as migration_20261117_084047_for_you_discovery from './20261117_084047_for_you_discovery';
 
 export const migrations = [
   {
@@ -484,6 +485,11 @@ export const migrations = [
   {
     up: migration_20261117_081031_giveaway_manual_winner_event.up,
     down: migration_20261117_081031_giveaway_manual_winner_event.down,
-    name: '20261117_081031_giveaway_manual_winner_event'
+    name: '20261117_081031_giveaway_manual_winner_event',
+  },
+  {
+    up: migration_20261117_084047_for_you_discovery.up,
+    down: migration_20261117_084047_for_you_discovery.down,
+    name: '20261117_084047_for_you_discovery'
   },
 ];

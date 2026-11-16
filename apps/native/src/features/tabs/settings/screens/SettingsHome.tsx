@@ -50,6 +50,12 @@ type SettingsItem = {
 
 const settingsItems: SettingsItem[] = [
   {
+    title: "For You Preferences",
+    icon: StarIcon,
+    screen: "ForYouPreferences",
+    authRequired: true,
+  },
+  {
     title: "Profile",
     icon: UserIcon,
     screen: "Profile",
