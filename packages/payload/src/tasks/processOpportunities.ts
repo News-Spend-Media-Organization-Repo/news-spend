@@ -31,9 +31,15 @@ async function remind(payload: Payload): Promise<void> {
       where: { user: { equals: userId } },
       limit: 1,
     });
-    const profile = readProfile(profiles.docs[0]?.preferences);
-    if (profile.notifications.paused || !profile.notifications.deadlines) {
-      continue;
+    // No profile row means the reader never opened preferences: the reminder
+    // they set on the saved record is the only opt-in we have. Only a stored
+    // profile can opt them out.
+    const storedProfile = profiles.docs[0];
+    if (storedProfile) {
+      const profile = readProfile(storedProfile.preferences);
+      if (profile.notifications.paused || !profile.notifications.deadlines) {
+        continue;
+      }
     }
     const item =
       typeof saved.opportunity === "object" ? saved.opportunity : null;
