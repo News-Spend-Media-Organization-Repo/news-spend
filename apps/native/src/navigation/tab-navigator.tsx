@@ -2,11 +2,10 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Platform } from "react-native";
 import ForYouScreen from "#/features/for-you/ForYouScreen";
 import LiveScreen from "#/features/for-you/LiveScreen";
+import { MoreTabPlaceholder } from "#/features/tabs/more/MoreSheet";
 import { emitHomeTabRepeatPress } from "#/state/home-tab-repeat-press";
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
-import SettingsStack from "./settings-stack";
-import ShopStack from "./shop-stack";
 
 import { TAB_PATHS } from "./tab-paths";
 
@@ -66,7 +65,9 @@ export default createBottomTabNavigator({
         tabBarIcon: ({ focused }) =>
           Platform.select({
             ios: { type: "sfSymbol", name: focused ? "sparkles" : "sparkles" },
-            android: { type: "materialSymbol", name: "auto_awesome" },
+            // `auto_awesome` is a Material Icons name, absent from Material
+            // Symbols: it threw on Android. `star_shine` is the sparkle glyph.
+            android: { type: "materialSymbol", name: "star_shine" },
           }),
       },
     },
@@ -89,38 +90,27 @@ export default createBottomTabNavigator({
           }),
       },
     },
-    Shop: {
-      linking: {
-        path: TAB_PATHS.Shop,
-        initialRouteName: "ShopHome",
-      },
-      screen: ShopStack,
+    More: {
+      // A button, not a tab: selection is disabled natively on both platforms
+      // (preventDefault on tabPress throws with the native bar), and the press
+      // opens the More sheet over whatever tab is current. The `more` link
+      // belongs to the sheet route, in the root stack.
+      screen: MoreTabPlaceholder,
+      listeners: ({ navigation }) => ({
+        tabPress: () => {
+          navigation.navigate("MoreSheet");
+        },
+      }),
       options: {
+        title: "More",
+        tabBarSelectionEnabled: false,
         tabBarIcon: ({ focused }) =>
           Platform.select({
             ios: {
               type: "sfSymbol",
-              name: focused ? "cart.fill" : "cart",
+              name: focused ? "ellipsis.circle.fill" : "ellipsis.circle",
             },
-            android: { type: "materialSymbol", name: "shopping_cart" },
-          }),
-      },
-    },
-    Me: {
-      linking: {
-        path: TAB_PATHS.Me,
-        initialRouteName: "SettingsHome",
-      },
-      screen: SettingsStack,
-      options: {
-        title: "Me",
-        tabBarIcon: ({ focused }) =>
-          Platform.select({
-            ios: {
-              type: "sfSymbol",
-              name: focused ? "person.fill" : "person",
-            },
-            android: { type: "materialSymbol", name: "person" },
+            android: { type: "materialSymbol", name: "more_horiz" },
           }),
       },
     },

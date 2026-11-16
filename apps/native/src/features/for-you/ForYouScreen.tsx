@@ -6,13 +6,13 @@ import type { StaticScreenProps } from "@react-navigation/native";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
+import { BottomSheet } from "heroui-native/bottom-sheet";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
   BackHandler,
   Linking,
-  Modal,
   Pressable,
   ScrollView,
   Share,
@@ -20,10 +20,30 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSnapshot } from "valtio";
 import { Button } from "#/components/heroui/button";
+import { Icon } from "#/components/heroui/icon";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
+import {
+  ArrowLeftIcon,
+  BellIcon,
+  BookmarkSimpleIcon,
+  CaretRightIcon,
+  ChartLineIcon,
+  DotsThreeIcon,
+  EyeSlashIcon,
+  FlagIcon,
+  type Icon as IconComponent,
+  MinusCircleIcon,
+  PencilSimpleLineIcon,
+  SealQuestionIcon,
+  ShareNetworkIcon,
+  TargetIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+} from "#/lib/icons";
 import type { RouterOutputs } from "#/lib/orpc";
 import { client, orpc } from "#/lib/orpc";
 import { authState } from "#/state/auth";
@@ -94,6 +114,67 @@ function Action({
     </Button>
   );
 }
+function MenuRow({
+  icon,
+  label,
+  onPress,
+  disabled = false,
+  destructive = false,
+}: {
+  icon?: IconComponent;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      className="min-h-12 flex-row items-center gap-3 rounded-xl px-3 py-3 active:bg-p-500/10 disabled:opacity-50"
+      disabled={disabled}
+      onPress={onPress}
+    >
+      {icon ? (
+        <Icon
+          className={destructive ? "text-danger" : "text-p-500"}
+          name={icon}
+          size={22}
+          weight="bold"
+        />
+      ) : null}
+      <Text
+        className={`flex-1 text-base ${destructive ? "text-danger" : "text-foreground"}`}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+function Shortcut({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: IconComponent;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      className="w-32 gap-2 rounded-xl border border-separator bg-surface p-3 active:opacity-70"
+      onPress={onPress}
+    >
+      <Icon className="text-p-500" name={icon} size={22} weight="bold" />
+      <Text className="font-semibold text-sm leading-tight" numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 function Toggle({
   label,
   value,
@@ -148,6 +229,15 @@ function ForYouExperience({
   const [searchText, setSearchText] = useState("");
   const [draft, setDraft] = useState<OpportunityProfile | null>(null);
   const [menu, setMenu] = useState<Menu>(null);
+  // The last menu shown, so the sheet keeps its content while it animates
+  // closed after `menu` is cleared.
+  // (React's "store information from previous renders" pattern; a ref
+  // written during render would break the React Compiler's rules.)
+  const [shownMenu, setShownMenu] = useState<Menu>(null);
+  if (menu && menu !== shownMenu) {
+    setShownMenu(menu);
+  }
+  const insets = useSafeAreaInsets();
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [question, setQuestion] = useState("");
@@ -421,10 +511,15 @@ function ForYouExperience({
           <Pressable
             accessibilityLabel={`Options for ${item.title}`}
             accessibilityRole="button"
-            hitSlop={12}
+            className="-my-2 -mr-2 size-11 items-center justify-center rounded-full active:bg-p-500/10"
             onPress={() => setMenu({ item, kind: "feedback" })}
           >
-            <Text className="text-xl">•••</Text>
+            <Icon
+              className="text-muted"
+              name={DotsThreeIcon}
+              size={22}
+              weight="bold"
+            />
           </Pressable>
         </View>
         <Pressable accessibilityRole="button" onPress={() => openItem(item)}>
@@ -450,32 +545,66 @@ function ForYouExperience({
             Why you're seeing this · {item.reason}
           </Text>
         </Pressable>
-        <View className="flex-row flex-wrap gap-2">
-          <Action
+        {/* One primary path (open) as a quiet text action; save and share are
+        secondary, so they sit as icon buttons in the app's navy, the way the
+        news action bar does it. Three filled buttons per card made every card
+        shout and every action equal. */}
+        <View className="flex-row items-center justify-between border-separator border-t pt-2">
+          <Pressable
+            accessibilityRole="button"
+            className="min-h-11 flex-row items-center gap-1 active:opacity-60"
             disabled={busy}
-            label={item.kind === "news" ? "Read More" : "View"}
             onPress={() => openItem(item)}
-          />
-          <Action
-            disabled={busy}
-            label={savedIds.has(item.id) ? "Saved" : "Save"}
-            onPress={() => toggleSave(item)}
-          />
-          <Action
-            disabled={busy}
-            label="Share"
-            onPress={() =>
-              run(async () => {
-                const response = await Share.share({
-                  title: item.title,
-                  message: `${item.title}\nhttps://link.newsspend.com/for-you/opportunity/${item.id}`,
-                });
-                if (response.action === Share.sharedAction) {
-                  await signal(item, "share");
-                }
-              })
-            }
-          />
+          >
+            <Text className="font-semibold text-p-500">
+              {item.kind === "news" ? "Read more" : "View opportunity"}
+            </Text>
+            <Icon className="text-p-500" name={CaretRightIcon} size={16} />
+          </Pressable>
+          <View className="flex-row items-center">
+            <Pressable
+              accessibilityLabel={
+                savedIds.has(item.id)
+                  ? `Unsave ${item.title}`
+                  : `Save ${item.title}`
+              }
+              accessibilityRole="button"
+              accessibilityState={{
+                selected: savedIds.has(item.id),
+                disabled: busy,
+              }}
+              className="size-11 items-center justify-center rounded-full active:bg-p-500/10"
+              disabled={busy}
+              onPress={() => toggleSave(item)}
+            >
+              <Icon
+                className="text-p-500"
+                name={BookmarkSimpleIcon}
+                size={22}
+                weight={savedIds.has(item.id) ? "fill" : "bold"}
+              />
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`Share ${item.title}`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: busy }}
+              className="size-11 items-center justify-center rounded-full active:bg-p-500/10"
+              disabled={busy}
+              onPress={() =>
+                run(async () => {
+                  const response = await Share.share({
+                    title: item.title,
+                    message: `${item.title}\nhttps://link.newsspend.com/for-you/opportunity/${item.id}`,
+                  });
+                  if (response.action === Share.sharedAction) {
+                    await signal(item, "share");
+                  }
+                })
+              }
+            >
+              <Icon className="text-p-500" name={ShareNetworkIcon} size={22} />
+            </Pressable>
+          </View>
         </View>
       </View>
     );
@@ -491,13 +620,14 @@ function ForYouExperience({
     (page === "feed" ? feed.error : page === "detail" ? detail.error : null);
   const content = detail.data;
   return (
-    <Screen safeAreaEdges={["top"]}>
-      <View className="flex-row items-center justify-between gap-2 bg-p-500 px-4 py-3">
+    <Screen statusBarStyle="light">
+      <View className="flex-row items-center justify-between gap-2 bg-p-500 px-4 py-2 pt-safe-offset-1">
         <Pressable
           accessibilityLabel={
             page === "feed" ? "Refresh For You" : "Back to For You"
           }
           accessibilityRole="button"
+          hitSlop={12}
           onPress={() => {
             if (page === "feed") {
               queryClient.invalidateQueries({ queryKey: key });
@@ -507,9 +637,12 @@ function ForYouExperience({
             }
           }}
         >
-          <Text className="font-bold text-lg text-white">
-            {page === "feed" ? "For You" : "‹ For You"}
-          </Text>
+          <View className="flex-row items-center gap-2">
+            {page === "feed" ? null : (
+              <Icon color="white" name={ArrowLeftIcon} size={24} />
+            )}
+            <Text className="font-bold text-lg text-white">For You</Text>
+          </View>
         </Pressable>
         <Pressable
           accessibilityLabel="For You preferences"
@@ -731,8 +864,17 @@ function ForYouExperience({
                 />
               </View>
             ) : null}
-            <View className="flex-row flex-wrap gap-2">
-              <Action
+            {/* Places to go, not things to do: quiet tiles in one scrolling row,
+            so the feed below stays the loudest thing on the screen. The last
+            tile peeks past the edge to say the row scrolls. */}
+            <ScrollView
+              className="-mx-4"
+              contentContainerClassName="gap-2 px-4"
+              horizontal
+              showsHorizontalScrollIndicator={false}
+            >
+              <Shortcut
+                icon={BookmarkSimpleIcon}
                 label="Saved Opportunities"
                 onPress={() => {
                   if (requireAccount()) {
@@ -740,7 +882,8 @@ function ForYouExperience({
                   }
                 }}
               />
-              <Action
+              <Shortcut
+                icon={TargetIcon}
                 label="Opportunity DNA"
                 onPress={() => {
                   if (requireAccount()) {
@@ -748,7 +891,8 @@ function ForYouExperience({
                   }
                 }}
               />
-              <Action
+              <Shortcut
+                icon={ChartLineIcon}
                 label="Your Insights"
                 onPress={() => {
                   if (requireAccount()) {
@@ -756,7 +900,8 @@ function ForYouExperience({
                   }
                 }}
               />
-              <Action
+              <Shortcut
+                icon={SealQuestionIcon}
                 label="Opportunity Guidance"
                 onPress={() => {
                   if (requireAccount()) {
@@ -766,21 +911,37 @@ function ForYouExperience({
                 }}
               />
               {guest ? null : (
-                <Action label="Edit Interests" onPress={editInterests} />
+                <Shortcut
+                  icon={PencilSimpleLineIcon}
+                  label="Edit Interests"
+                  onPress={editInterests}
+                />
               )}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                {[
-                  { key: "", label: "All" },
-                  ...(catalog.data ?? []).filter(
-                    (i) => guest || profile.data?.interests.includes(i.key)
-                  ),
-                ].map((interest) => (
+            </ScrollView>
+            {/* The same pill as the home search chips (SearchScreen). */}
+            <ScrollView
+              className="-mx-4"
+              contentContainerClassName="items-center gap-2 px-4"
+              horizontal
+              showsHorizontalScrollIndicator={false}
+            >
+              {[
+                { key: "", label: "All" },
+                ...(catalog.data ?? []).filter(
+                  (i) => guest || profile.data?.interests.includes(i.key)
+                ),
+              ].map((interest) => {
+                const active = category === interest.key;
+                return (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityState={{ selected: category === interest.key }}
-                    className={`rounded-full border px-4 py-2 ${category === interest.key ? "border-p-500 bg-p-500" : "border-separator"}`}
+                    accessibilityState={{ selected: active }}
+                    className={
+                      active
+                        ? "rounded-full border border-p-500 bg-p-500 px-4 py-1.5"
+                        : "rounded-full border border-gray-300 bg-white px-4 py-1.5"
+                    }
+                    hitSlop={{ top: 6, bottom: 6 }}
                     key={interest.key}
                     onPress={() => {
                       setCategory(interest.key);
@@ -789,13 +950,17 @@ function ForYouExperience({
                     }}
                   >
                     <Text
-                      className={category === interest.key ? "text-white" : ""}
+                      className={
+                        active
+                          ? "font-semibold text-sm text-white"
+                          : "font-semibold text-gray-600 text-sm"
+                      }
                     >
                       {interest.label}
                     </Text>
                   </Pressable>
-                ))}
-              </View>
+                );
+              })}
             </ScrollView>
             <View className="flex-row items-center gap-2">
               <TextInput
@@ -1340,154 +1505,206 @@ function ForYouExperience({
         ) : null}
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setMenu(null)}
-        transparent
-        visible={Boolean(menu)}
+      {/* The app's bottom sheet (as in CommentsMenuSheet): tapping the dimmed
+      area, swiping down or pressing back all close it, which the hand-rolled
+      Modal it replaces did not allow. Options are quiet rows, not a stack of
+      filled buttons; only "Continue to Source" is a real confirmation, so it
+      alone stays a button. `shownMenu` keeps the content on screen while the
+      sheet animates closed. */}
+      <BottomSheet
+        isOpen={Boolean(menu)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMenu(null);
+          }
+        }}
       >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="gap-4 rounded-t-3xl bg-background p-6 pb-12">
-            <Text className="font-bold text-xl">
-              {menu?.kind === "report"
-                ? "Report Content"
-                : menu?.kind === "reminder"
-                  ? "Deadline Reminder"
-                  : menu?.kind === "source"
-                    ? "You're leaving NewsSpend"
-                    : menu?.kind === "tracking"
-                      ? "Application Status"
-                      : "Recommendation Options"}
-            </Text>
-            {menu?.kind === "feedback" ? (
-              <>
-                {(
-                  [
-                    { label: "Show me more like this", action: "more" },
-                    { label: "Show me less like this", action: "less" },
-                    { label: "Not interested", action: "dismiss" },
-                  ] as const
-                ).map(({ label: title, action }) => (
-                  <Action
-                    disabled={busy}
-                    key={action}
-                    label={title}
-                    onPress={() => {
-                      if (requireAccount()) {
-                        const item = menu.item;
+        <BottomSheet.Portal disableFullWindowOverlay={__DEV__}>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content
+            enableDynamicSizing
+            style={{ paddingBottom: insets.bottom + 8 }}
+          >
+            {shownMenu ? (
+              <View className="gap-1 px-3 pt-1">
+                <View className="gap-0.5 px-3 pb-2">
+                  <Text
+                    accessibilityRole="header"
+                    className="font-bold text-lg"
+                  >
+                    {shownMenu.kind === "report"
+                      ? "Report Content"
+                      : shownMenu.kind === "reminder"
+                        ? "Deadline Reminder"
+                        : shownMenu.kind === "source"
+                          ? "You're leaving NewsSpend"
+                          : shownMenu.kind === "tracking"
+                            ? "Application Status"
+                            : "Recommendation Options"}
+                  </Text>
+                  {shownMenu.kind === "source" ? null : (
+                    <Text className="text-muted text-sm" numberOfLines={1}>
+                      {shownMenu.item.title}
+                    </Text>
+                  )}
+                </View>
+                {shownMenu.kind === "feedback" ? (
+                  <>
+                    {(
+                      [
+                        {
+                          label: "Show me more like this",
+                          action: "more",
+                          icon: ThumbsUpIcon,
+                        },
+                        {
+                          label: "Show me less like this",
+                          action: "less",
+                          icon: ThumbsDownIcon,
+                        },
+                        {
+                          label: "Not interested",
+                          action: "dismiss",
+                          icon: EyeSlashIcon,
+                        },
+                      ] as const
+                    ).map(({ label: title, action, icon }) => (
+                      <MenuRow
+                        disabled={busy}
+                        icon={icon}
+                        key={action}
+                        label={title}
+                        onPress={() => {
+                          if (requireAccount()) {
+                            const item = shownMenu.item;
+                            setMenu(null);
+                            run(
+                              () => signal(item, action),
+                              profile.data?.personalized
+                                ? "Your feedback will improve recommendations."
+                                : "Enable personalization to use recommendation feedback."
+                            );
+                          }
+                        }}
+                      />
+                    ))}
+                    <View className="mx-3 my-1 h-px bg-separator" />
+                    <MenuRow
+                      destructive
+                      icon={FlagIcon}
+                      label="Report"
+                      onPress={() => {
+                        if (requireAccount()) {
+                          setMenu({ ...shownMenu, kind: "report" });
+                        }
+                      }}
+                    />
+                  </>
+                ) : null}
+                {shownMenu.kind === "report"
+                  ? REPORT_REASONS.map((reason) => (
+                      <MenuRow
+                        disabled={busy}
+                        key={reason}
+                        label={reason}
+                        onPress={() => {
+                          const item = shownMenu.item;
+                          setMenu(null);
+                          run(
+                            () =>
+                              client.forYou.report({
+                                id: item.id,
+                                reason,
+                                details: "",
+                              }),
+                            "Thanks. We'll review this."
+                          );
+                        }}
+                      />
+                    ))
+                  : null}
+                {shownMenu.kind === "reminder" ? (
+                  <>
+                    <Text className="px-3 pb-2 text-muted text-sm">
+                      Reminders use your notification preferences. Enable
+                      deadline reminders to receive alerts.
+                    </Text>
+                    {([1, 3, 7, null] as const).map((days) => (
+                      <MenuRow
+                        destructive={days === null}
+                        disabled={busy}
+                        icon={days === null ? MinusCircleIcon : BellIcon}
+                        key={days ?? "cancel"}
+                        label={
+                          days === null
+                            ? "Remove Reminder"
+                            : `${days} day${days === 1 ? "" : "s"} before`
+                        }
+                        onPress={() => {
+                          const item = shownMenu.item;
+                          setMenu(null);
+                          run(
+                            () =>
+                              client.forYou.updateSaved({
+                                id: item.id,
+                                reminderDays: days,
+                              }),
+                            days === null
+                              ? "Reminder removed"
+                              : "Reminder saved"
+                          );
+                        }}
+                      />
+                    ))}
+                  </>
+                ) : null}
+                {shownMenu.kind === "tracking"
+                  ? STATUSES.map((status) => (
+                      <MenuRow
+                        disabled={busy}
+                        key={status}
+                        label={status}
+                        onPress={() => {
+                          const item = shownMenu.item;
+                          setMenu(null);
+                          run(
+                            () =>
+                              client.forYou.updateSaved({
+                                id: item.id,
+                                status,
+                              }),
+                            "Application status updated"
+                          );
+                        }}
+                      />
+                    ))
+                  : null}
+                {shownMenu.kind === "source" ? (
+                  <View className="gap-3 px-3 pt-1">
+                    <Text className="font-semibold">
+                      {new URL(shownMenu.item.canonicalUrl).hostname}
+                    </Text>
+                    <Text className="text-muted">
+                      Applications and official information are handled by the
+                      provider, not NewsSpend.
+                    </Text>
+                    <Button
+                      accessibilityLabel="Continue to Source"
+                      onPress={() => {
+                        const url = shownMenu.item.canonicalUrl;
                         setMenu(null);
-                        run(
-                          () => signal(item, action),
-                          profile.data?.personalized
-                            ? "Your feedback will improve recommendations."
-                            : "Enable personalization to use recommendation feedback."
-                        );
-                      }
-                    }}
-                  />
-                ))}
-                <Action
-                  label="Report"
-                  onPress={() => {
-                    if (requireAccount()) {
-                      setMenu({ ...menu, kind: "report" });
-                    }
-                  }}
-                />
-              </>
+                        run(() => Linking.openURL(url));
+                      }}
+                    >
+                      <Button.Label>Continue to Source</Button.Label>
+                    </Button>
+                  </View>
+                ) : null}
+              </View>
             ) : null}
-            {menu?.kind === "report"
-              ? REPORT_REASONS.map((reason) => (
-                  <Action
-                    disabled={busy}
-                    key={reason}
-                    label={reason}
-                    onPress={() => {
-                      const item = menu.item;
-                      setMenu(null);
-                      run(
-                        () =>
-                          client.forYou.report({
-                            id: item.id,
-                            reason,
-                            details: "",
-                          }),
-                        "Thanks. We'll review this."
-                      );
-                    }}
-                  />
-                ))
-              : null}
-            {menu?.kind === "reminder" ? (
-              <>
-                <Text>
-                  Reminders use your notification preferences. Enable deadline
-                  reminders to receive alerts.
-                </Text>
-                {([1, 3, 7, null] as const).map((days) => (
-                  <Action
-                    disabled={busy}
-                    key={days ?? "cancel"}
-                    label={
-                      days === null
-                        ? "Remove Reminder"
-                        : `${days} day${days === 1 ? "" : "s"} before`
-                    }
-                    onPress={() => {
-                      const item = menu.item;
-                      setMenu(null);
-                      run(
-                        () =>
-                          client.forYou.updateSaved({
-                            id: item.id,
-                            reminderDays: days,
-                          }),
-                        days === null ? "Reminder removed" : "Reminder saved"
-                      );
-                    }}
-                  />
-                ))}
-              </>
-            ) : null}
-            {menu?.kind === "tracking"
-              ? STATUSES.map((status) => (
-                  <Action
-                    disabled={busy}
-                    key={status}
-                    label={status}
-                    onPress={() => {
-                      const item = menu.item;
-                      setMenu(null);
-                      run(
-                        () =>
-                          client.forYou.updateSaved({ id: item.id, status }),
-                        "Application status updated"
-                      );
-                    }}
-                  />
-                ))
-              : null}
-            {menu?.kind === "source" ? (
-              <>
-                <Text>{new URL(menu.item.canonicalUrl).hostname}</Text>
-                <Text>
-                  Applications and official information are handled by the
-                  provider, not NewsSpend.
-                </Text>
-                <Action
-                  label="Continue to Source"
-                  onPress={() => {
-                    const url = menu.item.canonicalUrl;
-                    setMenu(null);
-                    run(() => Linking.openURL(url));
-                  }}
-                />
-              </>
-            ) : null}
-            <Action label="Cancel" onPress={() => setMenu(null)} />
-          </View>
-        </View>
-      </Modal>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
     </Screen>
   );
 }

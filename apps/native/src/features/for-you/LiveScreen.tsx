@@ -156,14 +156,14 @@ export default function LiveScreen() {
   }, [live.data?.enabled, player, streamUrl]);
 
   return (
-    <Screen safeAreaEdges={["top"]}>
+    <Screen statusBarStyle="light">
+      <View className="flex-row items-center bg-p-500 px-4 py-2 pt-safe-offset-1">
+        <Text className="font-bold text-lg text-white">Live</Text>
+      </View>
       <View className="flex-1 gap-5 px-4 py-5">
-        <View className="gap-2">
-          <Text className="font-bold text-2xl">Live</Text>
-          <Text className="text-muted">
-            NewsSpend's live stream, when a broadcast is configured.
-          </Text>
-        </View>
+        <Text className="text-muted">
+          NewsSpend's live stream, when a broadcast is configured.
+        </Text>
         <LiveState
           data={live.data}
           error={error}

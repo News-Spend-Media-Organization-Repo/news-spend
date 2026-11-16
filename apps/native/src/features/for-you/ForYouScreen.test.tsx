@@ -109,6 +109,24 @@ jest.mock("@tanstack/react-query", () => ({
     };
   },
 }));
+jest.mock("heroui-native/bottom-sheet", () => {
+  const { View } = require("react-native");
+  const BottomSheet = ({
+    children,
+    isOpen,
+  }: {
+    children: React.ReactNode;
+    isOpen: boolean;
+  }) => (isOpen ? <View>{children}</View> : null);
+  BottomSheet.Portal = ({ children }: { children: React.ReactNode }) => (
+    <View>{children}</View>
+  );
+  BottomSheet.Overlay = () => null;
+  BottomSheet.Content = ({ children }: { children: React.ReactNode }) => (
+    <View>{children}</View>
+  );
+  return { BottomSheet };
+});
 jest.mock("#/components/heroui/screen", () => ({
   Screen: ({ children }: { children: React.ReactNode }) => {
     const { View } = require("react-native");
