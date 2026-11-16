@@ -301,7 +301,7 @@ const News: CollectionConfig = {
           type: "text",
           maxLength: NEWS_NOTIFICATION_TITLE_MAX_LENGTH,
           admin: {
-            description: `Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max ${NEWS_NOTIFICATION_TITLE_MAX_LENGTH} characters.`,
+            description: `The push title: the whole line the reader sees. Filled from the headline until the article is first published; change it to anything you like and it stays. Put a word like JUST IN or BREAKING in the Push prefix field above, not here. Max ${NEWS_NOTIFICATION_TITLE_MAX_LENGTH} characters.`,
           },
         },
         {

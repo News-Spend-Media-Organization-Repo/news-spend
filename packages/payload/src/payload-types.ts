@@ -1186,7 +1186,7 @@ export interface News {
    */
   notificationKicker?: string | null;
   /**
-   * Push title. Filled from the headline until the article is first published; change it to anything you like and it stays. Put "BREAKING:" (or any wording) here rather than in the headline. Max 120 characters.
+   * The push title: the whole line the reader sees. Filled from the headline until the article is first published; change it to anything you like and it stays. Put a word like JUST IN or BREAKING in the Push prefix field above, not here. Max 120 characters.
    */
   notificationTitle?: string | null;
   /**
