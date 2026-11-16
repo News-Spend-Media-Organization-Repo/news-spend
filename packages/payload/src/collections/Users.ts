@@ -77,6 +77,10 @@ export const Users: CollectionConfig = {
         // so this hook is belt-and-braces; it makes the cleanup auditable
         // and covers hasMany junction tables.
         const statements: ReturnType<typeof sql>[] = [
+          sql`DELETE FROM opportunity_events WHERE user_id = ${id}`,
+          sql`DELETE FROM saved_opportunities WHERE user_id = ${id}`,
+          sql`DELETE FROM opportunity_reports WHERE user_id = ${id}`,
+          sql`DELETE FROM opportunity_profiles WHERE user_id = ${id}`,
           sql`DELETE FROM push_tokens WHERE user_id = ${id}`,
           sql`DELETE FROM activities WHERE user_id = ${id}`,
           sql`DELETE FROM comments WHERE user_id = ${id}`,

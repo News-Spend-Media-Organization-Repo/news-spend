@@ -19,6 +19,12 @@ import NotFound from "#/screens/NotFound";
 const PrivacyPolicy = lazy(
   () => import("#/features/auth/screens/privacy-policy")
 );
+const OpportunityScreen = lazy(
+  () => import("#/features/for-you/OpportunityScreen")
+);
+const ForYouPreferencesScreen = lazy(
+  () => import("#/features/for-you/ForYouPreferencesScreen")
+);
 const TermOfUse = lazy(() => import("#/features/auth/screens/term-of-use"));
 const Activities = lazy(
   () => import("#/features/tabs/settings/screens/activities")
@@ -135,6 +141,16 @@ const detailScreenOptions = {
 } as const;
 
 export const sharedScreens = {
+  Opportunity: createNativeStackScreen({
+    screen: OpportunityScreen,
+    linking: { path: "/for-you/opportunity/:id" },
+    options: { headerShown: false },
+  }),
+  ForYouPreferences: createNativeStackScreen({
+    screen: ForYouPreferencesScreen,
+    linking: { path: "for-you/preferences" },
+    options: { headerShown: false },
+  }),
   News: createNativeStackScreen({
     screen: SingleNews,
     getId: ({ params }) => params?.slug,

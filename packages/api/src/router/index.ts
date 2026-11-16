@@ -7,6 +7,7 @@ import { commentRouter } from "./comment";
 import { discoverAnalyticsRouter } from "./discoverAnalytics";
 import { faqRouter } from "./faq";
 import { feedbackRouter } from "./feedback";
+import { forYouRouter } from "./forYou";
 import { giveawayRouter } from "./giveaway";
 import { newsRouter } from "./news";
 import { notificationSettingsRouter } from "./notificationSettings";
@@ -32,6 +33,7 @@ export const router = {
   comments: commentRouter,
   faq: faqRouter,
   feedback: feedbackRouter,
+  forYou: forYouRouter,
   giveaway: giveawayRouter,
   discoverAnalytics: discoverAnalyticsRouter,
   news: newsRouter,

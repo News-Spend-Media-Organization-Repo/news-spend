@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { isDefinedError } from "@orpc/client";
 import { call } from "@orpc/server";
-import { mockContext } from "../test-utils";
+import { createFakePayload, mockContext } from "../test-utils";
 import { blockRouter } from "./block";
 
 const authedUser = {
@@ -30,6 +30,7 @@ describe("blockRouter.blockUser", () => {
     const ctx = mockContext({
       user: authedUser as never,
       payload: {
+        ...createFakePayload({ collections: { users: [authedUser] } }),
         create: async () => ({ id: "block-1" }),
       },
     });
@@ -50,6 +51,7 @@ describe("blockRouter.blockUser", () => {
     const ctx = mockContext({
       user: authedUser as never,
       payload: {
+        ...createFakePayload({ collections: { users: [authedUser] } }),
         create: async () => {
           throw uniqueViolation;
         },

@@ -1,5 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Platform } from "react-native";
+import ForYouScreen from "#/features/for-you/ForYouScreen";
+import LiveScreen from "#/features/for-you/LiveScreen";
 import { emitHomeTabRepeatPress } from "#/state/home-tab-repeat-press";
 import DiscoverStack from "./discover-stack";
 import NewsStack from "./home-stack";
@@ -42,6 +44,29 @@ export default createBottomTabNavigator({
               name: focused ? "house.fill" : "house",
             },
             android: { type: "materialSymbol", name: "house" },
+          }),
+      },
+    },
+    Live: {
+      screen: LiveScreen,
+      linking: { path: "live" },
+      options: {
+        tabBarIcon: () =>
+          Platform.select({
+            ios: { type: "sfSymbol", name: "dot.radiowaves.left.and.right" },
+            android: { type: "materialSymbol", name: "live_tv" },
+          }),
+      },
+    },
+    ForYou: {
+      screen: ForYouScreen,
+      linking: { path: "for-you" },
+      options: {
+        title: "For You",
+        tabBarIcon: ({ focused }) =>
+          Platform.select({
+            ios: { type: "sfSymbol", name: focused ? "sparkles" : "sparkles" },
+            android: { type: "materialSymbol", name: "auto_awesome" },
           }),
       },
     },

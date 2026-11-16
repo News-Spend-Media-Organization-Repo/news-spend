@@ -6,7 +6,7 @@ import {
   type ExpoPushTicket,
 } from "expo-server-sdk";
 import type { PayloadRequest, Where } from "payload";
-
+import { readProfile } from "../opportunities/model";
 import type { Notification } from "../payload-types";
 import { getPayload } from "./getPayload";
 import { hasPlaceholder, personalise } from "./personalise";
@@ -117,9 +117,66 @@ async function resolveTokens(
     notification.targetType === "specific" &&
     notification.specificUsers?.length
   ) {
-    const specificUserIds = notification.specificUsers.map((user) =>
+    let specificUserIds = notification.specificUsers.map((user) =>
       typeof user === "string" ? user : user.id
     );
+    const metadata =
+      notification.data &&
+      typeof notification.data === "object" &&
+      !Array.isArray(notification.data)
+        ? notification.data
+        : null;
+    const forYouKind = metadata?.forYouKind;
+    if (
+      forYouKind === "deadlines" ||
+      forYouKind === "discovery" ||
+      forYouKind === "opportunities"
+    ) {
+      const profiles = await payload.find({
+        collection: "opportunity-profiles",
+        where: { user: { in: specificUserIds } },
+        limit: specificUserIds.length,
+        depth: 0,
+        req,
+      });
+      specificUserIds = profiles.docs
+        .filter((stored) => {
+          const profile = readProfile(stored.preferences);
+          return (
+            !profile.notifications.paused &&
+            profile.notifications[forYouKind] &&
+            (forYouKind === "deadlines" ||
+              (profile.consent && profile.personalized))
+          );
+        })
+        .map((stored) =>
+          typeof stored.user === "string" ? stored.user : stored.user.id
+        );
+      if (
+        forYouKind === "deadlines" &&
+        typeof metadata?.opportunityId === "string"
+      ) {
+        const saved = await payload.find({
+          collection: "saved-opportunities",
+          where: {
+            and: [
+              { user: { in: specificUserIds } },
+              { opportunity: { equals: metadata.opportunityId } },
+              { reminderAt: { exists: true } },
+            ],
+          },
+          limit: specificUserIds.length,
+          depth: 0,
+          req,
+        });
+        specificUserIds = saved.docs.map((item) =>
+          typeof item.user === "string" ? item.user : item.user.id
+        );
+      }
+      if (!specificUserIds.length) {
+        return [];
+      }
+    }
 
     const result = await payload.find({
       collection: "push-tokens",

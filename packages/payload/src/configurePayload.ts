@@ -69,6 +69,7 @@ import {
   WitnessReport,
 } from "./collections";
 import Admins from "./collections/Admins";
+import { opportunityCollections } from "./collections/Opportunities";
 import UserBlocks from "./collections/UserBlocks";
 import {
   analyticsDefaultLayout,
@@ -80,10 +81,15 @@ import {
   dashboardHomeView,
   surveyPerformanceNavLink,
 } from "./components/Analytics/tabs";
+import {
+  forYouMonitoringNavLink,
+  forYouMonitoringView,
+} from "./components/ForYou/tabs";
 import { whatsNewNavLink, whatsNewViews } from "./components/WhatsNew/tabs";
 import AppSettings from "./globals/AppSettings";
 import ModerationSettings from "./globals/ModerationSettings";
 import NewsCategory from "./globals/NewsCategory";
+import { OpportunitySettings } from "./globals/OpportunitySettings";
 import SurveySettings from "./globals/SurveySettings";
 import { PUSH_QUEUE } from "./lib/pushQueue";
 import { cmsTrustedOrigins } from "./lib/trustedOrigins";
@@ -100,6 +106,7 @@ import { cleanupAnonymousUsersTask } from "./tasks/cleanupAnonymousUsers";
 import { deleteVideoThumbTempTask } from "./tasks/deleteVideoThumbTemp";
 import { generateVideoThumbnailTask } from "./tasks/generateVideoThumbnail";
 import { processGiveawayTask } from "./tasks/processGiveaway";
+import { processOpportunitiesTask } from "./tasks/processOpportunities";
 import { pruneNewsAnalyticsTask } from "./tasks/pruneNewsAnalytics";
 import { prunePartnerContentEventsTask } from "./tasks/prunePartnerContentEvents";
 import { sendCommentLikeNotificationTask } from "./tasks/sendCommentLikeNotification";
@@ -176,6 +183,7 @@ const baseConfig: Config = {
       beforeNavLinks: [
         dashboardNavLink,
         analyticsNavLink,
+        forYouMonitoringNavLink,
         surveyPerformanceNavLink,
         whatsNewNavLink,
       ],
@@ -183,12 +191,20 @@ const baseConfig: Config = {
         ...analyticsViews,
         ...whatsNewViews,
         dashboard: dashboardHomeView,
+        forYouMonitoring: forYouMonitoringView,
       },
     },
   },
   blocks: [InstagramBlock, YouTubeBlock, TwitterBlock],
-  globals: [NewsCategory, ModerationSettings, SurveySettings, AppSettings],
+  globals: [
+    NewsCategory,
+    ModerationSettings,
+    SurveySettings,
+    AppSettings,
+    OpportunitySettings,
+  ],
   collections: [
+    ...opportunityCollections,
     Account,
     Activities,
     SurveyOfferEvents,
@@ -254,6 +270,7 @@ const baseConfig: Config = {
       sendUrgentModerationAlertTask,
       checkPushReceiptsTask,
       processGiveawayTask,
+      processOpportunitiesTask,
       cleanupAnonymousUsersTask,
       pruneNewsAnalyticsTask,
       prunePartnerContentEventsTask,

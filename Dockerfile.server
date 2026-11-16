@@ -22,7 +22,7 @@ COPY packages ./packages
 COPY apps/server ./apps/server
 COPY tooling ./tooling
 
-RUN bun install --ignore-scripts
+RUN bun tooling/portable-lockfile.mjs && bun install --ignore-scripts
 
 EXPOSE 9000
 
