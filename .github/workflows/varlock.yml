@@ -49,7 +49,7 @@ jobs:
 
       - name: API and discovery regression tests
         # Module mocks must not replace real modules in another test file.
-        run: bun test --isolate packages/api/src packages/payload/test/opportunities.test.ts packages/payload/test/opportunity-formats.test.ts
+        run: bun test --isolate packages/api/src packages/analytics/src packages/payload/src/collections/__tests__/TicketOrders.test.ts packages/payload/test/opportunities.test.ts packages/payload/test/opportunity-formats.test.ts
 
       - name: CMS route tests
         working-directory: apps/cms

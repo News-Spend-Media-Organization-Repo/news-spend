@@ -3,7 +3,7 @@ import { sql } from "@payloadcms/db-postgres";
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
-   ALTER TABLE "ticket_orders" ADD COLUMN "points_reversed" numeric DEFAULT 0;`);
+   ALTER TABLE "ticket_orders" ADD COLUMN IF NOT EXISTS "points_reversed" numeric DEFAULT 0;`);
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {

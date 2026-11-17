@@ -300,17 +300,56 @@ describe("typed calls", () => {
 });
 
 describe("showsConfigFromEnv", () => {
+  const saved = {
+    credential: process.env.SHOWS_API_CREDENTIAL,
+    environment: process.env.SHOWS_ENV,
+    baseUrl: process.env.SHOWS_BASE_URL,
+  };
+
   afterEach(() => {
-    delete process.env.SHOWS_API_CREDENTIAL;
+    const restore = (name: string, value: string | undefined) => {
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    };
+    restore("SHOWS_API_CREDENTIAL", saved.credential);
+    restore("SHOWS_ENV", saved.environment);
+    restore("SHOWS_BASE_URL", saved.baseUrl);
   });
 
   it("returns null when the credential is missing", () => {
+    delete process.env.SHOWS_API_CREDENTIAL;
+    process.env.SHOWS_ENV = "live";
+
     expect(showsConfigFromEnv()).toBeNull();
   });
 
-  it("reads the credential from the environment", () => {
+  it("uses the live host when SHOWS_ENV is live", () => {
     process.env.SHOWS_API_CREDENTIAL = "secret-cred";
+    process.env.SHOWS_ENV = "live";
+    delete process.env.SHOWS_BASE_URL;
 
     expect(showsConfigFromEnv()).toEqual({ credential: "secret-cred" });
+  });
+
+  it("disables the feature in sandbox with no base URL", () => {
+    process.env.SHOWS_API_CREDENTIAL = "secret-cred";
+    process.env.SHOWS_ENV = "sandbox";
+    delete process.env.SHOWS_BASE_URL;
+
+    expect(showsConfigFromEnv()).toBeNull();
+  });
+
+  it("uses SHOWS_BASE_URL when one is configured", () => {
+    process.env.SHOWS_API_CREDENTIAL = "secret-cred";
+    process.env.SHOWS_ENV = "sandbox";
+    process.env.SHOWS_BASE_URL = "https://sandbox.shows.test/v1";
+
+    expect(showsConfigFromEnv()).toEqual({
+      credential: "secret-cred",
+      baseUrl: "https://sandbox.shows.test/v1",
+    });
   });
 });

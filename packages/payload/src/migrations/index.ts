@@ -84,6 +84,8 @@ import * as migration_20261117_175314_ticket_orders from './20261117_175314_tick
 import * as migration_20261117_185910_activities_event_ticket from './20261117_185910_activities_event_ticket';
 import * as migration_20261117_201600_ticket_orders_points_reversed from './20261117_201600_ticket_orders_points_reversed';
 import * as migration_20261117_210000_ticket_orders_award_attempted_at from './20261117_210000_ticket_orders_award_attempted_at';
+import * as migration_20261117_220000_ticket_orders_user_nullable from './20261117_220000_ticket_orders_user_nullable';
+import * as migration_20261117_230000_ticket_orders_convergence from './20261117_230000_ticket_orders_convergence';
 
 export const migrations = [
   {
@@ -504,16 +506,26 @@ export const migrations = [
   {
     up: migration_20261117_185910_activities_event_ticket.up,
     down: migration_20261117_185910_activities_event_ticket.down,
-    name: '20261117_185910_activities_event_ticket'
+    name: '20261117_185910_activities_event_ticket',
   },
   {
     up: migration_20261117_201600_ticket_orders_points_reversed.up,
     down: migration_20261117_201600_ticket_orders_points_reversed.down,
-    name: '20261117_201600_ticket_orders_points_reversed'
+    name: '20261117_201600_ticket_orders_points_reversed',
   },
   {
     up: migration_20261117_210000_ticket_orders_award_attempted_at.up,
     down: migration_20261117_210000_ticket_orders_award_attempted_at.down,
-    name: '20261117_210000_ticket_orders_award_attempted_at'
+    name: '20261117_210000_ticket_orders_award_attempted_at',
+  },
+  {
+    up: migration_20261117_220000_ticket_orders_user_nullable.up,
+    down: migration_20261117_220000_ticket_orders_user_nullable.down,
+    name: '20261117_220000_ticket_orders_user_nullable',
+  },
+  {
+    up: migration_20261117_230000_ticket_orders_convergence.up,
+    down: migration_20261117_230000_ticket_orders_convergence.down,
+    name: '20261117_230000_ticket_orders_convergence'
   },
 ];

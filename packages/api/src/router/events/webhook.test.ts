@@ -81,17 +81,28 @@ function request({
 }
 
 const savedSecret = process.env.SHOWS_WEBHOOK_SECRET;
+const savedEnvironment = process.env.SHOWS_ENV;
+const savedProject = process.env.SHOWS_PROJECT_ID;
+
+function restore(name: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
 
 beforeEach(() => {
   process.env.SHOWS_WEBHOOK_SECRET = SECRET;
+  // The environment/project guard is asserted below, so start from unset.
+  delete process.env.SHOWS_ENV;
+  delete process.env.SHOWS_PROJECT_ID;
 });
 
 afterEach(() => {
-  if (savedSecret === undefined) {
-    delete process.env.SHOWS_WEBHOOK_SECRET;
-  } else {
-    process.env.SHOWS_WEBHOOK_SECRET = savedSecret;
-  }
+  restore("SHOWS_WEBHOOK_SECRET", savedSecret);
+  restore("SHOWS_ENV", savedEnvironment);
+  restore("SHOWS_PROJECT_ID", savedProject);
 });
 
 describe("showsWebhookHandler", () => {
@@ -207,6 +218,40 @@ describe("showsWebhookHandler", () => {
     await expect(response.json()).resolves.toMatchObject({
       acknowledged: true,
     });
+  });
+
+  it("ignores an event from another environment or project", async () => {
+    process.env.SHOWS_ENV = "live";
+    process.env.SHOWS_PROJECT_ID = "proj_live";
+
+    let applied = 0;
+    const apply = () => {
+      applied += 1;
+      return "applied" as const;
+    };
+
+    const wrongEnvironment = await showsWebhookHandler(
+      request({ body: envelope({ environment: "sandbox" }) }),
+      apply
+    );
+    const wrongProject = await showsWebhookHandler(
+      request({ body: envelope({ project: "proj_other" }) }),
+      apply
+    );
+    const ours = await showsWebhookHandler(
+      request({
+        body: envelope({ environment: "live", project: "proj_live" }),
+      }),
+      apply
+    );
+
+    expect(wrongEnvironment.status).toBe(200);
+    expect(wrongProject.status).toBe(200);
+    expect(applied).toBe(1);
+    expect(ours.status).toBe(200);
+
+    delete process.env.SHOWS_ENV;
+    delete process.env.SHOWS_PROJECT_ID;
   });
 
   it("acknowledges a signed body that is not JSON", async () => {

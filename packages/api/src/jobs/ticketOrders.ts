@@ -157,7 +157,7 @@ export async function reconcileTicketOrders(
   const result = { checked: 0, changed: 0, failed: 0 };
   if (!shows) {
     payload.logger.warn(
-      "ticket order reconcile skipped: no Shows credential configured"
+      "ticket order reconcile skipped: no Shows credential or base URL configured"
     );
     return result;
   }

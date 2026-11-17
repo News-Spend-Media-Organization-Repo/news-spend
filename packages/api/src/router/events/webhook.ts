@@ -360,6 +360,23 @@ export async function showsWebhookHandler(
     return json({ message: "Nothing to do", acknowledged: true }, 200);
   }
 
+  // Another environment's or another project's event must never move our
+  // money, even signed. Only configured values are compared, so a partial
+  // setup still works; a missing envelope value is a mismatch.
+  const expectedEnvironment = process.env.SHOWS_ENV?.trim();
+  const expectedProject = process.env.SHOWS_PROJECT_ID?.trim();
+  if (
+    (expectedEnvironment && envelope.environment !== expectedEnvironment) ||
+    (expectedProject && envelope.project !== expectedProject)
+  ) {
+    console.warn("[events] Shows webhook ignored", {
+      id: envelope.id,
+      type: envelope.type,
+      reason: "environment or project mismatch",
+    });
+    return json({ message: "Ignored", acknowledged: true }, 200);
+  }
+
   if (envelope.type === "webhook.test") {
     // The key-rotation probe: prove we verified it, do nothing else.
     console.info("[events] Shows webhook test", {

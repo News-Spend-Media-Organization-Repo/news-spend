@@ -5603,11 +5603,9 @@ export const ticket_orders = pgTable(
   "ticket_orders",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    user: uuid("user_id")
-      .notNull()
-      .references(() => users.id, {
-        onDelete: "set null",
-      }),
+    user: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     clientRef: varchar("client_ref").notNull(),
     idempotencyKey: varchar("idempotency_key").notNull(),
     reference: varchar("reference"),

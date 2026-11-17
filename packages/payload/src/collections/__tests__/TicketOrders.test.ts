@@ -57,4 +57,13 @@ describe("ticket-orders access", () => {
       expect(field(name)).toMatchObject({ unique: true, index: true });
     }
   });
+
+  test("user is optional: the FK nulls it when a buyer is deleted", () => {
+    const user = TicketOrders.fields.find(
+      (candidate) => "name" in candidate && candidate.name === "user"
+    );
+
+    expect(user).toMatchObject({ index: true });
+    expect(user).not.toMatchObject({ required: true });
+  });
 });

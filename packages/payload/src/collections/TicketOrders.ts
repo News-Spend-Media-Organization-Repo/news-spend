@@ -26,7 +26,9 @@ export const TicketOrders: CollectionConfig = {
       name: "user",
       type: "relationship",
       relationTo: "users",
-      required: true,
+      // Optional because the FK is ON DELETE SET NULL: a required column makes
+      // deleting a ticket buyer fail. The auth beforeDelete hook anonymises the
+      // buyer fields; the order row stays for accounting.
       index: true,
     },
     {

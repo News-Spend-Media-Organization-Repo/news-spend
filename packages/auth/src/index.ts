@@ -27,6 +27,7 @@ import type { $ZodIssue } from "zod/v4/core";
 import { recordGuestConversion, recordGuestCreated } from "./guestEvents";
 import { generateOTPForRequest } from "./otp";
 import { removeSignedOutPushToken } from "./pushTokens";
+import { anonymiseTicketBuyer } from "./ticketOrders";
 /**
  * better-auth reads this in seconds. It was written as `60 * 60 * 1000`, a
  * millisecond hour, which made every emailed code valid for about 41 days.
@@ -106,6 +107,9 @@ export const auth = betterAuth({
         await pool.query("DELETE FROM activities WHERE user_id = $1", [
           user.id,
         ]);
+
+        // Name, email and phone must not outlive the account.
+        await anonymiseTicketBuyer(pool, user.id);
       },
     },
     fields: {

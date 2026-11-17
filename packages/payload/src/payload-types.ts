@@ -2940,7 +2940,7 @@ export interface Survey {
  */
 export interface TicketOrder {
   id: string;
-  user: string | User;
+  user?: (string | null) | User;
   clientRef: string;
   idempotencyKey: string;
   reference?: string | null;
