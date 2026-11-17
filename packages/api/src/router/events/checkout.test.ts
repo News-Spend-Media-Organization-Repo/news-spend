@@ -419,6 +419,60 @@ describe("eventsRouter.checkout", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("mints a new checkout when the row is past the hold even if the link has not expired", async () => {
+    const { calls, ctx, payload } = setup({
+      orders: [
+        order({
+          state: "pending",
+          reference: "ref-old",
+          clientRef: "client-old",
+          idempotencyKey: "key-old",
+          checkoutUrl: "https://pay.test/ref-old",
+          checkoutExpiresAt: "2026-11-17T10:30:00.000Z",
+          createdAt: "2026-11-17T09:44:00.000Z",
+        }),
+      ],
+      routes: { checkouts: { body: CHECKOUT } },
+    });
+
+    const result = await call(eventsRouter.checkout, INPUT, { context: ctx });
+
+    expect(result).toEqual(CHECKOUT);
+    const rows = payload.docs("ticket-orders");
+    expect(rows).toHaveLength(2);
+    expect(rows.find((row) => row.reference === "ref-old")?.state).toBe(
+      "expired"
+    );
+    expect(calls.filter((entry) => entry.method === "POST")).toHaveLength(1);
+  });
+
+  it("does not serve a stored checkout with an unparseable expiry", async () => {
+    const { calls, ctx, payload } = setup({
+      orders: [
+        order({
+          state: "pending",
+          reference: "ref-old",
+          clientRef: "client-old",
+          idempotencyKey: "key-old",
+          checkoutUrl: "https://pay.test/ref-old",
+          checkoutExpiresAt: "not-a-date",
+          createdAt: "2026-11-17T09:55:00.000Z",
+        }),
+      ],
+      routes: { checkouts: { body: CHECKOUT } },
+    });
+
+    const result = await call(eventsRouter.checkout, INPUT, { context: ctx });
+
+    expect(result).toEqual(CHECKOUT);
+    const posts = calls.filter((entry) => entry.method === "POST");
+    expect(posts).toHaveLength(1);
+    expect(posts[0]?.key).toBe("key-old");
+    expect(payload.docs("ticket-orders")[0]?.checkoutUrl).toBe(
+      "https://pay.test/ref-1"
+    );
+  });
+
   it("expires a stale pending row before creating a new checkout", async () => {
     const { calls, ctx, payload } = setup({
       routes: {
@@ -626,7 +680,16 @@ describe("eventsRouter.order", () => {
           lastSyncedAt: "2026-11-17T09:59:29.000Z",
         }),
       ],
-      routes: { purchases: { body: purchase() } },
+      routes: {
+        purchases: {
+          body: purchase({
+            amountMinor: 0,
+            currency: "USD",
+            refundedMinor: 500,
+            orderReference: "ord-9",
+          }),
+        },
+      },
     });
 
     const result = await call(
@@ -640,6 +703,9 @@ describe("eventsRouter.order", () => {
     expect(calls[0]?.url).toContain("/purchases/ref-1");
     expect(payload.docs("ticket-orders")[0]).toMatchObject({
       state: "pending",
+      amountMinor: 1_000_000,
+      currency: "NGN",
+      refundedMinor: 0,
       lastSyncedAt: NOW.toISOString(),
     });
   });

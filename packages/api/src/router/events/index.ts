@@ -317,6 +317,20 @@ function storedCheckout(order: TicketOrder, now: number): ShowsCheckout | null {
   };
 }
 
+/** Whether a pending row is past the hold window or its checkout expiry. */
+function isStale(order: TicketOrder, now: number): boolean {
+  const created = Date.parse(order.createdAt);
+  const expires = order.checkoutExpiresAt
+    ? Date.parse(order.checkoutExpiresAt)
+    : null;
+
+  return (
+    !Number.isFinite(created) ||
+    now - created >= ORDER_HOLD_MS ||
+    (expires !== null && Number.isFinite(expires) && expires <= now)
+  );
+}
+
 /**
  * The stored checkout for this selection, if any, so a live URL is returned
  * even when Shows cannot be reached. The in-lock check stays authoritative.
@@ -324,6 +338,7 @@ function storedCheckout(order: TicketOrder, now: number): ShowsCheckout | null {
 async function findStoredCheckout(
   payload: Context["payload"],
   userId: string,
+  eventId: string,
   sessionId: string,
   selection: TicketLine[],
   now: number
@@ -333,6 +348,7 @@ async function findStoredCheckout(
     where: {
       and: [
         { user: { equals: userId } },
+        { eventId: { equals: eventId } },
         { sessionId: { equals: sessionId } },
         { state: { equals: "pending" } },
         { checkoutUrl: { exists: true } },
@@ -345,6 +361,9 @@ async function findStoredCheckout(
 
   const key = selectionKey(selection);
   for (const order of found.docs) {
+    if (isStale(order, now)) {
+      continue;
+    }
     if (selectionKey(readItems(order.items)) !== key) {
       continue;
     }
@@ -383,16 +402,7 @@ async function reapExpiredOrders(
 
   const live: TicketOrder[] = [];
   for (const order of found.docs) {
-    const created = Date.parse(order.createdAt);
-    const expires = order.checkoutExpiresAt
-      ? Date.parse(order.checkoutExpiresAt)
-      : null;
-    const dead =
-      !Number.isFinite(created) ||
-      now - created >= ORDER_HOLD_MS ||
-      (expires !== null && Number.isFinite(expires) && expires <= now);
-
-    if (dead) {
+    if (isStale(order, now)) {
       await payload.update({
         collection: "ticket-orders",
         id: order.id,
@@ -621,6 +631,7 @@ const checkout = protectedNoGuestProcedure
     const early = await findStoredCheckout(
       context.payload,
       context.user.id,
+      input.eventId,
       input.sessionId,
       selection,
       Date.now()
