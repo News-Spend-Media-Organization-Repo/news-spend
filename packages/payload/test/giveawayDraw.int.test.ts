@@ -83,7 +83,9 @@ async function createDrawableGiveaway({
       status: "active",
       startDate: new Date(Date.now() - 8 * DAY).toISOString(),
       // Already over, so the draw is eligible without special-casing the date.
-      endDate: new Date(Date.now() - HOUR).toISOString(),
+      // Applied after setup: the pool hook refuses new prize rows once the
+      // end date has passed.
+      endDate: new Date(Date.now() + DAY).toISOString(),
       ticketPrice: 50,
       minTicketsRequired: 1,
       // Tier 3 only: the catalogue has no tier 1 or tier 2 prize, and a tier
@@ -122,6 +124,12 @@ async function createDrawableGiveaway({
       },
     });
   }
+
+  await payload.update({
+    collection: "giveaways",
+    id: giveaway.id,
+    data: { endDate: new Date(Date.now() - HOUR).toISOString() },
+  });
 
   return {
     giveawayId: String(giveaway.id),

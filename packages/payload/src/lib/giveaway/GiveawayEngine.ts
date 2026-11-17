@@ -985,6 +985,11 @@ export class GiveawayEngine {
         winnersSoFar.add(winner.userKey);
       }
     }
+    // A winner seated before the draw (a manual pick) holds a prize too, on a
+    // fresh draw as much as a resumed one, and must not be drawn again.
+    for (const userKey of await this.loadPersistedWinnerKeys(giveawayId)) {
+      winnersSoFar.add(userKey);
+    }
 
     const tiers = await this.runTiers({
       ctx,
@@ -1499,6 +1504,30 @@ export class GiveawayEngine {
     await this.checkpoint(ctx, TIER_CHECKPOINTS[tier].allocated, undefined, {
       tier,
     });
+  }
+
+  /**
+   * Every user with a persisted winner row for this giveaway, in any claim
+   * status: a disqualified winner is still someone who was drawn (13).
+   */
+  private async loadPersistedWinnerKeys(
+    giveawayId: string
+  ): Promise<Set<UserKey>> {
+    const winners = await this.payload.find({
+      collection: "giveaway-winners",
+      where: { giveaway: { equals: giveawayId } },
+      pagination: false,
+      depth: 0,
+    });
+
+    const keys = new Set<UserKey>();
+    for (const row of winners.docs) {
+      const userKey = relationKey(row.user);
+      if (userKey) {
+        keys.add(userKey);
+      }
+    }
+    return keys;
   }
 
   /**
