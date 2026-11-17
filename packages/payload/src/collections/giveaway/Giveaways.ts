@@ -1062,6 +1062,17 @@ export const Giveaways: CollectionConfig = {
       },
     },
     {
+      name: "manualWinners",
+      type: "ui",
+      label: "Manual winners",
+      admin: {
+        components: {
+          Field:
+            "@news-spend-media/payload/components/ManualWinners#ManualWinners",
+        },
+      },
+    },
+    {
       name: "resendWinnerReport",
       type: "ui",
       label: "Winner Report",
