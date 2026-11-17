@@ -559,6 +559,13 @@ try {
       // noop
     }
   });
+  import("@news-spend-media/api/jobs/ticketOrders").then((m) => {
+    try {
+      m.startTicketOrderReconcileJob();
+    } catch {
+      // noop
+    }
+  });
 } catch {
   // noop
 }
