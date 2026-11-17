@@ -15,6 +15,8 @@ function fixture(
     digest?: boolean;
     disabledDigest?: boolean;
     featuredBoost?: number;
+    digestIntervalHours?: number;
+    notifiedAgoMs?: number;
   } = {}
 ) {
   const opportunity = {
@@ -43,6 +45,9 @@ function fixture(
         ...(options.featuredBoost === undefined
           ? {}
           : { featuredBoost: options.featuredBoost }),
+        ...(options.digestIntervalHours === undefined
+          ? {}
+          : { digestIntervalHours: options.digestIntervalHours }),
       },
     },
     collections: {
@@ -55,7 +60,9 @@ function fixture(
           createdAt: new Date(now - 2 * 86_400_000).toISOString(),
           lastNotifiedAt: options.recentDigest
             ? new Date(now - 60_000).toISOString()
-            : null,
+            : options.notifiedAgoMs === undefined
+              ? null
+              : new Date(now - options.notifiedAgoMs).toISOString(),
           preferences: {
             ...DEFAULT_PROFILE,
             interests: ["technology"],
@@ -219,5 +226,56 @@ describe("For You lifecycle and notification jobs", () => {
     await run(payload);
     expect(payload.docs("notifications")).toHaveLength(1);
     expect(payload.docs("notifications")[0]?.body).toBe("Training opportunity");
+  });
+  it("does not send a second digest on the same day when the interval allows it", async () => {
+    // A zero-hour interval lets the profile through on every run, so only
+    // the daily opportunityDeliveryKey dedupe can stop a second send.
+    const payload = fixture({ digest: true, digestIntervalHours: 0 });
+    await run(payload);
+    expect(payload.docs("notifications")).toHaveLength(1);
+    // Fresh content published after the first run would otherwise be digested.
+    payload.docs("opportunities").push({
+      ...payload.docs("opportunities")[0],
+      id: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+      title: "Newer training",
+      canonicalUrl: "https://example.org/newer",
+      publishedAt: new Date(Date.now() + 1000).toISOString(),
+    });
+    await run(payload);
+    expect(payload.docs("notifications")).toHaveLength(1);
+  });
+  it("respects a CMS-configured digest interval", async () => {
+    const recent = fixture({
+      digest: true,
+      digestIntervalHours: 1,
+      notifiedAgoMs: 30 * 60_000,
+    });
+    await run(recent);
+    expect(recent.docs("notifications")).toHaveLength(0);
+    const elapsed = fixture({
+      digest: true,
+      digestIntervalHours: 1,
+      notifiedAgoMs: 2 * 3_600_000,
+    });
+    await run(elapsed);
+    expect(elapsed.docs("notifications")).toHaveLength(1);
+  });
+  it("only considers opportunities published since the last notification", async () => {
+    const options = {
+      digest: true,
+      digestIntervalHours: 1,
+      notifiedAgoMs: 2 * 3_600_000,
+    };
+    const stale = fixture(options);
+    const [opportunity] = stale.docs("opportunities");
+    if (!opportunity) {
+      throw new Error("fixture seeds one opportunity");
+    }
+    opportunity.publishedAt = new Date(now - 3 * 3_600_000).toISOString();
+    await run(stale);
+    expect(stale.docs("notifications")).toHaveLength(0);
+    const fresh = fixture(options);
+    await run(fresh);
+    expect(fresh.docs("notifications")).toHaveLength(1);
   });
 });
