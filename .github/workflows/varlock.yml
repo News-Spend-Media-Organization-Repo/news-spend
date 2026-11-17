@@ -51,6 +51,10 @@ jobs:
         # Module mocks must not replace real modules in another test file.
         run: bun test --isolate packages/api/src packages/payload/test/opportunities.test.ts packages/payload/test/opportunity-formats.test.ts
 
+      - name: CMS route tests
+        working-directory: apps/cms
+        run: bun run test
+
       - name: Mobile unit tests
         working-directory: apps/native
         run: node ../../node_modules/jest/bin/jest.js --runInBand

@@ -22,6 +22,7 @@
     "standalone-script": "node ./src/scripts/standalone-script.js",
     "start": "bun --bun next start",
     "start:node": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=768\" next start",
+    "test": "bun test src",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -56,6 +57,7 @@
   "devDependencies": {
     "@news-spend-media/config": "workspace:*",
     "@news-spend-media/tailwind-config": "workspace:*",
+    "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
