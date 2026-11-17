@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { contentFromDoc } from "@news-spend-media/payload/opportunities/content";
 import {
   canonicalize,
   learnedInterests,
@@ -6,7 +7,6 @@ import {
 } from "@news-spend-media/payload/opportunities/engine";
 import type {
   Interest,
-  OpportunityContent,
   OpportunityProfile,
   Signal,
 } from "@news-spend-media/payload/opportunities/model";
@@ -103,44 +103,6 @@ async function signalsFor(
     category: d.category,
     action: d.action,
   }));
-}
-
-export function contentFromDoc(
-  doc: Awaited<ReturnType<typeof opportunityDoc>>
-): OpportunityContent {
-  const source = typeof doc.source === "object" ? doc.source : null;
-  return {
-    id: doc.id,
-    title: doc.title,
-    summary: doc.summary,
-    category: doc.category,
-    kind: doc.kind,
-    canonicalUrl: doc.canonicalUrl,
-    provider: doc.provider,
-    location: doc.location ?? "",
-    preferences: Array.isArray(doc.preferences)
-      ? doc.preferences.filter((p): p is string => typeof p === "string")
-      : [],
-    details:
-      doc.details &&
-      typeof doc.details === "object" &&
-      !Array.isArray(doc.details)
-        ? Object.fromEntries(
-            Object.entries(doc.details).filter(
-              (entry): entry is [string, string] => typeof entry[1] === "string"
-            )
-          )
-        : {},
-    deadline: doc.deadline ?? null,
-    publishedAt: doc.publishedAt,
-    trust: source?.trust ?? "unverified",
-    popularity: doc.popularity ?? 0,
-    featured: doc.featured ?? false,
-    quality: source?.qualityOverride ?? source?.qualityScore ?? 0,
-    categories: Array.isArray(doc.categories)
-      ? doc.categories.filter((x): x is string => typeof x === "string")
-      : [],
-  };
 }
 
 async function opportunityDoc(payload: Payload, id: string) {
