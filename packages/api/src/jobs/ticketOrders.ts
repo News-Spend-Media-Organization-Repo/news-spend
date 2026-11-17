@@ -92,6 +92,7 @@ async function findCandidates(
               and: [
                 { state: { equals: "paid" } },
                 { pointsAwarded: { equals: 0 } },
+                { awardAttemptedAt: { exists: false } },
               ],
             },
           ],

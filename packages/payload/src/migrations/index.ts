@@ -83,6 +83,7 @@ import * as migration_20261117_084047_for_you_discovery from './20261117_084047_
 import * as migration_20261117_175314_ticket_orders from './20261117_175314_ticket_orders';
 import * as migration_20261117_185910_activities_event_ticket from './20261117_185910_activities_event_ticket';
 import * as migration_20261117_201600_ticket_orders_points_reversed from './20261117_201600_ticket_orders_points_reversed';
+import * as migration_20261117_210000_ticket_orders_award_attempted_at from './20261117_210000_ticket_orders_award_attempted_at';
 
 export const migrations = [
   {
@@ -509,5 +510,10 @@ export const migrations = [
     up: migration_20261117_201600_ticket_orders_points_reversed.up,
     down: migration_20261117_201600_ticket_orders_points_reversed.down,
     name: '20261117_201600_ticket_orders_points_reversed'
+  },
+  {
+    up: migration_20261117_210000_ticket_orders_award_attempted_at.up,
+    down: migration_20261117_210000_ticket_orders_award_attempted_at.down,
+    name: '20261117_210000_ticket_orders_award_attempted_at'
   },
 ];

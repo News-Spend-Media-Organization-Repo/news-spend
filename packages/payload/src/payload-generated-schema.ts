@@ -5638,6 +5638,11 @@ export const ticket_orders = pgTable(
     buyer_phone: varchar("buyer_phone"),
     pointsAwarded: numeric("points_awarded", { mode: "number" }).default(0),
     pointsReversed: numeric("points_reversed", { mode: "number" }).default(0),
+    awardAttemptedAt: timestamp("award_attempted_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     lastSyncedAt: timestamp("last_synced_at", {
       mode: "string",
       withTimezone: true,

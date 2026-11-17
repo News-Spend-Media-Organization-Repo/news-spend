@@ -222,5 +222,70 @@ describe("reconcileTicketOrders", () => {
     expect(
       payload.docs("activities").filter((row) => row.action === "eventTicket")
     ).toHaveLength(1);
+    expect(payload.docs("ticket-orders")[0]?.awardAttemptedAt).toBeTruthy();
+  });
+
+  it("does not re-select an award that was capped", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          order({ state: "paid", pointsAwarded: 0 }),
+          order({
+            id: "order-2",
+            reference: "ref_2",
+            state: "paid",
+            pointsAwarded: 100,
+            createdAt: new Date(NOW.getTime() - 6 * 60_000).toISOString(),
+          }),
+          order({
+            id: "order-3",
+            reference: "ref_3",
+            state: "paid",
+            pointsAwarded: 100,
+            createdAt: new Date(NOW.getTime() - 7 * 60_000).toISOString(),
+          }),
+        ],
+      },
+    });
+    const options = {
+      now: NOW,
+      shows: shows({ ref_1: PAID_PURCHASE }),
+    };
+
+    const first = await reconcileTicketOrders(payload as never, options);
+    const second = await reconcileTicketOrders(payload as never, options);
+
+    expect(first).toEqual({ checked: 1, changed: 1, failed: 0 });
+    expect(second).toEqual({ checked: 0, changed: 0, failed: 0 });
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      pointsAwarded: 0,
+    });
+  });
+
+  it("re-selects a row whose award attempt threw", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [order({ state: "paid", pointsAwarded: 0 })],
+      },
+    });
+    const create = payload.create.bind(payload);
+    payload.create = (args) => {
+      if (args.collection === "activities") {
+        throw new Error("activities write failed");
+      }
+      return create(args);
+    };
+    const options = {
+      now: NOW,
+      shows: shows({ ref_1: PAID_PURCHASE }),
+    };
+
+    const first = await reconcileTicketOrders(payload as never, options);
+    expect(first).toEqual({ checked: 1, changed: 0, failed: 1 });
+    expect(payload.docs("ticket-orders")[0]?.awardAttemptedAt).toBeUndefined();
+
+    const second = await reconcileTicketOrders(payload as never, options);
+    expect(second).toEqual({ checked: 1, changed: 0, failed: 1 });
   });
 });

@@ -384,6 +384,14 @@ async function payOrder(
   reversePreAward: boolean
 ): Promise<void> {
   const award = await awardEventTicketPoints(payload, order);
+  // A skip (per-event cap, fully refunded, no user) leaves `pointsAwarded` at
+  // 0, so the marker is what stops reconciliation retrying it forever. A throw
+  // never reaches this line, leaving the row to be retried.
+  await payload.update({
+    collection: "ticket-orders",
+    id: order.id,
+    data: { awardAttemptedAt: new Date().toISOString() },
+  });
   if (award === "skipped" || !reversePreAward) {
     return;
   }

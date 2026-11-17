@@ -2973,6 +2973,7 @@ export interface TicketOrder {
   };
   pointsAwarded?: number | null;
   pointsReversed?: number | null;
+  awardAttemptedAt?: string | null;
   lastSyncedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
@@ -4706,6 +4707,7 @@ export interface TicketOrdersSelect<T extends boolean = true> {
       };
   pointsAwarded?: T;
   pointsReversed?: T;
+  awardAttemptedAt?: T;
   lastSyncedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;

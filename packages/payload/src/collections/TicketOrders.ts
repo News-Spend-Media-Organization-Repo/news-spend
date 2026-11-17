@@ -139,6 +139,10 @@ export const TicketOrders: CollectionConfig = {
       defaultValue: 0,
     },
     {
+      name: "awardAttemptedAt",
+      type: "date",
+    },
+    {
       name: "lastSyncedAt",
       type: "date",
     },
