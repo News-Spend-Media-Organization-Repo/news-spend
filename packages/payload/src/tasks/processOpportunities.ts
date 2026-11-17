@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Payload, TaskConfig } from "payload";
+import { contentFromDoc } from "../opportunities/content";
 import { rankOpportunities } from "../opportunities/engine";
 import { ingestSource } from "../opportunities/ingestion";
 import { readProfile } from "../opportunities/model";
@@ -128,6 +129,13 @@ async function sendDiscoveryDigests(payload: Payload): Promise<void> {
           and: [
             { status: { equals: "published" } },
             { "source.status": { equals: "approved" } },
+            // Same deadline rule as the feed: never notify about expired items.
+            {
+              or: [
+                { deadline: { exists: false } },
+                { deadline: { greater_than: now } },
+              ],
+            },
             {
               publishedAt: {
                 greater_than: stored.lastNotifiedAt ?? stored.createdAt,
@@ -139,28 +147,16 @@ async function sendDiscoveryDigests(payload: Payload): Promise<void> {
         limit: 50,
         depth: 1,
       });
-      const content = candidates.docs.map((doc) => ({
-        id: doc.id,
-        title: doc.title,
-        summary: doc.summary,
-        category: doc.category,
-        kind: doc.kind,
-        canonicalUrl: doc.canonicalUrl,
-        provider: doc.provider,
-        location: doc.location ?? "",
-        preferences: Array.isArray(doc.preferences)
-          ? doc.preferences.filter((v): v is string => typeof v === "string")
-          : [],
-        details: {},
-        deadline: doc.deadline ?? null,
-        publishedAt: doc.publishedAt,
-        trust:
-          typeof doc.source === "object"
-            ? doc.source.trust
-            : ("unverified" as const),
-        popularity: doc.popularity ?? 0,
-      }));
-      const selected = rankOpportunities(content, profile, []).find((item) =>
+      const content = candidates.docs.map(contentFromDoc);
+      // Rank with the same CMS settings the feed uses, so a featured or
+      // quality-boosted item wins in the digest exactly as it does in the app.
+      const selected = rankOpportunities(
+        content,
+        profile,
+        [],
+        Date.now(),
+        settings
+      ).find((item) =>
         item.discovery
           ? profile.notifications.discovery
           : profile.notifications.opportunities
