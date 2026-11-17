@@ -416,6 +416,7 @@ export const AUDIT_EVENT_TYPES = [
   "draw_error",
   "winner_report_sent",
   "claim_status_change",
+  "manual_winner_added",
 ] as const;
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 
@@ -595,3 +596,11 @@ export function isConfigurationLocked(giveaway: {
     giveaway.drawStartedAt === null
   );
 }
+
+/**
+ * Longest reason an administrator may give for seating a manual winner.
+ *
+ * One line, kept on the `manual_winner_added` audit entry so the pick can be
+ * defended later; anything longer belongs in a note, not a log field.
+ */
+export const MANUAL_WINNER_REASON_MAX_LENGTH = 200;

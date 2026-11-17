@@ -3,6 +3,7 @@ import { PrizeSelectField as PrizeSelectField_4e30d28d9b58111db75fff2d657bcf22 }
 import { PrizeTierField as PrizeTierField_888a0e50846e657064bf0bf3667170cf } from '@news-spend-media/payload/components/PrizeTierField'
 import { GiveawayPoolNotice as GiveawayPoolNotice_039e4656eecbbc5bdb2169ba980cec4a } from '@news-spend-media/payload/components/GiveawayPoolNotice'
 import { RunGiveawayDraw as RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7 } from '@news-spend-media/payload/components/RunGiveawayDraw'
+import { ManualWinners as ManualWinners_c5c7eebbd83f2c855e95a7c864c1a314 } from '@news-spend-media/payload/components/ManualWinners'
 import { ResendWinnerReport as ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d } from '@news-spend-media/payload/components/ResendWinnerReport'
 import { CorrectNotification as CorrectNotification_5b8e2c1a7d4f0e9b3c6a2d8f1e4b7c93 } from '@news-spend-media/payload/components/CorrectNotification'
 import { GiveawayStatsView as GiveawayStatsView_bba5810d9f91b27f4c3b488ca576e350 } from '@news-spend-media/payload/components/Analytics'
@@ -92,6 +93,7 @@ export const importMap = {
   "@news-spend-media/payload/components/PrizeTierField#PrizeTierField": PrizeTierField_888a0e50846e657064bf0bf3667170cf,
   "@news-spend-media/payload/components/GiveawayPoolNotice#GiveawayPoolNotice": GiveawayPoolNotice_039e4656eecbbc5bdb2169ba980cec4a,
   "@news-spend-media/payload/components/RunGiveawayDraw#RunGiveawayDraw": RunGiveawayDraw_257171e1a650799ec8c54c9aafc12ce7,
+  "@news-spend-media/payload/components/ManualWinners#ManualWinners": ManualWinners_c5c7eebbd83f2c855e95a7c864c1a314,
   "@news-spend-media/payload/components/ResendWinnerReport#ResendWinnerReport": ResendWinnerReport_7004dcd25e7fd2d012cdd71f3de1479d,
   "@news-spend-media/payload/components/CorrectNotification#CorrectNotification": CorrectNotification_5b8e2c1a7d4f0e9b3c6a2d8f1e4b7c93,
   "@news-spend-media/payload/components/Analytics#GiveawayStatsView": GiveawayStatsView_bba5810d9f91b27f4c3b488ca576e350,

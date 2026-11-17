@@ -57,7 +57,9 @@ async function createDrawableGiveaway(participants: number, maxUnits: number) {
       name: `Resume draw ${Date.now()}`,
       status: "active",
       startDate: new Date(Date.now() - 8 * DAY).toISOString(),
-      endDate: new Date(Date.now() - HOUR).toISOString(),
+      // Applied after setup: the pool hook refuses new prize rows once the
+      // end date has passed.
+      endDate: new Date(Date.now() + DAY).toISOString(),
       ticketPrice: 50,
       minTicketsRequired: 1,
       tier1WinnerPercentage: 0,
@@ -90,6 +92,12 @@ async function createDrawableGiveaway(participants: number, maxUnits: number) {
       },
     });
   }
+
+  await payload.update({
+    collection: "giveaways",
+    id: giveaway.id,
+    data: { endDate: new Date(Date.now() - HOUR).toISOString() },
+  });
 
   return String(giveaway.id);
 }

@@ -7,13 +7,14 @@ import {
   type DrawCheckpoint,
   type GiveawayStatus,
   IN_FLIGHT_GIVEAWAY_STATUSES,
+  PRIZE_TIERS,
   type PrizeTier,
   RESUMABLE_GIVEAWAY_STATUSES,
   TIER_CHECKPOINTS,
   TIER_PROCESSING_ORDER,
 } from "../../collections/giveaway/constants";
 import type { Giveaway } from "../../payload-types";
-import { claimDeadlineFor } from "./claim";
+import { claimDeadlineFor, isSuperseded, latestGiveawayStart } from "./claim";
 import { loadDrawHistories } from "./drawHistory";
 import {
   evaluateEligibility,
@@ -190,6 +191,53 @@ export type RunDrawOptions = {
    */
   recordValidationFailure?: boolean;
 };
+
+export type ManualWinnerInput = {
+  userKey: string;
+  /** A `giveaway-prizes` row id, not a catalogue prize id. */
+  prizeRowId: string;
+  addedBy: string;
+  reason?: string;
+};
+
+export type ManualWinnerResult = {
+  winnerId: string;
+  phase: "pre_draw" | "post_draw";
+  unitsRemaining: number;
+};
+
+/** A participant who can still be seated as a manual winner. */
+export type ManualWinnerCandidate = {
+  userKey: string;
+  name: string | null;
+  email: string | null;
+  validTickets: number;
+  boosts: number;
+  featuredOffers: number;
+  /** Informational only: a manual pick ignores tier thresholds. */
+  qualifiesFor: PrizeTier[];
+  heldForReview: boolean;
+};
+
+/** A prize row of the giveaway, as the manual-winner picker offers it. */
+export type ManualWinnerPrize = {
+  /** The `giveaway-prizes` row id, which is what `addManualWinner` takes. */
+  id: string;
+  prizeName: string;
+  tier: PrizeTier;
+  unitsRemaining: number;
+};
+
+export type ParticipantListing = {
+  participants: ManualWinnerCandidate[];
+  total: number;
+  page: number;
+  limit: number;
+  prizes: ManualWinnerPrize[];
+};
+
+const PARTICIPANT_PAGE_DEFAULT = 25;
+const PARTICIPANT_PAGE_MAX = 100;
 
 /**
  * The giveaway draw engine (spec 12).
@@ -985,6 +1033,11 @@ export class GiveawayEngine {
         winnersSoFar.add(winner.userKey);
       }
     }
+    // A winner seated before the draw (a manual pick) holds a prize too, on a
+    // fresh draw as much as a resumed one, and must not be drawn again.
+    for (const userKey of await this.loadPersistedWinnerKeys(giveawayId)) {
+      winnersSoFar.add(userKey);
+    }
 
     const tiers = await this.runTiers({
       ctx,
@@ -1502,6 +1555,30 @@ export class GiveawayEngine {
   }
 
   /**
+   * Every user with a persisted winner row for this giveaway, in any claim
+   * status: a disqualified winner is still someone who was drawn (13).
+   */
+  private async loadPersistedWinnerKeys(
+    giveawayId: string
+  ): Promise<Set<UserKey>> {
+    const winners = await this.payload.find({
+      collection: "giveaway-winners",
+      where: { giveaway: { equals: giveawayId } },
+      pagination: false,
+      depth: 0,
+    });
+
+    const keys = new Set<UserKey>();
+    for (const row of winners.docs) {
+      const userKey = relationKey(row.user);
+      if (userKey) {
+        keys.add(userKey);
+      }
+    }
+    return keys;
+  }
+
+  /**
    * What a previous, failed attempt at this draw already did: which tiers ran
    * to completion, and who has already been awarded a prize.
    *
@@ -1602,6 +1679,268 @@ export class GiveawayEngine {
       { tier, candidateCount: candidates.size, entryCount: entries.length },
       tier
     );
+  }
+
+  /**
+   * Seat a chosen participant as a winner of a prize from this giveaway's own
+   * pool, before the draw (`active`) or after it (`completed`).
+   *
+   * The write goes through `persistWinner`, so a manual seat is a normal
+   * winner row with the same claim window, fulfilment path and audit entries
+   * as a drawn one, plus a `manual_winner_added` entry naming who chose them.
+   * Tier thresholds, winner percentages, fairness cooldowns and the budget
+   * cap are deliberately bypassed — that is the point of a manual pick — but
+   * stock, ticket validity, account exclusions and the one-win-per-person
+   * rule are not.
+   */
+  async addManualWinner(
+    giveawayId: string,
+    input: ManualWinnerInput
+  ): Promise<ManualWinnerResult> {
+    const { userKey, prizeRowId, addedBy, reason } = input;
+
+    const giveaway = await this.payload.findByID({
+      collection: "giveaways",
+      id: giveawayId,
+      depth: 0,
+    });
+    if (!giveaway) {
+      throw new GiveawayEngineError(
+        "Giveaway not found.",
+        "MANUAL_WINNER_GIVEAWAY_NOT_FOUND"
+      );
+    }
+
+    const status = giveaway.status as GiveawayStatus;
+    if (status !== "active" && status !== "completed") {
+      throw new GiveawayEngineError(
+        `Manual winners can only be added before the draw or after it completes; this giveaway is "${status}".`,
+        "MANUAL_WINNER_BAD_STATUS"
+      );
+    }
+    const phase: ManualWinnerResult["phase"] =
+      status === "active" ? "pre_draw" : "post_draw";
+
+    // A post-draw seat on a superseded giveaway would hand someone a prize
+    // the claim sweep expires on its next pass: the window closed when the
+    // successor started.
+    if (
+      phase === "post_draw" &&
+      isSuperseded(giveaway.startDate, await latestGiveawayStart(this.payload))
+    ) {
+      throw new GiveawayEngineError(
+        "The claim window has closed: a later giveaway has already started, so a winner added now could not claim their prize.",
+        "MANUAL_WINNER_SUPERSEDED"
+      );
+    }
+
+    const pool = await this.loadPrizePool(giveawayId);
+    const prize = pool.find((row) => row.rowId === prizeRowId);
+    if (!prize) {
+      throw new GiveawayEngineError(
+        "That prize is not in this giveaway's prize pool.",
+        "MANUAL_WINNER_PRIZE_NOT_IN_POOL"
+      );
+    }
+    if (prize.unitsAwarded >= prize.maxUnits) {
+      throw new GiveawayEngineError(
+        `"${prize.prizeName}" has no units left to award.`,
+        "MANUAL_WINNER_PRIZE_EXHAUSTED"
+      );
+    }
+
+    const { participation } = await this.loadParticipation(giveawayId);
+    const entry = participation.get(userKey);
+    if (!entry) {
+      throw new GiveawayEngineError(
+        "This person holds no valid ticket in this giveaway.",
+        "MANUAL_WINNER_NO_TICKET"
+      );
+    }
+
+    const flags = await this.loadAccountFlags();
+    if (flags.excluded.has(userKey)) {
+      throw new GiveawayEngineError(
+        `This account is excluded from winning: ${flags.reasons.get(userKey) ?? "flagged"}.`,
+        "MANUAL_WINNER_ACCOUNT_EXCLUDED"
+      );
+    }
+
+    const existing = await this.payload.find({
+      collection: "giveaway-winners",
+      where: {
+        and: [
+          { giveaway: { equals: giveawayId } },
+          { user: { equals: userKey } },
+        ],
+      },
+      limit: 1,
+      pagination: false,
+      depth: 0,
+    });
+    if (existing.docs.length > 0) {
+      throw new GiveawayEngineError(
+        "This person is already a winner of this giveaway.",
+        "MANUAL_WINNER_ALREADY_WINNER"
+      );
+    }
+
+    // The winning ticket is their earliest valid purchase, the same record
+    // the draw would have weighted.
+    const tickets = await this.payload.find({
+      collection: "giveaway-tickets",
+      where: {
+        and: [
+          { giveaway: { equals: giveawayId } },
+          { user: { equals: userKey } },
+          { status: { equals: "valid" } },
+        ],
+      },
+      sort: "purchasedAt",
+      limit: 1,
+      depth: 0,
+    });
+    const ticket = tickets.docs[0];
+    if (!ticket) {
+      throw new GiveawayEngineError(
+        "This person holds no valid ticket in this giveaway.",
+        "MANUAL_WINNER_NO_TICKET"
+      );
+    }
+    const ticketId = String(ticket.id);
+
+    prize.unitsAwarded += 1;
+    const winnerId = await this.persistWinner({
+      giveawayId,
+      tier: prize.tier,
+      entry: { ticketId, userKey, quantity: ticket.quantity ?? 1 },
+      prize,
+      participation: entry,
+      heldForReview: flags.heldForReview.has(userKey),
+    });
+
+    await this.audit(
+      giveawayId,
+      "manual_winner_added",
+      `Manual winner added by ${addedBy}`,
+      {
+        tier: prize.tier,
+        prizeId: prize.prizeId,
+        ticketId,
+        addedBy,
+        reason: reason ?? null,
+        phase,
+      },
+      prize.tier,
+      userKey
+    );
+
+    return {
+      winnerId,
+      phase,
+      unitsRemaining: prize.maxUnits - prize.unitsAwarded,
+    };
+  }
+
+  /**
+   * The people who can still be seated as manual winners, and the prizes
+   * they can be given.
+   *
+   * Participation is aggregated in memory, exactly as the draw does it, so
+   * the counts shown are the counts the engine sees. Existing winners (any
+   * claim status) and excluded accounts are left out, so the list never offers
+   * a pick that `addManualWinner` would refuse for who the person is.
+   *
+   * Search runs against the users table restricted to this giveaway's
+   * participants, so a common name across the whole platform cannot crowd
+   * real matches out of a capped result.
+   */
+  async listParticipants(
+    giveawayId: string,
+    opts: { search?: string; page?: number; limit?: number } = {}
+  ): Promise<ParticipantListing> {
+    const limit = Math.min(
+      PARTICIPANT_PAGE_MAX,
+      Math.max(1, Math.floor(opts.limit ?? PARTICIPANT_PAGE_DEFAULT))
+    );
+    const page = Math.max(1, Math.floor(opts.page ?? 1));
+    const search = opts.search?.trim() ?? "";
+
+    const [{ participation }, flags, winnerKeys, pool] = await Promise.all([
+      this.loadParticipation(giveawayId),
+      this.loadAccountFlags(),
+      this.loadPersistedWinnerKeys(giveawayId),
+      this.loadPrizePool(giveawayId),
+    ]);
+
+    let eligible = [...participation].filter(
+      ([userKey]) => !(winnerKeys.has(userKey) || flags.excluded.has(userKey))
+    );
+
+    if (search && eligible.length > 0) {
+      const matches = await this.payload.find({
+        collection: "users",
+        where: {
+          and: [
+            { id: { in: eligible.map(([userKey]) => userKey) } },
+            {
+              or: [{ name: { like: search } }, { email: { like: search } }],
+            },
+          ],
+        },
+        pagination: false,
+        depth: 0,
+        select: {},
+      });
+      const matched = new Set(matches.docs.map((doc) => String(doc.id)));
+      eligible = eligible.filter(([userKey]) => matched.has(userKey));
+    }
+
+    eligible.sort(
+      ([aKey, a], [bKey, b]) =>
+        b.validTickets - a.validTickets || aKey.localeCompare(bKey)
+    );
+
+    const pageRows = eligible.slice((page - 1) * limit, page * limit);
+
+    const users =
+      pageRows.length > 0
+        ? await this.payload.find({
+            collection: "users",
+            where: { id: { in: pageRows.map(([userKey]) => userKey) } },
+            pagination: false,
+            depth: 0,
+            select: { name: true, email: true },
+          })
+        : { docs: [] };
+    const byId = new Map(users.docs.map((doc) => [String(doc.id), doc]));
+
+    return {
+      participants: pageRows.map(([userKey, p]) => {
+        const user = byId.get(userKey);
+        return {
+          userKey,
+          name: user?.name ?? null,
+          email: user?.email ?? null,
+          validTickets: p.validTickets,
+          boosts: p.boosts,
+          featuredOffers: p.featuredOffers,
+          qualifiesFor: PRIZE_TIERS.filter(
+            (tier) => evaluateEligibility(tier, p).eligible
+          ),
+          heldForReview: flags.heldForReview.has(userKey),
+        };
+      }),
+      total: eligible.length,
+      page,
+      limit,
+      prizes: pool.map((row) => ({
+        id: row.rowId,
+        prizeName: row.prizeName,
+        tier: row.tier,
+        unitsRemaining: Math.max(0, row.maxUnits - row.unitsAwarded),
+      })),
+    };
   }
 
   /**
@@ -1844,8 +2183,8 @@ export class GiveawayEngine {
     prize: PoolPrize;
     participation: Participation | undefined;
     heldForReview: boolean;
-  }) {
-    await this.payload.create({
+  }): Promise<string> {
+    const created = await this.payload.create({
       collection: "giveaway-winners",
       data: {
         giveaway: giveawayId,
@@ -1911,6 +2250,8 @@ export class GiveawayEngine {
         tier
       );
     }
+
+    return String(created.id);
   }
 
   /**
