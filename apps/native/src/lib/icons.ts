@@ -28,6 +28,7 @@ export { ArrowSquareOutIcon } from "phosphor-react-native/src/icons/ArrowSquareO
 export { ArticleIcon } from "phosphor-react-native/src/icons/Article";
 export { BellIcon } from "phosphor-react-native/src/icons/Bell";
 export { BellRingingIcon } from "phosphor-react-native/src/icons/BellRinging";
+export { BookmarkSimpleIcon } from "phosphor-react-native/src/icons/BookmarkSimple";
 export { BookOpenIcon } from "phosphor-react-native/src/icons/BookOpen";
 export { CakeIcon } from "phosphor-react-native/src/icons/Cake";
 export { CalendarIcon } from "phosphor-react-native/src/icons/Calendar";
@@ -46,6 +47,7 @@ export { ConfettiIcon } from "phosphor-react-native/src/icons/Confetti";
 export { CopyIcon } from "phosphor-react-native/src/icons/Copy";
 export { DeviceMobileIcon } from "phosphor-react-native/src/icons/DeviceMobile";
 export { DiceFiveIcon } from "phosphor-react-native/src/icons/DiceFive";
+export { DotsThreeIcon } from "phosphor-react-native/src/icons/DotsThree";
 export { DotsThreeOutlineVerticalIcon } from "phosphor-react-native/src/icons/DotsThreeOutlineVertical";
 export { DotsThreeVerticalIcon } from "phosphor-react-native/src/icons/DotsThreeVertical";
 export { EnvelopeSimpleIcon } from "phosphor-react-native/src/icons/EnvelopeSimple";

@@ -14,17 +14,61 @@ import {
   foreignKey,
   uuid,
   varchar,
+  jsonb,
+  boolean,
   timestamp,
   serial,
   integer,
   numeric,
-  jsonb,
-  boolean,
   type AnyPgColumn,
   text,
   pgEnum,
 } from "@payloadcms/db-postgres/drizzle/pg-core";
 import { sql, relations } from "@payloadcms/db-postgres/drizzle";
+export const enum_opportunity_sources_status = pgEnum(
+  "enum_opportunity_sources_status",
+  ["pending", "approved", "rejected", "paused"],
+);
+export const enum_opportunity_sources_trust = pgEnum(
+  "enum_opportunity_sources_trust",
+  ["official", "verified", "unverified"],
+);
+export const enum_opportunity_sources_ownership_review = pgEnum(
+  "enum_opportunity_sources_ownership_review",
+  ["unreviewed", "official-domain", "publisher-confirmed", "rejected"],
+);
+export const enum_opportunities_kind = pgEnum("enum_opportunities_kind", [
+  "opportunity",
+  "news",
+]);
+export const enum_opportunities_status = pgEnum("enum_opportunities_status", [
+  "draft",
+  "published",
+  "expired",
+]);
+export const enum_opportunity_events_action = pgEnum(
+  "enum_opportunity_events_action",
+  ["open", "read", "save", "share", "more", "less", "dismiss"],
+);
+export const enum_saved_opportunities_status = pgEnum(
+  "enum_saved_opportunities_status",
+  ["Interested", "Planning to Apply", "In Progress", "Submitted", "Closed"],
+);
+export const enum_opportunity_reports_reason = pgEnum(
+  "enum_opportunity_reports_reason",
+  [
+    "Expired opportunity",
+    "Incorrect information",
+    "Suspicious or misleading content",
+    "Broken link",
+    "Duplicate content",
+    "Other",
+  ],
+);
+export const enum_opportunity_reports_status = pgEnum(
+  "enum_opportunity_reports_status",
+  ["pending", "reviewed", "resolved"],
+);
 export const enum_activities_type = pgEnum("enum_activities_type", [
   "point",
   "badge",
@@ -45,6 +89,10 @@ export const enum_activities_action = pgEnum("enum_activities_action", [
   "partnerContentTask",
   "pointReversal",
 ]);
+export const enum_survey_offer_events_provider = pgEnum(
+  "enum_survey_offer_events_provider",
+  ["cpx", "rapido", "theorem", "bitlabs"],
+);
 export const enum_admins_role = pgEnum("enum_admins_role", [
   "super-admin",
   "content-manager",
@@ -260,6 +308,10 @@ export const enum_giveaway_winners_fulfilment_status = pgEnum(
     "cancelled",
   ],
 );
+export const enum_guest_events_kind = pgEnum("enum_guest_events_kind", [
+  "created",
+  "converted",
+]);
 export const enum_identity_checks_provider = pgEnum(
   "enum_identity_checks_provider",
   ["didit"],
@@ -299,6 +351,46 @@ export const enum__news_v_version_type = pgEnum("enum__news_v_version_type", [
 ]);
 export const enum__news_v_version_status = pgEnum(
   "enum__news_v_version_status",
+  ["draft", "published"],
+);
+export const enum_discover_events_event = pgEnum("enum_discover_events_event", [
+  "view",
+  "section",
+  "open",
+  "game_launch",
+  "game_blocked",
+  "game_report",
+]);
+export const enum_discover_events_platform = pgEnum(
+  "enum_discover_events_platform",
+  ["android", "ios", "web"],
+);
+export const enum_email_templates_status = pgEnum(
+  "enum_email_templates_status",
+  ["draft", "published"],
+);
+export const enum__email_templates_v_version_status = pgEnum(
+  "enum__email_templates_v_version_status",
+  ["draft", "published"],
+);
+export const enum_faq_categories_icon = pgEnum("enum_faq_categories_icon", [
+  "rocket",
+  "star",
+  "gift",
+  "target",
+  "megaphone",
+  "shield",
+  "wrench",
+  "headset",
+  "help-circle",
+  "book",
+]);
+export const enum_faqs_status = pgEnum("enum_faqs_status", [
+  "draft",
+  "published",
+]);
+export const enum__faqs_v_version_status = pgEnum(
+  "enum__faqs_v_version_status",
   ["draft", "published"],
 );
 export const enum_news_analytics_event = pgEnum("enum_news_analytics_event", [
@@ -544,9 +636,21 @@ export const enum_partner_content_status = pgEnum(
   "enum_partner_content_status",
   ["draft", "active", "paused", "archived"],
 );
+export const enum_partner_content_events_event = pgEnum(
+  "enum_partner_content_events_event",
+  ["impression", "click"],
+);
+export const enum_partner_content_events_platform = pgEnum(
+  "enum_partner_content_events_platform",
+  ["android", "ios", "web"],
+);
 export const enum_partner_conversions_status = pgEnum(
   "enum_partner_conversions_status",
   ["clicked", "converted", "awarded", "failed"],
+);
+export const enum_partner_postbacks_outcome = pgEnum(
+  "enum_partner_postbacks_outcome",
+  ["accepted", "failed_reported", "duplicate", "rejected"],
 );
 export const enum_partners_status = pgEnum("enum_partners_status", [
   "prospective",
@@ -564,7 +668,7 @@ export const enum_partners_category = pgEnum("enum_partners_category", [
 ]);
 export const enum_partners_integration_method = pgEnum(
   "enum_partners_integration_method",
-  ["manual", "webhook", "postback", "csv"],
+  ["manual", "webhook", "csv"],
 );
 export const enum_promotion_media_blocks_promo_video_source_video_source =
   pgEnum("enum_promotion_media_blocks_promo_video_source_video_source", [
@@ -621,6 +725,7 @@ export const enum_payload_jobs_log_task_slug = pgEnum(
     "sendUrgentModerationAlert",
     "checkPushReceipts",
     "processGiveaway",
+    "processOpportunities",
     "cleanupAnonymousUsers",
     "pruneNewsAnalytics",
     "prunePartnerContentEvents",
@@ -644,6 +749,7 @@ export const enum_payload_jobs_task_slug = pgEnum(
     "sendUrgentModerationAlert",
     "checkPushReceipts",
     "processGiveaway",
+    "processOpportunities",
     "cleanupAnonymousUsers",
     "pruneNewsAnalytics",
     "prunePartnerContentEvents",
@@ -707,6 +813,525 @@ export const enum_moderation_settings_digest_weekday = pgEnum(
     "sunday",
   ],
 );
+export const enum_survey_settings_providers_provider = pgEnum(
+  "enum_survey_settings_providers_provider",
+  ["cpx", "rapido", "theorem", "bitlabs"],
+);
+
+export const opportunity_interests = pgTable(
+  "opportunity_interests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    key: varchar("key").notNull(),
+    label: varchar("label").notNull(),
+    preferences: jsonb("preferences")
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    active: boolean("active").notNull().default(true),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    uniqueIndex("opportunity_interests_key_idx").on(columns.key),
+    index("opportunity_interests_updated_at_idx").on(columns.updatedAt),
+    index("opportunity_interests_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const opportunity_interests_rels = pgTable(
+  "opportunity_interests_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("opportunity_interests_rels_order_idx").on(columns.order),
+    index("opportunity_interests_rels_parent_idx").on(columns.parent),
+    index("opportunity_interests_rels_path_idx").on(columns.path),
+    index("opportunity_interests_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [opportunity_interests.id],
+      name: "opportunity_interests_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "opportunity_interests_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const opportunity_sources = pgTable(
+  "opportunity_sources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: varchar("title").notNull(),
+    feedUrl: varchar("feed_url").notNull(),
+    status: enum_opportunity_sources_status("status")
+      .notNull()
+      .default("pending"),
+    trust: enum_opportunity_sources_trust("trust")
+      .notNull()
+      .default("unverified"),
+    category: varchar("category").notNull(),
+    qualityOverride: numeric("quality_override", { mode: "number" }),
+    ownershipReview: enum_opportunity_sources_ownership_review(
+      "ownership_review",
+    )
+      .notNull()
+      .default("unreviewed"),
+    reviewNotes: varchar("review_notes"),
+    qualityScore: numeric("quality_score", { mode: "number" }),
+    lastValidatedAt: timestamp("last_validated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    lastFetchedAt: timestamp("last_fetched_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    lastError: varchar("last_error"),
+    itemsImported: numeric("items_imported", { mode: "number" }).default(0),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    uniqueIndex("opportunity_sources_feed_url_idx").on(columns.feedUrl),
+    index("opportunity_sources_updated_at_idx").on(columns.updatedAt),
+    index("opportunity_sources_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const opportunity_sources_rels = pgTable(
+  "opportunity_sources_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("opportunity_sources_rels_order_idx").on(columns.order),
+    index("opportunity_sources_rels_parent_idx").on(columns.parent),
+    index("opportunity_sources_rels_path_idx").on(columns.path),
+    index("opportunity_sources_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [opportunity_sources.id],
+      name: "opportunity_sources_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "opportunity_sources_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const opportunities = pgTable(
+  "opportunities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: varchar("title").notNull(),
+    canonicalUrl: varchar("canonical_url").notNull(),
+    summary: varchar("summary").notNull(),
+    category: varchar("category").notNull(),
+    categoryKeys: varchar("category_keys"),
+    categories: jsonb("categories").default(sql`'[]'::jsonb`),
+    duplicateKey: varchar("duplicate_key"),
+    kind: enum_opportunities_kind("kind").notNull().default("opportunity"),
+    status: enum_opportunities_status("status").notNull().default("draft"),
+    source: uuid("source_id")
+      .notNull()
+      .references(() => opportunity_sources.id, {
+        onDelete: "set null",
+      }),
+    provider: varchar("provider").notNull(),
+    location: varchar("location").default(""),
+    preferences: jsonb("preferences").default(sql`'[]'::jsonb`),
+    details: jsonb("details").default(sql`'{}'::jsonb`),
+    deadline: timestamp("deadline", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    publishedAt: timestamp("published_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    popularity: numeric("popularity", { mode: "number" }).default(0),
+    featured: boolean("featured").default(false),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    uniqueIndex("opportunities_canonical_url_idx").on(columns.canonicalUrl),
+    index("opportunities_category_idx").on(columns.category),
+    index("opportunities_category_keys_idx").on(columns.categoryKeys),
+    index("opportunities_duplicate_key_idx").on(columns.duplicateKey),
+    index("opportunities_status_idx").on(columns.status),
+    index("opportunities_source_idx").on(columns.source),
+    index("opportunities_deadline_idx").on(columns.deadline),
+    index("opportunities_published_at_idx").on(columns.publishedAt),
+    index("opportunities_updated_at_idx").on(columns.updatedAt),
+    index("opportunities_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const opportunities_rels = pgTable(
+  "opportunities_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("opportunities_rels_order_idx").on(columns.order),
+    index("opportunities_rels_parent_idx").on(columns.parent),
+    index("opportunities_rels_path_idx").on(columns.path),
+    index("opportunities_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [opportunities.id],
+      name: "opportunities_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "opportunities_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const opportunity_profiles = pgTable(
+  "opportunity_profiles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    preferences: jsonb("preferences").notNull(),
+    lastNotifiedAt: timestamp("last_notified_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    uniqueIndex("opportunity_profiles_user_idx").on(columns.user),
+    index("opportunity_profiles_last_notified_at_idx").on(
+      columns.lastNotifiedAt,
+    ),
+    index("opportunity_profiles_updated_at_idx").on(columns.updatedAt),
+    index("opportunity_profiles_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const opportunity_profiles_rels = pgTable(
+  "opportunity_profiles_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("opportunity_profiles_rels_order_idx").on(columns.order),
+    index("opportunity_profiles_rels_parent_idx").on(columns.parent),
+    index("opportunity_profiles_rels_path_idx").on(columns.path),
+    index("opportunity_profiles_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [opportunity_profiles.id],
+      name: "opportunity_profiles_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "opportunity_profiles_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const opportunity_events = pgTable(
+  "opportunity_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    opportunity: uuid("opportunity_id")
+      .notNull()
+      .references(() => opportunities.id, {
+        onDelete: "set null",
+      }),
+    category: varchar("category").notNull(),
+    action: enum_opportunity_events_action("action").notNull(),
+    eventKey: varchar("event_key").notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("opportunity_events_user_idx").on(columns.user),
+    index("opportunity_events_opportunity_idx").on(columns.opportunity),
+    uniqueIndex("opportunity_events_event_key_idx").on(columns.eventKey),
+    index("opportunity_events_updated_at_idx").on(columns.updatedAt),
+    index("opportunity_events_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const opportunity_events_rels = pgTable(
+  "opportunity_events_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("opportunity_events_rels_order_idx").on(columns.order),
+    index("opportunity_events_rels_parent_idx").on(columns.parent),
+    index("opportunity_events_rels_path_idx").on(columns.path),
+    index("opportunity_events_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [opportunity_events.id],
+      name: "opportunity_events_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "opportunity_events_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const saved_opportunities = pgTable(
+  "saved_opportunities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    opportunity: uuid("opportunity_id")
+      .notNull()
+      .references(() => opportunities.id, {
+        onDelete: "set null",
+      }),
+    saveKey: varchar("save_key").notNull(),
+    status: enum_saved_opportunities_status("status")
+      .notNull()
+      .default("Interested"),
+    reminderAt: timestamp("reminder_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    reminderSentAt: timestamp("reminder_sent_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("saved_opportunities_user_idx").on(columns.user),
+    index("saved_opportunities_opportunity_idx").on(columns.opportunity),
+    uniqueIndex("saved_opportunities_save_key_idx").on(columns.saveKey),
+    index("saved_opportunities_reminder_at_idx").on(columns.reminderAt),
+    index("saved_opportunities_updated_at_idx").on(columns.updatedAt),
+    index("saved_opportunities_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const saved_opportunities_rels = pgTable(
+  "saved_opportunities_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("saved_opportunities_rels_order_idx").on(columns.order),
+    index("saved_opportunities_rels_parent_idx").on(columns.parent),
+    index("saved_opportunities_rels_path_idx").on(columns.path),
+    index("saved_opportunities_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [saved_opportunities.id],
+      name: "saved_opportunities_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "saved_opportunities_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const opportunity_reports = pgTable(
+  "opportunity_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    opportunity: uuid("opportunity_id")
+      .notNull()
+      .references(() => opportunities.id, {
+        onDelete: "set null",
+      }),
+    reason: enum_opportunity_reports_reason("reason").notNull(),
+    details: varchar("details"),
+    status: enum_opportunity_reports_status("status")
+      .notNull()
+      .default("pending"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("opportunity_reports_user_idx").on(columns.user),
+    index("opportunity_reports_opportunity_idx").on(columns.opportunity),
+    index("opportunity_reports_updated_at_idx").on(columns.updatedAt),
+    index("opportunity_reports_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const opportunity_reports_rels = pgTable(
+  "opportunity_reports_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("opportunity_reports_rels_order_idx").on(columns.order),
+    index("opportunity_reports_rels_parent_idx").on(columns.parent),
+    index("opportunity_reports_rels_path_idx").on(columns.path),
+    index("opportunity_reports_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [opportunity_reports.id],
+      name: "opportunity_reports_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "opportunity_reports_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
 
 export const accounts = pgTable(
   "accounts",
@@ -716,6 +1341,7 @@ export const accounts = pgTable(
     accountId: varchar("account_id").notNull(),
     providerId: varchar("provider_id").notNull(),
     password: varchar("password"),
+    idToken: varchar("id_token"),
     accessToken: varchar("access_token"),
     refreshToken: varchar("refresh_token"),
     accessTokenExpiresAt: timestamp("access_token_expires_at", {
@@ -784,6 +1410,7 @@ export const activities = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     type: enum_activities_type("type").default("point"),
     point: numeric("point", { mode: "number" }).notNull().default(0),
+    providerRef: varchar("provider_ref"),
     reward: varchar("reward"),
     action: enum_activities_action("action").notNull(),
     description: varchar("description"),
@@ -813,6 +1440,7 @@ export const activities = pgTable(
   },
   (columns) => [
     index("activities_point_idx").on(columns.point),
+    uniqueIndex("activities_provider_ref_idx").on(columns.providerRef),
     index("activities_user_idx").on(columns.user),
     index("activities_news_idx").on(columns.news),
     index("activities_updated_at_idx").on(columns.updatedAt),
@@ -843,6 +1471,67 @@ export const activities_rels = pgTable(
       columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "activities_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const survey_offer_events = pgTable(
+  "survey_offer_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    provider: enum_survey_offer_events_provider("provider").notNull(),
+    user: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    country: varchar("country"),
+    offerCount: numeric("offer_count", { mode: "number" }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("survey_offer_events_provider_idx").on(columns.provider),
+    index("survey_offer_events_user_idx").on(columns.user),
+    index("survey_offer_events_country_idx").on(columns.country),
+    index("survey_offer_events_updated_at_idx").on(columns.updatedAt),
+    index("survey_offer_events_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const survey_offer_events_rels = pgTable(
+  "survey_offer_events_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("survey_offer_events_rels_order_idx").on(columns.order),
+    index("survey_offer_events_rels_parent_idx").on(columns.parent),
+    index("survey_offer_events_rels_path_idx").on(columns.path),
+    index("survey_offer_events_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [survey_offer_events.id],
+      name: "survey_offer_events_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "survey_offer_events_rels_admins_fk",
     }).onDelete("cascade"),
   ],
 );
@@ -902,6 +1591,11 @@ export const admins = pgTable(
     })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp("deleted_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     email: varchar("email").notNull(),
     resetPasswordToken: varchar("reset_password_token"),
     resetPasswordExpiration: timestamp("reset_password_expiration", {
@@ -911,6 +1605,11 @@ export const admins = pgTable(
     }),
     salt: varchar("salt"),
     hash: varchar("hash"),
+    resetPasswordRequestedAt: timestamp("reset_password_requested_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     loginAttempts: numeric("login_attempts", { mode: "number" }).default(0),
     lockUntil: timestamp("lock_until", {
       mode: "string",
@@ -923,6 +1622,7 @@ export const admins = pgTable(
     index("admins_image_idx").on(columns.image),
     index("admins_updated_at_idx").on(columns.updatedAt),
     index("admins_created_at_idx").on(columns.createdAt),
+    index("admins_deleted_at_idx").on(columns.deletedAt),
     uniqueIndex("admins_email_idx").on(columns.email),
   ],
 );
@@ -1111,6 +1811,7 @@ export const content_reports = pgTable(
     type: enum_content_reports_type("type").default("report"),
     reason: enum_content_reports_reason("reason").notNull(),
     additionalDetails: varchar("additional_details"),
+    reportedGame: varchar("reported_game"),
     reportedBy: uuid("reported_by_id")
       .notNull()
       .references(() => users.id, {
@@ -1144,6 +1845,7 @@ export const content_reports = pgTable(
   },
   (columns) => [
     index("content_reports_type_idx").on(columns.type),
+    index("content_reports_reported_game_idx").on(columns.reportedGame),
     index("content_reports_reported_by_idx").on(columns.reportedBy),
     index("content_reports_resolved_by_idx").on(columns.resolvedBy),
     index("content_reports_updated_at_idx").on(columns.updatedAt),
@@ -1901,6 +2603,11 @@ export const giveaways = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: varchar("name").notNull(),
     description: varchar("description"),
+    sendAnnouncement: boolean("send_announcement").default(true),
+    notificationTitle: varchar("notification_title").default(
+      "A new giveaway is live 🎁",
+    ),
+    notificationBody: varchar("notification_body"),
     startDate: timestamp("start_date", {
       mode: "string",
       withTimezone: true,
@@ -2319,6 +3026,71 @@ export const giveaway_winners_rels = pgTable(
   ],
 );
 
+export const guest_events = pgTable(
+  "guest_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    kind: enum_guest_events_kind("kind").notNull(),
+    anonymousUserId: varchar("anonymous_user_id").notNull(),
+    userId: varchar("user_id"),
+    guestCreatedAt: timestamp("guest_created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    occurredAt: timestamp("occurred_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+  },
+  (columns) => [
+    index("guest_events_kind_idx").on(columns.kind),
+    index("guest_events_anonymous_user_id_idx").on(columns.anonymousUserId),
+    index("guest_events_user_id_idx").on(columns.userId),
+    uniqueIndex("kind_anonymousUserId_idx").on(
+      columns.kind,
+      columns.anonymousUserId,
+    ),
+    uniqueIndex("anonymousUserId_userId_idx").on(
+      columns.anonymousUserId,
+      columns.userId,
+    ),
+  ],
+);
+
+export const guest_events_rels = pgTable(
+  "guest_events_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("guest_events_rels_order_idx").on(columns.order),
+    index("guest_events_rels_parent_idx").on(columns.parent),
+    index("guest_events_rels_path_idx").on(columns.path),
+    index("guest_events_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [guest_events.id],
+      name: "guest_events_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "guest_events_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const identity_checks = pgTable(
   "identity_checks",
   {
@@ -2500,6 +3272,7 @@ export const media = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     alt: varchar("alt"),
     caption: jsonb("caption"),
+    _objectKey: varchar("_objectkey"),
     blurhash: varchar("blurhash"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
@@ -2643,6 +3416,13 @@ export const news = pgTable(
     ),
     views: numeric("views", { mode: "number" }).default(0),
     excerpt: varchar("excerpt"),
+    featured: boolean("featured").default(false),
+    featuredRank: numeric("featured_rank", { mode: "number" }),
+    featuredUntil: timestamp("featured_until", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     publishedAt: timestamp("published_at", {
       mode: "string",
       withTimezone: true,
@@ -2678,6 +3458,7 @@ export const news = pgTable(
   (columns) => [
     uniqueIndex("news_slug_idx").on(columns.slug),
     index("news_image_idx").on(columns.image),
+    index("news_featured_idx").on(columns.featured),
     index("news_author_idx").on(columns.author),
     index("news_category_idx").on(columns.category),
     index("news_created_at_idx").on(columns.createdAt),
@@ -2756,6 +3537,13 @@ export const _news_v = pgTable(
     }).default(0),
     version_views: numeric("version_views", { mode: "number" }).default(0),
     version_excerpt: varchar("version_excerpt"),
+    version_featured: boolean("version_featured").default(false),
+    version_featuredRank: numeric("version_featured_rank", { mode: "number" }),
+    version_featuredUntil: timestamp("version_featured_until", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     version_publishedAt: timestamp("version_published_at", {
       mode: "string",
       withTimezone: true,
@@ -2815,6 +3603,7 @@ export const _news_v = pgTable(
     index("_news_v_parent_idx").on(columns.parent),
     index("_news_v_version_version_slug_idx").on(columns.version_slug),
     index("_news_v_version_version_image_idx").on(columns.version_image),
+    index("_news_v_version_version_featured_idx").on(columns.version_featured),
     index("_news_v_version_version_author_idx").on(columns.version_author),
     index("_news_v_version_version_category_idx").on(columns.version_category),
     index("_news_v_version_version_created_at_idx").on(
@@ -2854,6 +3643,390 @@ export const _news_v_rels = pgTable(
   ],
 );
 
+export const discover_events = pgTable(
+  "discover_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    event: enum_discover_events_event("event").notNull(),
+    section: varchar("section"),
+    itemType: varchar("item_type"),
+    itemId: varchar("item_id"),
+    source: varchar("source"),
+    userId: varchar("user_id"),
+    sessionId: varchar("session_id").notNull(),
+    deviceId: varchar("device_id").notNull(),
+    platform: enum_discover_events_platform("platform"),
+    eventId: varchar("event_id"),
+    dedupeKey: varchar("dedupe_key"),
+    timestamp: timestamp("timestamp", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    receivedAt: timestamp("received_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("discover_events_event_idx").on(columns.event),
+    index("discover_events_section_idx").on(columns.section),
+    index("discover_events_item_type_idx").on(columns.itemType),
+    index("discover_events_user_id_idx").on(columns.userId),
+    uniqueIndex("discover_events_dedupe_key_idx").on(columns.dedupeKey),
+    index("discover_events_timestamp_idx").on(columns.timestamp),
+    index("discover_events_updated_at_idx").on(columns.updatedAt),
+    index("discover_events_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const discover_events_rels = pgTable(
+  "discover_events_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("discover_events_rels_order_idx").on(columns.order),
+    index("discover_events_rels_parent_idx").on(columns.parent),
+    index("discover_events_rels_path_idx").on(columns.path),
+    index("discover_events_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [discover_events.id],
+      name: "discover_events_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "discover_events_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const email_templates = pgTable(
+  "email_templates",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name"),
+    generateSlug: boolean("generate_slug").default(true),
+    slug: varchar("slug"),
+    subject: varchar("subject"),
+    previewText: varchar("preview_text"),
+    html: varchar("html"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    _status: enum_email_templates_status("_status").default("draft"),
+  },
+  (columns) => [
+    uniqueIndex("email_templates_slug_idx").on(columns.slug),
+    index("email_templates_updated_at_idx").on(columns.updatedAt),
+    index("email_templates_created_at_idx").on(columns.createdAt),
+    index("email_templates__status_idx").on(columns._status),
+  ],
+);
+
+export const _email_templates_v = pgTable(
+  "_email_templates_v",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    parent: uuid("parent_id").references(() => email_templates.id, {
+      onDelete: "set null",
+    }),
+    version_name: varchar("version_name"),
+    version_generateSlug: boolean("version_generate_slug").default(true),
+    version_slug: varchar("version_slug"),
+    version_subject: varchar("version_subject"),
+    version_previewText: varchar("version_preview_text"),
+    version_html: varchar("version_html"),
+    version_updatedAt: timestamp("version_updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    version_createdAt: timestamp("version_created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    version__status:
+      enum__email_templates_v_version_status("version__status").default(
+        "draft",
+      ),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    latest: boolean("latest"),
+  },
+  (columns) => [
+    index("_email_templates_v_parent_idx").on(columns.parent),
+    index("_email_templates_v_version_version_slug_idx").on(
+      columns.version_slug,
+    ),
+    index("_email_templates_v_version_version_updated_at_idx").on(
+      columns.version_updatedAt,
+    ),
+    index("_email_templates_v_version_version_created_at_idx").on(
+      columns.version_createdAt,
+    ),
+    index("_email_templates_v_version_version__status_idx").on(
+      columns.version__status,
+    ),
+    index("_email_templates_v_created_at_idx").on(columns.createdAt),
+    index("_email_templates_v_updated_at_idx").on(columns.updatedAt),
+    index("_email_templates_v_latest_idx").on(columns.latest),
+  ],
+);
+
+export const faq_categories = pgTable(
+  "faq_categories",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    _order: varchar("_order"),
+    name: varchar("name").notNull(),
+    icon: enum_faq_categories_icon("icon").notNull().default("help-circle"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("faq_categories__order_idx").on(columns._order),
+    index("faq_categories_updated_at_idx").on(columns.updatedAt),
+    index("faq_categories_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const faq_categories_rels = pgTable(
+  "faq_categories_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("faq_categories_rels_order_idx").on(columns.order),
+    index("faq_categories_rels_parent_idx").on(columns.parent),
+    index("faq_categories_rels_path_idx").on(columns.path),
+    index("faq_categories_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [faq_categories.id],
+      name: "faq_categories_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "faq_categories_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const faqs = pgTable(
+  "faqs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    _faqs_questions_order: varchar("_faqs_questions_order"),
+    question: varchar("question"),
+    answer: varchar("answer"),
+    category: uuid("category_id").references(() => faq_categories.id, {
+      onDelete: "set null",
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    _status: enum_faqs_status("_status").default("draft"),
+  },
+  (columns) => [
+    index("faqs__faqs_questions_order_idx").on(columns._faqs_questions_order),
+    index("faqs_category_idx").on(columns.category),
+    index("faqs_updated_at_idx").on(columns.updatedAt),
+    index("faqs_created_at_idx").on(columns.createdAt),
+    index("faqs__status_idx").on(columns._status),
+  ],
+);
+
+export const faqs_rels = pgTable(
+  "faqs_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("faqs_rels_order_idx").on(columns.order),
+    index("faqs_rels_parent_idx").on(columns.parent),
+    index("faqs_rels_path_idx").on(columns.path),
+    index("faqs_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [faqs.id],
+      name: "faqs_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "faqs_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const _faqs_v = pgTable(
+  "_faqs_v",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    parent: uuid("parent_id").references(() => faqs.id, {
+      onDelete: "set null",
+    }),
+    version__faqs_questions_order: varchar("version__faqs_questions_order"),
+    version_question: varchar("version_question"),
+    version_answer: varchar("version_answer"),
+    version_category: uuid("version_category_id").references(
+      () => faq_categories.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    version_updatedAt: timestamp("version_updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    version_createdAt: timestamp("version_created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    version__status:
+      enum__faqs_v_version_status("version__status").default("draft"),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    latest: boolean("latest"),
+  },
+  (columns) => [
+    index("_faqs_v_parent_idx").on(columns.parent),
+    index("_faqs_v_version_version__faqs_questions_order_idx").on(
+      columns.version__faqs_questions_order,
+    ),
+    index("_faqs_v_version_version_category_idx").on(columns.version_category),
+    index("_faqs_v_version_version_updated_at_idx").on(
+      columns.version_updatedAt,
+    ),
+    index("_faqs_v_version_version_created_at_idx").on(
+      columns.version_createdAt,
+    ),
+    index("_faqs_v_version_version__status_idx").on(columns.version__status),
+    index("_faqs_v_created_at_idx").on(columns.createdAt),
+    index("_faqs_v_updated_at_idx").on(columns.updatedAt),
+    index("_faqs_v_latest_idx").on(columns.latest),
+  ],
+);
+
+export const _faqs_v_rels = pgTable(
+  "_faqs_v_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("_faqs_v_rels_order_idx").on(columns.order),
+    index("_faqs_v_rels_parent_idx").on(columns.parent),
+    index("_faqs_v_rels_path_idx").on(columns.path),
+    index("_faqs_v_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [_faqs_v.id],
+      name: "_faqs_v_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "_faqs_v_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const news_analytics = pgTable(
   "news_analytics",
   {
@@ -2869,11 +4042,17 @@ export const news_analytics = pgTable(
     deviceId: varchar("device_id").notNull(),
     platform: enum_news_analytics_platform("platform"),
     metadata: jsonb("metadata"),
+    eventId: varchar("event_id"),
     timestamp: timestamp("timestamp", {
       mode: "string",
       withTimezone: true,
       precision: 3,
     }).notNull(),
+    receivedAt: timestamp("received_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -2896,6 +4075,7 @@ export const news_analytics = pgTable(
     index("news_analytics_timestamp_idx").on(columns.timestamp),
     index("news_analytics_updated_at_idx").on(columns.updatedAt),
     index("news_analytics_created_at_idx").on(columns.createdAt),
+    uniqueIndex("deviceId_eventId_idx").on(columns.deviceId, columns.eventId),
   ],
 );
 
@@ -3108,6 +4288,7 @@ export const notifications = pgTable(
   "notifications",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    opportunityDeliveryKey: varchar("opportunity_delivery_key"),
     title: varchar("title"),
     body: varchar("body"),
     type: enum_notifications_type("type").default("misc"),
@@ -3149,7 +4330,12 @@ export const notifications = pgTable(
       .notNull(),
     _status: enum_notifications_status("_status").default("draft"),
   },
-  (columns) => [index("notifications__status_idx").on(columns._status)],
+  (columns) => [
+    uniqueIndex("notifications_opportunity_delivery_key_idx").on(
+      columns.opportunityDeliveryKey,
+    ),
+    index("notifications__status_idx").on(columns._status),
+  ],
 );
 
 export const notifications_rels = pgTable(
@@ -3214,6 +4400,7 @@ export const _notifications_v = pgTable(
     parent: uuid("parent_id").references(() => notifications.id, {
       onDelete: "set null",
     }),
+    version_opportunityDeliveryKey: varchar("version_opportunity_delivery_key"),
     version_title: varchar("version_title"),
     version_body: varchar("version_body"),
     version_type:
@@ -3275,6 +4462,9 @@ export const _notifications_v = pgTable(
   },
   (columns) => [
     index("_notifications_v_parent_idx").on(columns.parent),
+    index("_notifications_v_version_version_opportunity_delivery_ke_idx").on(
+      columns.version_opportunityDeliveryKey,
+    ),
     index("_notifications_v_version_version__status_idx").on(
       columns.version__status,
     ),
@@ -3432,6 +4622,7 @@ export const partner_content = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     title: varchar("title").notNull(),
+    adCopy: varchar("ad_copy").notNull(),
     condition: varchar("condition").notNull().default(""),
     description: varchar("description"),
     type: enum_partner_content_type("type").notNull().default(""),
@@ -3519,6 +4710,96 @@ export const partner_content_rels = pgTable(
   ],
 );
 
+export const partner_content_events = pgTable(
+  "partner_content_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    content: uuid("content_id")
+      .notNull()
+      .references(() => partner_content.id, {
+        onDelete: "set null",
+      }),
+    partner: uuid("partner_id")
+      .notNull()
+      .references(() => partners.id, {
+        onDelete: "set null",
+      }),
+    event: enum_partner_content_events_event("event").notNull(),
+    surface: varchar("surface").notNull(),
+    position: numeric("position", { mode: "number" }),
+    userId: varchar("user_id"),
+    sessionId: varchar("session_id").notNull(),
+    deviceId: varchar("device_id").notNull(),
+    platform: enum_partner_content_events_platform("platform"),
+    timestamp: timestamp("timestamp", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    receivedAt: timestamp("received_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    eventId: varchar("event_id"),
+    dedupeKey: varchar("dedupe_key"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("partner_content_events_content_idx").on(columns.content),
+    index("partner_content_events_partner_idx").on(columns.partner),
+    index("partner_content_events_event_idx").on(columns.event),
+    index("partner_content_events_user_id_idx").on(columns.userId),
+    index("partner_content_events_timestamp_idx").on(columns.timestamp),
+    uniqueIndex("partner_content_events_dedupe_key_idx").on(columns.dedupeKey),
+    index("partner_content_events_updated_at_idx").on(columns.updatedAt),
+    index("partner_content_events_created_at_idx").on(columns.createdAt),
+    uniqueIndex("deviceId_eventId_1_idx").on(columns.deviceId, columns.eventId),
+    index("partner_timestamp_idx").on(columns.partner, columns.timestamp),
+    index("content_timestamp_idx").on(columns.content, columns.timestamp),
+  ],
+);
+
+export const partner_content_events_rels = pgTable(
+  "partner_content_events_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("partner_content_events_rels_order_idx").on(columns.order),
+    index("partner_content_events_rels_parent_idx").on(columns.parent),
+    index("partner_content_events_rels_path_idx").on(columns.path),
+    index("partner_content_events_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [partner_content_events.id],
+      name: "partner_content_events_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "partner_content_events_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const partner_conversions = pgTable(
   "partner_conversions",
   {
@@ -3539,6 +4820,7 @@ export const partner_conversions = pgTable(
         onDelete: "set null",
       }),
     clickId: varchar("click_id").notNull(),
+    surface: varchar("surface"),
     status: enum_partner_conversions_status("status")
       .notNull()
       .default("clicked"),
@@ -3580,6 +4862,7 @@ export const partner_conversions = pgTable(
     index("partner_conversions_partner_idx").on(columns.partner),
     index("partner_conversions_content_idx").on(columns.content),
     uniqueIndex("partner_conversions_click_id_idx").on(columns.clickId),
+    index("partner_conversions_surface_idx").on(columns.surface),
     index("partner_conversions_status_idx").on(columns.status),
     index("partner_conversions_updated_at_idx").on(columns.updatedAt),
     index("partner_conversions_created_at_idx").on(columns.createdAt),
@@ -3613,6 +4896,75 @@ export const partner_conversions_rels = pgTable(
   ],
 );
 
+export const partner_postbacks = pgTable(
+  "partner_postbacks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    partner: uuid("partner_id")
+      .notNull()
+      .references(() => partners.id, {
+        onDelete: "set null",
+      }),
+    clickId: varchar("click_id").notNull(),
+    outcome: enum_partner_postbacks_outcome("outcome").notNull(),
+    reason: varchar("reason"),
+    receivedAt: timestamp("received_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("partner_postbacks_partner_idx").on(columns.partner),
+    index("partner_postbacks_outcome_idx").on(columns.outcome),
+    index("partner_postbacks_received_at_idx").on(columns.receivedAt),
+    index("partner_postbacks_updated_at_idx").on(columns.updatedAt),
+    index("partner_postbacks_created_at_idx").on(columns.createdAt),
+    uniqueIndex("clickId_outcome_idx").on(columns.clickId, columns.outcome),
+  ],
+);
+
+export const partner_postbacks_rels = pgTable(
+  "partner_postbacks_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("partner_postbacks_rels_order_idx").on(columns.order),
+    index("partner_postbacks_rels_parent_idx").on(columns.parent),
+    index("partner_postbacks_rels_path_idx").on(columns.path),
+    index("partner_postbacks_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [partner_postbacks.id],
+      name: "partner_postbacks_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "partner_postbacks_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const partners = pgTable(
   "partners",
   {
@@ -3639,6 +4991,9 @@ export const partners = pgTable(
       .default("manual"),
     webhookUrl: varchar("webhook_url"),
     webhookSecret: varchar("webhook_secret"),
+    confirmationDays: numeric("confirmation_days", { mode: "number" }).default(
+      7,
+    ),
     awardOnClick: boolean("award_on_click").default(false),
     updatedAt: timestamp("updated_at", {
       mode: "string",
@@ -4255,7 +5610,7 @@ export const users = pgTable(
     name: varchar("name").notNull(),
     image: varchar("image"),
     username: varchar("username").notNull(),
-    wish: varchar("wish").notNull(),
+    wish: varchar("wish"),
     phone: varchar("phone"),
     dateOfBirth: timestamp("date_of_birth", {
       mode: "string",
@@ -4286,6 +5641,11 @@ export const users = pgTable(
         onDelete: "set null",
       },
     ),
+    reviewPromptedAt: timestamp("review_prompted_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -4663,8 +6023,16 @@ export const payload_locked_documents_rels = pgTable(
     order: integer("order"),
     parent: uuid("parent_id").notNull(),
     path: varchar("path").notNull(),
+    "opportunity-interestsID": uuid("opportunity_interests_id"),
+    "opportunity-sourcesID": uuid("opportunity_sources_id"),
+    opportunitiesID: uuid("opportunities_id"),
+    "opportunity-profilesID": uuid("opportunity_profiles_id"),
+    "opportunity-eventsID": uuid("opportunity_events_id"),
+    "saved-opportunitiesID": uuid("saved_opportunities_id"),
+    "opportunity-reportsID": uuid("opportunity_reports_id"),
     accountsID: uuid("accounts_id"),
     activitiesID: uuid("activities_id"),
+    "survey-offer-eventsID": uuid("survey_offer_events_id"),
     adminsID: uuid("admins_id"),
     categoriesID: uuid("categories_id"),
     commentsID: uuid("comments_id"),
@@ -4682,16 +6050,23 @@ export const payload_locked_documents_rels = pgTable(
     "giveaway-streaksID": uuid("giveaway_streaks_id"),
     "giveaway-ticketsID": uuid("giveaway_tickets_id"),
     "giveaway-winnersID": uuid("giveaway_winners_id"),
+    "guest-eventsID": uuid("guest_events_id"),
     "identity-checksID": uuid("identity_checks_id"),
     "prize-catalogueID": uuid("prize_catalogue_id"),
     mediaID: uuid("media_id"),
     newsID: uuid("news_id"),
+    "discover-eventsID": uuid("discover_events_id"),
+    "email-templatesID": uuid("email_templates_id"),
+    "faq-categoriesID": uuid("faq_categories_id"),
+    faqsID: uuid("faqs_id"),
     "news-analyticsID": uuid("news_analytics_id"),
     "notification-deliveriesID": uuid("notification_deliveries_id"),
     "notification-inboxID": uuid("notification_inbox_id"),
     notificationsID: uuid("notifications_id"),
     "partner-contentID": uuid("partner_content_id"),
+    "partner-content-eventsID": uuid("partner_content_events_id"),
     "partner-conversionsID": uuid("partner_conversions_id"),
+    "partner-postbacksID": uuid("partner_postbacks_id"),
     partnersID: uuid("partners_id"),
     "promotion-mediaID": uuid("promotion_media_id"),
     "push-tokensID": uuid("push_tokens_id"),
@@ -4709,11 +6084,35 @@ export const payload_locked_documents_rels = pgTable(
     index("payload_locked_documents_rels_order_idx").on(columns.order),
     index("payload_locked_documents_rels_parent_idx").on(columns.parent),
     index("payload_locked_documents_rels_path_idx").on(columns.path),
+    index("payload_locked_documents_rels_opportunity_interests_id_idx").on(
+      columns["opportunity-interestsID"],
+    ),
+    index("payload_locked_documents_rels_opportunity_sources_id_idx").on(
+      columns["opportunity-sourcesID"],
+    ),
+    index("payload_locked_documents_rels_opportunities_id_idx").on(
+      columns.opportunitiesID,
+    ),
+    index("payload_locked_documents_rels_opportunity_profiles_id_idx").on(
+      columns["opportunity-profilesID"],
+    ),
+    index("payload_locked_documents_rels_opportunity_events_id_idx").on(
+      columns["opportunity-eventsID"],
+    ),
+    index("payload_locked_documents_rels_saved_opportunities_id_idx").on(
+      columns["saved-opportunitiesID"],
+    ),
+    index("payload_locked_documents_rels_opportunity_reports_id_idx").on(
+      columns["opportunity-reportsID"],
+    ),
     index("payload_locked_documents_rels_accounts_id_idx").on(
       columns.accountsID,
     ),
     index("payload_locked_documents_rels_activities_id_idx").on(
       columns.activitiesID,
+    ),
+    index("payload_locked_documents_rels_survey_offer_events_id_idx").on(
+      columns["survey-offer-eventsID"],
     ),
     index("payload_locked_documents_rels_admins_id_idx").on(columns.adminsID),
     index("payload_locked_documents_rels_categories_id_idx").on(
@@ -4764,6 +6163,9 @@ export const payload_locked_documents_rels = pgTable(
     index("payload_locked_documents_rels_giveaway_winners_id_idx").on(
       columns["giveaway-winnersID"],
     ),
+    index("payload_locked_documents_rels_guest_events_id_idx").on(
+      columns["guest-eventsID"],
+    ),
     index("payload_locked_documents_rels_identity_checks_id_idx").on(
       columns["identity-checksID"],
     ),
@@ -4772,6 +6174,16 @@ export const payload_locked_documents_rels = pgTable(
     ),
     index("payload_locked_documents_rels_media_id_idx").on(columns.mediaID),
     index("payload_locked_documents_rels_news_id_idx").on(columns.newsID),
+    index("payload_locked_documents_rels_discover_events_id_idx").on(
+      columns["discover-eventsID"],
+    ),
+    index("payload_locked_documents_rels_email_templates_id_idx").on(
+      columns["email-templatesID"],
+    ),
+    index("payload_locked_documents_rels_faq_categories_id_idx").on(
+      columns["faq-categoriesID"],
+    ),
+    index("payload_locked_documents_rels_faqs_id_idx").on(columns.faqsID),
     index("payload_locked_documents_rels_news_analytics_id_idx").on(
       columns["news-analyticsID"],
     ),
@@ -4787,8 +6199,14 @@ export const payload_locked_documents_rels = pgTable(
     index("payload_locked_documents_rels_partner_content_id_idx").on(
       columns["partner-contentID"],
     ),
+    index("payload_locked_documents_rels_partner_content_events_id_idx").on(
+      columns["partner-content-eventsID"],
+    ),
     index("payload_locked_documents_rels_partner_conversions_id_idx").on(
       columns["partner-conversionsID"],
+    ),
+    index("payload_locked_documents_rels_partner_postbacks_id_idx").on(
+      columns["partner-postbacksID"],
     ),
     index("payload_locked_documents_rels_partners_id_idx").on(
       columns.partnersID,
@@ -4828,6 +6246,41 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_parent_fk",
     }).onDelete("cascade"),
     foreignKey({
+      columns: [columns["opportunity-interestsID"]],
+      foreignColumns: [opportunity_interests.id],
+      name: "payload_locked_documents_rels_opportunity_interests_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["opportunity-sourcesID"]],
+      foreignColumns: [opportunity_sources.id],
+      name: "payload_locked_documents_rels_opportunity_sources_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["opportunitiesID"]],
+      foreignColumns: [opportunities.id],
+      name: "payload_locked_documents_rels_opportunities_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["opportunity-profilesID"]],
+      foreignColumns: [opportunity_profiles.id],
+      name: "payload_locked_documents_rels_opportunity_profiles_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["opportunity-eventsID"]],
+      foreignColumns: [opportunity_events.id],
+      name: "payload_locked_documents_rels_opportunity_events_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["saved-opportunitiesID"]],
+      foreignColumns: [saved_opportunities.id],
+      name: "payload_locked_documents_rels_saved_opportunities_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["opportunity-reportsID"]],
+      foreignColumns: [opportunity_reports.id],
+      name: "payload_locked_documents_rels_opportunity_reports_fk",
+    }).onDelete("cascade"),
+    foreignKey({
       columns: [columns["accountsID"]],
       foreignColumns: [accounts.id],
       name: "payload_locked_documents_rels_accounts_fk",
@@ -4836,6 +6289,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["activitiesID"]],
       foreignColumns: [activities.id],
       name: "payload_locked_documents_rels_activities_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["survey-offer-eventsID"]],
+      foreignColumns: [survey_offer_events.id],
+      name: "payload_locked_documents_rels_survey_offer_events_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["adminsID"]],
@@ -4923,6 +6381,11 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_giveaway_winners_fk",
     }).onDelete("cascade"),
     foreignKey({
+      columns: [columns["guest-eventsID"]],
+      foreignColumns: [guest_events.id],
+      name: "payload_locked_documents_rels_guest_events_fk",
+    }).onDelete("cascade"),
+    foreignKey({
       columns: [columns["identity-checksID"]],
       foreignColumns: [identity_checks.id],
       name: "payload_locked_documents_rels_identity_checks_fk",
@@ -4941,6 +6404,26 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["newsID"]],
       foreignColumns: [news.id],
       name: "payload_locked_documents_rels_news_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["discover-eventsID"]],
+      foreignColumns: [discover_events.id],
+      name: "payload_locked_documents_rels_discover_events_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["email-templatesID"]],
+      foreignColumns: [email_templates.id],
+      name: "payload_locked_documents_rels_email_templates_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["faq-categoriesID"]],
+      foreignColumns: [faq_categories.id],
+      name: "payload_locked_documents_rels_faq_categories_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["faqsID"]],
+      foreignColumns: [faqs.id],
+      name: "payload_locked_documents_rels_faqs_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["news-analyticsID"]],
@@ -4968,9 +6451,19 @@ export const payload_locked_documents_rels = pgTable(
       name: "payload_locked_documents_rels_partner_content_fk",
     }).onDelete("cascade"),
     foreignKey({
+      columns: [columns["partner-content-eventsID"]],
+      foreignColumns: [partner_content_events.id],
+      name: "payload_locked_documents_rels_partner_content_events_fk",
+    }).onDelete("cascade"),
+    foreignKey({
       columns: [columns["partner-conversionsID"]],
       foreignColumns: [partner_conversions.id],
       name: "payload_locked_documents_rels_partner_conversions_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["partner-postbacksID"]],
+      foreignColumns: [partner_postbacks.id],
+      name: "payload_locked_documents_rels_partner_postbacks_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["partnersID"]],
@@ -5316,6 +6809,159 @@ export const moderation_settings_rels = pgTable(
   ],
 );
 
+export const survey_settings_providers = pgTable(
+  "survey_settings_providers",
+  {
+    _order: integer("_order").notNull(),
+    _parentID: uuid("_parent_id").notNull(),
+    id: varchar("id").primaryKey(),
+    provider: enum_survey_settings_providers_provider("provider").notNull(),
+    enabled: boolean("enabled").default(true),
+    priority: numeric("priority", { mode: "number" }).default(0),
+    wallUrl: varchar("wall_url"),
+  },
+  (columns) => [
+    index("survey_settings_providers_order_idx").on(columns._order),
+    index("survey_settings_providers_parent_id_idx").on(columns._parentID),
+    foreignKey({
+      columns: [columns["_parentID"]],
+      foreignColumns: [survey_settings.id],
+      name: "survey_settings_providers_parent_id_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const survey_settings = pgTable("survey_settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  dailyPointsCap: numeric("daily_points_cap", { mode: "number" }).default(
+    20000,
+  ),
+  maxPointsPerAward: numeric("max_points_per_award", {
+    mode: "number",
+  }).default(5000),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+    precision: 3,
+  }),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+    precision: 3,
+  }),
+});
+
+export const survey_settings_texts = pgTable(
+  "survey_settings_texts",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order").notNull(),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    text: varchar("text"),
+  },
+  (columns) => [
+    index("survey_settings_texts_order_parent").on(
+      columns.order,
+      columns.parent,
+    ),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [survey_settings.id],
+      name: "survey_settings_texts_parent_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const survey_settings_rels = pgTable(
+  "survey_settings_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("survey_settings_rels_order_idx").on(columns.order),
+    index("survey_settings_rels_parent_idx").on(columns.parent),
+    index("survey_settings_rels_path_idx").on(columns.path),
+    index("survey_settings_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [survey_settings.id],
+      name: "survey_settings_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "survey_settings_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const opportunity_settings = pgTable("opportunity_settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  personalizedShare: numeric("personalized_share", { mode: "number" })
+    .notNull()
+    .default(80),
+  featuredBoost: numeric("featured_boost", { mode: "number" })
+    .notNull()
+    .default(8),
+  candidateLimit: numeric("candidate_limit", { mode: "number" })
+    .notNull()
+    .default(1000),
+  sourceDiscoveryEnabled: boolean("source_discovery_enabled").default(true),
+  minimumSourceQuality: numeric("minimum_source_quality", { mode: "number" })
+    .notNull()
+    .default(60),
+  dailyDigestEnabled: boolean("daily_digest_enabled").default(true),
+  digestIntervalHours: numeric("digest_interval_hours", { mode: "number" })
+    .notNull()
+    .default(24),
+  liveEnabled: boolean("live_enabled").default(false),
+  liveTitle: varchar("live_title").notNull().default("NewsSpend Live"),
+  liveDescription: varchar("live_description"),
+  liveStreamUrl: varchar("live_stream_url"),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+    precision: 3,
+  }),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+    precision: 3,
+  }),
+});
+
+export const opportunity_settings_rels = pgTable(
+  "opportunity_settings_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("opportunity_settings_rels_order_idx").on(columns.order),
+    index("opportunity_settings_rels_parent_idx").on(columns.parent),
+    index("opportunity_settings_rels_path_idx").on(columns.path),
+    index("opportunity_settings_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [opportunity_settings.id],
+      name: "opportunity_settings_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "opportunity_settings_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const payload_jobs_stats = pgTable("payload_jobs_stats", {
   id: uuid("id").defaultRandom().primaryKey(),
   stats: jsonb("stats"),
@@ -5331,6 +6977,207 @@ export const payload_jobs_stats = pgTable("payload_jobs_stats", {
   }),
 });
 
+export const relations_opportunity_interests_rels = relations(
+  opportunity_interests_rels,
+  ({ one }) => ({
+    parent: one(opportunity_interests, {
+      fields: [opportunity_interests_rels.parent],
+      references: [opportunity_interests.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [opportunity_interests_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_opportunity_interests = relations(
+  opportunity_interests,
+  ({ many }) => ({
+    _rels: many(opportunity_interests_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_opportunity_sources_rels = relations(
+  opportunity_sources_rels,
+  ({ one }) => ({
+    parent: one(opportunity_sources, {
+      fields: [opportunity_sources_rels.parent],
+      references: [opportunity_sources.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [opportunity_sources_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_opportunity_sources = relations(
+  opportunity_sources,
+  ({ many }) => ({
+    _rels: many(opportunity_sources_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_opportunities_rels = relations(
+  opportunities_rels,
+  ({ one }) => ({
+    parent: one(opportunities, {
+      fields: [opportunities_rels.parent],
+      references: [opportunities.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [opportunities_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_opportunities = relations(
+  opportunities,
+  ({ one, many }) => ({
+    source: one(opportunity_sources, {
+      fields: [opportunities.source],
+      references: [opportunity_sources.id],
+      relationName: "source",
+    }),
+    _rels: many(opportunities_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_opportunity_profiles_rels = relations(
+  opportunity_profiles_rels,
+  ({ one }) => ({
+    parent: one(opportunity_profiles, {
+      fields: [opportunity_profiles_rels.parent],
+      references: [opportunity_profiles.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [opportunity_profiles_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_opportunity_profiles = relations(
+  opportunity_profiles,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [opportunity_profiles.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    _rels: many(opportunity_profiles_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_opportunity_events_rels = relations(
+  opportunity_events_rels,
+  ({ one }) => ({
+    parent: one(opportunity_events, {
+      fields: [opportunity_events_rels.parent],
+      references: [opportunity_events.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [opportunity_events_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_opportunity_events = relations(
+  opportunity_events,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [opportunity_events.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    opportunity: one(opportunities, {
+      fields: [opportunity_events.opportunity],
+      references: [opportunities.id],
+      relationName: "opportunity",
+    }),
+    _rels: many(opportunity_events_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_saved_opportunities_rels = relations(
+  saved_opportunities_rels,
+  ({ one }) => ({
+    parent: one(saved_opportunities, {
+      fields: [saved_opportunities_rels.parent],
+      references: [saved_opportunities.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [saved_opportunities_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_saved_opportunities = relations(
+  saved_opportunities,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [saved_opportunities.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    opportunity: one(opportunities, {
+      fields: [saved_opportunities.opportunity],
+      references: [opportunities.id],
+      relationName: "opportunity",
+    }),
+    _rels: many(saved_opportunities_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_opportunity_reports_rels = relations(
+  opportunity_reports_rels,
+  ({ one }) => ({
+    parent: one(opportunity_reports, {
+      fields: [opportunity_reports_rels.parent],
+      references: [opportunity_reports.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [opportunity_reports_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_opportunity_reports = relations(
+  opportunity_reports,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [opportunity_reports.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    opportunity: one(opportunities, {
+      fields: [opportunity_reports.opportunity],
+      references: [opportunities.id],
+      relationName: "opportunity",
+    }),
+    _rels: many(opportunity_reports_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_accounts_rels = relations(accounts_rels, ({ one }) => ({
   parent: one(accounts, {
     fields: [accounts_rels.parent],
@@ -5378,6 +7225,34 @@ export const relations_activities = relations(activities, ({ one, many }) => ({
     relationName: "_rels",
   }),
 }));
+export const relations_survey_offer_events_rels = relations(
+  survey_offer_events_rels,
+  ({ one }) => ({
+    parent: one(survey_offer_events, {
+      fields: [survey_offer_events_rels.parent],
+      references: [survey_offer_events.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [survey_offer_events_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_survey_offer_events = relations(
+  survey_offer_events,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [survey_offer_events.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    _rels: many(survey_offer_events_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_admins_sessions = relations(
   admins_sessions,
   ({ one }) => ({
@@ -5943,6 +7818,26 @@ export const relations_giveaway_winners = relations(
     }),
   }),
 );
+export const relations_guest_events_rels = relations(
+  guest_events_rels,
+  ({ one }) => ({
+    parent: one(guest_events, {
+      fields: [guest_events_rels.parent],
+      references: [guest_events.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [guest_events_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_guest_events = relations(guest_events, ({ many }) => ({
+  _rels: many(guest_events_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_identity_checks_rels = relations(
   identity_checks_rels,
   ({ one }) => ({
@@ -6121,6 +8016,112 @@ export const relations__news_v = relations(_news_v, ({ one, many }) => ({
     relationName: "version_category",
   }),
   _rels: many(_news_v_rels, {
+    relationName: "_rels",
+  }),
+}));
+export const relations_discover_events_rels = relations(
+  discover_events_rels,
+  ({ one }) => ({
+    parent: one(discover_events, {
+      fields: [discover_events_rels.parent],
+      references: [discover_events.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [discover_events_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_discover_events = relations(
+  discover_events,
+  ({ many }) => ({
+    _rels: many(discover_events_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_email_templates = relations(email_templates, () => ({}));
+export const relations__email_templates_v = relations(
+  _email_templates_v,
+  ({ one }) => ({
+    parent: one(email_templates, {
+      fields: [_email_templates_v.parent],
+      references: [email_templates.id],
+      relationName: "parent",
+    }),
+  }),
+);
+export const relations_faq_categories_rels = relations(
+  faq_categories_rels,
+  ({ one }) => ({
+    parent: one(faq_categories, {
+      fields: [faq_categories_rels.parent],
+      references: [faq_categories.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [faq_categories_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_faq_categories = relations(
+  faq_categories,
+  ({ many }) => ({
+    _rels: many(faq_categories_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_faqs_rels = relations(faqs_rels, ({ one }) => ({
+  parent: one(faqs, {
+    fields: [faqs_rels.parent],
+    references: [faqs.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [faqs_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations_faqs = relations(faqs, ({ one, many }) => ({
+  category: one(faq_categories, {
+    fields: [faqs.category],
+    references: [faq_categories.id],
+    relationName: "category",
+  }),
+  _rels: many(faqs_rels, {
+    relationName: "_rels",
+  }),
+}));
+export const relations__faqs_v_rels = relations(_faqs_v_rels, ({ one }) => ({
+  parent: one(_faqs_v, {
+    fields: [_faqs_v_rels.parent],
+    references: [_faqs_v.id],
+    relationName: "_rels",
+  }),
+  adminsID: one(admins, {
+    fields: [_faqs_v_rels.adminsID],
+    references: [admins.id],
+    relationName: "admins",
+  }),
+}));
+export const relations__faqs_v = relations(_faqs_v, ({ one, many }) => ({
+  parent: one(faqs, {
+    fields: [_faqs_v.parent],
+    references: [faqs.id],
+    relationName: "parent",
+  }),
+  version_category: one(faq_categories, {
+    fields: [_faqs_v.version_category],
+    references: [faq_categories.id],
+    relationName: "version_category",
+  }),
+  _rels: many(_faqs_v_rels, {
     relationName: "_rels",
   }),
 }));
@@ -6415,6 +8416,39 @@ export const relations_partner_content = relations(
     }),
   }),
 );
+export const relations_partner_content_events_rels = relations(
+  partner_content_events_rels,
+  ({ one }) => ({
+    parent: one(partner_content_events, {
+      fields: [partner_content_events_rels.parent],
+      references: [partner_content_events.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [partner_content_events_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_partner_content_events = relations(
+  partner_content_events,
+  ({ one, many }) => ({
+    content: one(partner_content, {
+      fields: [partner_content_events.content],
+      references: [partner_content.id],
+      relationName: "content",
+    }),
+    partner: one(partners, {
+      fields: [partner_content_events.partner],
+      references: [partners.id],
+      relationName: "partner",
+    }),
+    _rels: many(partner_content_events_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_partner_conversions_rels = relations(
   partner_conversions_rels,
   ({ one }) => ({
@@ -6449,6 +8483,34 @@ export const relations_partner_conversions = relations(
       relationName: "content",
     }),
     _rels: many(partner_conversions_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_partner_postbacks_rels = relations(
+  partner_postbacks_rels,
+  ({ one }) => ({
+    parent: one(partner_postbacks, {
+      fields: [partner_postbacks_rels.parent],
+      references: [partner_postbacks.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [partner_postbacks_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_partner_postbacks = relations(
+  partner_postbacks,
+  ({ one, many }) => ({
+    partner: one(partners, {
+      fields: [partner_postbacks.partner],
+      references: [partners.id],
+      relationName: "partner",
+    }),
+    _rels: many(partner_postbacks_rels, {
       relationName: "_rels",
     }),
   }),
@@ -6842,6 +8904,41 @@ export const relations_payload_locked_documents_rels = relations(
       references: [payload_locked_documents.id],
       relationName: "_rels",
     }),
+    "opportunity-interestsID": one(opportunity_interests, {
+      fields: [payload_locked_documents_rels["opportunity-interestsID"]],
+      references: [opportunity_interests.id],
+      relationName: "opportunity-interests",
+    }),
+    "opportunity-sourcesID": one(opportunity_sources, {
+      fields: [payload_locked_documents_rels["opportunity-sourcesID"]],
+      references: [opportunity_sources.id],
+      relationName: "opportunity-sources",
+    }),
+    opportunitiesID: one(opportunities, {
+      fields: [payload_locked_documents_rels.opportunitiesID],
+      references: [opportunities.id],
+      relationName: "opportunities",
+    }),
+    "opportunity-profilesID": one(opportunity_profiles, {
+      fields: [payload_locked_documents_rels["opportunity-profilesID"]],
+      references: [opportunity_profiles.id],
+      relationName: "opportunity-profiles",
+    }),
+    "opportunity-eventsID": one(opportunity_events, {
+      fields: [payload_locked_documents_rels["opportunity-eventsID"]],
+      references: [opportunity_events.id],
+      relationName: "opportunity-events",
+    }),
+    "saved-opportunitiesID": one(saved_opportunities, {
+      fields: [payload_locked_documents_rels["saved-opportunitiesID"]],
+      references: [saved_opportunities.id],
+      relationName: "saved-opportunities",
+    }),
+    "opportunity-reportsID": one(opportunity_reports, {
+      fields: [payload_locked_documents_rels["opportunity-reportsID"]],
+      references: [opportunity_reports.id],
+      relationName: "opportunity-reports",
+    }),
     accountsID: one(accounts, {
       fields: [payload_locked_documents_rels.accountsID],
       references: [accounts.id],
@@ -6851,6 +8948,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.activitiesID],
       references: [activities.id],
       relationName: "activities",
+    }),
+    "survey-offer-eventsID": one(survey_offer_events, {
+      fields: [payload_locked_documents_rels["survey-offer-eventsID"]],
+      references: [survey_offer_events.id],
+      relationName: "survey-offer-events",
     }),
     adminsID: one(admins, {
       fields: [payload_locked_documents_rels.adminsID],
@@ -6937,6 +9039,11 @@ export const relations_payload_locked_documents_rels = relations(
       references: [giveaway_winners.id],
       relationName: "giveaway-winners",
     }),
+    "guest-eventsID": one(guest_events, {
+      fields: [payload_locked_documents_rels["guest-eventsID"]],
+      references: [guest_events.id],
+      relationName: "guest-events",
+    }),
     "identity-checksID": one(identity_checks, {
       fields: [payload_locked_documents_rels["identity-checksID"]],
       references: [identity_checks.id],
@@ -6956,6 +9063,26 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.newsID],
       references: [news.id],
       relationName: "news",
+    }),
+    "discover-eventsID": one(discover_events, {
+      fields: [payload_locked_documents_rels["discover-eventsID"]],
+      references: [discover_events.id],
+      relationName: "discover-events",
+    }),
+    "email-templatesID": one(email_templates, {
+      fields: [payload_locked_documents_rels["email-templatesID"]],
+      references: [email_templates.id],
+      relationName: "email-templates",
+    }),
+    "faq-categoriesID": one(faq_categories, {
+      fields: [payload_locked_documents_rels["faq-categoriesID"]],
+      references: [faq_categories.id],
+      relationName: "faq-categories",
+    }),
+    faqsID: one(faqs, {
+      fields: [payload_locked_documents_rels.faqsID],
+      references: [faqs.id],
+      relationName: "faqs",
     }),
     "news-analyticsID": one(news_analytics, {
       fields: [payload_locked_documents_rels["news-analyticsID"]],
@@ -6982,10 +9109,20 @@ export const relations_payload_locked_documents_rels = relations(
       references: [partner_content.id],
       relationName: "partner-content",
     }),
+    "partner-content-eventsID": one(partner_content_events, {
+      fields: [payload_locked_documents_rels["partner-content-eventsID"]],
+      references: [partner_content_events.id],
+      relationName: "partner-content-events",
+    }),
     "partner-conversionsID": one(partner_conversions, {
       fields: [payload_locked_documents_rels["partner-conversionsID"]],
       references: [partner_conversions.id],
       relationName: "partner-conversions",
+    }),
+    "partner-postbacksID": one(partner_postbacks, {
+      fields: [payload_locked_documents_rels["partner-postbacksID"]],
+      references: [partner_postbacks.id],
+      relationName: "partner-postbacks",
     }),
     partnersID: one(partners, {
       fields: [payload_locked_documents_rels.partnersID],
@@ -7198,14 +9335,96 @@ export const relations_moderation_settings = relations(
     }),
   }),
 );
+export const relations_survey_settings_providers = relations(
+  survey_settings_providers,
+  ({ one }) => ({
+    _parentID: one(survey_settings, {
+      fields: [survey_settings_providers._parentID],
+      references: [survey_settings.id],
+      relationName: "providers",
+    }),
+  }),
+);
+export const relations_survey_settings_texts = relations(
+  survey_settings_texts,
+  ({ one }) => ({
+    parent: one(survey_settings, {
+      fields: [survey_settings_texts.parent],
+      references: [survey_settings.id],
+      relationName: "_texts",
+    }),
+  }),
+);
+export const relations_survey_settings_rels = relations(
+  survey_settings_rels,
+  ({ one }) => ({
+    parent: one(survey_settings, {
+      fields: [survey_settings_rels.parent],
+      references: [survey_settings.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [survey_settings_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_survey_settings = relations(
+  survey_settings,
+  ({ many }) => ({
+    providers: many(survey_settings_providers, {
+      relationName: "providers",
+    }),
+    _texts: many(survey_settings_texts, {
+      relationName: "_texts",
+    }),
+    _rels: many(survey_settings_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
+export const relations_opportunity_settings_rels = relations(
+  opportunity_settings_rels,
+  ({ one }) => ({
+    parent: one(opportunity_settings, {
+      fields: [opportunity_settings_rels.parent],
+      references: [opportunity_settings.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [opportunity_settings_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_opportunity_settings = relations(
+  opportunity_settings,
+  ({ many }) => ({
+    _rels: many(opportunity_settings_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_payload_jobs_stats = relations(
   payload_jobs_stats,
   () => ({}),
 );
 
 type DatabaseSchema = {
+  enum_opportunity_sources_status: typeof enum_opportunity_sources_status;
+  enum_opportunity_sources_trust: typeof enum_opportunity_sources_trust;
+  enum_opportunity_sources_ownership_review: typeof enum_opportunity_sources_ownership_review;
+  enum_opportunities_kind: typeof enum_opportunities_kind;
+  enum_opportunities_status: typeof enum_opportunities_status;
+  enum_opportunity_events_action: typeof enum_opportunity_events_action;
+  enum_saved_opportunities_status: typeof enum_saved_opportunities_status;
+  enum_opportunity_reports_reason: typeof enum_opportunity_reports_reason;
+  enum_opportunity_reports_status: typeof enum_opportunity_reports_status;
   enum_activities_type: typeof enum_activities_type;
   enum_activities_action: typeof enum_activities_action;
+  enum_survey_offer_events_provider: typeof enum_survey_offer_events_provider;
   enum_admins_role: typeof enum_admins_role;
   enum_admins_moderation_alerts: typeof enum_admins_moderation_alerts;
   enum_comments_moderation_status: typeof enum_comments_moderation_status;
@@ -7236,6 +9455,7 @@ type DatabaseSchema = {
   enum_giveaway_winners_tier: typeof enum_giveaway_winners_tier;
   enum_giveaway_winners_claim_status: typeof enum_giveaway_winners_claim_status;
   enum_giveaway_winners_fulfilment_status: typeof enum_giveaway_winners_fulfilment_status;
+  enum_guest_events_kind: typeof enum_guest_events_kind;
   enum_identity_checks_provider: typeof enum_identity_checks_provider;
   enum_identity_checks_status: typeof enum_identity_checks_status;
   enum_prize_catalogue_reloadly_data_plans_network: typeof enum_prize_catalogue_reloadly_data_plans_network;
@@ -7245,6 +9465,13 @@ type DatabaseSchema = {
   enum_news_status: typeof enum_news_status;
   enum__news_v_version_type: typeof enum__news_v_version_type;
   enum__news_v_version_status: typeof enum__news_v_version_status;
+  enum_discover_events_event: typeof enum_discover_events_event;
+  enum_discover_events_platform: typeof enum_discover_events_platform;
+  enum_email_templates_status: typeof enum_email_templates_status;
+  enum__email_templates_v_version_status: typeof enum__email_templates_v_version_status;
+  enum_faq_categories_icon: typeof enum_faq_categories_icon;
+  enum_faqs_status: typeof enum_faqs_status;
+  enum__faqs_v_version_status: typeof enum__faqs_v_version_status;
   enum_news_analytics_event: typeof enum_news_analytics_event;
   enum_news_analytics_platform: typeof enum_news_analytics_platform;
   enum_notification_deliveries_status: typeof enum_notification_deliveries_status;
@@ -7271,7 +9498,10 @@ type DatabaseSchema = {
   enum_partner_content_ad_size: typeof enum_partner_content_ad_size;
   enum_partner_content_video_type: typeof enum_partner_content_video_type;
   enum_partner_content_status: typeof enum_partner_content_status;
+  enum_partner_content_events_event: typeof enum_partner_content_events_event;
+  enum_partner_content_events_platform: typeof enum_partner_content_events_platform;
   enum_partner_conversions_status: typeof enum_partner_conversions_status;
+  enum_partner_postbacks_outcome: typeof enum_partner_postbacks_outcome;
   enum_partners_status: typeof enum_partners_status;
   enum_partners_category: typeof enum_partners_category;
   enum_partners_integration_method: typeof enum_partners_integration_method;
@@ -7293,10 +9523,27 @@ type DatabaseSchema = {
   enum_moderation_settings_urgent_reasons: typeof enum_moderation_settings_urgent_reasons;
   enum_moderation_settings_digest_frequency: typeof enum_moderation_settings_digest_frequency;
   enum_moderation_settings_digest_weekday: typeof enum_moderation_settings_digest_weekday;
+  enum_survey_settings_providers_provider: typeof enum_survey_settings_providers_provider;
+  opportunity_interests: typeof opportunity_interests;
+  opportunity_interests_rels: typeof opportunity_interests_rels;
+  opportunity_sources: typeof opportunity_sources;
+  opportunity_sources_rels: typeof opportunity_sources_rels;
+  opportunities: typeof opportunities;
+  opportunities_rels: typeof opportunities_rels;
+  opportunity_profiles: typeof opportunity_profiles;
+  opportunity_profiles_rels: typeof opportunity_profiles_rels;
+  opportunity_events: typeof opportunity_events;
+  opportunity_events_rels: typeof opportunity_events_rels;
+  saved_opportunities: typeof saved_opportunities;
+  saved_opportunities_rels: typeof saved_opportunities_rels;
+  opportunity_reports: typeof opportunity_reports;
+  opportunity_reports_rels: typeof opportunity_reports_rels;
   accounts: typeof accounts;
   accounts_rels: typeof accounts_rels;
   activities: typeof activities;
   activities_rels: typeof activities_rels;
+  survey_offer_events: typeof survey_offer_events;
+  survey_offer_events_rels: typeof survey_offer_events_rels;
   admins_sessions: typeof admins_sessions;
   admins: typeof admins;
   admins_rels: typeof admins_rels;
@@ -7332,6 +9579,8 @@ type DatabaseSchema = {
   giveaway_tickets_rels: typeof giveaway_tickets_rels;
   giveaway_winners: typeof giveaway_winners;
   giveaway_winners_rels: typeof giveaway_winners_rels;
+  guest_events: typeof guest_events;
+  guest_events_rels: typeof guest_events_rels;
   identity_checks: typeof identity_checks;
   identity_checks_rels: typeof identity_checks_rels;
   prize_catalogue_reloadly_data_plans: typeof prize_catalogue_reloadly_data_plans;
@@ -7345,6 +9594,16 @@ type DatabaseSchema = {
   _news_v_version_key_points: typeof _news_v_version_key_points;
   _news_v: typeof _news_v;
   _news_v_rels: typeof _news_v_rels;
+  discover_events: typeof discover_events;
+  discover_events_rels: typeof discover_events_rels;
+  email_templates: typeof email_templates;
+  _email_templates_v: typeof _email_templates_v;
+  faq_categories: typeof faq_categories;
+  faq_categories_rels: typeof faq_categories_rels;
+  faqs: typeof faqs;
+  faqs_rels: typeof faqs_rels;
+  _faqs_v: typeof _faqs_v;
+  _faqs_v_rels: typeof _faqs_v_rels;
   news_analytics: typeof news_analytics;
   news_analytics_rels: typeof news_analytics_rels;
   notification_deliveries: typeof notification_deliveries;
@@ -7363,8 +9622,12 @@ type DatabaseSchema = {
   partner_content_placements: typeof partner_content_placements;
   partner_content: typeof partner_content;
   partner_content_rels: typeof partner_content_rels;
+  partner_content_events: typeof partner_content_events;
+  partner_content_events_rels: typeof partner_content_events_rels;
   partner_conversions: typeof partner_conversions;
   partner_conversions_rels: typeof partner_conversions_rels;
+  partner_postbacks: typeof partner_postbacks;
+  partner_postbacks_rels: typeof partner_postbacks_rels;
   partners: typeof partners;
   partners_rels: typeof partners_rels;
   promotion_media_blocks_promo_video_source: typeof promotion_media_blocks_promo_video_source;
@@ -7409,11 +9672,33 @@ type DatabaseSchema = {
   moderation_settings_urgent_reasons: typeof moderation_settings_urgent_reasons;
   moderation_settings: typeof moderation_settings;
   moderation_settings_rels: typeof moderation_settings_rels;
+  survey_settings_providers: typeof survey_settings_providers;
+  survey_settings: typeof survey_settings;
+  survey_settings_texts: typeof survey_settings_texts;
+  survey_settings_rels: typeof survey_settings_rels;
+  opportunity_settings: typeof opportunity_settings;
+  opportunity_settings_rels: typeof opportunity_settings_rels;
   payload_jobs_stats: typeof payload_jobs_stats;
+  relations_opportunity_interests_rels: typeof relations_opportunity_interests_rels;
+  relations_opportunity_interests: typeof relations_opportunity_interests;
+  relations_opportunity_sources_rels: typeof relations_opportunity_sources_rels;
+  relations_opportunity_sources: typeof relations_opportunity_sources;
+  relations_opportunities_rels: typeof relations_opportunities_rels;
+  relations_opportunities: typeof relations_opportunities;
+  relations_opportunity_profiles_rels: typeof relations_opportunity_profiles_rels;
+  relations_opportunity_profiles: typeof relations_opportunity_profiles;
+  relations_opportunity_events_rels: typeof relations_opportunity_events_rels;
+  relations_opportunity_events: typeof relations_opportunity_events;
+  relations_saved_opportunities_rels: typeof relations_saved_opportunities_rels;
+  relations_saved_opportunities: typeof relations_saved_opportunities;
+  relations_opportunity_reports_rels: typeof relations_opportunity_reports_rels;
+  relations_opportunity_reports: typeof relations_opportunity_reports;
   relations_accounts_rels: typeof relations_accounts_rels;
   relations_accounts: typeof relations_accounts;
   relations_activities_rels: typeof relations_activities_rels;
   relations_activities: typeof relations_activities;
+  relations_survey_offer_events_rels: typeof relations_survey_offer_events_rels;
+  relations_survey_offer_events: typeof relations_survey_offer_events;
   relations_admins_sessions: typeof relations_admins_sessions;
   relations_admins_rels: typeof relations_admins_rels;
   relations_admins: typeof relations_admins;
@@ -7449,6 +9734,8 @@ type DatabaseSchema = {
   relations_giveaway_tickets: typeof relations_giveaway_tickets;
   relations_giveaway_winners_rels: typeof relations_giveaway_winners_rels;
   relations_giveaway_winners: typeof relations_giveaway_winners;
+  relations_guest_events_rels: typeof relations_guest_events_rels;
+  relations_guest_events: typeof relations_guest_events;
   relations_identity_checks_rels: typeof relations_identity_checks_rels;
   relations_identity_checks: typeof relations_identity_checks;
   relations_prize_catalogue_reloadly_data_plans: typeof relations_prize_catalogue_reloadly_data_plans;
@@ -7462,6 +9749,16 @@ type DatabaseSchema = {
   relations__news_v_version_key_points: typeof relations__news_v_version_key_points;
   relations__news_v_rels: typeof relations__news_v_rels;
   relations__news_v: typeof relations__news_v;
+  relations_discover_events_rels: typeof relations_discover_events_rels;
+  relations_discover_events: typeof relations_discover_events;
+  relations_email_templates: typeof relations_email_templates;
+  relations__email_templates_v: typeof relations__email_templates_v;
+  relations_faq_categories_rels: typeof relations_faq_categories_rels;
+  relations_faq_categories: typeof relations_faq_categories;
+  relations_faqs_rels: typeof relations_faqs_rels;
+  relations_faqs: typeof relations_faqs;
+  relations__faqs_v_rels: typeof relations__faqs_v_rels;
+  relations__faqs_v: typeof relations__faqs_v;
   relations_news_analytics_rels: typeof relations_news_analytics_rels;
   relations_news_analytics: typeof relations_news_analytics;
   relations_notification_deliveries_rels: typeof relations_notification_deliveries_rels;
@@ -7480,8 +9777,12 @@ type DatabaseSchema = {
   relations_partner_content_placements: typeof relations_partner_content_placements;
   relations_partner_content_rels: typeof relations_partner_content_rels;
   relations_partner_content: typeof relations_partner_content;
+  relations_partner_content_events_rels: typeof relations_partner_content_events_rels;
+  relations_partner_content_events: typeof relations_partner_content_events;
   relations_partner_conversions_rels: typeof relations_partner_conversions_rels;
   relations_partner_conversions: typeof relations_partner_conversions;
+  relations_partner_postbacks_rels: typeof relations_partner_postbacks_rels;
+  relations_partner_postbacks: typeof relations_partner_postbacks;
   relations_partners_rels: typeof relations_partners_rels;
   relations_partners: typeof relations_partners;
   relations_promotion_media_blocks_promo_video_source: typeof relations_promotion_media_blocks_promo_video_source;
@@ -7526,6 +9827,12 @@ type DatabaseSchema = {
   relations_moderation_settings_urgent_reasons: typeof relations_moderation_settings_urgent_reasons;
   relations_moderation_settings_rels: typeof relations_moderation_settings_rels;
   relations_moderation_settings: typeof relations_moderation_settings;
+  relations_survey_settings_providers: typeof relations_survey_settings_providers;
+  relations_survey_settings_texts: typeof relations_survey_settings_texts;
+  relations_survey_settings_rels: typeof relations_survey_settings_rels;
+  relations_survey_settings: typeof relations_survey_settings;
+  relations_opportunity_settings_rels: typeof relations_opportunity_settings_rels;
+  relations_opportunity_settings: typeof relations_opportunity_settings;
   relations_payload_jobs_stats: typeof relations_payload_jobs_stats;
 };
 

@@ -42,6 +42,7 @@ const SCREEN_DESTINATIONS = [
   { label: "Lucky app wall", value: "lucky-app-wall" },
   { label: "My giveaways", value: "my-giveaways" },
   { label: "Giveaway rules", value: "lottery-rules" },
+  { label: "For You preferences", value: "for-you/preferences" },
   { label: "Survey", value: "survey" },
   { label: "In-app browser", value: "browser" },
 ];

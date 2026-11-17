@@ -9,7 +9,7 @@ COPY turbo.json ./
 COPY apps/ apps/
 COPY packages/ packages/
 COPY tooling/ tooling/
-RUN bun install
+RUN bun tooling/portable-lockfile.mjs && bun install
 
 # Builder
 FROM base AS builder

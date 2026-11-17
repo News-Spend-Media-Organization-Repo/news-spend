@@ -2,17 +2,15 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Suspense } from "react";
 import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
-import { Text } from "#/components/heroui/text";
+import ScreenHeader from "#/components/ScreenHeader";
 import ShopHome from "#/features/tabs/shop/screens/ShopHome";
 
+/**
+ * Shop is pushed from the More sheet now, not shown as a tab, so it takes the
+ * shared navy header with its back arrow instead of a bare brand bar.
+ */
 function ShopHeader() {
-  return (
-    <View className="bg-p-500 px-2 pt-safe-offset-1 pb-2">
-      <Text className="font-bold text-background text-base uppercase">
-        News Spend Media
-      </Text>
-    </View>
-  );
+  return <ScreenHeader title="Shop" />;
 }
 
 export default createNativeStackNavigator({

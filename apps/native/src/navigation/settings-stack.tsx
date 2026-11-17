@@ -22,7 +22,9 @@ export default createNativeStackNavigator({
       options: {
         headerShown: true,
         header() {
-          return <ScreenHeader left={null} title="Me" />;
+          // Pushed from the More sheet, so it needs the back arrow a tab
+          // root never had.
+          return <ScreenHeader title="Me" />;
         },
         animation: "slide_from_right",
       },

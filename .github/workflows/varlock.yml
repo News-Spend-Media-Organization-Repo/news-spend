@@ -34,8 +34,26 @@ jobs:
         with:
           bun-version: "1.4.3"
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - name: Install dependencies
-        run: bun install --ignore-scripts
+        run: |
+          bun tooling/portable-lockfile.mjs
+          bun install --frozen-lockfile --ignore-scripts
+
+      - name: Test lockfile portability
+        run: bun test tooling/portable-lockfile.test.ts
+
+      - name: API and discovery regression tests
+        # Module mocks must not replace real modules in another test file.
+        run: bun test --isolate packages/api/src packages/payload/test/opportunities.test.ts packages/payload/test/opportunity-formats.test.ts
+
+      - name: Mobile unit tests
+        working-directory: apps/native
+        run: node ../../node_modules/jest/bin/jest.js --runInBand
 
       # Fails when code reads an env var the schema does not declare. Needs no
       # secrets: it scans source, it does not resolve values.

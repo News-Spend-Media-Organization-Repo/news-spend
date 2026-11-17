@@ -70,6 +70,13 @@ const Notifications: CollectionConfig = {
   },
   fields: [
     {
+      name: "opportunityDeliveryKey",
+      type: "text",
+      unique: true,
+      admin: { hidden: true },
+      access: { create: () => false, update: () => false },
+    },
+    {
       name: "title",
       type: "text",
       required: true,
