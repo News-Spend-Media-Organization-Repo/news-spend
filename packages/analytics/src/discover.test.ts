@@ -83,6 +83,17 @@ describe("discoverSections and discoverItems", () => {
     expect(sections.find((s) => s.section === "apps")?.views).toBe(0);
   });
 
+  it("includes the events section, zero when nothing was recorded", async () => {
+    const { db } = stubDb([]);
+    const sections = await discoverSections(db, STAFF, filter);
+    expect(sections.map((s) => s.section)).toEqual([...DISCOVER_SECTIONS]);
+    expect(sections.find((s) => s.section === "events")).toEqual({
+      section: "events",
+      views: 0,
+      people: 0,
+    });
+  });
+
   it("list every kind of item and keep an unknown one", async () => {
     const { db } = stubDb([
       { type: "game", opens: 9, people: 4 },
@@ -93,6 +104,11 @@ describe("discoverSections and discoverItems", () => {
       items.slice(0, DISCOVER_ITEM_TYPES.length).map((i) => i.type)
     ).toEqual([...DISCOVER_ITEM_TYPES]);
     expect(items.find((i) => i.type === "game")?.opens).toBe(9);
+    expect(items.find((i) => i.type === "event")).toEqual({
+      type: "event",
+      opens: 0,
+      people: 0,
+    });
     expect(items.at(-1)).toEqual({ type: "widget", opens: 1, people: 1 });
   });
 });

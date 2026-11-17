@@ -29,6 +29,7 @@ export const DISCOVER_SECTIONS = [
   "games",
   "books",
   "surveys",
+  "events",
 ] as const;
 
 /** What can be opened from the tab. */
@@ -39,6 +40,7 @@ export const DISCOVER_ITEM_TYPES = [
   "survey",
   "giveaway",
   "brands",
+  "event",
 ] as const;
 
 export type DiscoverSummary = {

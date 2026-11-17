@@ -1187,6 +1187,7 @@ describe.skipIf(!URL)("reports against a real Postgres", () => {
         "games",
         "books",
         "surveys",
+        "events",
       ]);
       // all: d1 twice + d3; games: d2 view + d1 switch; surveys: d2 switch.
       expect(sections.find((s) => s.section === "all")).toEqual({
