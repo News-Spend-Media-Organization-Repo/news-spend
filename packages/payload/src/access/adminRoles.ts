@@ -43,6 +43,23 @@ export const isStaff = ({ req: { user } }: AccessArgs): boolean =>
   user?.collection === "admins" && user.role !== "partner";
 
 /**
+ * Read access for a row a user owns: staff see all of it, a signed-in user
+ * sees only rows whose `user` field is their own, and everyone else,
+ * partner admins included, sees nothing.
+ */
+export const readOwnOrStaff = ({
+  req: { user },
+}: AccessArgs): boolean | Where => {
+  if (!user) {
+    return false;
+  }
+  if (user.collection === "admins") {
+    return user.role !== "partner";
+  }
+  return { user: { equals: user.id } };
+};
+
+/**
  * Read access for data that belongs to a partner: staff see all of it, a
  * partner sees only rows whose `field` points at their own partner, and
  * everyone else sees nothing.

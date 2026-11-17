@@ -122,6 +122,7 @@ export interface Config {
     sessions: Session;
     'shop-analytics': ShopAnalytic;
     survey: Survey;
+    'ticket-orders': TicketOrder;
     userBlocks: UserBlock;
     users: User;
     verifications: Verification;
@@ -194,6 +195,7 @@ export interface Config {
     sessions: SessionsSelect<false> | SessionsSelect<true>;
     'shop-analytics': ShopAnalyticsSelect<false> | ShopAnalyticsSelect<true>;
     survey: SurveySelect<false> | SurveySelect<true>;
+    'ticket-orders': TicketOrdersSelect<false> | TicketOrdersSelect<true>;
     userBlocks: UserBlocksSelect<false> | UserBlocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     verifications: VerificationsSelect<false> | VerificationsSelect<true>;
@@ -2932,6 +2934,54 @@ export interface Survey {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ticket-orders".
+ */
+export interface TicketOrder {
+  id: string;
+  user: string | User;
+  clientRef: string;
+  idempotencyKey: string;
+  reference?: string | null;
+  orderReference?: string | null;
+  state?: ('pending' | 'paid' | 'expired' | 'cancelled' | 'refunded' | 'failed') | null;
+  orderVersion?: string | null;
+  refundVersion?: string | null;
+  eventId?: string | null;
+  eventName?: string | null;
+  sessionId?: string | null;
+  sessionAt?: string | null;
+  items?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  amountMinor?: number | null;
+  currency?: string | null;
+  refundedMinor?: number | null;
+  buyer?: {
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+  pointsAwarded?: number | null;
+  lastSyncedAt?: string | null;
+  createdBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'admins';
+    value: string | Admin;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Users blocked by other users. Created from the app; blocking also files a Content Report so moderators are notified.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3407,6 +3457,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'survey';
         value: string | Survey;
+      } | null)
+    | ({
+        relationTo: 'ticket-orders';
+        value: string | TicketOrder;
       } | null)
     | ({
         relationTo: 'userBlocks';
@@ -4611,6 +4665,41 @@ export interface SurveySelect<T extends boolean = true> {
   surveyLink?: T;
   users?: T;
   points?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ticket-orders_select".
+ */
+export interface TicketOrdersSelect<T extends boolean = true> {
+  user?: T;
+  clientRef?: T;
+  idempotencyKey?: T;
+  reference?: T;
+  orderReference?: T;
+  state?: T;
+  orderVersion?: T;
+  refundVersion?: T;
+  eventId?: T;
+  eventName?: T;
+  sessionId?: T;
+  sessionAt?: T;
+  items?: T;
+  amountMinor?: T;
+  currency?: T;
+  refundedMinor?: T;
+  buyer?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        phone?: T;
+      };
+  pointsAwarded?: T;
+  lastSyncedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
