@@ -1,8 +1,16 @@
+import { NavigationContext } from "@react-navigation/core";
 import { useIsFocused, useScrollToTop } from "@react-navigation/native";
 import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar, type StatusBarStyle } from "expo-status-bar";
 import { cn } from "heroui-native/utils";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   type LayoutChangeEvent,
   Platform,
@@ -25,6 +33,57 @@ import {
 } from "#/utils/useSafeAreaInsetsStyle";
 
 export const DEFAULT_BOTTOM_OFFSET = 50;
+
+type NativeBarStyle = "light" | "dark";
+type RouteNavigation = {
+  getParent: () => RouteNavigation | undefined;
+  setOptions: (options: { statusBarStyle?: NativeBarStyle }) => void;
+};
+
+/**
+ * iOS ignores expo-status-bar here: the app is UIScene-based and sets
+ * UIViewControllerBasedStatusBarAppearance (see app.config.ts), so the bar
+ * follows the top react-native-screens view controller instead. That lookup
+ * stops at the root stack's route (react-native-screens does not look inside
+ * the native tab bar), so a style set on a nested screen is never read.
+ *
+ * So a screen that asks for a specific style publishes it to the root stack
+ * route that contains it, each time it comes into focus. Screens that don't ask
+ * keep the root stack default ("light", for the navy headers; see
+ * navigation/index.tsx). Android is untouched; expo-status-bar works there.
+ */
+function usePublishIosStatusBarStyle(
+  style: StatusBarStyle | undefined,
+  theme: string,
+  isFocused: boolean
+) {
+  // Read from core's context (the same object @react-navigation/native
+  // re-exports) so a screen rendered outside a navigator, as in tests, has
+  // nothing to publish to instead of throwing.
+  const navigation = useContext(NavigationContext) as unknown as
+    | RouteNavigation
+    | undefined;
+
+  useEffect(() => {
+    if (Platform.OS !== "ios" || style === undefined || !isFocused) {
+      return;
+    }
+    if (!navigation) {
+      return;
+    }
+    const resolved: NativeBarStyle =
+      style === "light" || (style !== "dark" && theme === "dark")
+        ? "light"
+        : "dark";
+    let root = navigation;
+    let parent = root.getParent();
+    while (parent) {
+      root = parent;
+      parent = root.getParent();
+    }
+    root.setOptions({ statusBarStyle: resolved });
+  }, [navigation, style, theme, isFocused]);
+}
 
 type BaseScreenProps = {
   /**
@@ -339,6 +398,11 @@ export function Screen(props: ScreenProps) {
   const isFocused = useIsFocused();
 
   const barStyle = statusBarStyle ?? (theme === "dark" ? "light" : "dark");
+  usePublishIosStatusBarStyle(
+    statusBarStyle === undefined ? undefined : barStyle,
+    theme,
+    isFocused
+  );
 
   // KeyboardAvoidingView is only needed for non-scrolling (fixed) screens.
   // Scroll/auto presets delegate keyboard handling to KeyboardAwareScrollView.

@@ -1,5 +1,6 @@
 import { createStaticNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Platform } from "react-native";
 import { useSnapshot } from "valtio";
 
 import { MoreSheet } from "#/features/tabs/more/MoreSheet";
@@ -36,6 +37,12 @@ const RootStackNavigator = createNativeStackNavigator({
   screenOptions: {
     headerShown: false,
     animation: "slide_from_right",
+    // On iOS the status bar is read from this stack's top route only (the
+    // lookup does not enter the native tab bar or nested stacks), and every
+    // header in the app is navy, so default to light icons. A screen that
+    // needs a different style publishes it here via the shared `Screen`
+    // component. Android keeps expo-status-bar.
+    ...(Platform.OS === "ios" ? { statusBarStyle: "light" as const } : {}),
   },
   groups: {
     // First group, so it wins the initial route when its condition holds.
