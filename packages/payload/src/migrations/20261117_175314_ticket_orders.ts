@@ -24,7 +24,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"amount_minor" numeric,
   	"currency" varchar DEFAULT 'NGN',
   	"refunded_minor" numeric DEFAULT 0,
-  	"points_reversed" numeric DEFAULT 0,
   	"buyer_name" varchar,
   	"buyer_email" varchar,
   	"buyer_phone" varchar,

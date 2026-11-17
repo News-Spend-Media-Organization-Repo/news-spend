@@ -48,6 +48,8 @@ const ORDER_STATES: readonly TicketOrderState[] = [
   "failed",
 ];
 
+const DECIMAL_INTEGER = /^\d+$/;
+
 type ShowsEventData = {
   reference: string | null;
   amountMinor: number | null;
@@ -81,6 +83,13 @@ function firstInteger(
     if (typeof value === "number" && Number.isSafeInteger(value)) {
       return value;
     }
+    // Amounts also arrive as decimal strings from some Shows payloads.
+    if (typeof value === "string" && DECIMAL_INTEGER.test(value)) {
+      const parsed = Number(value);
+      if (Number.isSafeInteger(parsed)) {
+        return parsed;
+      }
+    }
   }
   return null;
 }
@@ -111,7 +120,9 @@ function readShowsEventData(event: ShowsWebhookEnvelope): ShowsEventData {
     reference: firstString(data, ["purchase", "reference"]),
     amountMinor: firstInteger(data, ["amount_minor", "amountMinor"]),
     refundedMinor: firstInteger(data, ["refunded_minor", "refundedMinor"]),
-    refundId: firstString(data, ["refund_id", "refundId", "entity_id"]),
+    refundId:
+      firstString(data, ["refund_id", "refundId", "entity_id"]) ??
+      (event.aggregate?.type === "refund" ? event.aggregate.id : null),
     orderVersion:
       firstString(data, ["order_version", "orderVersion", "version"]) ??
       aggregateVersion,
@@ -136,10 +147,13 @@ async function applyTransition(
   payload: BasePayload,
   data: ShowsEventData
 ): Promise<ShowsApplyResult> {
-  // The amount is only needed to price the award; a transition to any other
-  // state still has to land.
-  if (!(data.reference && data.state)) {
+  if (!data.reference) {
     return "failed";
+  }
+  // A state Shows knows but this app does not (notably `pending`) is not
+  // actionable; failing it would ask Shows to retry it for ever.
+  if (!data.state) {
+    return "ignored";
   }
   if (data.state === "paid" && data.amountMinor === null) {
     return "failed";
@@ -148,6 +162,7 @@ async function applyTransition(
     reference: data.reference,
     state: data.state,
     orderVersion: data.orderVersion ?? undefined,
+    amountMinor: data.amountMinor ?? undefined,
   });
 }
 
@@ -198,29 +213,44 @@ async function applyCancellation(
   if (!data.eventId) {
     return "ignored";
   }
-  const { docs: orders } = await payload.find({
-    collection: "ticket-orders",
-    where: {
-      and: [
-        { eventId: { equals: data.eventId } },
-        { state: { equals: "paid" } },
-      ],
-    },
-    limit: 100,
-    depth: 0,
-  });
 
   let applied = false;
-  for (const row of orders) {
-    if (!row.reference) {
-      continue;
-    }
-    const result = await applyOrderState(payload, {
-      reference: row.reference,
-      state: "cancelled",
+  for (;;) {
+    // Page one each time: cancelling a row takes it out of the filter, so the
+    // next batch moves up rather than being skipped by a growing page number.
+    const { docs: orders } = await payload.find({
+      collection: "ticket-orders",
+      where: {
+        and: [
+          { eventId: { equals: data.eventId } },
+          { state: { equals: "paid" } },
+        ],
+      },
+      limit: 100,
+      page: 1,
+      depth: 0,
     });
-    applied ||= result === "applied";
+
+    let batchApplied = false;
+    for (const row of orders) {
+      if (!row.reference) {
+        continue;
+      }
+      const result = await applyOrderState(payload, {
+        reference: row.reference,
+        state: "cancelled",
+      });
+      applied ||= result === "applied";
+      batchApplied ||= result === "applied";
+    }
+
+    // Nothing in this batch could be cancelled (for example a paid row with no
+    // reference); stop rather than querying the same rows for ever.
+    if (!batchApplied) {
+      break;
+    }
   }
+
   // Points are deliberately untouched: Shows' refund event is the only thing
   // that takes money (and points) back.
   return applied ? "applied" : "ignored";

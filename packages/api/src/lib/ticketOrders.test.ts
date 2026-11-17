@@ -243,6 +243,141 @@ describe("applyOrderState", () => {
     expect(payload.docs("ticket-orders")[2]?.pointsAwarded).toBe(0);
   });
 
+  it("applies two refunds that each start at version 1", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [order({ state: "paid", pointsAwarded: 250 })],
+      },
+    });
+
+    await expect(
+      applyOrderState(payload as never, {
+        reference: "ref_1",
+        state: "refunded",
+        refundId: "refund-1",
+        refundedMinor: 425_000,
+        orderVersion: "1",
+      })
+    ).resolves.toBe("applied");
+    await expect(
+      applyOrderState(payload as never, {
+        reference: "ref_1",
+        state: "refunded",
+        refundId: "refund-2",
+        refundedMinor: 850_000,
+        // Every refund aggregate has its own version 1; it must not gate.
+        orderVersion: "1",
+      })
+    ).resolves.toBe("applied");
+
+    const reversals = activities(payload, "pointReversal");
+    expect(reversals.map((row) => row.point)).toEqual([-125, -125]);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      refundedMinor: 850_000,
+      pointsReversed: 250,
+    });
+  });
+
+  it("does not regress a late older refund or reverse twice", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          order({
+            state: "refunded",
+            pointsAwarded: 250,
+            pointsReversed: 250,
+            refundedMinor: 850_000,
+            refundVersion: "2",
+          }),
+        ],
+        activities: [
+          {
+            id: "activity-1",
+            user: "user-1",
+            action: "eventTicket",
+            point: 250,
+            providerRef: "shows:order:ref_1",
+          },
+          {
+            id: "activity-2",
+            user: "user-1",
+            action: "pointReversal",
+            point: -125,
+            providerRef: "shows:refund:ref_1:refund-1",
+          },
+          {
+            id: "activity-3",
+            user: "user-1",
+            action: "pointReversal",
+            point: -125,
+            providerRef: "shows:refund:ref_1:refund-2",
+          },
+        ],
+      },
+    });
+
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "refunded",
+      refundId: "refund-old",
+      refundedMinor: 425_000,
+      orderVersion: "1",
+    });
+
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      refundedMinor: 850_000,
+      pointsReversed: 250,
+    });
+    expect(activities(payload, "pointReversal")).toHaveLength(2);
+  });
+
+  it("prices the award from the signed amount, not the shelf price", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [order({ amountMinor: 100_000 })],
+      },
+    });
+
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "paid",
+      amountMinor: 850_000,
+      orderVersion: "1",
+    });
+
+    expect(activities(payload, "eventTicket")[0]?.point).toBe(250);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      amountMinor: 850_000,
+      pointsAwarded: 250,
+    });
+  });
+
+  it("reconciles a crash after the award activity was created", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [order()],
+        activities: [
+          {
+            id: "activity-1",
+            user: "user-1",
+            action: "eventTicket",
+            point: 250,
+            providerRef: "shows:order:ref_1",
+          },
+        ],
+      },
+    });
+
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "paid",
+      orderVersion: "1",
+    });
+
+    expect(activities(payload, "eventTicket")).toHaveLength(1);
+    expect(payload.docs("ticket-orders")[0]?.pointsAwarded).toBe(250);
+  });
+
   it("fails for a reference it cannot resolve", async () => {
     const payload = createFakePayload();
 

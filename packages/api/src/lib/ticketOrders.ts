@@ -27,11 +27,13 @@ export type OrderStateInput = {
   reference: string;
   state: TicketOrderState;
   /**
-   * The aggregate version as a decimal string. For refunds this is the
-   * refund's version and is stored in `refundVersion`; otherwise it is the
-   * order's version and is stored in `orderVersion`.
+   * The aggregate version as a decimal string. For refunds this is merely
+   * recorded in `refundVersion`; refund money is deduplicated by refund id, not
+   * by a version, because every refund aggregate has its own version 1.
    */
   orderVersion?: string;
+  /** The signed order amount in minor units, when the event carries it. */
+  amountMinor?: number;
   refundedMinor?: number;
   refundId?: string;
 };
@@ -71,15 +73,40 @@ function relationId(value: unknown): string | null {
   return null;
 }
 
+/** The existing activity's point value, or null when it has not been written. */
+async function findActivityPoint(
+  payload: BasePayload,
+  providerRef: string
+): Promise<number | null> {
+  const { docs } = await payload.find({
+    collection: "activities",
+    where: { providerRef: { equals: providerRef } },
+    limit: 1,
+    depth: 0,
+  });
+  const row = docs[0];
+  return row ? Number(row.point ?? 0) : null;
+}
+
 async function hasActivity(
   payload: BasePayload,
   providerRef: string
 ): Promise<boolean> {
-  const { totalDocs } = await payload.count({
-    collection: "activities",
-    where: { providerRef: { equals: providerRef } },
-  });
-  return totalDocs > 0;
+  return (await findActivityPoint(payload, providerRef)) !== null;
+}
+
+async function reconcileAward(
+  payload: BasePayload,
+  order: TicketOrder,
+  points: number
+): Promise<void> {
+  if (points !== (order.pointsAwarded ?? 0)) {
+    await payload.update({
+      collection: "ticket-orders",
+      id: order.id,
+      data: { pointsAwarded: points },
+    });
+  }
 }
 
 /**
@@ -138,7 +165,11 @@ export async function awardEventTicketPoints(
   }
 
   const providerRef = `shows:order:${reference}`;
-  if (await hasActivity(payload, providerRef)) {
+  const existing = await findActivityPoint(payload, providerRef);
+  if (existing !== null) {
+    // A previous attempt created the activity but did not stamp the row; the
+    // activity is the source of truth for what was actually paid.
+    await reconcileAward(payload, order, existing);
     return "duplicate";
   }
 
@@ -172,6 +203,11 @@ export async function awardEventTicketPoints(
   } catch (error) {
     // Two instances can pass the read together; the unique index decides.
     if (isUniqueViolation(error)) {
+      // The other writer's activity may have landed without its row update.
+      const paid = await findActivityPoint(payload, providerRef);
+      if (paid !== null) {
+        await reconcileAward(payload, order, paid);
+      }
       return "duplicate";
     }
     throw error;
@@ -278,76 +314,129 @@ function isNewer(incoming: string, stored: string | null | undefined): boolean {
   return BigInt(incoming) > BigInt(stored);
 }
 
+async function findOrderRow(payload: BasePayload, reference: string) {
+  const { docs } = await payload.find({
+    collection: "ticket-orders",
+    where: { reference: { equals: reference } },
+    limit: 1,
+    depth: 0,
+  });
+  return docs[0] ?? null;
+}
+
+function orderPatch(
+  input: OrderStateInput,
+  isRefund: boolean,
+  nextRefunded: number | undefined
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    state: input.state,
+    lastSyncedAt: new Date().toISOString(),
+  };
+  if (input.orderVersion !== undefined) {
+    data[isRefund ? "refundVersion" : "orderVersion"] = input.orderVersion;
+  }
+  // The signed amount is only the order total on a non-refund event.
+  if (!isRefund && input.amountMinor !== undefined) {
+    data.amountMinor = input.amountMinor;
+  }
+  if (nextRefunded !== undefined) {
+    data.refundedMinor = nextRefunded;
+  }
+  return data;
+}
+
+/** All decisions for one row; kept apart so the lock body stays readable. */
+async function applyRow(
+  payload: BasePayload,
+  row: TicketOrder,
+  input: OrderStateInput,
+  isRefund: boolean
+): Promise<"applied" | "ignored"> {
+  const storedVersion = isRefund ? row.refundVersion : row.orderVersion;
+  if (
+    !isRefund &&
+    input.orderVersion !== undefined &&
+    storedVersion &&
+    !isNewer(input.orderVersion, storedVersion)
+  ) {
+    return "ignored";
+  }
+
+  // The signed order amount beats the shelf price the row was created with.
+  const order = { ...row, amountMinor: input.amountMinor ?? row.amountMinor };
+  const storedRefunded = row.refundedMinor ?? 0;
+  const nextRefunded = isRefund
+    ? Math.max(storedRefunded, input.refundedMinor ?? storedRefunded)
+    : undefined;
+
+  const refundRef =
+    isRefund && input.refundId
+      ? `shows:refund:${input.reference}:${input.refundId}`
+      : null;
+  const duplicateRefund = refundRef
+    ? await hasActivity(payload, refundRef)
+    : false;
+
+  if (input.state === "paid") {
+    await awardEventTicketPoints(payload, order);
+  }
+  if (isRefund) {
+    await reverseEventTicketPoints(payload, {
+      ...order,
+      refundedMinor: nextRefunded,
+      refundId: input.refundId,
+    });
+  }
+
+  const refundChanged =
+    nextRefunded !== undefined && nextRefunded !== storedRefunded;
+  const orderChanged =
+    row.state !== input.state ||
+    (input.orderVersion !== undefined && input.orderVersion !== storedVersion);
+  if (duplicateRefund && !(refundChanged || orderChanged)) {
+    return "ignored";
+  }
+
+  await payload.update({
+    collection: "ticket-orders",
+    id: row.id,
+    data: orderPatch(input, isRefund, nextRefunded),
+  });
+  return "applied";
+}
+
 /**
  * Apply one Shows event to its order row, then run the points it implies.
  *
  * An unknown reference is `failed` so the handler can ask for a retry; an
- * event no newer than what is stored is `ignored`. The row is written only
- * after the side effect, so a crash between the two is replayed rather than
- * skipped.
+ * order event no newer than what is stored is `ignored`. Refunds are not
+ * version-gated: each refund aggregate starts at version 1, so the refund id
+ * is the dedupe key and `refundedMinor` only ever moves forward. The row is
+ * written after the side effect, so a crash between the two is replayed rather
+ * than skipped.
  */
 export async function applyOrderState(
   payload: BasePayload,
   input: OrderStateInput
 ): Promise<"applied" | "ignored" | "failed"> {
-  const { reference, orderVersion } = input;
   const isRefund =
     input.refundId !== undefined || input.refundedMinor !== undefined;
 
-  if (orderVersion !== undefined && !isDecimal(orderVersion)) {
+  // Refund versions are informational; only order versions order events.
+  if (
+    !isRefund &&
+    input.orderVersion !== undefined &&
+    !isDecimal(input.orderVersion)
+  ) {
     return "failed";
   }
 
-  return await withKeyedLock(`ticket-order:${reference}`, async () => {
-    const { docs } = await payload.find({
-      collection: "ticket-orders",
-      where: { reference: { equals: reference } },
-      limit: 1,
-      depth: 0,
-    });
-    const row = docs[0];
+  return await withKeyedLock(`ticket-order:${input.reference}`, async () => {
+    const row = await findOrderRow(payload, input.reference);
     if (!row) {
       return "failed";
     }
-
-    const storedVersion = isRefund ? row.refundVersion : row.orderVersion;
-    if (
-      orderVersion !== undefined &&
-      storedVersion &&
-      !isNewer(orderVersion, storedVersion)
-    ) {
-      return "ignored";
-    }
-
-    if (input.state === "paid") {
-      await awardEventTicketPoints(payload, row);
-    }
-
-    if (isRefund) {
-      await reverseEventTicketPoints(payload, {
-        ...row,
-        refundedMinor: input.refundedMinor ?? row.refundedMinor,
-        refundId: input.refundId,
-      });
-    }
-
-    await payload.update({
-      collection: "ticket-orders",
-      id: row.id,
-      data: {
-        state: input.state,
-        ...(orderVersion === undefined
-          ? {}
-          : isRefund
-            ? { refundVersion: orderVersion }
-            : { orderVersion }),
-        ...(input.refundedMinor === undefined
-          ? {}
-          : { refundedMinor: input.refundedMinor }),
-        lastSyncedAt: new Date().toISOString(),
-      },
-    });
-
-    return "applied";
+    return await applyRow(payload, row, input, isRefund);
   });
 }

@@ -82,6 +82,7 @@ import * as migration_20261117_081031_giveaway_manual_winner_event from './20261
 import * as migration_20261117_084047_for_you_discovery from './20261117_084047_for_you_discovery';
 import * as migration_20261117_175314_ticket_orders from './20261117_175314_ticket_orders';
 import * as migration_20261117_185910_activities_event_ticket from './20261117_185910_activities_event_ticket';
+import * as migration_20261117_201600_ticket_orders_points_reversed from './20261117_201600_ticket_orders_points_reversed';
 
 export const migrations = [
   {
@@ -503,5 +504,10 @@ export const migrations = [
     up: migration_20261117_185910_activities_event_ticket.up,
     down: migration_20261117_185910_activities_event_ticket.down,
     name: '20261117_185910_activities_event_ticket'
+  },
+  {
+    up: migration_20261117_201600_ticket_orders_points_reversed.up,
+    down: migration_20261117_201600_ticket_orders_points_reversed.down,
+    name: '20261117_201600_ticket_orders_points_reversed'
   },
 ];

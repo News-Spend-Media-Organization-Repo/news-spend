@@ -1,4 +1,5 @@
 import type { Activity } from "@news-spend-media/payload/types";
+import type React from "react";
 import type { IconProps as PIconProps } from "#/lib/icons";
 import {
   ArrowCounterClockwiseIcon,
@@ -16,7 +17,6 @@ import {
   TicketIcon,
   UsersIcon,
 } from "#/lib/icons";
-import type React from "react";
 import type { RouterInputs } from "#/lib/orpc";
 
 export type ActivityType = RouterInputs["activity"]["byUserId"]["type"];
@@ -46,6 +46,7 @@ export const ACTION_META: Record<
     bg: "#FFE4E6",
     label: "Giveaway entry",
   },
+  eventTicket: { icon: TicketIcon, bg: "#F0FDF4", label: "Event ticket" },
   lottery: { icon: DiceFiveIcon, bg: "#FEF9C3", label: "Giveaway" },
   surveyTask: { icon: ClipboardIcon, bg: "#FEF3C7", label: "Survey task" },
   musicListeningTime: { icon: MusicNoteIcon, bg: "#F0FFFE", label: "Music" },

@@ -83,6 +83,7 @@ export const enum_activities_action = pgEnum("enum_activities_action", [
   "connectBrandAd",
   "referral",
   "ticketPurchase",
+  "eventTicket",
   "lottery",
   "surveyTask",
   "musicListeningTime",
@@ -179,6 +180,7 @@ export const enum_giveaway_audit_log_event_type = pgEnum(
     "draw_error",
     "winner_report_sent",
     "claim_status_change",
+    "manual_winner_added",
   ],
 );
 export const enum_giveaway_draw_attempts_kind = pgEnum(
@@ -340,6 +342,10 @@ export const enum_prize_catalogue_tier = pgEnum("enum_prize_catalogue_tier", [
 export const enum_prize_catalogue_fulfilment_type = pgEnum(
   "enum_prize_catalogue_fulfilment_type",
   ["points", "airtime", "data", "gift_card", "physical", "experience"],
+);
+export const enum_prize_catalogue_reloadly_gift_card_environment = pgEnum(
+  "enum_prize_catalogue_reloadly_gift_card_environment",
+  ["sandbox", "live"],
 );
 export const enum_news_type = pgEnum("enum_news_type", ["article"]);
 export const enum_news_status = pgEnum("enum_news_status", [
@@ -630,7 +636,7 @@ export const enum_partner_content_ad_size = pgEnum(
 );
 export const enum_partner_content_video_type = pgEnum(
   "enum_partner_content_video_type",
-  ["UPLOAD", "YOUTUBE", "EXTERNAL"],
+  ["UPLOAD", "EXTERNAL"],
 );
 export const enum_partner_content_status = pgEnum(
   "enum_partner_content_status",
@@ -638,7 +644,15 @@ export const enum_partner_content_status = pgEnum(
 );
 export const enum_partner_content_events_event = pgEnum(
   "enum_partner_content_events_event",
-  ["impression", "click"],
+  [
+    "impression",
+    "click",
+    "video_start",
+    "video_25",
+    "video_50",
+    "video_75",
+    "video_complete",
+  ],
 );
 export const enum_partner_content_events_platform = pgEnum(
   "enum_partner_content_events_platform",
@@ -703,6 +717,14 @@ export const enum_shop_analytics_platform = pgEnum(
   "enum_shop_analytics_platform",
   ["android", "ios", "web"],
 );
+export const enum_ticket_orders_state = pgEnum("enum_ticket_orders_state", [
+  "pending",
+  "paid",
+  "expired",
+  "cancelled",
+  "refunded",
+  "failed",
+]);
 export const enum_witness_reports_report_type = pgEnum(
   "enum_witness_reports_report_type",
   ["shortMessage", "video", "picture"],
@@ -2604,6 +2626,7 @@ export const giveaways = pgTable(
     name: varchar("name").notNull(),
     description: varchar("description"),
     sendAnnouncement: boolean("send_announcement").default(true),
+    hasBeenAnnounced: boolean("has_been_announced").default(false),
     notificationTitle: varchar("notification_title").default(
       "A new giveaway is live 🎁",
     ),
@@ -2968,6 +2991,16 @@ export const giveaway_winners = pgTable(
       precision: 3,
     }),
     disqualificationReason: varchar("disqualification_reason"),
+    giftCardCode: varchar("gift_card_code"),
+    giftCardPin: varchar("gift_card_pin"),
+    giftCardRedemptionUrl: varchar("gift_card_redemption_url"),
+    giftCardInstructions: varchar("gift_card_instructions"),
+    giftCardTransactionId: varchar("gift_card_transaction_id"),
+    giftCardEmailSentAt: timestamp("gift_card_email_sent_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -2994,6 +3027,9 @@ export const giveaway_winners = pgTable(
       columns.fulfilmentStatus,
     ),
     index("giveaway_winners_replaces_idx").on(columns.replaces),
+    index("giveaway_winners_gift_card_transaction_id_idx").on(
+      columns.giftCardTransactionId,
+    ),
     index("giveaway_winners_updated_at_idx").on(columns.updatedAt),
     index("giveaway_winners_created_at_idx").on(columns.createdAt),
   ],
@@ -3206,6 +3242,23 @@ export const prize_catalogue = pgTable(
     valueNaira: numeric("value_naira", { mode: "number" }),
     requiresVerification: boolean("requires_verification").default(false),
     reloadlyLocalAmount: numeric("reloadly_local_amount", { mode: "number" }),
+    reloadlyGiftCardProductId: numeric("reloadly_gift_card_product_id", {
+      mode: "number",
+    }),
+    reloadlyGiftCardUnitPrice: numeric("reloadly_gift_card_unit_price", {
+      mode: "number",
+    }),
+    reloadlyGiftCardSenderPrice: numeric("reloadly_gift_card_sender_price", {
+      mode: "number",
+    }),
+    reloadlyGiftCardProductName: varchar("reloadly_gift_card_product_name"),
+    reloadlyGiftCardCurrency: varchar("reloadly_gift_card_currency"),
+    reloadlyGiftCardInstructions: varchar("reloadly_gift_card_instructions"),
+    reloadlyGiftCardEnvironment:
+      enum_prize_catalogue_reloadly_gift_card_environment(
+        "reloadly_gift_card_environment",
+      ),
+    emailGiftCardCode: boolean("email_gift_card_code").default(true),
     image: uuid("image_id").references(() => media.id, {
       onDelete: "set null",
     }),
@@ -3416,6 +3469,10 @@ export const news = pgTable(
     ),
     views: numeric("views", { mode: "number" }).default(0),
     excerpt: varchar("excerpt"),
+    sendNotification: boolean("send_notification").default(true),
+    notificationKicker: varchar("notification_kicker"),
+    notificationTitle: varchar("notification_title"),
+    notificationBody: varchar("notification_body"),
     featured: boolean("featured").default(false),
     featuredRank: numeric("featured_rank", { mode: "number" }),
     featuredUntil: timestamp("featured_until", {
@@ -3537,6 +3594,12 @@ export const _news_v = pgTable(
     }).default(0),
     version_views: numeric("version_views", { mode: "number" }).default(0),
     version_excerpt: varchar("version_excerpt"),
+    version_sendNotification: boolean("version_send_notification").default(
+      true,
+    ),
+    version_notificationKicker: varchar("version_notification_kicker"),
+    version_notificationTitle: varchar("version_notification_title"),
+    version_notificationBody: varchar("version_notification_body"),
     version_featured: boolean("version_featured").default(false),
     version_featuredRank: numeric("version_featured_rank", { mode: "number" }),
     version_featuredUntil: timestamp("version_featured_until", {
@@ -5536,6 +5599,104 @@ export const survey_rels = pgTable(
   ],
 );
 
+export const ticket_orders = pgTable(
+  "ticket_orders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+    clientRef: varchar("client_ref").notNull(),
+    idempotencyKey: varchar("idempotency_key").notNull(),
+    reference: varchar("reference"),
+    orderReference: varchar("order_reference"),
+    checkoutUrl: varchar("checkout_url"),
+    checkoutExpiresAt: timestamp("checkout_expires_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    state: enum_ticket_orders_state("state").default("pending"),
+    orderVersion: varchar("order_version"),
+    refundVersion: varchar("refund_version"),
+    eventId: varchar("event_id"),
+    eventName: varchar("event_name"),
+    sessionId: varchar("session_id"),
+    sessionAt: timestamp("session_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    items: jsonb("items"),
+    amountMinor: numeric("amount_minor", { mode: "number" }),
+    currency: varchar("currency").default("NGN"),
+    refundedMinor: numeric("refunded_minor", { mode: "number" }).default(0),
+    buyer_name: varchar("buyer_name"),
+    buyer_email: varchar("buyer_email"),
+    buyer_phone: varchar("buyer_phone"),
+    pointsAwarded: numeric("points_awarded", { mode: "number" }).default(0),
+    pointsReversed: numeric("points_reversed", { mode: "number" }).default(0),
+    lastSyncedAt: timestamp("last_synced_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    }),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+      precision: 3,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index("ticket_orders_user_idx").on(columns.user),
+    uniqueIndex("ticket_orders_client_ref_idx").on(columns.clientRef),
+    uniqueIndex("ticket_orders_idempotency_key_idx").on(columns.idempotencyKey),
+    uniqueIndex("ticket_orders_reference_idx").on(columns.reference),
+    uniqueIndex("ticket_orders_order_reference_idx").on(columns.orderReference),
+    index("ticket_orders_session_id_idx").on(columns.sessionId),
+    index("ticket_orders_updated_at_idx").on(columns.updatedAt),
+    index("ticket_orders_created_at_idx").on(columns.createdAt),
+  ],
+);
+
+export const ticket_orders_rels = pgTable(
+  "ticket_orders_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("ticket_orders_rels_order_idx").on(columns.order),
+    index("ticket_orders_rels_parent_idx").on(columns.parent),
+    index("ticket_orders_rels_path_idx").on(columns.path),
+    index("ticket_orders_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [ticket_orders.id],
+      name: "ticket_orders_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "ticket_orders_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const user_blocks = pgTable(
   "user_blocks",
   {
@@ -6074,6 +6235,7 @@ export const payload_locked_documents_rels = pgTable(
     sessionsID: uuid("sessions_id"),
     "shop-analyticsID": uuid("shop_analytics_id"),
     surveyID: uuid("survey_id"),
+    "ticket-ordersID": uuid("ticket_orders_id"),
     userBlocksID: uuid("user_blocks_id"),
     usersID: uuid("users_id"),
     verificationsID: uuid("verifications_id"),
@@ -6227,6 +6389,9 @@ export const payload_locked_documents_rels = pgTable(
       columns["shop-analyticsID"],
     ),
     index("payload_locked_documents_rels_survey_id_idx").on(columns.surveyID),
+    index("payload_locked_documents_rels_ticket_orders_id_idx").on(
+      columns["ticket-ordersID"],
+    ),
     index("payload_locked_documents_rels_user_blocks_id_idx").on(
       columns.userBlocksID,
     ),
@@ -6499,6 +6664,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns["surveyID"]],
       foreignColumns: [survey.id],
       name: "payload_locked_documents_rels_survey_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["ticket-ordersID"]],
+      foreignColumns: [ticket_orders.id],
+      name: "payload_locked_documents_rels_ticket_orders_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [columns["userBlocksID"]],
@@ -6896,6 +7066,50 @@ export const survey_settings_rels = pgTable(
       columns: [columns["adminsID"]],
       foreignColumns: [admins.id],
       name: "survey_settings_rels_admins_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const app_settings = pgTable("app_settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  shareMessage: varchar("share_message").default(
+    "News Spend is giving out Scholarships, Free Data/Airtime, Electronic Gadgets, Gift Cards and Information to help users achieve their dreams. I thought you or someone you know may be interested. You can download the App here: {link} OR search NewsSpend on your device store.",
+  ),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+    precision: 3,
+  }),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+    precision: 3,
+  }),
+});
+
+export const app_settings_rels = pgTable(
+  "app_settings_rels",
+  {
+    id: serial("id").primaryKey(),
+    order: integer("order"),
+    parent: uuid("parent_id").notNull(),
+    path: varchar("path").notNull(),
+    adminsID: uuid("admins_id"),
+  },
+  (columns) => [
+    index("app_settings_rels_order_idx").on(columns.order),
+    index("app_settings_rels_parent_idx").on(columns.parent),
+    index("app_settings_rels_path_idx").on(columns.path),
+    index("app_settings_rels_admins_id_idx").on(columns.adminsID),
+    foreignKey({
+      columns: [columns["parent"]],
+      foreignColumns: [app_settings.id],
+      name: "app_settings_rels_parent_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [columns["adminsID"]],
+      foreignColumns: [admins.id],
+      name: "app_settings_rels_admins_fk",
     }).onDelete("cascade"),
   ],
 );
@@ -8752,6 +8966,34 @@ export const relations_survey = relations(survey, ({ many }) => ({
     relationName: "_rels",
   }),
 }));
+export const relations_ticket_orders_rels = relations(
+  ticket_orders_rels,
+  ({ one }) => ({
+    parent: one(ticket_orders, {
+      fields: [ticket_orders_rels.parent],
+      references: [ticket_orders.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [ticket_orders_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_ticket_orders = relations(
+  ticket_orders,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [ticket_orders.user],
+      references: [users.id],
+      relationName: "user",
+    }),
+    _rels: many(ticket_orders_rels, {
+      relationName: "_rels",
+    }),
+  }),
+);
 export const relations_user_blocks_rels = relations(
   user_blocks_rels,
   ({ one }) => ({
@@ -9159,6 +9401,11 @@ export const relations_payload_locked_documents_rels = relations(
       references: [survey.id],
       relationName: "survey",
     }),
+    "ticket-ordersID": one(ticket_orders, {
+      fields: [payload_locked_documents_rels["ticket-ordersID"]],
+      references: [ticket_orders.id],
+      relationName: "ticket-orders",
+    }),
     userBlocksID: one(user_blocks, {
       fields: [payload_locked_documents_rels.userBlocksID],
       references: [user_blocks.id],
@@ -9384,6 +9631,26 @@ export const relations_survey_settings = relations(
     }),
   }),
 );
+export const relations_app_settings_rels = relations(
+  app_settings_rels,
+  ({ one }) => ({
+    parent: one(app_settings, {
+      fields: [app_settings_rels.parent],
+      references: [app_settings.id],
+      relationName: "_rels",
+    }),
+    adminsID: one(admins, {
+      fields: [app_settings_rels.adminsID],
+      references: [admins.id],
+      relationName: "admins",
+    }),
+  }),
+);
+export const relations_app_settings = relations(app_settings, ({ many }) => ({
+  _rels: many(app_settings_rels, {
+    relationName: "_rels",
+  }),
+}));
 export const relations_opportunity_settings_rels = relations(
   opportunity_settings_rels,
   ({ one }) => ({
@@ -9461,6 +9728,7 @@ type DatabaseSchema = {
   enum_prize_catalogue_reloadly_data_plans_network: typeof enum_prize_catalogue_reloadly_data_plans_network;
   enum_prize_catalogue_tier: typeof enum_prize_catalogue_tier;
   enum_prize_catalogue_fulfilment_type: typeof enum_prize_catalogue_fulfilment_type;
+  enum_prize_catalogue_reloadly_gift_card_environment: typeof enum_prize_catalogue_reloadly_gift_card_environment;
   enum_news_type: typeof enum_news_type;
   enum_news_status: typeof enum_news_status;
   enum__news_v_version_type: typeof enum__news_v_version_type;
@@ -9512,6 +9780,7 @@ type DatabaseSchema = {
   enum_shop_analytics_type: typeof enum_shop_analytics_type;
   enum_shop_analytics_device: typeof enum_shop_analytics_device;
   enum_shop_analytics_platform: typeof enum_shop_analytics_platform;
+  enum_ticket_orders_state: typeof enum_ticket_orders_state;
   enum_witness_reports_report_type: typeof enum_witness_reports_report_type;
   enum_audit_logs_operation: typeof enum_audit_logs_operation;
   enum_payload_jobs_log_task_slug: typeof enum_payload_jobs_log_task_slug;
@@ -9645,6 +9914,8 @@ type DatabaseSchema = {
   shop_analytics_rels: typeof shop_analytics_rels;
   survey: typeof survey;
   survey_rels: typeof survey_rels;
+  ticket_orders: typeof ticket_orders;
+  ticket_orders_rels: typeof ticket_orders_rels;
   user_blocks: typeof user_blocks;
   user_blocks_rels: typeof user_blocks_rels;
   users: typeof users;
@@ -9676,6 +9947,8 @@ type DatabaseSchema = {
   survey_settings: typeof survey_settings;
   survey_settings_texts: typeof survey_settings_texts;
   survey_settings_rels: typeof survey_settings_rels;
+  app_settings: typeof app_settings;
+  app_settings_rels: typeof app_settings_rels;
   opportunity_settings: typeof opportunity_settings;
   opportunity_settings_rels: typeof opportunity_settings_rels;
   payload_jobs_stats: typeof payload_jobs_stats;
@@ -9800,6 +10073,8 @@ type DatabaseSchema = {
   relations_shop_analytics: typeof relations_shop_analytics;
   relations_survey_rels: typeof relations_survey_rels;
   relations_survey: typeof relations_survey;
+  relations_ticket_orders_rels: typeof relations_ticket_orders_rels;
+  relations_ticket_orders: typeof relations_ticket_orders;
   relations_user_blocks_rels: typeof relations_user_blocks_rels;
   relations_user_blocks: typeof relations_user_blocks;
   relations_users_rels: typeof relations_users_rels;
@@ -9831,6 +10106,8 @@ type DatabaseSchema = {
   relations_survey_settings_texts: typeof relations_survey_settings_texts;
   relations_survey_settings_rels: typeof relations_survey_settings_rels;
   relations_survey_settings: typeof relations_survey_settings;
+  relations_app_settings_rels: typeof relations_app_settings_rels;
+  relations_app_settings: typeof relations_app_settings;
   relations_opportunity_settings_rels: typeof relations_opportunity_settings_rels;
   relations_opportunity_settings: typeof relations_opportunity_settings;
   relations_payload_jobs_stats: typeof relations_payload_jobs_stats;
