@@ -230,6 +230,53 @@ describe("applyOrderState", () => {
     ).toEqual([-125]);
   });
 
+  it("never reverses more than the points actually awarded", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [order({ amountMinor: 425_000 })],
+      },
+    });
+
+    // Award 120 points at the lower total.
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "paid",
+      amountMinor: 425_000,
+      orderVersion: "1",
+    });
+    expect(payload.docs("ticket-orders")[0]?.pointsAwarded).toBe(120);
+
+    // A refund recorded before the total is raised takes back all 120.
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "refunded",
+      refundId: "refund-1",
+      refundedMinor: 425_000,
+      orderVersion: "1",
+    });
+    expect(payload.docs("ticket-orders")[0]?.pointsReversed).toBe(120);
+
+    // The paid transition raises the total to 850,000. Recomputing the award
+    // from 850,000 would reverse 125; it must stay at the 120 actually paid.
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "paid",
+      amountMinor: 850_000,
+      orderVersion: "2",
+    });
+
+    const reversed = activities(payload, "pointReversal").reduce(
+      (total, row) => total - Number(row.point ?? 0),
+      0
+    );
+    expect(reversed).toBe(120);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      pointsAwarded: 120,
+      pointsReversed: 120,
+      amountMinor: 850_000,
+    });
+  });
+
   it("does not double-reverse a duplicate refund event", async () => {
     const payload = createFakePayload({
       collections: {

@@ -357,9 +357,9 @@ function orderPatch(
 async function reversePreAwardRefund(
   payload: BasePayload,
   order: TicketOrder,
-  award: "awarded" | "duplicate" | "skipped"
+  awarded: number | null
 ): Promise<void> {
-  if (award === "skipped") {
+  if (!awarded || awarded <= 0) {
     return;
   }
   if ((order.refundedMinor ?? 0) <= 0) {
@@ -367,11 +367,30 @@ async function reversePreAwardRefund(
   }
   await reverseEventTicketPoints(payload, {
     ...order,
-    pointsAwarded: pointsFor(order.amountMinor ?? 0),
+    // The row's real award, not a recalculation: a later paid transition can
+    // raise the total, but the reversal can only take back what was paid.
+    pointsAwarded: awarded,
     // The original refund id was not kept on the row; this deterministic ref
     // covers the cumulative pre-award refund once.
     refundId: "after-award",
   });
+}
+
+/** Award, then take back any refund that was recorded before the award. */
+async function payOrder(
+  payload: BasePayload,
+  order: TicketOrder,
+  reference: string,
+  reversePreAward: boolean
+): Promise<void> {
+  const award = await awardEventTicketPoints(payload, order);
+  if (award === "skipped" || !reversePreAward) {
+    return;
+  }
+  // Read back the real award: a duplicate may have reconciled a different
+  // (earlier) amount than this event would pay.
+  const fresh = await findOrderRow(payload, reference);
+  await reversePreAwardRefund(payload, order, fresh?.pointsAwarded ?? null);
 }
 
 /** All decisions for one row; kept apart so the lock body stays readable. */
@@ -406,9 +425,8 @@ async function applyRow(
     ? await hasActivity(payload, refundRef)
     : false;
 
-  let award: "awarded" | "duplicate" | "skipped" = "skipped";
   if (input.state === "paid") {
-    award = await awardEventTicketPoints(payload, order);
+    await payOrder(payload, order, input.reference, !isRefund);
   }
   if (isRefund) {
     await reverseEventTicketPoints(payload, {
@@ -416,11 +434,6 @@ async function applyRow(
       refundedMinor: nextRefunded,
       refundId: input.refundId,
     });
-  }
-  // A refund recorded before the award had nothing to reverse; once the paid
-  // event lands, take back its share now.
-  if (!isRefund) {
-    await reversePreAwardRefund(payload, order, award);
   }
 
   const refundChanged =
