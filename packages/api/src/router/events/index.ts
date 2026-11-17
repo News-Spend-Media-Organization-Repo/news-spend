@@ -6,6 +6,7 @@ import { cached } from "../../lib/shows/cache";
 import {
   getEvent,
   getInventory,
+  getSessions,
   ShowsApiError,
   showsRequest,
 } from "../../lib/shows/client";
@@ -15,6 +16,7 @@ import type {
   ShowsEventQuery,
   ShowsInventory,
   ShowsList,
+  ShowsSession,
 } from "../../lib/shows/types";
 
 /** v1 sells naira-only, and the list rarely changes enough to need fresher. */
@@ -94,6 +96,21 @@ function mapEvent(event: ShowsEvent) {
     fromPriceMinor: event.fromPriceMinor ?? null,
     free: event.free ?? false,
     onSale: event.onSale ?? false,
+  };
+}
+
+/** Shows may attach a session revision; Task 1's type predates that field. */
+type SessionWithRevision = ShowsSession & { revision?: string | null };
+
+function mapSession(session: SessionWithRevision) {
+  return {
+    id: session.id,
+    eventId: session.eventId,
+    startsAt: session.startsAt,
+    endsAt: session.endsAt ?? null,
+    currency: session.currency,
+    fromPriceMinor: session.fromPriceMinor ?? null,
+    revision: session.revision ?? null,
   };
 }
 
@@ -204,8 +221,12 @@ const get = publicProcedure
       throw errors.SERVICE_UNAVAILABLE({ message: UNAVAILABLE_MESSAGE });
     }
 
-    const event = await withShowsErrors(
-      () => getEvent(config, input.id),
+    const [event, sessions] = await withShowsErrors(
+      () =>
+        Promise.all([
+          getEvent(config, input.id),
+          getSessions(config, input.id),
+        ]),
       errors
     );
 
@@ -213,7 +234,7 @@ const get = publicProcedure
       throw errors.NOT_FOUND({ message: NOT_FOUND_MESSAGE });
     }
 
-    return mapEvent(event);
+    return { ...mapEvent(event), sessions: sessions.data.map(mapSession) };
   });
 
 const inventory = publicProcedure

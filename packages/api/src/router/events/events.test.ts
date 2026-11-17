@@ -10,7 +10,11 @@ import { call } from "@orpc/server";
 
 import { clearShowsCache } from "../../lib/shows/cache";
 import type { ShowsConfig } from "../../lib/shows/config";
-import type { ShowsEvent, ShowsInventory } from "../../lib/shows/types";
+import type {
+  ShowsEvent,
+  ShowsInventory,
+  ShowsSession,
+} from "../../lib/shows/types";
 import {
   createFakePayload,
   createTestClient,
@@ -81,6 +85,21 @@ function event(overrides: Partial<ShowsEvent> = {}): ShowsEvent {
     fromPriceMinor: 500_000,
     free: false,
     onSale: true,
+    ...overrides,
+  };
+}
+
+type SessionFixture = ShowsSession & { revision?: string | null };
+
+function session(overrides: Partial<SessionFixture> = {}): SessionFixture {
+  return {
+    id: "sess-1",
+    eventId: "evt-1",
+    startsAt: "2026-12-01T19:00:00.000Z",
+    endsAt: "2026-12-01T22:00:00.000Z",
+    currency: "NGN",
+    fromPriceMinor: 500_000,
+    revision: "rev-7",
     ...overrides,
   };
 }
@@ -197,18 +216,44 @@ describe("eventsRouter.list", () => {
 });
 
 describe("eventsRouter.get", () => {
+  it("returns the event's sessions", async () => {
+    const { ctx } = setup([{ body: event() }, { body: { data: [session()] } }]);
+
+    const result = await call(
+      eventsRouter.get,
+      { id: "evt-1" },
+      { context: ctx }
+    );
+
+    expect(result.sessions).toEqual([
+      {
+        id: "sess-1",
+        eventId: "evt-1",
+        startsAt: "2026-12-01T19:00:00.000Z",
+        endsAt: "2026-12-01T22:00:00.000Z",
+        currency: "NGN",
+        fromPriceMinor: 500_000,
+        revision: "rev-7",
+      },
+    ]);
+  });
+
   it("maps one event through a test client", async () => {
-    const { ctx } = setup([{ body: event() }]);
+    const { ctx } = setup([{ body: event() }, { body: { data: [] } }]);
 
     const client = createTestClient(eventsRouter, ctx);
     const result = await client.get({ id: "evt-1" });
 
     expect(result.id).toBe("evt-1");
     expect(result.currency).toBe("NGN");
+    expect(result.sessions).toEqual([]);
   });
 
   it("hides an event priced in another currency", async () => {
-    const { ctx } = setup([{ body: event({ currency: "USD" }) }]);
+    const { ctx } = setup([
+      { body: event({ currency: "USD" }) },
+      { body: { data: [] } },
+    ]);
 
     const error = await expectError(
       call(eventsRouter.get, { id: "evt-1" }, { context: ctx })
