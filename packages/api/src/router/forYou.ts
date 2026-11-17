@@ -227,7 +227,18 @@ const feedInput = z.object({
   offset: z.number().int().min(0).max(4999).default(0),
   limit: z.number().int().min(1).max(30).default(20),
 });
+// The feed ranks up to `candidateLimit` populated docs (default 1,000, CMS
+// allows 5,000) on every call. 60/min comfortably covers paging at 20 items a
+// call plus category-chip and search refetches, while its own named bucket
+// keeps that cost from spending the shared public allowance.
 const feed = publicProcedure
+  .use(
+    createRateLimitMiddleware({
+      name: "opportunity-feed",
+      maxRequests: 60,
+      window: 60_000,
+    })
+  )
   .input(feedInput)
   .handler(async ({ context, input }) => {
     const userId = context.user?.isAnonymous ? undefined : context.user?.id;
