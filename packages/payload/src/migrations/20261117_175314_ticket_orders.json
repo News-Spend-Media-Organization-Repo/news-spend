@@ -20378,6 +20378,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "checkout_url": {
+          "name": "checkout_url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checkout_expires_at": {
+          "name": "checkout_expires_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "state": {
           "name": "state",
           "type": "enum_ticket_orders_state",

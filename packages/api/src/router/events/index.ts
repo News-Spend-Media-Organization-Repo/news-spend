@@ -2,6 +2,7 @@ import type { TicketOrder } from "@news-spend-media/payload/types";
 import z from "zod";
 import type { Context } from "../../context";
 import { protectedNoGuestProcedure, publicProcedure } from "../../index";
+import { withKeyedLock } from "../../lib/keyedLock";
 import { createRateLimitMiddleware } from "../../lib/ratelimit";
 import { cached } from "../../lib/shows/cache";
 import {
@@ -276,20 +277,56 @@ function checkoutRequest(order: {
 }
 
 /**
- * A pending order this caller can pick up again instead of minting a second one.
- *
- * Shows' `expiresAt` has no column on the collection, so the same 15-minute
- * hold stands in for an unexpired reference.
- * shortcut: an early-expired checkout is replayed rather than recreated; store
- * the expiry on the row when the collection gains the field.
+ * Ask Shows for the row's checkout, retrying an unknown outcome once with the
+ * same key and body.
  */
-async function findReusableOrder(
+async function requestCheckout(
+  config: ShowsConfig,
+  order: TicketOrder
+): Promise<ShowsCheckout> {
+  const request = checkoutRequest({
+    eventId: order.eventId,
+    sessionId: order.sessionId,
+    items: readItems(order.items),
+    buyer: buyerFor(order.buyer ?? {}),
+  });
+
+  try {
+    return await createCheckout(config, request, order.idempotencyKey);
+  } catch (error) {
+    if (!isUnknownOutcome(error)) {
+      throw error;
+    }
+    // The same key and body make the second call the same checkout.
+    return createCheckout(config, request, order.idempotencyKey);
+  }
+}
+
+/** A checkout the buyer can still open, without asking Shows again. */
+function storedCheckout(order: TicketOrder, now: number): ShowsCheckout | null {
+  if (!(order.reference && order.checkoutUrl && order.checkoutExpiresAt)) {
+    return null;
+  }
+  if (Date.parse(order.checkoutExpiresAt) <= now) {
+    return null;
+  }
+  return {
+    reference: order.reference,
+    checkoutUrl: order.checkoutUrl,
+    expiresAt: order.checkoutExpiresAt,
+  };
+}
+
+/**
+ * Expire pending rows for this user and session that can no longer be paid,
+ * returning the ones still live.
+ */
+async function reapExpiredOrders(
   payload: Context["payload"],
   userId: string,
   sessionId: string,
-  selection: TicketLine[],
   now: number
-): Promise<TicketOrder | null> {
+): Promise<TicketOrder[]> {
   const found = await payload.find({
     collection: "ticket-orders",
     where: {
@@ -300,21 +337,33 @@ async function findReusableOrder(
       ],
     },
     sort: "-createdAt",
-    limit: 20,
+    limit: 50,
     depth: 0,
   });
 
+  const live: TicketOrder[] = [];
   for (const order of found.docs) {
     const created = Date.parse(order.createdAt);
-    if (!Number.isFinite(created) || now - created >= ORDER_HOLD_MS) {
-      continue;
-    }
-    if (selectionKey(readItems(order.items)) === selectionKey(selection)) {
-      return order;
+    const expires = order.checkoutExpiresAt
+      ? Date.parse(order.checkoutExpiresAt)
+      : null;
+    const dead =
+      !Number.isFinite(created) ||
+      now - created >= ORDER_HOLD_MS ||
+      (expires !== null && Number.isFinite(expires) && expires <= now);
+
+    if (dead) {
+      await payload.update({
+        collection: "ticket-orders",
+        id: order.id,
+        data: { state: "expired" },
+      });
+    } else {
+      live.push(order);
     }
   }
 
-  return null;
+  return live;
 }
 
 function mapOrder(order: TicketOrder) {
@@ -534,10 +583,27 @@ const checkout = protectedNoGuestProcedure
       .map((ticket) => ({ type: ticket.type, quantity: ticket.quantity }))
       .sort((left, right) => left.type.localeCompare(right.type));
 
-    const available = await withShowsErrors(
-      () => getInventory(config, input.eventId, input.sessionId),
+    const [available, event, sessions] = await withShowsErrors(
+      () =>
+        Promise.all([
+          getInventory(
+            config,
+            input.eventId,
+            input.sessionId,
+            input.sessionRevision
+          ),
+          getEvent(config, input.eventId),
+          getSessions(config, input.eventId),
+        ]),
       errors
     );
+
+    const session = sessions.data.find(
+      (candidate) => candidate.id === input.sessionId
+    );
+    if (!session) {
+      throw errors.NOT_FOUND({ message: NOT_FOUND_MESSAGE });
+    }
 
     if (!isNaira(available.currency)) {
       throw errors.NOT_FOUND({ message: NOT_FOUND_MESSAGE });
@@ -551,86 +617,96 @@ const checkout = protectedNoGuestProcedure
     }
     const { tiers, amountMinor } = priced;
 
-    const order =
-      (await findReusableOrder(
-        context.payload,
-        context.user.id,
-        input.sessionId,
-        selection,
-        Date.now()
-      )) ??
-      (await context.payload.create({
-        collection: "ticket-orders",
-        data: {
-          user: context.user.id,
-          clientRef: crypto.randomUUID(),
-          idempotencyKey: crypto.randomUUID(),
-          state: "pending",
-          eventId: input.eventId,
-          sessionId: input.sessionId,
-          items: selection.map((line) => ({
-            type: line.type,
-            quantity: line.quantity,
-            // ShowsCheckout carries no amount, so the row records the shelf price
-            // until the purchase itself confirms what was charged.
-            unitPriceMinor: tiers.get(line.type)?.priceMinor ?? 0,
-          })),
-          amountMinor,
-          currency: CURRENCY,
-          buyer: buyerFor(context.user),
-        },
-      }));
+    return withKeyedLock(
+      `checkout:${context.user.id}:${input.sessionId}`,
+      async () => {
+        // shortcut: the keyed lock is per process, so two instances can still
+        // both insert — upgrade to a partial unique index if that shows up in
+        // production.
+        const now = Date.now();
+        const live = await reapExpiredOrders(
+          context.payload,
+          context.user.id,
+          input.sessionId,
+          now
+        );
+        const reusable = live.find(
+          (order) =>
+            selectionKey(readItems(order.items)) === selectionKey(selection)
+        );
 
-    const request = checkoutRequest({
-      eventId: order.eventId,
-      sessionId: order.sessionId,
-      items: readItems(order.items),
-      buyer: buyerFor(order.buyer ?? {}),
-    });
+        const order =
+          reusable ??
+          (await context.payload.create({
+            collection: "ticket-orders",
+            data: {
+              user: context.user.id,
+              clientRef: crypto.randomUUID(),
+              idempotencyKey: crypto.randomUUID(),
+              state: "pending",
+              eventId: input.eventId,
+              eventName: event.title,
+              sessionId: input.sessionId,
+              sessionAt: session.startsAt,
+              items: selection.map((line) => ({
+                type: line.type,
+                quantity: line.quantity,
+                // ShowsCheckout carries no amount, so the row records the shelf
+                // price until the purchase itself confirms what was charged.
+                unitPriceMinor: tiers.get(line.type)?.priceMinor ?? 0,
+              })),
+              amountMinor,
+              currency: CURRENCY,
+              buyer: buyerFor(context.user),
+            },
+          }));
 
-    let shown: ShowsCheckout;
-    try {
-      try {
-        shown = await createCheckout(config, request, order.idempotencyKey);
-      } catch (error) {
-        if (!isUnknownOutcome(error)) {
-          throw error;
+        // A live checkout is reused as-is; replaying it would mint another
+        // hosted link.
+        const stored = storedCheckout(order, now);
+        if (stored) {
+          return stored;
         }
-        // The same key and body make the second call the same checkout.
-        shown = await createCheckout(config, request, order.idempotencyKey);
-      }
-    } catch (error) {
-      // A 4xx means no checkout exists upstream; anything else may have made
-      // one, so the row stays pending for a replay with the same key.
-      if (!isAmbiguousOutcome(error)) {
+
+        let shown: ShowsCheckout;
+        try {
+          shown = await requestCheckout(config, order);
+        } catch (error) {
+          // A 4xx means no checkout exists upstream; anything else may have
+          // made one, so the row stays pending for a replay with the same key.
+          if (!isAmbiguousOutcome(error)) {
+            await context.payload.update({
+              collection: "ticket-orders",
+              id: order.id,
+              data: { state: "failed" },
+            });
+          }
+          if (
+            error instanceof ShowsApiError &&
+            error.code === "insufficient_stock"
+          ) {
+            throw errors.INSUFFICIENT_STOCK({
+              message: INSUFFICIENT_STOCK_MESSAGE,
+            });
+          }
+          throwShowsError(error, errors);
+        }
+
         await context.payload.update({
           collection: "ticket-orders",
           id: order.id,
-          data: { state: "failed" },
+          data: {
+            reference: shown.reference,
+            amountMinor: order.amountMinor ?? amountMinor,
+            currency: order.currency ?? CURRENCY,
+            checkoutUrl: shown.checkoutUrl,
+            checkoutExpiresAt: shown.expiresAt,
+          },
         });
-      }
-      if (
-        error instanceof ShowsApiError &&
-        error.code === "insufficient_stock"
-      ) {
-        throw errors.INSUFFICIENT_STOCK({
-          message: INSUFFICIENT_STOCK_MESSAGE,
-        });
-      }
-      throwShowsError(error, errors);
-    }
 
-    await context.payload.update({
-      collection: "ticket-orders",
-      id: order.id,
-      data: {
-        reference: shown.reference,
-        amountMinor: order.amountMinor ?? amountMinor,
-        currency: order.currency ?? CURRENCY,
-      },
-    });
-
-    return shown;
+        return shown;
+      }
+    );
   });
 
 const order = protectedNoGuestProcedure

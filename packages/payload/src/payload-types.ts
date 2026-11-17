@@ -2944,6 +2944,8 @@ export interface TicketOrder {
   idempotencyKey: string;
   reference?: string | null;
   orderReference?: string | null;
+  checkoutUrl?: string | null;
+  checkoutExpiresAt?: string | null;
   state?: ('pending' | 'paid' | 'expired' | 'cancelled' | 'refunded' | 'failed') | null;
   orderVersion?: string | null;
   refundVersion?: string | null;
@@ -4680,6 +4682,8 @@ export interface TicketOrdersSelect<T extends boolean = true> {
   idempotencyKey?: T;
   reference?: T;
   orderReference?: T;
+  checkoutUrl?: T;
+  checkoutExpiresAt?: T;
   state?: T;
   orderVersion?: T;
   refundVersion?: T;

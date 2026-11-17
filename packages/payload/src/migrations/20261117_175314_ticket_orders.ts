@@ -11,6 +11,8 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"idempotency_key" varchar NOT NULL,
   	"reference" varchar,
   	"order_reference" varchar,
+  	"checkout_url" varchar,
+  	"checkout_expires_at" timestamp(3) with time zone,
   	"state" "enum_ticket_orders_state" DEFAULT 'pending',
   	"order_version" varchar,
   	"refund_version" varchar,

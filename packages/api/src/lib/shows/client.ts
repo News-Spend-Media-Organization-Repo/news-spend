@@ -274,12 +274,13 @@ export function getSessions(
 export function getInventory(
   config: ShowsConfig,
   eventId: string,
-  sessionId?: string
+  sessionId?: string,
+  revision?: string
 ): Promise<ShowsInventory> {
   return showsRequest<ShowsInventory>(
     config,
     `/products/ticketing/events/${encodeURIComponent(eventId)}/inventory`,
-    { query: { sessionId } }
+    { query: { sessionId, revision } }
   );
 }
 

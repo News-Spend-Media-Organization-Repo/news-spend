@@ -274,7 +274,7 @@ describe("typed calls", () => {
     await listEvents(config, { q: "jazz" });
     await getEvent(config, "e 1");
     await getSessions(config, "e 1");
-    await getInventory(config, "e 1", "s-1");
+    await getInventory(config, "e 1", "s-1", "rev-7");
     await createCheckout(
       config,
       {
@@ -290,7 +290,7 @@ describe("typed calls", () => {
       "https://api.shows.ng/v1/products/ticketing/events?q=jazz",
       "https://api.shows.ng/v1/products/ticketing/events/e%201",
       "https://api.shows.ng/v1/products/ticketing/events/e%201/sessions",
-      "https://api.shows.ng/v1/products/ticketing/events/e%201/inventory?sessionId=s-1",
+      "https://api.shows.ng/v1/products/ticketing/events/e%201/inventory?sessionId=s-1&revision=rev-7",
       "https://api.shows.ng/v1/checkouts",
       "https://api.shows.ng/v1/purchases/p-1",
     ]);

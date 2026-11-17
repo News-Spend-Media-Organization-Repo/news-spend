@@ -11,8 +11,10 @@ import { call } from "@orpc/server";
 import type { ShowsConfig } from "../../lib/shows/config";
 import type {
   ShowsCheckout,
+  ShowsEvent,
   ShowsInventory,
   ShowsPurchase,
+  ShowsSession,
 } from "../../lib/shows/types";
 import {
   createFakePayload,
@@ -35,6 +37,14 @@ type Recorded = {
   method: string;
   key: string | null;
   body: string | null;
+};
+
+type Routes = {
+  inventory?: Reply | Reply[];
+  events?: Reply | Reply[];
+  sessions?: Reply | Reply[];
+  checkouts?: Reply | Reply[];
+  purchases?: Reply | Reply[];
 };
 
 /** Bun's fetch carries `preconnect`, so a bare function is not `typeof fetch`. */
@@ -68,15 +78,22 @@ const INPUT = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 type SetupOptions = {
-  replies?: Reply[];
+  routes?: Routes;
   orders?: Doc[];
   user?: Record<string, unknown> | null;
   shows?: ShowsConfig | null;
   onFetch?: (call: Recorded, payload: FakePayload) => void;
 };
 
+function listed(value?: Reply | Reply[]): Reply[] {
+  if (value === undefined) {
+    return [{}];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
 function setup({
-  replies = [],
+  routes = {},
   orders = [],
   user = BUYER,
   shows,
@@ -86,19 +103,46 @@ function setup({
     collections: { "ticket-orders": orders },
   });
   const calls: Recorded[] = [];
+  const queues = {
+    inventory: listed(routes.inventory ?? { body: inventory() }),
+    events: listed(routes.events ?? { body: event() }),
+    sessions: listed(routes.sessions ?? { body: { data: [session()] } }),
+    checkouts: listed(routes.checkouts),
+    purchases: listed(routes.purchases),
+  };
+  const cursors: Record<keyof typeof queues, number> = {
+    inventory: 0,
+    events: 0,
+    sessions: 0,
+    checkouts: 0,
+    purchases: 0,
+  };
 
   const fetchImpl = asFetch((input, init) => {
-    const headers = new Headers(init?.headers);
+    const url = String(input);
     const callRecord: Recorded = {
-      url: String(input),
+      url,
       method: (init?.method ?? "GET").toUpperCase(),
-      key: headers.get("idempotency-key"),
+      key: new Headers(init?.headers).get("idempotency-key"),
       body: typeof init?.body === "string" ? init.body : null,
     };
     calls.push(callRecord);
-
-    const reply = replies[Math.min(calls.length - 1, replies.length - 1)] ?? {};
     onFetch?.(callRecord, payload);
+
+    let bucket: keyof typeof queues = "events";
+    if (url.includes("/inventory")) {
+      bucket = "inventory";
+    } else if (url.endsWith("/sessions")) {
+      bucket = "sessions";
+    } else if (url.includes("/checkouts")) {
+      bucket = "checkouts";
+    } else if (url.includes("/purchases/")) {
+      bucket = "purchases";
+    }
+
+    const replies = queues[bucket];
+    const reply = replies[Math.min(cursors[bucket], replies.length - 1)] ?? {};
+    cursors[bucket] += 1;
 
     if (reply.throws !== undefined) {
       throw reply.throws;
@@ -126,6 +170,39 @@ function setup({
   });
 
   return { calls, ctx, payload };
+}
+
+function event(overrides: Partial<ShowsEvent> = {}): ShowsEvent {
+  return {
+    id: "evt-1",
+    title: "Lagos Live",
+    description: "A show",
+    venue: "Eko Centre",
+    city: "Lagos",
+    category: "music",
+    startsAt: "2026-12-01T19:00:00.000Z",
+    endsAt: "2026-12-01T22:00:00.000Z",
+    currency: "NGN",
+    fromPriceMinor: 500_000,
+    free: false,
+    onSale: true,
+    ...overrides,
+  };
+}
+
+type SessionFixture = ShowsSession & { revision?: string | null };
+
+function session(overrides: Partial<SessionFixture> = {}): SessionFixture {
+  return {
+    id: "sess-1",
+    eventId: "evt-1",
+    startsAt: "2026-12-01T19:00:00.000Z",
+    endsAt: "2026-12-01T22:00:00.000Z",
+    currency: "NGN",
+    fromPriceMinor: 500_000,
+    revision: "rev-7",
+    ...overrides,
+  };
 }
 
 function inventory(overrides: Partial<ShowsInventory> = {}): ShowsInventory {
@@ -208,7 +285,7 @@ describe("eventsRouter.checkout", () => {
     }> = [];
 
     const { calls, ctx, payload } = setup({
-      replies: [{ body: inventory() }, { body: CHECKOUT }],
+      routes: { checkouts: { body: CHECKOUT } },
       onFetch: (call, fake) => {
         if (call.method !== "POST") {
           return;
@@ -234,11 +311,15 @@ describe("eventsRouter.checkout", () => {
     expect(row).toMatchObject({
       user: "user-1",
       eventId: "evt-1",
+      eventName: "Lagos Live",
       sessionId: "sess-1",
+      sessionAt: "2026-12-01T19:00:00.000Z",
       state: "pending",
       currency: "NGN",
       amountMinor: 1_000_000,
       reference: "ref-1",
+      checkoutUrl: "https://pay.test/ref-1",
+      checkoutExpiresAt: "2026-11-17T10:15:00.000Z",
       buyer: {
         name: "Ada Obi",
         email: "ada@test.dev",
@@ -257,18 +338,31 @@ describe("eventsRouter.checkout", () => {
     expect(orderOps).toEqual(["find", "create", "update"]);
   });
 
+  it("passes the session revision to the inventory read", async () => {
+    const { calls, ctx } = setup({ routes: { checkouts: { body: CHECKOUT } } });
+
+    await call(eventsRouter.checkout, INPUT, { context: ctx });
+
+    const inventoryCall = calls.find((entry) =>
+      entry.url.includes("/inventory")
+    );
+    expect(inventoryCall?.url).toContain("sessionId=sess-1");
+    expect(inventoryCall?.url).toContain("revision=rev-7");
+  });
+
   it("retries product_outcome_unknown once with the same key and body", async () => {
     const { calls, ctx, payload } = setup({
-      replies: [
-        { body: inventory() },
-        {
-          status: 500,
-          body: {
-            error: { code: "product_outcome_unknown", message: "unknown" },
+      routes: {
+        checkouts: [
+          {
+            status: 500,
+            body: {
+              error: { code: "product_outcome_unknown", message: "unknown" },
+            },
           },
-        },
-        { body: CHECKOUT },
-      ],
+          { body: CHECKOUT },
+        ],
+      },
     });
 
     const result = await call(eventsRouter.checkout, INPUT, { context: ctx });
@@ -281,14 +375,9 @@ describe("eventsRouter.checkout", () => {
     expect(payload.docs("ticket-orders")).toHaveLength(1);
   });
 
-  it("reuses a pending order younger than fifteen minutes", async () => {
+  it("reuses a stored checkout inside fifteen minutes without calling Shows", async () => {
     const { calls, ctx, payload } = setup({
-      replies: [
-        { body: inventory() },
-        { body: CHECKOUT },
-        { body: inventory() },
-        { body: CHECKOUT },
-      ],
+      routes: { checkouts: { body: CHECKOUT } },
     });
 
     const first = await call(eventsRouter.checkout, INPUT, { context: ctx });
@@ -297,27 +386,23 @@ describe("eventsRouter.checkout", () => {
 
     expect(second).toEqual(first);
     expect(payload.docs("ticket-orders")).toHaveLength(1);
-
-    const posts = calls.filter((entry) => entry.method === "POST");
-    expect(posts).toHaveLength(2);
-    expect(posts[1]?.key).toBe(posts[0]?.key);
-    expect(posts[1]?.body).toBe(posts[0]?.body);
+    expect(calls.filter((entry) => entry.method === "POST")).toHaveLength(1);
   });
 
-  it("creates a new checkout when the pending order is older than fifteen minutes", async () => {
+  it("expires a stale pending row before creating a new checkout", async () => {
     const { calls, ctx, payload } = setup({
-      replies: [
-        { body: inventory() },
-        { body: CHECKOUT },
-        { body: inventory() },
-        {
-          body: {
-            reference: "ref-2",
-            checkoutUrl: "https://pay.test/ref-2",
-            expiresAt: "2026-11-17T10:31:00.000Z",
+      routes: {
+        checkouts: [
+          { body: CHECKOUT },
+          {
+            body: {
+              reference: "ref-2",
+              checkoutUrl: "https://pay.test/ref-2",
+              expiresAt: "2026-11-17T10:31:00.000Z",
+            },
           },
-        },
-      ],
+        ],
+      },
     });
 
     const first = await call(eventsRouter.checkout, INPUT, { context: ctx });
@@ -326,21 +411,43 @@ describe("eventsRouter.checkout", () => {
 
     expect(first.reference).toBe("ref-1");
     expect(second.reference).toBe("ref-2");
-    expect(payload.docs("ticket-orders")).toHaveLength(2);
+
+    const rows = payload.docs("ticket-orders");
+    expect(rows).toHaveLength(2);
+    expect(rows.find((row) => row.reference === "ref-1")?.state).toBe(
+      "expired"
+    );
+    expect(rows.find((row) => row.reference === "ref-2")?.state).toBe(
+      "pending"
+    );
 
     const posts = calls.filter((entry) => entry.method === "POST");
+    expect(posts).toHaveLength(2);
     expect(posts[1]?.key).not.toBe(posts[0]?.key);
+  });
+
+  it("serialises two same-user taps into one row and one checkout", async () => {
+    const { calls, ctx, payload } = setup({
+      routes: { checkouts: { body: CHECKOUT } },
+    });
+
+    const [left, right] = await Promise.all([
+      call(eventsRouter.checkout, INPUT, { context: ctx }),
+      call(eventsRouter.checkout, INPUT, { context: ctx }),
+    ]);
+
+    expect(left).toEqual(CHECKOUT);
+    expect(right).toEqual(CHECKOUT);
+    expect(payload.docs("ticket-orders")).toHaveLength(1);
+    expect(calls.filter((entry) => entry.method === "POST")).toHaveLength(1);
   });
 
   it("leaves a pending row after a timeout so the next attempt reuses its key", async () => {
     const timeout = new DOMException("timed out", "TimeoutError");
     const { calls, ctx, payload } = setup({
-      replies: [
-        { body: inventory() },
-        { throws: timeout },
-        { body: inventory() },
-        { body: CHECKOUT },
-      ],
+      routes: {
+        checkouts: [{ throws: timeout }, { body: CHECKOUT }],
+      },
     });
 
     const error = await expectError(
@@ -351,6 +458,7 @@ describe("eventsRouter.checkout", () => {
     const [pending] = payload.docs("ticket-orders");
     expect(pending).toMatchObject({ state: "pending" });
     expect(pending?.reference).toBeUndefined();
+    expect(pending?.checkoutUrl).toBeUndefined();
 
     const result = await call(eventsRouter.checkout, INPUT, { context: ctx });
 
@@ -377,9 +485,8 @@ describe("eventsRouter.checkout", () => {
 
   it("maps insufficient stock to a defined error with fixed copy", async () => {
     const { ctx, payload } = setup({
-      replies: [
-        { body: inventory() },
-        {
+      routes: {
+        checkouts: {
           status: 409,
           body: {
             error: {
@@ -388,7 +495,7 @@ describe("eventsRouter.checkout", () => {
             },
           },
         },
-      ],
+      },
     });
 
     const error = await expectError(
@@ -402,8 +509,8 @@ describe("eventsRouter.checkout", () => {
 
   it("refuses a sold-out tier before writing or calling Shows", async () => {
     const { calls, ctx, payload } = setup({
-      replies: [
-        {
+      routes: {
+        inventory: {
           body: inventory({
             tiers: [
               {
@@ -416,7 +523,7 @@ describe("eventsRouter.checkout", () => {
             ],
           }),
         },
-      ],
+      },
     });
 
     const error = await expectError(
@@ -424,12 +531,12 @@ describe("eventsRouter.checkout", () => {
     );
 
     expect(error.code).toBe("INSUFFICIENT_STOCK");
-    expect(calls).toHaveLength(1);
+    expect(calls.filter((entry) => entry.method === "POST")).toHaveLength(0);
     expect(payload.docs("ticket-orders")).toHaveLength(0);
   });
 
   it("caps a ticket type at four", async () => {
-    const { ctx } = setup({ replies: [{ body: inventory() }] });
+    const { ctx } = setup();
 
     const error = await expectError(
       call(
@@ -489,7 +596,7 @@ describe("eventsRouter.order", () => {
           lastSyncedAt: "2026-11-17T09:59:29.000Z",
         }),
       ],
-      replies: [{ body: purchase() }],
+      routes: { purchases: { body: purchase() } },
     });
 
     const result = await call(

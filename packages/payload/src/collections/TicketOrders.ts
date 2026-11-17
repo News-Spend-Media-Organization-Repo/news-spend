@@ -56,6 +56,14 @@ export const TicketOrders: CollectionConfig = {
       index: true,
     },
     {
+      name: "checkoutUrl",
+      type: "text",
+    },
+    {
+      name: "checkoutExpiresAt",
+      type: "date",
+    },
+    {
       name: "state",
       type: "select",
       defaultValue: "pending",
