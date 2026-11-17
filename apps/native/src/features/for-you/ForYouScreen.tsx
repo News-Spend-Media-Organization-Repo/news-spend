@@ -765,7 +765,21 @@ function ForYouExperience({
             <Action
               disabled={busy || currentProfile.interests.length === 0}
               label="Continue"
-              onPress={() => setPage("refine")}
+              onPress={() => {
+                // Interests such as comedy offer no refinements. When none of
+                // the chosen interests has any, save straight away as if
+                // "Skip Refinement" was pressed instead of showing an empty page.
+                const refinable = catalog.data?.some(
+                  (i) =>
+                    currentProfile.interests.includes(i.key) &&
+                    i.preferences.length > 0
+                );
+                if (refinable) {
+                  setPage("refine");
+                } else {
+                  persistDraft(true);
+                }
+              }}
             />
           </>
         ) : null}

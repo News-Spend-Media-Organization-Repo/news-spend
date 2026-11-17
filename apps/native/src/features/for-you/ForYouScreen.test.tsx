@@ -26,7 +26,7 @@ const mockProfile = () => ({
   },
   learned: {},
 });
-const mockCatalog = [
+let mockCatalog = [
   { key: "jobs", label: "Jobs", preferences: ["IT & Digital"] },
   { key: "technology", label: "Technology", preferences: ["AI & Data"] },
 ];
@@ -162,6 +162,10 @@ jest.mock("#/components/heroui/button", () => {
 beforeEach(() => {
   mockGuest = false;
   mockInterests = ["jobs"];
+  mockCatalog = [
+    { key: "jobs", label: "Jobs", preferences: ["IT & Digital"] },
+    { key: "technology", label: "Technology", preferences: ["AI & Data"] },
+  ];
   jest.clearAllMocks();
   mockGuidance.mockClear();
 });
@@ -190,6 +194,38 @@ it("makes optional refinement skippable", async () => {
   await fireEvent.press(screen.getByText("Jobs"));
   await fireEvent.press(screen.getByText("Continue"));
   expect(screen.getByText("Skip Refinement")).toBeTruthy();
+});
+it("skips refinement entirely when no chosen interest has preferences", async () => {
+  mockCatalog = [
+    { key: "comedy", label: "Comedy", preferences: [] },
+    { key: "ai", label: "AI", preferences: [] },
+  ];
+  mockInterests = [];
+  await render(<ForYouScreen />);
+  await fireEvent.press(screen.getByText("Choose Interests"));
+  await fireEvent.press(screen.getByText("Comedy"));
+  await fireEvent.press(screen.getByText("Continue"));
+  expect(screen.queryByText("Skip Refinement")).toBeNull();
+  expect(mockUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({ interests: ["comedy"], preferences: {} })
+  );
+  expect(screen.getByText("Your preferences have been saved.")).toBeTruthy();
+});
+it("shows only interests that have refinements on the refine page", async () => {
+  mockCatalog = [
+    { key: "jobs", label: "Jobs", preferences: ["IT & Digital"] },
+    { key: "comedy", label: "Comedy", preferences: [] },
+  ];
+  mockInterests = [];
+  await render(<ForYouScreen />);
+  await fireEvent.press(screen.getByText("Choose Interests"));
+  await fireEvent.press(screen.getByText("Jobs"));
+  await fireEvent.press(screen.getByText("Comedy"));
+  await fireEvent.press(screen.getByText("Continue"));
+  expect(screen.getByText("Skip Refinement")).toBeTruthy();
+  expect(screen.getByText("Choose up to 3 areas")).toBeTruthy();
+  expect(screen.queryByText("What interests you most?")).toBeNull();
+  expect(screen.queryByText("Comedy")).toBeNull();
 });
 it("opens personalization controls from settings", async () => {
   await render(<ForYouPreferencesScreen />);
