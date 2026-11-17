@@ -121,12 +121,14 @@ export function OrderScreen() {
     );
   }
 
-  if (orderQuery.isError || !order) {
+  // A failed poll must not replace an order already on screen; only a
+  // first-load failure with nothing to show falls back to the error state.
+  if (!order) {
     return (
       <Screen statusBarStyle="light">
         <ScreenHeader title="Order" />
         <OrderLoadFailure
-          error={orderQuery.isError ? orderQuery.error : null}
+          error={orderQuery.error}
           onRetry={() => orderQuery.refetch()}
         />
       </Screen>

@@ -22,6 +22,7 @@ const mockOpenAuth = jest.fn();
 let mockUser: { isAnonymous?: boolean } | null = { isAnonymous: false };
 let mockFocused = true;
 let mockOrderError: Error | null = null;
+let mockOrderDropped = false;
 
 type OrderState =
   | "pending"
@@ -122,7 +123,7 @@ jest.mock("@tanstack/react-query", () => ({
     const input = options.input ?? {};
     if ("reference" in input) {
       return {
-        data: mockOrderError ? undefined : mockOrder,
+        data: mockOrderDropped ? undefined : mockOrder,
         error: mockOrderError,
         isError: mockOrderError !== null,
         isPending: false,
@@ -201,6 +202,7 @@ beforeEach(() => {
   mockUser = { isAnonymous: false };
   mockFocused = true;
   mockOrderError = null;
+  mockOrderDropped = false;
   mockOrder = order();
   mockCheckout.mockResolvedValue({
     reference: "ref-1",
@@ -288,7 +290,21 @@ describe("OrderScreen", () => {
     expect(mockRefetch).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps a pending order on screen when a poll fails", async () => {
+    const view = await render(<OrderScreen />);
+    expect(screen.getByText("Confirming your payment with Shows")).toBeTruthy();
+
+    mockOrderError = new Error("network");
+    await act(() => {
+      view.rerender(<OrderScreen />);
+    });
+
+    expect(screen.getByText("Confirming your payment with Shows")).toBeTruthy();
+    expect(screen.queryByText("We couldn't load this order")).toBeNull();
+  });
+
   it("offers a retry for a failed load instead of calling it not found", async () => {
+    mockOrderDropped = true;
     mockOrderError = new Error("network");
 
     await render(<OrderScreen />);
@@ -301,6 +317,7 @@ describe("OrderScreen", () => {
   });
 
   it("shows not-found copy only for a NOT_FOUND response", async () => {
+    mockOrderDropped = true;
     mockOrderError = Object.assign(new Error("Order not found"), {
       code: "NOT_FOUND",
       defined: true,
@@ -347,6 +364,30 @@ describe("EventDetail checkout", () => {
     expect(mockOpenAuth).toHaveBeenCalledWith(
       "https://shows.test/checkout/1",
       "https://link.newsspend.com/events/order/ref-1",
+      { preferUniversalLinks: true }
+    );
+  });
+
+  it("encodes a reference with reserved characters exactly once", async () => {
+    mockCheckout.mockResolvedValue({
+      reference: "ref/1?x",
+      checkoutUrl: "https://shows.test/checkout/1",
+      expiresAt: "2026-11-17T10:15:00.000Z",
+    });
+
+    await render(<EventDetailScreen />);
+
+    await fireEvent.press(screen.getByText("Regular"));
+    await fireEvent.press(screen.getByText("Continue"));
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("Order", {
+        reference: "ref%2F1%3Fx",
+      })
+    );
+    expect(mockOpenAuth).toHaveBeenCalledWith(
+      "https://shows.test/checkout/1",
+      "https://link.newsspend.com/events/order/ref%2F1%3Fx",
       { preferUniversalLinks: true }
     );
   });
