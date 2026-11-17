@@ -475,6 +475,58 @@ describe("showsWebhookHandler", () => {
     ).toHaveLength(1);
   });
 
+  it("does not let a cancelled transition overwrite the order amount", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "paid",
+            eventId: "event-1",
+            eventName: "Lagos Live",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 250,
+            pointsReversed: 0,
+          },
+        ],
+      },
+    });
+
+    await expect(
+      applyEvent(
+        envelope({
+          data: {
+            purchase: "ref_1",
+            amount_minor: 0,
+            state: "cancelled",
+            order_version: "2",
+          },
+        }) as never,
+        payload as never
+      )
+    ).resolves.toBe("applied");
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "cancelled",
+      amountMinor: 850_000,
+    });
+
+    // The preserved total still prices the proportional reversal.
+    await expect(
+      applyEvent(
+        envelope({
+          type: "refund.updated",
+          aggregate: { type: "refund", id: "refund-1", version: 1 },
+          data: { purchase: "ref_1", amount_minor: 425_000 },
+        }) as never,
+        payload as never
+      )
+    ).resolves.toBe("applied");
+    expect(payload.docs("ticket-orders")[0]?.pointsReversed).toBe(125);
+  });
+
   it("accepts a numeric-string amount", async () => {
     const payload = createFakePayload({
       collections: {

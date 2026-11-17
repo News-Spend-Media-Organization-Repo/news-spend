@@ -201,6 +201,35 @@ describe("applyOrderState", () => {
     });
   });
 
+  it("reverses a pre-award partial refund once the paid event lands", async () => {
+    const payload = createFakePayload({
+      collections: { "ticket-orders": [order()] },
+    });
+
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "refunded",
+      refundId: "refund-1",
+      refundedMinor: 425_000,
+      orderVersion: "1",
+    });
+    expect(activities(payload, "pointReversal")).toHaveLength(0);
+
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "paid",
+      orderVersion: "1",
+    });
+
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      pointsAwarded: 250,
+      pointsReversed: 125,
+    });
+    expect(
+      activities(payload, "pointReversal").map((row) => row.point)
+    ).toEqual([-125]);
+  });
+
   it("does not double-reverse a duplicate refund event", async () => {
     const payload = createFakePayload({
       collections: {

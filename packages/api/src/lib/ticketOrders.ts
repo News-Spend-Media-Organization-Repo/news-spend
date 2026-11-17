@@ -336,14 +336,42 @@ function orderPatch(
   if (input.orderVersion !== undefined) {
     data[isRefund ? "refundVersion" : "orderVersion"] = input.orderVersion;
   }
-  // The signed amount is only the order total on a non-refund event.
-  if (!isRefund && input.amountMinor !== undefined) {
+  // The signed amount is only the order total on a paid transition, and only
+  // when it is a real amount: a cancellation carrying 0 must not wipe it.
+  if (
+    !isRefund &&
+    input.state === "paid" &&
+    typeof input.amountMinor === "number" &&
+    Number.isSafeInteger(input.amountMinor) &&
+    input.amountMinor > 0
+  ) {
     data.amountMinor = input.amountMinor;
   }
   if (nextRefunded !== undefined) {
     data.refundedMinor = nextRefunded;
   }
   return data;
+}
+
+/** Take back the share of a refund that arrived before there was an award. */
+async function reversePreAwardRefund(
+  payload: BasePayload,
+  order: TicketOrder,
+  award: "awarded" | "duplicate" | "skipped"
+): Promise<void> {
+  if (award === "skipped") {
+    return;
+  }
+  if ((order.refundedMinor ?? 0) <= 0) {
+    return;
+  }
+  await reverseEventTicketPoints(payload, {
+    ...order,
+    pointsAwarded: pointsFor(order.amountMinor ?? 0),
+    // The original refund id was not kept on the row; this deterministic ref
+    // covers the cumulative pre-award refund once.
+    refundId: "after-award",
+  });
 }
 
 /** All decisions for one row; kept apart so the lock body stays readable. */
@@ -378,8 +406,9 @@ async function applyRow(
     ? await hasActivity(payload, refundRef)
     : false;
 
+  let award: "awarded" | "duplicate" | "skipped" = "skipped";
   if (input.state === "paid") {
-    await awardEventTicketPoints(payload, order);
+    award = await awardEventTicketPoints(payload, order);
   }
   if (isRefund) {
     await reverseEventTicketPoints(payload, {
@@ -387,6 +416,11 @@ async function applyRow(
       refundedMinor: nextRefunded,
       refundId: input.refundId,
     });
+  }
+  // A refund recorded before the award had nothing to reverse; once the paid
+  // event lands, take back its share now.
+  if (!isRefund) {
+    await reversePreAwardRefund(payload, order, award);
   }
 
   const refundChanged =
