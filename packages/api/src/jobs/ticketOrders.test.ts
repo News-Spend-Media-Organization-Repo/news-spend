@@ -163,7 +163,7 @@ describe("reconcileTicketOrders", () => {
       shows: shows({ ref_1: PAID_PURCHASE }),
     });
 
-    expect(result).toEqual({ checked: 1, changed: 1, failed: 0 });
+    expect(result).toEqual({ checked: 1, changed: 0, failed: 0 });
     expect(
       payload.docs("activities").filter((row) => row.action === "eventTicket")
     ).toHaveLength(1);
@@ -255,7 +255,7 @@ describe("reconcileTicketOrders", () => {
     const first = await reconcileTicketOrders(payload as never, options);
     const second = await reconcileTicketOrders(payload as never, options);
 
-    expect(first).toEqual({ checked: 1, changed: 1, failed: 0 });
+    expect(first).toEqual({ checked: 1, changed: 0, failed: 0 });
     expect(second).toEqual({ checked: 0, changed: 0, failed: 0 });
     expect(payload.docs("activities")).toHaveLength(0);
     expect(payload.docs("ticket-orders")[0]).toMatchObject({
@@ -287,5 +287,74 @@ describe("reconcileTicketOrders", () => {
 
     const second = await reconcileTicketOrders(payload as never, options);
     expect(second).toEqual({ checked: 1, changed: 0, failed: 1 });
+  });
+
+  it("reverses a partial refund when a pending order reads back paid", async () => {
+    const payload = createFakePayload({
+      collections: { "ticket-orders": [order()] },
+    });
+
+    const result = await reconcileTicketOrders(payload as never, {
+      now: NOW,
+      shows: shows({
+        ref_1: { ...PAID_PURCHASE, refundedMinor: 425_000 },
+      }),
+    });
+
+    expect(result).toEqual({ checked: 1, changed: 1, failed: 0 });
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "paid",
+      amountMinor: 850_000,
+      refundedMinor: 425_000,
+      pointsAwarded: 250,
+      pointsReversed: 125,
+    });
+    expect(
+      payload.docs("activities").filter((row) => row.action === "pointReversal")
+    ).toHaveLength(1);
+  });
+
+  it("still recovers paid rows when 50 stale pending rows are older", async () => {
+    const pending = Array.from({ length: 50 }, (_, index) =>
+      order({
+        id: `pending-${index}`,
+        reference: `pending-${index}`,
+        createdAt: new Date(
+          NOW.getTime() - (index + 10) * 60_000
+        ).toISOString(),
+      })
+    );
+    const paid = order({
+      id: "paid-1",
+      reference: "paid-1",
+      state: "paid",
+      pointsAwarded: 0,
+      createdAt: new Date(NOW.getTime() - 5 * 60_000).toISOString(),
+    });
+    const payload = createFakePayload({
+      collections: { "ticket-orders": [...pending, paid] },
+    });
+
+    const purchases: Record<string, unknown> = {};
+    for (const row of pending) {
+      purchases[String(row.reference)] = {
+        reference: row.reference,
+        state: "pending",
+        amountMinor: 850_000,
+        currency: "NGN",
+      };
+    }
+    purchases["paid-1"] = { ...PAID_PURCHASE, reference: "paid-1" };
+
+    const result = await reconcileTicketOrders(payload as never, {
+      now: NOW,
+      shows: shows(purchases),
+    });
+
+    expect(result.checked).toBe(50);
+    expect(result.failed).toBe(0);
+    expect(
+      payload.docs("ticket-orders").find((row) => row.reference === "paid-1")
+    ).toMatchObject({ state: "paid", pointsAwarded: 250 });
   });
 });

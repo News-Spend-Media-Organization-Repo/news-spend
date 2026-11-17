@@ -3,7 +3,7 @@ import { sql } from "@payloadcms/db-postgres";
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
-   ALTER TABLE "ticket_orders" ADD COLUMN "award_attempted_at" timestamptz;`);
+   ALTER TABLE "ticket_orders" ADD COLUMN "award_attempted_at" timestamp(3) with time zone;`);
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {

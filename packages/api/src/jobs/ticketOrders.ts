@@ -55,12 +55,56 @@ export type ReconcileOptions = {
   shows?: ShowsConfig | null;
 };
 
-async function findCandidates(
+/**
+ * Paid rows whose award never landed: the webhook stored `paid` but crashed
+ * before the points, or an earlier award attempt threw before stamping. These
+ * are the money-recovery rows, so they get their own budget and cannot be
+ * crowded out by abandoned checkouts that still read `pending`.
+ */
+async function findPaidRecovery(
   payload: BasePayload,
   now: Date,
   maxAgeHours: number,
   limit: number
 ) {
+  if (limit <= 0) {
+    return [];
+  }
+
+  const windowStart = new Date(
+    now.getTime() - maxAgeHours * 60 * 60 * 1000
+  ).toISOString();
+
+  const { docs } = await payload.find({
+    collection: "ticket-orders",
+    where: {
+      and: [
+        { reference: { exists: true } },
+        { createdAt: { greater_than: windowStart } },
+        { state: { equals: "paid" } },
+        { pointsAwarded: { equals: 0 } },
+        { awardAttemptedAt: { exists: false } },
+      ],
+    },
+    sort: "createdAt",
+    limit,
+    depth: 0,
+  });
+
+  return docs;
+}
+
+/** Pending rows a webhook never reached, judged by their last sync or age. */
+async function findStalePending(
+  payload: BasePayload,
+  now: Date,
+  maxAgeHours: number,
+  limit: number
+) {
+  if (limit <= 0) {
+    return [];
+  }
+
   const staleBefore = new Date(now.getTime() - STALE_AFTER_MS).toISOString();
   const windowStart = new Date(
     now.getTime() - maxAgeHours * 60 * 60 * 1000
@@ -88,13 +132,6 @@ async function findCandidates(
                 { lastSyncedAt: { less_than: staleBefore } },
               ],
             },
-            {
-              and: [
-                { state: { equals: "paid" } },
-                { pointsAwarded: { equals: 0 } },
-                { awardAttemptedAt: { exists: false } },
-              ],
-            },
           ],
         },
       ],
@@ -119,10 +156,24 @@ export async function reconcileTicketOrders(
 
   const result = { checked: 0, changed: 0, failed: 0 };
   if (!shows) {
+    payload.logger.warn(
+      "ticket order reconcile skipped: no Shows credential configured"
+    );
     return result;
   }
 
-  const rows = await findCandidates(payload, now, maxAgeHours, limit);
+  const paid = await findPaidRecovery(payload, now, maxAgeHours, limit);
+  const pending = await findStalePending(
+    payload,
+    now,
+    maxAgeHours,
+    limit - paid.length
+  );
+  // Paid recovery has already claimed its rows; oldest first decides the order
+  // the remaining budget is spent in.
+  const rows = [...paid, ...pending].sort((left, right) =>
+    String(left.createdAt).localeCompare(String(right.createdAt))
+  );
 
   for (const row of rows) {
     const reference = row.reference;
@@ -132,6 +183,7 @@ export async function reconcileTicketOrders(
     }
 
     result.checked += 1;
+    const previousState = row.state;
     try {
       const purchase = await getPurchase(shows, reference);
       const state = reportedState(purchase.state);
@@ -144,10 +196,18 @@ export async function reconcileTicketOrders(
         reference,
         state,
         amountMinor: purchase.amountMinor,
-        ...(refundedMinor > 0 ? { refundedMinor } : {}),
+        ...(refundedMinor > 0
+          ? {
+              refundedMinor,
+              // Shows reports a cumulative total, not a refund id. Keying the
+              // reversal on that total makes the first read reverse its share
+              // and a later, larger total reverse only the delta.
+              refundId: `reconcile:${reference}:${refundedMinor}`,
+            }
+          : {}),
       });
 
-      if (outcome === "applied") {
+      if (outcome === "applied" && previousState !== state) {
         result.changed += 1;
       } else if (outcome === "failed") {
         result.failed += 1;

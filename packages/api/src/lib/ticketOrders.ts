@@ -437,8 +437,12 @@ async function applyRow(
     await payOrder(payload, order, input.reference, !isRefund);
   }
   if (isRefund) {
+    // The award above may have just paid this row; reverse against the stored
+    // award, not the pre-award snapshot.
+    const fresh = await findOrderRow(payload, input.reference);
     await reverseEventTicketPoints(payload, {
       ...order,
+      pointsAwarded: fresh?.pointsAwarded ?? order.pointsAwarded,
       refundedMinor: nextRefunded,
       refundId: input.refundId,
     });
