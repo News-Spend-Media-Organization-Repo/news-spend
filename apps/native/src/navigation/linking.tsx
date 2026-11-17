@@ -16,6 +16,7 @@ import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 import { withArticleUnderComments } from "./article-under-comments";
 import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
 import { navigationRef } from "./navigationUtils";
+import { TAB_PATHS } from "./tab-paths";
 
 const LEADING_SLASHES = /^\/+/;
 const EVENT_ORDER_PATH = /^\/?events\/order\//;
@@ -27,7 +28,7 @@ const EVENT_ORDER_PATH = /^\/?events\/order\//;
  */
 function withDiscoverTab(path: string) {
   return EVENT_ORDER_PATH.test(path)
-    ? `discover/${path.replace(LEADING_SLASHES, "")}`
+    ? `${TAB_PATHS.Discover}/${path.replace(LEADING_SLASHES, "")}`
     : path;
 }
 

@@ -1,7 +1,17 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 
 import { EventDetailScreen } from "../EventDetail";
 import { OrderScreen } from "../Order";
+
+jest.mock("@orpc/client", () => ({
+  isDefinedError: (error: { defined?: boolean }) => error?.defined === true,
+}));
 
 const mockRefetch = jest.fn();
 const mockCheckout = jest.fn();
@@ -10,6 +20,8 @@ const mockTrack = jest.fn();
 const mockOpenAuth = jest.fn();
 
 let mockUser: { isAnonymous?: boolean } | null = { isAnonymous: false };
+let mockFocused = true;
+let mockOrderError: Error | null = null;
 
 type OrderState =
   | "pending"
@@ -100,7 +112,7 @@ const mockInventory = {
 };
 
 jest.mock("@react-navigation/native", () => ({
-  useIsFocused: () => true,
+  useIsFocused: () => mockFocused,
   useNavigation: () => ({ navigate: mockNavigate }),
   useRoute: () => ({ params: { id: "evt-1", reference: "ref-1" } }),
 }));
@@ -109,7 +121,13 @@ jest.mock("@tanstack/react-query", () => ({
   useQuery: (options: { input?: Record<string, unknown> }) => {
     const input = options.input ?? {};
     if ("reference" in input) {
-      return { data: mockOrder, isPending: false, refetch: mockRefetch };
+      return {
+        data: mockOrderError ? undefined : mockOrder,
+        error: mockOrderError,
+        isError: mockOrderError !== null,
+        isPending: false,
+        refetch: mockRefetch,
+      };
     }
     if ("eventId" in input) {
       return { data: mockInventory, isPending: false, isError: false };
@@ -181,6 +199,8 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
   mockUser = { isAnonymous: false };
+  mockFocused = true;
+  mockOrderError = null;
   mockOrder = order();
   mockCheckout.mockResolvedValue({
     reference: "ref-1",
@@ -213,6 +233,7 @@ describe("OrderScreen", () => {
       event: "open",
       itemType: "event",
       itemId: "ref-1",
+      section: "events",
     });
   });
 
@@ -247,9 +268,58 @@ describe("OrderScreen", () => {
     });
     expect(mockRefetch).toHaveBeenCalledTimes(1);
   });
+
+  it("stops polling when the screen loses focus", async () => {
+    const view = await render(<OrderScreen />);
+
+    await act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+
+    mockFocused = false;
+    await act(() => {
+      view.rerender(<OrderScreen />);
+    });
+
+    await act(() => {
+      jest.advanceTimersByTime(15_000);
+    });
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a retry for a failed load instead of calling it not found", async () => {
+    mockOrderError = new Error("network");
+
+    await render(<OrderScreen />);
+
+    expect(screen.getByText("We couldn't load this order")).toBeTruthy();
+    expect(screen.queryByText("Order not found")).toBeNull();
+
+    await fireEvent.press(screen.getByText("Retry"));
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows not-found copy only for a NOT_FOUND response", async () => {
+    mockOrderError = Object.assign(new Error("Order not found"), {
+      code: "NOT_FOUND",
+      defined: true,
+    });
+
+    await render(<OrderScreen />);
+
+    expect(screen.getByText("Order not found")).toBeTruthy();
+    expect(screen.queryByText("Retry")).toBeNull();
+  });
 });
 
 describe("EventDetail checkout", () => {
+  beforeEach(() => {
+    // These tests await the checkout promise chain; real timers let `waitFor`
+    // drive it without the poll interval's fake clock.
+    jest.useRealTimers();
+  });
+
   it("sends a guest to sign in instead of checking out", async () => {
     mockUser = { isAnonymous: true };
 
@@ -261,5 +331,39 @@ describe("EventDetail checkout", () => {
     expect(mockCheckout).not.toHaveBeenCalled();
     expect(mockOpenAuth).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("SignIn", { redirect: true });
+  });
+
+  it("opens checkout with the universal-link return and shows the order", async () => {
+    await render(<EventDetailScreen />);
+
+    await fireEvent.press(screen.getByText("Regular"));
+    await fireEvent.press(screen.getByText("Continue"));
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("Order", {
+        reference: "ref-1",
+      })
+    );
+    expect(mockOpenAuth).toHaveBeenCalledWith(
+      "https://shows.test/checkout/1",
+      "https://link.newsspend.com/events/order/ref-1",
+      { preferUniversalLinks: true }
+    );
+  });
+
+  it("stays on the detail with a neutral notice when checkout is cancelled", async () => {
+    mockOpenAuth.mockResolvedValue({ type: "cancel" });
+
+    await render(<EventDetailScreen />);
+
+    await fireEvent.press(screen.getByText("Regular"));
+    await fireEvent.press(screen.getByText("Continue"));
+
+    expect(
+      await screen.findByText(
+        "Checkout closed. You can try again whenever you're ready."
+      )
+    ).toBeTruthy();
+    expect(mockNavigate).not.toHaveBeenCalledWith("Order", expect.anything());
   });
 });

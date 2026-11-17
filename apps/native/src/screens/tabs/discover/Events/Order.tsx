@@ -1,9 +1,11 @@
+import { isDefinedError, type ORPCError } from "@orpc/client";
 import { useIsFocused, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns/format";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import { ScreenHeader } from "#/components";
+import { Button } from "#/components/heroui/button";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { trackDiscover } from "#/lib/discoverAnalyticsClient";
@@ -41,6 +43,35 @@ function closedCopy(state: Order["state"]) {
     : null;
 }
 
+/** First-load failure: not-found only when the API said so. */
+function OrderLoadFailure({
+  error,
+  onRetry,
+}: {
+  error: Error | ORPCError<string, unknown> | null;
+  onRetry: () => void;
+}) {
+  const notFound = isDefinedError(error) && error.code === "NOT_FOUND";
+
+  return (
+    <View className="flex-1 items-center justify-center gap-2 px-6">
+      <Text className="font-semibold text-lg">
+        {notFound ? "Order not found" : "We couldn't load this order"}
+      </Text>
+      <Text className="text-center text-sm text-subtle-text">
+        {notFound
+          ? "This order may belong to another account."
+          : "Check your connection and try again."}
+      </Text>
+      {notFound ? null : (
+        <Button className="mt-2" onPress={onRetry}>
+          <Button.Label>Retry</Button.Label>
+        </Button>
+      )}
+    </View>
+  );
+}
+
 export function OrderScreen() {
   const { reference } = useRoute("Order").params;
   const isFocused = useIsFocused();
@@ -69,10 +100,13 @@ export function OrderScreen() {
       return;
     }
     tracked.current = true;
+    // The analytics enum has no dedicated `event_paid` type yet, so the paid
+    // order is recorded as an event open against its reference.
     trackDiscover({
       event: "open",
       itemType: "event",
       itemId: order.reference,
+      section: "events",
     });
   }, [order?.state, order?.reference]);
 
@@ -87,16 +121,14 @@ export function OrderScreen() {
     );
   }
 
-  if (!order) {
+  if (orderQuery.isError || !order) {
     return (
       <Screen statusBarStyle="light">
         <ScreenHeader title="Order" />
-        <View className="flex-1 items-center justify-center gap-2 px-6">
-          <Text className="font-semibold text-lg">Order not found</Text>
-          <Text className="text-center text-sm text-subtle-text">
-            This order may belong to another account.
-          </Text>
-        </View>
+        <OrderLoadFailure
+          error={orderQuery.isError ? orderQuery.error : null}
+          onRetry={() => orderQuery.refetch()}
+        />
       </Screen>
     );
   }

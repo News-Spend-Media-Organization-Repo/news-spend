@@ -17,6 +17,7 @@ import { formatNaira } from "./EventRow";
 import {
   type TicketChoice,
   TicketSelection,
+  type TicketTier,
   tierAvailable,
   tierQuantityLimit,
 } from "./TicketSelection";
@@ -28,17 +29,135 @@ const time = (value: string) => format(toInstant(value), "h:mm a");
 const orderUrl = (reference: string) =>
   `https://link.newsspend.com/events/order/${reference}`;
 
-export function EventDetailScreen() {
-  const { id } = useRoute("EventDetail").params;
+type CheckoutArgs = {
+  eventId: string;
+  session: { id: string; revision: string | null } | undefined;
+  choice: TicketChoice | null;
+  tier: TicketTier | undefined;
+  soldOut: boolean;
+};
+
+/**
+ * The checkout action, kept apart from the screen's rendering so the detail
+ * component stays small. A guest is sent to the root stack's sign-in and comes
+ * back here; a signed-in buyer opens Shows' hosted checkout.
+ */
+function useEventCheckout({
+  eventId,
+  session,
+  choice,
+  tier,
+  soldOut,
+}: CheckoutArgs) {
   const navigation = useNavigation("EventDetail");
   // Sign-in lives in the root stack; this screen's own navigator only has the
   // Discover screens and Order.
   const rootNavigation = useNavigation();
   const { user } = useSnapshot(authState);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [choice, setChoice] = useState<TicketChoice | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const startCheckout = useMutation(orpc.events.checkout.mutationOptions());
+
+  const canContinue =
+    choice !== null &&
+    tier !== undefined &&
+    tierAvailable(tier) &&
+    choice.quantity <= tierQuantityLimit(tier) &&
+    !soldOut &&
+    session?.revision != null;
+
+  const onContinue = async () => {
+    if (!(choice && tier && session?.revision)) {
+      return;
+    }
+
+    if (!user || user.isAnonymous) {
+      rootNavigation.navigate("SignIn", { redirect: true });
+      return;
+    }
+
+    setNotice(null);
+    try {
+      const checkout = await startCheckout.mutateAsync({
+        eventId,
+        sessionId: session.id,
+        sessionRevision: session.revision,
+        tickets: [{ type: choice.tierId, quantity: choice.quantity }],
+      });
+      // The reference is a URL segment in the return link; encode it once and
+      // use the same value for the route param.
+      const reference = encodeURIComponent(checkout.reference);
+      const result = await WebBrowser.openAuthSessionAsync(
+        checkout.checkoutUrl,
+        orderUrl(reference),
+        // Without this Expo treats the https callback as a custom scheme,
+        // which can never match the link.newsspend.com universal link.
+        { preferUniversalLinks: true }
+      );
+      if (result.type === "success") {
+        navigation.navigate("Order", { reference });
+        return;
+      }
+      setNotice("Checkout closed. You can try again whenever you're ready.");
+    } catch {
+      setNotice("We couldn't start checkout. Please try again.");
+    }
+  };
+
+  return {
+    canContinue,
+    notice,
+    onContinue,
+    resetNotice: () => setNotice(null),
+    starting: startCheckout.isPending,
+  };
+}
+
+type TicketsSectionProps = {
+  inventory: { tiers: TicketTier[]; soldOut: boolean } | undefined;
+  pending: boolean;
+  error: boolean;
+  choice: TicketChoice | null;
+  onChange: (choice: TicketChoice) => void;
+};
+
+function TicketsSection({
+  inventory,
+  pending,
+  error,
+  choice,
+  onChange,
+}: TicketsSectionProps) {
+  return (
+    <View className="border-gray-200 border-t">
+      <Text className="px-4 py-3 font-semibold text-base">Tickets</Text>
+
+      {pending ? (
+        <View className="items-center py-4">
+          <ActivityIndicator />
+        </View>
+      ) : error ? (
+        <Text className="px-4 pb-4 text-gray-50 text-sm">
+          Prices are unavailable right now.
+        </Text>
+      ) : inventory && inventory.tiers.length > 0 ? (
+        <TicketSelection
+          choice={choice}
+          onChange={onChange}
+          tiers={inventory.tiers}
+        />
+      ) : (
+        <Text className="px-4 pb-4 text-gray-50 text-sm">
+          {inventory?.soldOut ? "Sold out" : "No tickets on sale yet."}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+export function EventDetailScreen() {
+  const { id } = useRoute("EventDetail").params;
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [choice, setChoice] = useState<TicketChoice | null>(null);
 
   const eventQuery = useQuery(orpc.events.get.queryOptions({ input: { id } }));
   const event = eventQuery.data;
@@ -57,6 +176,18 @@ export function EventDetailScreen() {
     }),
     enabled: event !== undefined,
   });
+  const inventory = inventoryQuery.data;
+  const selectedTier = inventory?.tiers.find(
+    (tier) => tier.id === choice?.tierId
+  );
+  const { canContinue, notice, onContinue, resetNotice, starting } =
+    useEventCheckout({
+      eventId: id,
+      session: selectedSession,
+      choice,
+      tier: selectedTier,
+      soldOut: inventory?.soldOut === true,
+    });
 
   if (eventQuery.isPending) {
     return (
@@ -84,49 +215,6 @@ export function EventDetailScreen() {
   }
 
   const startsAt = toInstant(event.startsAt);
-  const inventory = inventoryQuery.data;
-  const selectedTier = inventory?.tiers.find(
-    (tier) => tier.id === choice?.tierId
-  );
-  const canContinue =
-    choice !== null &&
-    selectedTier !== undefined &&
-    tierAvailable(selectedTier) &&
-    choice.quantity <= tierQuantityLimit(selectedTier) &&
-    inventory?.soldOut !== true &&
-    selectedSession?.revision != null;
-
-  const onContinue = async () => {
-    if (!(choice && selectedTier && selectedSession?.revision)) {
-      return;
-    }
-
-    if (!user || user.isAnonymous) {
-      rootNavigation.navigate("SignIn", { redirect: true });
-      return;
-    }
-
-    setNotice(null);
-    try {
-      const checkout = await startCheckout.mutateAsync({
-        eventId: id,
-        sessionId: selectedSession.id,
-        sessionRevision: selectedSession.revision,
-        tickets: [{ type: choice.tierId, quantity: choice.quantity }],
-      });
-      const result = await WebBrowser.openAuthSessionAsync(
-        checkout.checkoutUrl,
-        orderUrl(checkout.reference)
-      );
-      if (result.type === "success") {
-        navigation.navigate("Order", { reference: checkout.reference });
-        return;
-      }
-      setNotice("Checkout closed. You can try again whenever you're ready.");
-    } catch {
-      setNotice("We couldn't start checkout. Please try again.");
-    }
-  };
 
   return (
     <Screen statusBarStyle="light">
@@ -187,7 +275,7 @@ export function EventDetailScreen() {
                   onPress={() => {
                     setSessionId(session.id);
                     setChoice(null);
-                    setNotice(null);
+                    resetNotice();
                   }}
                 >
                   <Text className="font-medium text-sm">
@@ -204,29 +292,13 @@ export function EventDetailScreen() {
           </View>
         ) : null}
 
-        <View className="border-gray-200 border-t">
-          <Text className="px-4 py-3 font-semibold text-base">Tickets</Text>
-
-          {inventoryQuery.isPending ? (
-            <View className="items-center py-4">
-              <ActivityIndicator />
-            </View>
-          ) : inventoryQuery.isError ? (
-            <Text className="px-4 pb-4 text-gray-50 text-sm">
-              Prices are unavailable right now.
-            </Text>
-          ) : inventory && inventory.tiers.length > 0 ? (
-            <TicketSelection
-              choice={choice}
-              onChange={setChoice}
-              tiers={inventory.tiers}
-            />
-          ) : (
-            <Text className="px-4 pb-4 text-gray-50 text-sm">
-              {inventory?.soldOut ? "Sold out" : "No tickets on sale yet."}
-            </Text>
-          )}
-        </View>
+        <TicketsSection
+          choice={choice}
+          error={inventoryQuery.isError}
+          inventory={inventory}
+          onChange={setChoice}
+          pending={inventoryQuery.isPending}
+        />
 
         {event.pointsFrom > 0 ? (
           <View className="mx-4 mt-4 rounded-lg bg-s-75 px-3 py-2">
@@ -242,10 +314,7 @@ export function EventDetailScreen() {
               {notice}
             </Text>
           ) : null}
-          <Button
-            isDisabled={!canContinue || startCheckout.isPending}
-            onPress={onContinue}
-          >
+          <Button isDisabled={!canContinue || starting} onPress={onContinue}>
             <Button.Label>Continue</Button.Label>
           </Button>
         </View>
