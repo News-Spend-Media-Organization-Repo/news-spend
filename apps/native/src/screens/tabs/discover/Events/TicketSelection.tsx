@@ -54,7 +54,13 @@ export function TicketSelection({ tiers, choice, onChange }: Props) {
                   : "flex-row items-center justify-between px-4 py-3"
               }
               disabled={!available}
-              onPress={() => onChange({ tierId: tier.id, quantity: 1 })}
+              onPress={() =>
+                onChange({
+                  tierId: tier.id,
+                  // Re-tapping the chosen tier keeps its quantity.
+                  quantity: selected && choice ? choice.quantity : 1,
+                })
+              }
             >
               <View className="flex-1">
                 <Text className="font-medium text-sm">

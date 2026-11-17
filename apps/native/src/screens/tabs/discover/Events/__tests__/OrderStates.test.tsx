@@ -18,11 +18,15 @@ const mockCheckout = jest.fn();
 const mockNavigate = jest.fn();
 const mockTrack = jest.fn();
 const mockOpenAuth = jest.fn();
+const mockEventRefetch = jest.fn();
+const mockInventoryRefetch = jest.fn();
 
 let mockUser: { isAnonymous?: boolean } | null = { isAnonymous: false };
 let mockFocused = true;
 let mockOrderError: Error | null = null;
 let mockOrderDropped = false;
+let mockEventError: Error | null = null;
+let mockEventDropped = false;
 
 type OrderState =
   | "pending"
@@ -131,9 +135,20 @@ jest.mock("@tanstack/react-query", () => ({
       };
     }
     if ("eventId" in input) {
-      return { data: mockInventory, isPending: false, isError: false };
+      return {
+        data: mockInventory,
+        isPending: false,
+        isError: false,
+        refetch: mockInventoryRefetch,
+      };
     }
-    return { data: mockEvent, isPending: false };
+    return {
+      data: mockEventDropped ? undefined : mockEvent,
+      error: mockEventError,
+      isError: mockEventError !== null,
+      isPending: false,
+      refetch: mockEventRefetch,
+    };
   },
   useMutation: () => ({ mutateAsync: mockCheckout, isPending: false }),
 }));
@@ -203,6 +218,8 @@ beforeEach(() => {
   mockFocused = true;
   mockOrderError = null;
   mockOrderDropped = false;
+  mockEventError = null;
+  mockEventDropped = false;
   mockOrder = order();
   mockCheckout.mockResolvedValue({
     reference: "ref-1",
@@ -223,20 +240,14 @@ describe("OrderScreen", () => {
     expect(screen.getByText("Confirming your payment with Shows")).toBeTruthy();
   });
 
-  it("shows the points once the order is paid, recording it once", async () => {
+  it("shows the points once the order is paid, without a fake open", async () => {
     mockOrder = order({ state: "paid", pointsAwarded: 150 });
 
     const view = await render(<OrderScreen />);
     view.rerender(<OrderScreen />);
 
     expect(screen.getByText("+150 Dream Points")).toBeTruthy();
-    expect(mockTrack).toHaveBeenCalledTimes(1);
-    expect(mockTrack).toHaveBeenCalledWith({
-      event: "open",
-      itemType: "event",
-      itemId: "ref-1",
-      section: "events",
-    });
+    expect(mockTrack).not.toHaveBeenCalled();
   });
 
   it("shows the reversal and no positive points after a refund", async () => {
@@ -328,6 +339,50 @@ describe("OrderScreen", () => {
     expect(screen.getByText("Order not found")).toBeTruthy();
     expect(screen.queryByText("Retry")).toBeNull();
   });
+
+  it("asks a signed-out buyer to sign in rather than calling it a failure", async () => {
+    mockOrderDropped = true;
+    mockOrderError = Object.assign(new Error("Unauthorized"), {
+      code: "UNAUTHORIZED",
+      defined: true,
+    });
+
+    await render(<OrderScreen />);
+
+    expect(screen.getByText("Sign in to see this order")).toBeTruthy();
+    expect(screen.queryByText("We couldn't load this order")).toBeNull();
+
+    await fireEvent.press(screen.getByText("Sign in"));
+    expect(mockNavigate).toHaveBeenCalledWith("SignIn", { redirect: true });
+  });
+});
+
+describe("EventDetail load states", () => {
+  it("offers a retry instead of not-found when the event fails to load", async () => {
+    mockEventDropped = true;
+    mockEventError = new Error("network");
+
+    await render(<EventDetailScreen />);
+
+    expect(screen.getByText("We couldn't load this event")).toBeTruthy();
+    expect(screen.queryByText("Event not found")).toBeNull();
+
+    await fireEvent.press(screen.getByText("Retry"));
+    expect(mockEventRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows not-found copy only for a NOT_FOUND response", async () => {
+    mockEventDropped = true;
+    mockEventError = Object.assign(new Error("Event not found"), {
+      code: "NOT_FOUND",
+      defined: true,
+    });
+
+    await render(<EventDetailScreen />);
+
+    expect(screen.getByText("Event not found")).toBeTruthy();
+    expect(screen.queryByText("Retry")).toBeNull();
+  });
 });
 
 describe("EventDetail checkout", () => {
@@ -350,7 +405,7 @@ describe("EventDetail checkout", () => {
     expect(mockNavigate).toHaveBeenCalledWith("SignIn", { redirect: true });
   });
 
-  it("opens checkout with the universal-link return and shows the order", async () => {
+  it("opens checkout with the registered return link and shows the order", async () => {
     await render(<EventDetailScreen />);
 
     await fireEvent.press(screen.getByText("Regular"));
@@ -363,12 +418,12 @@ describe("EventDetail checkout", () => {
     );
     expect(mockOpenAuth).toHaveBeenCalledWith(
       "https://shows.test/checkout/1",
-      "https://link.newsspend.com/events/order/ref-1",
+      "https://link.newsspend.com/events/return",
       { preferUniversalLinks: true }
     );
   });
 
-  it("encodes a reference with reserved characters exactly once", async () => {
+  it("navigates with the raw reference so the in-app lookup matches", async () => {
     mockCheckout.mockResolvedValue({
       reference: "ref/1?x",
       checkoutUrl: "https://shows.test/checkout/1",
@@ -382,18 +437,37 @@ describe("EventDetail checkout", () => {
 
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith("Order", {
-        reference: "ref%2F1%3Fx",
+        reference: "ref/1?x",
       })
-    );
-    expect(mockOpenAuth).toHaveBeenCalledWith(
-      "https://shows.test/checkout/1",
-      "https://link.newsspend.com/events/order/ref%2F1%3Fx",
-      { preferUniversalLinks: true }
     );
   });
 
-  it("stays on the detail with a neutral notice when checkout is cancelled", async () => {
-    mockOpenAuth.mockResolvedValue({ type: "cancel" });
+  it("navigates to the order even when the auth session is dismissed", async () => {
+    mockOpenAuth.mockResolvedValue({ type: "dismiss" });
+
+    await render(<EventDetailScreen />);
+
+    await fireEvent.press(screen.getByText("Regular"));
+    await fireEvent.press(screen.getByText("Continue"));
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("Order", {
+        reference: "ref-1",
+      })
+    );
+    expect(
+      screen.queryByText(
+        "Checkout closed. You can try again whenever you're ready."
+      )
+    ).toBeNull();
+  });
+
+  it("only shows the closed notice when there is no order to open", async () => {
+    mockCheckout.mockResolvedValue({
+      reference: "",
+      checkoutUrl: "https://shows.test/checkout/1",
+      expiresAt: "2026-11-17T10:15:00.000Z",
+    });
 
     await render(<EventDetailScreen />);
 
@@ -406,5 +480,40 @@ describe("EventDetail checkout", () => {
       )
     ).toBeTruthy();
     expect(mockNavigate).not.toHaveBeenCalledWith("Order", expect.anything());
+  });
+
+  it("reports sold-out stock and clears the selection", async () => {
+    mockCheckout.mockRejectedValue(
+      Object.assign(new Error("Those tickets are no longer available"), {
+        code: "INSUFFICIENT_STOCK",
+        defined: true,
+      })
+    );
+
+    await render(<EventDetailScreen />);
+
+    await fireEvent.press(screen.getByText("Regular"));
+    await fireEvent.press(screen.getByLabelText("More tickets"));
+    await fireEvent.press(screen.getByText("Continue"));
+
+    expect(
+      await screen.findByText("Those tickets are no longer available")
+    ).toBeTruthy();
+    expect(mockInventoryRefetch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByLabelText("Fewer tickets")).toBeNull();
+  });
+
+  it("shows the order total and keeps the quantity on a re-tap", async () => {
+    await render(<EventDetailScreen />);
+
+    await fireEvent.press(screen.getByText("Regular"));
+    await fireEvent.press(screen.getByLabelText("More tickets"));
+
+    expect(screen.getByText("Total")).toBeTruthy();
+    expect(screen.getByText("₦10,000")).toBeTruthy();
+
+    // Tapping the tier already chosen must not reset it to one.
+    await fireEvent.press(screen.getByText("Regular"));
+    expect(screen.getByText("₦10,000")).toBeTruthy();
   });
 });

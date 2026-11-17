@@ -67,4 +67,35 @@ describe("EventRow", () => {
     expect(screen.getByText("Free")).toBeTruthy();
     expect(screen.queryByText(FROM_PRICE)).toBeNull();
   });
+
+  it("shows Ended instead of a from-price once sales stop", async () => {
+    await render(
+      <EventRow
+        event={event({ onSale: false, pointsFrom: 0 })}
+        onPress={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText("Ended")).toBeTruthy();
+    expect(screen.queryByText(FROM_PRICE)).toBeNull();
+  });
+
+  it("shows Ended when the event already finished", async () => {
+    await render(
+      <EventRow
+        event={event({ endsAt: "2020-01-01T22:00:00.000Z", pointsFrom: 0 })}
+        onPress={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText("Ended")).toBeTruthy();
+  });
+
+  it("does not throw on a malformed start date", async () => {
+    await render(
+      <EventRow event={event({ startsAt: "not-a-date" })} onPress={jest.fn()} />
+    );
+
+    expect(screen.getByText("Lagos Live")).toBeTruthy();
+  });
 });

@@ -6,6 +6,7 @@ import { Text } from "#/components/heroui/text";
 import Discover from "#/screens/tabs/discover/DiscoverHome";
 import { EventDetailScreen } from "#/screens/tabs/discover/Events/EventDetail";
 import { OrderScreen } from "#/screens/tabs/discover/Events/Order";
+import { EVENTS_PATHS } from "./events-paths";
 
 function DiscoverHeader() {
   return (
@@ -48,7 +49,7 @@ export default createNativeStackNavigator({
     Order: {
       screen: OrderScreen,
       linking: {
-        path: "events/order/:reference",
+        path: EVENTS_PATHS.order,
       },
       options: {
         headerShown: false,

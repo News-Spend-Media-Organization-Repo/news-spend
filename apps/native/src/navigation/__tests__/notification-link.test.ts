@@ -1,3 +1,4 @@
+import { EVENTS_PATHS, eventsOrderPath } from "../events-paths";
 import {
   linking,
   notificationDataPath,
@@ -252,13 +253,26 @@ describe("event order return link", () => {
           Discover: {
             path: "discover",
             screens: {
-              Order: { path: "events/order/:reference" },
+              Order: { path: EVENTS_PATHS.order },
             },
           },
         },
       },
     },
   } as never;
+
+  const orderRoute = (path: string) =>
+    (
+      linking.getStateFromPath?.(path, config) as unknown as {
+        routes: Array<{
+          state?: {
+            routes: Array<{
+              state?: { routes: Array<{ name: string; params?: unknown }> };
+            }>;
+          };
+        }>;
+      }
+    )?.routes[0]?.state?.routes[0]?.state?.routes[0];
 
   it("resolves under the Discover tab", () => {
     const state = linking.getStateFromPath?.("events/order/ref-123", config);
@@ -279,5 +293,20 @@ describe("event order return link", () => {
         },
       ],
     } as never);
+  });
+
+  it("resolves the registered return link to the order", () => {
+    const route = orderRoute(
+      `${EVENTS_PATHS.return}?purchase=${encodeURIComponent("ref/1?x")}`
+    );
+
+    expect(route).toMatchObject({
+      name: "Order",
+      params: { reference: "ref/1?x" },
+    });
+  });
+
+  it("builds the same order path the navigator declares", () => {
+    expect(eventsOrderPath("ref/1?x")).toBe("events/order/ref%2F1%3Fx");
   });
 });

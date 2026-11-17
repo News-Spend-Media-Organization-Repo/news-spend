@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useCallback, useMemo } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { Button } from "#/components/heroui/button";
 import { Text } from "#/components/heroui/text";
 import { useEvents } from "#/hooks/discover/useEvents";
 import { useRefreshByUser } from "#/hooks/useRefreshByUser";
@@ -20,6 +21,7 @@ export function EventsScreen() {
   const {
     data,
     isPending,
+    isError,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -56,11 +58,23 @@ export function EventsScreen() {
 
   const emptyList = useCallback(
     () => (
-      <View className="flex-1 items-center justify-center py-16">
-        <Text className="text-base">No events near you</Text>
+      <View className="flex-1 items-center justify-center gap-2 py-16">
+        <Text className="text-base">
+          {isError ? "We couldn't load events" : "No events near you"}
+        </Text>
+        {isError ? (
+          <>
+            <Text className="text-center text-sm text-subtle-text">
+              Check your connection and try again.
+            </Text>
+            <Button className="mt-2" onPress={() => refetch()}>
+              <Button.Label>Retry</Button.Label>
+            </Button>
+          </>
+        ) : null}
       </View>
     ),
-    []
+    [isError, refetch]
   );
 
   const footer = useCallback(

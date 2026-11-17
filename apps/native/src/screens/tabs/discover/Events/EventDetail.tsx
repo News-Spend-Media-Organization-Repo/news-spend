@@ -1,3 +1,4 @@
+import { isDefinedError, type ORPCError } from "@orpc/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns/format";
@@ -11,6 +12,7 @@ import { Image } from "#/components/heroui/image";
 import { Screen } from "#/components/heroui/screen";
 import { Text } from "#/components/heroui/text";
 import { orpc } from "#/lib/orpc";
+import { EVENTS_RETURN_URL } from "#/navigation/events-paths";
 import { authState } from "#/state/auth";
 import { toInstant } from "#/utils/toInstant";
 import { formatNaira } from "./EventRow";
@@ -25,9 +27,15 @@ import {
 const day = (value: string) => format(toInstant(value), "EEE d MMM");
 const time = (value: string) => format(toInstant(value), "h:mm a");
 
-/** Where Shows sends the browser back to after a successful checkout. */
-const orderUrl = (reference: string) =>
-  `https://link.newsspend.com/events/order/${reference}`;
+/**
+ * `isDefinedError` narrows a typed error; a caught value is `unknown`, which
+ * narrows to `never`. This keeps the code readable after the guard.
+ */
+function isDefinedOrpcError(
+  error: unknown
+): error is ORPCError<string, unknown> {
+  return isDefinedError(error);
+}
 
 type CheckoutArgs = {
   eventId: string;
@@ -35,6 +43,8 @@ type CheckoutArgs = {
   choice: TicketChoice | null;
   tier: TicketTier | undefined;
   soldOut: boolean;
+  /** Runs when Shows reports the selection went out of stock mid-checkout. */
+  onUnavailable: () => void;
 };
 
 /**
@@ -48,6 +58,7 @@ function useEventCheckout({
   choice,
   tier,
   soldOut,
+  onUnavailable,
 }: CheckoutArgs) {
   const navigation = useNavigation("EventDetail");
   // Sign-in lives in the root stack; this screen's own navigator only has the
@@ -83,22 +94,26 @@ function useEventCheckout({
         sessionRevision: session.revision,
         tickets: [{ type: choice.tierId, quantity: choice.quantity }],
       });
-      // The reference is a URL segment in the return link; encode it once and
-      // use the same value for the route param.
-      const reference = encodeURIComponent(checkout.reference);
-      const result = await WebBrowser.openAuthSessionAsync(
+      await WebBrowser.openAuthSessionAsync(
         checkout.checkoutUrl,
-        orderUrl(reference),
+        EVENTS_RETURN_URL,
         // Without this Expo treats the https callback as a custom scheme,
         // which can never match the link.newsspend.com universal link.
         { preferUniversalLinks: true }
       );
-      if (result.type === "success") {
-        navigation.navigate("Order", { reference });
+      // Shows returns to the static return link, so the session's own outcome
+      // says nothing about the order: the order screen reports what happened.
+      if (!checkout.reference) {
+        setNotice("Checkout closed. You can try again whenever you're ready.");
         return;
       }
-      setNotice("Checkout closed. You can try again whenever you're ready.");
-    } catch {
+      navigation.navigate("Order", { reference: checkout.reference });
+    } catch (error) {
+      if (isDefinedOrpcError(error) && error.code === "INSUFFICIENT_STOCK") {
+        setNotice("Those tickets are no longer available");
+        onUnavailable();
+        return;
+      }
       setNotice("We couldn't start checkout. Please try again.");
     }
   };
@@ -187,7 +202,14 @@ export function EventDetailScreen() {
       choice,
       tier: selectedTier,
       soldOut: inventory?.soldOut === true,
+      onUnavailable: () => {
+        setChoice(null);
+        inventoryQuery.refetch();
+      },
     });
+
+  const totalMinor =
+    choice && selectedTier ? choice.quantity * selectedTier.priceMinor : null;
 
   if (eventQuery.isPending) {
     return (
@@ -201,20 +223,33 @@ export function EventDetailScreen() {
   }
 
   if (!event) {
+    const notFound =
+      isDefinedError(eventQuery.error) && eventQuery.error.code === "NOT_FOUND";
+
     return (
       <Screen statusBarStyle="light">
         <ScreenHeader title="Event" />
         <View className="flex-1 items-center justify-center gap-2 px-6">
-          <Text className="font-semibold text-lg">Event not found</Text>
-          <Text className="text-center text-sm text-subtle-text">
-            This event may no longer be on sale.
+          <Text className="font-semibold text-lg">
+            {notFound ? "Event not found" : "We couldn't load this event"}
           </Text>
+          <Text className="text-center text-sm text-subtle-text">
+            {notFound
+              ? "This event may no longer be on sale."
+              : "Check your connection and try again."}
+          </Text>
+          {notFound ? null : (
+            <Button className="mt-2" onPress={() => eventQuery.refetch()}>
+              <Button.Label>Retry</Button.Label>
+            </Button>
+          )}
         </View>
       </Screen>
     );
   }
 
   const startsAt = toInstant(event.startsAt);
+  const dateValid = Number.isFinite(startsAt.getTime());
 
   return (
     <Screen statusBarStyle="light">
@@ -233,12 +268,16 @@ export function EventDetailScreen() {
           />
         ) : (
           <View className="w-full items-center justify-center bg-p-500 py-10">
-            <Text className="font-bold text-4xl text-white">
-              {format(startsAt, "d")}
-            </Text>
-            <Text className="text-base text-white uppercase">
-              {format(startsAt, "MMMM")}
-            </Text>
+            {dateValid ? (
+              <>
+                <Text className="font-bold text-4xl text-white">
+                  {format(startsAt, "d")}
+                </Text>
+                <Text className="text-base text-white uppercase">
+                  {format(startsAt, "MMMM")}
+                </Text>
+              </>
+            ) : null}
           </View>
         )}
 
@@ -250,7 +289,7 @@ export function EventDetailScreen() {
             </Text>
           ) : null}
           <Text className="text-sm">
-            {format(startsAt, "EEEE d MMMM · h:mm a")}
+            {dateValid ? format(startsAt, "EEEE d MMMM · h:mm a") : null}
           </Text>
           {event.description ? (
             <Text className="pt-2 text-sm">{event.description}</Text>
@@ -309,6 +348,14 @@ export function EventDetailScreen() {
         ) : null}
 
         <View className="gap-2 px-4 pt-6">
+          {totalMinor == null ? null : (
+            <View className="flex-row items-center justify-between">
+              <Text className="font-semibold text-base">Total</Text>
+              <Text className="font-semibold text-base">
+                {formatNaira(totalMinor)}
+              </Text>
+            </View>
+          )}
           {notice ? (
             <Text className="text-center text-sm text-subtle-text">
               {notice}

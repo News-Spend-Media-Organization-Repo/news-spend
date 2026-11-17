@@ -16,6 +16,7 @@ export function useEvents() {
   const options = orpc.events.list.infiniteOptions({
     input: (cursor: string | undefined) => ({
       limit: PAGE_SIZE,
+      onSale: true,
       cursor,
     }),
     initialPageParam: undefined as string | undefined,
@@ -27,7 +28,7 @@ export function useEvents() {
     queryFn: async ({ pageParam, signal }) => {
       let cursor = pageParam;
       let page = await client.events.list(
-        { limit: PAGE_SIZE, cursor },
+        { limit: PAGE_SIZE, onSale: true, cursor },
         { signal }
       );
       let fetches = 1;
@@ -39,7 +40,7 @@ export function useEvents() {
       ) {
         cursor = page.nextCursor;
         page = await client.events.list(
-          { limit: PAGE_SIZE, cursor },
+          { limit: PAGE_SIZE, onSale: true, cursor },
           { signal }
         );
         fetches += 1;

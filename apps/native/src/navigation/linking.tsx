@@ -14,6 +14,7 @@ import {
 import { trackNotificationOpen } from "#/lib/trackNotificationOpen";
 
 import { withArticleUnderComments } from "./article-under-comments";
+import { EVENTS_PATHS, eventsOrderPath } from "./events-paths";
 import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
 import { navigationRef } from "./navigationUtils";
 import { TAB_PATHS } from "./tab-paths";
@@ -22,11 +23,22 @@ const LEADING_SLASHES = /^\/+/;
 const EVENT_ORDER_PATH = /^\/?events\/order\//;
 
 /**
- * The order return link is minted as a public `/events/order/<reference>` URL,
- * but the screen lives in the Discover stack whose paths are nested under the
- * tab. Add the tab segment the router expects; every other path is untouched.
+ * The order screens live in the Discover stack whose paths are nested under
+ * the tab, but their public links carry no tab segment. Add the segment the
+ * router expects. The return link Shows calls (`events/return?purchase=<ref>`)
+ * becomes the order path, and `/events/order/<reference>` stays supported for
+ * the CMS redirect; every other path is untouched.
  */
 function withDiscoverTab(path: string) {
+  const [pathname = "", query = ""] = path.split("?");
+
+  if (pathname.replace(LEADING_SLASHES, "") === EVENTS_PATHS.return) {
+    const purchase = new URLSearchParams(query).get("purchase");
+    if (purchase) {
+      return `${TAB_PATHS.Discover}/${eventsOrderPath(purchase)}`;
+    }
+  }
+
   return EVENT_ORDER_PATH.test(path)
     ? `${TAB_PATHS.Discover}/${path.replace(LEADING_SLASHES, "")}`
     : path;

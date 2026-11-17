@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 
 import { useEvents } from "../useEvents";
 
@@ -71,10 +71,12 @@ describe("useEvents", () => {
 
     expect(mockOptions?.input(undefined)).toEqual({
       limit: 20,
+      onSale: true,
       cursor: undefined,
     });
     expect(mockList.mock.calls[0]?.[0]).toEqual({
       limit: 20,
+      onSale: true,
       cursor: undefined,
     });
   });
@@ -93,6 +95,26 @@ describe("useEvents", () => {
     expect(result.current.data?.pages.flatMap((page) => page.data)).toEqual([
       event,
     ]);
+  });
+
+  it("forwards the cursor to the second page", async () => {
+    mockList
+      .mockResolvedValueOnce({ data: [event], nextCursor: "cursor-1" })
+      .mockResolvedValueOnce({ data: [event], nextCursor: null });
+
+    const { result } = await renderHook(() => useEvents(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+
+    expect(mockList.mock.calls[1]?.[0]).toEqual({
+      limit: 20,
+      onSale: true,
+      cursor: "cursor-1",
+    });
   });
 
   it("stops after five fetches when the cursor keeps repeating", async () => {
