@@ -71,16 +71,35 @@ export const Users: CollectionConfig = {
       async ({ id, req }) => {
         const logger = req.payload.logger;
         const drizzle = req.payload.db.drizzle;
+        // The For You tables arrive with a later migration. On a schema that
+        // has not applied it yet, skip those four deletes rather than failing
+        // the whole user deletion.
+        const { rows } = await drizzle.execute(sql`
+          SELECT
+            to_regclass('public.opportunity_events') AS opportunity_events,
+            to_regclass('public.saved_opportunities') AS saved_opportunities,
+            to_regclass('public.opportunity_reports') AS opportunity_reports,
+            to_regclass('public.opportunity_profiles') AS opportunity_profiles
+        `);
+        const present = rows[0] ?? {};
         // Wipe every child collection that holds a NOT NULL FK to users before
         // the user row goes away. The companion migration
         // (20260621_130000_fix_user_news_cascade) flips these FKs to CASCADE,
         // so this hook is belt-and-braces; it makes the cleanup auditable
         // and covers hasMany junction tables.
         const statements: ReturnType<typeof sql>[] = [
-          sql`DELETE FROM opportunity_events WHERE user_id = ${id}`,
-          sql`DELETE FROM saved_opportunities WHERE user_id = ${id}`,
-          sql`DELETE FROM opportunity_reports WHERE user_id = ${id}`,
-          sql`DELETE FROM opportunity_profiles WHERE user_id = ${id}`,
+          ...(present.opportunity_events
+            ? [sql`DELETE FROM opportunity_events WHERE user_id = ${id}`]
+            : []),
+          ...(present.saved_opportunities
+            ? [sql`DELETE FROM saved_opportunities WHERE user_id = ${id}`]
+            : []),
+          ...(present.opportunity_reports
+            ? [sql`DELETE FROM opportunity_reports WHERE user_id = ${id}`]
+            : []),
+          ...(present.opportunity_profiles
+            ? [sql`DELETE FROM opportunity_profiles WHERE user_id = ${id}`]
+            : []),
           sql`DELETE FROM push_tokens WHERE user_id = ${id}`,
           sql`DELETE FROM activities WHERE user_id = ${id}`,
           sql`DELETE FROM comments WHERE user_id = ${id}`,
