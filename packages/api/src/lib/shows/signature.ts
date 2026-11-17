@@ -26,13 +26,24 @@ export function showsSignaturePayload(
 }
 
 /**
+ * The verdict on a webhook's signature.
+ *
+ * `stale` is separate from `bad` because the signature itself is genuine: a
+ * retry can succeed once the clock catches up or Shows resends, whereas a bad
+ * signature will never become valid.
+ */
+export type ShowsSignatureResult = "ok" | "bad" | "stale";
+
+/**
  * Whether a webhook request really came from Shows.
  *
  * The signature covers the raw bytes exactly as received, so the caller must
  * verify before parsing anything out of the body. Missing or malformed headers
- * are rejected outright; `expectedKeyId` is optional because v1 holds a single
- * signing key, and only proves which key signed when Shows issues more than
- * one.
+ * are `bad`; `expectedKeyId` is optional because v1 holds a single signing key,
+ * and only proves which key signed when Shows issues more than one.
+ *
+ * The timestamp window is checked after the HMAC so a forged request with an
+ * old timestamp is still `bad`; only a genuine signature can be `stale`.
  */
 export function verifyShowsSignature(
   rawBody: string,
@@ -40,40 +51,37 @@ export function verifyShowsSignature(
   secret: string,
   nowSeconds: number,
   expectedKeyId: string | null = null
-): boolean {
+): ShowsSignatureResult {
   if (!secret) {
-    return false;
+    return "bad";
   }
 
   const keyId = headers.get("shows-webhook-key-id")?.trim();
   if (!(keyId && KEY_ID_PATTERN.test(keyId))) {
-    return false;
+    return "bad";
   }
   if (expectedKeyId !== null && keyId !== expectedKeyId) {
-    return false;
+    return "bad";
   }
 
   const timestamp = headers.get("shows-webhook-timestamp")?.trim();
   if (!(timestamp && TIMESTAMP_PATTERN.test(timestamp))) {
-    return false;
+    return "bad";
   }
 
   const sent = Number(timestamp);
   if (!Number.isSafeInteger(sent)) {
-    return false;
-  }
-  if (Math.abs(nowSeconds - sent) > SHOWS_SIGNATURE_TOLERANCE_SECONDS) {
-    return false;
+    return "bad";
   }
 
   const signature = headers.get("shows-webhook-signature")?.trim();
   if (!signature?.startsWith(`${SIGNATURE_VERSION}=`)) {
-    return false;
+    return "bad";
   }
 
   const received = signature.slice(SIGNATURE_VERSION.length + 1);
   if (!HEX_PATTERN.test(received)) {
-    return false;
+    return "bad";
   }
 
   const expected = createHmac("sha256", secret)
@@ -82,8 +90,16 @@ export function verifyShowsSignature(
 
   // Both sides are 64 lowercase hex characters, so a length mismatch is
   // already impossible here; timingSafeEqual still needs them equal to throw.
-  return timingSafeEqual(
-    Buffer.from(expected, "utf-8"),
-    Buffer.from(received, "utf-8")
-  );
+  if (
+    !timingSafeEqual(
+      Buffer.from(expected, "utf-8"),
+      Buffer.from(received, "utf-8")
+    )
+  ) {
+    return "bad";
+  }
+
+  return Math.abs(nowSeconds - sent) > SHOWS_SIGNATURE_TOLERANCE_SECONDS
+    ? "stale"
+    : "ok";
 }

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createHmac } from "node:crypto";
 
 import { showsWebhookHandler } from "./webhook";
@@ -30,6 +30,7 @@ function envelope(overrides: Record<string, unknown> = {}) {
     project: "proj_test",
     occurred_at: "2026-11-17T12:00:00.000Z",
     aggregate: { type: "order", id: "ord_1", version: 2 },
+    data: { reference: "ref_1", amountMinor: 850_000 },
     ...overrides,
   };
 }
@@ -107,33 +108,87 @@ describe("showsWebhookHandler", () => {
   });
 
   it("refuses anything but POST", async () => {
-    const response = await showsWebhookHandler(request({ method: "GET" }));
+    let applied = 0;
+    const response = await showsWebhookHandler(
+      request({ method: "GET" }),
+      () => {
+        applied += 1;
+        return "ignored";
+      }
+    );
 
     expect(response.status).toBe(405);
+    expect(applied).toBe(0);
   });
 
-  it("rejects a forged signature with 401", async () => {
+  it("rejects a forged signature with 401 before applying anything", async () => {
+    let applied = 0;
     const response = await showsWebhookHandler(
-      request({ signature: `v1=${"a".repeat(64)}` })
+      request({ signature: `v1=${"a".repeat(64)}` }),
+      () => {
+        applied += 1;
+        return "ignored";
+      }
     );
 
     expect(response.status).toBe(401);
+    expect(applied).toBe(0);
   });
 
-  it("rejects a missing signature with 401", async () => {
-    const response = await showsWebhookHandler(request({ signature: null }));
+  it("rejects a missing signature with 401 before applying anything", async () => {
+    let applied = 0;
+    const response = await showsWebhookHandler(
+      request({ signature: null }),
+      () => {
+        applied += 1;
+        return "ignored";
+      }
+    );
 
     expect(response.status).toBe(401);
+    expect(applied).toBe(0);
   });
 
   it("answers 401 for a signed body with the wrong secret", async () => {
+    let applied = 0;
     const response = await showsWebhookHandler(
       request({
         signature: sign(JSON.stringify(envelope()), currentTimestamp(), "no"),
-      })
+      }),
+      () => {
+        applied += 1;
+        return "ignored";
+      }
     );
 
     expect(response.status).toBe(401);
+    expect(applied).toBe(0);
+  });
+
+  it("asks for a retry on a stale but genuine signature", async () => {
+    const timestamp = String(Math.floor(Date.now() / 1000) - 301);
+    let applied = 0;
+    const response = await showsWebhookHandler(request({ timestamp }), () => {
+      applied += 1;
+      return "ignored";
+    });
+
+    expect(response.status).toBe(503);
+    expect(applied).toBe(0);
+  });
+
+  it("rejects an oversized body with 413 before verifying", async () => {
+    const raw = JSON.stringify(
+      envelope({ data: { pad: "x".repeat(1024 * 1024) } })
+    );
+    let applied = 0;
+    const response = await showsWebhookHandler(request({ raw }), () => {
+      applied += 1;
+      return "ignored";
+    });
+
+    expect(response.status).toBe(413);
+    expect(applied).toBe(0);
   });
 
   it("acknowledges webhook.test without applying anything", async () => {
@@ -211,8 +266,15 @@ describe("showsWebhookHandler", () => {
     expect(response.status).toBe(200);
   });
 
+  it("asks for a retry when the effect cannot be applied yet", async () => {
+    const response = await showsWebhookHandler(request(), () => "failed");
+
+    expect(response.status).toBe(503);
+  });
+
   it("answers 500 when the effect fails", async () => {
-    const error = spyOn(console, "error");
+    const original = console.error;
+    console.error = () => undefined;
 
     try {
       const response = await showsWebhookHandler(request(), () => {
@@ -221,12 +283,16 @@ describe("showsWebhookHandler", () => {
 
       expect(response.status).toBe(500);
     } finally {
-      error.mockRestore();
+      console.error = original;
     }
   });
 
   it("logs only the event id and type", async () => {
-    const info = spyOn(console, "info");
+    const original = console.info;
+    const calls: unknown[][] = [];
+    console.info = (...args: unknown[]) => {
+      calls.push(args);
+    };
     const raw = JSON.stringify(envelope());
     const signature = sign(raw);
 
@@ -237,18 +303,16 @@ describe("showsWebhookHandler", () => {
       );
 
       expect(response.status).toBe(200);
-      const meta = info.mock.calls.at(-1)?.[1] as
-        | Record<string, unknown>
-        | undefined;
+      const meta = calls.at(-1)?.[1] as Record<string, unknown> | undefined;
       expect(Object.keys(meta ?? {}).sort()).toEqual(["id", "type"]);
       // The body and the signature must never reach a log line.
-      for (const call of info.mock.calls) {
+      for (const call of calls) {
         const serialized = JSON.stringify(call);
         expect(serialized).not.toContain(raw);
         expect(serialized).not.toContain(signature);
       }
     } finally {
-      info.mockRestore();
+      console.info = original;
     }
   });
 });

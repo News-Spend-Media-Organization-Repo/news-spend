@@ -70,7 +70,7 @@ function verify(
     now?: number;
   } = {},
   expectedKeyId: string | null = null
-): boolean {
+): "ok" | "bad" | "stale" {
   return verifyShowsSignature(
     input.rawBody ?? BODY,
     input.headers ?? headers(),
@@ -82,37 +82,49 @@ function verify(
 
 describe("verifyShowsSignature", () => {
   it("accepts the signature Shows would send", () => {
-    expect(verify()).toBe(true);
+    expect(verify()).toBe("ok");
   });
 
   it("accepts a timestamp exactly on the 300-second edge", () => {
     const timestamp = String(NOW - 300);
 
-    expect(verify({ headers: headers({ timestamp }) })).toBe(true);
+    expect(verify({ headers: headers({ timestamp }) })).toBe("ok");
   });
 
-  it("rejects a signature 301 seconds old", () => {
+  it("calls a signature 301 seconds old stale", () => {
     const timestamp = String(NOW - 301);
 
-    expect(verify({ headers: headers({ timestamp }) })).toBe(false);
+    expect(verify({ headers: headers({ timestamp }) })).toBe("stale");
   });
 
-  it("rejects a timestamp from 301 seconds in the future", () => {
+  it("calls a timestamp 301 seconds in the future stale", () => {
     const timestamp = String(NOW + 301);
 
-    expect(verify({ headers: headers({ timestamp }) })).toBe(false);
+    expect(verify({ headers: headers({ timestamp }) })).toBe("stale");
+  });
+
+  it("calls an old timestamp with a forged signature bad, not stale", () => {
+    // The window is checked after the HMAC, so an attacker cannot ask for a
+    // retry by sending an old timestamp with a signature they made up.
+    const timestamp = String(NOW - 301);
+
+    expect(
+      verify({
+        headers: headers({ timestamp, signature: `v1=${"a".repeat(64)}` }),
+      })
+    ).toBe("bad");
   });
 
   it("rejects a timestamp that is not a number", () => {
     const timestamp = "now";
 
-    expect(verify({ headers: headers({ timestamp }) })).toBe(false);
+    expect(verify({ headers: headers({ timestamp }) })).toBe("bad");
   });
 
   it("rejects a signature computed for another body", () => {
     expect(
       verify({ rawBody: TAMPERED, headers: headers({ signature: sign() }) })
-    ).toBe(false);
+    ).toBe("bad");
   });
 
   it("rejects a signature made with another secret", () => {
@@ -120,51 +132,51 @@ describe("verifyShowsSignature", () => {
       verify({
         headers: headers({ signature: sign({ secret: "whsec_other" }) }),
       })
-    ).toBe(false);
+    ).toBe("bad");
   });
 
   it("rejects a signature without the v1 prefix", () => {
     const signature = sign().slice("v1=".length);
 
-    expect(verify({ headers: headers({ signature }) })).toBe(false);
+    expect(verify({ headers: headers({ signature }) })).toBe("bad");
   });
 
   it("rejects uppercase hex", () => {
     const signature = `v1=${sign().slice("v1=".length).toUpperCase()}`;
 
-    expect(verify({ headers: headers({ signature }) })).toBe(false);
+    expect(verify({ headers: headers({ signature }) })).toBe("bad");
   });
 
   it("rejects a truncated signature", () => {
     expect(verify({ headers: headers({ signature: "v1=abc123" }) })).toBe(
-      false
+      "bad"
     );
   });
 
   it("rejects a missing signature", () => {
-    expect(verify({ headers: headers({ signature: null }) })).toBe(false);
+    expect(verify({ headers: headers({ signature: null }) })).toBe("bad");
   });
 
   it("rejects a missing timestamp", () => {
-    expect(verify({ headers: headers({ timestamp: null }) })).toBe(false);
+    expect(verify({ headers: headers({ timestamp: null }) })).toBe("bad");
   });
 
   it("rejects a missing key id", () => {
-    expect(verify({ headers: headers({ keyId: null }) })).toBe(false);
+    expect(verify({ headers: headers({ keyId: null }) })).toBe("bad");
   });
 
   it("rejects a malformed key id", () => {
     expect(verify({ headers: headers({ keyId: "key with spaces" }) })).toBe(
-      false
+      "bad"
     );
   });
 
   it("rejects a different key id when one is expected", () => {
-    expect(verify({}, "key_rotated")).toBe(false);
-    expect(verify({}, KEY_ID)).toBe(true);
+    expect(verify({}, "key_rotated")).toBe("bad");
+    expect(verify({}, KEY_ID)).toBe("ok");
   });
 
   it("rejects an empty secret", () => {
-    expect(verify({ secret: "" })).toBe(false);
+    expect(verify({ secret: "" })).toBe("bad");
   });
 });

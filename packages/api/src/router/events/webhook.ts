@@ -1,5 +1,8 @@
 import { verifyShowsSignature } from "../../lib/shows/signature";
 
+/** A webhook envelope is small; anything larger is not a Shows event. */
+const MAX_BODY_BYTES = 1024 * 1024;
+
 /**
  * The envelope Shows wraps every webhook event in.
  *
@@ -18,9 +21,16 @@ export type ShowsWebhookEnvelope = {
     id: string;
     version?: number;
   } | null;
+  /** Event-specific body: the amount, reference, refund totals, and so on. */
+  data: Record<string, unknown> | null;
 };
 
-export type ShowsApplyResult = "applied" | "ignored";
+/**
+ * `failed` means "signed and ours, but not applied yet" — an unknown reference,
+ * for example. The handler asks Shows to retry that one; it is never silently
+ * acknowledged.
+ */
+export type ShowsApplyResult = "applied" | "ignored" | "failed";
 
 export type ShowsApplyEvent = (
   event: ShowsWebhookEnvelope
@@ -29,7 +39,8 @@ export type ShowsApplyEvent = (
 /**
  * The seam Task 6 fills in: once the signature is verified and the envelope
  * parsed, every effect goes through here. It returns "ignored" today because
- * Task 6 owns order state and points; keep it the only place that writes.
+ * Task 6 owns order state and points; "failed" asks the handler to answer 503
+ * so Shows retries. Keep it the only place that writes.
  */
 export function applyEvent(_event: ShowsWebhookEnvelope): ShowsApplyResult {
   return "ignored";
@@ -46,8 +57,9 @@ export function applyEvent(_event: ShowsWebhookEnvelope): ShowsApplyResult {
  *
  * Status codes are a retry protocol: 2xx for anything already dealt with
  * (including a signed event we cannot act on), 401 only for a bad signature,
- * 405 for the wrong method, 503 when the secret is missing, and 5xx only for a
- * fault on our side.
+ * 405 for the wrong method, 413 for a body larger than a Shows event, and 503
+ * when the secret is missing, the signature is genuine but stale, or an effect
+ * cannot be applied yet. A 5xx is only for a fault on our side.
  */
 export async function showsWebhookHandler(
   req: Request,
@@ -64,15 +76,29 @@ export async function showsWebhookHandler(
     return json({ message: "Method not allowed" }, 405);
   }
 
+  const declared = req.headers.get("content-length");
+  if (declared !== null) {
+    const length = Number(declared);
+    if (!Number.isSafeInteger(length) || length > MAX_BODY_BYTES) {
+      return json({ message: "Body too large" }, 413);
+    }
+  }
+
   const rawBody = await req.text();
-  const valid = verifyShowsSignature(
+  // The header can be absent or wrong, so the bytes that actually arrived are
+  // the real limit. HMAC over an unbounded body would be free work for anyone.
+  if (Buffer.byteLength(rawBody, "utf-8") > MAX_BODY_BYTES) {
+    return json({ message: "Body too large" }, 413);
+  }
+
+  const verdict = verifyShowsSignature(
     rawBody,
     req.headers,
     secret,
     Math.floor(Date.now() / 1000)
   );
 
-  if (!valid) {
+  if (verdict === "bad") {
     // Never the body or the signature: this is unverified input. The flags are
     // enough to tell a Shows misconfiguration from a forged request.
     console.warn("[events] Shows webhook rejected", {
@@ -80,6 +106,16 @@ export async function showsWebhookHandler(
       hasTimestamp: req.headers.has("shows-webhook-timestamp"),
     });
     return json({ message: "Unauthorized" }, 401);
+  }
+
+  if (verdict === "stale") {
+    // The signature is genuine but outside the window. Shows retries anything
+    // that is not 2xx, so a 503 asks for a fresh delivery; a 401 would be
+    // treated as permanent.
+    console.warn("[events] Shows webhook rejected", {
+      reason: "timestamp outside the accepted window",
+    });
+    return json({ message: "Stale signature" }, 503);
   }
 
   const envelope = parseEnvelope(rawBody);
@@ -103,6 +139,13 @@ export async function showsWebhookHandler(
 
   try {
     const result = await apply(envelope);
+    if (result === "failed") {
+      console.warn("[events] Shows webhook deferred", {
+        id: envelope.id,
+        type: envelope.type,
+      });
+      return json({ message: "Could not process the webhook" }, 503);
+    }
     console.info("[events] Shows webhook", {
       id: envelope.id,
       type: envelope.type,
@@ -122,6 +165,12 @@ export async function showsWebhookHandler(
 
 function nonEmpty(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function parseData(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function parseAggregate(value: unknown): ShowsWebhookEnvelope["aggregate"] {
@@ -177,6 +226,7 @@ function parseEnvelope(rawBody: string): ShowsWebhookEnvelope | null {
     project: nonEmpty(record.project) ?? "",
     occurred_at: nonEmpty(record.occurred_at) ?? "",
     aggregate: parseAggregate(record.aggregate),
+    data: parseData(record.data),
   };
 }
 
