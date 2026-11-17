@@ -4,7 +4,7 @@ import {
   type LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { PartnerContent } from "@news-spend-media/payload/types";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { type QueryObserverResult, useQueries } from "@tanstack/react-query";
 import { Card } from "heroui-native/card";
 import { PressableFeedback } from "heroui-native/pressable-feedback";
@@ -33,6 +33,7 @@ import { navigationRef } from "#/navigation/navigationUtils";
 import { authState } from "#/state/auth";
 import { useTabBarHeight } from "#/state/route-state";
 import { getImageData } from "#/utils/getImageData";
+import { EventRow, type EventRowEvent } from "../../Events/EventRow";
 import { AppItem } from "./app-item";
 import { GameItem } from "./game-item";
 import {
@@ -53,10 +54,11 @@ type SurveyItem = {
 };
 
 type SectionItem =
-  | { type: "header"; title: string }
+  | { type: "header"; title: string; onPress?: () => void }
   | { type: "section-loading" }
   | { type: "section-error"; onRetry: () => void }
   | { type: "empty"; message: string }
+  | { type: "event"; data: EventRowEvent; onPress: () => void }
   | { type: "app"; data: PartnerContent; onPress: () => void; loading: boolean }
   | { type: "game"; data: GameItemData; onPress: () => void }
   | {
@@ -135,6 +137,11 @@ const combineAllTabResults = (results: QueryObserverResult[]) => ({
   surveysPending: results[2].isPending,
   surveysError: results[2].error,
 
+  eventsData:
+    (results[3]?.data as { data: EventRowEvent[] } | undefined)?.data ?? [],
+  eventsPending: results[3]?.isPending ?? false,
+  eventsError: results[3]?.error,
+
   isRefetching: results.some((r) => r.isRefetching),
   refetchAll: () => results.forEach((r) => r.refetch()),
 });
@@ -212,10 +219,21 @@ const handleStartSurvey = (surveyUrl?: string) => {
 
 // ─── Section Components ──────────────────────────────────────────────────────
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({
+  title,
+  onPress,
+}: {
+  title: string;
+  onPress?: () => void;
+}) {
   return (
-    <View className="bg-white px-3 py-2">
+    <View className="flex-row items-center justify-between bg-white px-3 py-2">
       <Text className="font-bold text-lg">{title}</Text>
+      {onPress ? (
+        <PressableFeedback hitSlop={8} onPress={onPress}>
+          <Text className="font-medium text-p-500 text-sm">See all</Text>
+        </PressableFeedback>
+      ) : null}
     </View>
   );
 }
@@ -355,6 +373,8 @@ const SurveysSection = ({ data }: { data: SurveyItem[] }) => (
 
 function renderSectionContent(item: SectionItem) {
   switch (item.type) {
+    case "event":
+      return <EventRow event={item.data} onPress={item.onPress} />;
     case "app":
       return (
         <AppItem
@@ -382,10 +402,11 @@ function renderSectionContent(item: SectionItem) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export const AllTab = () => {
+export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
   const { user } = useSnapshot(authState);
   const userId = user?.id ?? null;
   const isFocused = useIsFocused();
+  const navigation = useNavigation("DiscoverHome");
   const { handleClick, isLoading: isPartnerLoading } = usePartnerClick();
   const listRef = useRef<LegendListRef>(null);
   const tabBarHeight = useTabBarHeight();
@@ -400,6 +421,9 @@ export const AllTab = () => {
     surveysData,
     surveysPending,
     surveysError,
+    eventsData,
+    eventsPending,
+    eventsError,
     isRefetching,
     refetchAll,
   } = useQueries({
@@ -413,12 +437,43 @@ export const AllTab = () => {
         }),
         select: surveysSelect,
       },
+      orpc.events.list.queryOptions({ input: { limit: 3 } }),
     ],
     combine: combineAllTabResults,
   });
 
   const sections: SectionItem[] = useMemo(() => {
     const items: SectionItem[] = [];
+
+    if (eventsPending || eventsError || eventsData.length > 0) {
+      items.push({
+        type: "header",
+        title: "Events near you",
+        onPress: onSeeAllEvents,
+      });
+
+      if (eventsPending && eventsData.length === 0) {
+        items.push({ type: "section-loading" });
+      } else if (eventsError) {
+        items.push({ type: "section-error", onRetry: refetchAll });
+      } else {
+        items.push(
+          ...eventsData.slice(0, 3).map((event) => ({
+            type: "event" as const,
+            data: event,
+            onPress: () => {
+              trackDiscover({
+                event: "open",
+                itemType: "event",
+                itemId: event.id,
+                section: "all",
+              });
+              navigation.navigate("EventDetail", { id: event.id });
+            },
+          }))
+        );
+      }
+    }
 
     // Surveys count as an offer here, so the message only appears once every
     // one of the three has finished loading, cleanly, with nothing in it.
@@ -529,8 +584,13 @@ export const AllTab = () => {
     surveysData,
     surveysPending,
     surveysError,
+    eventsData,
+    eventsPending,
+    eventsError,
     handleClick,
     isPartnerLoading,
+    navigation,
+    onSeeAllEvents,
     refetchAll,
   ]);
 
@@ -546,7 +606,7 @@ export const AllTab = () => {
     ({ item }: LegendListRenderItemProps<SectionItem>) => {
       switch (item.type) {
         case "header":
-          return <SectionHeader title={item.title} />;
+          return <SectionHeader onPress={item.onPress} title={item.title} />;
         case "section-loading":
           return <LoadingSkeleton />;
         case "section-error":
@@ -566,6 +626,7 @@ export const AllTab = () => {
         return `header-${item.title}`;
       case "app":
       case "game":
+      case "event":
         return `${item.type}-${item.data.id}`;
       case "book":
       case "survey":

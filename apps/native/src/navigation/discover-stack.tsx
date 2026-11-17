@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorErrorBoundary";
 import { Text } from "#/components/heroui/text";
 import Discover from "#/screens/tabs/discover/DiscoverHome";
+import { EventDetailScreen } from "#/screens/tabs/discover/Events/EventDetail";
 
 function DiscoverHeader() {
   return (
@@ -32,6 +33,15 @@ export default createNativeStackNavigator({
         animation: "slide_from_right",
         headerShown: true,
         header: DiscoverHeader,
+      },
+    },
+    EventDetail: {
+      screen: EventDetailScreen,
+      linking: {
+        path: "events/:id",
+      },
+      options: {
+        headerShown: false,
       },
     },
   },

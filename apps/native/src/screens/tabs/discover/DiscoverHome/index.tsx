@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
+import type { CollapsingTabsRef } from "react-native-collapsible-tab";
 import { Tabs } from "react-native-collapsible-tab";
 import { PartnerAdDialog } from "#/components/discover/PartnerAdDialog";
 import { Button } from "#/components/heroui/button";
@@ -9,6 +10,7 @@ import { useConnectBrand } from "#/hooks/discover/useConnectBrand";
 import { useMarkInteractive } from "#/hooks/useMarkInteractive";
 import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { PlayCircleIcon, SketchLogoIcon } from "#/lib/icons";
+import { EventsScreen } from "#/screens/tabs/discover/Events";
 
 import { AllTab, AppTab, BooksTab, GamesTab, SurveyTab } from "./components";
 import { AnimatedTabBar } from "./components/animated-tab-bar";
@@ -53,6 +55,7 @@ function DiscoverHeader() {
 
 function DiscoverHome() {
   const [tabBarHeight, setTabBarHeight] = useState(0);
+  const tabsRef = useRef<CollapsingTabsRef>(null);
   const handleTabBarLayout = useCallback((height: number) => {
     setTabBarHeight(height);
   }, []);
@@ -85,6 +88,7 @@ function DiscoverHome() {
           initialTabName="all"
           lazy
           onTabChange={handleTabChange}
+          ref={tabsRef}
           renderHeader={DiscoverHeader}
           renderTabBar={(props) => (
             <AnimatedTabBar
@@ -98,7 +102,9 @@ function DiscoverHome() {
           revealHeaderOnScroll
         >
           <Tabs.Tab label="All" name="all">
-            <AllTab />
+            <AllTab
+              onSeeAllEvents={() => tabsRef.current?.jumpToTab("events")}
+            />
           </Tabs.Tab>
           <Tabs.Tab label="Apps" name="apps">
             <AppTab />
@@ -111,6 +117,9 @@ function DiscoverHome() {
           </Tabs.Tab>
           <Tabs.Tab label="Surveys" name="surveys">
             <SurveyTab />
+          </Tabs.Tab>
+          <Tabs.Tab label="Events" name="events">
+            <EventsScreen />
           </Tabs.Tab>
         </Tabs.Container>
       </TabBarHeightProvider>

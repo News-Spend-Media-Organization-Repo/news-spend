@@ -32,6 +32,7 @@ jest.mock("#/lib/orpc", () => {
     orpc: {
       partnerContent: { filtered: proc },
       survey: { cpx: { getSurveys: proc } },
+      events: { list: proc },
     },
   };
 });
@@ -51,7 +52,10 @@ jest.mock("#/lib/discoverAnalyticsClient", () => ({
 }));
 jest.mock("#/features/games/openGame", () => ({ openGame: jest.fn() }));
 jest.mock("#/navigation/navigationUtils", () => ({ navigationRef: {} }));
-jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
+jest.mock("@react-navigation/native", () => ({
+  useIsFocused: () => true,
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
 jest.mock("#/components/heroui/text", () => ({
   Text: require("react-native").Text,
 }));
