@@ -240,3 +240,44 @@ describe("notificationDataPath", () => {
     expect(notificationDataPath({ url: "" })).toBeUndefined();
   });
 });
+
+describe("event order return link", () => {
+  // The Discover stack's paths sit under the tab's own path, but the return
+  // URL Shows sends people to has no tab segment.
+  const config = {
+    initialRouteName: "Tab",
+    screens: {
+      Tab: {
+        screens: {
+          Discover: {
+            path: "discover",
+            screens: {
+              Order: { path: "events/order/:reference" },
+            },
+          },
+        },
+      },
+    },
+  } as never;
+
+  it("resolves under the Discover tab", () => {
+    const state = linking.getStateFromPath?.("events/order/ref-123", config);
+
+    expect(JSON.stringify(state)).toContain('"name":"Order"');
+    expect(state).toMatchObject({
+      routes: [
+        {
+          state: {
+            routes: [
+              {
+                state: {
+                  routes: [{ name: "Order", params: { reference: "ref-123" } }],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    } as never);
+  });
+});

@@ -18,6 +18,18 @@ import { normalizeLegacyTabPrefix } from "./legacy-tab-prefix";
 import { navigationRef } from "./navigationUtils";
 
 const LEADING_SLASHES = /^\/+/;
+const EVENT_ORDER_PATH = /^\/?events\/order\//;
+
+/**
+ * The order return link is minted as a public `/events/order/<reference>` URL,
+ * but the screen lives in the Discover stack whose paths are nested under the
+ * tab. Add the tab segment the router expects; every other path is untouched.
+ */
+function withDiscoverTab(path: string) {
+  return EVENT_ORDER_PATH.test(path)
+    ? `discover/${path.replace(LEADING_SLASHES, "")}`
+    : path;
+}
 
 const prefixes = [
   DETOUR_LINKING_PREFIX,
@@ -145,7 +157,9 @@ export const linking: Omit<LinkingOptions<RootParamList>, "config"> & {
     initialRouteName: "Tab",
   },
   getStateFromPath(path, options) {
-    return withArticleUnderComments(defaultGetStateFromPath(path, options));
+    return withArticleUnderComments(
+      defaultGetStateFromPath(withDiscoverTab(path), options)
+    );
   },
   async getInitialURL() {
     // Every branch below normalizes the URL the same way `subscribe` does.

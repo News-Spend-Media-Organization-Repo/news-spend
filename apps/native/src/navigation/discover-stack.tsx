@@ -5,6 +5,7 @@ import { NavigatorErrorBoundary } from "#/components/ErrorBoundaries/NavigatorEr
 import { Text } from "#/components/heroui/text";
 import Discover from "#/screens/tabs/discover/DiscoverHome";
 import { EventDetailScreen } from "#/screens/tabs/discover/Events/EventDetail";
+import { OrderScreen } from "#/screens/tabs/discover/Events/Order";
 
 function DiscoverHeader() {
   return (
@@ -39,6 +40,15 @@ export default createNativeStackNavigator({
       screen: EventDetailScreen,
       linking: {
         path: "events/:id",
+      },
+      options: {
+        headerShown: false,
+      },
+    },
+    Order: {
+      screen: OrderScreen,
+      linking: {
+        path: "events/order/:reference",
       },
       options: {
         headerShown: false,
