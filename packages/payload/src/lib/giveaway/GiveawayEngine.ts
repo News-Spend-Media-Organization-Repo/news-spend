@@ -13,7 +13,7 @@ import {
   TIER_PROCESSING_ORDER,
 } from "../../collections/giveaway/constants";
 import type { Giveaway } from "../../payload-types";
-import { claimDeadlineFor } from "./claim";
+import { claimDeadlineFor, isSuperseded, latestGiveawayStart } from "./claim";
 import { loadDrawHistories } from "./drawHistory";
 import {
   evaluateEligibility,
@@ -189,6 +189,20 @@ export type RunDrawOptions = {
    * pool and press the button again.
    */
   recordValidationFailure?: boolean;
+};
+
+export type ManualWinnerInput = {
+  userKey: string;
+  /** A `giveaway-prizes` row id, not a catalogue prize id. */
+  prizeRowId: string;
+  addedBy: string;
+  reason?: string;
+};
+
+export type ManualWinnerResult = {
+  winnerId: string;
+  phase: "pre_draw" | "post_draw";
+  unitsRemaining: number;
 };
 
 /**
@@ -1634,6 +1648,167 @@ export class GiveawayEngine {
   }
 
   /**
+   * Seat a chosen participant as a winner of a prize from this giveaway's own
+   * pool, before the draw (`active`) or after it (`completed`).
+   *
+   * The write goes through `persistWinner`, so a manual seat is a normal
+   * winner row with the same claim window, fulfilment path and audit entries
+   * as a drawn one, plus a `manual_winner_added` entry naming who chose them.
+   * Tier thresholds, winner percentages, fairness cooldowns and the budget
+   * cap are deliberately bypassed — that is the point of a manual pick — but
+   * stock, ticket validity, account exclusions and the one-win-per-person
+   * rule are not.
+   */
+  async addManualWinner(
+    giveawayId: string,
+    input: ManualWinnerInput
+  ): Promise<ManualWinnerResult> {
+    const { userKey, prizeRowId, addedBy, reason } = input;
+
+    const giveaway = await this.payload.findByID({
+      collection: "giveaways",
+      id: giveawayId,
+      depth: 0,
+    });
+    if (!giveaway) {
+      throw new GiveawayEngineError(
+        "Giveaway not found.",
+        "MANUAL_WINNER_GIVEAWAY_NOT_FOUND"
+      );
+    }
+
+    const status = giveaway.status as GiveawayStatus;
+    if (status !== "active" && status !== "completed") {
+      throw new GiveawayEngineError(
+        `Manual winners can only be added before the draw or after it completes; this giveaway is "${status}".`,
+        "MANUAL_WINNER_BAD_STATUS"
+      );
+    }
+    const phase: ManualWinnerResult["phase"] =
+      status === "active" ? "pre_draw" : "post_draw";
+
+    // A post-draw seat on a superseded giveaway would hand someone a prize
+    // the claim sweep expires on its next pass: the window closed when the
+    // successor started.
+    if (
+      phase === "post_draw" &&
+      isSuperseded(giveaway.startDate, await latestGiveawayStart(this.payload))
+    ) {
+      throw new GiveawayEngineError(
+        "The claim window has closed: a later giveaway has already started, so a winner added now could not claim their prize.",
+        "MANUAL_WINNER_SUPERSEDED"
+      );
+    }
+
+    const pool = await this.loadPrizePool(giveawayId);
+    const prize = pool.find((row) => row.rowId === prizeRowId);
+    if (!prize) {
+      throw new GiveawayEngineError(
+        "That prize is not in this giveaway's prize pool.",
+        "MANUAL_WINNER_PRIZE_NOT_IN_POOL"
+      );
+    }
+    if (prize.unitsAwarded >= prize.maxUnits) {
+      throw new GiveawayEngineError(
+        `"${prize.prizeName}" has no units left to award.`,
+        "MANUAL_WINNER_PRIZE_EXHAUSTED"
+      );
+    }
+
+    const { participation } = await this.loadParticipation(giveawayId);
+    const entry = participation.get(userKey);
+    if (!entry) {
+      throw new GiveawayEngineError(
+        "This person holds no valid ticket in this giveaway.",
+        "MANUAL_WINNER_NO_TICKET"
+      );
+    }
+
+    const flags = await this.loadAccountFlags();
+    if (flags.excluded.has(userKey)) {
+      throw new GiveawayEngineError(
+        `This account is excluded from winning: ${flags.reasons.get(userKey) ?? "flagged"}.`,
+        "MANUAL_WINNER_ACCOUNT_EXCLUDED"
+      );
+    }
+
+    const existing = await this.payload.find({
+      collection: "giveaway-winners",
+      where: {
+        and: [
+          { giveaway: { equals: giveawayId } },
+          { user: { equals: userKey } },
+        ],
+      },
+      limit: 1,
+      pagination: false,
+      depth: 0,
+    });
+    if (existing.docs.length > 0) {
+      throw new GiveawayEngineError(
+        "This person is already a winner of this giveaway.",
+        "MANUAL_WINNER_ALREADY_WINNER"
+      );
+    }
+
+    // The winning ticket is their earliest valid purchase, the same record
+    // the draw would have weighted.
+    const tickets = await this.payload.find({
+      collection: "giveaway-tickets",
+      where: {
+        and: [
+          { giveaway: { equals: giveawayId } },
+          { user: { equals: userKey } },
+          { status: { equals: "valid" } },
+        ],
+      },
+      sort: "purchasedAt",
+      limit: 1,
+      depth: 0,
+    });
+    const ticket = tickets.docs[0];
+    if (!ticket) {
+      throw new GiveawayEngineError(
+        "This person holds no valid ticket in this giveaway.",
+        "MANUAL_WINNER_NO_TICKET"
+      );
+    }
+    const ticketId = String(ticket.id);
+
+    prize.unitsAwarded += 1;
+    const winnerId = await this.persistWinner({
+      giveawayId,
+      tier: prize.tier,
+      entry: { ticketId, userKey, quantity: ticket.quantity ?? 1 },
+      prize,
+      participation: entry,
+      heldForReview: flags.heldForReview.has(userKey),
+    });
+
+    await this.audit(
+      giveawayId,
+      "manual_winner_added",
+      `Manual winner added by ${addedBy}`,
+      {
+        tier: prize.tier,
+        prizeId: prize.prizeId,
+        ticketId,
+        addedBy,
+        reason: reason ?? null,
+        phase,
+      },
+      prize.tier,
+      userKey
+    );
+
+    return {
+      winnerId,
+      phase,
+      unitsRemaining: prize.maxUnits - prize.unitsAwarded,
+    };
+  }
+
+  /**
    * Disqualify a winner and draw their replacement from the locked pool
    * (spec 12).
    *
@@ -1873,8 +2048,8 @@ export class GiveawayEngine {
     prize: PoolPrize;
     participation: Participation | undefined;
     heldForReview: boolean;
-  }) {
-    await this.payload.create({
+  }): Promise<string> {
+    const created = await this.payload.create({
       collection: "giveaway-winners",
       data: {
         giveaway: giveawayId,
@@ -1940,6 +2115,8 @@ export class GiveawayEngine {
         tier
       );
     }
+
+    return String(created.id);
   }
 
   /**

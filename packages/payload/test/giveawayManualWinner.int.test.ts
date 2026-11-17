@@ -197,6 +197,37 @@ async function winnerRows(giveawayId: string) {
   return winners.docs;
 }
 
+async function auditRows(giveawayId: string, eventType?: string) {
+  const rows = await payload.find({
+    collection: "giveaway-audit-log",
+    where: {
+      and: [
+        { giveaway: { equals: giveawayId } },
+        ...(eventType ? [{ eventType: { equals: eventType } }] : []),
+      ],
+    },
+    pagination: false,
+    depth: 0,
+  });
+  return rows.docs;
+}
+
+async function ticketIdFor(giveawayId: string, userId: string) {
+  const tickets = await payload.find({
+    collection: "giveaway-tickets",
+    where: {
+      and: [{ giveaway: { equals: giveawayId } }, { user: { equals: userId } }],
+    },
+    limit: 1,
+    depth: 0,
+  });
+  const ticket = tickets.docs[0];
+  if (!ticket) {
+    throw new Error(`No ticket for ${userId}`);
+  }
+  return String(ticket.id);
+}
+
 describe("draw with a pre-seated winner", () => {
   test("a seated winner is not drawn again", async () => {
     const setup = await createDrawableGiveaway({
@@ -258,5 +289,373 @@ describe("draw with a pre-seated winner", () => {
         expect(winner.userKey).not.toBe(seated);
       }
     }
+  }, 120_000);
+});
+
+describe("addManualWinner", () => {
+  const addedBy = "ops@example.invalid";
+
+  test("pre-draw seat", async () => {
+    const setup = await createDrawableGiveaway({
+      participants: 3,
+      maxUnits: 3,
+      endDate: new Date(Date.now() + DAY).toISOString(),
+    });
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+
+    const result = await engine().addManualWinner(setup.giveawayId, {
+      userKey: seated,
+      prizeRowId: setup.prizeRowId,
+      addedBy,
+    });
+
+    expect(result.phase).toBe("pre_draw");
+    expect(result.unitsRemaining).toBe(2);
+
+    const rows = await winnerRows(setup.giveawayId);
+    expect(rows).toHaveLength(1);
+    const row = rows[0];
+    expect(row?.tier).toBe("tier3");
+    expect(String(row?.prize)).toBe(setup.prizeId);
+    expect(row?.claimStatus).toBe("unclaimed");
+    expect(row?.fulfilmentStatus).toBe("pending");
+    expect(String(row?.winningTicket)).toBe(
+      await ticketIdFor(setup.giveawayId, seated)
+    );
+
+    const giveaway = await payload.findByID({
+      collection: "giveaways",
+      id: setup.giveawayId,
+      depth: 0,
+    });
+    expect(giveaway.status).toBe("active");
+
+    const manual = await auditRows(setup.giveawayId, "manual_winner_added");
+    expect(manual).toHaveLength(1);
+    expect(manual[0]?.detail).toMatchObject({
+      tier: "tier3",
+      phase: "pre_draw",
+      addedBy,
+    });
+    const selected = await auditRows(setup.giveawayId, "winner_selected");
+    expect(selected.some((entry) => String(entry.user) === seated)).toBe(true);
+
+    // The sweep still draws the giveaway afterwards, and the seat stands.
+    await payload.update({
+      collection: "giveaways",
+      id: setup.giveawayId,
+      data: { endDate: new Date(Date.now() - HOUR).toISOString() },
+    });
+    await engine().runDraw(setup.giveawayId);
+
+    const after = await winnerRows(setup.giveawayId);
+    expect(after.filter((r) => String(r.user) === seated)).toHaveLength(1);
+    const prizeRow = await payload.findByID({
+      collection: "giveaway-prizes",
+      id: setup.prizeRowId,
+      depth: 0,
+    });
+    expect(prizeRow.unitsAwarded).toBe(3);
+  }, 120_000);
+
+  test("post-draw top-up", async () => {
+    const setup = await createDrawableGiveaway({
+      participants: 2,
+      maxUnits: 2,
+    });
+    // Half the participants may win, so the draw awards only one of the two.
+    await payload.update({
+      collection: "giveaways",
+      id: setup.giveawayId,
+      data: { tier3WinnerPercentage: 50 },
+    });
+    await engine().runDraw(setup.giveawayId);
+
+    const drawn = await winnerRows(setup.giveawayId);
+    expect(drawn).toHaveLength(1);
+    const winnerKey = String(drawn[0]?.user);
+    const nonWinner = setup.userIds.find((id) => id !== winnerKey);
+    if (!nonWinner) {
+      throw new Error("no non-winner");
+    }
+
+    const result = await engine().addManualWinner(setup.giveawayId, {
+      userKey: nonWinner,
+      prizeRowId: setup.prizeRowId,
+      addedBy,
+    });
+
+    expect(result.phase).toBe("post_draw");
+    const giveaway = await payload.findByID({
+      collection: "giveaways",
+      id: setup.giveawayId,
+      depth: 0,
+    });
+    expect(giveaway.status).toBe("completed");
+
+    const prizeRow = await payload.findByID({
+      collection: "giveaway-prizes",
+      id: setup.prizeRowId,
+      depth: 0,
+    });
+    expect(prizeRow.unitsAwarded).toBe(2);
+
+    expect(await auditRows(setup.giveawayId, "prize_exhausted")).toHaveLength(
+      1
+    );
+    expect(
+      await auditRows(setup.giveawayId, "manual_winner_added")
+    ).toHaveLength(1);
+    const selected = await auditRows(setup.giveawayId, "winner_selected");
+    expect(selected.some((entry) => String(entry.user) === nonWinner)).toBe(
+      true
+    );
+    const allocated = await auditRows(setup.giveawayId, "prize_allocated");
+    expect(allocated.some((entry) => String(entry.user) === nonWinner)).toBe(
+      true
+    );
+  }, 120_000);
+
+  test("refuses a further seat once the unit cap is hit", async () => {
+    const setup = await createDrawableGiveaway({
+      participants: 2,
+      maxUnits: 1,
+    });
+    const [first, second] = setup.userIds;
+    if (!(first && second)) {
+      throw new Error("need two participants");
+    }
+    await engine().addManualWinner(setup.giveawayId, {
+      userKey: first,
+      prizeRowId: setup.prizeRowId,
+      addedBy,
+    });
+
+    await expect(
+      engine().addManualWinner(setup.giveawayId, {
+        userKey: second,
+        prizeRowId: setup.prizeRowId,
+        addedBy,
+      })
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_PRIZE_EXHAUSTED" });
+
+    const prizeRow = await payload.findByID({
+      collection: "giveaway-prizes",
+      id: setup.prizeRowId,
+      depth: 0,
+    });
+    expect(prizeRow.unitsAwarded).toBe(1);
+  }, 120_000);
+
+  test("refuses someone with no valid ticket", async () => {
+    const setup = await createDrawableGiveaway();
+    const outsider = await createUser();
+
+    await expect(
+      engine().addManualWinner(setup.giveawayId, {
+        userKey: outsider,
+        prizeRowId: setup.prizeRowId,
+        addedBy,
+      })
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_NO_TICKET" });
+  }, 120_000);
+
+  test("refuses someone whose only ticket was refunded", async () => {
+    const setup = await createDrawableGiveaway();
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+    const ticketId = await ticketIdFor(setup.giveawayId, seated);
+    await payload.update({
+      collection: "giveaway-tickets",
+      id: ticketId,
+      data: { status: "refunded" },
+    });
+
+    await expect(
+      engine().addManualWinner(setup.giveawayId, {
+        userKey: seated,
+        prizeRowId: setup.prizeRowId,
+        addedBy,
+      })
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_NO_TICKET" });
+  }, 120_000);
+
+  test("refuses a second seat for the same person", async () => {
+    const setup = await createDrawableGiveaway({ maxUnits: 2 });
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+    const input = {
+      userKey: seated,
+      prizeRowId: setup.prizeRowId,
+      addedBy,
+    };
+    await engine().addManualWinner(setup.giveawayId, input);
+
+    await expect(
+      engine().addManualWinner(setup.giveawayId, input)
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_ALREADY_WINNER" });
+
+    const prizeRow = await payload.findByID({
+      collection: "giveaway-prizes",
+      id: setup.prizeRowId,
+      depth: 0,
+    });
+    expect(prizeRow.unitsAwarded).toBe(1);
+  }, 120_000);
+
+  test("refuses a disqualified winner", async () => {
+    const setup = await createDrawableGiveaway({ maxUnits: 2 });
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+    const { winnerId } = await engine().addManualWinner(setup.giveawayId, {
+      userKey: seated,
+      prizeRowId: setup.prizeRowId,
+      addedBy,
+    });
+    await payload.update({
+      collection: "giveaway-winners",
+      id: winnerId,
+      data: { claimStatus: "disqualified" },
+    });
+
+    await expect(
+      engine().addManualWinner(setup.giveawayId, {
+        userKey: seated,
+        prizeRowId: setup.prizeRowId,
+        addedBy,
+      })
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_ALREADY_WINNER" });
+  }, 120_000);
+
+  test("refuses a prize row from another giveaway", async () => {
+    const other = await createDrawableGiveaway({ status: "draft" });
+    const setup = await createDrawableGiveaway();
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+
+    await expect(
+      engine().addManualWinner(setup.giveawayId, {
+        userKey: seated,
+        prizeRowId: other.prizeRowId,
+        addedBy,
+      })
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_PRIZE_NOT_IN_POOL" });
+  }, 120_000);
+
+  test("refuses cancelled, interrupted and draw_in_progress giveaways", async () => {
+    for (const status of [
+      "cancelled",
+      "interrupted",
+      "draw_in_progress",
+    ] as const) {
+      const setup = await createDrawableGiveaway();
+      const seated = setup.userIds[0];
+      if (!seated) {
+        throw new Error("no participant");
+      }
+      await payload.update({
+        collection: "giveaways",
+        id: setup.giveawayId,
+        data: { status },
+      });
+
+      await expect(
+        engine().addManualWinner(setup.giveawayId, {
+          userKey: seated,
+          prizeRowId: setup.prizeRowId,
+          addedBy,
+        })
+      ).rejects.toMatchObject({
+        code: "MANUAL_WINNER_BAD_STATUS",
+        message: expect.stringContaining(status),
+      });
+      expect(await winnerRows(setup.giveawayId)).toHaveLength(0);
+    }
+  }, 120_000);
+
+  test("refuses an excluded account", async () => {
+    const setup = await createDrawableGiveaway();
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+    await payload.create({
+      collection: "giveaway-account-flags",
+      data: { user: seated, duplicateAccountGroup: "g1" },
+    });
+
+    await expect(
+      engine().addManualWinner(setup.giveawayId, {
+        userKey: seated,
+        prizeRowId: setup.prizeRowId,
+        addedBy,
+      })
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_ACCOUNT_EXCLUDED" });
+  }, 120_000);
+
+  test("holds a flagged account for review", async () => {
+    const setup = await createDrawableGiveaway();
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+    await payload.create({
+      collection: "giveaway-account-flags",
+      data: { user: seated, trustStatus: "suspicious" },
+    });
+
+    const { winnerId } = await engine().addManualWinner(setup.giveawayId, {
+      userKey: seated,
+      prizeRowId: setup.prizeRowId,
+      addedBy,
+      reason: "Goodwill award",
+    });
+
+    const row = await payload.findByID({
+      collection: "giveaway-winners",
+      id: winnerId,
+      depth: 0,
+    });
+    expect(row.fulfilmentStatus).toBe("on_hold");
+    expect(row.reviewNote).toBeTruthy();
+  }, 120_000);
+
+  test("refuses a post-draw seat once a later giveaway has started", async () => {
+    const setup = await createDrawableGiveaway({ maxUnits: 2 });
+    await engine().runDraw(setup.giveawayId);
+
+    const successor = await createDrawableGiveaway();
+    await payload.update({
+      collection: "giveaways",
+      id: successor.giveawayId,
+      data: {
+        startDate: new Date(Date.now() - HOUR).toISOString(),
+        endDate: new Date(Date.now() + DAY).toISOString(),
+      },
+    });
+
+    const seated = setup.userIds[0];
+    if (!seated) {
+      throw new Error("no participant");
+    }
+    await expect(
+      engine().addManualWinner(setup.giveawayId, {
+        userKey: seated,
+        prizeRowId: setup.prizeRowId,
+        addedBy,
+      })
+    ).rejects.toMatchObject({ code: "MANUAL_WINNER_SUPERSEDED" });
+    expect(await winnerRows(setup.giveawayId)).toHaveLength(1);
   }, 120_000);
 });
