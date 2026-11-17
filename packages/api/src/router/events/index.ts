@@ -25,6 +25,7 @@ import type {
   ShowsList,
   ShowsSession,
 } from "../../lib/shows/types";
+import { pointsFor } from "../../lib/ticketOrders";
 
 /** v1 sells naira-only, and the list rarely changes enough to need fresher. */
 const LIST_TTL_MS = 5 * 60 * 1000;
@@ -140,6 +141,8 @@ function isNaira(currency: string | null | undefined): boolean {
 }
 
 function mapEvent(event: ShowsEvent) {
+  const free = event.free ?? false;
+
   return {
     id: event.id,
     title: event.title,
@@ -152,8 +155,9 @@ function mapEvent(event: ShowsEvent) {
     endsAt: event.endsAt ?? null,
     currency: CURRENCY,
     fromPriceMinor: event.fromPriceMinor ?? null,
-    free: event.free ?? false,
+    free,
     onSale: event.onSale ?? false,
+    pointsFrom: free ? 0 : pointsFor(event.fromPriceMinor ?? 0),
   };
 }
 

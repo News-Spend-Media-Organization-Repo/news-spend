@@ -158,10 +158,29 @@ describe("eventsRouter.list", () => {
           fromPriceMinor: 500_000,
           free: false,
           onSale: true,
+          pointsFrom: 150,
         },
       ],
       nextCursor: "next-page",
     });
+  });
+
+  it("estimates points from the from-price, and none when free or unpriced", async () => {
+    const { ctx } = setup([
+      {
+        body: {
+          data: [
+            event({ id: "priced", fromPriceMinor: 850_000 }),
+            event({ id: "free", free: true, fromPriceMinor: 500_000 }),
+            event({ id: "unpriced", fromPriceMinor: null }),
+          ],
+        },
+      },
+    ]);
+
+    const result = await call(eventsRouter.list, {}, { context: ctx });
+
+    expect(result.data.map((item) => item.pointsFrom)).toEqual([250, 0, 0]);
   });
 
   it("asks Shows for naira prices", async () => {
