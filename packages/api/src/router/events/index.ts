@@ -103,6 +103,7 @@ const getInput = z.object({ id: eventId });
 const inventoryInput = z.object({
   eventId,
   sessionId: eventId.optional(),
+  revision: z.string().trim().min(1).max(200).optional(),
 });
 
 const checkoutInput = z.object({
@@ -606,7 +607,8 @@ const inventory = publicProcedure
           `events:inventory:${JSON.stringify(input)}`,
           INVENTORY_TTL_MS,
           Date.now,
-          () => getInventory(config, input.eventId, input.sessionId)
+          () =>
+            getInventory(config, input.eventId, input.sessionId, input.revision)
         ),
       errors
     );

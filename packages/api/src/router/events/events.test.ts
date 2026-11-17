@@ -331,6 +331,18 @@ describe("eventsRouter.inventory", () => {
 
     expect(calls).toHaveLength(2);
   });
+
+  it("forwards the session revision to Shows", async () => {
+    const { ctx, calls } = setup([{ body: inventory() }]);
+
+    await call(
+      eventsRouter.inventory,
+      { eventId: "evt-1", sessionId: "sess-1", revision: "rev-7" },
+      { context: ctx }
+    );
+
+    expect(calls[0]).toContain("revision=rev-7");
+  });
 });
 
 describe("Shows error mapping", () => {

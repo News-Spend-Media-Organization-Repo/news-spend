@@ -22,10 +22,17 @@ export function EventDetailScreen() {
   const eventQuery = useQuery(orpc.events.get.queryOptions({ input: { id } }));
   const event = eventQuery.data;
   const selectedSessionId = sessionId ?? event?.sessions[0]?.id ?? null;
+  const selectedSession = event?.sessions.find(
+    (candidate) => candidate.id === selectedSessionId
+  );
 
   const inventoryQuery = useQuery({
     ...orpc.events.inventory.queryOptions({
-      input: { eventId: id, sessionId: selectedSessionId ?? undefined },
+      input: {
+        eventId: id,
+        sessionId: selectedSessionId ?? undefined,
+        revision: selectedSession?.revision ?? undefined,
+      },
     }),
     enabled: event !== undefined,
   });

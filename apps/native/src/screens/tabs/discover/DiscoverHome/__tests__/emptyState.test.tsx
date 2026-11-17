@@ -122,6 +122,23 @@ const offer = (id: string) => ({
   points: 100,
 });
 
+const eventItem = (n: number) => ({
+  id: `event-${n}`,
+  title: `Event ${n}`,
+  venue: "Eko Centre",
+  startsAt: "2026-12-01T19:00:00.000Z",
+  currency: "NGN",
+  fromPriceMinor: 500_000,
+  free: false,
+  onSale: true,
+  pointsFrom: 150,
+});
+
+const eventsPage = (count: number) =>
+  settled({
+    data: Array.from({ length: count }, (_, index) => eventItem(index + 1)),
+  });
+
 describe("Discover all tab empty state", () => {
   it("shows one message and hides the offer sections when nothing is left", async () => {
     mockResults = [settled({ docs: [] }), settled({ docs: [] }), settled([])];
@@ -181,5 +198,37 @@ describe("Discover all tab empty state", () => {
     await render(<AllTab />);
 
     expect(screen.queryByText(ALL_OFFERS_DONE_MESSAGE)).toBeNull();
+  });
+});
+
+describe("Discover all tab events section", () => {
+  it("shows three of five events plus See all", async () => {
+    mockResults = [
+      settled({ docs: [] }),
+      settled({ docs: [] }),
+      settled([]),
+      eventsPage(5),
+    ];
+    await render(<AllTab onSeeAllEvents={jest.fn()} />);
+
+    expect(screen.getByText("Events near you")).toBeTruthy();
+    expect(screen.getByText("See all")).toBeTruthy();
+    expect(screen.getByText("Event 1")).toBeTruthy();
+    expect(screen.getByText("Event 2")).toBeTruthy();
+    expect(screen.getByText("Event 3")).toBeTruthy();
+    expect(screen.queryByText("Event 4")).toBeNull();
+  });
+
+  it("hides the section when there are no events", async () => {
+    mockResults = [
+      settled({ docs: [] }),
+      settled({ docs: [] }),
+      settled([]),
+      eventsPage(0),
+    ];
+    await render(<AllTab />);
+
+    expect(screen.queryByText("Events near you")).toBeNull();
+    expect(screen.queryByText("See all")).toBeNull();
   });
 });

@@ -2,6 +2,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { client, orpc } from "#/lib/orpc";
 
 const PAGE_SIZE = 20;
+/** One call may pass a few filtered pages, but never more than this. */
+const MAX_PAGE_FETCHES = 5;
 
 /**
  * Events, refreshing a page at a time.
@@ -24,17 +26,26 @@ export function useEvents() {
     ...options,
     queryFn: async ({ pageParam, signal }) => {
       let cursor = pageParam;
+      let page = await client.events.list(
+        { limit: PAGE_SIZE, cursor },
+        { signal }
+      );
+      let fetches = 1;
 
-      for (;;) {
-        const page = await client.events.list(
+      while (
+        page.data.length === 0 &&
+        page.nextCursor &&
+        fetches < MAX_PAGE_FETCHES
+      ) {
+        cursor = page.nextCursor;
+        page = await client.events.list(
           { limit: PAGE_SIZE, cursor },
           { signal }
         );
-        if (page.data.length > 0 || !page.nextCursor) {
-          return page;
-        }
-        cursor = page.nextCursor;
+        fetches += 1;
       }
+
+      return page;
     },
   });
 }

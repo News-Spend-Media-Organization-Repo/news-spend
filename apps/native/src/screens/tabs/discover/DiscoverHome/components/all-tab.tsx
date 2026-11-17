@@ -437,7 +437,9 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
         }),
         select: surveysSelect,
       },
-      orpc.events.list.queryOptions({ input: { limit: 3 } }),
+      // A full page, then show three: non-NGN rows are dropped after Shows
+      // paginates, so asking for three can leave the section empty.
+      orpc.events.list.queryOptions({ input: { limit: 20 } }),
     ],
     combine: combineAllTabResults,
   });
