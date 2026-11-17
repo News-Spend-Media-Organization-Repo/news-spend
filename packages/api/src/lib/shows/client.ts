@@ -104,7 +104,9 @@ function retryDelayMs(response: Response, attempt: number): number {
   if (retryAfter) {
     const seconds = Number(retryAfter);
     if (Number.isFinite(seconds) && seconds >= 0) {
-      return seconds * 1000;
+      // A long Retry-After must not park a public GET for hours; every other
+      // wait in this client is capped, so this one is too.
+      return Math.min(seconds * 1000, 2000);
     }
   }
 

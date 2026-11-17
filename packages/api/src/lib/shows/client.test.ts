@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it } from "bun:test";
 import {
   createCheckout,
   getEvent,
+  getInventory,
   getPurchase,
+  getSessions,
   listEvents,
   ShowsApiError,
   showsRequest,
@@ -192,6 +194,30 @@ describe("showsRequest", () => {
     expect(calls.length).toBe(3);
   });
 
+  it("stops after two retries when a GET keeps failing", async () => {
+    const reply = { status: 503, headers: { "retry-after": "0" } };
+    const { calls, fetchImpl } = fakeFetch([reply, reply, reply]);
+
+    const error = await rejects(
+      showsRequest({ credential: "c", fetchImpl }, "/products/ticketing/events")
+    );
+
+    expect(error).toMatchObject({ status: 503, code: "http_503" });
+    expect(calls.length).toBe(3);
+  });
+
+  it("retries a rate-limited GET and then gives up", async () => {
+    const reply = { status: 429, headers: { "retry-after": "0" } };
+    const { calls, fetchImpl } = fakeFetch([reply, reply, reply]);
+
+    const error = await rejects(
+      showsRequest({ credential: "c", fetchImpl }, "/products/ticketing/events")
+    );
+
+    expect(error).toMatchObject({ status: 429, code: "http_429" });
+    expect(calls.length).toBe(3);
+  });
+
   it("does not retry a POST, even a 5xx one", async () => {
     const { calls, fetchImpl } = fakeFetch([{ status: 503 }]);
 
@@ -236,6 +262,8 @@ describe("typed calls", () => {
     const { calls, fetchImpl } = fakeFetch([
       { body: { data: [] } },
       { body: { id: "e-1" } },
+      { body: { data: [] } },
+      { body: { eventId: "e-1", tiers: [] } },
       {
         body: { reference: "p-1", checkoutUrl: "https://pay", expiresAt: "x" },
       },
@@ -245,6 +273,8 @@ describe("typed calls", () => {
 
     await listEvents(config, { q: "jazz" });
     await getEvent(config, "e 1");
+    await getSessions(config, "e 1");
+    await getInventory(config, "e 1", "s-1");
     await createCheckout(
       config,
       {
@@ -259,11 +289,13 @@ describe("typed calls", () => {
     expect(calls.map((call) => call.url)).toEqual([
       "https://api.shows.ng/v1/products/ticketing/events?q=jazz",
       "https://api.shows.ng/v1/products/ticketing/events/e%201",
+      "https://api.shows.ng/v1/products/ticketing/events/e%201/sessions",
+      "https://api.shows.ng/v1/products/ticketing/events/e%201/inventory?sessionId=s-1",
       "https://api.shows.ng/v1/checkouts",
       "https://api.shows.ng/v1/purchases/p-1",
     ]);
-    expect(calls[2]?.init.method).toBe("POST");
-    expect(headersOf(calls[2]).get("idempotency-key")).toBe("uuid-1");
+    expect(calls[4]?.init.method).toBe("POST");
+    expect(headersOf(calls[4]).get("idempotency-key")).toBe("uuid-1");
   });
 });
 
