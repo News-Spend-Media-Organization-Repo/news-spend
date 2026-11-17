@@ -1,6 +1,8 @@
 import { auth } from "@news-spend-media/auth";
 import { getPayload } from "@news-spend-media/payload";
 
+import { showsConfigFromEnv } from "./lib/shows/config";
+
 export type CreateContextOptions = {
   context?: {
     req?: {
@@ -32,6 +34,7 @@ export async function createContext({
     payload,
     request: request || context?.req?.raw,
     headers,
+    shows: showsConfigFromEnv(),
   };
 }
 

@@ -5,6 +5,7 @@ import { appSettingsRouter } from "./appSettings";
 import { blockRouter } from "./block";
 import { commentRouter } from "./comment";
 import { discoverAnalyticsRouter } from "./discoverAnalytics";
+import { eventsRouter } from "./events";
 import { faqRouter } from "./faq";
 import { feedbackRouter } from "./feedback";
 import { forYouRouter } from "./forYou";
@@ -36,6 +37,7 @@ export const router = {
   forYou: forYouRouter,
   giveaway: giveawayRouter,
   discoverAnalytics: discoverAnalyticsRouter,
+  events: eventsRouter,
   news: newsRouter,
   notificationSettings: notificationSettingsRouter,
   notifications: notificationsRouter,
