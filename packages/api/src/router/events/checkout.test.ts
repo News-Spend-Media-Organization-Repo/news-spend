@@ -335,7 +335,7 @@ describe("eventsRouter.checkout", () => {
     const orderOps = payload.calls
       .filter((entry) => entry.collection === "ticket-orders")
       .map((entry) => entry.op);
-    expect(orderOps).toEqual(["find", "create", "update"]);
+    expect(orderOps).toEqual(["find", "find", "create", "update"]);
   });
 
   it("passes the session revision to the inventory read", async () => {
@@ -387,6 +387,36 @@ describe("eventsRouter.checkout", () => {
     expect(second).toEqual(first);
     expect(payload.docs("ticket-orders")).toHaveLength(1);
     expect(calls.filter((entry) => entry.method === "POST")).toHaveLength(1);
+  });
+
+  it("returns a stored checkout without calling Shows when Shows is down", async () => {
+    const down = new DOMException("could not reach Shows", "TimeoutError");
+    const { calls, ctx } = setup({
+      orders: [
+        order({
+          state: "pending",
+          reference: "ref-9",
+          checkoutUrl: "https://pay.test/ref-9",
+          checkoutExpiresAt: "2026-11-17T10:15:00.000Z",
+          createdAt: "2026-11-17T09:55:00.000Z",
+        }),
+      ],
+      routes: {
+        inventory: { throws: down },
+        events: { throws: down },
+        sessions: { throws: down },
+        checkouts: { throws: down },
+      },
+    });
+
+    const result = await call(eventsRouter.checkout, INPUT, { context: ctx });
+
+    expect(result).toEqual({
+      reference: "ref-9",
+      checkoutUrl: "https://pay.test/ref-9",
+      expiresAt: "2026-11-17T10:15:00.000Z",
+    });
+    expect(calls).toHaveLength(0);
   });
 
   it("expires a stale pending row before creating a new checkout", async () => {
@@ -588,7 +618,7 @@ describe("eventsRouter.order", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("refreshes a pending order after thirty seconds", async () => {
+  it("stamps lastSyncedAt after thirty seconds without changing state", async () => {
     const { calls, ctx, payload } = setup({
       orders: [
         order({
@@ -605,14 +635,65 @@ describe("eventsRouter.order", () => {
       { context: ctx }
     );
 
-    expect(result.state).toBe("paid");
-    expect(result.orderReference).toBe("ord-1");
+    expect(result.state).toBe("pending");
     expect(calls).toHaveLength(1);
     expect(calls[0]?.url).toContain("/purchases/ref-1");
     expect(payload.docs("ticket-orders")[0]).toMatchObject({
-      state: "paid",
+      state: "pending",
       lastSyncedAt: NOW.toISOString(),
     });
+  });
+
+  it("returns the row unchanged when the refresh 404s", async () => {
+    const { calls, ctx, payload } = setup({
+      orders: [
+        order({
+          state: "pending",
+          lastSyncedAt: "2026-11-17T09:59:29.000Z",
+        }),
+      ],
+      routes: {
+        purchases: { status: 404, body: { error: { code: "not_found" } } },
+      },
+    });
+
+    const result = await call(
+      eventsRouter.order,
+      { reference: "ref-1" },
+      { context: ctx }
+    );
+
+    expect(result.state).toBe("pending");
+    expect(calls).toHaveLength(1);
+    expect(payload.docs("ticket-orders")[0]?.lastSyncedAt).toBe(
+      "2026-11-17T09:59:29.000Z"
+    );
+  });
+
+  it("returns the row unchanged when the refresh times out", async () => {
+    const { calls, ctx, payload } = setup({
+      orders: [
+        order({
+          state: "pending",
+          lastSyncedAt: "2026-11-17T09:59:29.000Z",
+        }),
+      ],
+      routes: {
+        purchases: { throws: new DOMException("timed out", "TimeoutError") },
+      },
+    });
+
+    const result = await call(
+      eventsRouter.order,
+      { reference: "ref-1" },
+      { context: ctx }
+    );
+
+    expect(result.state).toBe("pending");
+    expect(calls).toHaveLength(1);
+    expect(payload.docs("ticket-orders")[0]?.lastSyncedAt).toBe(
+      "2026-11-17T09:59:29.000Z"
+    );
   });
 
   it("skips the refresh when the pending order is fresh", async () => {

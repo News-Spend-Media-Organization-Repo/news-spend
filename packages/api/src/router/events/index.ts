@@ -23,7 +23,6 @@ import type {
   ShowsInventory,
   ShowsInventoryTier,
   ShowsList,
-  ShowsPurchase,
   ShowsSession,
 } from "../../lib/shows/types";
 
@@ -307,7 +306,8 @@ function storedCheckout(order: TicketOrder, now: number): ShowsCheckout | null {
   if (!(order.reference && order.checkoutUrl && order.checkoutExpiresAt)) {
     return null;
   }
-  if (Date.parse(order.checkoutExpiresAt) <= now) {
+  const expires = Date.parse(order.checkoutExpiresAt);
+  if (!Number.isFinite(expires) || expires <= now) {
     return null;
   }
   return {
@@ -315,6 +315,46 @@ function storedCheckout(order: TicketOrder, now: number): ShowsCheckout | null {
     checkoutUrl: order.checkoutUrl,
     expiresAt: order.checkoutExpiresAt,
   };
+}
+
+/**
+ * The stored checkout for this selection, if any, so a live URL is returned
+ * even when Shows cannot be reached. The in-lock check stays authoritative.
+ */
+async function findStoredCheckout(
+  payload: Context["payload"],
+  userId: string,
+  sessionId: string,
+  selection: TicketLine[],
+  now: number
+): Promise<ShowsCheckout | null> {
+  const found = await payload.find({
+    collection: "ticket-orders",
+    where: {
+      and: [
+        { user: { equals: userId } },
+        { sessionId: { equals: sessionId } },
+        { state: { equals: "pending" } },
+        { checkoutUrl: { exists: true } },
+      ],
+    },
+    sort: "-createdAt",
+    limit: 20,
+    depth: 0,
+  });
+
+  const key = selectionKey(selection);
+  for (const order of found.docs) {
+    if (selectionKey(readItems(order.items)) !== key) {
+      continue;
+    }
+    const checkout = storedCheckout(order, now);
+    if (checkout) {
+      return checkout;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -386,11 +426,6 @@ function mapOrder(order: TicketOrder) {
     pointsAwarded: order.pointsAwarded ?? 0,
     createdAt: order.createdAt,
   };
-}
-
-function purchaseState(purchase: ShowsPurchase): OrderState | null {
-  const state = purchase.state ?? purchase.status;
-  return isOrderState(state) ? state : null;
 }
 
 /**
@@ -583,6 +618,17 @@ const checkout = protectedNoGuestProcedure
       .map((ticket) => ({ type: ticket.type, quantity: ticket.quantity }))
       .sort((left, right) => left.type.localeCompare(right.type));
 
+    const early = await findStoredCheckout(
+      context.payload,
+      context.user.id,
+      input.sessionId,
+      selection,
+      Date.now()
+    );
+    if (early) {
+      return early;
+    }
+
     const [available, event, sessions] = await withShowsErrors(
       () =>
         Promise.all([
@@ -747,27 +793,18 @@ const order = protectedNoGuestProcedure
       return mapOrder(row);
     }
 
-    const purchase = await withShowsErrors(
-      () => getPurchase(config, input.reference),
-      errors
-    );
-
-    const updated = await context.payload.update({
-      collection: "ticket-orders",
-      id: row.id,
-      data: {
-        state: purchaseState(purchase) ?? "pending",
-        amountMinor: purchase.amountMinor,
-        currency: purchase.currency,
-        refundedMinor: purchase.refundedMinor ?? row.refundedMinor ?? 0,
-        ...(purchase.orderReference
-          ? { orderReference: purchase.orderReference }
-          : {}),
-        lastSyncedAt: new Date(now).toISOString(),
-      },
-    });
-
-    return mapOrder(updated ?? row);
+    // The read must survive a Shows outage; the next poll retries.
+    try {
+      await getPurchase(config, input.reference);
+      const updated = await context.payload.update({
+        collection: "ticket-orders",
+        id: row.id,
+        data: { lastSyncedAt: new Date(now).toISOString() },
+      });
+      return mapOrder(updated ?? row);
+    } catch {
+      return mapOrder(row);
+    }
   });
 
 export const eventsRouter = {
