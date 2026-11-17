@@ -32,10 +32,21 @@ jest.mock("#/lib/orpc", () => {
     orpc: {
       partnerContent: { filtered: proc },
       survey: { cpx: { getSurveys: proc } },
-      events: { list: proc },
     },
   };
 });
+
+let mockEventPages: { data: unknown[] }[] = [];
+
+jest.mock("#/hooks/discover/useEvents", () => ({
+  useEvents: () => ({
+    data: { pages: mockEventPages },
+    isPending: false,
+    isError: false,
+    isRefetching: false,
+    refetch: jest.fn(),
+  }),
+}));
 
 jest.mock("#/hooks/usePartnerClick", () => ({
   usePartnerClick: () => ({ handleClick: jest.fn(), isLoading: () => false }),
@@ -134,10 +145,15 @@ const eventItem = (n: number) => ({
   pointsFrom: 150,
 });
 
-const eventsPage = (count: number) =>
-  settled({
+const eventsPage = (count: number) => [
+  {
     data: Array.from({ length: count }, (_, index) => eventItem(index + 1)),
-  });
+  },
+];
+
+beforeEach(() => {
+  mockEventPages = [];
+});
 
 describe("Discover all tab empty state", () => {
   it("shows one message and hides the offer sections when nothing is left", async () => {
@@ -203,12 +219,8 @@ describe("Discover all tab empty state", () => {
 
 describe("Discover all tab events section", () => {
   it("shows three of five events plus See all", async () => {
-    mockResults = [
-      settled({ docs: [] }),
-      settled({ docs: [] }),
-      settled([]),
-      eventsPage(5),
-    ];
+    mockResults = [settled({ docs: [] }), settled({ docs: [] }), settled([])];
+    mockEventPages = eventsPage(5);
     await render(<AllTab onSeeAllEvents={jest.fn()} />);
 
     expect(screen.getByText("Events near you")).toBeTruthy();
@@ -220,12 +232,8 @@ describe("Discover all tab events section", () => {
   });
 
   it("hides the section when there are no events", async () => {
-    mockResults = [
-      settled({ docs: [] }),
-      settled({ docs: [] }),
-      settled([]),
-      eventsPage(0),
-    ];
+    mockResults = [settled({ docs: [] }), settled({ docs: [] }), settled([])];
+    mockEventPages = eventsPage(0);
     await render(<AllTab />);
 
     expect(screen.queryByText("Events near you")).toBeNull();

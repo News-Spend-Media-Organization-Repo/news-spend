@@ -26,6 +26,7 @@ import { Image } from "#/components/heroui/image";
 import { Text } from "#/components/heroui/text";
 import { GAMES, type Game } from "#/features/games/catalog";
 import { openGame } from "#/features/games/openGame";
+import { useEvents } from "#/hooks/discover/useEvents";
 import { usePartnerClick } from "#/hooks/usePartnerClick";
 import { trackDiscover } from "#/lib/discoverAnalyticsClient";
 import { orpc, type RouterInputs } from "#/lib/orpc";
@@ -136,11 +137,6 @@ const combineAllTabResults = (results: QueryObserverResult[]) => ({
   surveysData: (results[2].data as SurveyItem[]) ?? [],
   surveysPending: results[2].isPending,
   surveysError: results[2].error,
-
-  eventsData:
-    (results[3]?.data as { data: EventRowEvent[] } | undefined)?.data ?? [],
-  eventsPending: results[3]?.isPending ?? false,
-  eventsError: results[3]?.error,
 
   isRefetching: results.some((r) => r.isRefetching),
   refetchAll: () => results.forEach((r) => r.refetch()),
@@ -421,9 +417,6 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
     surveysData,
     surveysPending,
     surveysError,
-    eventsData,
-    eventsPending,
-    eventsError,
     isRefetching,
     refetchAll,
   } = useQueries({
@@ -437,12 +430,25 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
         }),
         select: surveysSelect,
       },
-      // A full page, then show three: non-NGN rows are dropped after Shows
-      // paginates, so asking for three can leave the section empty.
-      orpc.events.list.queryOptions({ input: { limit: 20 } }),
     ],
     combine: combineAllTabResults,
   });
+
+  // Same walk-the-cursor query as the Events tab, so a page of foreign rows
+  // cannot leave this section empty.
+  const eventsQuery = useEvents();
+  const eventsData = useMemo(
+    () =>
+      eventsQuery.data?.pages.flatMap((page) => page.data).slice(0, 3) ?? [],
+    [eventsQuery.data]
+  );
+  const eventsPending = eventsQuery.isPending;
+  const eventsError = eventsQuery.isError;
+
+  const refreshAll = useCallback(() => {
+    refetchAll();
+    eventsQuery.refetch();
+  }, [refetchAll, eventsQuery.refetch]);
 
   const sections: SectionItem[] = useMemo(() => {
     const items: SectionItem[] = [];
@@ -457,10 +463,10 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
       if (eventsPending && eventsData.length === 0) {
         items.push({ type: "section-loading" });
       } else if (eventsError) {
-        items.push({ type: "section-error", onRetry: refetchAll });
+        items.push({ type: "section-error", onRetry: refreshAll });
       } else {
         items.push(
-          ...eventsData.slice(0, 3).map((event) => ({
+          ...eventsData.map((event) => ({
             type: "event" as const,
             data: event,
             onPress: () => {
@@ -594,6 +600,7 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
     navigation,
     onSeeAllEvents,
     refetchAll,
+    refreshAll,
   ]);
 
   const stickyHeaderIndices = useMemo(
@@ -642,16 +649,18 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
     }
   }, []);
 
+  const refreshing = isRefetching || eventsQuery.isRefetching;
+
   const refreshControl = useMemo(
     () =>
       Platform.OS === "android" ? (
         <RefreshControl
-          onRefresh={refetchAll}
+          onRefresh={refreshAll}
           progressViewOffset={0}
-          refreshing={isRefetching}
+          refreshing={refreshing}
         />
       ) : undefined,
-    [isRefetching, refetchAll]
+    [refreshing, refreshAll]
   );
 
   return (
@@ -668,7 +677,7 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
             const pull = -e.nativeEvent.contentOffset.y;
             if (pull >= 80) {
               triggerRefreshHaptic();
-              refetchAll();
+              refreshAll();
             }
           }
         }}
@@ -678,7 +687,7 @@ export const AllTab = ({ onSeeAllEvents }: { onSeeAllEvents?: () => void }) => {
         renderItem={renderItem}
         stickyHeaderIndices={stickyHeaderIndices}
       />
-      <PullToRefreshIndicator refreshing={isRefetching} />
+      <PullToRefreshIndicator refreshing={refreshing} />
     </View>
   );
 };
