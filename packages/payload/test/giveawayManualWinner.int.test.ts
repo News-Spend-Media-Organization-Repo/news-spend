@@ -659,3 +659,104 @@ describe("addManualWinner", () => {
     expect(await winnerRows(setup.giveawayId)).toHaveLength(1);
   }, 120_000);
 });
+
+describe("listParticipants", () => {
+  const addedBy = "ops@example.invalid";
+
+  test("lists ticket holders, not winners or excluded accounts", async () => {
+    const setup = await createDrawableGiveaway({
+      participants: 4,
+      maxUnits: 3,
+    });
+    const [seated, excluded, third, fourth] = setup.userIds;
+    if (!(seated && excluded && third && fourth)) {
+      throw new Error("need four participants");
+    }
+    await engine().addManualWinner(setup.giveawayId, {
+      userKey: seated,
+      prizeRowId: setup.prizeRowId,
+      addedBy,
+    });
+    await payload.create({
+      collection: "giveaway-account-flags",
+      data: { user: excluded, duplicateAccountGroup: "g1" },
+    });
+
+    const result = await engine().listParticipants(setup.giveawayId);
+
+    expect(result.total).toBe(2);
+    expect(result.participants.map((p) => p.userKey).sort()).toEqual(
+      [third, fourth].sort()
+    );
+    for (const row of result.participants) {
+      expect(row.validTickets).toBe(1);
+      expect(row.qualifiesFor).toEqual(["tier3"]);
+      const user = await payload.findByID({
+        collection: "users",
+        id: row.userKey,
+        depth: 0,
+      });
+      expect(row.name).toBe(user.name);
+    }
+    expect(result.prizes[0]?.unitsRemaining).toBe(2);
+    expect(result.prizes[0]?.id).toBe(setup.prizeRowId);
+  }, 120_000);
+
+  test("searches by name or email, case-insensitively", async () => {
+    const setup = await createDrawableGiveaway({ participants: 2 });
+    const [first, second] = setup.userIds;
+    if (!(first && second)) {
+      throw new Error("need two participants");
+    }
+    // One distinctive name, so a search can match exactly one person.
+    await payload.update({
+      collection: "users",
+      id: second,
+      data: { name: "Zephyr Quill" },
+    });
+
+    const byName = await engine().listParticipants(setup.giveawayId, {
+      search: "PARTICIPANT",
+    });
+    expect(byName.total).toBe(1);
+    expect(byName.participants[0]?.userKey).toBe(first);
+
+    const byLowerName = await engine().listParticipants(setup.giveawayId, {
+      search: "zephyr",
+    });
+    expect(byLowerName.total).toBe(1);
+    expect(byLowerName.participants[0]?.userKey).toBe(second);
+
+    const secondUser = await payload.findByID({
+      collection: "users",
+      id: second,
+      depth: 0,
+    });
+    const byEmail = await engine().listParticipants(setup.giveawayId, {
+      search: String(secondUser.email),
+    });
+    expect(byEmail.total).toBe(1);
+    expect(byEmail.participants[0]?.userKey).toBe(second);
+  }, 120_000);
+
+  test("returns an empty page rather than failing", async () => {
+    const setup = await createDrawableGiveaway({ participants: 2 });
+
+    const noMatch = await engine().listParticipants(setup.giveawayId, {
+      search: "nobody-matches-this",
+    });
+    expect(noMatch.participants).toEqual([]);
+    expect(noMatch.total).toBe(0);
+
+    const pastEnd = await engine().listParticipants(setup.giveawayId, {
+      page: 99,
+    });
+    expect(pastEnd.participants).toEqual([]);
+    expect(pastEnd.total).toBe(2);
+
+    const clamped = await engine().listParticipants(setup.giveawayId, {
+      limit: 1000,
+    });
+    expect(clamped.limit).toBe(100);
+  }, 120_000);
+});

@@ -7,6 +7,7 @@ import {
   type DrawCheckpoint,
   type GiveawayStatus,
   IN_FLIGHT_GIVEAWAY_STATUSES,
+  PRIZE_TIERS,
   type PrizeTier,
   RESUMABLE_GIVEAWAY_STATUSES,
   TIER_CHECKPOINTS,
@@ -204,6 +205,39 @@ export type ManualWinnerResult = {
   phase: "pre_draw" | "post_draw";
   unitsRemaining: number;
 };
+
+/** A participant who can still be seated as a manual winner. */
+export type ManualWinnerCandidate = {
+  userKey: string;
+  name: string | null;
+  email: string | null;
+  validTickets: number;
+  boosts: number;
+  featuredOffers: number;
+  /** Informational only: a manual pick ignores tier thresholds. */
+  qualifiesFor: PrizeTier[];
+  heldForReview: boolean;
+};
+
+/** A prize row of the giveaway, as the manual-winner picker offers it. */
+export type ManualWinnerPrize = {
+  /** The `giveaway-prizes` row id, which is what `addManualWinner` takes. */
+  id: string;
+  prizeName: string;
+  tier: PrizeTier;
+  unitsRemaining: number;
+};
+
+export type ParticipantListing = {
+  participants: ManualWinnerCandidate[];
+  total: number;
+  page: number;
+  limit: number;
+  prizes: ManualWinnerPrize[];
+};
+
+const PARTICIPANT_PAGE_DEFAULT = 25;
+const PARTICIPANT_PAGE_MAX = 100;
 
 /**
  * The giveaway draw engine (spec 12).
@@ -1805,6 +1839,107 @@ export class GiveawayEngine {
       winnerId,
       phase,
       unitsRemaining: prize.maxUnits - prize.unitsAwarded,
+    };
+  }
+
+  /**
+   * The people who can still be seated as manual winners, and the prizes
+   * they can be given.
+   *
+   * Participation is aggregated in memory, exactly as the draw does it, so
+   * the counts shown are the counts the engine sees. Existing winners (any
+   * claim status) and excluded accounts are left out, so the list never offers
+   * a pick that `addManualWinner` would refuse for who the person is.
+   *
+   * Search runs against the users table restricted to this giveaway's
+   * participants, so a common name across the whole platform cannot crowd
+   * real matches out of a capped result.
+   */
+  async listParticipants(
+    giveawayId: string,
+    opts: { search?: string; page?: number; limit?: number } = {}
+  ): Promise<ParticipantListing> {
+    const limit = Math.min(
+      PARTICIPANT_PAGE_MAX,
+      Math.max(1, Math.floor(opts.limit ?? PARTICIPANT_PAGE_DEFAULT))
+    );
+    const page = Math.max(1, Math.floor(opts.page ?? 1));
+    const search = opts.search?.trim() ?? "";
+
+    const [{ participation }, flags, winnerKeys, pool] = await Promise.all([
+      this.loadParticipation(giveawayId),
+      this.loadAccountFlags(),
+      this.loadPersistedWinnerKeys(giveawayId),
+      this.loadPrizePool(giveawayId),
+    ]);
+
+    let eligible = [...participation].filter(
+      ([userKey]) => !(winnerKeys.has(userKey) || flags.excluded.has(userKey))
+    );
+
+    if (search && eligible.length > 0) {
+      const matches = await this.payload.find({
+        collection: "users",
+        where: {
+          and: [
+            { id: { in: eligible.map(([userKey]) => userKey) } },
+            {
+              or: [{ name: { like: search } }, { email: { like: search } }],
+            },
+          ],
+        },
+        pagination: false,
+        depth: 0,
+        select: {},
+      });
+      const matched = new Set(matches.docs.map((doc) => String(doc.id)));
+      eligible = eligible.filter(([userKey]) => matched.has(userKey));
+    }
+
+    eligible.sort(
+      ([aKey, a], [bKey, b]) =>
+        b.validTickets - a.validTickets || aKey.localeCompare(bKey)
+    );
+
+    const pageRows = eligible.slice((page - 1) * limit, page * limit);
+
+    const users =
+      pageRows.length > 0
+        ? await this.payload.find({
+            collection: "users",
+            where: { id: { in: pageRows.map(([userKey]) => userKey) } },
+            pagination: false,
+            depth: 0,
+            select: { name: true, email: true },
+          })
+        : { docs: [] };
+    const byId = new Map(users.docs.map((doc) => [String(doc.id), doc]));
+
+    return {
+      participants: pageRows.map(([userKey, p]) => {
+        const user = byId.get(userKey);
+        return {
+          userKey,
+          name: user?.name ?? null,
+          email: user?.email ?? null,
+          validTickets: p.validTickets,
+          boosts: p.boosts,
+          featuredOffers: p.featuredOffers,
+          qualifiesFor: PRIZE_TIERS.filter(
+            (tier) => evaluateEligibility(tier, p).eligible
+          ),
+          heldForReview: flags.heldForReview.has(userKey),
+        };
+      }),
+      total: eligible.length,
+      page,
+      limit,
+      prizes: pool.map((row) => ({
+        id: row.rowId,
+        prizeName: row.prizeName,
+        tier: row.tier,
+        unitsRemaining: Math.max(0, row.maxUnits - row.unitsAwarded),
+      })),
     };
   }
 
