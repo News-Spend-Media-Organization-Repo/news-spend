@@ -15,6 +15,7 @@ import {
   GIVEAWAY_STATUS_OPTIONS,
   type GiveawayStatus,
   isConfigurationLocked,
+  MANUAL_WINNER_REASON_MAX_LENGTH,
 } from "./constants";
 
 /**
@@ -328,6 +329,155 @@ export const Giveaways: CollectionConfig = {
           );
           return Response.json(
             { message: `Draw failed: ${message}` },
+            { status: 500 }
+          );
+        }
+      },
+    },
+    {
+      /**
+       * Who can still be seated as a manual winner, and the prizes on offer.
+       *
+       * Super-admin only: the rows carry participants' names and emails, and
+       * the only thing they are for is the action below.
+       */
+      path: "/:id/participants",
+      method: "get",
+      handler: async (req) => {
+        const user = req.user;
+        if (user?.collection !== "admins" || user?.role !== "super-admin") {
+          return Response.json(
+            { message: "Only a Super Admin can pick winners." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id as string | undefined;
+        if (!id) {
+          return Response.json(
+            { message: "Missing giveaway id." },
+            { status: 400 }
+          );
+        }
+
+        const params = req.searchParams;
+        const page = Number(params?.get("page") ?? "");
+        const limit = Number(params?.get("limit") ?? "");
+
+        const { GiveawayEngine } = await import(
+          "../../lib/giveaway/GiveawayEngine"
+        );
+        const listing = await new GiveawayEngine(req.payload).listParticipants(
+          id,
+          {
+            search: params?.get("search") ?? undefined,
+            page: Number.isFinite(page) && page > 0 ? page : undefined,
+            limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+          }
+        );
+        return Response.json(listing);
+      },
+    },
+    {
+      /**
+       * Seat a chosen participant as a winner, in addition to the draw.
+       *
+       * One pick per request, so one bad row in a batch is reported on its own
+       * rather than failing the others. Refusals are the engine's own words,
+       * as a 409, the same way `/run-draw` returns them.
+       */
+      path: "/:id/manual-winner",
+      method: "post",
+      handler: async (req) => {
+        const user = req.user;
+        if (user?.collection !== "admins" || user?.role !== "super-admin") {
+          return Response.json(
+            { message: "Only a Super Admin can pick winners." },
+            { status: 403 }
+          );
+        }
+
+        const id = req.routeParams?.id as string | undefined;
+        if (!id) {
+          return Response.json(
+            { message: "Missing giveaway id." },
+            { status: 400 }
+          );
+        }
+
+        const body = (req.json ? await req.json() : {}) as {
+          userKey?: unknown;
+          prizeRowId?: unknown;
+          reason?: unknown;
+        };
+        const { userKey, prizeRowId } = body;
+        if (
+          typeof userKey !== "string" ||
+          userKey.length === 0 ||
+          typeof prizeRowId !== "string" ||
+          prizeRowId.length === 0
+        ) {
+          return Response.json(
+            { message: "Choose a person and a prize." },
+            { status: 400 }
+          );
+        }
+
+        const reason =
+          typeof body.reason === "string" && body.reason.trim().length > 0
+            ? body.reason.trim()
+            : undefined;
+        if (reason && reason.length > MANUAL_WINNER_REASON_MAX_LENGTH) {
+          return Response.json(
+            {
+              message: `Keep the reason to ${MANUAL_WINNER_REASON_MAX_LENGTH} characters.`,
+            },
+            { status: 400 }
+          );
+        }
+
+        const { GiveawayEngine, GiveawayEngineError } = await import(
+          "../../lib/giveaway/GiveawayEngine"
+        );
+
+        try {
+          const result = await new GiveawayEngine(req.payload).addManualWinner(
+            id,
+            {
+              userKey,
+              prizeRowId,
+              addedBy: user.email ?? String(user.id),
+              reason,
+            }
+          );
+
+          return Response.json({
+            message:
+              result.phase === "post_draw"
+                ? "Winner added. The Winner Report has already been sent and does not include them; resend it from Winner Report."
+                : "Winner added. The draw will skip them.",
+            ...result,
+          });
+        } catch (error) {
+          if (error instanceof GiveawayEngineError) {
+            req.payload.logger.warn(
+              { giveawayId: id, code: error.code },
+              "[giveaway] manual winner refused"
+            );
+            return Response.json(
+              { message: error.message, code: error.code },
+              { status: 409 }
+            );
+          }
+
+          req.payload.logger.error(
+            { err: error, giveawayId: id },
+            "[giveaway] manual winner failed"
+          );
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
+          return Response.json(
+            { message: `Could not add the winner: ${message}` },
             { status: 500 }
           );
         }
