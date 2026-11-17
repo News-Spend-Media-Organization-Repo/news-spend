@@ -81,6 +81,7 @@ import * as migration_20261116_120000_news_notification_kicker from './20261116_
 import * as migration_20261117_081031_giveaway_manual_winner_event from './20261117_081031_giveaway_manual_winner_event';
 import * as migration_20261117_084047_for_you_discovery from './20261117_084047_for_you_discovery';
 import * as migration_20261117_175314_ticket_orders from './20261117_175314_ticket_orders';
+import * as migration_20261117_185910_activities_event_ticket from './20261117_185910_activities_event_ticket';
 
 export const migrations = [
   {
@@ -496,6 +497,11 @@ export const migrations = [
   {
     up: migration_20261117_175314_ticket_orders.up,
     down: migration_20261117_175314_ticket_orders.down,
-    name: '20261117_175314_ticket_orders'
+    name: '20261117_175314_ticket_orders',
+  },
+  {
+    up: migration_20261117_185910_activities_event_ticket.up,
+    down: migration_20261117_185910_activities_event_ticket.down,
+    name: '20261117_185910_activities_event_ticket'
   },
 ];

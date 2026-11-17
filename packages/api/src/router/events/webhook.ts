@@ -1,4 +1,8 @@
+import { getPayload } from "@news-spend-media/payload";
+import type { BasePayload } from "payload";
+
 import { verifyShowsSignature } from "../../lib/shows/signature";
+import { applyOrderState, type TicketOrderState } from "../../lib/ticketOrders";
 
 /** A webhook envelope is small; anything larger is not a Shows event. */
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -36,14 +40,212 @@ export type ShowsApplyEvent = (
   event: ShowsWebhookEnvelope
 ) => Promise<ShowsApplyResult> | ShowsApplyResult;
 
+const ORDER_STATES: readonly TicketOrderState[] = [
+  "paid",
+  "expired",
+  "cancelled",
+  "refunded",
+  "failed",
+];
+
+type ShowsEventData = {
+  reference: string | null;
+  amountMinor: number | null;
+  refundedMinor: number | null;
+  refundId: string | null;
+  orderVersion: string | null;
+  refundVersion: string | null;
+  state: TicketOrderState | null;
+  eventId: string | null;
+};
+
+function firstString(
+  data: Record<string, unknown>,
+  keys: readonly string[]
+): string | null {
+  for (const key of keys) {
+    const value = nonEmpty(data[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function firstInteger(
+  data: Record<string, unknown>,
+  keys: readonly string[]
+): number | null {
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === "number" && Number.isSafeInteger(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function readState(value: unknown): TicketOrderState | null {
+  return typeof value === "string" &&
+    ORDER_STATES.includes(value as TicketOrderState)
+    ? (value as TicketOrderState)
+    : null;
+}
+
 /**
- * The seam Task 6 fills in: once the signature is verified and the envelope
- * parsed, every effect goes through here. It returns "ignored" today because
- * Task 6 owns order state and points; "failed" asks the handler to answer 503
- * so Shows retries. Keep it the only place that writes.
+ * Read the event-specific body.
+ *
+ * The exact shape is UNVERIFIED pending sandbox captures: it accepts the
+ * purchase reference, amount, refund id, version and state under the snake_case
+ * and camelCase spellings Shows has used elsewhere, and treats anything else
+ * as absent rather than guessing.
  */
-export function applyEvent(_event: ShowsWebhookEnvelope): ShowsApplyResult {
-  return "ignored";
+function readShowsEventData(event: ShowsWebhookEnvelope): ShowsEventData {
+  const data = event.data ?? {};
+  const aggregateVersion =
+    event.aggregate && typeof event.aggregate.version === "number"
+      ? String(event.aggregate.version)
+      : null;
+
+  return {
+    reference: firstString(data, ["purchase", "reference"]),
+    amountMinor: firstInteger(data, ["amount_minor", "amountMinor"]),
+    refundedMinor: firstInteger(data, ["refunded_minor", "refundedMinor"]),
+    refundId: firstString(data, ["refund_id", "refundId", "entity_id"]),
+    orderVersion:
+      firstString(data, ["order_version", "orderVersion", "version"]) ??
+      aggregateVersion,
+    refundVersion:
+      firstString(data, ["refund_version", "refundVersion", "version"]) ??
+      aggregateVersion,
+    state: readState(data.state ?? data.status),
+    eventId:
+      firstString(data, ["event_id", "eventId", "event"]) ??
+      (event.aggregate?.type === "event" ? event.aggregate.id : null),
+  };
+}
+
+/**
+ * The one place ticket order state and its points are written.
+ *
+ * A signed event naming an order we cannot find is `failed`, never a silent
+ * acknowledgement: Shows retries it, and the alternative is a paid order that
+ * never becomes paid or pays no points. `webhook.test` never reaches here.
+ */
+async function applyTransition(
+  payload: BasePayload,
+  data: ShowsEventData
+): Promise<ShowsApplyResult> {
+  // The amount is only needed to price the award; a transition to any other
+  // state still has to land.
+  if (!(data.reference && data.state)) {
+    return "failed";
+  }
+  if (data.state === "paid" && data.amountMinor === null) {
+    return "failed";
+  }
+  return await applyOrderState(payload, {
+    reference: data.reference,
+    state: data.state,
+    orderVersion: data.orderVersion ?? undefined,
+  });
+}
+
+async function applyRefund(
+  payload: BasePayload,
+  data: ShowsEventData
+): Promise<ShowsApplyResult> {
+  if (!data.reference || data.amountMinor === null) {
+    return "failed";
+  }
+  return await applyOrderState(payload, {
+    reference: data.reference,
+    state: data.state ?? "refunded",
+    orderVersion: data.refundVersion ?? undefined,
+    refundedMinor: data.refundedMinor ?? data.amountMinor,
+    refundId: data.refundId ?? undefined,
+  });
+}
+
+async function applyExpiry(
+  payload: BasePayload,
+  data: ShowsEventData
+): Promise<ShowsApplyResult> {
+  if (!data.reference) {
+    return "failed";
+  }
+  const { docs } = await payload.find({
+    collection: "ticket-orders",
+    where: { reference: { equals: data.reference } },
+    limit: 1,
+    depth: 0,
+  });
+  // An order that already left pending cannot be expired afterwards.
+  if (docs[0]?.state !== "pending") {
+    return "ignored";
+  }
+  return await applyOrderState(payload, {
+    reference: data.reference,
+    state: "expired",
+    orderVersion: data.orderVersion ?? undefined,
+  });
+}
+
+async function applyCancellation(
+  payload: BasePayload,
+  data: ShowsEventData
+): Promise<ShowsApplyResult> {
+  if (!data.eventId) {
+    return "ignored";
+  }
+  const { docs: orders } = await payload.find({
+    collection: "ticket-orders",
+    where: {
+      and: [
+        { eventId: { equals: data.eventId } },
+        { state: { equals: "paid" } },
+      ],
+    },
+    limit: 100,
+    depth: 0,
+  });
+
+  let applied = false;
+  for (const row of orders) {
+    if (!row.reference) {
+      continue;
+    }
+    const result = await applyOrderState(payload, {
+      reference: row.reference,
+      state: "cancelled",
+    });
+    applied ||= result === "applied";
+  }
+  // Points are deliberately untouched: Shows' refund event is the only thing
+  // that takes money (and points) back.
+  return applied ? "applied" : "ignored";
+}
+
+export async function applyEvent(
+  event: ShowsWebhookEnvelope,
+  injected?: BasePayload
+): Promise<ShowsApplyResult> {
+  const data = readShowsEventData(event);
+  const connection = async () => injected ?? (await getPayload());
+
+  switch (event.type) {
+    case "order.transitioned":
+      return applyTransition(await connection(), data);
+    case "refund.updated":
+      return applyRefund(await connection(), data);
+    case "purchase.expired":
+      return applyExpiry(await connection(), data);
+    case "event.cancelled":
+      return applyCancellation(await connection(), data);
+    default:
+      // Includes inventory.sold_out, webhook.test, and any newer event type.
+      return "ignored";
+  }
 }
 
 /**

@@ -1344,6 +1344,7 @@ export interface Activity {
     | 'connectBrandAd'
     | 'referral'
     | 'ticketPurchase'
+    | 'eventTicket'
     | 'lottery'
     | 'surveyTask'
     | 'musicListeningTime'
@@ -2971,6 +2972,7 @@ export interface TicketOrder {
     phone?: string | null;
   };
   pointsAwarded?: number | null;
+  pointsReversed?: number | null;
   lastSyncedAt?: string | null;
   createdBy?: {
     relationTo: 'admins';
@@ -4703,6 +4705,7 @@ export interface TicketOrdersSelect<T extends boolean = true> {
         phone?: T;
       };
   pointsAwarded?: T;
+  pointsReversed?: T;
   lastSyncedAt?: T;
   createdBy?: T;
   lastModifiedBy?: T;

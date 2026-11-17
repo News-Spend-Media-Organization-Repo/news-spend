@@ -134,6 +134,11 @@ export const TicketOrders: CollectionConfig = {
       defaultValue: 0,
     },
     {
+      name: "pointsReversed",
+      type: "number",
+      defaultValue: 0,
+    },
+    {
       name: "lastSyncedAt",
       type: "date",
     },

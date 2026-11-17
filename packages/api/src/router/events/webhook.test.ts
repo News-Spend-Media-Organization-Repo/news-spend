@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createHmac } from "node:crypto";
 
-import { showsWebhookHandler } from "./webhook";
+import { createFakePayload } from "../../test-utils";
+import { applyEvent, showsWebhookHandler } from "./webhook";
 
 /**
  * Shows' webhook entrypoint. Status codes are a retry protocol: 2xx for
@@ -285,6 +286,204 @@ describe("showsWebhookHandler", () => {
     } finally {
       console.error = original;
     }
+  });
+
+  it("applies a paid order transition and awards points", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "pending",
+            eventId: "event-1",
+            eventName: "Lagos Live",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 0,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+
+    const result = await applyEvent(
+      envelope({
+        data: {
+          purchase: "ref_1",
+          amount_minor: 850_000,
+          state: "paid",
+          order_version: "1",
+        },
+      }) as never,
+      payload as never
+    );
+
+    expect(result).toBe("applied");
+    expect(
+      payload.docs("activities").filter((row) => row.action === "eventTicket")
+    ).toHaveLength(1);
+  });
+
+  it("asks for a retry when a paid reference cannot be resolved", async () => {
+    const payload = createFakePayload();
+
+    const result = await applyEvent(
+      envelope({
+        data: { purchase: "ref_unknown", amount_minor: 850_000, state: "paid" },
+      }) as never,
+      payload as never
+    );
+
+    expect(result).toBe("failed");
+  });
+
+  it("refuses to act on a paid event with no reference or amount", async () => {
+    const payload = createFakePayload();
+
+    await expect(
+      applyEvent(
+        envelope({ data: { state: "paid" } }) as never,
+        payload as never
+      )
+    ).resolves.toBe("failed");
+  });
+
+  it("expires only pending orders", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "paid",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 0,
+          },
+        ],
+      },
+    });
+
+    const result = await applyEvent(
+      envelope({
+        type: "purchase.expired",
+        data: { purchase: "ref_1" },
+      }) as never,
+      payload as never
+    );
+
+    expect(result).toBe("ignored");
+    expect(payload.docs("ticket-orders")[0]?.state).toBe("paid");
+  });
+
+  it("cancels an event's paid orders without reversing points", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "paid",
+            eventId: "event-1",
+            eventName: "Lagos Live",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 250,
+            pointsReversed: 0,
+          },
+          {
+            id: "order-2",
+            user: "user-2",
+            reference: "ref_2",
+            state: "paid",
+            eventId: "event-2",
+            amountMinor: 100_000,
+            pointsAwarded: 50,
+            refundedMinor: 0,
+          },
+        ],
+        activities: [
+          {
+            id: "activity-1",
+            user: "user-1",
+            action: "eventTicket",
+            point: 250,
+          },
+        ],
+      },
+    });
+
+    const result = await applyEvent(
+      envelope({
+        type: "event.cancelled",
+        aggregate: { type: "event", id: "event-1", version: 2 },
+        data: { event_id: "event-1" },
+      }) as never,
+      payload as never
+    );
+
+    expect(result).toBe("applied");
+    expect(payload.docs("ticket-orders")[0]?.state).toBe("cancelled");
+    expect(payload.docs("ticket-orders")[1]?.state).toBe("paid");
+    expect(payload.docs("ticket-orders")[0]?.pointsReversed).toBe(0);
+    expect(
+      payload.docs("activities").filter((row) => row.action === "pointReversal")
+    ).toHaveLength(0);
+  });
+
+  it("records and reverses a refund", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "paid",
+            eventId: "event-1",
+            eventName: "Lagos Live",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 250,
+            pointsReversed: 0,
+          },
+        ],
+      },
+    });
+
+    const refund = envelope({
+      type: "refund.updated",
+      aggregate: { type: "refund", id: "refund-1", version: 1 },
+      data: { purchase: "ref_1", amount_minor: 425_000, refund_id: "refund-1" },
+    });
+
+    await expect(applyEvent(refund as never, payload as never)).resolves.toBe(
+      "applied"
+    );
+    await expect(applyEvent(refund as never, payload as never)).resolves.toBe(
+      "ignored"
+    );
+
+    expect(payload.docs("ticket-orders")[0]?.refundedMinor).toBe(425_000);
+    expect(payload.docs("ticket-orders")[0]?.pointsReversed).toBe(125);
+    expect(
+      payload.docs("activities").filter((row) => row.action === "pointReversal")
+    ).toHaveLength(1);
+  });
+
+  it("ignores inventory events", async () => {
+    const payload = createFakePayload();
+
+    await expect(
+      applyEvent(
+        envelope({ type: "inventory.sold_out" }) as never,
+        payload as never
+      )
+    ).resolves.toBe("ignored");
   });
 
   it("logs only the event id and type", async () => {
