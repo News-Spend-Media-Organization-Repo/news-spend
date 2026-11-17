@@ -345,4 +345,36 @@ describe("forYou API", () => {
     expect(result.answer).toContain("cannot determine your eligibility");
     expect(result.source).toBe(opportunity.canonicalUrl);
   });
+  it("rate limits the feed per caller without locking out other callers", async () => {
+    const { payload } = fixture();
+    // A unique id keeps this case independent of the shared limiter state
+    // other cases in this file accumulate for the fixture user.
+    const caller = {
+      id: `feed-rl-${Date.now()}`,
+      isAnonymous: false,
+      username: "rl",
+    };
+    const context = mockContext({ user: caller as never, payload });
+    const attempts = await Promise.all(
+      Array.from({ length: 62 }, () =>
+        call(forYouRouter.feed, { limit: 20 }, { context }).then(
+          () => "ok",
+          (error: { code: string }) => error.code
+        )
+      )
+    );
+    expect(attempts.filter((a) => a === "ok")).toHaveLength(60);
+    expect(attempts.filter((a) => a === "TOO_MANY_REQUESTS")).toHaveLength(2);
+    // The bucket is per caller: a different reader is unaffected.
+    const other = mockContext({
+      user: { ...caller, id: `feed-rl-other-${Date.now()}` } as never,
+      payload,
+    });
+    const result = await call(
+      forYouRouter.feed,
+      { limit: 20 },
+      { context: other }
+    );
+    expect(result.items[0]?.id).toBe(opportunityId);
+  });
 });
