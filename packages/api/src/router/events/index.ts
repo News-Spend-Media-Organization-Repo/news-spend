@@ -1,21 +1,28 @@
+import type { TicketOrder } from "@news-spend-media/payload/types";
 import z from "zod";
-
-import { publicProcedure } from "../../index";
+import type { Context } from "../../context";
+import { protectedNoGuestProcedure, publicProcedure } from "../../index";
 import { createRateLimitMiddleware } from "../../lib/ratelimit";
 import { cached } from "../../lib/shows/cache";
 import {
+  createCheckout,
   getEvent,
   getInventory,
+  getPurchase,
   getSessions,
   ShowsApiError,
   showsRequest,
 } from "../../lib/shows/client";
 import type { ShowsConfig } from "../../lib/shows/config";
 import type {
+  ShowsCheckout,
+  ShowsCheckoutRequest,
   ShowsEvent,
   ShowsEventQuery,
   ShowsInventory,
+  ShowsInventoryTier,
   ShowsList,
+  ShowsPurchase,
   ShowsSession,
 } from "../../lib/shows/types";
 
@@ -23,12 +30,20 @@ import type {
 const LIST_TTL_MS = 5 * 60 * 1000;
 /** Availability moves, but 15 seconds still shields Shows from a retry loop. */
 const INVENTORY_TTL_MS = 15 * 1000;
+/** A pending order is reusable for this long; matches the hosted-link assumption. */
+const ORDER_HOLD_MS = 15 * 60 * 1000;
+/** An order read asks Shows for its state no more often than this. */
+const ORDER_REFRESH_MS = 30 * 1000;
+const MAX_TICKETS_PER_TYPE = 4;
+const MAX_TICKET_LINES = 10;
 const CURRENCY = "NGN";
 const EVENTS_PATH = "/products/ticketing/events";
 
 const NOT_FOUND_MESSAGE = "Event not found";
+const ORDER_NOT_FOUND_MESSAGE = "Order not found";
 const BAD_REQUEST_MESSAGE = "That event request is not valid";
 const TOO_MANY_MESSAGE = "Too many requests";
+const INSUFFICIENT_STOCK_MESSAGE = "Those tickets are no longer available";
 /** Fixed copy: a Shows message may echo the URL or the buyer's input. */
 const UNAVAILABLE_MESSAGE = "Ticketing is temporarily unavailable";
 
@@ -39,10 +54,32 @@ const eventsRateLimit = createRateLimitMiddleware({
   window: 60_000,
 });
 
+/** Checkout taps are rare; the ceiling is per signed-in user. */
+const checkoutRateLimit = createRateLimitMiddleware({
+  name: "events-checkout",
+  maxRequests: 20,
+  window: 60_000,
+});
+
+/** The order screen polls about every five seconds, so 30 a minute is roomy. */
+const orderRateLimit = createRateLimitMiddleware({
+  name: "events-order",
+  maxRequests: 30,
+  window: 60_000,
+});
+
 const eventsErrors = {
   SERVICE_UNAVAILABLE: {
     message: UNAVAILABLE_MESSAGE,
     status: 503,
+  },
+} as const;
+
+const checkoutErrors = {
+  ...eventsErrors,
+  INSUFFICIENT_STOCK: {
+    message: INSUFFICIENT_STOCK_MESSAGE,
+    status: 409,
   },
 } as const;
 
@@ -66,6 +103,27 @@ const inventoryInput = z.object({
   eventId,
   sessionId: eventId.optional(),
 });
+
+const checkoutInput = z.object({
+  eventId,
+  sessionId: eventId,
+  sessionRevision: z.string().trim().min(1).max(200),
+  tickets: z
+    .array(
+      z.object({
+        type: z.string().trim().min(1).max(200),
+        quantity: z.number().int().min(1).max(MAX_TICKETS_PER_TYPE),
+      })
+    )
+    .min(1)
+    .max(MAX_TICKET_LINES)
+    .refine(
+      (lines) => new Set(lines.map((line) => line.type)).size === lines.length,
+      { message: "A ticket type may appear only once" }
+    ),
+});
+
+const orderInput = z.object({ reference: z.string().trim().min(1).max(200) });
 
 type ErrorFactory = (options: { message: string }) => unknown;
 
@@ -130,6 +188,203 @@ function mapInventory(inventory: ShowsInventory) {
       soldOut: tier.soldOut ?? false,
     })),
   };
+}
+
+type OrderState = NonNullable<TicketOrder["state"]>;
+
+const ORDER_STATES: readonly string[] = [
+  "pending",
+  "paid",
+  "expired",
+  "cancelled",
+  "refunded",
+  "failed",
+];
+
+type TicketLine = { type: string; quantity: number };
+type StoredItem = TicketLine & { unitPriceMinor: number };
+type Buyer = { name: string; email: string; phone?: string };
+
+function isOrderState(value: unknown): value is OrderState {
+  return typeof value === "string" && ORDER_STATES.includes(value);
+}
+
+function buyerFor(user: {
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}): Buyer {
+  return {
+    name: user.name ?? "",
+    email: user.email ?? "",
+    ...(user.phone ? { phone: user.phone } : {}),
+  };
+}
+
+/** `items` is a json column, so read it defensively rather than trusting it. */
+function readItems(value: TicketOrder["items"]): StoredItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const items: StoredItem[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "object" || entry === null) {
+      continue;
+    }
+    const { type, quantity, unitPriceMinor } = entry as {
+      type?: unknown;
+      quantity?: unknown;
+      unitPriceMinor?: unknown;
+    };
+    if (typeof type !== "string" || typeof quantity !== "number") {
+      continue;
+    }
+    items.push({
+      type,
+      quantity,
+      unitPriceMinor: typeof unitPriceMinor === "number" ? unitPriceMinor : 0,
+    });
+  }
+  return items;
+}
+
+function selectionKey(items: TicketLine[]): string {
+  return JSON.stringify(
+    [...items]
+      .sort((left, right) => left.type.localeCompare(right.type))
+      .map(({ type, quantity }) => ({ type, quantity }))
+  );
+}
+
+/** Built from the stored row so a replay sends byte-for-byte the same body. */
+function checkoutRequest(order: {
+  eventId: string | null | undefined;
+  sessionId: string | null | undefined;
+  items: TicketLine[];
+  buyer: Buyer;
+}): ShowsCheckoutRequest {
+  return {
+    eventId: order.eventId ?? "",
+    sessionId: order.sessionId ?? "",
+    items: order.items.map((item) => ({
+      tierId: item.type,
+      quantity: item.quantity,
+    })),
+    buyer: order.buyer,
+  };
+}
+
+/**
+ * A pending order this caller can pick up again instead of minting a second one.
+ *
+ * Shows' `expiresAt` has no column on the collection, so the same 15-minute
+ * hold stands in for an unexpired reference.
+ * shortcut: an early-expired checkout is replayed rather than recreated; store
+ * the expiry on the row when the collection gains the field.
+ */
+async function findReusableOrder(
+  payload: Context["payload"],
+  userId: string,
+  sessionId: string,
+  selection: TicketLine[],
+  now: number
+): Promise<TicketOrder | null> {
+  const found = await payload.find({
+    collection: "ticket-orders",
+    where: {
+      and: [
+        { user: { equals: userId } },
+        { sessionId: { equals: sessionId } },
+        { state: { equals: "pending" } },
+      ],
+    },
+    sort: "-createdAt",
+    limit: 20,
+    depth: 0,
+  });
+
+  for (const order of found.docs) {
+    const created = Date.parse(order.createdAt);
+    if (!Number.isFinite(created) || now - created >= ORDER_HOLD_MS) {
+      continue;
+    }
+    if (selectionKey(readItems(order.items)) === selectionKey(selection)) {
+      return order;
+    }
+  }
+
+  return null;
+}
+
+function mapOrder(order: TicketOrder) {
+  return {
+    reference: order.reference ?? "",
+    orderReference: order.orderReference ?? null,
+    state: isOrderState(order.state) ? order.state : "pending",
+    eventId: order.eventId ?? null,
+    eventName: order.eventName ?? null,
+    sessionId: order.sessionId ?? null,
+    sessionAt: order.sessionAt ?? null,
+    items: readItems(order.items).map(({ type, quantity, unitPriceMinor }) => ({
+      type,
+      quantity,
+      unitPriceMinor,
+    })),
+    amountMinor: order.amountMinor ?? null,
+    currency: order.currency ?? CURRENCY,
+    refundedMinor: order.refundedMinor ?? 0,
+    pointsAwarded: order.pointsAwarded ?? 0,
+    createdAt: order.createdAt,
+  };
+}
+
+function purchaseState(purchase: ShowsPurchase): OrderState | null {
+  const state = purchase.state ?? purchase.status;
+  return isOrderState(state) ? state : null;
+}
+
+/**
+ * Price a selection against live inventory, or null when a line cannot be
+ * fulfilled as asked.
+ */
+function priceSelection(
+  inventory: ShowsInventory,
+  selection: TicketLine[]
+): { tiers: Map<string, ShowsInventoryTier>; amountMinor: number } | null {
+  const tiers = new Map(
+    (inventory.tiers ?? []).map((tier) => [tier.id, tier] as const)
+  );
+  let amountMinor = 0;
+
+  for (const line of selection) {
+    const tier = tiers.get(line.type);
+    if (
+      !tier ||
+      tier.soldOut ||
+      (tier.available != null && tier.available < line.quantity)
+    ) {
+      return null;
+    }
+    amountMinor += tier.priceMinor * line.quantity;
+  }
+
+  return { tiers, amountMinor };
+}
+
+function isUnknownOutcome(error: unknown): boolean {
+  return (
+    error instanceof ShowsApiError && error.code === "product_outcome_unknown"
+  );
+}
+
+/** A 5xx, timeout, or unknown outcome may have created a checkout upstream. */
+function isAmbiguousOutcome(error: unknown): boolean {
+  return (
+    isUnknownOutcome(error) ||
+    (error instanceof ShowsApiError &&
+      (error.status === 0 || error.status >= 500))
+  );
 }
 
 /** The typed client has no currency field, so ask for naira at the call site. */
@@ -265,8 +520,184 @@ const inventory = publicProcedure
     return mapInventory(result);
   });
 
+const checkout = protectedNoGuestProcedure
+  .use(checkoutRateLimit)
+  .errors(checkoutErrors)
+  .input(checkoutInput)
+  .handler(async ({ input, context, errors }) => {
+    const config = context.shows;
+    if (!config) {
+      throw errors.SERVICE_UNAVAILABLE({ message: UNAVAILABLE_MESSAGE });
+    }
+
+    const selection: TicketLine[] = input.tickets
+      .map((ticket) => ({ type: ticket.type, quantity: ticket.quantity }))
+      .sort((left, right) => left.type.localeCompare(right.type));
+
+    const available = await withShowsErrors(
+      () => getInventory(config, input.eventId, input.sessionId),
+      errors
+    );
+
+    if (!isNaira(available.currency)) {
+      throw errors.NOT_FOUND({ message: NOT_FOUND_MESSAGE });
+    }
+
+    const priced = priceSelection(available, selection);
+    if (!priced) {
+      throw errors.INSUFFICIENT_STOCK({
+        message: INSUFFICIENT_STOCK_MESSAGE,
+      });
+    }
+    const { tiers, amountMinor } = priced;
+
+    const order =
+      (await findReusableOrder(
+        context.payload,
+        context.user.id,
+        input.sessionId,
+        selection,
+        Date.now()
+      )) ??
+      (await context.payload.create({
+        collection: "ticket-orders",
+        data: {
+          user: context.user.id,
+          clientRef: crypto.randomUUID(),
+          idempotencyKey: crypto.randomUUID(),
+          state: "pending",
+          eventId: input.eventId,
+          sessionId: input.sessionId,
+          items: selection.map((line) => ({
+            type: line.type,
+            quantity: line.quantity,
+            // ShowsCheckout carries no amount, so the row records the shelf price
+            // until the purchase itself confirms what was charged.
+            unitPriceMinor: tiers.get(line.type)?.priceMinor ?? 0,
+          })),
+          amountMinor,
+          currency: CURRENCY,
+          buyer: buyerFor(context.user),
+        },
+      }));
+
+    const request = checkoutRequest({
+      eventId: order.eventId,
+      sessionId: order.sessionId,
+      items: readItems(order.items),
+      buyer: buyerFor(order.buyer ?? {}),
+    });
+
+    let shown: ShowsCheckout;
+    try {
+      try {
+        shown = await createCheckout(config, request, order.idempotencyKey);
+      } catch (error) {
+        if (!isUnknownOutcome(error)) {
+          throw error;
+        }
+        // The same key and body make the second call the same checkout.
+        shown = await createCheckout(config, request, order.idempotencyKey);
+      }
+    } catch (error) {
+      // A 4xx means no checkout exists upstream; anything else may have made
+      // one, so the row stays pending for a replay with the same key.
+      if (!isAmbiguousOutcome(error)) {
+        await context.payload.update({
+          collection: "ticket-orders",
+          id: order.id,
+          data: { state: "failed" },
+        });
+      }
+      if (
+        error instanceof ShowsApiError &&
+        error.code === "insufficient_stock"
+      ) {
+        throw errors.INSUFFICIENT_STOCK({
+          message: INSUFFICIENT_STOCK_MESSAGE,
+        });
+      }
+      throwShowsError(error, errors);
+    }
+
+    await context.payload.update({
+      collection: "ticket-orders",
+      id: order.id,
+      data: {
+        reference: shown.reference,
+        amountMinor: order.amountMinor ?? amountMinor,
+        currency: order.currency ?? CURRENCY,
+      },
+    });
+
+    return shown;
+  });
+
+const order = protectedNoGuestProcedure
+  .use(orderRateLimit)
+  .errors(eventsErrors)
+  .input(orderInput)
+  .handler(async ({ input, context, errors }) => {
+    const config = context.shows;
+    if (!config) {
+      throw errors.SERVICE_UNAVAILABLE({ message: UNAVAILABLE_MESSAGE });
+    }
+
+    const found = await context.payload.find({
+      collection: "ticket-orders",
+      where: {
+        and: [
+          { reference: { equals: input.reference } },
+          { user: { equals: context.user.id } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+    });
+
+    const row = found.docs[0];
+    if (!row) {
+      throw errors.NOT_FOUND({ message: ORDER_NOT_FOUND_MESSAGE });
+    }
+
+    const now = Date.now();
+    const lastSynced = row.lastSyncedAt ? Date.parse(row.lastSyncedAt) : null;
+    const fresh =
+      lastSynced !== null &&
+      Number.isFinite(lastSynced) &&
+      now - lastSynced < ORDER_REFRESH_MS;
+
+    if (row.state !== "pending" || fresh) {
+      return mapOrder(row);
+    }
+
+    const purchase = await withShowsErrors(
+      () => getPurchase(config, input.reference),
+      errors
+    );
+
+    const updated = await context.payload.update({
+      collection: "ticket-orders",
+      id: row.id,
+      data: {
+        state: purchaseState(purchase) ?? "pending",
+        amountMinor: purchase.amountMinor,
+        currency: purchase.currency,
+        refundedMinor: purchase.refundedMinor ?? row.refundedMinor ?? 0,
+        ...(purchase.orderReference
+          ? { orderReference: purchase.orderReference }
+          : {}),
+        lastSyncedAt: new Date(now).toISOString(),
+      },
+    });
+
+    return mapOrder(updated ?? row);
+  });
+
 export const eventsRouter = {
   list,
   get,
   inventory,
+  checkout,
+  order,
 };
