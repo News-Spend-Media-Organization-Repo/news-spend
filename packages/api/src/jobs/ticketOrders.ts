@@ -4,7 +4,7 @@ import type { BasePayload } from "payload";
 
 import { getPurchase } from "../lib/shows/client";
 import { type ShowsConfig, showsConfigFromEnv } from "../lib/shows/config";
-import { applyOrderState, type TicketOrderState } from "../lib/ticketOrders";
+import { applyOrderState, reportedOrderState } from "../lib/ticketOrders";
 
 /**
  * Reconcile orders a webhook missed.
@@ -19,29 +19,6 @@ import { applyOrderState, type TicketOrderState } from "../lib/ticketOrders";
 const STALE_AFTER_MS = 30 * 1000;
 const DEFAULT_MAX_AGE_HOURS = 72;
 const MAX_ROWS = 50;
-
-const RECONCILABLE_STATES: readonly TicketOrderState[] = [
-  "paid",
-  "expired",
-  "cancelled",
-  "refunded",
-  "failed",
-];
-
-function isReconcilableState(value: string): value is TicketOrderState {
-  return RECONCILABLE_STATES.some((state) => state === value);
-}
-
-/** The purchase's state, or null when Shows reports one we do not act on. */
-function reportedState(
-  value: string | null | undefined
-): TicketOrderState | null {
-  const state = value?.trim().toLowerCase();
-  if (!state) {
-    return null;
-  }
-  return isReconcilableState(state) ? state : null;
-}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -144,6 +121,75 @@ async function findStalePending(
   return docs;
 }
 
+type RowOutcome = "changed" | "unchanged" | "failed";
+
+/**
+ * Reconcile one row. A read that comes back still `pending` is a success and
+ * stamps `lastSyncedAt`, so the 50-row window rotates instead of pinning the
+ * same abandoned checkouts for ever.
+ */
+async function reconcileRow(
+  payload: BasePayload,
+  row: {
+    id: string | number;
+    reference?: string | null;
+    state?: string | null;
+  },
+  shows: ShowsConfig,
+  now: Date
+): Promise<RowOutcome> {
+  const reference = row.reference;
+  if (!reference) {
+    return "unchanged";
+  }
+
+  // Captured before the write: the row object is the one applyOrderState mutates.
+  const previousState = row.state;
+  const purchase = await getPurchase(shows, reference);
+  const reported = purchase.state || purchase.status;
+  const state = reportedOrderState(reported);
+  if (!state) {
+    // Retried on the next run, but named so a Shows-side spelling change is not
+    // silently ignored.
+    payload.logger.warn(
+      `ticket order reconcile: unrecognised state "${reported}" for ${reference}`
+    );
+    return "unchanged";
+  }
+
+  if (state === "pending") {
+    await payload.update({
+      collection: "ticket-orders",
+      id: row.id,
+      data: { lastSyncedAt: now.toISOString() },
+    });
+    return "unchanged";
+  }
+
+  const refundedMinor = purchase.refundedMinor ?? 0;
+  const outcome = await applyOrderState(payload, {
+    reference,
+    state,
+    amountMinor: purchase.amountMinor,
+    ...(refundedMinor > 0
+      ? {
+          refundedMinor,
+          // Shows reports a cumulative total, not a refund id. Keying the
+          // reversal on that total makes the first read reverse its share
+          // and a later, larger total reverse only the delta.
+          refundId: `reconcile:${reference}:${refundedMinor}`,
+        }
+      : {}),
+  });
+
+  if (outcome === "failed") {
+    return "failed";
+  }
+  return outcome === "applied" && previousState !== state
+    ? "changed"
+    : "unchanged";
+}
+
 export async function reconcileTicketOrders(
   payload: BasePayload,
   options: ReconcileOptions = {}
@@ -176,38 +222,10 @@ export async function reconcileTicketOrders(
   );
 
   for (const row of rows) {
-    const reference = row.reference;
-    // The query excludes these; this only narrows the type.
-    if (!reference) {
-      continue;
-    }
-
     result.checked += 1;
-    const previousState = row.state;
     try {
-      const purchase = await getPurchase(shows, reference);
-      const state = reportedState(purchase.state);
-      if (!state) {
-        continue;
-      }
-
-      const refundedMinor = purchase.refundedMinor ?? 0;
-      const outcome = await applyOrderState(payload, {
-        reference,
-        state,
-        amountMinor: purchase.amountMinor,
-        ...(refundedMinor > 0
-          ? {
-              refundedMinor,
-              // Shows reports a cumulative total, not a refund id. Keying the
-              // reversal on that total makes the first read reverse its share
-              // and a later, larger total reverse only the delta.
-              refundId: `reconcile:${reference}:${refundedMinor}`,
-            }
-          : {}),
-      });
-
-      if (outcome === "applied" && previousState !== state) {
+      const outcome = await reconcileRow(payload, row, shows, now);
+      if (outcome === "changed") {
         result.changed += 1;
       } else if (outcome === "failed") {
         result.failed += 1;
@@ -215,7 +233,7 @@ export async function reconcileTicketOrders(
     } catch (error) {
       result.failed += 1;
       payload.logger.error(
-        `ticket order reconcile failed for ${reference}: ${errorMessage(error)}`
+        `ticket order reconcile failed for ${row.reference}: ${errorMessage(error)}`
       );
     }
   }

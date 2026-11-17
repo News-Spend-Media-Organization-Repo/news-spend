@@ -520,6 +520,167 @@ describe("showsWebhookHandler", () => {
     ).toHaveLength(1);
   });
 
+  it("reverses a refund total reported on a paid transition", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "paid",
+            eventId: "event-1",
+            eventName: "Lagos Live",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 250,
+            pointsReversed: 0,
+          },
+        ],
+      },
+    });
+
+    const result = await applyEvent(
+      envelope({
+        data: {
+          purchase: "ref_1",
+          amount_minor: 850_000,
+          state: "paid",
+          refunded_minor: 425_000,
+          order_version: "2",
+        },
+      }) as never,
+      payload as never
+    );
+
+    expect(result).toBe("applied");
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "paid",
+      refundedMinor: 425_000,
+      pointsReversed: 125,
+    });
+    expect(
+      payload.docs("activities").filter((row) => row.action === "pointReversal")
+    ).toHaveLength(1);
+  });
+
+  it("does not pay a transition that reports a full refund", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "pending",
+            eventId: "event-1",
+            eventName: "Lagos Live",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 0,
+          },
+        ],
+      },
+    });
+
+    const result = await applyEvent(
+      envelope({
+        data: {
+          purchase: "ref_1",
+          amount_minor: 850_000,
+          state: "paid",
+          refunded_minor: 850_000,
+          order_version: "1",
+        },
+      }) as never,
+      payload as never
+    );
+
+    expect(result).toBe("applied");
+    expect(payload.docs("activities")).toHaveLength(0);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "refunded",
+      refundedMinor: 850_000,
+      pointsAwarded: 0,
+    });
+  });
+
+  it("derives a refund id when the event carries none", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          {
+            id: "order-1",
+            user: "user-1",
+            reference: "ref_1",
+            state: "paid",
+            eventId: "event-1",
+            eventName: "Lagos Live",
+            amountMinor: 850_000,
+            refundedMinor: 0,
+            pointsAwarded: 250,
+            pointsReversed: 0,
+          },
+        ],
+      },
+    });
+
+    const result = await applyEvent(
+      envelope({
+        type: "refund.updated",
+        aggregate: { type: "order", id: "ord_1", version: 2 },
+        data: { purchase: "ref_1", amount_minor: 425_000 },
+      }) as never,
+      payload as never
+    );
+
+    expect(result).toBe("applied");
+    expect(payload.docs("ticket-orders")[0]?.pointsReversed).toBe(125);
+    expect(
+      payload.docs("activities").filter((row) => row.action === "pointReversal")
+    ).toMatchObject([
+      { point: -125, providerRef: "shows:refund:ref_1:refund:425000" },
+    ]);
+  });
+
+  it("caps one cancellation delivery and asks for a retry", async () => {
+    const rows = Array.from({ length: 600 }, (_, index) => ({
+      id: `order-${index}`,
+      user: "user-1",
+      reference: `ref-${index}`,
+      state: "paid",
+      eventId: "event-1",
+      eventName: "Lagos Live",
+      amountMinor: 100_000,
+      refundedMinor: 0,
+      pointsAwarded: 50,
+      pointsReversed: 0,
+    }));
+    const payload = createFakePayload({
+      collections: { "ticket-orders": rows },
+    });
+    const cancelled = envelope({
+      type: "event.cancelled",
+      aggregate: { type: "event", id: "event-1", version: 2 },
+      data: { event_id: "event-1" },
+    });
+
+    // A full budget means Shows must redeliver; the next delivery resumes.
+    await expect(
+      applyEvent(cancelled as never, payload as never)
+    ).resolves.toBe("failed");
+    expect(
+      payload.docs("ticket-orders").filter((row) => row.state === "cancelled")
+    ).toHaveLength(500);
+
+    await expect(
+      applyEvent(cancelled as never, payload as never)
+    ).resolves.toBe("applied");
+    expect(
+      payload.docs("ticket-orders").filter((row) => row.state === "cancelled")
+    ).toHaveLength(600);
+  });
+
   it("does not let a cancelled transition overwrite the order amount", async () => {
     const payload = createFakePayload({
       collections: {

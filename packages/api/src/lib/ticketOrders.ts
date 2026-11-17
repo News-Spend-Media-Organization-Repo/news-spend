@@ -40,6 +40,30 @@ export type OrderStateInput = {
 
 export type TicketOrderWithRefund = TicketOrder & { refundId?: string };
 
+export type ReportedOrderState = TicketOrderState | "pending";
+
+const REPORTED_STATES: readonly ReportedOrderState[] = [
+  "pending",
+  "paid",
+  "expired",
+  "cancelled",
+  "refunded",
+  "failed",
+];
+
+/**
+ * The state Shows reports for a purchase, or null when it reports one this app
+ * does not act on. Reads `state` and `status`, the two spellings Shows has used.
+ */
+export function reportedOrderState(
+  value: string | null | undefined
+): ReportedOrderState | null {
+  const state = value?.trim().toLowerCase();
+  return state && (REPORTED_STATES as readonly string[]).includes(state)
+    ? (state as ReportedOrderState)
+    : null;
+}
+
 const POINTS_PER_THOUSAND = 30;
 const MINOR_PER_THOUSAND = 100_000;
 const MIN_AWARD = 50;
@@ -224,7 +248,8 @@ export async function awardEventTicketPoints(
 /**
  * Take back the paid proportion of a refund. The running `pointsReversed`
  * total makes this safe to call again for the same refund, and the refund's
- * own provider ref stops a second reversal row being written.
+ * own provider ref stops the same refund being taken back twice. A refund that
+ * grows under one id writes a delta row keyed by its new target.
  */
 export async function reverseEventTicketPoints(
   payload: BasePayload,
@@ -236,7 +261,15 @@ export async function reverseEventTicketPoints(
   const amountMinor = order.amountMinor ?? 0;
   const refundedMinor = order.refundedMinor ?? 0;
   const reversed = order.pointsReversed ?? 0;
-  if (!(reference && refundId) || awarded <= 0 || amountMinor <= 0) {
+  // The guard mirrors the award: without a real order total there is no share
+  // to take back, and the ratio below would divide by zero.
+  if (
+    !(reference && refundId) ||
+    awarded <= 0 ||
+    !Number.isFinite(amountMinor) ||
+    amountMinor <= 0 ||
+    refundedMinor <= 0
+  ) {
     return "nothing_to_reverse";
   }
 
@@ -245,10 +278,18 @@ export async function reverseEventTicketPoints(
     Math.floor((awarded * refundedMinor) / amountMinor)
   );
   const providerRef = `shows:refund:${reference}:${refundId}`;
+  const written = await findActivityPoint(payload, providerRef);
+  // A retry after the activity was written but the row was not stamped must
+  // count the written row rather than take the same points back again.
+  const deltaRef = `${providerRef}:${target}`;
+  const writtenDelta =
+    written === null ? null : await findActivityPoint(payload, deltaRef);
+  const already =
+    (written === null ? 0 : -written) +
+    (writtenDelta === null ? 0 : -writtenDelta);
+  const points = target - Math.max(reversed, already);
 
-  if (await hasActivity(payload, providerRef)) {
-    // A retry after the activity was written: finish recording it, never pay
-    // the same refund twice.
+  if (points <= 0) {
     if (target > reversed) {
       await payload.update({
         collection: "ticket-orders",
@@ -256,11 +297,6 @@ export async function reverseEventTicketPoints(
         data: { pointsReversed: target },
       });
     }
-    return "nothing_to_reverse";
-  }
-
-  const points = target - reversed;
-  if (points <= 0) {
     return "nothing_to_reverse";
   }
 
@@ -278,7 +314,9 @@ export async function reverseEventTicketPoints(
         action: "pointReversal",
         description: `${order.eventName ?? "Event"} ticket refund`,
         user: userId,
-        providerRef,
+        // The first reversal owns the base ref; a later, larger total under
+        // the same refund id gets its own deterministic delta row.
+        providerRef: written === null ? providerRef : deltaRef,
         metadata: {
           source: "shows",
           reference,
@@ -326,29 +364,28 @@ async function findOrderRow(payload: BasePayload, reference: string) {
 
 function orderPatch(
   input: OrderStateInput,
-  isRefund: boolean,
-  nextRefunded: number | undefined
+  refundAggregate: boolean,
+  nextState: TicketOrderState,
+  nextRefunded: number
 ): Record<string, unknown> {
   const data: Record<string, unknown> = {
-    state: input.state,
+    state: nextState,
     lastSyncedAt: new Date().toISOString(),
+    refundedMinor: nextRefunded,
   };
   if (input.orderVersion !== undefined) {
-    data[isRefund ? "refundVersion" : "orderVersion"] = input.orderVersion;
+    data[refundAggregate ? "refundVersion" : "orderVersion"] =
+      input.orderVersion;
   }
   // The signed amount is only the order total on a paid transition, and only
   // when it is a real amount: a cancellation carrying 0 must not wipe it.
   if (
-    !isRefund &&
     input.state === "paid" &&
     typeof input.amountMinor === "number" &&
     Number.isSafeInteger(input.amountMinor) &&
     input.amountMinor > 0
   ) {
     data.amountMinor = input.amountMinor;
-  }
-  if (nextRefunded !== undefined) {
-    data.refundedMinor = nextRefunded;
   }
   return data;
 }
@@ -406,11 +443,11 @@ async function applyRow(
   payload: BasePayload,
   row: TicketOrder,
   input: OrderStateInput,
-  isRefund: boolean
+  refundAggregate: boolean
 ): Promise<"applied" | "ignored"> {
-  const storedVersion = isRefund ? row.refundVersion : row.orderVersion;
+  const storedVersion = refundAggregate ? row.refundVersion : row.orderVersion;
   if (
-    !isRefund &&
+    !refundAggregate &&
     input.orderVersion !== undefined &&
     storedVersion &&
     !isNewer(input.orderVersion, storedVersion)
@@ -419,24 +456,31 @@ async function applyRow(
   }
 
   // The signed order amount beats the shelf price the row was created with.
-  const order = { ...row, amountMinor: input.amountMinor ?? row.amountMinor };
+  const amountMinor = input.amountMinor ?? row.amountMinor ?? 0;
   const storedRefunded = row.refundedMinor ?? 0;
-  const nextRefunded = isRefund
-    ? Math.max(storedRefunded, input.refundedMinor ?? storedRefunded)
-    : undefined;
+  const nextRefunded = Math.max(storedRefunded, input.refundedMinor ?? 0);
+  // A paid event that reports its own refund must not pay and then take the
+  // points straight back, and a fully refunded order must not read as paid.
+  const fullyRefunded =
+    nextRefunded > 0 && amountMinor > 0 && nextRefunded >= amountMinor;
+  const nextState =
+    input.state === "paid" && fullyRefunded ? "refunded" : input.state;
+  const order = { ...row, amountMinor, refundedMinor: nextRefunded };
 
+  const hasRefund =
+    input.refundId !== undefined || input.refundedMinor !== undefined;
   const refundRef =
-    isRefund && input.refundId
-      ? `shows:refund:${input.reference}:${input.refundId}`
-      : null;
+    input.refundId === undefined
+      ? null
+      : `shows:refund:${input.reference}:${input.refundId}`;
   const duplicateRefund = refundRef
     ? await hasActivity(payload, refundRef)
     : false;
 
   if (input.state === "paid") {
-    await payOrder(payload, order, input.reference, !isRefund);
+    await payOrder(payload, order, input.reference, !hasRefund);
   }
-  if (isRefund) {
+  if (hasRefund) {
     // The award above may have just paid this row; reverse against the stored
     // award, not the pre-award snapshot.
     const fresh = await findOrderRow(payload, input.reference);
@@ -448,10 +492,9 @@ async function applyRow(
     });
   }
 
-  const refundChanged =
-    nextRefunded !== undefined && nextRefunded !== storedRefunded;
+  const refundChanged = nextRefunded !== storedRefunded;
   const orderChanged =
-    row.state !== input.state ||
+    row.state !== nextState ||
     (input.orderVersion !== undefined && input.orderVersion !== storedVersion);
   if (duplicateRefund && !(refundChanged || orderChanged)) {
     return "ignored";
@@ -460,7 +503,7 @@ async function applyRow(
   await payload.update({
     collection: "ticket-orders",
     id: row.id,
-    data: orderPatch(input, isRefund, nextRefunded),
+    data: orderPatch(input, refundAggregate, nextState, nextRefunded),
   });
   return "applied";
 }
@@ -479,23 +522,22 @@ export async function applyOrderState(
   payload: BasePayload,
   input: OrderStateInput
 ): Promise<"applied" | "ignored" | "failed"> {
-  const isRefund =
-    input.refundId !== undefined || input.refundedMinor !== undefined;
+  // Only a refund aggregate is not version-gated: each refund starts at
+  // version 1. A paid transition that carries a refund total is still ordered.
+  const refundAggregate = input.state === "refunded";
 
-  // Refund versions are informational; only order versions order events.
-  if (
-    !isRefund &&
-    input.orderVersion !== undefined &&
-    !isDecimal(input.orderVersion)
-  ) {
-    return "failed";
-  }
+  // A version we cannot parse is treated as absent rather than failed: asking
+  // Shows to retry a delivery nothing can ever make valid never ends.
+  const clean =
+    input.orderVersion !== undefined && !isDecimal(input.orderVersion)
+      ? { ...input, orderVersion: undefined }
+      : input;
 
   return await withKeyedLock(`ticket-order:${input.reference}`, async () => {
     const row = await findOrderRow(payload, input.reference);
     if (!row) {
       return "failed";
     }
-    return await applyRow(payload, row, input, isRefund);
+    return await applyRow(payload, row, clean, refundAggregate);
   });
 }

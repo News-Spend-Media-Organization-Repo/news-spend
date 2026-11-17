@@ -25,7 +25,11 @@ import type {
   ShowsList,
   ShowsSession,
 } from "../../lib/shows/types";
-import { pointsFor } from "../../lib/ticketOrders";
+import {
+  applyOrderState,
+  pointsFor,
+  reportedOrderState,
+} from "../../lib/ticketOrders";
 
 /** v1 sells naira-only, and the list rarely changes enough to need fresher. */
 const LIST_TTL_MS = 5 * 60 * 1000;
@@ -408,9 +412,13 @@ async function reapExpiredOrders(
   const live: TicketOrder[] = [];
   for (const order of found.docs) {
     if (isStale(order, now)) {
+      // Conditional: a payment that landed since the read must not be
+      // overwritten by this expiry.
       await payload.update({
         collection: "ticket-orders",
-        id: order.id,
+        where: {
+          and: [{ id: { equals: order.id } }, { state: { equals: "pending" } }],
+        },
         data: { state: "expired" },
       });
     } else {
@@ -812,11 +820,43 @@ const order = protectedNoGuestProcedure
 
     // The read must survive a Shows outage; the next poll retries.
     try {
-      await getPurchase(config, input.reference);
-      const updated = await context.payload.update({
+      const purchase = await getPurchase(config, input.reference);
+      const state = reportedOrderState(purchase.state || purchase.status);
+      // A state we cannot act on leaves `lastSyncedAt` alone so the reconcile
+      // job picks the row up instead of this endpoint blocking it.
+      if (!state) {
+        return mapOrder(row);
+      }
+
+      if (state === "pending") {
+        const updated = await context.payload.update({
+          collection: "ticket-orders",
+          id: row.id,
+          data: { lastSyncedAt: new Date(now).toISOString() },
+        });
+        return mapOrder(updated ?? row);
+      }
+
+      const refundedMinor = purchase.refundedMinor ?? 0;
+      await applyOrderState(context.payload, {
+        reference: input.reference,
+        state,
+        amountMinor: purchase.amountMinor,
+        ...(refundedMinor > 0
+          ? {
+              refundedMinor,
+              // Shows reports a cumulative total, not a refund id; keying the
+              // reversal on it takes back the share once per new total.
+              refundId: `reconcile:${input.reference}:${refundedMinor}`,
+            }
+          : {}),
+      });
+
+      const updated = await context.payload.findByID({
         collection: "ticket-orders",
         id: row.id,
-        data: { lastSyncedAt: new Date(now).toISOString() },
+        depth: 0,
+        disableErrors: true,
       });
       return mapOrder(updated ?? row);
     } catch {

@@ -176,6 +176,38 @@ describe("applyOrderState", () => {
     });
   });
 
+  it("writes a delta reversal when one refund id grows", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [order({ state: "paid", pointsAwarded: 250 })],
+      },
+    });
+    const refund = (refundedMinor: number) => ({
+      reference: "ref_1",
+      state: "refunded" as const,
+      refundId: "refund-1",
+      refundedMinor,
+    });
+
+    await applyOrderState(payload as never, refund(425_000));
+    await applyOrderState(payload as never, refund(850_000));
+
+    const reversals = activities(payload, "pointReversal");
+    expect(reversals.map((row) => row.point)).toEqual([-125, -125]);
+    expect(reversals.map((row) => row.providerRef)).toEqual([
+      "shows:refund:ref_1:refund-1",
+      "shows:refund:ref_1:refund-1:250",
+    ]);
+    // The ledger must give back exactly what was awarded, no more and no less.
+    expect(
+      reversals.reduce((total, row) => total - Number(row.point ?? 0), 0)
+    ).toBe(250);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      refundedMinor: 850_000,
+      pointsReversed: 250,
+    });
+  });
+
   it("does not award when a refund arrived before paid", async () => {
     const payload = createFakePayload({
       collections: { "ticket-orders": [order()] },
@@ -196,6 +228,8 @@ describe("applyOrderState", () => {
 
     expect(activities(payload, "eventTicket")).toHaveLength(0);
     expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      // A fully refunded order must not read as paid after a late transition.
+      state: "refunded",
       pointsAwarded: 0,
       refundedMinor: 850_000,
     });
@@ -222,6 +256,7 @@ describe("applyOrderState", () => {
     });
 
     expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "paid",
       pointsAwarded: 250,
       pointsReversed: 125,
     });
@@ -271,10 +306,111 @@ describe("applyOrderState", () => {
     );
     expect(reversed).toBe(120);
     expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "paid",
       pointsAwarded: 120,
       pointsReversed: 120,
       amountMinor: 850_000,
     });
+  });
+
+  it("skips the award when the paid event reports its own full refund", async () => {
+    const payload = createFakePayload({
+      collections: { "ticket-orders": [order()] },
+    });
+
+    await expect(
+      applyOrderState(payload as never, {
+        reference: "ref_1",
+        state: "paid",
+        amountMinor: 850_000,
+        refundedMinor: 850_000,
+        refundId: "transition:850000",
+        orderVersion: "1",
+      })
+    ).resolves.toBe("applied");
+
+    // The refund total arrives with the payment: nothing may be paid, and the
+    // points must not be awarded and immediately taken back.
+    expect(activities(payload, "eventTicket")).toHaveLength(0);
+    expect(activities(payload, "pointReversal")).toHaveLength(0);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "refunded",
+      refundedMinor: 850_000,
+      pointsAwarded: 0,
+    });
+  });
+
+  it("does not flip a fully refunded order back to paid", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          order({
+            state: "refunded",
+            refundedMinor: 850_000,
+            pointsAwarded: 250,
+            pointsReversed: 250,
+          }),
+        ],
+      },
+    });
+
+    await expect(
+      applyOrderState(payload as never, {
+        reference: "ref_1",
+        state: "paid",
+        amountMinor: 850_000,
+        orderVersion: "2",
+      })
+    ).resolves.toBe("applied");
+
+    expect(activities(payload, "eventTicket")).toHaveLength(0);
+    expect(activities(payload, "pointReversal")).toHaveLength(0);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "refunded",
+      pointsAwarded: 250,
+      pointsReversed: 250,
+    });
+  });
+
+  it("treats an unparseable order version as absent", async () => {
+    const payload = createFakePayload({
+      collections: { "ticket-orders": [order()] },
+    });
+
+    // Failing this would ask Shows to retry a delivery that can never pass.
+    await expect(
+      applyOrderState(payload as never, {
+        reference: "ref_1",
+        state: "paid",
+        orderVersion: "v2",
+      })
+    ).resolves.toBe("applied");
+
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "paid",
+      pointsAwarded: 250,
+    });
+    expect(payload.docs("ticket-orders")[0]?.orderVersion).toBeUndefined();
+  });
+
+  it("does not divide by a missing order total when reversing", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [
+          order({ state: "paid", amountMinor: 0, pointsAwarded: 250 }),
+        ],
+      },
+    });
+
+    await applyOrderState(payload as never, {
+      reference: "ref_1",
+      state: "refunded",
+      refundId: "refund-1",
+      refundedMinor: 425_000,
+    });
+
+    expect(activities(payload, "pointReversal")).toHaveLength(0);
+    expect(payload.docs("ticket-orders")[0]?.pointsReversed ?? 0).toBe(0);
   });
 
   it("does not double-reverse a duplicate refund event", async () => {

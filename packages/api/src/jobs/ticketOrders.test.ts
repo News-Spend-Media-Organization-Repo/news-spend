@@ -314,6 +314,75 @@ describe("reconcileTicketOrders", () => {
     ).toHaveLength(1);
   });
 
+  it("accepts the status spelling for a purchase state", async () => {
+    const payload = createFakePayload({
+      collections: {
+        "ticket-orders": [order({ state: "pending", pointsAwarded: 0 })],
+      },
+    });
+
+    const result = await reconcileTicketOrders(payload as never, {
+      now: NOW,
+      shows: shows({
+        ref_1: { ...PAID_PURCHASE, state: undefined, status: "paid" },
+      }),
+    });
+
+    expect(result).toEqual({ checked: 1, changed: 1, failed: 0 });
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "paid",
+      pointsAwarded: 250,
+    });
+  });
+
+  it("rotates the 50-row window so a newer order is reached on the second run", async () => {
+    const older = Array.from({ length: 60 }, (_, index) =>
+      order({
+        id: `pending-${index}`,
+        reference: `pending-${index}`,
+        createdAt: new Date(
+          NOW.getTime() - (index + 10) * 60_000
+        ).toISOString(),
+      })
+    );
+    const newer = order({
+      id: "newer",
+      reference: "newer",
+      createdAt: new Date(NOW.getTime() - 5 * 60_000).toISOString(),
+    });
+    const payload = createFakePayload({
+      collections: { "ticket-orders": [...older, newer] },
+    });
+
+    const purchases: Record<string, unknown> = {};
+    for (const row of older) {
+      purchases[String(row.reference)] = {
+        reference: row.reference,
+        state: "pending",
+        amountMinor: 850_000,
+        currency: "NGN",
+      };
+    }
+    purchases.newer = { ...PAID_PURCHASE, reference: "newer" };
+    const options = { now: NOW, shows: shows(purchases) };
+
+    const first = await reconcileTicketOrders(payload as never, options);
+    expect(first.checked).toBe(50);
+    expect(
+      payload.docs("ticket-orders").find((row) => row.reference === "newer")
+        ?.state
+    ).toBe("pending");
+
+    const second = await reconcileTicketOrders(payload as never, options);
+
+    // The 60th older row and the newer one, which the first run's window never
+    // reached because a pending read used to leave `lastSyncedAt` untouched.
+    expect(second.checked).toBe(11);
+    expect(
+      payload.docs("ticket-orders").find((row) => row.reference === "newer")
+    ).toMatchObject({ state: "paid", pointsAwarded: 250 });
+  });
+
   it("still recovers paid rows when 50 stale pending rows are older", async () => {
     const pending = Array.from({ length: 50 }, (_, index) =>
       order({

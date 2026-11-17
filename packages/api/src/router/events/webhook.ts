@@ -158,11 +158,17 @@ async function applyTransition(
   if (data.state === "paid" && data.amountMinor === null) {
     return "failed";
   }
+  const refundedMinor = data.refundedMinor ?? 0;
   return await applyOrderState(payload, {
     reference: data.reference,
     state: data.state,
     orderVersion: data.orderVersion ?? undefined,
     amountMinor: data.amountMinor ?? undefined,
+    // A transition that reports a refund carries the money that was already
+    // given back: keyed by the total so it is applied (and reversed) once.
+    ...(refundedMinor > 0
+      ? { refundedMinor, refundId: `transition:${refundedMinor}` }
+      : {}),
   });
 }
 
@@ -173,12 +179,15 @@ async function applyRefund(
   if (!data.reference || data.amountMinor === null) {
     return "failed";
   }
+  const refundedMinor = data.refundedMinor ?? data.amountMinor;
   return await applyOrderState(payload, {
     reference: data.reference,
     state: data.state ?? "refunded",
     orderVersion: data.refundVersion ?? undefined,
-    refundedMinor: data.refundedMinor ?? data.amountMinor,
-    refundId: data.refundId ?? undefined,
+    refundedMinor,
+    // Without an id the money would be recorded but the points never taken
+    // back; the total is the most specific stable key available.
+    refundId: data.refundId ?? `refund:${refundedMinor}`,
   });
 }
 
@@ -206,6 +215,10 @@ async function applyExpiry(
   });
 }
 
+/** Cancelling is a write per order, so one delivery gets a bounded budget. */
+const CANCEL_BATCH = 100;
+const CANCEL_LIMIT = 500;
+
 async function applyCancellation(
   payload: BasePayload,
   data: ShowsEventData
@@ -213,26 +226,27 @@ async function applyCancellation(
   if (!data.eventId) {
     return "ignored";
   }
+  const eventId = data.eventId;
 
   let applied = false;
-  for (;;) {
+  let processed = 0;
+
+  while (processed < CANCEL_LIMIT) {
     // Page one each time: cancelling a row takes it out of the filter, so the
     // next batch moves up rather than being skipped by a growing page number.
     const { docs: orders } = await payload.find({
       collection: "ticket-orders",
       where: {
-        and: [
-          { eventId: { equals: data.eventId } },
-          { state: { equals: "paid" } },
-        ],
+        and: [{ eventId: { equals: eventId } }, { state: { equals: "paid" } }],
       },
-      limit: 100,
+      limit: CANCEL_BATCH,
       page: 1,
       depth: 0,
     });
 
     let batchApplied = false;
     for (const row of orders) {
+      processed += 1;
       if (!row.reference) {
         continue;
       }
@@ -249,6 +263,22 @@ async function applyCancellation(
     if (!batchApplied) {
       break;
     }
+  }
+
+  if (processed >= CANCEL_LIMIT) {
+    // A full budget means there is more to do than one delivery can hold.
+    // Failing the event asks Shows to redeliver, and the next delivery resumes
+    // from the rows still paid instead of repeating this budget.
+    const { totalDocs } = await payload.count({
+      collection: "ticket-orders",
+      where: {
+        and: [{ eventId: { equals: eventId } }, { state: { equals: "paid" } }],
+      },
+    });
+    payload.logger.warn(
+      `event cancellation paused after ${CANCEL_LIMIT} orders; ${totalDocs} still paid for ${eventId}`
+    );
+    return "failed";
   }
 
   // Points are deliberately untouched: Shows' refund event is the only thing

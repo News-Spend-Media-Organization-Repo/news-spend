@@ -510,6 +510,38 @@ describe("eventsRouter.checkout", () => {
     expect(posts[1]?.key).not.toBe(posts[0]?.key);
   });
 
+  it("does not expire a row that was paid between the read and the write", async () => {
+    const { ctx, payload } = setup({
+      orders: [order({ state: "pending" })],
+      routes: { checkouts: { body: CHECKOUT } },
+    });
+
+    // Simulate the race: the reaper's read returns a stale pending row, and a
+    // payment lands before its write.
+    const find = payload.find.bind(payload);
+    let pendingReads = 0;
+    payload.find = async (args) => {
+      const result = await find(args);
+      if (
+        args.collection === "ticket-orders" &&
+        JSON.stringify(args.where).includes('"equals":"pending"')
+      ) {
+        pendingReads += 1;
+        const target = payload.docs("ticket-orders")[0];
+        if (pendingReads === 2 && target) {
+          target.state = "paid";
+        }
+      }
+      return result;
+    };
+
+    await call(eventsRouter.checkout, INPUT, { context: ctx });
+
+    const rows = payload.docs("ticket-orders");
+    expect(rows.find((row) => row.reference === "ref-1")?.state).toBe("paid");
+    expect(rows).toHaveLength(2);
+  });
+
   it("serialises two same-user taps into one row and one checkout", async () => {
     const { calls, ctx, payload } = setup({
       routes: { checkouts: { body: CHECKOUT } },
@@ -672,7 +704,35 @@ describe("eventsRouter.order", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("stamps lastSyncedAt after thirty seconds without changing state", async () => {
+  it("applies the reported state and returns the refreshed row", async () => {
+    const { calls, ctx, payload } = setup({
+      orders: [
+        order({
+          state: "pending",
+          pointsAwarded: 0,
+          lastSyncedAt: "2026-11-17T09:59:29.000Z",
+        }),
+      ],
+      routes: { purchases: { body: purchase() } },
+    });
+
+    const result = await call(
+      eventsRouter.order,
+      { reference: "ref-1" },
+      { context: ctx }
+    );
+
+    expect(result.state).toBe("paid");
+    expect(result.pointsAwarded).toBe(300);
+    expect(calls).toHaveLength(1);
+    expect(payload.docs("ticket-orders")[0]).toMatchObject({
+      state: "paid",
+      amountMinor: 1_000_000,
+      lastSyncedAt: NOW.toISOString(),
+    });
+  });
+
+  it("stamps lastSyncedAt when the purchase is still pending", async () => {
     const { calls, ctx, payload } = setup({
       orders: [
         order({
@@ -683,6 +743,7 @@ describe("eventsRouter.order", () => {
       routes: {
         purchases: {
           body: purchase({
+            state: "pending",
             amountMinor: 0,
             currency: "USD",
             refundedMinor: 500,
@@ -708,6 +769,30 @@ describe("eventsRouter.order", () => {
       refundedMinor: 0,
       lastSyncedAt: NOW.toISOString(),
     });
+  });
+
+  it("leaves lastSyncedAt alone when the reported state is unusable", async () => {
+    const { ctx, payload } = setup({
+      orders: [
+        order({
+          state: "pending",
+          lastSyncedAt: "2026-11-17T09:59:29.000Z",
+        }),
+      ],
+      routes: { purchases: { body: purchase({ state: "processing" }) } },
+    });
+
+    const result = await call(
+      eventsRouter.order,
+      { reference: "ref-1" },
+      { context: ctx }
+    );
+
+    expect(result.state).toBe("pending");
+    // Reconcile must still see this row as stale and act on it.
+    expect(payload.docs("ticket-orders")[0]?.lastSyncedAt).toBe(
+      "2026-11-17T09:59:29.000Z"
+    );
   });
 
   it("returns the row unchanged when the refresh 404s", async () => {
