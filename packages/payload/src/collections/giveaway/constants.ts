@@ -416,6 +416,7 @@ export const AUDIT_EVENT_TYPES = [
   "draw_error",
   "winner_report_sent",
   "claim_status_change",
+  "manual_winner_added",
 ] as const;
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 

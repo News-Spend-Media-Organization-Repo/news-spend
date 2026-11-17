@@ -1467,7 +1467,8 @@ export interface GiveawayAuditLog {
     | 'draw_completed'
     | 'draw_error'
     | 'winner_report_sent'
-    | 'claim_status_change';
+    | 'claim_status_change'
+    | 'manual_winner_added';
   /**
    * The user this event concerns, where applicable.
    */
