@@ -16,7 +16,10 @@
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
     "strictNullChecks": true,
     "allowJs": true,
-    "noEmit": true
+    "noEmit": true,
+    // "bun" supplies the `bun:test` module types; the base config sets
+    // types: ["node"], which would otherwise exclude it.
+    "types": ["node", "bun"]
   },
   "exclude": [
     "next-env.d.ts",
